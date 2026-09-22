@@ -50,7 +50,8 @@ import { STATUS_MODEL } from '../../engine/core/Hooks';
 
 import type { ProgramData, ProgramAction } from '../../engine/types';
 import HOOK_LIBRARY from '../../engine/data/lib/hooks.json';
-import { GetProgramData } from '../../engine/data/programRegistry';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { GetProgramData, getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import { numericBaseCost, HP_MULTIPLIER, NUMBER_SCALE } from '../../engine/types';
 import { DEFAULT_GAME_CONFIG } from '../../engine/data/gameConfig';
 import { BURN_CONFIG } from '../../engine/StatusBehaviors';
@@ -264,6 +265,18 @@ export function budgetBandFor(cost: number): BudgetBand {
  * whenever a frame changes size - ticket 131b's x1.5 had already left it 1.5x stale.
  */
 const ASSUMED_MAX_HP = Math.round(75 * HP_MULTIPLIER * NUMBER_SCALE);
+
+/**
+ * The BOARD-pile assumption: how many stacks of a status a card can expect to find when it reads
+ * one. Stays at 3 - Henry, 2026-08-15, after the roster-wide census.
+ *
+ * This is a FLOOR, not a price: a static pass cannot see the board, and several paths that use it
+ * meet larger piles in play (see research/status-pile-census.md). Ticket 149c-7 moved it to module
+ * scope so `scoreOS` prices a flat-bonus firmware hook against this number rather than inventing a
+ * second one - the census read 9.4 Poison stacks for TOXIN_FANG and 13 Sharp for KINETIC_RAM on
+ * the decks that ship them, and those decks are built to feed the hook.
+ */
+const ASSUMED_BOARD_STATUS_COUNT = 3;
 /** docs/power_curve_spec.md: damage costs 3 power per 1% of a health pool. */
 const POWER_PER_PERCENT_MAXHP = 3;
 
@@ -878,11 +891,9 @@ const scoreAtWidth = (
      * discarded per cast on the owning deck) and `research/scorer-pricing.md` §4.
      */
     const ASSUMED_CARDS_DISCARDED = 2;
-    // The BOARD-pile assumption: how many stacks of a status a card can expect to find when it
-    // reads one. Stays at 3 - Henry, 2026-08-15, after the roster-wide census. This is a FLOOR,
-    // not a price: a static pass cannot see the board, and several paths that use it meet
-    // larger piles in play (see research/status-pile-census.md).
-    const ASSUMED_STATUS_COUNT = 3;
+    // The board-pile assumption, hoisted to module scope by ticket 149c-7 so `scoreOS` can price
+    // a flat-bonus firmware hook against the same number rather than a second copy of it.
+    const ASSUMED_STATUS_COUNT = ASSUMED_BOARD_STATUS_COUNT;
 
     // The CONSUMED-pile assumption, which is a different question and gets a different number:
     // how many stacks are actually on your own pile at the moment you cash it in. Ticket 58
@@ -1498,3 +1509,319 @@ export const calculatePowerscale = (
     const wide = scoreAtWidth(card, '3v3', seen);
     return { ...narrow, score1v1: narrow.score, score3v3: wide.score };
 };
+
+/*
+ * ══ TICKET 149c-7 — FIRMWARE GETS A BAND OF ITS OWN ═══════════════════════════════════════
+ *
+ * §4.5: OSes are scored in **delivered value per game as a percentage of a health pool** — the
+ * census unit — with **15–40% in band and anything above 50% flagged**.
+ *
+ * A percentage of a pool rather than a card score, because an OS is not a card. It costs no
+ * energy, occupies no slot, is chosen once and then runs for the whole game; there is no budget
+ * band to hold it against. What CAN be asked is "how much of a health pool does this firmware
+ * move over a game", and the census answered it for 33 of them.
+ *
+ * ── WHERE THE RATES COME FROM, AND WHY NOT §5's "HORIZON 5" ───────────────────────────────
+ *
+ * §5 said "Σ hooks via 149c-6 with horizon 5", i.e. the daemon trigger table times five turns.
+ * That table cannot reach firmware: it has eight classes, drawn from the fourteen DAEMON hooks,
+ * and the OS hooks fire on `onHeal`, `onDiscarded`, `onDeckShuffled`, `onHpThresholdCrossed`,
+ * `onStatusRemoved` and any-cost own-play — none of which the daemon census measured. Applying
+ * it would have returned MANUAL REVIEW for most of the roster.
+ *
+ * The firmware census measured each OS directly instead, in **procs per game**, which is the
+ * denominator §4.5's band is already expressed in. So `OS_PROC_RATE` is per-hook and measured,
+ * and there is no horizon to multiply by — a per-game rate already spans the game, and
+ * multiplying it by five would be counting the same procs five times.
+ *
+ * This keeps 149c-6's split exactly: **the payoff is computed from the card data, the rate is
+ * measured**. Re-tune what a hook does and the score follows; change how often it fires and the
+ * census has to be re-run, which is the honest dependency rather than a hidden one.
+ */
+
+/** §4.5's band, in percent of a health pool delivered per game. */
+export const OS_BAND_MIN_PCT = 15;
+export const OS_BAND_MAX_PCT = 40;
+export const OS_FLAG_PCT = 50;
+
+/**
+ * Procs per game, per HOOK, from the ticket-63 firmware census delivered under 149 §3d
+ * (`research/firmware-power-census.md`, tables 1–3; the parenthesised "offers" column there is
+ * how often the trigger CONDITION was met, this is how often the hook actually fired).
+ *
+ * Per hook and not per OS because several OSes register more than one, at different rates:
+ * `fenrir_v1` fires its own-attack hook and its ally-attack hook 6.09 times each, while
+ * `jormungandr_v1` counts on every ally action and only pays out on the fifth, 1.63 times.
+ *
+ * An OS absent from this table is NOT scored 0 — it is reported as unmeasured. A default here
+ * would read as a measurement, which is the failure mode ticket 66 spent a whole census
+ * correcting.
+ */
+export const OS_PROC_RATE: Record<string, number> = {
+    // ── Table 1: HP-denominated payoffs ──
+    valk_v2_rebirth: 14.12,             // valkyrie_v2 REBIRTH_CYCLE_OS, on reshuffle
+    hraes_v1_gale: 12.80,               // hraesvelgr_v1 GALE_FORCE_OS, on voluntary discard
+    ratatoskr_v1_hook: 53.8,            // ratatoskr_v1 GOSSIP_NODE — the largest rate in the census
+    fenrir_v1_hook: 6.09,               // fenrir_v1 UNBOUND_KERNEL, own attack
+    fenrir_v1_ally_hook: 6.09,          // ...and the ally half, same rate (SELF is an ally at 1v1)
+
+    // ── Table 2: modifier hooks ──
+    jorm_v2_toxin_fang: 5.70,           // jormungandr_v2 TOXIN_FANG_OS
+    draugr_v2_chill: 8.70,              // draugr_v2 GRAVE_CHILL_OS, fires on 35% of hits
+    gullin_v2_ram: 23.39,               // gullinbursti_v2 KINETIC_RAM_OS, on her multi-hit list
+    kraken_v2_hook: 3.00,               // kraken_v2 TIDAL_CRUSH_OS
+    hel_v2_lifeblood: 0.00,             // hel_v2 — measured INERT: x1.0 multiplier, 0 procs
+
+    // ── Table 3: stat / resource grants ──
+    huldra_v1_hook: 20.34,              // huldra_v1 ALLURE_PROXY
+    kraken_v1_hook: 6.58,               // kraken_v1 ABYSSAL_INK_SYS
+    ratatoskr_v2_hook: 12.55,           // ratatoskr_v2 INSTIGATOR_OS
+    nidhoggr_v2_bloodscent: 2.11,       // nidhoggr_v2 BLOOD_SCENT_OS
+    nidhoggr_v1_root: 2.66,             // nidhoggr_v1 ROOT_CORRUPTION
+    ymir_v1_hook: 7.90,                 // ymir_v1 GLACIER_HEART_SYS
+    aud_v2_milk: 10.20,                 // audhumbla_v2 PRIMORDIAL_MILK
+    fafnir_v2_corrupted: 3.08,          // fafnir_v2 CORRUPTED_GOLD_OS
+    fenrir_v2_hook: 9.24,               // fenrir_v2 CINDER_WALL_OS
+    skoll_v2_solar_charge: 4.98,        // skoll_v2 solar_charge (the Strengthened half)
+    jorm_v1_trigger: 1.63,              // jormungandr_v1 OUROBOROS_LOOP, the 5th-card payout
+    draugr_v1_wake: 0.91,               // draugr_v1 PERMAFROST_WAKE
+    hel_v1_cadence_dark: 6.02,          // hel_v1 TWILIGHT_CADENCE, Dark half
+    hel_v1_cadence_light: 5.89,         // ...and Light half
+    skoll_v1_hook: 10.90,               // skoll_v1 TREACHERY_KERNEL
+    sleipnir_v1_hook: 10.74,            // sleipnir_v1 MOMENTUM_DRIVE
+    sleipnir_v2_hook: 8.80,             // sleipnir_v2 WAR_STEED_OS
+    aud_v1_genesis: 1.87,               // audhumbla_v1 GENESIS_FIRMWARE, the overheal payout
+    gullin_v1_prepare: 0.00,            // gullinbursti_v1 UNSTOPPABLE_MASS — see the note below
+};
+
+/**
+ * Hooks whose measured rate is a real zero rather than a gap, with the reason.
+ *
+ * `hel_v2_lifeblood` is an `x1.0` multiplier: it multiplies healing by one. 149b flagged it as
+ * **inert** and it is one of the two findings that were not on the ticket.
+ *
+ * `gullin_v1_prepare` is `BUFF_NEXT_PROGRAM`, which leaves no state delta the census probe could
+ * read — 42.84 offers and nothing measurable. That is a limit of the INSTRUMENT, not a fact about
+ * the card, and it is recorded separately for exactly that reason.
+ */
+export const OS_RATE_ZERO_REASON: Record<string, string> = {
+    hel_v2_lifeblood: 'measured inert: an x1.0 multiplier, 0 procs',
+    gullin_v1_prepare: 'BUFF_NEXT_PROGRAM leaves no state delta the census probe reads (42.8 offers)',
+};
+
+/** How one hook contributes to its OS's per-game total. */
+export interface OsHookContribution {
+    hookId: string;
+    /** `ACTIONS` scores the hook's own `do`; `MULTIPLIER` and `FLAT_BONUS` are priced below. */
+    kind: 'ACTIONS' | 'MULTIPLIER' | 'FLAT_BONUS' | 'UNREADABLE';
+    /** Procs per game from the census, or null when this hook was never measured. */
+    procsPerGame: number | null;
+    /** The payoff of one proc, in the scorer's /10 power units. */
+    perProcScore: number;
+    /** `perProcScore x procsPerGame`, converted to percent of a health pool. */
+    pctOfPool: number;
+}
+
+export type OsVerdict = 'UNDER BAND' | 'IN BAND' | 'OVER BAND' | 'FLAGGED' | 'UNMEASURED';
+
+export interface OsScore {
+    id: string;
+    name: string;
+    /** §4.5's unit: delivered value per game as a percentage of a health pool. */
+    pctOfPoolPerGame: number;
+    verdict: OsVerdict;
+    contributions: OsHookContribution[];
+    /** Hook ids this OS registers that the census never measured. */
+    unmeasured: string[];
+    /**
+     * Action types inside a hook's payoff that the static formula cannot honestly price -
+     * `MAX_ENERGY`, `COUNTER`, `BUFF_NEXT_PROGRAM` and the rest of `MANUAL_REVIEW_TYPES`.
+     *
+     * A percentage with entries here is a FLOOR, not a price, in exactly the way a card's score
+     * is when its `manualReview` is non-empty. `audhumbla_v1` GENESIS_FIRMWARE is the clearest
+     * case: its whole payoff is `MAX_ENERGY`, so its honest reading is "unmeasured", not "0%".
+     */
+    unpriced: string[];
+    /**
+     * True when the OS registers no hooks at all in `hooks.json` — its behaviour lives in
+     * `CustomFirmware` rather than in data, so a hook-walking scorer cannot see it. Six of them:
+     * reported as such rather than scored 0, which would read as "this firmware does nothing".
+     */
+    codeDriven: boolean;
+}
+
+/**
+ * The pool's mean ATTACK-card score, for pricing multiplier hooks.
+ *
+ * §4.5 prices a modifier hook as `(multiplier - 1) x the deck's mean attack score x rate`, and
+ * the scorer has no deck. The ROSTER mean is the general form of the same quantity, and it is
+ * the same choice every other constant in this file makes: price for the registry, because
+ * anyone can draft the mingming.
+ *
+ * Computed from the live registry rather than frozen as a literal, so a repricing of attacks
+ * carries through instead of leaving this behind as a stale number with a citation on it.
+ */
+let meanAttackScoreCache: number | null = null;
+export function meanAttackScore(): number {
+    if (meanAttackScoreCache !== null) return meanAttackScoreCache;
+    const registry = getInflatedProgramRegistry();
+    const attacks = (Object.values(registry) as ProgramData[]).filter(
+        c => (c.actions ?? []).some(a => (a.type as string) === 'ATTACK') && !c.isToken,
+    );
+    const total = attacks.reduce((sum: number, c) => sum + Math.max(0, scoreAtWidth(c, '1v1').score), 0);
+    meanAttackScoreCache = attacks.length > 0 ? total / attacks.length : 0;
+    return meanAttackScoreCache;
+}
+
+/** A score in /10 power units, as a percentage of one health pool. */
+function pctOfPool(score: number): number {
+    // `POWER_PER_PERCENT_MAXHP` is the scorer's own power->HP table: 3 power buys 1% of a pool.
+    return Math.round((score * 10 / POWER_PER_PERCENT_MAXHP) * 10) / 10;
+}
+
+/**
+ * What one firmware delivers per game, as a percentage of a health pool — §4.5.
+ *
+ * Three hook shapes, priced three ways, and a fourth that is not priced at all:
+ *
+ *   - `do` actions    scored through the ordinary card formula, exactly as a daemon's are;
+ *   - `multiplier`    `(m - 1) x meanAttackScore()`, §4.5's rule;
+ *   - `bonus`         a FLAT HP bonus per stack (TOXIN_FANG, KINETIC_RAM). Priced at the
+ *                     scorer's roster-general stack assumption, which is a FLOOR: the census
+ *                     read 9.4 Poison stacks for TOXIN_FANG and 13 Sharp for KINETIC_RAM on the
+ *                     decks that ship them, and those decks are built to feed the hook;
+ *   - anything else   `UNREADABLE`, and it says so rather than contributing a silent zero.
+ */
+export function scoreOS(osId: string): OsScore {
+    const entry = (HOOK_LIBRARY as Record<string, unknown>)[osId] as
+        { id?: string; name?: string; hooks?: HookRecord[] } | undefined;
+    const name = entry?.name ?? osId;
+    const hooks = entry?.hooks ?? [];
+
+    const contributions: OsHookContribution[] = [];
+    const unmeasured: string[] = [];
+    const unpriced: string[] = [];
+    let total = 0;
+
+    for (const hook of hooks) {
+        const rate = Object.prototype.hasOwnProperty.call(OS_PROC_RATE, hook.id)
+            ? OS_PROC_RATE[hook.id]
+            : null;
+
+        let kind: OsHookContribution['kind'] = 'UNREADABLE';
+        let perProc = 0;
+
+        const actions = hookActions(hook);
+        const bonus = (hook as unknown as { bonus?: number }).bonus;
+        if (actions.length > 0) {
+            kind = 'ACTIONS';
+            const scored = scoreAtWidth({
+                id: `${osId}__${hook.id}`,
+                name: hook.id,
+                description: '',
+                element: 'None',
+                target: 'Single',
+                category: 'Skill',
+                rarity: 'Common',
+                baseCost: 1,
+                constraints: [],
+                actions,
+            } as unknown as ProgramData, '1v1');
+            perProc = scored.score;
+            for (const m of scored.manualReview) if (!unpriced.includes(m)) unpriced.push(m);
+        } else if (hook.multiplier !== undefined) {
+            kind = 'MULTIPLIER';
+            /*
+             * THE SIGN DEPENDS ON WHOSE DAMAGE IS BEING MULTIPLIED, and getting it wrong is the
+             * easy mistake here. A hook on the OWNER's damage is worth `(m - 1)`: TIDAL_CRUSH at
+             * x1.3 adds three tenths of an attack. A hook on the OPPONENT's damage is worth
+             * `(1 - m)`: GRAVE_CHILL at x0.8 REDUCES what Draugr takes, which is a fifth of an
+             * attack's worth of value TO HIM. Priced as `(m - 1)` it came out at -23% of a pool,
+             * i.e. the report calling a defensive firmware a liability.
+             */
+            const onOpponentsDamage = (hook.when?.source ?? 'SELF').toUpperCase() === 'OPPONENT';
+            perProc = (onOpponentsDamage ? 1 - hook.multiplier : hook.multiplier - 1) * meanAttackScore();
+        } else if (typeof bonus === 'number') {
+            kind = 'FLAT_BONUS';
+            // `bonus` is flat HP applied after the pace divisor, per stack of the scaled status.
+            // Converted into the scorer's /10 power units through its own HP table so it can sit
+            // beside everything else.
+            const stacks = ASSUMED_BOARD_STATUS_COUNT;
+            perProc = (bonus * stacks / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP / 10;
+        }
+
+        if (rate === null) {
+            unmeasured.push(hook.id);
+            contributions.push({ hookId: hook.id, kind, procsPerGame: null, perProcScore: perProc, pctOfPool: 0 });
+            continue;
+        }
+
+        const delivered = perProc * rate;
+        total += delivered;
+        contributions.push({
+            hookId: hook.id,
+            kind,
+            procsPerGame: rate,
+            perProcScore: Math.round(perProc * 100) / 100,
+            pctOfPool: pctOfPool(delivered),
+        });
+    }
+
+    const pct = pctOfPool(total);
+    /*
+     * A zero the census could not measure is not a zero. `gullin_v1_prepare` is BUFF_NEXT_PROGRAM
+     * and left no state delta the probe could read across 42.8 offers - that is a limit of the
+     * INSTRUMENT, and reporting UNSTOPPABLE_MASS as "0% of a pool, under band" would be the
+     * report asserting the firmware does nothing.
+     *
+     * `hel_v2_lifeblood` is the opposite and stays a real number: an x1.0 multiplier measured at
+     * 0 procs is genuinely inert, which is one of the two findings 149b turned up off-ticket.
+     */
+    const instrumentBlind = hooks.some(h => OS_RATE_ZERO_REASON[h.id] !== undefined
+        && OS_PROC_RATE[h.id] === 0
+        && h.id !== 'hel_v2_lifeblood');
+
+    let verdict: OsVerdict;
+    if (hooks.length === 0 || instrumentBlind || (total === 0 && (unmeasured.length > 0 || unpriced.length > 0))) {
+        verdict = 'UNMEASURED';
+    }
+    else if (pct > OS_FLAG_PCT) verdict = 'FLAGGED';
+    else if (pct > OS_BAND_MAX_PCT) verdict = 'OVER BAND';
+    else if (pct < OS_BAND_MIN_PCT) verdict = 'UNDER BAND';
+    else verdict = 'IN BAND';
+
+    return {
+        id: osId,
+        name,
+        pctOfPoolPerGame: pct,
+        verdict,
+        contributions,
+        unmeasured,
+        unpriced,
+        codeDriven: hooks.length === 0,
+    };
+}
+
+/**
+ * The 33 shipped firmware, scored. The input to report section 1.4.
+ *
+ * Driven from `MingmingRegistry`'s `availableOS` lists rather than from the hook library's keys,
+ * because that file also holds the daemon CARDS' hooks - `riptide`, `echo_chamber`, `drip_feed`
+ * and the rest sit in it beside the firmware. Walking its keys produced a 51-row firmware section
+ * containing eighteen cards, which is a category error the reader would have had to undo by hand.
+ */
+export function osRoster(): string[] {
+    const ids = new Set<string>();
+    for (const mingming of Object.values(MingmingRegistry)) {
+        for (const os of (mingming as unknown as { availableOS?: string[] }).availableOS ?? []) {
+            ids.add(os);
+        }
+    }
+    return [...ids].sort();
+}
+
+export function scoreAllOS(): OsScore[] {
+    return osRoster()
+        .map(scoreOS)
+        .sort((a, b) => b.pctOfPoolPerGame - a.pctOfPoolPerGame || (a.id < b.id ? -1 : 1));
+}

@@ -43,8 +43,17 @@ import { fileURLToPath } from 'node:url';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 import { computeRegistryHash } from '../scenarios/registryHash';
-import { BAND_TOLERANCE_PCT, bandVerdict, budgetBandFor, calculatePowerscale } from './powerscale';
-import type { BandState } from './powerscale';
+import {
+    BAND_TOLERANCE_PCT,
+    OS_BAND_MAX_PCT,
+    OS_BAND_MIN_PCT,
+    OS_FLAG_PCT,
+    bandVerdict,
+    budgetBandFor,
+    calculatePowerscale,
+    scoreAllOS,
+} from './powerscale';
+import type { BandState, OsScore } from './powerscale';
 import type { BatchResult, PairedBatchResult } from './runBatch';
 import { numericBaseCost } from '../../engine/types';
 
@@ -53,7 +62,8 @@ import { numericBaseCost } from '../../engine/types';
 // 3 (ticket 149c-5): entries carry `verdict` and `pctVsBand`, and `cardBudget` gained a
 //   `watchlist` beside `redlines` - a card inside the +/-15% tolerance is reported, not redlined.
 // 4 (ticket 149c-6): entries carry `hookFloor`, `hookCeiling` and `buildAroundIndex`.
-export const BALANCE_REPORT_SCHEMA_VERSION = 4;
+// 5 (ticket 149c-7): new section `firmware` - all 33 OSes scored against their own band.
+export const BALANCE_REPORT_SCHEMA_VERSION = 5;
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -109,6 +119,10 @@ export type MatchupRole = 'mirror' | 'gauntlet-matchup' | 'gauntlet-overall' | '
 
 export type RedlineKind =
     | 'CARD_OVER_BUDGET'
+    // Ticket 149c-7: firmware past section 4.5's 50% flag. `OS_GAP` below is a different thing
+    // entirely - a win-rate gap between two OSes in section 2 - and naming them apart matters,
+    // because a reader filtering the CSV for firmware problems would otherwise get both.
+    | 'FIRMWARE_OVER_BAND'
     | 'MIRROR_WIN_RATE'
     | 'MIRROR_SIDE_BIAS'
     | 'ARCHETYPE_WIN_RATE'
@@ -276,6 +290,20 @@ export interface BalanceReport {
          */
         watchlist: CardBudgetEntry[];
     };
+    /**
+     * SECTION 1.4 FIRMWARE - ticket 149c-7.
+     *
+     * An OS is not a card: it costs no energy, occupies no slot, is chosen once and runs for the
+     * whole game, so there is no budget band to hold it against. What can be asked is how much of
+     * a health pool it moves over a game, and section 4.5 rules 15-40% in band with anything past
+     * 50% flagged.
+     */
+    firmware: {
+        bandMinPct: number;
+        bandMaxPct: number;
+        flagPct: number;
+        entries: OsScore[];
+    };
     matchups: MatchupReport[];
     /** Every redline from both halves, flattened and sorted. The "what is broken" list. */
     redlines: Redline[];
@@ -363,6 +391,34 @@ export function budgetRedline(entry: CardBudgetEntry): Redline {
  * to is how a report loses its authority. The one addition is section 4.3's MANUAL REVIEW state,
  * which is NOT an under-band verdict - see `bandVerdict`.
  */
+/**
+ * A flagged firmware, as a redline - ticket 149c-7 / section 4.5.
+ *
+ * Only `FLAGGED` (past 50% of a pool a game) becomes a redline. `OVER BAND` is reported in the
+ * section and left there, on exactly the reasoning section 4.3 applies to cards: a band is a
+ * target, and a list that treats 41% and 143% the same way is a list nobody triages.
+ */
+export function firmwareRedline(os: OsScore): Redline {
+    return {
+        kind: 'FIRMWARE_OVER_BAND',
+        section: '1.4',
+        subject: os.id,
+        metric: 'pctOfPoolPerGame',
+        value: os.pctOfPoolPerGame,
+        threshold: OS_FLAG_PCT,
+        comparison: 'above',
+        detail:
+            `${os.name} (${os.id}) delivers ${os.pctOfPoolPerGame}% of a health pool a game, ` +
+            `past the ${OS_FLAG_PCT}% flag and the ${OS_BAND_MIN_PCT}-${OS_BAND_MAX_PCT}% band.` +
+            (os.unpriced.length > 0
+                ? ` (Excludes unpriced ${os.unpriced.join('/')} action(s) - the real figure is at least this.)`
+                : '') +
+            (os.unmeasured.length > 0
+                ? ` (${os.unmeasured.length} hook(s) have no measured proc rate and contribute nothing here.)`
+                : ''),
+    };
+}
+
 export function auditCardBudget(): {
     redlines: CardBudgetEntry[];
     watchlist: CardBudgetEntry[];
@@ -691,6 +747,8 @@ export function assembleReport(matchups: ReadonlyArray<MatchupReport>): BalanceR
     const sortedMatchups = [...matchups].sort((a, b) => byString(a.id, b.id));
 
     const cardRedlines = cardEntries.map(budgetRedline);
+    const firmware = scoreAllOS();
+    const firmwareRedlines = firmware.filter(os => os.verdict === 'FLAGGED').map(firmwareRedline);
     const matchupRedlines = sortedMatchups.flatMap(m => m.redlines);
     const reported = EXPECTED_SUITES.filter(suite => sortedMatchups.some(m => m.suite === suite));
 
@@ -721,8 +779,14 @@ export function assembleReport(matchups: ReadonlyArray<MatchupReport>): BalanceR
             redlines: cardEntries,
             watchlist,
         },
+        firmware: {
+            bandMinPct: OS_BAND_MIN_PCT,
+            bandMaxPct: OS_BAND_MAX_PCT,
+            flagPct: OS_FLAG_PCT,
+            entries: firmware,
+        },
         matchups: sortedMatchups,
-        redlines: [...cardRedlines, ...matchupRedlines].sort(compareRedlines),
+        redlines: [...cardRedlines, ...firmwareRedlines, ...matchupRedlines].sort(compareRedlines),
     };
 }
 

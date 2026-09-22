@@ -26,6 +26,13 @@ import {
     classifyHook,
     hooksOf,
     scoreHook,
+    OS_BAND_MAX_PCT,
+    OS_BAND_MIN_PCT,
+    OS_FLAG_PCT,
+    OS_PROC_RATE,
+    osRoster,
+    scoreAllOS,
+    scoreOS,
 } from './powerscale';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
@@ -598,5 +605,124 @@ describe('149c-8 — consuming your own pile is not removal', () => {
         const purify = registry['purify'];
         expect(purify).toBeDefined();
         expect(selfConsumesADebuff(purify)).toBe(false);
+    });
+});
+
+describe('149c-7 — firmware gets a band of its own', () => {
+    const roster = scoreAllOS();
+    const byId = new Map(roster.map(os => [os.id, os]));
+
+    it('scores the 33 shipped firmware, and not the daemon cards sitting in the same file', () => {
+        /*
+         * `hooks.json` holds the daemon CARDS' hooks beside the firmware — `riptide`,
+         * `echo_chamber`, `drip_feed` and fifteen others. Walking its keys produced a 51-row
+         * firmware section containing eighteen cards, which is a category error the reader would
+         * have had to undo by hand. The roster comes from `MingmingRegistry.availableOS`.
+         */
+        expect(osRoster()).toHaveLength(33);
+        expect(roster).toHaveLength(33);
+        expect(byId.has('riptide')).toBe(false);
+        expect(byId.has('echo_chamber')).toBe(false);
+        expect(byId.get('ratatoskr_v1')?.name).toBe('GOSSIP_NODE');
+    });
+
+    it('puts GOSSIP_NODE at the top, which is §4.5\'s calibration check', () => {
+        /*
+         * §4.5: *"a formula that puts GOSSIP, PRIMORDIAL_MILK, BARK_SHIELD, KINETIC_RAM and
+         * SOLAR_OVERDRIVE at the top and the 8-25% crowd in band is calibrated; one that does
+         * not is reported, not forced."*
+         *
+         * GOSSIP_NODE is the one that has to land, and it does: 143.5% against the census's
+         * measured 127%. Its 10-power heal is ordinary — 0.179 delivered per proc, squarely in
+         * band — and it fires **53.8 times a game**. The rate is the story, which is exactly what
+         * a per-proc price could never say.
+         *
+         * Asserted as a position rather than a figure: the number moves with any repricing of
+         * HEAL, the position does not.
+         */
+        expect(roster[0].id).toBe('ratatoskr_v1');
+        expect(roster[0].verdict).toBe('FLAGGED');
+        expect(byId.get('audhumbla_v2')?.verdict).toBe('FLAGGED');
+    });
+
+    it('reports what it cannot see instead of scoring it 0', () => {
+        /*
+         * Six firmware register no hooks in data at all — their behaviour lives in
+         * `CustomFirmware`, which a hook-walking scorer cannot read. BARK_SHIELD_OS and
+         * GLACIAL_PACE_OS are among them, and BARK_SHIELD is one of §4.5's named five: the
+         * formula does NOT put it at the top, because the formula cannot see it.
+         *
+         * Reported as UNMEASURED rather than "0% of a pool, under band", which would be the
+         * report asserting that firmware does nothing.
+         */
+        for (const id of ['huldra_v2', 'ymir_v2', 'valkyrie_v1', 'fafnir_v1', 'hraesvelgr_v2']) {
+            const os = byId.get(id);
+            expect(os, id).toBeDefined();
+            expect(os!.codeDriven, id).toBe(true);
+            expect(os!.verdict, id).toBe('UNMEASURED');
+        }
+
+        // And an instrument limit is not a measurement either: UNSTOPPABLE_MASS is
+        // BUFF_NEXT_PROGRAM, which left no state delta the census probe could read across 42.8
+        // offers. Rate 0, but the reason is the probe, so the verdict is UNMEASURED.
+        expect(OS_PROC_RATE['gullin_v1_prepare']).toBe(0);
+        expect(byId.get('gullinbursti_v1')?.verdict).toBe('UNMEASURED');
+    });
+
+    it('prices a defensive multiplier as a benefit, not as a liability', () => {
+        /*
+         * GRAVE_CHILL_OS is x0.8 on the damage Draugr TAKES. Priced as `(m - 1)` like an
+         * offensive multiplier it came out at **-23% of a pool** — the report calling a
+         * defensive firmware a debt. The sign depends on whose damage is being multiplied.
+         */
+        const draugr = byId.get('draugr_v2');
+        expect(draugr).toBeDefined();
+        expect(draugr!.pctOfPoolPerGame).toBeGreaterThan(0);
+        expect(draugr!.verdict).toBe('IN BAND');
+
+        // The offensive case keeps its ordinary sign.
+        expect(byId.get('kraken_v2')!.pctOfPoolPerGame).toBeGreaterThan(0);
+    });
+
+    it('bands at 15-40 and flags past 50, and every verdict agrees with its own number', () => {
+        expect([OS_BAND_MIN_PCT, OS_BAND_MAX_PCT, OS_FLAG_PCT]).toEqual([15, 40, 50]);
+        for (const os of roster) {
+            if (os.verdict === 'UNMEASURED') continue;
+            const pct = os.pctOfPoolPerGame;
+            if (pct > OS_FLAG_PCT) expect(os.verdict, os.id).toBe('FLAGGED');
+            else if (pct > OS_BAND_MAX_PCT) expect(os.verdict, os.id).toBe('OVER BAND');
+            else if (pct < OS_BAND_MIN_PCT) expect(os.verdict, os.id).toBe('UNDER BAND');
+            else expect(os.verdict, os.id).toBe('IN BAND');
+        }
+        // The 8-25% crowd §4.5 expects in band really is the bulk of the roster.
+        expect(roster.filter(os => os.verdict === 'IN BAND').length).toBeGreaterThan(8);
+    });
+
+    it('takes the rate from the census and the payoff from the data, per hook', () => {
+        /*
+         * 149c-6's split, kept. `fenrir_v1` is the case that needs per-HOOK rates rather than
+         * per-OS: it registers an own-attack hook and an ally-attack hook, and both are in the
+         * table separately even though they happen to share a rate.
+         */
+        expect(OS_PROC_RATE['ratatoskr_v1_hook']).toBe(53.8);
+        expect(OS_PROC_RATE['fenrir_v1_hook']).toBe(6.09);
+        expect(OS_PROC_RATE['fenrir_v1_ally_hook']).toBe(6.09);
+
+        const gossip = scoreOS('ratatoskr_v1');
+        const contribution = gossip.contributions.find(c => c.hookId === 'ratatoskr_v1_hook');
+        expect(contribution?.procsPerGame).toBe(53.8);
+        expect(contribution?.kind).toBe('ACTIONS');
+        // Halving the payoff would halve the number: the rate is not doing the work alone.
+        expect(contribution!.pctOfPool).toBeCloseTo(gossip.pctOfPoolPerGame, 1);
+    });
+
+    it('has no horizon multiplier, because a per-game rate already spans the game', () => {
+        /*
+         * §5 said "horizon 5". The daemon rates are per UNIT-TURN, so they need one; the firmware
+         * census measured per GAME, so multiplying by five would count the same procs five times.
+         * Checked against the census figure directly: GOSSIP's 53.8 procs a game at ~0.18 of a
+         * pool per proc is ~127%, not ~635%.
+         */
+        expect(byId.get('ratatoskr_v1')!.pctOfPoolPerGame).toBeLessThan(200);
     });
 });
