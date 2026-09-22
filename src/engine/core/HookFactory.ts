@@ -41,7 +41,11 @@ export const HookFactory = {
         const priority = data.priority;
         const id = data.id;
 
-        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated' || data.trigger === 'onHealCalculated') {
+        // Ticket 150b: `onPowerCalculated` joins the modifier family rather than getting a branch
+        // of its own - it is the same data shape (`multiplier`/`bonus`/`scaling`) applied at a
+        // different point in `calculateDamage`, and a second builder would be a second place for
+        // the scaling table to drift.
+        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onPowerCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated' || data.trigger === 'onHealCalculated') {
             const modifierData = data as ModifierDataHookDefinition;
             return {
                 id,

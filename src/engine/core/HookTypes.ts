@@ -203,7 +203,7 @@ export type DataHookDefinition = {
 
 export type ModifierDataHookDefinition = {
     id: string;
-    trigger: 'onDamageCalculated' | 'onStatusDamageCalculated' | 'onCostCalculated' | 'onHealCalculated';
+    trigger: 'onDamageCalculated' | 'onPowerCalculated' | 'onStatusDamageCalculated' | 'onCostCalculated' | 'onHealCalculated';
     priority: HookPriority;
     when?: HookCondition;
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
@@ -228,6 +228,22 @@ export type HookDefinition = {
     id: string;
     priority: number;
     onDamageCalculated?: DamageModifierHook;
+    /**
+     * TICKET 150b — THE POWER-SIDE TWIN OF `onDamageCalculated`.
+     *
+     * Ticket 26's law: *a bonus that rides the POWER is the only kind `powerscale` can price, and
+     * the only kind that behaves the same at every level.* `onDamageCalculated` fires at step 5 of
+     * `calculateDamage` — after the attack/defense ratio, the /45 pace divisor, STAB and type
+     * effectiveness — so a `bonus` there is flat HP that none of those dials can reach. The 149b
+     * census measured what that does: TOXIN_FANG's +10 HP per Poison stack delivers **x3.93 on the
+     * attack it rides**, a size the pace dial and the frame cannot move and the scorer cannot see.
+     *
+     * This fires at step 1 instead, on the raw power, where the duality statuses already ride
+     * (`statusPower`). Same `multiplier`/`bonus`/`scaling` shape, same priority sort, same
+     * dedupe-by-id — the only difference is WHERE in the pipeline the number lands, which is the
+     * whole point.
+     */
+    onPowerCalculated?: DamageModifierHook;
     onStatusDamageCalculated?: DamageModifierHook; // New hook for Burn/Poison scaling
     onCostCalculated?: DamageModifierHook; // Same signature as damage hook (returns a number)
     /** Ticket 36: healing had NO modifier path at all - `onHeal` fires after the heal resolves

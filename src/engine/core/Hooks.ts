@@ -147,6 +147,76 @@ export const applyHealModifiers = (
     return Math.floor(heal);
 };
 
+/**
+ * TICKET 150b — MODIFIERS ON THE POWER, BEFORE ANY OF THE DIALS.
+ *
+ * The third member of the modifier family, after `applyHealModifiers` (ticket 36) and
+ * `applyDamageModifiers`. Same hook collection, same dedupe-by-id, same priority sort; what
+ * differs is WHEN it runs, and that is the whole ticket.
+ *
+ * `applyDamageModifiers` fires at step 5 of `calculateDamage`, after the attack/defense ratio,
+ * the /45 pace divisor, STAB and type effectiveness. A `bonus` applied there is flat HP that none
+ * of those dials can reach — ticket 26's law says a bonus that rides the POWER is the only kind
+ * `powerscale` can price and the only kind that behaves the same at every level, and the 149b
+ * firmware census measured the cost of breaking it: TOXIN_FANG's +10 HP per Poison stack came out
+ * at **x3.93 the attack it rides**, 40% of a health pool a game.
+ *
+ * This runs at step 1, on the raw power, alongside `statusPower` — which is where the duality
+ * statuses have ridden since ticket 95, for exactly the same reason.
+ *
+ * No status scan here, deliberately. `applyDamageModifiers` ends with one (Strengthened /
+ * Weakened / Sharp / Dazed as a capped percentage of damage) and that is the PERCENT shape's job;
+ * under the POWER shape those four are already in `statusPower` before this is called. Repeating
+ * the scan would pay them twice.
+ */
+export const applyPowerModifiers = (
+    initialPower: number,
+    context: HookContext
+): number => {
+    let power = initialPower;
+    // Deduped by id for ticket 38's reason: on a self-damage card source === target, so the naive
+    // [source, target] pair collects the caster twice and every hook it owns fires twice.
+    const entities = [context.source, context.target]
+        .filter((e): e is IBattleEntity => !!e)
+        .filter((e, i, arr) => arr.findIndex(other => other.id === e.id) === i);
+
+    const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
+    entities.forEach(e => {
+        const entityHooks = new Set<string>();
+        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
+        if (e.activeOS) {
+            const os = getOSBehavior(e.activeOS);
+            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
+        }
+        if (e.daemons) {
+            e.daemons.forEach(daemon => {
+                const data = GetProgramData(daemon.dataId);
+                if (data.hooks) data.hooks.forEach(h => entityHooks.add(h));
+            });
+        }
+
+        entityHooks.forEach(id => {
+            const registered = getHook(id);
+            if (registered && registered.onPowerCalculated) {
+                hookPairs.push({ hook: registered, owner: e });
+            }
+        });
+    });
+
+    hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
+
+    hookPairs.forEach(pair => {
+        if (pair.hook.onPowerCalculated) {
+            power = pair.hook.onPowerCalculated(power, context, pair.owner);
+        }
+    });
+
+    // NOT floored at zero here. `calculateDamage` does that on `power + statusPower`, so a
+    // negative modifier and a positive `statusPower` can still cancel to something playable;
+    // flooring twice would quietly make this hook unable to subtract.
+    return power;
+};
+
 export const applyDamageModifiers = (
     initialDamage: number,
     context: HookContext
