@@ -41,7 +41,9 @@ const PRINTED: Record<string, { os: string; text: string; power?: number; kind: 
     hoofbeat_daemon_hook: { os: 'sleipnir_v1 hoofbeat_daemon (card)', text: 'play 0-cost: 8 power Air to random enemy', power: 8, kind: 'dmg' },
     hel_v2_underworld_toll: { os: 'hel_v2 UNDERWORLD_GATEWAY', text: 'Dark spell costs 5% maxHp per printed Energy (cap 25%/turn)', kind: 'cost' },
     hel_v2_underworld_cost: { os: 'hel_v2 UNDERWORLD_GATEWAY', text: 'onCostCalculated: Dark spell ENERGY cost -> 0 (the mod delta here is energy, not HP)', kind: 'mod' },
-    hel_v2_lifeblood: { os: 'hel_v2 lifeblood', text: 'onHealCalculated multiplier 1.0 (INERT in shipped data)', kind: 'mod' },
+    // hel_v2_lifeblood: DELETED by ticket 150a. It was an onHealCalculated multiplier of 1.0 and
+    // this census is what proved it inert (0 procs). The row is kept out rather than kept as a
+    // zero, because a zero here reads as a measurement of something that exists.
     hraesvelgr_v2_updraft: { os: 'hraesvelgr_v2 UPDRAFT_KERNEL', text: 'after 2 deck cycles: +1 max Energy (once)', kind: 'grant' },
     aud_v1_genesis: { os: 'audhumbla_v1 GENESIS_FIRMWARE', text: 'overheal: +1 max Energy (once/turn)', kind: 'grant' },
     jorm_v2_toxin_fang: { os: 'jormungandr_v2 TOXIN_FANG_OS', text: 'attacks +10 HP (flat, post-divisor) per Poison stack on target', kind: 'mod' },

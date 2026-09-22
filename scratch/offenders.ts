@@ -42,10 +42,9 @@ if (knob.osoff) {
     delete CF[DECK];
     if (DECK === 'ymir_v2') H[DECK].maxCardsPerTurn = undefined;
 }
-if (DECK === 'hel_v2' && knob.heal) {
-    const lb = H.hel_v2.hooks.find(h => h.id === 'hel_v2_lifeblood');
-    if (lb) lb.multiplier = Number(knob.heal);
-}
+// TICKET 150a: the `heal` knob is gone - it drove `hel_v2_lifeblood`, an onHealCalculated
+// multiplier of 1.0 that the 149b census measured as INERT (0 procs, x1.0), and the hook is
+// deleted. Left as a comment rather than a silently-no-op branch, which is worse than absent.
 if (DECK === 'ymir_v2' && knob.maxcards) H.ymir_v2.maxCardsPerTurn = Number(knob.maxcards);
 if (DECK === 'nidhoggr_v1' && knob.rootmin) {
     // ROOT_CORRUPTION only maintains a pile that is already at least this big - the "extra

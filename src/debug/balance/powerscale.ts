@@ -1570,7 +1570,6 @@ export const OS_PROC_RATE: Record<string, number> = {
     draugr_v2_chill: 8.70,              // draugr_v2 GRAVE_CHILL_OS, fires on 35% of hits
     gullin_v2_ram: 23.39,               // gullinbursti_v2 KINETIC_RAM_OS, on her multi-hit list
     kraken_v2_hook: 3.00,               // kraken_v2 TIDAL_CRUSH_OS
-    hel_v2_lifeblood: 0.00,             // hel_v2 — measured INERT: x1.0 multiplier, 0 procs
 
     // ── Table 3: stat / resource grants ──
     huldra_v1_hook: 20.34,              // huldra_v1 ALLURE_PROXY
@@ -1597,15 +1596,16 @@ export const OS_PROC_RATE: Record<string, number> = {
 /**
  * Hooks whose measured rate is a real zero rather than a gap, with the reason.
  *
- * `hel_v2_lifeblood` is an `x1.0` multiplier: it multiplies healing by one. 149b flagged it as
- * **inert** and it is one of the two findings that were not on the ticket.
- *
  * `gullin_v1_prepare` is `BUFF_NEXT_PROGRAM`, which leaves no state delta the census probe could
  * read — 42.84 offers and nothing measurable. That is a limit of the INSTRUMENT, not a fact about
- * the card, and it is recorded separately for exactly that reason.
+ * the card, so a zero here would be the report asserting the firmware does nothing.
+ *
+ * `hel_v2_lifeblood` stood here too, at a genuine zero: an `onHealCalculated` multiplier of 1.0,
+ * which 149b measured as **inert** and reported as one of the two findings that were not on the
+ * ticket. **Ticket 150a deleted the hook**, so there is nothing left to rate. The entry is gone
+ * rather than kept at zero, because a rate for a hook that does not exist is not a measurement.
  */
 export const OS_RATE_ZERO_REASON: Record<string, string> = {
-    hel_v2_lifeblood: 'measured inert: an x1.0 multiplier, 0 procs',
     gullin_v1_prepare: 'BUFF_NEXT_PROGRAM leaves no state delta the census probe reads (42.8 offers)',
 };
 
@@ -1774,12 +1774,11 @@ export function scoreOS(osId: string): OsScore {
      * INSTRUMENT, and reporting UNSTOPPABLE_MASS as "0% of a pool, under band" would be the
      * report asserting the firmware does nothing.
      *
-     * `hel_v2_lifeblood` is the opposite and stays a real number: an x1.0 multiplier measured at
-     * 0 procs is genuinely inert, which is one of the two findings 149b turned up off-ticket.
+     * The exception that used to sit here — `hel_v2_lifeblood`, a genuinely inert x1.0 multiplier
+     * measured at 0 procs — is gone with the hook itself (ticket 150a).
      */
     const instrumentBlind = hooks.some(h => OS_RATE_ZERO_REASON[h.id] !== undefined
-        && OS_PROC_RATE[h.id] === 0
-        && h.id !== 'hel_v2_lifeblood');
+        && OS_PROC_RATE[h.id] === 0);
 
     let verdict: OsVerdict;
     if (hooks.length === 0 || instrumentBlind || (total === 0 && (unmeasured.length > 0 || unpriced.length > 0))) {
