@@ -40,7 +40,8 @@ import { SeedStream } from '../core/SeedStream';
 import { GAME_BEAM_WIDTH, type AiTier } from '../ai/TacticalAI';
 import { getSectorSpecies } from '../data/EncounterGenerator';
 import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
-import { initializeBattleEntity } from '../types';
+import { GetProgramData } from '../data/programRegistry';
+import { initializeBattleEntity, numericBaseCost } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
 import { authoredBossFor } from './bosses';
@@ -180,6 +181,30 @@ export interface IEnemyLoadout {
     readonly beam: number;
     /** Inclusive IV band, both ends. See `IV_BANDS` for why each rung has its own. */
     readonly iv: readonly [number, number];
+    /**
+     * ── TICKET 152, RULED BY HENRY 2026-09-22 — A WILD MAY NOT HOLD TWO PURE CANTRIPS ────
+     *
+     * *"leave it, but remove the double undertow cards from all wild encounters. It should only be
+     * in elites and bosses."*
+     *
+     * Ticket 111's law is *players may break decks; base enemy decks may not loop*, and the loop
+     * needs exactly two things: a card that costs nothing and draws, and a SECOND COPY of it. The
+     * 111 guard already holds the resolving instance out of a reshuffle so a card cannot draw
+     * itself; it cannot stop two copies drawing each other. `undertow` A draws B, B's draw
+     * reshuffles a discard holding A, A comes back. On a nine-card deck the pile cycles inside one
+     * turn — measured at **≥6 casts in 12.7% of jormungandr_v1's turns, max 18**, and 16.8% of his
+     * turns removing three quarters of a health pool.
+     *
+     * 152 tried two card swaps and both gutted the deck (69.6% field → 18–27% against a 47–64% peer
+     * band), because the loop IS why he is at the top of the roster. Henry declined both, and
+     * declined the engine fix that would have reached every deck. This is the third answer: the
+     * deck keeps its shape, and the RUNG decides whether the player meets it.
+     *
+     * **False at a wild, true at an elite and a gauntlet.** The player meets a wild twenty times an
+     * hour and an elite as the biome's exam; a turn that deletes a full-health recruit out of
+     * nowhere is a boss's privilege, not a roadside encounter's.
+     */
+    readonly duplicateCantrips: boolean;
 }
 
 /**
@@ -245,11 +270,11 @@ const ELITE_IV: readonly [number, number] = [0, 31];
  * giving them a fourth rung as well would be two knobs for one idea.
  */
 export const ENEMY_LADDER: Readonly<Record<EnemyGrade, IEnemyLoadout>> = {
-    wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV, beam: GAME_BEAM_WIDTH },
-    elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV, beam: GAME_BEAM_WIDTH },
+    wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: false },
+    elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: true },
     // The gym. Beamless: the boss is the one fight worth the full search, and it is the one fight
     // a player meets once. See `IEnemyLoadout.beam`.
-    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV, beam: 0 },
+    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV, beam: 0, duplicateCantrips: true },
 };
 
 /** The three rungs. Named rather than inferred, so a fourth is a deliberate act. */
@@ -303,6 +328,10 @@ export const OPENING_FIGHT_LOADOUT: IEnemyLoadout = {
     ai: 'greedy',
     iv: WILD_IV,
     beam: GAME_BEAM_WIDTH,
+    // Ticket 152: a wild's rule, and the opening fight is gentler than a wild by construction.
+    // It is also moot here - `start-kit-plus-generics` holds no tuned deck to de-duplicate - but
+    // stated rather than inherited, for the reason the docblock above gives about the ladder.
+    duplicateCantrips: false,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -582,6 +611,68 @@ function enemyDeckFor(
 }
 
 /**
+ * A card that costs nothing and does nothing but draw — ticket 152's condition.
+ *
+ * The three parts are each doing work, and the third is the one worth arguing about:
+ *
+ *   - **0 energy**, so casting it is free and a hand of them resolves in one turn;
+ *   - **it draws**, so a copy can put its twin back in your hand;
+ *   - **and it does NOTHING ELSE**, so there is no price that stops the third repetition.
+ *
+ * That last clause is why `forage` is not one. It is 0-cost and it draws — and it also takes 15
+ * power out of the caster, so looping it kills the looper. The brake is in the card. Excluding it
+ * by that property rather than by name is the difference between a rule and a blocklist: a future
+ * cantrip with a cost is fine here without anyone remembering to think about it, and a future
+ * cantrip without one is caught without anyone remembering to add it.
+ *
+ * Reads the INFLATED registry, so a card whose actions are assembled from the action library is
+ * judged on what it actually does rather than on what its json literal happens to list.
+ */
+function isPureCantrip(dataId: string): boolean {
+    const data = GetProgramData(dataId);
+    if (!data || data.id === 'missing') return false;
+    if (numericBaseCost(data.baseCost) !== 0) return false;
+    const actions = data.actions ?? [];
+    return actions.length > 0 && actions.every(action => (action.type as string) === 'DRAW');
+}
+
+/**
+ * ── TICKET 152 — ONE PURE CANTRIP AT A WILD, HOWEVER MANY THE DECK SHIPS ───────────────
+ *
+ * Henry, 2026-09-22: *"remove the double undertow cards from all wild encounters. It should only
+ * be in elites and bosses."* See `IEnemyLoadout.duplicateCantrips` for the measurement behind it.
+ *
+ * The EXTRA copies are dropped and nothing is put in their place. A replacement would be a card
+ * nobody designed into the list, chosen by this function, and 152 already measured what swapping
+ * one in does — both arms cost the deck 43–51 field points. Dropping is the smaller claim: the
+ * deck is the deck, minus the copy that makes it loop.
+ *
+ * Applied to the SIDE's assembled pile rather than to one member's list - see the call site.
+ *
+ * It touches two shipped lists, and they are the only two: `jormungandr_v1` (`undertow` x2, the
+ * deck this ticket is about) and `sleipnir_v1` (`slipstream` x2). `ratatoskr_v1` and `hel_v2` run
+ * `forage` x2 and are deliberately untouched — see `isPureCantrip`.
+ *
+ * Order is preserved and the FIRST copy is the one kept, so a wild's list is a prefix-stable
+ * subsequence of the tuned list. That matters more than it looks: the deck is shuffled from a
+ * seeded stream, and a rule that reordered the list would change every wild encounter's draw in
+ * the whole corpus rather than only the decks it removes a card from.
+ */
+export function dedupeCantrips(deck: ReadonlyArray<string>, loadout: IEnemyLoadout): string[] {
+    if (loadout.duplicateCantrips) return [...deck];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const dataId of deck) {
+        if (isPureCantrip(dataId)) {
+            if (seen.has(dataId)) continue;
+            seen.add(dataId);
+        }
+        out.push(dataId);
+    }
+    return out;
+}
+
+/**
  * Roll what is in a node. Pure, and deterministic in (`run.seed`, `node.id`, `node.visited`).
  *
  * **The two streams are forked apart on purpose.** Everything about *who* the enemies are — species,
@@ -745,13 +836,27 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         enemyDeckIds.push(...enemyDeckFor(state, loadout, decks, enemyParty.length === 1));
     }
 
+    /*
+     * TICKET 152 — ON THE ASSEMBLED PILE, NOT PER ENEMY, AND THE DIFFERENCE IS THE WHOLE RULE.
+     *
+     * The enemy SIDE shares one deck: this list is every member's cards in one pile, which is why
+     * it is built by pushing rather than by mapping. So a 3v3 of three jormungandr_v1 holds SIX
+     * `undertow` even though no single member ships more than two, and a per-member de-duplication
+     * would have left three — enough to loop, on a rule that claims to stop looping.
+     *
+     * Found by the ticket-08 test, which compares the pile card for card: it expected one and got
+     * two. That test is the reason this is a one-line call in the right place rather than a subtle
+     * bug in a shipped wild.
+     */
+    const sideDeck = dedupeCantrips(enemyDeckIds, loadout);
+
     // Ticket 68 ruling 4: the gym's Driver, on the elites guarding its approach and nowhere else.
     // Undefined for every wild, every elite outside the gym's biome, and every un-authored gym.
     const gymDriver = gymDriverForNode(run, node);
 
     return {
         enemyParty,
-        enemyDeckIds,
+        enemyDeckIds: sideDeck,
         seed,
         enemyAiTier: loadout.ai,
         aiBeam: loadout.beam,

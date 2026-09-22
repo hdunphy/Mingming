@@ -183,6 +183,38 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 - **An exponential curve is incompatible with a turn-count floor.** Every v1 lost 0/100 — the ramp deck becomes the fastest deck. Structural to the shape, not the constants.
 - **A curve change under ~20% is invisible to status cards**, because stacks are whole numbers. Status decks must be re-gated by hand after any curve move, and buffing the attack side is the finer instrument.
 
+## 0-WILD-CANTRIP-CAP (Henry, 2026-09-22, ticket 152) — THE RUNG DECIDES WHO MEETS A LOOP
+
+**A WILD's enemy side may hold only ONE copy of a pure cantrip. An ELITE and a GYM hold every copy
+the deck ships.** `IEnemyLoadout.duplicateCantrips`, applied in `rollEncounter` to the side's
+ASSEMBLED pile.
+
+A **pure cantrip** is 0 energy, draws, and does nothing else. All three clauses matter, and the
+third is the one people will want to drop: `forage` is 0-cost and draws and is DELIBERATELY not one,
+because it also costs the caster 15 power — the brake is in the card. The rule is a property, not a
+name list, so a future cantrip with a cost is fine and one without is caught, neither needing anyone
+to remember. Affects two shipped lists: `jormungandr_v1` (`undertow`×2) and `sleipnir_v1`
+(`slipstream`×2).
+
+**THE DECK LISTS ARE UNCHANGED.** `mingmingRegistry` still reads `undertow ×2`; the balance corpus
+still measures the deck it always measured; a PLAYER who drafts two can still loop them, which is
+ticket 111's law verbatim. Do not "fix" this by editing a deck.
+
+**Why this and not the obvious fixes.** 152 measured both card swaps §3 proposed: they kill the loop
+and take jormungandr_v1 from a 69.6% field to 18–27%, against an EA peer band of 47–64%. The loop IS
+why he sits at the top of the roster, so no swap can both remove it and hold the number it made.
+The engine lever (extend ticket 111's guard to every copy of the resolving card during a triggered
+draw) was measured too — 42.8%, loop gone — and declined; it reaches every deck and costs a grid
+re-baseline. **Do not re-litigate these three.**
+
+**On the SIDE, not the member.** Three `jormungandr_v1` share one pile and put six `undertow` in it;
+a per-member rule leaves three, which still loops. The first implementation made that mistake and
+the ticket-08 test caught it.
+
+**What it moves:** the RUN GATE (it rolls enemies through `rollEncounter`). **What it cannot move:**
+§2–3 of the balance report — that corpus builds decks from `getDeckForOS` directly and never touches
+`rollEncounter` — and §1.3/§1.4, since no card or firmware changed.
+
 ## EA SCOPE (Henry, 2026-09-22) — read this before picking up any balance finding
 
 > *"Lets leave the non-EA mingmings for after EA. Focus only on fire, water and nature, but good to

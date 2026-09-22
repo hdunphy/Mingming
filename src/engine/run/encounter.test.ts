@@ -23,6 +23,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
     FIGHT_KINDS,
     ENEMY_LADDER,
+    dedupeCantrips,
     encounterSeed,
     enemyPartySize,
     isFightNode,
@@ -297,6 +298,22 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
     const tunedDeckFor = (enemies: ReadonlyArray<IBattleEntity>): string[] =>
         enemies.flatMap((enemy) => getDeckForOS(enemy.definitionId, enemy.activeOS));
 
+    /**
+     * Ticket 152's rule, re-expressed rather than imported: a wild keeps the FIRST copy of a pure
+     * cantrip and drops the rest. Written out here so the test states the expectation instead of
+     * asking the code under test what it did.
+     */
+    const PURE_CANTRIPS = ['undertow', 'slipstream', 'glimmer'];
+    const withoutDuplicateCantrips = (deck: ReadonlyArray<string>): string[] => {
+        const seen = new Set<string>();
+        return deck.filter((id) => {
+            if (!PURE_CANTRIPS.includes(id)) return true;
+            if (seen.has(id)) return false;
+            seen.add(id);
+            return true;
+        });
+    };
+
     it('every rung fields the FULL tuned deck — depth stopped being the axis (ticket 60)', () => {
         /*
          * The claim ticket 60 replaced ticket 08's table with, and it is a strong one: **the enemy
@@ -309,11 +326,15 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
          * SHARPER list than the tuned one, not a weaker one. A difficulty curve whose middle was
          * its hardest point was tuning the wrong axis, so the axis is gone.
          *
-         * What separates the rungs now is firmware and lookahead, asserted below.
+         * TICKET 152 PUT ONE EXCEPTION IN, AND IT IS STILL NOT DEPTH. A wild drops the extra
+         * copies of a pure cantrip; everything else about the list is untouched, and the rule is
+         * the same at biome 0 and biome 2. Asserted here as "the tuned list with duplicate
+         * cantrips removed" rather than by relaxing the comparison, because the strength of this
+         * test is that it compares card for card and in order.
          */
         for (const biomeIndex of [0, 1, 2]) {
             const wild = rollEncounter({ run, node: node({ biomeIndex }), party });
-            expect(wild.enemyDeckIds).toEqual(tunedDeckFor(wild.enemyParty));
+            expect(wild.enemyDeckIds).toEqual(withoutDuplicateCantrips(tunedDeckFor(wild.enemyParty)));
         }
         const elite = rollEncounter({ run, node: node({ kind: 'elite', biomeIndex: 0 }), party });
         expect(elite.enemyDeckIds).toEqual(tunedDeckFor(elite.enemyParty));
@@ -810,5 +831,82 @@ describe('gymDriverForNode — the telegraph’s second half', () => {
         expect(withDriver.enemyAiTier).toBe(plain.enemyAiTier);
         expect(withDriver.enemyParty).toHaveLength(plain.enemyParty.length);
         expect(withDriver.enemyParty.every((e) => e.activeOS !== undefined)).toBe(true);
+    });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Ticket 152 — a wild may not hold two pure cantrips
+// ---------------------------------------------------------------------------------------------
+
+describe('ticket 152: the rung decides whether the player meets the loop', () => {
+    const run = makeRun(['Water', 'Water', 'Water']);
+
+    /** A side built entirely of the deck this ticket is about. */
+    const jormSide = (n: number): IBattleEntity[] =>
+        Array.from({ length: n }, (_, i) => ({
+            ...KRAKEN,
+            id: `j${i}`,
+            definitionId: 'jormungandr',
+            activeOS: 'jormungandr_v1',
+        } as IBattleEntity));
+
+    const count = (deck: ReadonlyArray<string>, id: string) => deck.filter((c) => c === id).length;
+
+    it('a wild keeps ONE undertow; an elite and a gym keep both', () => {
+        /*
+         * Henry, 2026-09-22: *"leave it, but remove the double undertow cards from all wild
+         * encounters. It should only be in elites and bosses."*
+         *
+         * The loop needs two things: a card that costs nothing and draws, and a second copy of it.
+         * Ticket 111's guard holds the resolving instance out of a reshuffle so a card cannot draw
+         * itself; it cannot stop two copies drawing each other. 152 measured the result at ≥6
+         * casts in 12.7% of jormungandr_v1's turns, max 18, and 16.8% of turns removing three
+         * quarters of a health pool.
+         *
+         * Asserted through `rollEncounter` rather than by calling the helper directly, because
+         * the claim is about what the PLAYER meets — a rule that worked in the helper and was
+         * never wired to a node would pass a unit test and ship the bug.
+         */
+        const wild = rollEncounter({ run, node: node({ biomeIndex: 0 }), party: jormSide(1) });
+        const elite = rollEncounter({ run, node: node({ kind: 'elite', biomeIndex: 0 }), party: jormSide(1) });
+
+        // Whatever species the roll produced, the rule is about the pile it produced.
+        const wildUndertows = count(wild.enemyDeckIds, 'undertow');
+        const eliteUndertows = count(elite.enemyDeckIds, 'undertow');
+        expect(wildUndertows).toBeLessThanOrEqual(1);
+        expect(eliteUndertows).toBeGreaterThanOrEqual(wildUndertows);
+    });
+
+    it('caps the SIDE, not the member — three jormungandr still hold one between them', () => {
+        /*
+         * The enemy side shares one deck. Three copies of the same deck put SIX undertow in one
+         * pile, and a per-member rule would have left three — enough to loop, under a rule that
+         * claims to stop looping.
+         */
+        for (const loadout of [ENEMY_LADDER.wild, ENEMY_LADDER.elite, ENEMY_LADDER.gauntlet]) {
+            const pile = dedupeCantrips(
+                ['undertow', 'ink_stream', 'undertow', 'ink_stream', 'undertow', 'ink_stream'],
+                loadout,
+            );
+            expect(count(pile, 'undertow')).toBe(loadout.duplicateCantrips ? 3 : 1);
+            // Nothing else is touched, at either rung.
+            expect(count(pile, 'ink_stream')).toBe(3);
+        }
+    });
+
+    it('leaves `forage` alone, because the brake is in the card', () => {
+        /*
+         * `forage` is 0-cost and it draws — and it also takes 15 power out of the caster, so
+         * looping it kills the looper. `ratatoskr_v1` and `hel_v2` both ship two, and both keep
+         * them at every rung.
+         *
+         * Excluding it by that property rather than by name is the difference between a rule and
+         * a blocklist: a future cantrip WITH a cost is fine without anyone remembering to think
+         * about it, and a future one without a cost is caught without anyone remembering to add
+         * it.
+         */
+        const pile = dedupeCantrips(['forage', 'forage', 'undertow', 'undertow'], ENEMY_LADDER.wild);
+        expect(count(pile, 'forage')).toBe(2);
+        expect(count(pile, 'undertow')).toBe(1);
     });
 });

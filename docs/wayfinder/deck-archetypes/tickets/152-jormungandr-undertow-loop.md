@@ -1,8 +1,9 @@
 # Ticket 152 — jormungandr_v1's two undertows draw each other: a base enemy deck that loops
 
-> **MEASURED 2026-09-22 — NOTHING SHIPPED. Both arms pass §4 gates 1 and 2 and fail gate 3 by
-> 43–51 field points; the parked engine lever passes all three. Henry's call.**
-> Numbers in `../../../../results/t152/FINDINGS.md` and §6 below.
+> **CLOSED 2026-09-22 — Henry ruled the third answer: the deck keeps its shape, and the RUNG
+> decides who meets it.** A WILD drops the extra copies of a pure cantrip; an ELITE and a GYM
+> keep them. Both §3 card swaps were measured and both gutted the deck; the engine lever was
+> measured too and declined. Numbers in `../../../../results/t152/FINDINGS.md`, §6 and §7.
 
 **Type:** balance (card swap in one base deck). **Status:** RULED by Henry 2026-09-11 — *"let's try
 with a card swap first, another 0e Water card, maybe apply a status"*. Card swap only; no engine
@@ -129,3 +130,80 @@ deck's symptom, which is the argument §4 already made for it.
    cantrip — new design, and §5 currently forbids it in this ticket; or
 3. **Leave it** — the law in §0 says base enemy decks may not loop, so this is the option that
    needs a reason.
+
+## 7. Ruled and shipped (2026-09-22) — the rung decides, not the deck
+
+Henry, given §6's table: *"leave it, but remove the double undertow cards from all wild encounters.
+It should only be in elites and bosses."*
+
+Neither card swap ships. Neither does the engine lever. The deck list is untouched — `jormungandr_v1`
+still reads `undertow ×2` in `mingmingRegistry`, the balance corpus still measures the deck it has
+always measured, and a player who drafts two `undertow` can still loop them, which is ticket 111's
+law verbatim (*players may break decks*).
+
+What changed is **who meets it**.
+
+### The condition, and why it is not a list of card names
+
+`IEnemyLoadout` gains `duplicateCantrips`: **false at a wild, true at an elite and a gauntlet**.
+When false, the enemy side's assembled deck keeps only the FIRST copy of any **pure cantrip**:
+
+  - **0 energy**, so casting it is free and a hand of them resolves in one turn;
+  - **it draws**, so a copy can put its twin back in your hand;
+  - **and it does nothing else**, so there is no price that stops the third repetition.
+
+That third clause is the one doing the work. `forage` is 0-cost and it draws — and it also takes 15
+power out of the caster, so looping it kills the looper. The brake is in the card. Excluding it by
+that property rather than by name is the difference between a rule and a blocklist: a future cantrip
+WITH a cost is fine without anyone remembering to think about it, and a future one without a cost is
+caught without anyone remembering to add it.
+
+**Two shipped lists are affected and they are the only two:** `jormungandr_v1` (`undertow` ×2, the
+deck this ticket is about) and `sleipnir_v1` (`slipstream` ×2). `ratatoskr_v1` and `hel_v2` run
+`forage` ×2 and keep both at every rung.
+
+### On the SIDE's pile, not the member's
+
+The enemy side shares one deck. Three `jormungandr_v1` put **six** `undertow` in one pile even
+though no member ships more than two, and a per-member rule would have left three — enough to loop,
+under a rule that claims to stop looping.
+
+The first implementation made exactly that mistake, and the existing ticket-08 test caught it: it
+compares the assembled pile card for card and in order, so it expected one `undertow` and got two.
+The de-duplication moved to the assembled pile, and order is preserved with the first copy kept —
+the deck is shuffled from a seeded stream, and a rule that reordered the list would change every
+wild encounter's draw in the corpus rather than only the decks it removes a card from.
+
+### Measured
+
+Running `jormungandr_v1` on the 8-card list through the same 1,200-game probe as §6:
+
+| | shipped | wild (de-duplicated) |
+|---|---|---|
+| turns with ≥6 undertow casts | 12.7% | **0.0%** |
+| max undertow in one turn | 18 | **2** |
+| `ink_stream` max triggered draws | 19 | **3** |
+| turns dealing ≥75% of a health pool | 16.8% | **0.0%** |
+| damage/turn p90 | 94.2% | 32.8% |
+
+The loop is gone as completely as either card swap removed it. The difference is that **only the
+wild pays for it** — the elite and the gym still field the deck the corpus is calibrated on.
+
+### What moves and what cannot
+
+§2–3 of the balance report **cannot** move: that corpus builds its decks from `getDeckForOS`
+directly and never calls `rollEncounter`. §1.3 and §1.4 cannot move either — no card or firmware
+changed.
+
+The **run gate** does move, because it rolls its enemies through `rollEncounter`. That is the
+measurement that should move: it is the one that simulates a player's run.
+
+### Tests
+
+The gym is untouched **structurally** rather than by a flag — `rollGauntletFight` is a sibling of
+`rollEncounter` and builds its own pile. That is the kind of thing that stays true until someone
+refactors the two together, so `gauntlet.test.ts` asserts a gauntlet fight still ships duplicates.
+Wild-versus-elite, the side-level cap and the `forage` exclusion are asserted in `encounter.test.ts`
+through `rollEncounter` rather than through the helper, because the claim is about what the PLAYER
+meets — a rule that worked in the helper and was never wired to a node would pass a unit test and
+ship the bug.

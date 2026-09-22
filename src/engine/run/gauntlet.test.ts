@@ -643,3 +643,31 @@ describe('every gym is authored — the invariant the relic deletion rests on', 
         }
     });
 });
+
+describe('ticket 152: the gym keeps the loop the wild does not', () => {
+    /*
+     * Henry, 2026-09-22: *"remove the double undertow cards from all wild encounters. It should
+     * only be in elites and bosses."*
+     *
+     * `rollEncounter` de-duplicates pure cantrips at the wild rung. This function is its sibling
+     * and builds its own pile, so the gym is untouched STRUCTURALLY rather than by a flag — which
+     * is exactly the kind of thing that is true until someone refactors the two together. Pinned
+     * here so that refactor fails a test instead of quietly disarming a boss.
+     */
+    it('a gauntlet fight keeps every copy its decks ship', () => {
+        const run = makeRun();
+        const node = { id: 'gym', kind: 'gym' } as unknown as Parameters<typeof rollGauntletFight>[0]['node'];
+
+        let sawADuplicate = false;
+        for (let fightIndex = 0; fightIndex < GAUNTLET_FIGHTS; fightIndex += 1) {
+            const fight = rollGauntletFight({ run, node, fightIndex });
+            const counts = new Map<string, number>();
+            for (const id of fight.enemyDeckIds) counts.set(id, (counts.get(id) ?? 0) + 1);
+            if ([...counts.values()].some((n) => n > 1)) sawADuplicate = true;
+        }
+
+        // Every tuned deck in the game runs at least one card twice, so a gauntlet that had been
+        // de-duplicated would show none of them.
+        expect(sawADuplicate).toBe(true);
+    });
+});
