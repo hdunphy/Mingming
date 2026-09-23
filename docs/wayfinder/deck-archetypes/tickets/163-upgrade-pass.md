@@ -1,6 +1,6 @@
 # Ticket 163 — The upgrade pass: card `+` versions and OS patches
 
-**Type:** design → engine + data + UI. **Status:** OPEN, asked by Henry 2026-09-23 after ruling
+**Type:** design → engine + data + UI. **Status:** **RULED 2026-09-23** (§5 answers below; 163a table delivered in `collection-v2/upgrades.json` and the browser's Upgrades tab). Asked by Henry 2026-09-23 after ruling
 collection v2.1b into playtest: *"I want to start on an upgrade pass. How can we implement card
 upgrades, what would OS upgrades look like?"* **Takes over** 161 §3 (card upgrades) — 161 keeps the
 start-kit half. **Relates to:** 162 (the collection this upgrades), 153 (the scrap sink), 148 (the
@@ -100,7 +100,21 @@ offers a choice of two.
 5. **163e — measure.** 157's walker with "upgrade highest-149c card when scrap ≥ price" vs never;
    deck-power curve fight 1 → gym; "sent to collection" rate.
 
-## 5. Decisions for Henry
+## 5. Decisions — RULED by Henry 2026-09-23
+
+1. **§1 two layers, one rule — good.** 2. **§2 generator rule — yes as the first draft**; *"maybe we add
+reduction in price to some of the cards, but leave it for now as described"* — cost-reduction `+`
+lines are a door left open, not in 163a. 3. **Patches (B). Tiers never, fork later.** 4. **One patch
+slot per body** (no second at the gym). 5. **No persistence across runs to start**; the data shape
+must leave the door open (an `upgrades` map on the collection entry, unused until a later ticket).
+
+**163a delivered:** `collection-v2/upgrades.json` — all 98 `+` lines by the rule, ten hand-overrides
+(Thorn Whip +7/Sharp; Heartwood +2 Bark not +1 Poison, its currency; Ragnarok Edge base 25 since the
+per-1% is capped; Contagion double then +2; Hexbloom adds 5 power per Weakened; Overclock Core +1
+Energized now; Echo Chamber two tokens the first time each turn; Tend/Mend/Soothe "and you"). Henry
+reviews the table in the browser; 149c prices each `+` as its own row; then it ships as registry entries.
+
+### Original questions
 
 1. `+` generator rule (§2) as the first draft — yes, then review the table?
 2. Patches (B) now, tiers (A) never, fork (C) later — or tiers first because they read simplest?

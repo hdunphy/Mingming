@@ -275,6 +275,8 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-23 — 163 RULED.** Henry: two layers one rule; generator rule as first draft (cost-reduction `+` lines a door left open); patches (B) — tiers never, fork later; ONE patch slot per body; no cross-run persistence to start, data shape leaves the door open. **163a delivered:** `collection-v2/upgrades.json` (98 `+` lines, ten hand-overrides) and the browser's Upgrades tab. Legion: after 162a and the playtest prep — 163a registry entries once 149c prices them, 163b workshop/gym-gate venue, 163c patches engine (`patches[]` max 1, `modifies` in the firmware runner, six patches in hooks.json), 163d patches in the run, 163e measure.
+
 ## 0-A-v2-RUN-CANNOT-CLEAR-A-GYM (162c, 2026-09-23) — THE ONE BLOCKER
 
 Ticket 61's run gate on collection v2, 18 battles (`results/t162/RUNGATE.txt`):
