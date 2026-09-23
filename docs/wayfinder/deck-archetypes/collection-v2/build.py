@@ -1,5 +1,50 @@
-import json, collections, html
+"""
+Render the collection browser.
+
+TICKET 162d — THE SOURCE IS THE REGISTRY WHEN THERE IS ONE.
+
+This used to read `collection.py` and nothing else, which was right while the collection was a
+proposal Henry was reviewing. Since 162a shipped it, the registry is the collection, and a browser
+built from the design file would keep showing the draft's numbers after a pricing pass moved them —
+on the exact surface Henry reads a pricing decision off.
+
+So `npm run decks` writes `registry.json` here (src/debug/balance/collectionExport.ts) and this
+script prefers it. The design file stays the source of the two things the engine has no field for,
+158 §2's `shape` and `cur`, which the export carries across; and it stays the fallback for anyone
+running this without a Node toolchain, which is why the import is still at the top.
+
+    npm run decks          # refresh registry.json from the live registry
+    python build.py        # render browser.html from it
+    python build.py --design   # render from collection.py instead, as before
+"""
+import json, collections, html, os as _os, sys
 from collection import CARDS, OS, RUN_ONLY, CHANGELOG
+
+FROM_REGISTRY = '--design' not in sys.argv and _os.path.exists('registry.json')
+if FROM_REGISTRY:
+    _reg = json.load(open('registry.json', encoding='utf-8'))
+    _by_id = {c['id']: c for c in _reg['cards']}
+    # Carry the design-only fields the export could not derive, then take everything else from the
+    # registry. A card the design file has never heard of keeps its empty shape rather than a guess.
+    for _c in CARDS:
+        if _c['id'] in _by_id:
+            _r = _by_id[_c['id']]
+            for _k in ('name', 'cost', 'el', 'cat', 'tgt', 'text'):
+                _c[_k] = _r[_k]
+    _live = {c['id'] for c in CARDS}
+    CARDS = [c for c in CARDS if c['id'] in _by_id] + [c for c in _reg['cards'] if c['id'] not in _live]
+    # Kits and pools too: the registry is where a kit lives now.
+    _os_by_id = {o['id']: o for o in _reg['os']}
+    for _o in OS:
+        if _o['id'] in _os_by_id:
+            _o['kit'] = [list(k) for k in _os_by_id[_o['id']]['kit']]
+            _o['pool'] = list(_os_by_id[_o['id']]['pool'])
+            _o['os'] = _os_by_id[_o['id']]['os'] or _o['os']
+            _o['text'] = _os_by_id[_o['id']]['text'] or _o['text']
+    RUN_ONLY = list(_reg['run_only'])
+    print('source: registry.json (%d cards, %d OS)' % (len(CARDS), len(OS)))
+else:
+    print('source: collection.py (the design draft)')
 
 C = {c['id']: c for c in CARDS}
 assert len(C) == len(CARDS), 'duplicate id'
@@ -175,5 +220,9 @@ const active={{}};
 document.querySelectorAll('#filters .chip').forEach(b=>b.addEventListener('click',()=>{{const k=b.dataset.k,v=b.dataset.v; active[k]=active[k]===v?null:v; document.querySelectorAll(`#filters .chip[data-k="${{k}}"]`).forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===active[k]))); document.querySelectorAll('#allTiles .rs').forEach(t=>{{t.hidden=Object.entries(active).some(([kk,vv])=>vv&&t.dataset[kk]!==vv)}});}}));
 </script>'''
 open('browser.html', 'w', encoding='utf-8').write(page)
-json.dump({'cards': CARDS, 'os': OS, 'run_only': RUN_ONLY}, open('collection.json', 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+# `collection.json` is the DESIGN record — what Henry ruled on 2026-09-23 — so a registry-sourced
+# run must not overwrite it. Rewriting it here would destroy the `shape`/`cur` tags this script
+# depends on and leave no way back to the draft.
+if not FROM_REGISTRY:
+    json.dump({'cards': CARDS, 'os': OS, 'run_only': RUN_ONLY}, open('collection.json', 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
 print(len(page)//1024, 'KB', len(CARDS), 'cards')

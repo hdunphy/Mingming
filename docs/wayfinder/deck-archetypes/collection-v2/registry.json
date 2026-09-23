@@ -1,0 +1,1890 @@
+{
+  "cards": [
+    {
+      "id": "acorn_toss",
+      "name": "Acorn Toss",
+      "cost": 0,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "6 power, twice.",
+      "shape": "enabler",
+      "cur": "cards",
+      "status": "revise",
+      "why": "Seed Spit minus the Poison, as the 0e multi-hit: two Dazed-on-target hits for one INSTIGATOR proc. Tackle is the flat 0e."
+    },
+    {
+      "id": "ash_communion",
+      "name": "Ash Communion",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Heal",
+      "tgt": "Self",
+      "text": "Consume your Burn: heal with 30 power per stack consumed.",
+      "shape": "consume",
+      "cur": "Burn",
+      "status": "keep"
+    },
+    {
+      "id": "bark_lash",
+      "name": "Bark Lash",
+      "cost": 0,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "1 power per point of Bark Shield you hold.",
+      "shape": "scalar",
+      "cur": "Bark",
+      "status": "keep"
+    },
+    {
+      "id": "bark_smash",
+      "name": "Bark Smash",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Consume your Bark Shield: 6 power per point consumed.",
+      "shape": "consume",
+      "cur": "Bark",
+      "status": "new",
+      "why": "Henry's 'bark smash'."
+    },
+    {
+      "id": "battle_rhythm",
+      "name": "Battle Rhythm",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "25 power. Above half HP: gain 2 Strength. Otherwise gain 2 Sharp.",
+      "shape": "enabler",
+      "cur": "Strength",
+      "status": "keep"
+    },
+    {
+      "id": "blightbloom",
+      "name": "Blightbloom",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "30 power. Apply 5 Poison.",
+      "shape": "enabler",
+      "cur": "Poison",
+      "status": "keep"
+    },
+    {
+      "id": "blind_spot",
+      "name": "Blind Spot",
+      "cost": 0,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "6 power. Apply 1 Dazed.",
+      "shape": "enabler",
+      "cur": "Dazed",
+      "status": "keep"
+    },
+    {
+      "id": "blood_rite",
+      "name": "Blood Rite",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "15 power. +15 power above half HP; otherwise heal with 40 power.",
+      "shape": "enabler",
+      "cur": "HP",
+      "status": "keep"
+    },
+    {
+      "id": "boiling_surge",
+      "name": "Boiling Surge",
+      "cost": 2,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "55 power. Apply 2 Burn.",
+      "shape": "scalar",
+      "cur": "Energy",
+      "status": "keep",
+      "why": "A ≥2e Water attack IS the TIDAL_CRUSH scalar; the Burn is the steam lane."
+    },
+    {
+      "id": "bolster",
+      "name": "Bolster",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Skill",
+      "tgt": "Ally",
+      "text": "An ally gains 3 Sharp.",
+      "shape": "enabler",
+      "cur": "Sharp",
+      "status": "new",
+      "why": "The keeper card. Read by Cinder Lance / Thorn Whip on whoever holds it."
+    },
+    {
+      "id": "brand",
+      "name": "Brand",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "25 power. If the target is Burning, apply 1 more Burn.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "new",
+      "why": "Feeds detonation (Sköll v2) without being an OS reskin."
+    },
+    {
+      "id": "brute_force",
+      "name": "Brute Force",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "25 power. +8 power if you have Strength.",
+      "shape": "scalar",
+      "cur": "Strength",
+      "status": "keep"
+    },
+    {
+      "id": "capacitor",
+      "name": "Capacitor",
+      "cost": 2,
+      "el": "None",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Gain 3 Energized.",
+      "shape": "enabler",
+      "cur": "Energy",
+      "status": "keep"
+    },
+    {
+      "id": "cinder_armor",
+      "name": "Cinder Armor",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): cards that add Burn also add 1 Sharp to the host.",
+      "shape": "converter",
+      "cur": "Burn",
+      "status": "keep"
+    },
+    {
+      "id": "cinder_lance",
+      "name": "Cinder Lance",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "40 power. +6 power per stack of Sharp you hold.",
+      "shape": "scalar",
+      "cur": "Sharp",
+      "status": "keep"
+    },
+    {
+      "id": "contagion",
+      "name": "Contagion",
+      "cost": 2,
+      "el": "Water",
+      "cat": "Status",
+      "tgt": "Single",
+      "text": "Double the target's Poison stacks.",
+      "shape": "enabler",
+      "cur": "Poison",
+      "status": "keep"
+    },
+    {
+      "id": "core_overclock",
+      "name": "Core Overclock",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+      "shape": "scalar",
+      "cur": "Strength",
+      "status": "keep"
+    },
+    {
+      "id": "corrosive_bolt",
+      "name": "Corrosive Bolt",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Apply 3 Poison.",
+      "shape": "enabler",
+      "cur": "Poison",
+      "status": "keep"
+    },
+    {
+      "id": "corrosive_leak",
+      "name": "Corrosive Leak",
+      "cost": 0,
+      "el": "Water",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Poison yourself 2 stacks. Gain 1 Energized.",
+      "shape": "enabler",
+      "cur": "Energy",
+      "status": "keep"
+    },
+    {
+      "id": "crimson_draw",
+      "name": "Crimson Draw",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "18 power. Heal 8.5% of your max HP.",
+      "shape": "glue",
+      "cur": "HP",
+      "status": "keep"
+    },
+    {
+      "id": "crippling_vine",
+      "name": "Crippling Vine",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Side",
+      "text": "20 power to the enemy side. Apply 2 Weakened to each.",
+      "shape": "enabler",
+      "cur": "Weakened",
+      "status": "revise",
+      "why": "Was a 1e card with more damage (09-23). Now a SIDE card — a thing two Thorn Tithes cannot do."
+    },
+    {
+      "id": "crushing_depths",
+      "name": "Crushing Depths",
+      "cost": 2,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Consume all Dazed on the target: 20 power per stack consumed.",
+      "shape": "consume",
+      "cur": "Dazed",
+      "status": "keep"
+    },
+    {
+      "id": "deep_scan",
+      "name": "Deep Scan",
+      "cost": 1,
+      "el": "None",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Draw 2.",
+      "shape": "glue",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "desperate_strike",
+      "name": "Desperate Strike",
+      "cost": 0,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "8 power. Gain 1 Strength. Lose 3% of your max HP.",
+      "shape": "enabler",
+      "cur": "Strength",
+      "status": "revise",
+      "why": "Fenrir needs more self damage (Henry 09-23): the 0e Str enabler pays in HP and feeds Ragnarok Edge."
+    },
+    {
+      "id": "echo_chamber",
+      "name": "Echo Chamber",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+      "shape": "enabler",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "ember_jab",
+      "name": "Ember Jab",
+      "cost": 0,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "8 power. Apply 1 Burn.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "revise",
+      "why": "Fire Poke was 1e/22. The 0e Burn rider the zoo lanes need."
+    },
+    {
+      "id": "ember_ward",
+      "name": "Ember Ward",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "new",
+      "why": "Henry's 'when attacked apply Burn' (Fenrir v2 control lane)."
+    },
+    {
+      "id": "feedback_loop",
+      "name": "Feedback Loop",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 7 power.",
+      "shape": "scalar",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "flare_burst",
+      "name": "Flare Burst",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "15 power, twice.",
+      "shape": "scalar",
+      "cur": "Strength",
+      "status": "new",
+      "why": "The Fire multi-hit. Status power is added PER HIT, so this is the Str scalar (and the Dazed-on-target scalar)."
+    },
+    {
+      "id": "flashover",
+      "name": "Flashover",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "50 power. +15 power per Burn on the target.",
+      "shape": "scalar",
+      "cur": "Burn",
+      "status": "new",
+      "why": "Burn scalar that reads the TARGET — any ally’s Burn counts."
+    },
+    {
+      "id": "forage",
+      "name": "Forage",
+      "cost": 0,
+      "el": "None",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Draw 1. Take damage equal to 15 power.",
+      "shape": "glue",
+      "cur": "cards",
+      "status": "keep",
+      "why": "Henry 09-23: the 0e draw has a drawback and is generic — Forage is the glue in every kit; Undertow is the Water one and feeds OUROBOROS."
+    },
+    {
+      "id": "fury_strike",
+      "name": "Fury Strike",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "25 power. Gain 1 Strength.",
+      "shape": "enabler",
+      "cur": "Strength",
+      "status": "keep"
+    },
+    {
+      "id": "glass_cannon",
+      "name": "Glass Cannon",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "45 power. Lose 5% of your max HP.",
+      "shape": "enabler",
+      "cur": "HP",
+      "status": "keep",
+      "why": "Fenrir v1’s berserker lane: over-band damage paid in HP."
+    },
+    {
+      "id": "heartwood",
+      "name": "Heartwood",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Status",
+      "tgt": "Single",
+      "text": "Gain 6 Bark Shield. Apply 1 Poison to the target.",
+      "shape": "enabler",
+      "cur": "Bark",
+      "status": "keep"
+    },
+    {
+      "id": "heat_wave",
+      "name": "Heat Wave",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Status",
+      "tgt": "Side",
+      "text": "Double the enemy side's Burn stacks.",
+      "shape": "consume",
+      "cur": "Burn",
+      "status": "keep",
+      "why": "The detonation ramp: past the cap of 4, Burn detonates."
+    },
+    {
+      "id": "heckle",
+      "name": "Heckle",
+      "cost": 0,
+      "el": "Nature",
+      "cat": "Status",
+      "tgt": "Single",
+      "text": "Apply 1 Dazed and 1 Weakened.",
+      "shape": "enabler",
+      "cur": "Dazed",
+      "status": "new"
+    },
+    {
+      "id": "hexbloom",
+      "name": "Hexbloom",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Status",
+      "tgt": "Single",
+      "text": "Apply 1 Poison per Weakened on the target, then remove the Weakened.",
+      "shape": "consume",
+      "cur": "Weakened",
+      "status": "keep"
+    },
+    {
+      "id": "hoofbeat",
+      "name": "Hoofbeat",
+      "cost": 2,
+      "el": "None",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): whenever you play a 0-cost card, deal 8 power to a random enemy.",
+      "shape": "scalar",
+      "cur": "cards",
+      "status": "revise",
+      "why": "Was Air; generic now so the 0e zoo (Rat) can find it."
+    },
+    {
+      "id": "howl",
+      "name": "Howl",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Skill",
+      "tgt": "AllySide",
+      "text": "Every ally gains 1 Strength.",
+      "shape": "enabler",
+      "cur": "Strength",
+      "status": "new",
+      "why": "Sköll's battery lane: Str as a PARTY currency (UNBOUND_KERNEL reads allies' attacks)."
+    },
+    {
+      "id": "hydro_blast",
+      "name": "Hydro Blast",
+      "cost": 3,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "120 power.",
+      "shape": "consume",
+      "cur": "Energy",
+      "status": "keep"
+    },
+    {
+      "id": "ignite",
+      "name": "Ignite",
+      "cost": 0,
+      "el": "Fire",
+      "cat": "Status",
+      "tgt": "Single",
+      "text": "Apply 1 Burn. If the target was already Burning, draw a card.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "revise",
+      "why": "09-23 one-job rule: Ember Jab is the 0e Burn HIT; Ignite is the 0e Burn CANTRIP on a pile."
+    },
+    {
+      "id": "inferno",
+      "name": "Inferno",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Status",
+      "tgt": "Side",
+      "text": "Apply 2 Burn to the enemy side.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "keep"
+    },
+    {
+      "id": "ink_cloud",
+      "name": "Ink Cloud",
+      "cost": 2,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Side",
+      "text": "25 power to the enemy side. Apply 2 Dazed to each.",
+      "shape": "enabler",
+      "cur": "Dazed",
+      "status": "keep"
+    },
+    {
+      "id": "ink_stream",
+      "name": "Ink Stream",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "33 power for each card an effect drew you this turn.",
+      "shape": "scalar",
+      "cur": "cards",
+      "status": "keep",
+      "why": "KRAKEN ONLY now — it was in both Water decks."
+    },
+    {
+      "id": "iron_bark",
+      "name": "Iron Bark",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Gain 3 Sharp and 2 Regen.",
+      "shape": "enabler",
+      "cur": "Sharp",
+      "status": "keep"
+    },
+    {
+      "id": "maelstrom",
+      "name": "Maelstrom",
+      "cost": 3,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "100 power. Apply 3 Dazed.",
+      "shape": "consume",
+      "cur": "Energy",
+      "status": "keep"
+    },
+    {
+      "id": "mend",
+      "name": "Mend",
+      "cost": 1,
+      "el": "None",
+      "cat": "Heal",
+      "tgt": "Ally",
+      "text": "Heal an ally with 20 power.",
+      "shape": "glue",
+      "cur": "—",
+      "status": "new",
+      "why": "The ally-target heal (160-e1). Keeper role for any party."
+    },
+    {
+      "id": "molten_core",
+      "name": "Molten Core",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Skill",
+      "tgt": "Single",
+      "text": "Apply 4 Burn if you hold Sharp. Otherwise 2 Burn.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "keep"
+    },
+    {
+      "id": "nagging_bite",
+      "name": "Nagging Bite",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "15 power. +20 power if the target is Dazed.",
+      "shape": "scalar",
+      "cur": "Dazed",
+      "status": "keep",
+      "why": "Binary rider (\"is it Dazed?\") — Rat’s shape; Kraken’s is per stack."
+    },
+    {
+      "id": "nettle_sting",
+      "name": "Nettle Sting",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "22 power. Apply 1 Poison.",
+      "shape": "enabler",
+      "cur": "Poison",
+      "status": "keep",
+      "why": "Huldra v2 only."
+    },
+    {
+      "id": "overclock_core",
+      "name": "Overclock Core",
+      "cost": 2,
+      "el": "None",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): Max Energy +1 for the rest of the battle.",
+      "shape": "enabler",
+      "cur": "Energy",
+      "status": "new",
+      "why": "160-r1. Battery Pack at half price; tempo is the tax."
+    },
+    {
+      "id": "pack_tactics",
+      "name": "Pack Tactics",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "23 power, three times.",
+      "shape": "scalar",
+      "cur": "Strength",
+      "status": "new"
+    },
+    {
+      "id": "pile_on",
+      "name": "Pile On",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "45 power. If the target is Dazed, hit again.",
+      "shape": "scalar",
+      "cur": "Dazed",
+      "status": "new"
+    },
+    {
+      "id": "pollen_cloud",
+      "name": "Pollen Cloud",
+      "cost": 0,
+      "el": "Nature",
+      "cat": "Status",
+      "tgt": "Side",
+      "text": "Apply 1 Weakened to each enemy.",
+      "shape": "enabler",
+      "cur": "Weakened",
+      "status": "revise",
+      "why": "Poison removed; 09-23 one-job rule: Snarl is 2 Weakened on one target, Pollen Cloud is 1 on the side."
+    },
+    {
+      "id": "pressure_point",
+      "name": "Pressure Point",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "22 power. If the target is Dazed, draw 1.",
+      "shape": "enabler",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "ragnarok_edge",
+      "name": "Ragnarok Edge",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "20 power. +1 power per 1% of your max HP missing (max 50%).",
+      "shape": "scalar",
+      "cur": "HP",
+      "status": "keep"
+    },
+    {
+      "id": "reactive_plating",
+      "name": "Reactive Plating",
+      "cost": 2,
+      "el": "None",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 per turn.",
+      "shape": "enabler",
+      "cur": "Sharp",
+      "status": "keep"
+    },
+    {
+      "id": "rejuvenation",
+      "name": "Rejuvenation",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Heal",
+      "tgt": "Self",
+      "text": "Draw a card. Heal with 25 power.",
+      "shape": "glue",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "riptide",
+      "name": "Riptide",
+      "cost": 2,
+      "el": "None",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): whenever an enemy plays a card, deal 8 power to it.",
+      "shape": "hate",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "riptide_run",
+      "name": "Riptide Run",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "20 power. Refund 1 Energy if this is the third or later card you played this turn.",
+      "shape": "enabler",
+      "cur": "Energy",
+      "status": "new",
+      "why": "Jorm v1's refund ramp, the shape nobody else has."
+    },
+    {
+      "id": "sap_strength",
+      "name": "Sap Strength",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "20 power. +6 power per Weakened on the target.",
+      "shape": "scalar",
+      "cur": "Weakened",
+      "status": "new",
+      "why": "The Weakened scalar; reads the TARGET, so Kraken’s or Rat’s Weakened counts."
+    },
+    {
+      "id": "scald",
+      "name": "Scald",
+      "cost": 0,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Apply 2 Burn. You gain 1 Dazed.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "keep"
+    },
+    {
+      "id": "scavenge_data",
+      "name": "Scavenge Data",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Draw a Water card.",
+      "shape": "enabler",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "seed_bomb",
+      "name": "Seed Bomb",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "20 power per card you played this turn.",
+      "shape": "scalar",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "serpent_flurry",
+      "name": "Serpent Flurry",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Three strikes of 10 power.",
+      "shape": "scalar",
+      "cur": "Poison",
+      "status": "keep",
+      "why": "Multi-hit × per-Poison OS bonus — Jorm v2’s unique thing."
+    },
+    {
+      "id": "serpents_coil",
+      "name": "Serpent's Coil",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "10 power for every card you played this turn.",
+      "shape": "scalar",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "sharp_edge",
+      "name": "Sharp Edge",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Consume your Sharp: 15 power per stack consumed.",
+      "shape": "consume",
+      "cur": "Sharp",
+      "status": "new",
+      "why": "The Sharp consume the roster lacks (Fenrir v2 ramp lane)."
+    },
+    {
+      "id": "shell_share",
+      "name": "Shell Share",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Skill",
+      "tgt": "Ally",
+      "text": "An ally gains 6 Bark Shield.",
+      "shape": "enabler",
+      "cur": "Bark",
+      "status": "new",
+      "why": "Huldra v2 shields allies by card, not only by OS."
+    },
+    {
+      "id": "short_circuit",
+      "name": "Short Circuit",
+      "cost": 2,
+      "el": "None",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
+      "shape": "hate",
+      "cur": "cards",
+      "status": "keep"
+    },
+    {
+      "id": "short_fuse",
+      "name": "Short Fuse",
+      "cost": 2,
+      "el": "None",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point.",
+      "shape": "hate",
+      "cur": "Energy",
+      "status": "new",
+      "why": "160-r2. The anti-ramp answer, printed with the ramp."
+    },
+    {
+      "id": "shrug_off",
+      "name": "Shrug Off",
+      "cost": 0,
+      "el": "Nature",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Remove 1 Weakened, then gain 2 Sharp.",
+      "shape": "enabler",
+      "cur": "Sharp",
+      "status": "keep"
+    },
+    {
+      "id": "slag_strike",
+      "name": "Slag Strike",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "22 power. Gain 1 Sharp.",
+      "shape": "enabler",
+      "cur": "Sharp",
+      "status": "keep"
+    },
+    {
+      "id": "slander",
+      "name": "Slander",
+      "cost": 2,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "15 power per stack of Dazed on the target.",
+      "shape": "scalar",
+      "cur": "Dazed",
+      "status": "revise",
+      "why": "Was Nature (Rat). Per-stack Dazed is Kraken’s; Rat keeps the binary \"if Dazed\" riders."
+    },
+    {
+      "id": "snap",
+      "name": "Snap",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "20 power. +12 power if the target is Weakened.",
+      "shape": "scalar",
+      "cur": "Weakened",
+      "status": "new",
+      "why": "Sköll v1’s second payoff on a DIFFERENT counter (cleanse, not Weakened) — the §2.6 rule."
+    },
+    {
+      "id": "snarl",
+      "name": "Snarl",
+      "cost": 0,
+      "el": "Fire",
+      "cat": "Status",
+      "tgt": "Single",
+      "text": "Apply 2 Weakened.",
+      "shape": "enabler",
+      "cur": "Weakened",
+      "status": "new",
+      "why": "Sköll v1's deny half: keep the chip damage TREACHERY feeds on small."
+    },
+    {
+      "id": "soothe",
+      "name": "Soothe",
+      "cost": 0,
+      "el": "None",
+      "cat": "Skill",
+      "tgt": "Ally",
+      "text": "Remove 1 stack of a debuff from an ally.",
+      "shape": "glue",
+      "cur": "—",
+      "status": "revise",
+      "why": "Was Nature/Self. Now the generic ally cleanse — the only cheap answer to Poison/Burn piles, so it must be castable by anyone."
+    },
+    {
+      "id": "spreading_rot",
+      "name": "Spreading Rot",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Status",
+      "tgt": "Side",
+      "text": "Apply 2 Poison to the enemy side.",
+      "shape": "enabler",
+      "cur": "Poison",
+      "status": "keep"
+    },
+    {
+      "id": "static_ward",
+      "name": "Static Ward",
+      "cost": 2,
+      "el": "None",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power.",
+      "shape": "hate",
+      "cur": "statuses",
+      "status": "new",
+      "why": "Anti-control. Fine against anyone, sharp against Huldra/Kraken-style decks."
+    },
+    {
+      "id": "sun_devourer",
+      "name": "Sun Devourer",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Consume all your Strength: 30 power per stack consumed.",
+      "shape": "consume",
+      "cur": "Strength",
+      "status": "keep",
+      "why": "Moves from Sköll to Fenrir — Fenrir is the Str CONSUME, Sköll is the Str multi-hit."
+    },
+    {
+      "id": "surge_protection",
+      "name": "Surge Protection",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
+      "shape": "scalar",
+      "cur": "Energy",
+      "status": "revise",
+      "why": "Henry 09-23: a 25p 1e, not a 2e."
+    },
+    {
+      "id": "tackle",
+      "name": "Tackle",
+      "cost": 0,
+      "el": "None",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "12 power.",
+      "shape": "glue",
+      "cur": "—",
+      "status": "keep"
+    },
+    {
+      "id": "tend",
+      "name": "Tend",
+      "cost": 0,
+      "el": "Nature",
+      "cat": "Heal",
+      "tgt": "Ally",
+      "text": "An ally gains 1 Sharp and heals with 8 power.",
+      "shape": "enabler",
+      "cur": "Sharp",
+      "status": "revise",
+      "why": "Growth/Healing Mist made ally-target. A buff on an ally = Weakened on an enemy under ALLURE_PROXY."
+    },
+    {
+      "id": "thermal_overload",
+      "name": "Thermal Overload",
+      "cost": 2,
+      "el": "Fire",
+      "cat": "Daemon",
+      "tgt": "Self",
+      "text": "Daemon (exhaust): your Burns deal 50% more damage. Host takes 5 Fire damage at turn end.",
+      "shape": "scalar",
+      "cur": "Burn",
+      "status": "keep"
+    },
+    {
+      "id": "thorn_tithe",
+      "name": "Thorn Tithe",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "30 power. Apply 3 Weakened.",
+      "shape": "enabler",
+      "cur": "Weakened",
+      "status": "keep"
+    },
+    {
+      "id": "thorn_whip",
+      "name": "Thorn Whip",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "15 power. +5 power per Sharp you hold.",
+      "shape": "scalar",
+      "cur": "Sharp",
+      "status": "keep"
+    },
+    {
+      "id": "thornguard",
+      "name": "Thornguard",
+      "cost": 1,
+      "el": "Nature",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "20 power. Apply 3 Poison if you are shielded.",
+      "shape": "converter",
+      "cur": "Poison",
+      "status": "keep"
+    },
+    {
+      "id": "tidal_battery",
+      "name": "Tidal Battery",
+      "cost": 2,
+      "el": "Water",
+      "cat": "Skill",
+      "tgt": "AllySide",
+      "text": "Every ally gains 1 Energized.",
+      "shape": "enabler",
+      "cur": "Energy",
+      "status": "revise",
+      "why": "RUN CARD (Henry 09-22) — never in a kit. Description says Energized (09-23)."
+    },
+    {
+      "id": "tidal_wave",
+      "name": "Tidal Wave",
+      "cost": 3,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Side",
+      "text": "55 power to the enemy side.",
+      "shape": "consume",
+      "cur": "Energy",
+      "status": "keep"
+    },
+    {
+      "id": "tide_pool",
+      "name": "Tide Pool",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Gain 1 Energized. Draw 1.",
+      "shape": "enabler",
+      "cur": "Energy",
+      "status": "new"
+    },
+    {
+      "id": "toxic_surge",
+      "name": "Toxic Surge",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Skill",
+      "tgt": "Single",
+      "text": "Apply 1 Poison, then trigger Poison damage immediately.",
+      "shape": "consume",
+      "cur": "Poison",
+      "status": "keep"
+    },
+    {
+      "id": "unbound_fang",
+      "name": "Unbound Fang",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "5 power per stack of Strength you hold, then lose half of them.",
+      "shape": "consume",
+      "cur": "Strength",
+      "status": "keep"
+    },
+    {
+      "id": "undertow",
+      "name": "Undertow",
+      "cost": 0,
+      "el": "Water",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Draw a card. You gain 1 Weakened.",
+      "shape": "enabler",
+      "cur": "cards",
+      "status": "revise",
+      "why": "Henry 09-23 (Legion tested): the 0e draw carries a drawback."
+    },
+    {
+      "id": "venom_fang",
+      "name": "Venom Fang",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "30 power.",
+      "shape": "scalar",
+      "cur": "Poison",
+      "status": "keep",
+      "why": "Plain hit that TOXIN_FANG turns into a scalar."
+    },
+    {
+      "id": "venom_glut",
+      "name": "Venom Glut",
+      "cost": 2,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Consume the target's Poison: 15 power per stack consumed.",
+      "shape": "consume",
+      "cur": "Poison",
+      "status": "new",
+      "why": "The Poison consume, reads the TARGET. 15/stack (09-23: 8 was underpowered for what it removes) — after Contagion a 6-pile is 180."
+    },
+    {
+      "id": "verdant_ward",
+      "name": "Verdant Ward",
+      "cost": 2,
+      "el": "Nature",
+      "cat": "Skill",
+      "tgt": "AllySide",
+      "text": "Every ally gains 2 Regen and 1 Sharp.",
+      "shape": "enabler",
+      "cur": "Sharp",
+      "status": "new"
+    },
+    {
+      "id": "war_pact",
+      "name": "War Pact",
+      "cost": 0,
+      "el": "Fire",
+      "cat": "Skill",
+      "tgt": "Self",
+      "text": "Above half HP: gain 2 Strength and 2 Dazed. Below half: heal with 15 power.",
+      "shape": "enabler",
+      "cur": "Strength",
+      "status": "keep"
+    },
+    {
+      "id": "whirlpool",
+      "name": "Whirlpool",
+      "cost": 1,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "8 power. Draw a card. Apply 2 Dazed.",
+      "shape": "enabler",
+      "cur": "Dazed",
+      "status": "keep"
+    },
+    {
+      "id": "wildfire",
+      "name": "Wildfire",
+      "cost": 3,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Side",
+      "text": "45 power to the enemy side. Apply 1 Burn to each.",
+      "shape": "enabler",
+      "cur": "Burn",
+      "status": "new"
+    }
+  ],
+  "os": [
+    {
+      "sp": "fenrir",
+      "el": "Fire",
+      "id": "fenrir_v1",
+      "os": "UNBOUND_KERNEL",
+      "text": "Attack programs apply 2 Strengthened and deal 2% Max HP recoil damage. Allies' attacks apply 1 Strengthened to Fenrir. Fire attacks deal up to 50% more damage, scaled by how much of your max HP is missing.",
+      "kit": [
+        [
+          "war_pact",
+          2,
+          "A",
+          1
+        ],
+        [
+          "desperate_strike",
+          1,
+          "A",
+          1
+        ],
+        [
+          "unbound_fang",
+          1,
+          "A",
+          0
+        ],
+        [
+          "ragnarok_edge",
+          2,
+          "B",
+          1
+        ],
+        [
+          "glass_cannon",
+          1,
+          "B",
+          1
+        ],
+        [
+          "forage",
+          1,
+          "G",
+          1
+        ]
+      ],
+      "pool": [
+        "sun_devourer",
+        "fury_strike",
+        "blood_rite",
+        "flare_burst",
+        "core_overclock",
+        "howl"
+      ]
+    },
+    {
+      "sp": "fenrir",
+      "el": "Fire",
+      "id": "fenrir_v2",
+      "os": "CINDER_WALL_OS",
+      "text": "Whenever an ally applies the Burn status to any unit - including themselves - Fenrir gains a stack of Sharp.",
+      "kit": [
+        [
+          "ignite",
+          2,
+          "A",
+          2
+        ],
+        [
+          "ember_jab",
+          1,
+          "A",
+          1
+        ],
+        [
+          "slag_strike",
+          1,
+          "A",
+          1
+        ],
+        [
+          "cinder_lance",
+          1,
+          "A",
+          1
+        ],
+        [
+          "sharp_edge",
+          1,
+          "A",
+          0
+        ],
+        [
+          "flashover",
+          1,
+          "B",
+          0
+        ],
+        [
+          "forage",
+          1,
+          "G",
+          0
+        ]
+      ],
+      "pool": [
+        "inferno",
+        "molten_core",
+        "ember_ward",
+        "cinder_armor",
+        "ash_communion",
+        "heat_wave"
+      ]
+    },
+    {
+      "sp": "skoll",
+      "el": "Fire",
+      "id": "skoll_v1",
+      "os": "TREACHERY_KERNEL",
+      "text": "Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 stack of Strengthened.",
+      "kit": [
+        [
+          "fury_strike",
+          2,
+          "A",
+          1
+        ],
+        [
+          "flare_burst",
+          2,
+          "A",
+          2
+        ],
+        [
+          "snarl",
+          1,
+          "B",
+          1
+        ],
+        [
+          "snap",
+          1,
+          "B",
+          1
+        ],
+        [
+          "howl",
+          1,
+          "B",
+          0
+        ],
+        [
+          "forage",
+          1,
+          "G",
+          0
+        ]
+      ],
+      "pool": [
+        "pack_tactics",
+        "brute_force",
+        "battle_rhythm",
+        "reactive_plating",
+        "core_overclock",
+        "crimson_draw"
+      ]
+    },
+    {
+      "sp": "skoll",
+      "el": "Fire",
+      "id": "skoll_v2",
+      "os": "EMBER_FUSE",
+      "text": "Sköll's attacks on a Burning target apply 1 more Burn.",
+      "kit": [
+        [
+          "ember_jab",
+          2,
+          "B",
+          2
+        ],
+        [
+          "brand",
+          2,
+          "A",
+          1
+        ],
+        [
+          "ignite",
+          1,
+          "B",
+          1
+        ],
+        [
+          "flashover",
+          1,
+          "B",
+          1
+        ],
+        [
+          "heat_wave",
+          1,
+          "A",
+          0
+        ],
+        [
+          "pack_tactics",
+          1,
+          "A",
+          0
+        ],
+        [
+          "forage",
+          1,
+          "G",
+          0
+        ]
+      ],
+      "pool": [
+        "wildfire",
+        "inferno",
+        "thermal_overload",
+        "scald",
+        "ash_communion",
+        "cinder_armor"
+      ]
+    },
+    {
+      "sp": "ratatoskr",
+      "el": "Nature",
+      "id": "ratatoskr_v1",
+      "os": "GOSSIP_NODE",
+      "text": "Whenever an ally plays a 0-cost program, that ally heals 2.5% of their max HP.",
+      "kit": [
+        [
+          "acorn_toss",
+          2,
+          "A",
+          2
+        ],
+        [
+          "forage",
+          2,
+          "A",
+          1
+        ],
+        [
+          "seed_bomb",
+          1,
+          "A",
+          1
+        ],
+        [
+          "tend",
+          1,
+          "B",
+          1
+        ],
+        [
+          "shrug_off",
+          1,
+          "B",
+          0
+        ],
+        [
+          "thorn_whip",
+          1,
+          "B",
+          0
+        ]
+      ],
+      "pool": [
+        "echo_chamber",
+        "hoofbeat",
+        "rejuvenation",
+        "mend",
+        "verdant_ward",
+        "deep_scan"
+      ]
+    },
+    {
+      "sp": "ratatoskr",
+      "el": "Nature",
+      "id": "ratatoskr_v2",
+      "os": "INSTIGATOR_OS",
+      "text": "Whenever an ally plays a 0-cost card at an enemy, apply 1 stack of Dazed to the target.",
+      "kit": [
+        [
+          "acorn_toss",
+          2,
+          "A",
+          2
+        ],
+        [
+          "heckle",
+          1,
+          "A",
+          1
+        ],
+        [
+          "nagging_bite",
+          2,
+          "A",
+          1
+        ],
+        [
+          "pollen_cloud",
+          1,
+          "B",
+          1
+        ],
+        [
+          "sap_strength",
+          1,
+          "B",
+          0
+        ],
+        [
+          "forage",
+          1,
+          "G",
+          0
+        ]
+      ],
+      "pool": [
+        "pile_on",
+        "hexbloom",
+        "thorn_tithe",
+        "echo_chamber",
+        "crippling_vine",
+        "snarl"
+      ]
+    },
+    {
+      "sp": "jormungandr",
+      "el": "Water",
+      "id": "jormungandr_v1",
+      "os": "OUROBOROS_LOOP",
+      "text": "Each turn, the 5th Water card your side plays draws 1 card.",
+      "kit": [
+        [
+          "undertow",
+          2,
+          "A",
+          2
+        ],
+        [
+          "blind_spot",
+          1,
+          "A",
+          1
+        ],
+        [
+          "serpents_coil",
+          2,
+          "A",
+          1
+        ],
+        [
+          "surge_protection",
+          1,
+          "B",
+          0
+        ],
+        [
+          "riptide_run",
+          1,
+          "B",
+          1
+        ],
+        [
+          "tackle",
+          1,
+          "G",
+          0
+        ]
+      ],
+      "pool": [
+        "corrosive_leak",
+        "scavenge_data",
+        "feedback_loop",
+        "hydro_blast",
+        "tide_pool",
+        "tidal_battery"
+      ]
+    },
+    {
+      "sp": "jormungandr",
+      "el": "Water",
+      "id": "jormungandr_v2",
+      "os": "TOXIN_FANG_OS",
+      "text": "Jörmungandr's venom coats his fangs: his attacks deal +4 power per Poison stack on the target.",
+      "kit": [
+        [
+          "corrosive_bolt",
+          2,
+          "A",
+          2
+        ],
+        [
+          "venom_fang",
+          1,
+          "A",
+          1
+        ],
+        [
+          "serpent_flurry",
+          2,
+          "A",
+          1
+        ],
+        [
+          "serpents_coil",
+          1,
+          "A",
+          0
+        ],
+        [
+          "toxic_surge",
+          1,
+          "B",
+          0
+        ],
+        [
+          "tackle",
+          1,
+          "G",
+          1
+        ]
+      ],
+      "pool": [
+        "venom_glut",
+        "contagion",
+        "spreading_rot",
+        "blightbloom",
+        "nettle_sting",
+        "riptide"
+      ]
+    },
+    {
+      "sp": "kraken",
+      "el": "Water",
+      "id": "kraken_v1",
+      "os": "ABYSSAL_INK_SYS",
+      "text": "Whenever Kraken's side draws a card outside the draw phase, apply 2 Dazed to a random enemy.",
+      "kit": [
+        [
+          "whirlpool",
+          2,
+          "A",
+          2
+        ],
+        [
+          "undertow",
+          1,
+          "A",
+          1
+        ],
+        [
+          "ink_stream",
+          2,
+          "A",
+          1
+        ],
+        [
+          "pressure_point",
+          1,
+          "B",
+          1
+        ],
+        [
+          "crushing_depths",
+          1,
+          "B",
+          0
+        ],
+        [
+          "slander",
+          1,
+          "B",
+          0
+        ]
+      ],
+      "pool": [
+        "ink_cloud",
+        "scavenge_data",
+        "short_circuit",
+        "feedback_loop",
+        "deep_scan",
+        "static_ward"
+      ]
+    },
+    {
+      "sp": "kraken",
+      "el": "Water",
+      "id": "kraken_v2",
+      "os": "TIDAL_CRUSH_OS",
+      "text": "Water cards that cost 2 or more Energy deal 30% more damage.",
+      "kit": [
+        [
+          "capacitor",
+          2,
+          "A",
+          1
+        ],
+        [
+          "tide_pool",
+          1,
+          "A",
+          1
+        ],
+        [
+          "boiling_surge",
+          2,
+          "B",
+          1
+        ],
+        [
+          "scald",
+          1,
+          "B",
+          1
+        ],
+        [
+          "hydro_blast",
+          1,
+          "A",
+          0
+        ],
+        [
+          "tackle",
+          1,
+          "G",
+          1
+        ]
+      ],
+      "pool": [
+        "maelstrom",
+        "tidal_wave",
+        "overclock_core",
+        "tidal_battery",
+        "ink_cloud",
+        "heat_wave"
+      ]
+    },
+    {
+      "sp": "huldra",
+      "el": "Nature",
+      "id": "huldra_v1",
+      "os": "ALLURE_PROXY",
+      "text": "Whenever an ally applies a buff to an ally, Huldra mirrors it by applying 1 stack of Weakened to a random enemy.",
+      "kit": [
+        [
+          "bolster",
+          2,
+          "B",
+          2
+        ],
+        [
+          "tend",
+          1,
+          "B",
+          1
+        ],
+        [
+          "thorn_tithe",
+          1,
+          "A",
+          1
+        ],
+        [
+          "sap_strength",
+          1,
+          "A",
+          1
+        ],
+        [
+          "hexbloom",
+          1,
+          "A",
+          0
+        ],
+        [
+          "thorn_whip",
+          1,
+          "B",
+          0
+        ],
+        [
+          "soothe",
+          1,
+          "G",
+          0
+        ]
+      ],
+      "pool": [
+        "verdant_ward",
+        "iron_bark",
+        "crippling_vine",
+        "mend",
+        "static_ward",
+        "pollen_cloud"
+      ]
+    },
+    {
+      "sp": "huldra",
+      "el": "Nature",
+      "id": "huldra_v2",
+      "os": "BARK_SHIELD_OS",
+      "text": "At the end of Huldra's first turn, she raises a massive Bark Shield, and a smaller one around each ally.",
+      "kit": [
+        [
+          "heartwood",
+          2,
+          "A",
+          2
+        ],
+        [
+          "bark_lash",
+          2,
+          "A",
+          1
+        ],
+        [
+          "shell_share",
+          1,
+          "B",
+          1
+        ],
+        [
+          "thornguard",
+          1,
+          "B",
+          1
+        ],
+        [
+          "bark_smash",
+          1,
+          "A",
+          0
+        ],
+        [
+          "tackle",
+          1,
+          "G",
+          0
+        ]
+      ],
+      "pool": [
+        "blightbloom",
+        "nettle_sting",
+        "reactive_plating",
+        "verdant_ward",
+        "mend",
+        "iron_bark"
+      ]
+    }
+  ],
+  "run_only": [
+    "tidal_battery",
+    "overclock_core",
+    "short_fuse",
+    "riptide",
+    "short_circuit",
+    "static_ward"
+  ],
+  "generated": {
+    "from": "registry",
+    "cards": 98,
+    "os": 12
+  }
+}

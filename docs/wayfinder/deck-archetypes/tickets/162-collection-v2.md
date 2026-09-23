@@ -140,3 +140,78 @@ Two findings that are structural rather than numeric, for 162b to answer before 
 - **sköll_v1 (11.7%)** is the Strength MULTI-HIT deck under v2.1b's multi-hit rule with the Strength CONSUME moved to Fenrir. It builds a pile it has nothing to spend.
 - **jormungandr_v1 (20.9%)** lost `ink_stream` to Kraken and is a cards-played deck whose only payoff is `serpents_coil`.
 - **fenrir_v1 spends 17.0% of its turns dealing ≥75% of a health pool** (next worst 8.1%, nine of twelve under 2%) on a p50 of 55.2% damage a turn — `war_pact`×2 + `ragnarok_edge`×2 under UNBOUND_KERNEL. That reads like a mechanism, not a number.
+
+## 8. 162b — the ledger, 2026-09-23
+
+`scratch/t162b_ledger.ts`, output in `results/t162/LEDGER.txt` and `.tsv`. It prints every card against TWO bands: `powerscale.BUDGET_BANDS` (the curve the whole repo is audited against, 1.0 / 3.0 / 6.5 / 10.5) and **Henry's v2.1 slot tax** (1.2 / 3.0 / 7.0 / 12.0). Moving `BUDGET_BANDS` would reprice all 268 registry entries including the 170 v1 cards twenty post-EA species still field, so the ledger reports both and **which curve v2 is audited against is a decision for Henry, not one the script makes.** 149c §4.2's width rule is honoured: a Side card is judged on the worse of its two widths.
+
+### The headline: the 2e rung is light
+
+| cost | n | median vs the slot tax |
+| --- | ---: | ---: |
+| 0e | 18 | −17% |
+| 1e | 41 | **±0%** |
+| 2e | 35 | **−36%** |
+| 3e | 4 | ±0% |
+
+1e and 3e sit on the tax. **2e is half a rung short of it**, and excluding the twelve daemons (whose hooks the scorer cannot price) it is still −39%: sixteen of the twenty-three non-daemon 2e cards are 25% or more under. The worst are `bark_smash` (−90%), `venom_glut` (−83%), `inferno` (−74%), `heat_wave` (−63%), `crippling_vine` (−61%), `verdant_ward` (−60%). Most of those read a pile the scorer has to ASSUME, so the number is partly scorer blindness — but the rung is where the slot tax was aimed, and it did not land there.
+
+### 20 cards over, and the two extremes are pile-readers
+
+`contagion` and `sun_devourer` both score 20.4 at 2e (**+191%**), and both are priced against an assumed board pile rather than a measured one. `ragnarok_edge` at 7.0 for 1e (+133%) is not: MISSING_HP at +1 per 1% to a 50% cap is a printed +50 power on top of 20, and fenrir_v1 runs two of them — which is the same deck that spends 17.0% of its turns dealing ≥75% of a health pool (§7). `capacitor` +36%, `riptide` +70%, `surge_protection` and `tide_pool` +67% each.
+
+### The eleven MANUAL REVIEW rows, and what each one needs
+
+Nine of the eleven are cards the scorer says ITSELF it cannot price — a low score with an `UNPRICED` tag is **unscored, not underpowered**, and that distinction is what this list is for.
+
+| card | reading | why | what it needs |
+| --- | --- | --- | --- |
+| `contagion` | 20.4, +191% | MULTIPLY_STATUS against an ASSUMED Poison pile | a measured pile, or Henry's eye |
+| `heat_wave` | −63% | MULTIPLY_STATUS, Burn, which caps at 4 | the cap makes it honest; likely fine |
+| `toxic_surge` | −90% | TRIGGER_STATUS has no price in the model | Henry |
+| `scavenge_data` | 0 | SEARCH has no price in the model | Henry |
+| `reactive_plating` | −61% | daemon hook | 149c-6's hook rate |
+| `core_overclock` | 0 | `onDamageCalculated` multiplier, no `do` payload to walk | unmeasurable statically |
+| `static_ward` | 0 | `onStatusApplied` hook, never census-measured | a proc rate |
+| `thermal_overload` | 0 | two hooks + an HP cost | a proc rate |
+| `overclock_core` | 0 | **MAX_ENERGY**, worth 40 power per point per REMAINING REFILL | a measured horizon |
+| `soothe` | −0.8 | the model reads removing a debuff from an ally as a downside | 149c §4.7 / ticket 138 |
+| `unbound_fang` | −1.3 | "then lose half of them" prices as a cost bigger than the payoff | the pile it spends is invisible statically |
+
+`MAX_ENERGY` was added to `powerscale.MANUAL_REVIEW_TYPES` EXPLICITLY in this row. It already scored 0, through the branch whose comment reads *"Unknown/future action type"* — which was the right default for a verb nobody had seen and the wrong LABEL for a shipped one, because it invites the next reader to "fix" the scorer by inventing a number. The number is not available statically: a permanent +1 max Energy is worth `40 × (turns the caster has left)`.
+
+## 9. 162c — measured, 2026-09-23
+
+### The run gate: a v2 run cannot clear a gym
+
+`npm run balance:run-gate`, 18 battles, ticket 61's three ruled bands (`results/t162/RUNGATE.txt`):
+
+| band | target | measured | verdict |
+| --- | ---: | ---: | --- |
+| WILDS | 95% | **100%** (6/6) | PASS |
+| ELITES | 75% | **50%** (3/6) | FAIL by 20pt |
+| GAUNTLET | 60% clear | **0%** (0/6 fights) | FAIL by 55pt |
+
+All three are under-sampled at 2 iterations a cell — the 95% intervals are wider than the ±5 window, so these are provisional. The gauntlet is not marginal enough for that to matter: the player loses **every one** of the gym's three fights, and the damage is one-sided rather than close. Player 574 / 502 / 582 damage a turn against enemy **741 / 1,098 / 1,332**; the boss fight lasts 2.5 turns.
+
+**It is not the un-drifted floor.** The gate deliberately models a run before any reward is taken, and 161 §2 deliberately makes that floor lower by keeping the consume out of the opening five — so the obvious suspect was that the two designs are in tension. Measured instead of assumed: re-run with `--deck engine-plus-3` (a 27-card drifted deck, `results/t162/RUNGATE-drifted.txt`) the gauntlet goes 0/6 → **1/6**, with the boss still 0/2 at 443 against 1,106. The floor is not the explanation.
+
+**What is.** Two findings that point the same way. v2.1 raised the big Water numbers — Hydro Blast 105→120, Maelstrom 90+1 Dazed→100+3, Tidal Wave 45→55, Boiling Surge 40→55 — and Tidewrack is the Water gym, so those buffs landed on the ENEMY side of the fight the player has to win. Meanwhile the player's 2e rung sits 36% under Henry's own slot tax (§8). Both halves of the gym fight moved, in opposite directions, at once.
+
+### 160 §5's counts (`results/t162/SHAPE.txt`)
+
+**Duplicate count: the gate is NOT met.** 7 cards / 19 kit slots → **11 cards / 28 kit slots**, read from `archive/ea-kits-v1.json` rather than from §5's prose (which misremembers `tackle ×8`; the blob says `water_slap ×7`). Glue duplication 7→10 slots, everything else 12→18. §3 predicted *"only shared-element cards by design"* and named four; the actual non-glue list is nine, adding `ignite`, `ember_jab`, `flashover` (fenrir_v2 ∩ sköll_v2) and `tend`, `thorn_whip`, `sap_strength` (ratatoskr ∩ huldra). Whether that is drift or the intended Fire/Nature overlap is Henry's call — but §3's census is understated either way.
+
+**Kit shape (158 §2: two enablers, a consume, a scalar, a glue).** All twelve carry glue. Ten of twelve carry a scalar. **Sköll v1 and Kraken v2 carry neither a consume nor a scalar** — and sköll_v1 is the 11.7% deck. Her kit makes Strength (`fury_strike`, `howl`) and holds nothing that reads it; `brute_force` is in her POOL. That is a currency with no payoff in the opening deck, which is the thing 158 §2's consume/scalar pair exists to forbid, and it explains the field number without appeal to any knob.
+
+**Currency census, re-derived from the registry rather than the design doc:** Strength 2 OS, Burn 3, Sharp 3, Bark 1, Dazed 6, Weakened 6, Poison 3, Energy 1. Dazed and Weakened are on half the roster each; Bark and Energy are one deck apiece.
+
+### Not run
+
+The full 140 comp grid (`npm run balance`, twelve `.balance.ts` suites) is a multi-hour job and §5.5 rules **no re-baseline** until the pricing rows land — measuring a pool that 162b says is 36% light at 2e would produce a grid that has to be thrown away. The 1v1 probe in §7 is the standing read until then.
+
+## 10. 162d — the browser regenerates from the registry, 2026-09-23
+
+`npm run decks` now also writes `collection-v2/registry.json` — the 98 cards, the twelve kits with their `startCopies`, the species pools and the run-only list, all read from the live registry (`src/debug/balance/collectionExport.ts`). `build.py` prefers that file over `collection.py` and falls back to the design draft with `--design` or when the export is absent.
+
+The data crosses ONCE, in the direction that has a natural reader. Porting `build.py`'s 20 KB of presentation into TypeScript would be a rewrite of a working page for no gain; making Python read the registry would mean parsing `mingmingRegistry.ts` in a build script. Two design-only fields have no registry home — 158 §2's `shape` and `cur` — and are CARRIED from `collection.json`, never invented: a card the design file has not heard of renders unclassified rather than guessed. A registry-sourced run deliberately does not rewrite `collection.json`, which is the record of what Henry ruled.
