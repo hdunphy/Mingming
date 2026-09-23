@@ -1,0 +1,89 @@
+[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.
+[balance:run-gate]   bands      gauntlet  (3 cells: gauntlet:fight0, gauntlet:fight1, gauntlet:fight2)
+[balance:run-gate]   iterations 60 per cell  ->  180 battles, PLAYER moves first (as a run does)
+[balance:run-gate]   sample     12 tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample
+[balance:run-gate]   AI tier    full   maxTurns 60   registry 1:3dbeb9b8
+
+[balance:run-gate]   gauntlet:fight0 1/60 WIN   36.3s into cell, 36s total
+[balance:run-gate]   gauntlet:fight0 2/60 WIN   126.4s into cell, 2m 06s total
+[balance:run-gate]   gauntlet:fight0 3/60 WIN   215.9s into cell, 3m 36s total
+[balance:run-gate]   gauntlet:fight0 4/60 WIN   277.6s into cell, 4m 38s total
+[balance:run-gate]   gauntlet:fight0 5/60 WIN   315.4s into cell, 5m 15s total
+[balance:run-gate]   gauntlet:fight0 6/60 loss  386.3s into cell, 6m 26s total
+[balance:run-gate]   gauntlet:fight0 7/60 WIN   420.8s into cell, 7m 01s total
+[balance:run-gate]   gauntlet:fight0 8/60 WIN   466.8s into cell, 7m 47s total
+[balance:run-gate]   gauntlet:fight0 9/60 WIN   495.6s into cell, 8m 16s total
+[balance:run-gate]   gauntlet:fight0 10/60 WIN   541.9s into cell, 9m 02s total
+[balance:run-gate]   gauntlet:fight0 11/60 loss  585.6s into cell, 9m 46s total
+[balance:run-gate]   gauntlet:fight0 12/60 loss  663.1s into cell, 11m 03s total
+[balance:run-gate]   gauntlet:fight0 13/60 WIN   728.0s into cell, 12m 08s total
+[balance:run-gate]   gauntlet:fight0 14/60 WIN   794.6s into cell, 13m 15s total
+[balance:run-gate]   gauntlet:fight0 15/60 WIN   836.5s into cell, 13m 57s total
+[balance:run-gate]   gauntlet:fight0 16/60 WIN   907.7s into cell, 15m 08s total
+[balance:run-gate]   gauntlet:fight0 17/60 WIN   949.3s into cell, 15m 49s total
+[balance:run-gate]   gauntlet:fight0 18/60 loss  1018.7s into cell, 16m 59s total
+[balance:run-gate]   gauntlet:fight0 19/60 WIN   1060.8s into cell, 17m 41s total
+[balance:run-gate]   gauntlet:fight0 20/60 WIN   1152.7s into cell, 19m 13s total
+[balance:run-gate]   gauntlet:fight0 21/60 loss  1201.4s into cell, 20m 01s total
+[balance:run-gate]   gauntlet:fight0 22/60 WIN   1262.8s into cell, 21m 03s total
+[balance:run-gate]   gauntlet:fight0 23/60 WIN   1316.2s into cell, 21m 56s total
+[balance:run-gate]   gauntlet:fight0 24/60 WIN   1351.6s into cell, 22m 32s total
+[balance:run-gate]   gauntlet:fight0 25/60 WIN   1397.2s into cell, 23m 17s total
+[balance:run-gate]   gauntlet:fight0 26/60 WIN   1437.3s into cell, 23m 57s total
+[balance:run-gate]   gauntlet:fight0 27/60 loss  1496.4s into cell, 24m 56s total
+[balance:run-gate]   gauntlet:fight0 28/60 WIN   1567.6s into cell, 26m 08s total
+[balance:run-gate]   gauntlet:fight0 29/60 WIN   1621.2s into cell, 27m 01s total
+[balance:run-gate]   gauntlet:fight0 30/60 WIN   1663.2s into cell, 27m 43s total
+[balance:run-gate]   gauntlet:fight0 31/60 WIN   1731.1s into cell, 28m 51s total
+[balance:run-gate]   gauntlet:fight0 32/60 WIN   1771.9s into cell, 29m 32s total
+[balance:run-gate]   gauntlet:fight0 33/60 WIN   1804.6s into cell, 30m 05s total
+[balance:run-gate]   gauntlet:fight0 34/60 WIN   1853.6s into cell, 30m 54s total
+[balance:run-gate]   gauntlet:fight0 35/60 WIN   1889.5s into cell, 31m 29s total
+[balance:run-gate]   gauntlet:fight0 36/60 loss  1951.7s into cell, 32m 32s total
+[balance:run-gate]   gauntlet:fight0 37/60 WIN   2007.6s into cell, 33m 28s total
+[balance:run-gate]   gauntlet:fight0 38/60 WIN   2070.6s into cell, 34m 31s total
+[balance:run-gate]   gauntlet:fight0 39/60 WIN   2093.1s into cell, 34m 53s total
+[balance:run-gate]   gauntlet:fight0 40/60 WIN   2166.2s into cell, 36m 06s total
+[balance:run-gate]   gauntlet:fight0 41/60 WIN   2193.2s into cell, 36m 33s total
+[balance:run-gate]   gauntlet:fight0 42/60 WIN   2225.3s into cell, 37m 05s total
+[balance:run-gate]   gauntlet:fight0 43/60 WIN   2280.2s into cell, 38m 00s total
+[balance:run-gate]   gauntlet:fight0 44/60 WIN   2350.9s into cell, 39m 11s total
+[balance:run-gate]   gauntlet:fight0 45/60 WIN   2386.8s into cell, 39m 47s total
+[balance:run-gate]   gauntlet:fight0 46/60 WIN   2433.8s into cell, 40m 34s total
+[balance:run-gate]   gauntlet:fight0 47/60 WIN   2467.4s into cell, 41m 07s total
+[balance:run-gate]   gauntlet:fight0 48/60 loss  2501.5s into cell, 41m 41s total
+[balance:run-gate]   gauntlet:fight0 49/60 WIN   2563.3s into cell, 42m 43s total
+[balance:run-gate]   gauntlet:fight0 50/60 WIN   2619.4s into cell, 43m 39s total
+[balance:run-gate]   gauntlet:fight0 51/60 WIN   2656.6s into cell, 44m 17s total
+[balance:run-gate]   gauntlet:fight0 52/60 WIN   2728.3s into cell, 45m 28s total
+[balance:run-gate]   gauntlet:fight0 53/60 WIN   2755.5s into cell, 45m 55s total
+[balance:run-gate]   gauntlet:fight0 54/60 WIN   2770.8s into cell, 46m 11s total
+[balance:run-gate]   gauntlet:fight0 55/60 WIN   2814.4s into cell, 46m 54s total
+[balance:run-gate]   gauntlet:fight0 56/60 loss  2873.0s into cell, 47m 53s total
+[balance:run-gate]   gauntlet:fight0 57/60 WIN   2901.4s into cell, 48m 21s total
+[balance:run-gate]   gauntlet:fight0 58/60 loss  2976.3s into cell, 49m 36s total
+[balance:run-gate]   gauntlet:fight0 59/60 WIN   3005.2s into cell, 50m 05s total
+[balance:run-gate]   gauntlet:fight0 60/60 WIN   3050.8s into cell, 50m 51s total
+[balance:run-gate]   gauntlet:fight1 1/60 WIN   43.3s into cell, 51m 34s total
+[balance:run-gate]   gauntlet:fight1 2/60 WIN   82.8s into cell, 52m 14s total
+[balance:run-gate]   gauntlet:fight1 3/60 WIN   158.0s into cell, 53m 29s total
+[balance:run-gate]   gauntlet:fight1 4/60 loss  212.2s into cell, 54m 23s total
+[balance:run-gate]   gauntlet:fight1 5/60 WIN   233.6s into cell, 54m 44s total
+[balance:run-gate]   gauntlet:fight1 6/60 WIN   311.4s into cell, 56m 02s total
+[balance:run-gate]   gauntlet:fight1 7/60 WIN   372.2s into cell, 57m 03s total
+[balance:run-gate]   gauntlet:fight1 8/60 WIN   450.0s into cell, 58m 21s total
+[balance:run-gate]   gauntlet:fight1 9/60 WIN   491.4s into cell, 59m 02s total
+[balance:run-gate]   gauntlet:fight1 10/60 WIN   554.7s into cell, 1h 00m 06s total
+[balance:run-gate]   gauntlet:fight1 11/60 WIN   575.5s into cell, 1h 00m 26s total
+[balance:run-gate]   gauntlet:fight1 12/60 WIN   607.4s into cell, 1h 00m 58s total
+[balance:run-gate]   gauntlet:fight1 13/60 WIN   638.8s into cell, 1h 01m 30s total
+[balance:run-gate]   gauntlet:fight1 14/60 WIN   696.8s into cell, 1h 02m 28s total
+[balance:run-gate]   gauntlet:fight1 15/60 WIN   743.5s into cell, 1h 03m 14s total
+[balance:run-gate]   gauntlet:fight1 16/60 WIN   807.6s into cell, 1h 04m 18s total
+[balance:run-gate]   gauntlet:fight1 17/60 WIN   841.7s into cell, 1h 04m 53s total
+[balance:run-gate]   gauntlet:fight1 18/60 WIN   879.4s into cell, 1h 05m 30s total
+[balance:run-gate]   gauntlet:fight1 19/60 WIN   912.0s into cell, 1h 06m 03s total
+[balance:run-gate]   gauntlet:fight1 20/60 WIN   971.7s into cell, 1h 07m 03s total
+[balance:run-gate]   gauntlet:fight1 21/60 WIN   1006.3s into cell, 1h 07m 37s total
+[balance:run-gate]   gauntlet:fight1 22/60 WIN   1054.6s into cell, 1h 08m 25s total
+[balance:run-gate]   gauntlet:fight1 23/60 WIN   1084.6s into cell, 1h 08m 55s total

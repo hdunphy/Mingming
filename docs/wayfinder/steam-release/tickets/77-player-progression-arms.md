@@ -220,6 +220,25 @@ Surge is not a finisher against pools of ~1,000+. ANTIVENOM is a flat null at th
 **Harness caveats, stated:** the rack is per CELL (each gauntlet cell fights from a full rack as it fights from full
 HP — an upper bound, like `gauntletCompound`); C1's proc fires on the side's turn-end whether or not a stack lands.
 
+## TRACKS B + C AT n=60 — 2026-09-23. All 17 arms in; Emberfall has collapsed; FIRE DRIVER is the lever.
+
+2,700 battles, one tree (`e14cfd0`), paired seeds, day's bare beside every arm. Full tables: [research/77 §B](../research/77-player-side-arms.md). Runner: `npm run balance:77` (resumable, `scripts/ticket77-arms.mjs`). Ran in a cloud container over three days (the device bridge cannot keep a process alive); `77-runs/` has every report.
+
+| | Rootfall (bare 22.1 compound) | Emberfall (bare 13.3 compound) |
+| --- | --- | --- |
+| **bare vs Track A** | 27.7 → 22.1 (noise) | **62.4 → 13.3** — boss is a 3-turn race at 971 dmg/turn |
+| A3 +3 blanks | 19.0 (−3.1; f1 2:10 p=0.039) | 10.4 (−2.9; all cells null) |
+| C: ROOT ROT off / C1 / C3 (boss) | 30.0 → **68.3** (25:2) / **61.7** (21:2; vs off 0:4 p=0.125) / **21.7** (3:8, 30 procs/fight) | — |
+| B2 ANTIVENOM | 24.6 (+2.5; boss 3:1) | 13.3 (0.0; every cell null) |
+| B2 TENTH STRIKE | 27.2 (+5.1; boss 7:1 p=0.07) | 21.1 (+7.8; f2 6:0 p=0.031, boss 8:1 p=0.039) |
+| B2 element (fire / water) | **37.0 (+14.9; boss 30→53.3, 15:1 p=0.001)** | 19.0 (+5.7; 7:3 every cell) |
+| B1a 3×Surge (rack per FIGHT — ceiling; boss cell = per-run) | 35.1; **boss 46.7 (15:5 p=0.041)** | 15.6; boss 33.3 (4:5) |
+| B1b Surge+Cripple+Mend (ceiling) | 26.5; boss 36.7 (13:9) | 18.3; f2 75.0 (7:0 p=0.016); boss 36.7 (4:3) |
+
+**Reads.** (1) The deck-size tax survives in direction and is −3 on this tree, not −9/−31. (2) ROOT ROT is +38pt; **C1 keeps ~a fifth of it** (in the between-band, near the top); **C3 is a buff** — withdrawn; nothing built lands mid-band, and C2 (the shape that would) needs an engine target. (3) **FIRE DRIVER at Rootfall is the largest player-side lever measured** (+23 boss, +15 compound) — type preparation pays through a Driver that rewards the party's lean; WATER at Emberfall is the same shape at a third the size. TENTH STRIKE is real at Emberfall, directional at Rootfall. ANTIVENOM null everywhere. (4) Three Surges brought to the Rootfall boss are +16.7 at zero slot cost; the mixed rack is worth less at the boss and more in Emberfall's lead-ins (Mend-under-40 fires ~0.9/fight there); nothing moves Emberfall's boss. (5) The lethal rule fires 1.5–1.9×/fight in lead-ins and never at the boss — the floor spends the rack on turn 1 (R1's "under-reads timing", confirmed).
+
+**Before any Track B/C ruling: find what moved Emberfall.** 62.4 → 13.3 in 45 commits is the largest number in the ticket and none of Tracks A–C measured it.
+
 ## What this ticket does NOT do
 
 - No encounter nerfs beyond Track C, and Track C is one Driver at one gym.

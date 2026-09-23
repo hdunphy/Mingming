@@ -242,3 +242,96 @@ Total ≈ 12 × 80 min + 4 × 30 min ≈ **18 h**. Order if time is short: the t
 ## B.4 Gates and reproducing
 
 `npx tsc -b` clean · `eslint .` 0 · `npx vitest run` **179 files / 2394 tests** (was 177 / 2372) · `npx vite build` + `assert-no-debug` OK. New tests: `macroPolicy.test.ts` (8), `rootRotCandidates.test.ts` (7), `optionsThreading.test.ts` +7 (Track B 4, Track C 3). Tree at start `6c61a4b`; commits `1dc712a` (B), `e53198b` (C), plus this report.
+
+
+---
+
+# TRACK B + C AT n=60 — 17 arms, 2,700 battles, one tree, paired seeds (2026-09-21 → 23)
+
+**Tree:** `steam-prep-september` at `e14cfd0` (the same tree as the review block; `6c61a4b` + the Track B/C commits, which touch `src/debug` only) · **Conditions:** `--bands gauntlet --matchup favourable --iterations 60`, bare arm grades (75 R2), Rally live, paired seeds, **the day's bare beside every arm**, McNemar both ways · **Where:** a cloud container, two lanes, ~60–90 s a battle (Henry's machine does ~27 s). `npm run balance:77` (new, `scripts/ticket77-arms.mjs`) is the same 17 arms as a resumable batch for whoever re-takes them.
+**Report only. Nothing has moved.** Raw reports in `77-runs/` under the names in the tables (`BC-BARE-*`, `A3-*-blanks.retake-n60`, `C*-rootfall-boss`, `B2-*`, `B1*`). The seed contract held: the Rootfall bare boss row's first twelve battles came back byte-identical to the 2026-09-19 pilot's.
+
+The review's four corrections were applied: R1's macro-scale claim is struck and the §7 question withdrawn (§B.5); C1 ran to n=60 beside C3 (R2); the rack stayed per-fight and B1 is labelled a ceiling with the boss cell as the per-run number (R3, §B.5); A3 was re-taken (R4, §B.2).
+
+## B.1 The day's bare rows — and Emberfall has collapsed since Track A
+
+| gym | fight 1 | fight 2 | boss | **compound** | Track A (2026-09-02) |
+|---|---|---|---|---|---|
+| Rootfall | 86.7 | 85.0 | 30.0 | **22.1%** | 27.7% |
+| Emberfall | 60.0 | 63.3 | 35.0 | **13.3%** | 62.4% |
+
+Rootfall is within noise of Track A. **Emberfall is not: 62.4 → 13.3.** Every one of its three fights moved down, and the boss cell now reads like Tidewrack did in research/72: **3.1 turns, boss 971 dmg/turn against the player's 864, 18% dead cards** — a race the player loses by rate, not a fight ROOT ROT-style. This is the largest single number in this report and it is not a Track B or C finding; it is what the 45 commits since research/77 did to Emberfall's gauntlet. Nothing here identifies which commit (the candidates are in the 2026-09-19 §B.0 list — the 149b/150/151 card and OS changes are the ones that reach Emberfall's trio). **A ticket-68-style "who moved Emberfall" measurement is the first thing this report asks for, ahead of any Track B/C ruling.**
+
+## B.2 A3 re-take — the deck-size tax survives in direction and shrinks to noise
+
+| arm | Rootfall f1 / f2 / boss | compound | vs bare | Emberfall f1 / f2 / boss | compound | vs bare |
+|---|---|---|---|---|---|---|
+| bare | 86.7 / 85.0 / 30.0 | 22.1 | — | 60.0 / 63.3 / 35.0 | 13.3 | — |
+| bare + 3 blanks (21 cards) | 73.3 / 81.7 / 31.7 | 19.0 | −3.1 | 60.0 / 65.0 / 26.7 | 10.4 | −2.9 |
+
+Paired: Rootfall f1 2:10 (**p = 0.039**), f2 5:7, boss 12:11; Emberfall f1 10:10, f2 7:6, boss 7:12 (p = 0.36). Track A measured −9.2 and −31.3 compound for the same arm; on this tree it is −3 at both gyms, significant in one lead-in cell only. The direction holds — three blanks never help — but **the size of the tax is tree-dependent and it is now small.** Emberfall's −31 has evaporated with Emberfall's bare itself: a 13% gauntlet has little left to lose. Dead cards fall with the blanks as before (Rootfall 8.6 → 6.0%), so the mechanism reading — displacement, not dead draws — is unchanged.
+
+## B.3 Track C — ROOT ROT reshaped, Rootfall boss cell, n=60
+
+| arm | boss | vs bare | flips →win : →loss | p | boss dmg/turn | player dmg/turn | Driver procs/fight |
+|---|---|---|---|---|---|---|---|
+| bare (ROOT ROT as shipped) | **30.0** | — | — | — | 661 | 615 | (not proc-flagged) |
+| `--boss-driver off` | 68.3 | +38.3 | 25 : 2 | **< 0.001** | 535 | 726 | 0 |
+| **C1 Creeping Rot** | 61.7 | +31.7 | 21 : 2 | **< 0.001** | 565 | 717 | 3.75 (≈ every boss turn) |
+| **C3 Festering** | 21.7 | −8.3 | 3 : 8 | 0.23 | 743 | 637 | 30.0 |
+
+C1 against off, paired: 0 : 4, p = 0.125. C3 against C1: 1 : 25.
+
+**ROOT ROT is worth +38pt at this boss on this tree** (76 measured +26.6 on the old one; the intervals overlap at their edges, and this is the number to use now). Boss damage falls 661 → 535 with it stripped.
+
+**C1 is in the between-band, but near its top.** The review was right that n=12 could not separate C1 from off; n=60 does, just: C1 gives back 4 of off's wins and none the other way, p = 0.125, and sits 6.6pt under off, 31.7 over bare. So per-turn-per-body is not *nothing* — it is worth about a fifth of what per-application is worth. Its procs land every boss turn (3.75/fight over 4.8-turn fights).
+
+**C3 is HEAVIER than ROOT ROT, not lighter.** The pilot's 41.7 was noise; at n=60 Festering is 8pt *under* the shipped Driver (3:8, p = 0.23), and the instruments say why: it fires 30 times a fight and raises the boss's rate 661 → 743, the highest of any arm. "Every attack on a Poisoned body adds a stack" on a trio whose attacks are mostly on Poisoned bodies is +1 per hit rather than +1 per application, and the trio hits more than it poisons. **Withdraw C3 as a nerf candidate.** If the fantasy is wanted it is a *buff* shape.
+
+**Neither built candidate lands mid-band.** The gap between C1 (61.7) and bare (30.0) is where a reshaped ROOT ROT would have to sit, and nothing measured is in it. The one shape that structurally targets that gap is C2 — breadth onto a fresh pile — and it needs the engine target the 2026-09-19 report asked for.
+
+## B.4 Track B2 — player Drivers, both gyms, n=60
+
+| Driver | Rootfall f1 / f2 / boss | compound (bare 22.1) | boss flips, p | Emberfall f1 / f2 / boss | compound (bare 13.3) | boss flips, p | procs/fight |
+|---|---|---|---|---|---|---|---|
+| ANTIVENOM | 86.7 / 85.0 / 33.3 | 24.6 (+2.5) | 3:1, 0.63 | 60.0 / 63.3 / 35.0 | 13.3 (0.0) | 1:1, 1.00 | 0.5–1.7 |
+| TENTH STRIKE | 81.7 / 83.3 / 40.0 | 27.2 (+5.1) | 7:1, 0.070 | 61.7 / 73.3 / 46.7 | 21.1 (+7.8) | **8:1, 0.039** (f2 6:0, 0.031) | 1.0–1.8 |
+| FIRE DRIVER (Rootfall lean) | 83.3 / 83.3 / **53.3** | **37.0 (+14.9)** | **15:1, 0.001** | — | — | — | 11.2–11.7 |
+| WATER DRIVER (Emberfall lean) | — | — | — | 65.0 / 70.0 / 41.7 | 19.0 (+5.7) | 7:3, 0.34 | 6.9–9.3 |
+
+**FIRE DRIVER at Rootfall is the largest player-side lever measured in this ticket**: the boss cell 30.0 → 53.3 at 15:1, and the compound 22.1 → 37.0 — +15pt of gauntlet clear from a 10% multiplier on one element's attacks. It procs 11 times a fight because a favourable Rootfall party is two Fire bodies and most of its attacks are Fire. This is 76 arm 3's open question answered from the Driver side: type preparation *can* pay in the rolled fights — not through the type chart's 1.5x (which is already in the bare arm) but through a Driver that rewards the lean the party already has. The lead-ins are flat (2:4, 3:4 — the party wins them anyway); all of it lands on the boss.
+
+**WATER DRIVER at Emberfall is the same shape at a third the size** (+5.7 compound, 7:3 at every cell, none significant) — fewer procs (7–9 a fight; an Emberfall favourable party is less mono) into a gauntlet with less to give.
+
+**TENTH STRIKE is the lean-agnostic edge, and it is real at Emberfall** (+7.8 compound; f2 6:0 and boss 8:1 both significant) and directional at Rootfall (+5.1; boss 7:1, p = 0.07). ~1.5 procs a fight — the tenth attack lands once or twice — and each is 1.5x on a card that is usually a payoff.
+
+**ANTIVENOM is a null at both gyms, every cell.** The Rootfall boss is 3:1 (p = 0.63) at 1.7 procs a fight; Emberfall is 0:0 / 0:0 / 1:1, the lead-ins byte-identical to bare. The 2026-09-19 reading stands, now at n=60: the slot was never the problem, and shedding a Poison a turn does not touch a fight the boss wins by rate.
+
+## B.5 Track B1 — macros, both gyms, n=60. THE RACK IS PER FIGHT: A CEILING, and the boss cell is the per-run number
+
+Moving the rack to per-run was not a small change — `runGate` fights each cell as an independent sample with its own run seed, so "three macros across this gauntlet" has no gauntlet to live in without restructuring how cells are sampled — so it stayed per-fight, as the review allowed. Read the lead-in cells as *"a player who spends macros here"* and the compound as a ceiling (up to 3× the macros a run holds); **the boss cell alone is the honest per-run number** — three macros brought to the boss, which a player who saved them would have.
+
+| arm | Rootfall f1 / f2 / boss | compound | boss flips, p | Emberfall f1 / f2 / boss | compound | boss flips, p | macros/fight (rule) |
+|---|---|---|---|---|---|---|---|
+| bare | 86.7 / 85.0 / 30.0 | 22.1 | — | 60.0 / 63.3 / 35.0 | 13.3 | — | — |
+| B1a 3× Surge | 86.7 / 86.7 / **46.7** | 35.1 (ceiling) | **15:5, 0.041** | 66.7 / 70.0 / 33.3 | 15.6 (ceiling) | 4:5, 1.00 | lead-ins 1.5–1.9 (all lethal); boss 3.0 (all turn 1) |
+| B1b Surge + Cripple + Mend | 83.3 / 86.7 / 36.7 | 26.5 (ceiling) | 13:9, 0.52 | 66.7 / **75.0** / 36.7 | 18.3 (ceiling) | 4:3, 1.00 (f2 **7:0, 0.016**) | lead-ins 1.6–1.8 (≈half lethal, half mend-under-40); boss 3.0 (all turn 1) |
+
+**Three Surges at the Rootfall boss are +16.7pt at zero slot cost** (15:5, p = 0.041), the second-largest player-side lever after FIRE DRIVER, and this cell is per-run-faithful. At the Emberfall boss they are −1.7 (4:5): the turn-1 dump buys nothing in a 3-turn race the boss wins by rate.
+
+**The lethal rule fires in the lead-ins — 1.5–1.9 times a fight — and never at the boss.** R1 was right about the scale: a Surge is ~10% of a body, which is lethal when a body is already under 10%, and in a 4-turn lead-in against three bodies that happens once or twice a fight. At the boss the policy never *reaches* a lethal because rule 2 spends the rack on turn 1. That is the policy under-reading timing, exactly as R1 said: **a human holds Surge for the kill, and the floor does not.** The lead-in cells, which do hold (no rule 2 there), gain +6.7 / +6.7 at Emberfall — the held-Surge value the boss cell cannot see.
+
+**One of each shape is worth less at the Rootfall boss than three Surges** (36.7 vs 46.7; 13:9 against bare, p = 0.52) — a Cripple and a Mend on turn 1 do not shorten the boss's life the way a third 10%-of-a-body hit does — **and more in the Emberfall lead-ins** (fight 2: 75.0, 7:0, p = 0.016), where Mend-under-40 fires as often as the lethal does (≈0.9 each per fight) and keeps a body alive through a 4.5-turn fight. So the loadouts split by fight length: the boss cell wants damage, the lead-ins want the heal. Neither loadout moves Emberfall's boss (+1.7 / −1.7): that fight is over in 3 turns whatever the rack holds.
+
+## B.6 What the session opens on — four questions, numbers only
+
+1. **Slot-free vs slot-cost.** Track A on the old tree: +3 cards = −9 to −31 compound. On this tree, A3: −3 at both gyms. Slot-free, this tree, compound: FIRE DRIVER +14.9, three Surges +13.0 (ceiling; boss cell +16.7), TENTH STRIKE +5.1 / +7.8, WATER DRIVER +5.7, ANTIVENOM +2.5 / 0.0. **Every slot-free lever is ≥ 0 and the two big ones are worth 5× what the dilution tax costs.**
+2. **Antivenom-Driver vs scrubber-card at Rootfall's boss.** Card (research/76, old tree): p = 1.00. Driver (n=60, this tree): 33.3 vs 30.0, 3:1, p = 0.63. Both null.
+3. **Which of C1–C3 lands between bare (30.0) and off (68.3).** C1 at 61.7 — in the band, 6.6pt under off (0:4, p = 0.125), procs every turn. C3 at 21.7 is BELOW bare (3:8) at 30 procs/fight — a buff, withdrawn. C2 not expressible.
+4. **What I would put in front of Henry:** Emberfall's gauntlet is 13.3% today and was 62.4% three weeks ago — find the commit before ruling on anything below · FIRE DRIVER at Rootfall: boss 30 → 53 (15:1), compound 22 → 37 · ROOT ROT is +38pt; C1 keeps 7 of those points, C3 adds 8 more to the boss.
+
+## B.7 Deviations from the prompt, stated
+
+- The arms ran in a cloud container, not on Henry's machine: the device bridge cannot keep a process alive between calls (tested), so the container was the only host that could run 2,700 battles. Two lanes at ~60–90 s a battle; the batch took ~45 lane-hours over three days, including one restart of both lanes (an interrupted turn killed them mid-A3 and again mid-B1b; `77-runs/partial/` keeps the killed reports).
+- The rack is per-fight (R3, second option). `npm run balance:77` and `scripts/ticket77-arms.mjs` are new — a resumable runner for exactly these 17 arms, so a re-take on Henry's machine is one command.
+- Gates on the tree the arms ran on: tsc -b, eslint 0, 179 files / 2394 tests, vite build (unchanged from `b53063d`; the runner script is lint-clean and touches no test).
