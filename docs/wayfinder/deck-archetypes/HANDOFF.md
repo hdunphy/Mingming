@@ -275,6 +275,42 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+## 0-A-v2-RUN-CANNOT-CLEAR-A-GYM (162c, 2026-09-23) — THE ONE BLOCKER
+
+Ticket 61's run gate on collection v2, 18 battles (`results/t162/RUNGATE.txt`):
+
+| band | target | measured | verdict |
+| --- | ---: | ---: | --- |
+| WILDS | 95% | **100%** (6/6) | PASS |
+| ELITES | 75% | **50%** (3/6) | FAIL by 20pt |
+| GAUNTLET | 60% clear | **0%** (0/6 fights) | FAIL by 55pt |
+
+Under-sampled at 2 iterations a cell, so provisional — and the gauntlet is not marginal enough for that to matter. The player loses **every one** of the gym's three fights and the damage is one-sided rather than close: **574 / 502 / 582** a turn against **741 / 1,098 / 1,332**. The boss fight lasts 2.5 turns.
+
+**IT IS NOT THE UN-DRIFTED FLOOR**, and ruling that out is the useful half. The gate models a run before a single reward is taken, and 161 §2 deliberately lowers that floor by keeping the consume out of the opening five — so "161 and the run gate are in tension" was the obvious suspect. Measured instead: `--deck engine-plus-3` (a 27-card drifted deck, `results/t162/RUNGATE-drifted.txt`) moves the gauntlet 0/6 → **1/6**, boss still 0/2 at 443 against 1,106. Rewards do not save it.
+
+**What does explain it, from two directions at once.** v2.1 raised the big Water numbers (Hydro Blast 105→120, Maelstrom 90+1 Dazed→100+3, Tidal Wave 45→55, Boiling Surge 40→55) and **Tidewrack is the Water gym** — so those buffs landed on the ENEMY side of the fight the player must win. Meanwhile the player's whole 2e rung sits **36% under Henry's own slot tax** (below). Both halves of the gym fight moved in opposite directions in the same pass.
+
+## 0-THE-2e-RUNG-IS-HALF-A-RUNG-SHORT (162b, 2026-09-23)
+
+`scratch/t162b_ledger.ts` prices all 98 against two curves: the repo's `BUDGET_BANDS` (1.0/3.0/6.5/10.5) and **Henry's v2.1 slot tax** (1.2/3.0/7.0/12.0, *"a 2e card must beat two 1e cards"*). Median against the slot tax: **0e −17%, 1e ±0%, 2e −36%, 3e ±0%.**
+
+1e and 3e sit on the number. 2e does not, and it is not the daemons: excluding the twelve whose hooks the scorer cannot price it is still **−39%**, with sixteen of twenty-three non-daemon 2e cards 25% or more under. `bark_smash` −90%, `venom_glut` −83%, `inferno` −74%, `heat_wave` −63%. Several of those read a pile the scorer must ASSUME, so part of the gap is blindness — but the slot tax was aimed at this rung and did not land on it.
+
+**WHICH CURVE v2 IS AUDITED AGAINST IS UNRULED.** Moving `BUDGET_BANDS` would reprice all 268 registry entries including the 170 v1 cards twenty post-EA species still field, so the ledger reports both and changes neither. That is Henry's call and it gates 162's remaining pricing work.
+
+Twenty cards read OVER. The two extremes — `contagion` and `sun_devourer`, both 20.4 at 2e, **+191%** — are priced against an assumed board pile, so they are a scorer question. `ragnarok_edge` at 7.0 for 1e (**+133%**) is not: MISSING_HP at +1 per 1% to a 50% cap is a printed +50 power on top of 20, fenrir_v1 runs two, and fenrir_v1 is the deck spending 17.0% of its turns above 75% of a health pool.
+
+Eleven MANUAL REVIEW rows, each with its reason, in ticket 162 §8. **Nine are cards the scorer says itself it cannot price** — a low score with an `UNPRICED` tag is *unscored*, not *underpowered*, and conflating those two is how a card gets "fixed" into being overpowered.
+
+## 0-SKÖLL-v1-MAKES-A-CURRENCY-NOTHING-IN-HER-KIT-SPENDS (162c, 2026-09-23)
+
+158 §2 rules a kit to be two enablers, a consume, a scalar and a glue, *"the consume/scalar pair is required"*. Checked against the shipped kits (`scratch/t162c_shape.ts`): all twelve carry glue, ten carry a scalar, and **skoll_v1 and kraken_v2 carry neither a consume nor a scalar**.
+
+skoll_v1 is the **11.7%** deck — the worst field number in the roster by nine points. Her kit MAKES Strength (`fury_strike` ×2, `howl`) and holds nothing that reads it; `brute_force` is in her POOL, i.e. found in the run. That is a currency with no payoff in the opening deck, which is exactly the shape 158 §2's pair rule exists to forbid, and it explains the number without appeal to any knob. **Fix the kit, not the cards.**
+
+Same file: the duplicate-count gate 160 §5 asked for is **NOT met** — 7 cards / 19 kit slots → 11 / 28, read from `archive/ea-kits-v1.json` rather than from §5's prose (which misremembers `tackle ×8`; the blob says `water_slap ×7`). Glue duplication 7→10 slots, everything else 12→18. 162 §3 predicted *"only shared-element cards by design"* and named four; the real non-glue list is nine.
+
 ## 0-COLLECTION-v2-IS-UNBALANCED-AND-THAT-IS-EXPECTED (162a, 2026-09-23) — THE DELTAS FOR 162c
 
 Ticket 162 §4: *"Not priced. Not measured."* §5.5: *"the grid is expected to move — do not re-baseline tonight, record the deltas."* Here they are, measured AFTER the cut on the 1v1 probe (`scratch/t149_castprobe.ts --width 1 --iter 20`, 1,200 games per OS over 30 opponents; full table in `results/t162/GRID.txt`).
@@ -299,6 +335,12 @@ Ticket 162 §4: *"Not priced. Not measured."* §5.5: *"the grid is expected to m
 Two things worth carrying into 162b/162c rather than rediscovering. **The tails are structural, not numeric.** `sköll_v1` at 11.7% is the Strength MULTI-HIT deck under the v2.1b multi-hit rule (band power split across hits) with the Strength CONSUME moved to Fenrir — it builds a pile it has nothing to spend. `jormungandr_v1` at 20.9% lost `ink_stream` to Kraken (Henry's 09-21 ruling) and is now a cards-played deck whose payoff is `serpents_coil` alone. Both are pricing questions for 162b and possibly kit questions, not knob-turns.
 
 **`fenrir_v1` spends 17.0% of its turns dealing ≥75% of a health pool** (next worst is huldra_v2 at 8.1%, and nine of twelve are under 2%), on a p50 of 55.2% damage a turn. That is the one line in the table that looks like a mechanism rather than a number: `war_pact`×2 + `ragnarok_edge`×2 under UNBOUND_KERNEL, opening on five cards that all feed each other.
+
+**2026-09-23 — 162 COMPLETE: a, b, c, d, plus 160-e1.** `172bc68`..`517b206`, eight commits, gate green throughout (eslint 0, tsc 0, **2,654 vitest across 194 files**, build clean).
+
+**160-e1 LANDED**, so the eight ally cards do what they print rather than sitting on §5.4's fallback. `allyTarget` is a FLAG beside `target`, not a TargetType: `target` says how wide a card reaches and every consumer already reads it that way, so which SIDE it reaches is a second, orthogonal field. Enforced in three places because the picker is not a rule — the hand's targeting predicate, the AI's enumeration, and `battleReducer`, which is the one that matters since scenarios, replays, the balance corpus and the AI all reach `PLAY_PROGRAM` without going near the UI. The AI branch is FIRST, ahead of the heuristics that infer a card's side from its payload: those get `bolster`, `shell_share` and `howl` wrong (no HEAL on any of them), so the AI was enumerating them against the enemy and scoring handing the opponent a buff. **The beam gate the ticket asked for was measured and the prediction was wrong in the safe direction** — the eight cards enumerate 33 targets before and **24 after** at 3v3, because a Side ally card used to be tried against both sides. Branching went DOWN; beam 8 needs no revisit.
+
+**162b, 162c and 162d are done and each found something** — see the three blocks above and ticket 162 §§8–10. The full 140 comp grid was deliberately NOT run: §5.5 rules no re-baseline until pricing lands, and measuring a pool the ledger says is 36% light at 2e produces a grid to throw away.
 
 **2026-09-23 — 162a SHIPPED. COLLECTION v2 IS THE REGISTRY.** `172bc68`..`993ad09`, four commits, gate green (eslint 0, tsc 0, **2,635 vitest across 193 files**, build clean). The v1 pool and the twelve v1 kits are in `src/engine/data/archive/` and nothing loads them. The registry is **268 entries, not 98** — the 20 post-EA species still field v1 decks and ~90 scenario fixtures still name v1 cards, so what keeps a v1 card out of a player's hands is `RewardSystem`'s **V2_RUN_POOL** gate, not the registry's size: an all-launch-species party is offered the 98 and nothing else. The thirteen renames resolve through `data/programAliases.ts` at `GetProgramData` — deliberately NOT folded in as extra registry keys, because eight places walk `Object.keys()` and every one would see each renamed card twice.
 
