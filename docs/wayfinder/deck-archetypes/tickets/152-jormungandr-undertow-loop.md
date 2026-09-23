@@ -207,3 +207,48 @@ Wild-versus-elite, the side-level cap and the `forage` exclusion are asserted in
 through `rollEncounter` rather than through the helper, because the claim is about what the PLAYER
 meets — a rule that worked in the helper and was never wired to a node would pass a unit test and
 ship the bug.
+
+## 8. A brake on the card, measured (2026-09-23) — it does not work
+
+Henry: *"what happens with jorm if we add recoil damage or self weaken to undertow"*. Six arms,
+1,200 games each. Full table in `../../../../results/t152/BRAKE-FINDINGS.md`.
+
+| | shipped | recoil 10 | recoil 15 | self-Weaken 1 | self-Weaken 2 |
+|---|---|---|---|---|---|
+| field win % | **69.6** | 59.5 | 50.7 | 48.2 | 26.2 |
+| turns with ≥6 undertow casts | 12.7% | 8.3% | **4.8%** | 9.9% | 4.3% |
+| max undertow in one turn | 18 | 16 | **14** | 14 | 8 |
+| turns dealing ≥75% of a pool | 16.8% | 11.7% | **7.7%** | 9.9% | 2.9% |
+| damage/turn MAX | **145.0%** | 149.1% | **146.5%** | 118.6% | 100.0% |
+| self-damage/turn max | 0% | 32.5% | **40.4%** | — | — |
+
+(The wild-rung rule and both §3 swaps give 0.0% and a max of 2.)
+
+**No brake removes the loop.** At `recoil 15` — `forage`'s own number, the strongest arm that leaves
+the card playable — he still loops six deep in one turn in twenty and fourteen deep at worst, and
+one turn in thirteen still removes three quarters of a health pool. **The one-turn kill that opened
+this ticket survives every recoil arm**: the worst turn is 145.0% of a pool shipped and 146.5% at
+recoil 15.
+
+**He pays gladly, and the number says how gladly**: at recoil 15 he spends up to **40.4% of his own
+health pool in a single turn** to run the loop. A cost does not deter a loop whose payoff scales
+with the loop — `ink_stream` reads cards drawn this turn and `serpents_coil` reads cards played this
+turn, so every iteration pays for itself several times over. There is no recoil small enough to be
+fair and large enough to stop it.
+
+**This is why `forage` is different.** Its brake works because its draw feeds nothing in particular.
+The brake is not doing the work there; the absence of a payoff is. Worth writing down, because
+"`forage` has a brake, so give `undertow` one" is the obvious next idea and it is wrong.
+
+**And a card change has collateral.** `undertow` is a pool card, also in `kraken_v1`'s tuned deck
+and start kit (one copy, no loop) and in `jormungandr_v1`'s PLAYER start kit. kraken_v1 loses 11-13
+points for a loop it cannot run: 47.3% shipped, 36.4% at recoil 10, 33.9% at recoil 15, 41.4% at
+self-Weaken 1.
+
+**Nothing shipped.** `programs.json` is byte-identical; the wild-rung rule from §7 remains the fix.
+
+One measurement bug this found in the harness, fixed in the same commit: the first cut summed every
+cast's damage, so a recoil arm scored its own recoil as damage DEALT and `recoil 10` read a 177.4%
+worst turn against the shipped 145.0% — the brake appearing to make the card more dangerous.
+`scratch/t152_gates.ts` splits self-facing casts into their own column now, which is also where the
+40.4% figure comes from.

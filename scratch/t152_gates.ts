@@ -13,8 +13,10 @@ import fs from 'node:fs';
 interface Cast {
     card: string;
     turn: number;
-    pre: { nonNaturalDrawn: number; tgtMaxHp: number };
-    post: { ledgerApplied?: number; ledgerRaw?: number; enemyHpDelta?: number };
+    /** 'self' or 'enemy' — which side the cast was aimed at. */
+    target: string;
+    pre: { nonNaturalDrawn: number; tgtMaxHp: number; selfMaxHp: number };
+    post: { ledgerApplied?: number; ledgerRaw?: number; enemyHpDelta?: number; selfHpDelta?: number };
 }
 interface Game {
     opponent: string;
@@ -37,26 +39,39 @@ function analyse(path: string) {
     const undertowPerTurn: number[] = [];
     const inkDraws: number[] = [];
     const dmgPerTurn: number[] = [];
+    /** Ticket 152's brake arms: what the card costs its own caster, per turn. */
+    const selfPerTurn: number[] = [];
 
     for (const g of games) {
         if (g.winner === 'PLAYER') { wins++; decisive++; }
         else if (g.winner === 'ENEMY') decisive++;
 
         // Per-turn buckets for this game.
-        const byTurn = new Map<number, { undertow: number; dmg: number; pool: number }>();
+        const byTurn = new Map<number, { undertow: number; dmg: number; self: number; pool: number; ownPool: number }>();
         for (const c of g.casts) {
-            const slot = byTurn.get(c.turn) ?? { undertow: 0, dmg: 0, pool: 0 };
+            const slot = byTurn.get(c.turn) ?? { undertow: 0, dmg: 0, self: 0, pool: 0, ownPool: 0 };
             if (c.card === 'undertow') slot.undertow += 1;
-            // `ledgerRaw` is the card's true output before shields and the zero floor, which is
-            // what §2 measured. `enemyHpDelta` would undercount every shielded hit.
-            slot.dmg += c.post.ledgerRaw ?? 0;
+            /*
+             * `ledgerRaw` is the card's true output before shields and the zero floor, which is
+             * what §2 measured. `enemyHpDelta` would undercount every shielded hit.
+             *
+             * SELF-FACING CASTS ARE EXCLUDED FROM `dmg`, and this is not a nicety. The first cut
+             * summed every cast, so an arm that put RECOIL on `undertow` scored its own recoil as
+             * damage dealt and read as a 177% turn against the shipped deck's 145% — i.e. the
+             * brake made the card look more dangerous. Self-damage is a COST and gets its own
+             * column.
+             */
+            if (c.target === 'self') slot.self += c.post.ledgerRaw ?? 0;
+            else slot.dmg += c.post.ledgerRaw ?? 0;
             slot.pool = Math.max(slot.pool, c.pre.tgtMaxHp || 0);
+            slot.ownPool = Math.max(slot.ownPool, c.pre.selfMaxHp || 0);
             if (c.card === 'ink_stream') inkDraws.push(c.pre.nonNaturalDrawn ?? 0);
             byTurn.set(c.turn, slot);
         }
         for (const slot of byTurn.values()) {
             undertowPerTurn.push(slot.undertow);
             if (slot.pool > 0) dmgPerTurn.push((slot.dmg / slot.pool) * 100);
+            if (slot.ownPool > 0) selfPerTurn.push((slot.self / slot.ownPool) * 100);
         }
     }
 
@@ -75,6 +90,9 @@ function analyse(path: string) {
         dmgP50: pct(dmgPerTurn, 50),
         dmgP90: pct(dmgPerTurn, 90),
         dmgMax: Math.max(0, ...dmgPerTurn),
+        selfP50: pct(selfPerTurn, 50),
+        selfP90: pct(selfPerTurn, 90),
+        selfMax: Math.max(0, ...selfPerTurn),
     };
 }
 
@@ -98,3 +116,7 @@ col('turns dealing >=75% of a pool %', r => r.turnsOver75.toFixed(1));
 col('damage/turn p50 %', r => r.dmgP50.toFixed(1));
 col('damage/turn p90 %', r => r.dmgP90.toFixed(1));
 col('damage/turn max %', r => r.dmgMax.toFixed(1));
+console.log('\n-- what the card costs its own caster (ticket 152 brake arms) --');
+col('self-damage/turn p50 %', r => r.selfP50.toFixed(1));
+col('self-damage/turn p90 %', r => r.selfP90.toFixed(1));
+col('self-damage/turn max %', r => r.selfMax.toFixed(1));
