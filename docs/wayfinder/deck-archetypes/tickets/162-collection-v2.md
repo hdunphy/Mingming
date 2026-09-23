@@ -1,7 +1,6 @@
 # Ticket 162 — Collection v2: archive the card pool, start again under the grammar
 
-**Type:** data (registry) + design review. **Status:** DRAFT collection delivered 2026-09-22 for Henry's
-review; nothing committed to the registry. **Asked by Henry 2026-09-22:** *"I think we need to revisit
+**Type:** data (registry) + design review. **Status:** **RULED for playtest, 2026-09-23** (v2.1b) — Henry: *"This is good, we should commit it for play testing tonight."* 162a is Legion's next row. **Asked by Henry 2026-09-22:** *"I think we need to revisit
 the card pool. My latest playtest showed they were not exciting and it is still hard to build decks.
 Can we archive the current card collection and start a new one. Try to build a card collection after
 the notes I uploaded yesterday."* **Relates to:** 160 (this is 160's sessions done in one pass as a
@@ -77,7 +76,29 @@ The browser's first section is the change log. 98 cards.
 
 **v2.1b (same day):** Henry — *Flare Burst underpowered · Ragnarok 1p per stack · Flashover priced so the average at 2 Burn is 80 · all multi-hits underpowered: same scaling as a normal card, 1e = 30/hits · Scald 2 Burn · Pile On 45.* Applied: the MULTI-HIT RULE (band power split across hits — Flare Burst 15×2, Pack Tactics 23×3, Serpent Flurry 10×3, Acorn Toss 6×2), Ragnarok Edge +1/1% (max 50), Flashover 50 + 15/Burn, Scald 2 Burn + 1 self Dazed, Pile On 45 (again if Dazed).
 
-## 5. Rows (after Henry's review)
+## 5. Rows — 162a is GO (2026-09-23)
+
+**Legion, for tonight's playtest — 162a in this order:**
+1. Archive: `programs.json` → `src/engine/data/archive/programs-v1.json`; the old EA kits and start
+   kits in `mingmingRegistry.ts` go with it (keep the file readable for the card browser's history).
+2. Load `collection-v2/collection.json`: every card in `cards[]` becomes a `programs.json` entry (ids as
+   given; `old` is the alias — add an alias table so run logs, tests and the balance report keep
+   reading `water_slap`, `whirlpool_v2`, `seed_bomb_v2`, `squirrel_away`, `fire_poke`, `seed_spit`,
+   `healing_mist`, `*_daemon`). Each `os[]` entry gives the 8–9-card `kit` (`(id, copies, lane,
+   startCopies)`), the 5-card start kit (`startCopies`), and the species' `pool` (reward-pool seeding
+   per 161 §2 — for tonight, the pool is the species' shop/reward weighting; if seeding is not wired,
+   the pool cards simply exist in the run pool).
+3. `hooks.json`: **EMBER_FUSE** (Sköll v2: attack on a Burning target → +1 Burn to it); Ignite's
+   "draw if the target was already Burning"; Undertow's self-Weakened (already tested).
+4. **Ally-target cards** (Tend, Bolster, Shell Share, Mend, Soothe, Howl, Verdant Ward, Tidal Battery)
+   need 160-e1. If e1 cannot land tonight: ship them with `target: Self` / `AllySide` fallbacks and a
+   `TODO(160-e1)` so the kits are castable; do not hold the playtest on the picker.
+5. `npm run gate`; the grid is expected to move — do **not** re-baseline tonight, record the deltas
+   in the write-back for 162c.
+6. Regenerate the browser (`collection-v2/build.py`) from the registry if 162d is quick; otherwise
+   leave it.
+
+Then:
 
 - **162a — archive.** `programs.json` → `src/engine/data/archive/programs-v1.json` (kept for the
   card browser's history and the 59 orphan annotations); `mingmingRegistry.ts` decks and start kits
