@@ -5,7 +5,10 @@
 #   multi-hit: +1 hit at the same per-hit power
 #   ally-target: also the caster · side buffs: +1 stack per ally
 import re, json
-from collection import CARDS
+import registry_source
+from collection import CARDS, OS, RUN_ONLY
+# 162d: read the SHIPPED faces when registry.json exists (npm run decks), the design file otherwise.
+CARDS, OS, RUN_ONLY, FROM_REGISTRY = registry_source.apply(CARDS, OS, RUN_ONLY)
 RATE = 1.40
 def up(v, mn=3): return max(v + mn, int(round(v * RATE / 5.0) * 5))
 def stacks(cost): return 1 + cost
