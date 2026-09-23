@@ -275,8 +275,6 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
-**2026-09-23 — 163 RULED.** Henry: two layers one rule; generator rule as first draft (cost-reduction `+` lines a door left open); patches (B) — tiers never, fork later; ONE patch slot per body; no cross-run persistence to start, data shape leaves the door open. **163a delivered:** `collection-v2/upgrades.json` (98 `+` lines, ten hand-overrides) and the browser's Upgrades tab. Legion: after 162a and the playtest prep — 163a registry entries once 149c prices them, 163b workshop/gym-gate venue, 163c patches engine (`patches[]` max 1, `modifies` in the firmware runner, six patches in hooks.json), 163d patches in the run, 163e measure.
-
 ## 0-A-v2-RUN-CANNOT-CLEAR-A-GYM (162c, 2026-09-23) — THE ONE BLOCKER
 
 Ticket 61's run gate on collection v2, 18 battles (`results/t162/RUNGATE.txt`):
@@ -293,17 +291,28 @@ Under-sampled at 2 iterations a cell, so provisional — and the gauntlet is not
 
 **What does explain it, from two directions at once.** v2.1 raised the big Water numbers (Hydro Blast 105→120, Maelstrom 90+1 Dazed→100+3, Tidal Wave 45→55, Boiling Surge 40→55) and **Tidewrack is the Water gym** — so those buffs landed on the ENEMY side of the fight the player must win. Meanwhile the player's whole 2e rung sits **36% under Henry's own slot tax** (below). Both halves of the gym fight moved in opposite directions in the same pass.
 
-## 0-THE-2e-RUNG-IS-HALF-A-RUNG-SHORT (162b, 2026-09-23)
+## 0-COLLECTION-v2-IS-PRICED-ON-HENRY'S-CURVE (162b, 2026-09-23 — CORRECTED)
 
-`scratch/t162b_ledger.ts` prices all 98 against two curves: the repo's `BUDGET_BANDS` (1.0/3.0/6.5/10.5) and **Henry's v2.1 slot tax** (1.2/3.0/7.0/12.0, *"a 2e card must beat two 1e cards"*). Median against the slot tax: **0e −17%, 1e ±0%, 2e −36%, 3e ±0%.**
+**An earlier version of this block said "the 2e rung is 36% under the slot tax". That was wrong, and how it was wrong is the reusable part.** The auditor prices a card that CONSUMES, SCALES ON or MULTIPLIES a pile against an ASSUMED three stacks. That is a guess. Pooling those cards with the ones it can read, and pooling in twelve daemons whose hooks it cannot price at all, produced a median that described the auditor rather than the pool.
 
-1e and 3e sit on the number. 2e does not, and it is not the daemons: excluding the twelve whose hooks the scorer cannot price it is still **−39%**, with sixteen of twenty-three non-daemon 2e cards 25% or more under. `bark_smash` −90%, `venom_glut` −83%, `inferno` −74%, `heat_wave` −63%. Several of those read a pile the scorer must ASSUME, so part of the gap is blindness — but the slot tax was aimed at this rung and did not land on it.
+Split by whether the auditor can actually read the card, medians in power:
 
-**WHICH CURVE v2 IS AUDITED AGAINST IS UNRULED.** Moving `BUDGET_BANDS` would reprice all 268 registry entries including the 170 v1 cards twenty post-EA species still field, so the ledger reports both and changes neither. That is Henry's call and it gates 162's remaining pricing work.
+| cost | it can read | it guesses | repo target | Henry's v2.1 |
+| --- | ---: | ---: | ---: | ---: |
+| 0e | **10** (17) | 7 (1) | 10 | 12 |
+| 1e | **30** (34) | 22 (6) | 30 | 30 |
+| 2e | **74** (10) | 45 (13) | 65 | 70 |
+| 3e | **120** (4) | — | 105 | 120 |
 
-Twenty cards read OVER. The two extremes — `contagion` and `sun_devourer`, both 20.4 at 2e, **+191%** — are priced against an assumed board pile, so they are a scorer question. `ragnarok_edge` at 7.0 for 1e (**+133%**) is not: MISSING_HP at +1 per 1% to a 50% cap is a printed +50 power on top of 20, fenrir_v1 runs two, and fenrir_v1 is the deck spending 17.0% of its turns above 75% of a health pool.
+**Every rung the auditor can read lands on Henry's v2.1 number.** Three flat 2e cards are genuinely under and are the only pricing rows the ledger supports: `inferno` 40, `crippling_vine` 59, `verdant_ward` 61.
 
-Eleven MANUAL REVIEW rows, each with its reason, in ticket 162 §8. **Nine are cards the scorer says itself it cannot price** — a low score with an `UNPRICED` tag is *unscored*, not *underpowered*, and conflating those two is how a card gets "fixed" into being overpowered.
+**THE BUG THE QUESTION FOUND.** Answering *"what is under?"* surfaced a defect 160-e1 had introduced hours earlier. Every sign flip in `powerscale` asks *is this happening to me or to them*, and asked it as `action.target === 'SELF'` — the same question until an `allyTarget` card's payload could land on a FRIEND through `TARGET`. `soothe` priced at **−0.8**: a card that helps you, scored as a cost. Fixed as `landsOnOwnSide = actionIsSelfFacing || card.allyTarget`; `scope` untouched, because width is not side. **If a new targeting concept ever lands, grep `powerscale` for `actionIsSelfFacing` before anything else.**
+
+**THE LESSON, for the next person who quotes a median off `powerscale`:** always split the pool by `manualReview` and by pile-reading before quoting one. A number that pools "cards the model prices" with "cards the model admits it cannot price" is a statement about the model. `scratch/t162b_ledger.ts` prints the `UNPRICED` tag per card for exactly this reason.
+
+Twenty cards read OVER and Henry ruled them fine (2026-09-23). The two extremes, `contagion` and `sun_devourer` at 20.4 (2e), are assumed-pile artefacts in the other direction.
+
+Open, and bookkeeping rather than balance: `BUDGET_BANDS` still holds 10/30/65/105 where v2.1 rules 12/30/70/120. The two disagree on ten of 98 cards, all within a rung's tolerance.
 
 ## 0-SKÖLL-v1-MAKES-A-CURRENCY-NOTHING-IN-HER-KIT-SPENDS (162c, 2026-09-23)
 

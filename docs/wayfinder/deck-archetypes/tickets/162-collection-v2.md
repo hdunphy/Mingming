@@ -145,16 +145,32 @@ Two findings that are structural rather than numeric, for 162b to answer before 
 
 `scratch/t162b_ledger.ts`, output in `results/t162/LEDGER.txt` and `.tsv`. It prints every card against TWO bands: `powerscale.BUDGET_BANDS` (the curve the whole repo is audited against, 1.0 / 3.0 / 6.5 / 10.5) and **Henry's v2.1 slot tax** (1.2 / 3.0 / 7.0 / 12.0). Moving `BUDGET_BANDS` would reprice all 268 registry entries including the 170 v1 cards twenty post-EA species still field, so the ledger reports both and **which curve v2 is audited against is a decision for Henry, not one the script makes.** 149c §4.2's width rule is honoured: a Side card is judged on the worse of its two widths.
 
-### The headline: the 2e rung is light
+### CORRECTED 2026-09-23 — the rung is NOT light; the auditor is blind
 
-| cost | n | median vs the slot tax |
-| --- | ---: | ---: |
-| 0e | 18 | −17% |
-| 1e | 41 | **±0%** |
-| 2e | 35 | **−36%** |
-| 3e | 4 | ±0% |
+**The first reading of this row said "the 2e rung is 36% under the slot tax" and that was wrong.** Henry asked what "under" meant, which is the question that found it. Splitting the cards by whether the auditor can actually READ them — a card that consumes, scales on, or multiplies a pile is priced against an ASSUMED three stacks, which is a guess, not a measurement — the medians are these, in power:
 
-1e and 3e sit on the tax. **2e is half a rung short of it**, and excluding the twelve daemons (whose hooks the scorer cannot price) it is still −39%: sixteen of the twenty-three non-daemon 2e cards are 25% or more under. The worst are `bark_smash` (−90%), `venom_glut` (−83%), `inferno` (−74%), `heat_wave` (−63%), `crippling_vine` (−61%), `verdant_ward` (−60%). Most of those read a pile the scorer has to ASSUME, so the number is partly scorer blindness — but the rung is where the slot tax was aimed, and it did not land there.
+| cost | cards the auditor can read | cards it guesses at | the repo's target | Henry's v2.1 |
+| --- | ---: | ---: | ---: | ---: |
+| 0e | **10** (n=17) | 7 (n=1) | 10 | 12 |
+| 1e | **30** (n=34) | 22 (n=6) | 30 | 30 |
+| 2e | **74** (n=10) | 45 (n=13) | 65 | 70 |
+| 3e | **120** (n=4) | — | 105 | 120 |
+
+**Every rung the auditor can read lands on Henry's v2.1 number.** 2e reads 74 against a target of 70; 3e reads 120 against 120; 1e reads 30 against 30. The −36% headline was the thirteen pile-readers (median 45) and the twelve daemons (whose hooks it cannot price at all) dragging a median that had no business including them. **Collection v2 is priced on Henry's own curve wherever that claim can honestly be made.**
+
+Three flat 2e cards are genuinely under and are the only pricing rows this ledger supports: `inferno` **40** (2 Burn to the side and nothing else), `crippling_vine` **59**, `verdant_ward` **61**. Everything else flat at 2e is 69–95.
+
+The remaining question is bookkeeping rather than balance: `powerscale.BUDGET_BANDS` still holds **10 / 30 / 65 / 105** and Henry's v2.1 note rules **12 / 30 / 70 / 120**. Moving it changes no verdict that matters (the two disagree on ten of 98 cards, all within a rung's tolerance) but it is what a future audit reads. **Henry's to rule.**
+
+### The bug the question found
+
+Answering *"what is under?"* surfaced a real defect that 160-e1 had introduced hours earlier. Every sign flip in `powerscale` asks one question — **is this effect happening to me or to them** — and it asked it as `action.target === 'SELF'`. That was the same question until 160-e1, because `TARGET` could only ever mean an enemy. It cannot now.
+
+`soothe` is the witness: *"remove 1 stack of a debuff from an ally"* is negative stacks on `TARGET`, so the model read it as APPLYING two debuffs to a friend and priced the card at **−0.8** — a card that helps you, scored as a cost, and routed to MANUAL REVIEW where a human would have to catch it. That is ticket 47's bug re-created from the other direction, and ticket 47's note is still three lines below in the same file, describing the shape.
+
+Fixed: `landsOnOwnSide = actionIsSelfFacing || card.allyTarget`. `soothe` is **+0.9** and all eight ally cards score positive. `scope` is deliberately NOT changed — it asks how WIDE a card reaches, and an ally card reaches one body or three by the same arithmetic an enemy card does. Only the signs were ever about sides. Mutation-tested, including the guard the widening must not lose: a card that attacks AND buffs its target is still penalised when that target is a foe.
+
+The pile-readers are **not** thereby judged weak. `bark_smash` at 7 power and `venom_glut` at 12 are the auditor saying it does not know what pile Huldra v2 and Jörmungandr v2 build, not that the cards are blank. Measuring those needs the deck, which is 162c's instrument, not this one's.
 
 ### 20 cards over, and the two extremes are pile-readers
 
