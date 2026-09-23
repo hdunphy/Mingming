@@ -275,6 +275,8 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-23 — 163a rule revised** (Henry): status upgrades are +(1 + Energy cost) stacks (0e +1 … 3e +4); raw numbers +40%; draw/Energized unchanged. `collection-v2/upgrades_gen.py` regenerates `upgrades.json`. Flag for 149c: Burn caps at 4 and detonates past it, so Inferno+ (5 Burn to the side) and Wildfire+ (5 each) are detonation cards by the rule — intended or a cap exception, Henry to say.
+
 ## 0-A-v2-RUN-CANNOT-CLEAR-A-GYM (162c, 2026-09-23) — THE ONE BLOCKER
 
 Ticket 61's run gate on collection v2, 18 battles (`results/t162/RUNGATE.txt`):

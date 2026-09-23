@@ -108,7 +108,7 @@ lines are a door left open, not in 163a. 3. **Patches (B). Tiers never, fork lat
 slot per body** (no second at the gym). 5. **No persistence across runs to start**; the data shape
 must leave the door open (an `upgrades` map on the collection entry, unused until a later ticket).
 
-**163a delivered:** `collection-v2/upgrades.json` — all 98 `+` lines by the rule, ten hand-overrides
+**163a delivered (rule revised by Henry, same day: *"stacks +1 plus the Energy cost, so 2e is +3; rates +40% not +25%; draw and Energized fine"*):** `collection-v2/upgrades_gen.py` is the generator, `upgrades.json` its output — status stacks +(1 + cost), raw numbers +40%, multi-hit +1 hit, draw/Energized +1; hand-overrides
 (Thorn Whip +7/Sharp; Heartwood +2 Bark not +1 Poison, its currency; Ragnarok Edge base 25 since the
 per-1% is capped; Contagion double then +2; Hexbloom adds 5 power per Weakened; Overclock Core +1
 Energized now; Echo Chamber two tokens the first time each turn; Tend/Mend/Soothe "and you"). Henry
