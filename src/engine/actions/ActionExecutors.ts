@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, MaxEnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
 import type { HookAction, HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
  // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -118,7 +118,7 @@ export const SHARP_STACKS_POWER_PER_STACK = 5;
 
 export function getEffectiveAttackPower(
     source: IBattleEntity,
-    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower'>,
+    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower' | 'scalingStatus'>,
     target?: IBattleEntity,
 ): number {
     const power = action.power || 0;
@@ -196,8 +196,36 @@ export function getEffectiveAttackPower(
         return power * Math.floor(shield);
     }
     if (action.scaling === 'SHARP_STACKS') {
+        /*
+         * TICKET 162a: `scalingPower` OVERRIDES the shared constant, and the default is still it.
+         *
+         * Collection v2 prices `cinder_lance` at +6 a stack and leaves `thorn_whip` and
+         * `spike_launch` at +5. Before this line the three shared one number, so moving one meant
+         * moving all three silently - the exact failure the ticket-139 note above was written to
+         * prevent, from the other direction. A card that says 6 now carries the 6.
+         */
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-        return power + SHARP_STACKS_POWER_PER_STACK * sharpStacks;
+        return power + (action.scalingPower ?? SHARP_STACKS_POWER_PER_STACK) * sharpStacks;
+    }
+    if (action.scaling === 'TARGET_STATUS_STACKS') {
+        /*
+         * TICKET 162a - the detonation shape: a flat base PLUS a per-stack bonus read off the
+         * DEFENDER. `flashover` (50 + 15/Burn) and `sap_strength` (20 + 6/Weakened).
+         *
+         * Not `BURN_STACKS`/`DAZED_STACKS`: those MULTIPLY, so a 50-power base reads 0 against a
+         * clean board and the card is dead in the hand that draws it first. Not `SHARP_STACKS`:
+         * that adds, but reads the attacker.
+         *
+         * Uncapped, under Henry's standing law that per-stack scalers should underperform early
+         * and overperform late. Burn is bounded by BURN_CONFIG's own cap; Weakened is bounded by
+         * how much of your side's tempo you spent applying it. `target` is optional so the UI
+         * preview can call this without one - an unaimed card reads as its base, which is the
+         * honest floor rather than a zero.
+         */
+        const stacks = action.scalingStatus
+            ? (target?.statusEffects.find(s => s.type === action.scalingStatus)?.stacks || 0)
+            : 0;
+        return power + (action.scalingPower || 0) * Math.floor(stacks);
     }
     if (action.scaling === 'MISSING_HP') {
         // Power-side (ticket 26): rides the divisor, STAB and resistances like every other
@@ -653,6 +681,36 @@ export class EnergyExecutor extends ActionExecutor<EnergyActionData> {
             sourceId: sourceId,
             payload: { amount }
         }]);
+    }
+}
+
+/**
+ * TICKET 162a — `overclock_core`: Max Energy +1 for the rest of the battle.
+ *
+ * Writes `maxEnergy` directly rather than through `applyMutations`, for the same reason the hook
+ * side does (`HookFactory`, ticket 68): there is no `MAX_ENERGY` mutation and adding one would put
+ * a second definition of "raise the ceiling" in the engine, which is one edit away from the two
+ * disagreeing. Both halves now do the same single thing to the same single field.
+ *
+ * Deliberately NOT floored or capped. The ceiling only ever moves up, the only card that moves it
+ * exhausts, and a cap here would be a number nobody ruled.
+ */
+export class MaxEnergyExecutor extends ActionExecutor<MaxEnergyActionData> {
+    execute(state: IBattleState, _sourceId: string, targetId: string, actionData: MaxEnergyActionData): IBattleState {
+        const amount = actionData.amount || 0;
+        if (amount === 0) return state;
+        const raise = (e: IBattleEntity): IBattleEntity =>
+            e.id === targetId ? { ...e, maxEnergy: e.maxEnergy + amount } : e;
+        const target = state.playerParty.find(e => e.id === targetId)
+            ?? state.enemyParty.find(e => e.id === targetId);
+        const next: IBattleState = {
+            ...state,
+            playerParty: state.playerParty.map(raise),
+            enemyParty: state.enemyParty.map(raise),
+        };
+        return target
+            ? addLog(next, `  ⚡ ${target.name}'s core is overclocked — max Energy +${amount}.`)
+            : next;
     }
 }
 
@@ -1267,6 +1325,7 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<Executabl
     'HEAL': new HealExecutor(),
     'DRAW': new DrawExecutor(),
     'ENERGY': new EnergyExecutor(),
+    'MAX_ENERGY': new MaxEnergyExecutor(),
     'GENERATE_CARD': new GenerateCardExecutor(),
     'CLEANSE': new CleanseExecutor(),
     'DISCARD': new DiscardExecutor(),

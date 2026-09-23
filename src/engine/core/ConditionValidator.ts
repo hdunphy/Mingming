@@ -246,6 +246,24 @@ export const ConditionValidator = {
                 if ((source.nonNaturalDrawsThisTurn ?? 0) < (constraint.value as number)) return false;
                 break;
 
+            case 'CARDS_PLAYED':
+                /*
+                 * TICKET 162a - how many cards THIS CASTER has played this turn, `riptide_run`'s
+                 * refund gate.
+                 *
+                 * `source.playsThisTurn` rather than `state.cardsPlayedThisTurn`, for the reason
+                 * ticket 123 settled for the scaler of the same name: at 3v3 the hand is SHARED,
+                 * so the side counter lets an ally's turn pay for your card. The card's own text
+                 * says "you".
+                 *
+                 * No `if (!state) return true` fail-safe here, unlike the two cases above: the
+                 * counter lives on the entity, so there is nothing to fail safe ABOUT - and a
+                 * fail-safe that returns true is how surge_protection's refund fired on 3,371 of
+                 * 3,371 casts (see the CARDS_DRAWN_TRIGGERED note).
+                 */
+                if ((source.playsThisTurn ?? 0) < (constraint.value as number)) return false;
+                break;
+
             case 'NOT_STATUS':
                 if (subject.statusEffects.some(s => s.type === constraint.value)) {
                     return false;

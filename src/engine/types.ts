@@ -54,7 +54,19 @@ export const ProgramConstraintType = {
    * condition built on it true on ~91% of turns for every species (HANDOFF 0-DRAW-COUNTER).
    * That is not what "if you drew a card this turn" was ever meant to reward.
    */
-  CardsDrawnTriggered: 'CARDS_DRAWN_TRIGGERED'
+  CardsDrawnTriggered: 'CARDS_DRAWN_TRIGGERED',
+  /**
+   * TICKET 162a: how many cards THIS CASTER has played this turn, the card already counted.
+   *
+   * Per-caster rather than per-side, for the reason ticket 123 settled for the `CARDS_PLAYED`
+   * scaler: at 3v3 the hand is shared, so a side counter would let an ally's turn pay for your
+   * card. `riptide_run` prints *"if this is the third or later card YOU played this turn"* and
+   * the counter now agrees with the sentence.
+   *
+   * The played card is already in `playsThisTurn` when its actions resolve (`battleReducer`
+   * increments before the action loop), so "the third card" is `value: 3`, not 2.
+   */
+  CardsPlayed: 'CARDS_PLAYED'
 } as const;
 
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
@@ -322,7 +334,7 @@ export function numericBaseCost(baseCost: number | 'X'): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE' | 'REVIVE';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'MAX_ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE' | 'REVIVE';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -382,7 +394,20 @@ export interface AttackActionData extends ProgramAction {
    * A percentage rescales itself, which is the property this family kept failing to have.
    */
   readonly percentMaxHp?: number;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED' | 'BURN_STACKS' | 'SELF_ANY_STATUS';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED' | 'BURN_STACKS' | 'SELF_ANY_STATUS' | 'TARGET_STATUS_STACKS';
+  /**
+   * TICKET 162a — `TARGET_STATUS_STACKS` only: which status on the TARGET the bonus reads.
+   *
+   * The collection's two detonation cards read a pile the DEFENDER is carrying and add to the
+   * power rather than multiplying it: `flashover` is *"50 power. +15 power per Burn on the
+   * target"*, `sap_strength` is *"20 power. +6 power per Weakened on the target"*. Neither shape
+   * existed. `DAZED_STACKS`/`BURN_STACKS` multiply (`power x stacks`), so a base of 50 becomes 0
+   * on a clean board; `SHARP_STACKS` adds but reads the ATTACKER.
+   *
+   * Additive and power-side, which is ticket 26's law: a bonus that rides the POWER is the only
+   * kind `powerscale` can price and the only kind that behaves the same at every level.
+   */
+  readonly scalingStatus?: StatusType;
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -434,6 +459,23 @@ export interface DrawActionData extends ProgramAction {
 
 export interface EnergyActionData extends ProgramAction {
   readonly type: 'ENERGY';
+  readonly amount: number;
+}
+
+/**
+ * TICKET 162a — raise the target's Energy CEILING for the rest of the battle.
+ *
+ * `ENERGY` above hands over this turn's Energy and `Energized` hands over next turn's; neither
+ * moves the bar, so collection v2's `overclock_core` (*"Max Energy +1 for the rest of the
+ * battle"*) had no verb. The hook side already had one — `HookFactory` has handled a `MAX_ENERGY`
+ * hook action since ticket 68, outside the executor registry, with exactly these semantics — so
+ * this is the card-side half of a rule the engine already enforced, not a new rule.
+ *
+ * Permanent within the battle by construction: it writes `maxEnergy`, which nothing resets between
+ * turns. `overclock_core` exhausts, so the ceiling cannot be farmed by replaying it.
+ */
+export interface MaxEnergyActionData extends ProgramAction {
+  readonly type: 'MAX_ENERGY';
   readonly amount: number;
 }
 

@@ -90,6 +90,8 @@ const formatAction = (action: ProgramAction): string => {
             return `✖ Clears ${action.status ? String(action.status) : 'every status'}`;
         case 'ENERGY':
             return `⚡ ${(action.amount ?? 0) >= 0 ? '+' : ''}${action.amount ?? 0} Energy`;
+        case 'MAX_ENERGY':
+            return `⚡ +${action.amount ?? 0} max Energy for the battle`;
         case 'DRAW':
             return `🃏 Draw ${action.count ?? 1}`;
         case 'DISCARD':

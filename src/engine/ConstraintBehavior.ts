@@ -60,6 +60,19 @@ export class CardsDrawnConstraintBehavior implements ConstraintBehavior {
 }
 
 
+export class CardsPlayedConstraintBehavior implements ConstraintBehavior {
+    readonly type: ProgramConstraintType = ProgramConstraintType.CardsPlayed;
+    validate(constraint: ProgramConstraint, pkg: ConstraintPackage): boolean {
+        /*
+         * TICKET 162a - unlike its two neighbours above, this one CAN answer.
+         *
+         * The counter it needs (`playsThisTurn`) lives on the entity rather than on the battle
+         * state, and the preview path has the entity. So `riptide_run`'s refund is previewed
+         * honestly instead of always-true, and the preview and the reducer read the same field.
+         */
+        return (pkg.source.playsThisTurn ?? 0) >= (constraint.value as number);
+    }
+}
 
 const CONSTRAINT_REGISTRY: Record<ProgramConstraintType, ConstraintBehavior> = {
     [ProgramConstraintType.HasStatus]: new HasStatusConstraintBehavior(),
@@ -68,6 +81,7 @@ const CONSTRAINT_REGISTRY: Record<ProgramConstraintType, ConstraintBehavior> = {
     [ProgramConstraintType.Base]: new BaseConstraintBehavior(),
     [ProgramConstraintType.CardsDrawn]: new CardsDrawnConstraintBehavior(),
     [ProgramConstraintType.CardsDrawnTriggered]: new CardsDrawnTriggeredConstraintBehavior(),
+    [ProgramConstraintType.CardsPlayed]: new CardsPlayedConstraintBehavior(),
 };
 
 export function getConstraintBehavior(type: ProgramConstraintType): ConstraintBehavior {
