@@ -54,7 +54,7 @@ for c in CARDS:
     elif 'Draw a Water card' in t: new = 'Draw 2 Water cards.'; rule = 'draw: +1 card'
     elif re.search(r'(\d+) power', t):
         v = int(re.search(r'(\d+) power', t).group(1)); new = t.replace(f'{v} power', f'{up(v)} power', 1); rule = 'flat: +40%'
-    if c['id'] == 'heat_wave': new = f"Double the enemy side's Burn stacks, then apply 1 more to each."; rule = 'consume: +1 stack after (Burn caps at 4 and detonates past it)'
+    if c['id'] == 'heat_wave': new = f"Double the enemy side's Burn stacks, then apply {k} more to each."; rule = f'consume: +{k} stacks after (1 + cost) — past the cap of 4 it detonates, which is the point (Henry: upgrades are supposed to be broken)'
     if c['id'] == 'contagion': new = f"Double the target's Poison stacks, then apply {k} more."; rule = f'enabler: +{k} stacks after (1 + cost)'
     if c['id'] == 'bark_lash': new = '2 power per point of Bark Shield you hold.'; rule = 'scalar: per-point +1 (0e; +40% of 1 rounds to nothing)'
     if c['id'] == 'ragnarok_edge': new = '30 power. +1 power per 1% of your max HP missing (max 50%).'; rule = 'scalar: base +40% (the per-1% is capped)'

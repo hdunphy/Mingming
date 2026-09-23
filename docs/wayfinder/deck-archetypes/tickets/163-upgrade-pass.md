@@ -114,6 +114,8 @@ per-1% is capped; Contagion double then +2; Hexbloom adds 5 power per Weakened; 
 Energized now; Echo Chamber two tokens the first time each turn; Tend/Mend/Soothe "and you"). Henry
 reviews the table in the browser; 149c prices each `+` as its own row; then it ships as registry entries.
 
+**Ruling (Henry, 09-23): upgrades are supposed to be broken.** The rule is applied without cap exceptions — Inferno+, Wildfire+ and Heat Wave+ push Burn past its cap of 4 and detonate. 149c prices `+` rows for the ledger but they are exempt from the band flag.
+
 ### Original questions
 
 1. `+` generator rule (§2) as the first draft — yes, then review the table?

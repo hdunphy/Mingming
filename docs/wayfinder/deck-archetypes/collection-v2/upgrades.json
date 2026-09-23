@@ -340,8 +340,8 @@
   "name": "Heat Wave",
   "cost": 2,
   "text": "Double the enemy side's Burn stacks.",
-  "plus": "Double the enemy side's Burn stacks, then apply 1 more to each.",
-  "rule": "consume: +1 stack after (Burn caps at 4 and detonates past it)"
+  "plus": "Double the enemy side's Burn stacks, then apply 3 more to each.",
+  "rule": "consume: +3 stacks after (1 + cost) — past the cap of 4 it detonates, which is the point (Henry: upgrades are supposed to be broken)"
  },
  {
   "id": "flashover",
