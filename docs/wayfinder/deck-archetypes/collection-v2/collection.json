@@ -14,19 +14,6 @@
       "status": "keep"
     },
     {
-      "id": "quick_scan",
-      "name": "Quick Scan",
-      "cost": 0,
-      "el": "None",
-      "cat": "Skill",
-      "tgt": "Self",
-      "text": "Draw 1.",
-      "shape": "glue",
-      "cur": "cards",
-      "status": "new",
-      "why": "The draw glue every kit holds (160). Undertow is Water; this is castable from any hand at ×1.0."
-    },
-    {
       "id": "deep_scan",
       "old": "squirrel_away",
       "name": "Deep Scan",
@@ -46,7 +33,7 @@
       "el": "None",
       "cat": "Skill",
       "tgt": "Self",
-      "text": "Gain 3 Energy next turn.",
+      "text": "Gain 3 Energized.",
       "shape": "enabler",
       "cur": "Energy",
       "status": "keep"
@@ -250,10 +237,11 @@
       "el": "Fire",
       "cat": "Status",
       "tgt": "Single",
-      "text": "Apply 1 Burn.",
+      "text": "Apply 1 Burn. If the target was already Burning, draw a card.",
       "shape": "enabler",
       "cur": "Burn",
-      "status": "keep"
+      "status": "revise",
+      "why": "09-23 one-job rule: Ember Jab is the 0e Burn HIT; Ignite is the 0e Burn CANTRIP on a pile."
     },
     {
       "id": "ember_jab",
@@ -276,7 +264,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "20 power. If the target is Burning, apply 1 more Burn.",
+      "text": "25 power. If the target is Burning, apply 1 more Burn.",
       "shape": "enabler",
       "cur": "Burn",
       "status": "new",
@@ -314,7 +302,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "12 power, three times.",
+      "text": "15 power, three times.",
       "shape": "scalar",
       "cur": "Strength",
       "status": "new"
@@ -352,7 +340,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "18 power. +10 power if the target is Weakened.",
+      "text": "20 power. +12 power if the target is Weakened.",
       "shape": "scalar",
       "cur": "Weakened",
       "status": "new",
@@ -462,10 +450,24 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Gain 1 Strength. Lose 3% of your max HP.",
+      "text": "8 power. Gain 1 Strength. Lose 3% of your max HP.",
       "shape": "enabler",
       "cur": "Strength",
-      "status": "keep"
+      "status": "revise",
+      "why": "Fenrir needs more self damage (Henry 09-23): the 0e Str enabler pays in HP and feeds Ragnarok Edge."
+    },
+    {
+      "id": "glass_cannon",
+      "name": "Glass Cannon",
+      "cost": 1,
+      "el": "Fire",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "45 power. Lose 5% of your max HP.",
+      "shape": "enabler",
+      "cur": "HP",
+      "status": "keep",
+      "why": "Fenrir v1’s berserker lane: over-band damage paid in HP."
     },
     {
       "id": "molten_core",
@@ -486,7 +488,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "21 power. Gain 1 Sharp.",
+      "text": "22 power. Gain 1 Sharp.",
       "shape": "enabler",
       "cur": "Sharp",
       "status": "keep"
@@ -498,7 +500,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "34 power. +5 power per stack of Sharp you hold.",
+      "text": "40 power. +6 power per stack of Sharp you hold.",
       "shape": "scalar",
       "cur": "Sharp",
       "status": "keep"
@@ -510,7 +512,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume your Sharp: 12 power per stack consumed.",
+      "text": "Consume your Sharp: 15 power per stack consumed.",
       "shape": "consume",
       "cur": "Sharp",
       "status": "new",
@@ -561,7 +563,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Side",
-      "text": "40 power to the enemy side. Apply 1 Burn to each.",
+      "text": "45 power to the enemy side. Apply 1 Burn to each.",
       "shape": "enabler",
       "cur": "Burn",
       "status": "new"
@@ -585,10 +587,11 @@
       "el": "Water",
       "cat": "Skill",
       "tgt": "Self",
-      "text": "Draw a card.",
+      "text": "Draw a card. You gain 1 Weakened.",
       "shape": "enabler",
       "cur": "cards",
-      "status": "keep"
+      "status": "revise",
+      "why": "Henry 09-23 (Legion tested): the 0e draw carries a drawback."
     },
     {
       "id": "blind_spot",
@@ -647,7 +650,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume all Dazed on the target: 15 power per stack consumed.",
+      "text": "Consume all Dazed on the target: 20 power per stack consumed.",
       "shape": "consume",
       "cur": "Dazed",
       "status": "keep"
@@ -659,7 +662,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "10 power per stack of Dazed on the target.",
+      "text": "15 power per stack of Dazed on the target.",
       "shape": "scalar",
       "cur": "Dazed",
       "status": "revise",
@@ -672,7 +675,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Side",
-      "text": "18 power to the enemy side. Apply 2 Dazed to each.",
+      "text": "25 power to the enemy side. Apply 2 Dazed to each.",
       "shape": "enabler",
       "cur": "Dazed",
       "status": "keep"
@@ -704,14 +707,15 @@
     {
       "id": "surge_protection",
       "name": "Surge Protection",
-      "cost": 2,
+      "cost": 1,
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "40 power. If an effect drew you a card this turn, refund 1 Energy.",
+      "text": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
       "shape": "scalar",
       "cur": "Energy",
-      "status": "keep"
+      "status": "revise",
+      "why": "Henry 09-23: a 25p 1e, not a 2e."
     },
     {
       "id": "riptide_run",
@@ -720,7 +724,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "15 power. Refund 1 Energy if this is the third or later card you played this turn.",
+      "text": "20 power. Refund 1 Energy if this is the third or later card you played this turn.",
       "shape": "enabler",
       "cur": "Energy",
       "status": "new",
@@ -745,11 +749,11 @@
       "el": "Water",
       "cat": "Skill",
       "tgt": "AllySide",
-      "text": "Your side gains 1 Energy next turn.",
+      "text": "Every ally gains 1 Energized.",
       "shape": "enabler",
       "cur": "Energy",
-      "status": "keep",
-      "why": "RUN CARD (Henry 09-22) — never in a kit."
+      "status": "revise",
+      "why": "RUN CARD (Henry 09-22) — never in a kit. Description says Energized (09-23)."
     },
     {
       "id": "tide_pool",
@@ -782,7 +786,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "25 power.",
+      "text": "30 power.",
       "shape": "scalar",
       "cur": "Poison",
       "status": "keep",
@@ -832,11 +836,11 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume the target's Poison: 8 power per stack consumed.",
+      "text": "Consume the target's Poison: 15 power per stack consumed.",
       "shape": "consume",
       "cur": "Poison",
       "status": "new",
-      "why": "The Poison consume, reads the TARGET (any ally’s Poison)."
+      "why": "The Poison consume, reads the TARGET. 15/stack (09-23: 8 was underpowered for what it removes) — after Contagion a 6-pile is 180."
     },
     {
       "id": "spreading_rot",
@@ -869,7 +873,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "40 power. Apply 2 Burn.",
+      "text": "55 power. Apply 2 Burn.",
       "shape": "scalar",
       "cur": "Energy",
       "status": "keep",
@@ -882,7 +886,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "90 power. Apply 1 Dazed.",
+      "text": "100 power. Apply 3 Dazed.",
       "shape": "consume",
       "cur": "Energy",
       "status": "keep"
@@ -894,7 +898,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "105 power.",
+      "text": "120 power.",
       "shape": "consume",
       "cur": "Energy",
       "status": "keep"
@@ -907,7 +911,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Side",
-      "text": "45 power to the enemy side.",
+      "text": "55 power to the enemy side.",
       "shape": "consume",
       "cur": "Energy",
       "status": "keep"
@@ -920,24 +924,11 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "8 power.",
+      "text": "5 power, twice.",
       "shape": "enabler",
       "cur": "cards",
       "status": "revise",
-      "why": "Seed Spit minus the Poison. The 0e cast that feeds GOSSIP/INSTIGATOR."
-    },
-    {
-      "id": "scurry",
-      "name": "Scurry",
-      "cost": 0,
-      "el": "Nature",
-      "cat": "Attack",
-      "tgt": "Single",
-      "text": "4 power, twice.",
-      "shape": "enabler",
-      "cur": "cards",
-      "status": "new",
-      "why": "0e multi-hit: two Dazed-on-target hits for one INSTIGATOR proc."
+      "why": "Seed Spit minus the Poison, as the 0e multi-hit: two Dazed-on-target hits for one INSTIGATOR proc. Tackle is the flat 0e."
     },
     {
       "id": "forage",
@@ -947,9 +938,10 @@
       "cat": "Skill",
       "tgt": "Self",
       "text": "Draw 1. Take damage equal to 15 power.",
-      "shape": "enabler",
+      "shape": "glue",
       "cur": "cards",
-      "status": "keep"
+      "status": "keep",
+      "why": "Henry 09-23: the 0e draw has a drawback and is generic — Forage is the glue in every kit; Undertow is the Water one and feeds OUROBOROS."
     },
     {
       "id": "seed_bomb",
@@ -959,7 +951,7 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "15 power per card you played this turn.",
+      "text": "20 power per card you played this turn.",
       "shape": "scalar",
       "cur": "cards",
       "status": "keep"
@@ -1056,13 +1048,13 @@
       "name": "Pollen Cloud",
       "cost": 0,
       "el": "Nature",
-      "cat": "Attack",
-      "tgt": "Single",
-      "text": "4 power. Apply 1 Weakened.",
+      "cat": "Status",
+      "tgt": "Side",
+      "text": "Apply 1 Weakened to each enemy.",
       "shape": "enabler",
       "cur": "Weakened",
       "status": "revise",
-      "why": "Poison removed — Poison leaves Rat entirely."
+      "why": "Poison removed; 09-23 one-job rule: Snarl is 2 Weakened on one target, Pollen Cloud is 1 on the side."
     },
     {
       "id": "heckle",
@@ -1096,7 +1088,7 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "25 power. If the target is Dazed, hit again.",
+      "text": "35 power. If the target is Dazed, hit again.",
       "shape": "scalar",
       "cur": "Dazed",
       "status": "new"
@@ -1107,12 +1099,12 @@
       "cost": 2,
       "el": "Nature",
       "cat": "Attack",
-      "tgt": "Single",
-      "text": "30 power. Apply 2 Weakened and 2 Dazed.",
+      "tgt": "Side",
+      "text": "20 power to the enemy side. Apply 2 Weakened to each.",
       "shape": "enabler",
       "cur": "Weakened",
       "status": "revise",
-      "why": "Poison removed."
+      "why": "Was a 1e card with more damage (09-23). Now a SIDE card — a thing two Thorn Tithes cannot do."
     },
     {
       "id": "thorn_tithe",
@@ -1133,7 +1125,7 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "18 power. +6 power per Weakened on the target.",
+      "text": "20 power. +6 power per Weakened on the target.",
       "shape": "scalar",
       "cur": "Weakened",
       "status": "new",
@@ -1195,7 +1187,7 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume your Bark Shield: 4 power per point consumed.",
+      "text": "Consume your Bark Shield: 6 power per point consumed.",
       "shape": "consume",
       "cur": "Bark",
       "status": "new",
@@ -1220,7 +1212,7 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "20 power. Apply 5 Poison.",
+      "text": "30 power. Apply 5 Poison.",
       "shape": "enabler",
       "cur": "Poison",
       "status": "keep"
@@ -1265,7 +1257,7 @@
           1
         ],
         [
-          "fury_strike",
+          "desperate_strike",
           1,
           "A",
           1
@@ -1283,13 +1275,13 @@
           1
         ],
         [
-          "blood_rite",
+          "glass_cannon",
           1,
           "B",
           1
         ],
         [
-          "quick_scan",
+          "forage",
           1,
           "G",
           1
@@ -1297,9 +1289,9 @@
       ],
       "pool": [
         "sun_devourer",
-        "desperate_strike",
+        "fury_strike",
+        "blood_rite",
         "flare_burst",
-        "crimson_draw",
         "core_overclock",
         "howl"
       ],
@@ -1320,15 +1312,15 @@
       "builds": [
         [
           "Str consume",
-          "war_pact war_pact fury_strike fury_strike unbound_fang sun_devourer desperate_strike quick_scan"
+          "war_pact war_pact desperate_strike fury_strike unbound_fang sun_devourer glass_cannon forage"
         ],
         [
           "Berserker",
-          "ragnarok_edge ragnarok_edge blood_rite blood_rite war_pact crimson_draw fury_strike quick_scan"
+          "ragnarok_edge ragnarok_edge glass_cannon glass_cannon desperate_strike blood_rite war_pact forage"
         ],
         [
           "With Sköll v1",
-          "war_pact war_pact ragnarok_edge sun_devourer unbound_fang howl fury_strike quick_scan"
+          "war_pact war_pact ragnarok_edge glass_cannon sun_devourer unbound_fang howl forage"
         ]
       ]
     },
@@ -1387,7 +1379,7 @@
           0
         ],
         [
-          "quick_scan",
+          "forage",
           1,
           "G",
           0
@@ -1418,15 +1410,15 @@
       "builds": [
         [
           "Cinder ramp",
-          "ignite ignite ember_jab slag_strike cinder_lance sharp_edge molten_core quick_scan"
+          "ignite ignite ember_jab slag_strike cinder_lance sharp_edge molten_core forage"
         ],
         [
           "Burn control",
-          "ignite ignite inferno inferno molten_core flashover ember_ward quick_scan"
+          "ignite ignite inferno inferno molten_core flashover ember_ward forage"
         ],
         [
           "With Kraken v2",
-          "ignite ember_jab slag_strike cinder_lance sharp_edge inferno molten_core quick_scan"
+          "ignite ember_jab slag_strike cinder_lance sharp_edge inferno molten_core forage"
         ]
       ]
     },
@@ -1479,7 +1471,7 @@
           0
         ],
         [
-          "quick_scan",
+          "forage",
           1,
           "G",
           0
@@ -1491,7 +1483,7 @@
         "battle_rhythm",
         "reactive_plating",
         "core_overclock",
-        "mend"
+        "crimson_draw"
       ],
       "partners": [
         [
@@ -1510,15 +1502,15 @@
       "builds": [
         [
           "Flurry",
-          "fury_strike fury_strike flare_burst flare_burst pack_tactics brute_force battle_rhythm quick_scan"
+          "fury_strike fury_strike flare_burst flare_burst pack_tactics brute_force battle_rhythm forage"
         ],
         [
           "Pack leader",
-          "snarl snarl snap snap howl howl fury_strike quick_scan"
+          "snarl snarl snap snap howl howl fury_strike forage"
         ],
         [
           "With Fenrir v1",
-          "fury_strike flare_burst flare_burst howl howl snarl snap quick_scan"
+          "fury_strike flare_burst flare_burst howl howl snarl snap forage"
         ]
       ]
     },
@@ -1577,7 +1569,7 @@
           0
         ],
         [
-          "quick_scan",
+          "forage",
           1,
           "G",
           0
@@ -1608,15 +1600,15 @@
       "builds": [
         [
           "Detonator",
-          "brand brand ember_jab ignite heat_wave heat_wave pack_tactics quick_scan"
+          "brand brand ember_jab ignite heat_wave heat_wave pack_tactics forage"
         ],
         [
           "Kindling",
-          "ember_jab ember_jab ignite ignite brand flashover flashover quick_scan"
+          "ember_jab ember_jab ignite ignite brand flashover flashover forage"
         ],
         [
           "With Kraken v2",
-          "brand brand ember_jab heat_wave flashover inferno ignite quick_scan"
+          "brand brand ember_jab heat_wave flashover inferno ignite forage"
         ]
       ]
     },
@@ -1676,12 +1668,12 @@
         ]
       ],
       "pool": [
-        "scurry",
         "echo_chamber",
         "hoofbeat",
         "rejuvenation",
         "mend",
-        "verdant_ward"
+        "verdant_ward",
+        "deep_scan"
       ],
       "partners": [
         [
@@ -1700,7 +1692,7 @@
       "builds": [
         [
           "Chatter",
-          "acorn_toss acorn_toss forage forage scurry seed_bomb seed_bomb echo_chamber"
+          "acorn_toss acorn_toss forage forage tackle seed_bomb seed_bomb echo_chamber"
         ],
         [
           "Den mother",
@@ -1708,7 +1700,7 @@
         ],
         [
           "With Jorm v1",
-          "acorn_toss acorn_toss forage scurry seed_bomb hoofbeat tend echo_chamber"
+          "acorn_toss acorn_toss forage forage seed_bomb hoofbeat tend echo_chamber"
         ]
       ]
     },
@@ -1761,7 +1753,7 @@
           0
         ],
         [
-          "quick_scan",
+          "forage",
           1,
           "G",
           0
@@ -1769,11 +1761,11 @@
       ],
       "pool": [
         "pile_on",
-        "scurry",
         "hexbloom",
         "thorn_tithe",
         "echo_chamber",
-        "crippling_vine"
+        "crippling_vine",
+        "snarl"
       ],
       "partners": [
         [
@@ -1792,15 +1784,15 @@
       "builds": [
         [
           "Heckler",
-          "acorn_toss acorn_toss heckle scurry nagging_bite nagging_bite pile_on quick_scan"
+          "acorn_toss acorn_toss heckle heckle nagging_bite nagging_bite pile_on forage"
         ],
         [
           "Nuisance",
-          "pollen_cloud pollen_cloud heckle crippling_vine sap_strength hexbloom acorn_toss quick_scan"
+          "pollen_cloud pollen_cloud heckle crippling_vine sap_strength hexbloom acorn_toss forage"
         ],
         [
           "With Kraken v1",
-          "acorn_toss acorn_toss heckle heckle nagging_bite scurry pile_on quick_scan"
+          "acorn_toss acorn_toss heckle heckle nagging_bite nagging_bite pile_on tackle"
         ]
       ]
     },

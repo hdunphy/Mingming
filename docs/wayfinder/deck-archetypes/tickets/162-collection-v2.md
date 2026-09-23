@@ -59,6 +59,22 @@ two Jorms, Heartwood/Bolster as Nature staples) plus the generics.
 - **Not decided by Henry:** the 33 new cards' names and text are proposals; the OS rename for Sköll v2;
   whether Battle Rhythm / Crimson Draw / Brute Force survive in the run pool or go to the archive.
 
+## 4b. v2.1 — Henry's review, 2026-09-23 (applied)
+
+Henry's notes, verbatim: *Fenrir needs more self damage · say "Energized" not "gain energy" · too many
+cards have a cheap version (0e 8p vs 0e 8p + 1w; 0e 1 Burn vs 0e 1 Burn + 8p) · Hydro Blast 120p · some 2e
+cards underpowered — you pay for the cost of playing 1 card: 1e ≈ 30, 2e at least 70 (Pile On 25 → 50,
+out-played by Thorn Tithe twice; Crippling Vine barely better than Thorn Tithe) · Surge Protection → 25p
+1e · 0e draw should have a drawback: Forage replaces Quick Scan; Undertow = draw + 1 self Weakened (Legion
+tested) · Tidal Battery: leave it, fix the description · Venom Glut underpowered for removing Poison ·
+Maelstrom too weak → more Dazed.* His two rules: **the slot tax** (a 2e/3e card must beat two 1e cards —
+pay for the lost versatility) and **one job per 0e card** (no 0e card is another plus a rider).
+
+Both rules are now written into `collection.py`'s header and applied: bands 0e ≈ 12 / 1e ≈ 30 / 2e ≥ 70 /
+3e ≥ 120; every 2e/3e card is side, multi-hit, consume or state-change; the 0e pairs are split by job
+(Ember Jab hit / Ignite cantrip; Snarl single / Pollen Cloud side; Acorn Toss multi-hit / Tackle flat).
+The browser's first section is the change log. 98 cards.
+
 ## 5. Rows (after Henry's review)
 
 - **162a — archive.** `programs.json` → `src/engine/data/archive/programs-v1.json` (kept for the

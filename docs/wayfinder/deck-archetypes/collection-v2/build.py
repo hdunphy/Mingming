@@ -1,5 +1,5 @@
 import json, collections, html
-from collection import CARDS, OS, RUN_ONLY
+from collection import CARDS, OS, RUN_ONLY, CHANGELOG
 
 C = {c['id']: c for c in CARDS}
 assert len(C) == len(CARDS), 'duplicate id'
@@ -80,6 +80,7 @@ for o in OS:
 </section>'''
 
 runonly = ''.join(tile(i) for i in RUN_ONLY)
+changelog = ''.join(f'<li><b>{e(a)}</b> — {e(t)}</li>' for a,t in CHANGELOG)
 # ---- collection tab ----
 allt = ''.join(tile(c['id']) for c in sorted(CARDS, key=lambda c: (['None','Fire','Water','Nature'].index(c['el']), c['cost'], c['name'])))
 # ---- census ----
@@ -154,10 +155,10 @@ h3{{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:#9fb4c8;m
 @media(max-width:900px){{.wrap{{grid-template-columns:1fr}} .nav{{position:static;max-height:none;flex-direction:row;flex-wrap:wrap}} .nv{{flex:1 1 140px}}}}
 @media(prefers-reduced-motion:reduce){{*{{scroll-behavior:auto}}}}
 </style>
-<div class="top"><h1>Mingming · <b>Collection v2</b> — the EA twelve</h1>
+<div class="top"><h1>Mingming · <b>Collection v2.1</b> — the EA twelve</h1>
 <div class="tabs" role="tablist"><button id="tDecks" aria-pressed="true">Decks by OS</button><button id="tCards" aria-pressed="false">Collection</button><button id="tCensus" aria-pressed="false">Census</button></div>
 <span class="legend"><i style="color:{SHAPE['enabler']}">enabler</i><i style="color:{SHAPE['scalar']}">scalar</i><i style="color:{SHAPE['consume']}">consume</i><i style="color:{SHAPE['converter']}">converter</i><i style="color:{SHAPE['glue']}">glue</i><i style="color:{SHAPE['hate']}">hate</i> · ★ = start kit · hover a NEW/REVISE card for why</span></div>
-<div class="wrap" id="vDecks"><nav class="nav">{nav}<a href="#runonly" class="nv" style="--el:#c9a2f0"><b>Run only</b> daemons &amp; party ramp</a></nav><main>{main}<section id="runonly" class="os" style="--el:#c9a2f0"><header><div class="sp">Run only</div><h2>Never in a kit — found in the run</h2><p class="ostext">The hate daemons, the two ramp daemons (160-r1/r2) and Tidal Battery: reward-pool and shop cards any party can take, chosen against the enemy hand 159 shows you.</p></header><div class="tiles" style="padding-top:8px">{runonly}</div></section></main></div>
+<div class="wrap" id="vDecks"><nav class="nav"><a href="#v21" class="nv" style="--el:#22d3ee"><b>v2.1</b> what changed 09-23</a>{nav}<a href="#runonly" class="nv" style="--el:#c9a2f0"><b>Run only</b> daemons &amp; party ramp</a></nav><main><section id="v21" class="os" style="--el:#22d3ee"><header><div class="sp">v2.1 · 2026-09-23</div><h2>Henry’s review, applied</h2><p class="ostext">Two rules now govern every number: the <b>slot tax</b> (a card also costs the card it displaces — 0e ≈ 12, 1e ≈ 30, 2e ≥ 70, 3e ≥ 120, and a 2e/3e card must do what two 1e cards cannot) and the <b>one-job rule</b> at 0e (no 0e card is another 0e card plus a rider).</p></header><ul class="partners" style="font-size:12.5px;line-height:1.5;color:#c6ccd4;padding-left:18px">{changelog}</ul></section>{main}<section id="runonly" class="os" style="--el:#c9a2f0"><header><div class="sp">Run only</div><h2>Never in a kit — found in the run</h2><p class="ostext">The hate daemons, the two ramp daemons (160-r1/r2) and Tidal Battery: reward-pool and shop cards any party can take, chosen against the enemy hand 159 shows you.</p></header><div class="tiles" style="padding-top:8px">{runonly}</div></section></main></div>
 <div class="wrap" id="vCards" hidden style="grid-template-columns:1fr"><div>
 <div class="filters" id="filters">
 <span class="hint">element:</span><button class="chip" data-k="el" data-v="Fire" aria-pressed="false">Fire</button><button class="chip" data-k="el" data-v="Water" aria-pressed="false">Water</button><button class="chip" data-k="el" data-v="Nature" aria-pressed="false">Nature</button><button class="chip" data-k="el" data-v="None" aria-pressed="false">None</button>
