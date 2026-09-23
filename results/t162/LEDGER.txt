@@ -14,13 +14,13 @@ blind_spot        0e      1.1   curve +10% WITHIN TOLERANCE   tax  1.2    -8% IN
 shrug_off         0e        1   curve +0% IN BAND            tax  1.2   -17% IN BAND            ratatoskr_v1
 tend              0e        1   curve +0% IN BAND            tax  1.2   -17% IN BAND            ratatoskr_v1 huldra_v1
 heckle            0e      0.9   curve -10% IN BAND            tax  1.2   -25% IN BAND            ratatoskr_v2
+soothe            0e      0.9   curve -10% IN BAND            tax  1.2   -25% IN BAND            huldra_v1
 pollen_cloud      0e ≋    0.8   curve -20% IN BAND            tax  1.2   -33% IN BAND            ratatoskr_v2 huldra_v1*
 bark_lash         0e      0.7   curve -30% IN BAND            tax  1.2   -42% IN BAND            huldra_v2
 snarl             0e      0.7   curve -30% IN BAND            tax  1.2   -42% IN BAND            skoll_v1 ratatoskr_v2*
 war_pact          0e      0.7   curve -30% IN BAND            tax  1.2   -42% IN BAND            fenrir_v1
 forage            0e      0.5   curve -50% IN BAND            tax  1.2   -58% IN BAND            fenrir_v1 fenrir_v2 skoll_v1 skoll_v2 ratatoskr_v1 ratatoskr_v2
 desperate_strike  0e      0.4   curve -60% IN BAND            tax  1.2   -67% IN BAND            fenrir_v1
-soothe            0e     -0.8   curve -180% MANUAL REVIEW      tax  1.2  -167% MANUAL REVIEW      huldra_v1
 
 ## 1e — 41 cards, repo curve 3, Henry's slot tax 3
 
@@ -115,12 +115,12 @@ maelstrom         3e     11.5   curve +10% WITHIN TOLERANCE   tax   12    -4% IN
 ## Summary
 
 cards                     98
-MANUAL REVIEW             11   contagion core_overclock heat_wave overclock_core reactive_plating scavenge_data soothe static_ward thermal_overload toxic_surge unbound_fang
+MANUAL REVIEW             10   contagion core_overclock heat_wave overclock_core reactive_plating scavenge_data static_ward thermal_overload toxic_surge unbound_fang
   …of which UNPRICED       9   (the scorer says so itself)
-  …of which score <= 0     7
+  …of which score <= 0     6
 side cards judged at 3v3  11   (≡ in the tables above)
 OUT OF BAND (over)        20
-25%+ under the slot tax   33
+25%+ under the slot tax   34
 the two curves disagree   10   acorn_toss blind_spot hydro_blast ink_cloud maelstrom pack_tactics pile_on tackle tidal_battery wildfire
 median vs slot tax, 0e  -17%   (n=18)
 median vs slot tax, 1e  +0%   (n=41)

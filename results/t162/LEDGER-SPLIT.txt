@@ -1,0 +1,30 @@
+cost   auditor can read        it only guesses        daemons        repo   v2.1
+  0e      10 (n=17)            7 (n= 1)             —         10     12
+  1e      30 (n=34)           22 (n= 6)           8 (n= 1)     30     30
+  2e      74 (n=10)           45 (n=13)          28 (n=12)     65     70
+  3e     120 (n= 4)              —                 —        105    120
+
+Flat cards under their v2.1 band — the only pricing rows this ledger supports:
+  desperate_strike       4 power vs  12   8 power. Gain 1 Strength. Lose 3% of your max HP.
+  forage                 5 power vs  12   Draw 1. Take damage equal to 15 power.
+  snarl                  7 power vs  12   Apply 2 Weakened.
+  war_pact               7 power vs  12   Above half HP: gain 2 Strength and 2 Dazed. Below half: 
+  pollen_cloud           8 power vs  12   Apply 1 Weakened to each enemy.
+  heckle                 9 power vs  12   Apply 1 Dazed and 1 Weakened.
+  soothe                 9 power vs  12   Remove 1 stack of a debuff from an ally.
+  shrug_off             10 power vs  12   Remove 1 Weakened, then gain 2 Sharp.
+  tend                  10 power vs  12   An ally gains 1 Sharp and heals with 8 power.
+  scavenge_data          0 power vs  30   Draw a Water card.
+  toxic_surge            3 power vs  30   Apply 1 Poison, then trigger Poison damage immediately.
+  bolster               11 power vs  30   An ally gains 3 Sharp.
+  howl                  11 power vs  30   Every ally gains 1 Strength.
+  mend                  15 power vs  30   Heal an ally with 20 power.
+  corrosive_bolt        18 power vs  30   Apply 3 Poison.
+  spreading_rot         20 power vs  30   Apply 2 Poison to the enemy side.
+  shell_share           24 power vs  30   An ally gains 6 Bark Shield.
+  heartwood             25 power vs  30   Gain 6 Bark Shield. Apply 1 Poison to the target.
+  nettle_sting          25 power vs  30   22 power. Apply 1 Poison.
+  slag_strike           25 power vs  30   22 power. Gain 1 Sharp.
+  inferno               40 power vs  70   Apply 2 Burn to the enemy side.
+  crippling_vine        59 power vs  70   20 power to the enemy side. Apply 2 Weakened to each.
+  verdant_ward          61 power vs  70   Every ally gains 2 Regen and 1 Sharp.

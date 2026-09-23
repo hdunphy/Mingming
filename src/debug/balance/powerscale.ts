@@ -1298,14 +1298,33 @@ const scoreAtWidth = (
             actionScore *= asleepGated ? 0.5 : 0.7;
         }
 
+        /*
+         * ── TICKET 162b — WHOSE SIDE DOES THIS LAND ON ────────────────────────────────────
+         *
+         * Every sign flip below asks one question: is this effect happening to ME or to THEM. It
+         * asked it as `action.target === 'SELF'`, which was the same question until 160-e1, because
+         * `TARGET` could only ever mean an enemy.
+         *
+         * It cannot now. An `allyTarget` card's payload is written on `TARGET` and lands on a
+         * FRIENDLY body, so the old test read every one of them backwards: `soothe` ("remove 1
+         * stack of a debuff from an ally") priced at **-0.8**, a card that helps you scored as a
+         * cost. That is ticket 47's bug exactly, re-created from the other direction — and ticket
+         * 47's note is still three lines below, describing the shape.
+         *
+         * `scope` above is deliberately NOT changed. It asks how WIDE the card reaches, and an ally
+         * card reaches one body or three by the same arithmetic an enemy card does. Only the signs
+         * were ever about sides.
+         */
+        const landsOnOwnSide = actionIsSelfFacing || card.allyTarget === true;
+
         // Penalties
         if (action.type === 'ATTACK' && actionIsSelfFacing) {
             actionScore *= -1;
         } else if (action.type === 'STATUS') {
             const isBuff = BUFFS.includes(action.status);
             const isDebuff = DEBUFFS.includes(action.status);
-            if (isDebuff && actionIsSelfFacing) actionScore *= -1;
-            if (isBuff && !actionIsSelfFacing && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
+            if (isDebuff && landsOnOwnSide) actionScore *= -1;
+            if (isBuff && !landsOnOwnSide && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
             // Ticket 43: removing a status is worth the negation of applying it, which gives the
             // right sign in all four cases once the two flips above have run - cleansing a debuff
             // off yourself is a gain, eating a debuff you placed on the enemy is a loss.
@@ -1318,8 +1337,8 @@ const scoreAtWidth = (
             if ((action.stacks ?? 0) < 0) actionScore *= -1;
         } else if (action.type === 'ENERGY') {
             const amount = action.amount || 0;
-            if (amount < 0 && actionIsSelfFacing) actionScore *= -1;
-            if (amount > 0 && !actionIsSelfFacing && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
+            if (amount < 0 && landsOnOwnSide) actionScore *= -1;
+            if (amount > 0 && !landsOnOwnSide && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
         }
 
         const key = exclusivityKey(action);

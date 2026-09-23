@@ -11,6 +11,7 @@ import { battleReducer } from './battleReducer';
 import { createSparseBattleState, createSparseEntity } from '../debug/scenarios/scenarioTestSupport';
 import { GetProgramData, getInflatedProgramRegistry } from './data/programRegistry';
 import { isValidCardTarget, describeLegalTargets, shortTargetLabel } from '../ui/utils/targeting';
+import { calculatePowerscale } from '../debug/balance/powerscale';
 import type { IBattleState, IBattleEntity, ProgramData } from './types';
 
 /** The eight cards 162 §5.4 shipped on a fallback until this ticket landed. */
@@ -133,5 +134,38 @@ describe('160-e1 — the reducer, which is the rule', () => {
         const state = play('howl', 'e1', 'e2');
         expect(state.enemyParty.map((e) => stacks(e, 'Strengthened'))).toEqual([1, 1, 1]);
         expect(state.playerParty.map((e) => stacks(e, 'Strengthened'))).toEqual([0, 0, 0]);
+    });
+});
+
+describe('160-e1 — the scorer knows an ally card lands on your side (162b)', () => {
+    /*
+     * The bug this file caught by existing: every sign flip in `powerscale` asks "is this happening
+     * to me or to them", and it asked it as `action.target === 'SELF'` — which was the same question
+     * until this ticket, because TARGET could only ever mean an enemy.
+     *
+     * `soothe` is the witness. "Remove 1 stack of a debuff from an ally" is written as negative
+     * stacks on TARGET, so the model read it as APPLYING two debuffs to a friend and priced the card
+     * at -0.8: a card that helps you, scored as a cost, and routed to MANUAL REVIEW where a human
+     * would have to notice. That is ticket 47's bug re-created from the other direction.
+     */
+    it('prices a debuff REMOVAL from an ally as a gain, not a cost', () => {
+        const scored = calculatePowerscale(GetProgramData('soothe'));
+        expect(scored.score, 'soothe helps your side').toBeGreaterThan(0);
+    });
+
+    it('prices a buff on an ally as a gain for every one of the eight', () => {
+        for (const id of [...ALLY_CARDS, ...ALLY_SIDE_CARDS]) {
+            expect(calculatePowerscale(GetProgramData(id)).score, `${id}`).toBeGreaterThan(0);
+        }
+    });
+
+    it('still penalises a buff handed to an ENEMY — the flip it must not lose', () => {
+        // The guard on the fix: `landsOnOwnSide` widens the test, so the case it was written for
+        // has to keep failing. A card with an ATTACK that also buffs its target is buffing a foe.
+        const enemyBuff = { ...GetProgramData('bolster'), id: 'test_enemy_buff', allyTarget: false,
+            actions: [{ type: 'ATTACK', power: 10, target: 'TARGET' },
+                { type: 'STATUS', status: 'Sharp', stacks: 3, target: 'TARGET' }] } as ProgramData;
+        const withAlly = { ...enemyBuff, id: 'test_ally_buff', allyTarget: true } as ProgramData;
+        expect(calculatePowerscale(withAlly).score).toBeGreaterThan(calculatePowerscale(enemyBuff).score);
     });
 });
