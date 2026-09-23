@@ -1,0 +1,46 @@
+## Duplicate count — cards in more than one EA kit
+
+  forage            ×6   fenrir_v1 fenrir_v2 skoll_v1 skoll_v2 ratatoskr_v1 ratatoskr_v2
+  tackle            ×4   kraken_v2 jormungandr_v1 jormungandr_v2 huldra_v2
+  ignite            ×2   fenrir_v2 skoll_v2
+  ember_jab         ×2   fenrir_v2 skoll_v2
+  flashover         ×2   fenrir_v2 skoll_v2
+  undertow          ×2   kraken_v1 jormungandr_v1
+  serpents_coil     ×2   jormungandr_v1 jormungandr_v2
+  acorn_toss        ×2   ratatoskr_v1 ratatoskr_v2
+  tend              ×2   ratatoskr_v1 huldra_v1
+  thorn_whip        ×2   ratatoskr_v1 huldra_v1
+  sap_strength      ×2   ratatoskr_v2 huldra_v1
+
+  BEFORE (archive/ea-kits-v1.json): 7 cards, 19 kit slots  (glue 7, other 12)
+  AFTER  (collection v2):           11 cards, 28 kit slots  (glue 10, other 18)
+  160 §5's gate is "duplicate count DOWN". It is NOT MET.
+
+## Kit shape — 158 §2: two enablers, a consume, a scalar, a glue
+
+  fenrir_v1        consume kit   scalar yes   glue yes
+  fenrir_v2        consume kit   scalar yes   glue yes
+  skoll_v1         consume —     scalar NO    glue yes
+  skoll_v2         consume POOL   scalar yes   glue yes
+  kraken_v1        consume kit   scalar yes   glue yes
+  kraken_v2        consume —     scalar NO    glue yes
+  jormungandr_v1   consume —     scalar yes   glue yes
+  jormungandr_v2   consume POOL   scalar yes   glue yes
+  ratatoskr_v1     consume —     scalar yes   glue yes
+  ratatoskr_v2     consume POOL   scalar yes   glue yes
+  huldra_v1        consume kit   scalar yes   glue yes
+  huldra_v2        consume kit   scalar yes   glue yes
+
+  kits with no consume of their own: 7/12  (161 §2 puts it in the run, so POOL is the design)
+  kits with no scalar: 2/12    kits with no glue: 0/12
+
+## Currency census — how many OS make or read each, from the registry
+
+  Strengthened    2 OS   fenrir_v1 skoll_v1
+  Burn            3 OS   fenrir_v2 skoll_v2 kraken_v2
+  Sharp           3 OS   fenrir_v2 ratatoskr_v1 huldra_v1
+  BarkShield      1 OS   huldra_v2
+  Dazed           6 OS   fenrir_v1 kraken_v1 kraken_v2 jormungandr_v1 ratatoskr_v2 huldra_v1
+  Weakened        6 OS   skoll_v1 kraken_v1 jormungandr_v1 ratatoskr_v1 ratatoskr_v2 huldra_v1
+  Poison          3 OS   jormungandr_v2 huldra_v1 huldra_v2
+  Energized       1 OS   kraken_v2

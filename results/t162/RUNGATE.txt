@@ -1,0 +1,73 @@
+[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.
+[balance:run-gate]   bands      wild, elite, gauntlet  (9 cells: wild:biome0, wild:biome1, wild:biome2, elite:biome0, elite:biome1, elite:biome2, gauntlet:fight0, gauntlet:fight1, gauntlet:fight2)
+[balance:run-gate]   iterations 2 per cell  ->  18 battles, PLAYER moves first (as a run does)
+[balance:run-gate]   sample     12 tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample
+[balance:run-gate]   AI tier    full   maxTurns 60   registry 1:0cb291ad
+
+[balance:run-gate]   wild:biome0 1/2 WIN   0.1s into cell, 0s total
+[balance:run-gate]   wild:biome0 2/2 WIN   0.1s into cell, 0s total
+[balance:run-gate]   wild:biome1 1/2 WIN   1.9s into cell, 2s total
+[balance:run-gate]   wild:biome1 2/2 WIN   4.7s into cell, 5s total
+[balance:run-gate]   wild:biome2 1/2 WIN   100.1s into cell, 1m 45s total
+[balance:run-gate]   wild:biome2 2/2 WIN   194.2s into cell, 3m 19s total
+[balance:run-gate]   elite:biome0 1/2 WIN   0.0s into cell, 3m 19s total
+[balance:run-gate]   elite:biome0 2/2 loss  0.0s into cell, 3m 19s total
+[balance:run-gate]   elite:biome1 1/2 loss  1.1s into cell, 3m 20s total
+[balance:run-gate]   elite:biome1 2/2 loss  8.0s into cell, 3m 27s total
+[balance:run-gate]   elite:biome2 1/2 WIN   26.0s into cell, 3m 53s total
+[balance:run-gate]   elite:biome2 2/2 WIN   49.2s into cell, 4m 16s total
+[balance:run-gate]   gauntlet:fight0 1/2 loss  68.9s into cell, 5m 25s total
+[balance:run-gate]   gauntlet:fight0 2/2 loss  112.6s into cell, 6m 09s total
+[balance:run-gate]   gauntlet:fight1 1/2 loss  66.6s into cell, 7m 15s total
+[balance:run-gate]   gauntlet:fight1 2/2 loss  137.3s into cell, 8m 26s total
+[balance:run-gate]   gauntlet:fight2 1/2 loss  104.7s into cell, 10m 11s total
+[balance:run-gate]   gauntlet:fight2 2/2 loss  183.5s into cell, 11m 30s total
+
+================================================================================================================
+  RUN GATE — ticket 61   ·   BLIND matchup (party picked without looking at the biome — the population average)
+  boss as shipped
+  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).
+  all three leaders, evenly (unpinned)
+================================================================================================================
+
+  WILDS   (ordinary wild nodes)
+    target 95.0% (window 90.0%-100.0%)   measured 100.0% (6/6, +5.0pt)   95% CI 61.0%-100.0%
+    PASS — inside the ±5 window   [199.0s]  <- UNDER-SAMPLED: the 95% interval (±19.5pt) is wider than the ±5 window, so this verdict is not yet evidence
+    wild @ biome 0             1v1    2/2   = 100.0%  decisive=100.0%  avgTurns= 3.0  ftk=0  stalled=0  0.1s
+      player: 353.7 dmg/turn  payoff=1.00/fight  dead=12.5%  deck=8  | enemy: 144.0 dmg/turn
+    wild @ biome 1             2v2    2/2   = 100.0%  decisive=100.0%  avgTurns= 5.5  ftk=0  stalled=0  4.7s
+      player: 460.9 dmg/turn  payoff=2.00/fight  dead=0.0%  deck=13  | enemy: 224.2 dmg/turn
+    wild @ biome 2             3v3    2/2   = 100.0%  decisive=100.0%  avgTurns= 3.5  ftk=0  stalled=0  194.2s
+      player: 1026.4 dmg/turn  payoff=4.00/fight  dead=2.8%  deck=18  | enemy: 303.7 dmg/turn
+
+  ELITES  (biome exits + rolled middle elites)
+    target 75.0% (window 70.0%-80.0%)   measured 50.0% (3/6, -25.0pt)   95% CI 18.8%-81.2%
+    FAIL — outside the ±5 window by 20.0pt   [57.1s]  <- UNDER-SAMPLED: the 95% interval (±31.2pt) is wider than the ±5 window, so this verdict is not yet evidence
+    elite @ biome 0            1v1    1/2   =  50.0%  decisive= 50.0%  avgTurns= 3.5  ftk=0  stalled=0  0.0s
+      player: 325.4 dmg/turn  payoff=1.00/fight  dead=12.5%  deck=8  | enemy: 242.7 dmg/turn
+    elite @ biome 1            2v2    0/2   =   0.0%  decisive=  0.0%  avgTurns= 7.0  ftk=0  stalled=0  8.0s
+      player: 232.5 dmg/turn  payoff=2.50/fight  dead=0.0%  deck=13  | enemy: 311.6 dmg/turn
+    elite @ biome 2            3v2    2/2   = 100.0%  decisive=100.0%  avgTurns= 3.0  ftk=0  stalled=0  49.2s
+      player: 750.5 dmg/turn  payoff=3.50/fight  dead=0.0%  deck=18  | enemy: 559.3 dmg/turn
+
+  GAUNTLET (the gym's three fights)
+    GRADED ON THE COMPOUND — 0.0% chance of clearing all three fights (the product of the per-fight rates below). The 60% target is a CLEAR rate, not a fight rate;
+    a uniform gauntlet needs ~84.3% per fight to reach it. Pooled per-fight rate, for context: 0.0% (0/6).
+    target 60.0% (window 55.0%-65.0%)   compound 0.0% (0/6, -60.0pt)   95% CI 0.0%-39.0%
+    FAIL — outside the ±5 window by 55.0pt   [433.5s]  <- UNDER-SAMPLED: the 95% interval (±19.5pt) is wider than the ±5 window, so this verdict is not yet evidence
+    gauntlet fight 1/3         3v3    0/2   =   0.0%  decisive=  0.0%  avgTurns= 4.5  ftk=0  stalled=0  112.6s
+      player: 574.4 dmg/turn  payoff=3.50/fight  dead=2.8%  deck=18  | enemy: 741.6 dmg/turn
+    gauntlet fight 2/3         3v3    0/2   =   0.0%  decisive=  0.0%  avgTurns= 3.0  ftk=0  stalled=0  137.3s
+      player: 502.0 dmg/turn  payoff=2.00/fight  dead=8.3%  deck=18  | enemy: 1098.3 dmg/turn
+    gauntlet fight 3/3 (boss)  3v3    0/2   =   0.0%  decisive=  0.0%  avgTurns= 2.5  ftk=0  stalled=0  183.5s
+      player: 582.4 dmg/turn  payoff=2.00/fight  dead=5.6%  deck=18  | enemy: 1332.2 dmg/turn
+
+    clears all three (product of the per-fight rates): 0.0%  — UNBANDED, and an UPPER BOUND: the gauntlet carries HP between fights and this
+      harness fights each one from full. See `gauntletCompound` for why.
+
+----------------------------------------------------------------------------------------------------------------
+  2 BAND(S) OUTSIDE WINDOW: elite, gauntlet
+  3 BAND(S) UNDER-SAMPLED (wild, elite, gauntlet): their 95% interval is wider than the ±5 window, so the verdicts above are provisional. Raise --iterations.
+  wall clock 11m 30s (689585 ms) for 18 battles
+  38.3s per battle averaged over every cell
+----------------------------------------------------------------------------------------------------------------
