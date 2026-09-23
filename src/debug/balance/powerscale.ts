@@ -638,6 +638,21 @@ const MANUAL_REVIEW_TYPES = new Set([
     'SEARCH', 'PLAY_LAST_CARD', 'TRIGGER_STATUS',
     'GENERATE_CARD', 'DISCARD', 'EXHAUST', 'RETURN', 'TAUNT',
     'BUFF_NEXT_PROGRAM', 'REDIRECT_TARGET', 'FORCE_DISCARD',
+    /*
+     * TICKET 162b: `MAX_ENERGY` is listed EXPLICITLY, and the distinction matters.
+     *
+     * It already scored 0 — through the `else` branch at the bottom of the switch, whose comment
+     * reads "Unknown/future action type - don't silently score 0 without saying so". That was the
+     * right default for a verb nobody had seen. It is the wrong LABEL for this one: `MAX_ENERGY` is
+     * a shipped card action (`overclock_core`) and a shipped hook action (GENESIS_FIRMWARE), and
+     * reporting it as unknown invites someone to "fix" the scorer by adding a number.
+     *
+     * The number is not available statically. A permanent +1 max Energy is worth 40 power per point
+     * PER REMAINING REFILL, so its price is `40 x (turns the caster has left)` — a horizon nothing
+     * on the card knows. `GROWTH_HORIZON_PLAYS` is the precedent for measuring such a horizon and
+     * writing it down; until somebody does that for this verb, the honest reading is "unmeasured".
+     */
+    'MAX_ENERGY',
 ]);
 
 /**
