@@ -501,9 +501,19 @@ describe('WorkshopNode — the reflash comparison', () => {
             for (const { name, n } of expectedEngineRows(ids)) {
                 expect(markup).toContain(`<span class="rs-rnm">${escapeHtml(name)}</span>`);
                 if (n > 1) {
-                    expect(markup).toContain(
-                        `<span class="rs-rnm">${escapeHtml(name)}</span><span class="rs-x">×${n}</span>`,
+                    /*
+                     * TICKET 162a: matched with a gap rather than as one adjacent string. The row
+                     * renders name, then an optional `rs-t` tag, then the count — and until
+                     * collection v2 no kit doubled the card that leads it, so the tag was never
+                     * between them. kraken_v1 now opens on two `whirlpool`, which is both the
+                     * first card and a double. The claim is that the count rides the right NAME,
+                     * which is what the bounded gap holds.
+                     */
+                    const row = new RegExp(
+                        `<span class="rs-rnm">${escapeHtml(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</span>`
+                        + `(?:<span class="rs-t">[^<]*</span>)?<span class="rs-x">×${n}</span>`,
                     );
+                    expect(markup, `${name} ×${n}`).toMatch(row);
                 }
             }
         }

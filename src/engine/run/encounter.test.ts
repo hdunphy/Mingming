@@ -674,10 +674,26 @@ describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u
         expect(softened.enemyDeckIds).toHaveLength(START_KIT_SIZE + STARTER_GENERICS);
         expect(softened.enemyParty[0].activeOS).toBeUndefined();
 
-        // The same node in the same run, one fight later, is the real elite again.
+        /*
+         * The same node in the same run, one fight later, is the real elite again.
+         *
+         * TICKET 162a MOVED THIS ASSERTION, and the move is a finding rather than a fix. It read
+         * `toBeGreaterThan(START_KIT_SIZE + STARTER_GENERICS)` — an elite fields MORE cards than a
+         * first-ever player's eight — and that was true because v1's tuned lists were nine to
+         * eleven cards. Collection v2's kits are **eight**, eleven of twelve of them (skoll_v2 is
+         * the nine). So the softening no longer changes the SIZE of an elite's deck at biome 0
+         * layer 1; it changes what is in it.
+         *
+         * Not papered over: the claim underneath is "a softened elite is not the real one", and
+         * the substance of that is the OS and the list, not the count. Both are asserted. If the
+         * count is meant to be the difference too, that is a kit-size decision for 162b/160, not
+         * something to restore by loosening a number here.
+         */
         const real = rollEncounter({ run: { ...run, fightsResolved: 1 }, node: elite, party });
-        expect(real.enemyDeckIds.length).toBeGreaterThan(START_KIT_SIZE + STARTER_GENERICS);
+        expect(real.enemyDeckIds.length).toBeGreaterThanOrEqual(START_KIT_SIZE + STARTER_GENERICS);
         expect(real.enemyParty[0].activeOS).toBeDefined();
+        // The real difference: the tuned list, not the start kit plus three generics.
+        expect(real.enemyDeckIds).not.toEqual(softened.enemyDeckIds);
     });
 
     it('pins an ambush first fight to one enemy rather than two', () => {

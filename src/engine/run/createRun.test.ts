@@ -80,24 +80,31 @@ describe('startDeckFor', () => {
         expect(without.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
     });
 
-    it('transcribes the ratified kit in order, payoff first, duplicates included', () => {
+    it('transcribes the ratified kit in order, duplicates included', () => {
         const deck = startDeckFor(KRAKEN, new SeedStream(SEED), true);
         const kit = ratifiedKit('kraken', 'kraken_v1');
         expect(deck.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([...kit]);
-        // Spelled out rather than only compared to the registry, because the ORDER is the design:
-        // ticket 61's kit is a five-card engine, `ink_stream` (the payoff the OS is actually paying
-        // for) in front and the four cards that fill the pile it counts behind it. A sort or a set
-        // comparison would pass while deleting that.
+        /*
+         * Spelled out rather than only compared to the registry, because the ORDER is the design:
+         * `startKitIdsFor` transcribes the list in order, so a sort or a set comparison would pass
+         * while deleting it.
+         *
+         * TICKET 162a moved both lists to collection v2's kits, and dropped "payoff first" from the
+         * name of this test. 161 §2 rules the opening five to hold NO CONSUME — the payoff and the
+         * second lane are found in the run — so kraken_v1 now opens on its two `whirlpool` rather
+         * than on `ink_stream`, and `crushing_depths` (the Dazed consume that used to lead) sits at
+         * `startCopies: 0`. See the retirement note in `startKits.test.ts`.
+         */
         expect(deck.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([
-            'ink_stream', 'undertow', 'whirlpool_v2', 'pressure_point', 'pressure_point',
+            'whirlpool', 'whirlpool', 'undertow', 'ink_stream', 'pressure_point',
         ]);
-        // `kraken_v1`'s fifth tag doubles `pressure_point`, so the duplicate case is demonstrated
-        // twice over here — but `fenrir_v2` is kept as the second witness because its doubling is
-        // load-bearing in a different way: it doubles `ignite` because one is a coin flip and two
-        // is an ignition, and a dedupe here would silently hand Fenrir a four-card kit.
+        // `kraken_v1`'s kit doubles `whirlpool`, so the duplicate case is demonstrated twice over
+        // here — but `fenrir_v2` is kept as the second witness because its doubling is load-bearing
+        // in a different way: it doubles `ignite` because one is a coin flip and two is an
+        // ignition, and a dedupe here would silently hand Fenrir a four-card kit.
         const fenrir = startDeckFor(FENRIR, new SeedStream(SEED), true);
         expect(fenrir.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([
-            'pyre_sacrifice', 'ignite', 'ignite', 'molten_core', 'slag_strike',
+            'ignite', 'ignite', 'ember_jab', 'slag_strike', 'cinder_lance',
         ]);
     });
 
@@ -207,8 +214,10 @@ describe('recruitDeckFor', () => {
         expect(deck.slice(0, RECRUIT_KIT_SIZE).map((c) => c.dataId)).toEqual([
             ...ratifiedKit('huldra', 'huldra_v1'),
         ]);
+        // TICKET 162a: huldra_v1's collection-v2 kit. `hexbloom` (the Weakened consume that used
+        // to lead) is `startCopies: 0` under 161 §2's no-consume rule.
         expect(deck.map((c) => c.dataId)).toEqual([
-            'hexbloom', 'growth', 'growth', 'iron_bark', 'thorn_tithe',
+            'bolster', 'bolster', 'tend', 'thorn_tithe', 'sap_strength',
         ]);
         // Stated as its own assertion because "no filler" is the half of the ruling a future
         // "a recruit should feel like a fresh start" patch would undo without touching the kit

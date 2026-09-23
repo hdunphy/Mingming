@@ -158,7 +158,7 @@ describe('every measureCell option reaches the fight', () => {
 
         // A3 must be the SAME cards plus generics, or it is not a control for the toolbox arm.
         expect([...blanks.setup.player.deck].slice(0, 18)).toEqual([...bare.setup.player.deck]);
-        expect([...blanks.setup.player.deck].slice(18)).toEqual(['water_slap', 'water_slap', 'water_slap']);
+        expect([...blanks.setup.player.deck].slice(18)).toEqual(['tackle', 'tackle', 'tackle']);
 
         // Nothing a paired arm holds fixed may move.
         for (const armed of [full, plus3, blanks]) {
@@ -176,7 +176,7 @@ describe('every measureCell option reaches the fight', () => {
         const bare = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'bare');
 
         const tuned = new Set(f.lineup.flatMap((os) => getDeckForOS(os.replace(/_v\d+$/, ''), os)));
-        const extras = [...f.setup.player.deck].filter((id) => id !== 'water_slap');
+        const extras = [...f.setup.player.deck].filter((id) => id !== 'tackle');
         for (const id of extras) {
             expect(tuned.has(id), `${id} is not in any member's tuned list`).toBe(true);
         }

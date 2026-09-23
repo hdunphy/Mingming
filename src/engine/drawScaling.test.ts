@@ -79,7 +79,9 @@ describe('the two carrier cards are wired to the triggered scaler at the compens
         const a = (GetProgramData('ink_stream') as ProgramData).actions[0] as never as { scaling: string; power: number };
         expect(a.scaling).toBe('CARDS_DRAWN_TRIGGERED');
         expect(a.power).toBe(33);
-        expect(GetProgramData('ink_stream')!.description).toContain('card, OS or daemon');
+        // TICKET 162a closed the "two carrier cards word one mechanic two ways" note below:
+        // collection v2 gives `ink_stream` `starfall`'s phrasing, which is the one Henry ruled.
+        expect(GetProgramData('ink_stream')!.description).toContain('an effect drew you');
     });
 
     it('starfall: 10 -> 18, likewise', () => {
@@ -91,9 +93,8 @@ describe('the two carrier cards are wired to the triggered scaler at the compens
         // says that as well as the old "card, OS or daemon" list did - Henry cut the list
         // because "18 power for each card a card... drew you" does not read.
         //
-        // NOTE, not fixed here: `ink_stream` above still carries the old phrasing, and it has
-        // the same stumble - "for each card a card, OS or daemon drew you this turn". The two
-        // carrier cards now word one mechanic two ways. Only starfall was ruled on.
+        // TICKET 162a: `ink_stream` was reworded to match, so the two carriers now word the one
+        // mechanic one way. (It used to read "for each card a card, OS or daemon drew you".)
         expect(GetProgramData('starfall')!.description).toContain('an effect drew you');
     });
 

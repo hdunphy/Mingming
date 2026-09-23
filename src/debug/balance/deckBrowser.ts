@@ -61,6 +61,7 @@ import {
     getDeckForOS,
 } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { resolveProgramId } from '../../engine/data/programAliases';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { numericBaseCost } from '../../engine/types';
 import { computeRegistryHash } from '../scenarios/registryHash';
@@ -167,7 +168,7 @@ export function readDeckReport(path = DECK_REPORT_SOURCE_PATH): DeckReportShape 
 
 /** One tile's worth of card, before the deck report's telemetry is joined onto it. */
 function faceOf(id: string, count: number, engine: ReadonlyArray<string>): BrowserCard {
-    const data = ProgramRegistry[id] as
+    const data = ProgramRegistry[resolveProgramId(id)] as
         | {
             name?: string; description?: string; element?: string;
             category?: string; rarity?: string; baseCost?: number | 'X';

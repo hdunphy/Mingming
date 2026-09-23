@@ -28,8 +28,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // (ticket 84), and three cards that read or repair his own bar were the deck doing the
         // OS's job badly. Measured 24.4 -> 59.5 on the full grid.
         decks: {
-            "fenrir_v1": ["ragnarok_edge", "ragnarok_edge", "battle_rhythm", "war_pact", "war_pact", "unbound_fang", "unbound_fang", "blood_rite", "blood_rite"],
-            "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
+            "fenrir_v1": ["war_pact", "war_pact", "desperate_strike", "unbound_fang", "ragnarok_edge", "ragnarok_edge", "glass_cannon", "forage"],
+            "fenrir_v2": ["ignite", "ignite", "ember_jab", "slag_strike", "cinder_lance", "sharp_edge", "flashover", "forage"]
         },
         /*
          * THE FIVE-CARD ENGINE — ticket 61's amended spec (Henry, 2026-08-26, ratified table).
@@ -54,9 +54,9 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             // v1: the finisher, the 0-cost that builds the pile, and the card the pile buys.
             // Ticket 136i replaced `berserk_rush` and `crimson_draw` here because they left the
             // deck; a kit must be a sub-multiset of it (startKits.test.ts).
-            "fenrir_v1": ["ragnarok_edge", "war_pact", "unbound_fang", "battle_rhythm", "blood_rite"],
+            "fenrir_v1": ["war_pact", "desperate_strike", "ragnarok_edge", "glass_cannon", "forage"],
             // v2: the Burn payoff over its own ignition. `ignite` x2 because one is a coin flip.
-            "fenrir_v2": ["pyre_sacrifice", "ignite", "ignite", "molten_core", "slag_strike"]
+            "fenrir_v2": ["ignite", "ignite", "ember_jab", "slag_strike", "cinder_lance"]
         },
         moves: [
             {
@@ -118,14 +118,14 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // and two water_slaps became boiling_surge x2 and scald x2 - a Burn setup the boosted
         // hammers then cash. Burn caps at 4, so the two feeds fill it and stop.
         decks: {
-            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "crushing_depths", "undertow"],
-            "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge", "scald", "scald"]
+            "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "ink_stream", "pressure_point", "crushing_depths", "slander"],
+            "kraken_v2": ["capacitor", "capacitor", "tide_pool", "boiling_surge", "boiling_surge", "scald", "hydro_blast", "tackle"]
         },
         startKits: {
             // v1: the draw payoff over the cards that fill the pile it counts.
-            "kraken_v1": ["ink_stream", "undertow", "whirlpool_v2", "pressure_point", "pressure_point"],
+            "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "pressure_point"],
             // v2: the 3e payoff, the ramp that reaches it, the mitigation that survives to cash it.
-            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge"]
+            "kraken_v2": ["capacitor", "tide_pool", "boiling_surge", "scald", "tackle"]
         },
         moves: [
             {
@@ -240,7 +240,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         decks: {
             // TREACHERY consume-cycle: get hit, grow the pile, DEVOUR it. `crimson_draw`
             // extends the feeding window by keeping her alive inside her own drawback.
-            "skoll_v1": ["sun_devourer", "sun_devourer", "fury_strike", "fury_strike", "brute_force", "battle_rhythm", "crimson_draw", "crimson_draw", "water_slap"],
+            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "flare_burst", "snarl", "snap", "howl", "forage"],
             // Solar ignition: `strength_burst` lights the core, `overdrive`/`glass_cannon` nuke
             // under +75%. `all_in`'s 3 self-Burn is the first card in the game that expresses
             // symmetric detonation risk - at cap 4 it sits one stray stack from blowing up on
@@ -254,7 +254,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             // 0.35). Three 2-cost cards on a 2-Energy frame was the diagnosis; this removes the
             // third. `fury_strike` is the only 1e attack that FEEDS the OS (+1 Str = +15% on
             // every subsequent hit), so the lost nuke copy partially returns as fuel.
-            "skoll_v2": ["strength_burst", "fury_strike", "fury_strike", "all_in", "desperate_strike", "reckless_charge", "overdrive", "glass_cannon", "water_slap"]
+            "skoll_v2": ["ember_jab", "ember_jab", "brand", "brand", "ignite", "flashover", "heat_wave", "pack_tactics", "forage"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // Both kits keep `fury_strike` x2 because it is the 1e card that FEEDS each OS, and a
@@ -262,8 +262,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v1 keeps one `sun_devourer` as the consume payoff; v2 keeps `strength_burst` to light
         // the core and `glass_cannon` to cash it, leaving `all_in`'s self-Burn risk to be drafted.
         startKits: {
-            "skoll_v1": ["sun_devourer", "fury_strike", "fury_strike", "brute_force", "battle_rhythm"],
-            "skoll_v2": ["overdrive", "fury_strike", "fury_strike", "strength_burst", "reckless_charge"]
+            "skoll_v1": ["fury_strike", "flare_burst", "flare_burst", "snarl", "snap"],
+            "skoll_v2": ["ember_jab", "ember_jab", "brand", "ignite", "flashover"]
         },
         moves: [
             {
@@ -312,8 +312,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // 2-Energy world; the card stays in the registry as a ramp draft pick) and `contagion`
         // stayed, because doubling the pile now doubles the amplifier immediately.
         decks: {
-            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "corrosive_leak", "surge_protection", "serpents_coil", "serpents_coil", "ink_stream", "ink_stream"],
-            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "water_slap", "water_slap", "toxic_surge", "contagion", "serpent_flurry", "serpent_flurry"]
+            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "serpents_coil", "serpents_coil", "surge_protection", "riptide_run", "tackle"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "serpent_flurry", "serpents_coil", "toxic_surge", "tackle"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // v1 keeps `undertow` x2 - the loop counts Water cards drawn, so the draw half has to
@@ -321,8 +321,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 keeps the amplifier pair whole (`corrosive_bolt` x2, `venom_fang` x2) and one
         // payoff; `contagion` doubles a pile that does not exist yet at run start.
         startKits: {
-            "jormungandr_v1": ["ink_stream", "undertow", "undertow", "serpents_coil", "blind_spot"],
-            "jormungandr_v2": ["contagion", "corrosive_bolt", "corrosive_bolt", "toxic_surge", "venom_fang"]
+            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "serpents_coil", "riptide_run"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "tackle"]
         },
         moves: [
             {
@@ -523,8 +523,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    is strictly worse than the same effect at 0e in this deck - it costs the whole
         //    turn's Energy AND skips both the echo_chamber token and the OS proc.
         decks: {
-            "ratatoskr_v1": ["forage", "forage", "seed_spit", "seed_spit", "healing_mist", "shrug_off", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
-            "ratatoskr_v2": ["pollen_cloud", "pollen_cloud", "water_slap", "water_slap", "nagging_bite", "nagging_bite", "crippling_vine", "slander", "echo_chamber_v2"]
+            "ratatoskr_v1": ["acorn_toss", "acorn_toss", "forage", "forage", "seed_bomb", "tend", "shrug_off", "thorn_whip"],
+            "ratatoskr_v2": ["acorn_toss", "acorn_toss", "heckle", "nagging_bite", "nagging_bite", "pollen_cloud", "sap_strength", "forage"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // Both kits lead with the 0-cost fuel doubled, because these decks win on card VOLUME
@@ -537,8 +537,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         startKits: {
             // THE DECK THAT PROVED THE RULE. Round 5: "ratatoskr's startKit carried none of his
             // engine (seed_bomb/echo were untagged), making him pure feed." Both are tagged now.
-            "ratatoskr_v1": ["seed_bomb_v2", "forage", "forage", "echo_chamber_v2", "healing_mist"],
-            "ratatoskr_v2": ["crippling_vine", "pollen_cloud", "pollen_cloud", "nagging_bite", "nagging_bite"]
+            "ratatoskr_v1": ["acorn_toss", "acorn_toss", "forage", "seed_bomb", "tend"],
+            "ratatoskr_v2": ["acorn_toss", "acorn_toss", "heckle", "nagging_bite", "pollen_cloud"]
         },
         moves: [
             {
@@ -592,8 +592,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    (keeping thornguard's conditional live), not on mitigation - a 1e budget buys 7%
         //    maxHP against an OS that grants 50%.
         decks: {
-            "huldra_v1": ["growth", "growth", "soothe", "water_slap", "iron_bark", "iron_bark", "thorn_tithe", "thorn_tithe", "hexbloom", "thorn_whip", "thorn_whip"],
-            "huldra_v2": ["sap_vigor", "sap_vigor", "water_slap", "nettle_sting", "nettle_sting", "heartwood", "thornguard", "thornguard", "blightbloom", "bark_lash", "bark_lash"]
+            "huldra_v1": ["bolster", "bolster", "tend", "thorn_tithe", "sap_strength", "hexbloom", "thorn_whip", "soothe"],
+            "huldra_v2": ["heartwood", "heartwood", "bark_lash", "bark_lash", "shell_share", "thornguard", "bark_smash", "tackle"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // v1 keeps `growth` x2 so the mirror hook has statuses to mirror from turn one, plus
@@ -602,8 +602,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 keeps the shield wall whole (`sap_vigor` x2, `thornguard` x2) and `heartwood`,
         // which earns its slot on shield UPTIME rather than on mitigation.
         startKits: {
-            "huldra_v1": ["hexbloom", "growth", "growth", "iron_bark", "thorn_tithe"],
-            "huldra_v2": ["blightbloom", "sap_vigor", "thornguard", "thornguard", "heartwood"]
+            "huldra_v1": ["bolster", "bolster", "tend", "thorn_tithe", "sap_strength"],
+            "huldra_v2": ["heartwood", "heartwood", "bark_lash", "shell_share", "thornguard"]
         },
         moves: [
             {
@@ -1119,8 +1119,12 @@ export const LAUNCH_SPECIES: ReadonlyArray<string> = ['fenrir', 'skoll', 'kraken
  * Minting a new card would duplicate a shipped one AND add a `ProgramRegistry` entry, which
  * moves `registryHash` and invalidates every stored battle snapshot in `playtest-results/`.
  * Reuse beats churn: the id is misleading, but a rename is a separate, cheaper ticket.
+ *
+ * TICKET 162a: that ticket arrived. Collection v2 renamed the card `tackle` and this constant
+ * follows it, because a CONSTANT is not a record — `water_slap` still opens the same card through
+ * `programAliases`, so the snapshots the note above protects are untouched.
  */
-export const GENERIC_HIT = 'water_slap';
+export const GENERIC_HIT = 'tackle';
 
 /**
  * Ticket 13: per-OS starting decks. Resolves a species' deck for a firmware id,

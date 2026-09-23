@@ -139,7 +139,9 @@ describe('deck resolution', () => {
         const resolved = resolveDeck(draft, null);
 
         expect(resolved.cards).toEqual(baseDeckFor(draft.party));
-        expect(resolved.cards.length).toBe(17); // fenrir 9 + kraken 8 (ticket 28)
+        // TICKET 162a: collection v2's kits are 8 apiece (fenrir_v1 and kraken_v1 both), where
+        // v1's were 9 and 8. The claim is that BOTH decks are pooled, which the sum still carries.
+        expect(resolved.cards.length).toBe(16); // fenrir 8 + kraken 8
         expect(resolved.source).toContain('base decks');
     });
 
@@ -360,8 +362,9 @@ describe('launchScenario — compose, materialize, dispatch', () => {
         expect(battle!.seed).toBeTruthy();
         expect(battle!.playerParty.map((e) => e.definitionId)).toEqual(['fenrir']);
         expect(battle!.enemyParty.map((e) => e.definitionId)).toEqual(['draugr']);
-        // Base decks came through: 9 cards, dealt into hand + drawpile.
-        expect(battle!.playerDeck.drawpile.length + battle!.playerDeck.hand.length).toBe(9);
+        // Base decks came through: fenrir_v1's whole kit, dealt into hand + drawpile. Eight since
+        // collection v2 (ticket 162a); nine before it.
+        expect(battle!.playerDeck.drawpile.length + battle!.playerDeck.hand.length).toBe(8);
         expect(battle!.enemyMode).toBe('MOVES');
     });
 

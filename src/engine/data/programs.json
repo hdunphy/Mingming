@@ -19,26 +19,6 @@
             "defensive_daemon_hook"
         ]
     },
-    "core_overclock_daemon": {
-        "id": "core_overclock_daemon",
-        "name": "CORE_OVERCLOCK",
-        "description": "Daemon: +20% damage per stack of Strength. No cap.",
-        "element": "Fire",
-        "target": "Self",
-        "category": "Daemon",
-        "exhaust": true,
-        "rarity": "Rare",
-        "baseCost": 2,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [],
-        "hooks": [
-            "daemon_double_strength"
-        ]
-    },
     "strength_burst": {
         "id": "strength_burst",
         "name": "Strength Burst",
@@ -76,7 +56,7 @@
     "sun_devourer": {
         "id": "sun_devourer",
         "name": "Sun Devourer",
-        "description": "Devour the light: consume all your Strength and deal 30 power per stack consumed.",
+        "description": "Consume all your Strength: 30 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -287,7 +267,7 @@
     "desperate_strike": {
         "id": "desperate_strike",
         "name": "Desperate Strike",
-        "description": "Gain 1 Strength. Lose 3% of your max HP.",
+        "description": "8 power. Gain 1 Strength. Lose 3% of your max HP.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -300,6 +280,11 @@
         ],
         "actions": [
             {
+                "type": "ATTACK",
+                "power": 8,
+                "target": "TARGET"
+            },
+            {
                 "type": "STATUS",
                 "status": "Strengthened",
                 "stacks": 1,
@@ -307,8 +292,8 @@
             },
             {
                 "type": "ATTACK",
-                "percentMaxHp": 3,
-                "target": "SELF"
+                "target": "SELF",
+                "percentMaxHp": 3
             }
         ]
     },
@@ -366,7 +351,7 @@
     "inferno": {
         "id": "inferno",
         "name": "Inferno",
-        "description": "Apply 2 Burn to whole side.",
+        "description": "Apply 2 Burn to the enemy side.",
         "element": "Fire",
         "target": "Side",
         "category": "Status",
@@ -445,7 +430,7 @@
     "ignite": {
         "id": "ignite",
         "name": "Ignite",
-        "description": "Apply 1 Burn.",
+        "description": "Apply 1 Burn. If the target was already Burning, draw a card.",
         "element": "Fire",
         "target": "Single",
         "category": "Status",
@@ -458,32 +443,12 @@
         ],
         "actions": [
             {
-                "type": "STATUS",
-                "status": "Burn",
-                "stacks": 1,
-                "target": "TARGET"
-            }
-        ]
-    },
-    "fire_poke": {
-        "id": "fire_poke",
-        "name": "Fire Poke",
-        "description": "22 power. Apply 1 Burn.",
-        "element": "Fire",
-        "target": "Single",
-        "category": "Attack",
-        "rarity": "Common",
-        "baseCost": 1,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "ATTACK",
-                "power": 22,
-                "target": "TARGET"
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF",
+                "conditionals": [
+                    "target_burned"
+                ]
             },
             {
                 "type": "STATUS",
@@ -493,30 +458,10 @@
             }
         ]
     },
-    "cinder_armor_daemon": {
-        "id": "cinder_armor_daemon",
-        "name": "CINDER_ARMOR",
-        "description": "Daemon: Cards that add burn also add 1 Sharp to host.",
-        "element": "Fire",
-        "target": "Self",
-        "category": "Daemon",
-        "exhaust": true,
-        "rarity": "Rare",
-        "baseCost": 2,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [],
-        "hooks": [
-            "daemon_burn_sharp_synergy"
-        ]
-    },
     "molten_core": {
         "id": "molten_core",
         "name": "Molten Core",
-        "description": "Apply 4 Burn if host has Sharp. Otherwise 2 Burn.",
+        "description": "Apply 4 Burn if you hold Sharp. Otherwise 2 Burn.",
         "element": "Fire",
         "target": "Single",
         "category": "Skill",
@@ -548,7 +493,7 @@
     "heat_wave": {
         "id": "heat_wave",
         "name": "Heat Wave",
-        "description": "Double a side's Burn stacks.",
+        "description": "Double the enemy side's Burn stacks.",
         "element": "Fire",
         "target": "Side",
         "category": "Status",
@@ -652,7 +597,7 @@
     "capacitor": {
         "id": "capacitor",
         "name": "Capacitor",
-        "description": "Gain 3 Energy next turn.",
+        "description": "Gain 3 Energized.",
         "element": "None",
         "target": "Self",
         "category": "Skill",
@@ -698,7 +643,7 @@
     "serpents_coil": {
         "id": "serpents_coil",
         "name": "Serpent's Coil",
-        "description": "The world-serpent tightens: deal 10 Water damage for every card you played this turn.",
+        "description": "10 power for every card you played this turn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -721,7 +666,7 @@
     "maelstrom": {
         "id": "maelstrom",
         "name": "Maelstrom",
-        "description": "90 power. Apply 1 Dazed.",
+        "description": "100 power. Apply 3 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -735,13 +680,13 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 90,
+                "power": 100,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Dazed",
-                "stacks": 1,
+                "stacks": 3,
                 "target": "TARGET"
             }
         ]
@@ -749,7 +694,7 @@
     "hydro_blast": {
         "id": "hydro_blast",
         "name": "Hydro Blast",
-        "description": "105 power.",
+        "description": "120 power.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -763,29 +708,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 105,
-                "target": "TARGET"
-            }
-        ]
-    },
-    "tidal_wave_v2": {
-        "id": "tidal_wave_v2",
-        "name": "Tidal Wave",
-        "description": "45 power to side.",
-        "element": "Water",
-        "target": "Side",
-        "category": "Attack",
-        "rarity": "Uncommon",
-        "baseCost": 3,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "ATTACK",
-                "power": 45,
+                "power": 120,
                 "target": "TARGET"
             }
         ]
@@ -816,7 +739,7 @@
     "corrosive_leak": {
         "id": "corrosive_leak",
         "name": "Corrosive Leak",
-        "description": "Poison self 2 stacks. Gain 1 Energized.",
+        "description": "Poison yourself 2 stacks. Gain 1 Energized.",
         "element": "Water",
         "target": "Self",
         "category": "Skill",
@@ -845,7 +768,7 @@
     "ink_stream": {
         "id": "ink_stream",
         "name": "Ink Stream",
-        "description": "Deal 33 power for each card a card, OS or daemon drew you this turn.",
+        "description": "33 power for each card an effect drew you this turn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -868,7 +791,7 @@
     "pressure_point": {
         "id": "pressure_point",
         "name": "Pressure Point",
-        "description": "22 power. If Dazed, draw 1.",
+        "description": "22 power. If the target is Dazed, draw 1.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -930,7 +853,7 @@
     "ink_cloud": {
         "id": "ink_cloud",
         "name": "Ink Cloud",
-        "description": "18 power to side. Apply 2 Dazed to side.",
+        "description": "25 power to the enemy side. Apply 2 Dazed to each.",
         "element": "Water",
         "target": "Side",
         "category": "Attack",
@@ -944,7 +867,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 18,
+                "power": 25,
                 "target": "TARGET"
             },
             {
@@ -958,7 +881,7 @@
     "scavenge_data": {
         "id": "scavenge_data",
         "name": "Scavenge Data",
-        "description": "Draw Water card.",
+        "description": "Draw a Water card.",
         "element": "Water",
         "target": "Self",
         "category": "Skill",
@@ -999,26 +922,6 @@
                 "type": "PLAY_LAST_CARD",
                 "target": "TARGET"
             }
-        ]
-    },
-    "feedback_loop_daemon": {
-        "id": "feedback_loop_daemon",
-        "name": "FEEDBACK_LOOP",
-        "description": "Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count.",
-        "element": "Water",
-        "target": "Self",
-        "category": "Daemon",
-        "exhaust": true,
-        "rarity": "Rare",
-        "baseCost": 1,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [],
-        "hooks": [
-            "daemon_draw_damage_proc"
         ]
     },
     "keen_strike": {
@@ -1104,43 +1007,10 @@
             }
         ]
     },
-    "whirlpool_v2": {
-        "id": "whirlpool_v2",
-        "name": "Whirlpool",
-        "description": "8 power. Draw a card. Apply 2 Dazed.",
-        "element": "Water",
-        "target": "Single",
-        "category": "Attack",
-        "rarity": "Common",
-        "baseCost": 1,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "ATTACK",
-                "power": 8,
-                "target": "TARGET"
-            },
-            {
-                "type": "DRAW",
-                "amount": 1,
-                "target": "SELF"
-            },
-            {
-                "type": "STATUS",
-                "status": "Dazed",
-                "stacks": 2,
-                "target": "TARGET"
-            }
-        ]
-    },
     "crushing_depths": {
         "id": "crushing_depths",
         "name": "Crushing Depths",
-        "description": "Consume all Dazed on the target: deal 15 power per stack consumed.",
+        "description": "Consume all Dazed on the target: 20 power per stack consumed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1160,16 +1030,16 @@
             },
             {
                 "type": "ATTACK",
-                "power": 15,
-                "scaling": "STATUS_CONSUMED",
-                "target": "TARGET"
+                "power": 20,
+                "target": "TARGET",
+                "scaling": "STATUS_CONSUMED"
             }
         ]
     },
     "boiling_surge": {
         "id": "boiling_surge",
         "name": "Boiling Surge",
-        "description": "40 power. Apply 2 Burn.",
+        "description": "55 power. Apply 2 Burn.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1183,7 +1053,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 55,
                 "target": "TARGET"
             },
             {
@@ -1197,7 +1067,7 @@
     "scald": {
         "id": "scald",
         "name": "Scald",
-        "description": "Apply 1 Burn. You gain 1 Dazed.",
+        "description": "Apply 2 Burn. You gain 1 Dazed.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1212,7 +1082,7 @@
             {
                 "type": "STATUS",
                 "status": "Burn",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET"
             },
             {
@@ -1226,12 +1096,12 @@
     "surge_protection": {
         "id": "surge_protection",
         "name": "Surge Protection",
-        "description": "40 power. If a card, OS or daemon drew you a card this turn, refund 1 Energy.",
+        "description": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
-        "baseCost": 2,
+        "baseCost": 1,
         "constraints": [
             "not_stunned",
             "not_asleep",
@@ -1240,7 +1110,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 25,
                 "target": "TARGET"
             },
             {
@@ -1252,28 +1122,6 @@
                         "id": "card_drawn_check"
                     }
                 ]
-            }
-        ]
-    },
-    "water_slap": {
-        "id": "water_slap",
-        "name": "Tackle",
-        "description": "A plain, reliable hit. Neutral programs gain no STAB - priced at 12 power to compensate.",
-        "element": "None",
-        "target": "Single",
-        "category": "Attack",
-        "rarity": "Common",
-        "baseCost": 0,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "ATTACK",
-                "power": 12,
-                "target": "TARGET"
             }
         ]
     },
@@ -1303,7 +1151,7 @@
     "corrosive_bolt": {
         "id": "corrosive_bolt",
         "name": "Corrosive Bolt",
-        "description": "Add 3 stacks of Poison.",
+        "description": "Apply 3 Poison.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1360,7 +1208,7 @@
     "toxic_surge": {
         "id": "toxic_surge",
         "name": "Toxic Surge",
-        "description": "Add 1 stack of Poison, then trigger Poison damage immediately.",
+        "description": "Apply 1 Poison, then trigger Poison damage immediately.",
         "element": "Water",
         "target": "Single",
         "category": "Skill",
@@ -1388,7 +1236,7 @@
     "contagion": {
         "id": "contagion",
         "name": "Contagion",
-        "description": "Double Poison stacks.",
+        "description": "Double the target's Poison stacks.",
         "element": "Water",
         "target": "Single",
         "category": "Status",
@@ -1406,26 +1254,6 @@
                 "factor": 2,
                 "target": "TARGET"
             }
-        ]
-    },
-    "echo_chamber_v2": {
-        "id": "echo_chamber_v2",
-        "name": "Echo Chamber",
-        "description": "Daemon: whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
-        "element": "Nature",
-        "target": "Self",
-        "category": "Daemon",
-        "exhaust": true,
-        "rarity": "Rare",
-        "baseCost": 2,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [],
-        "hooks": [
-            "echo_chamber_daemon_hook"
         ]
     },
     "growth": {
@@ -1453,51 +1281,6 @@
                 "type": "HEAL",
                 "power": 8,
                 "target": "SELF"
-            }
-        ]
-    },
-    "healing_mist": {
-        "id": "healing_mist",
-        "name": "Healing Mist",
-        "description": "Heal with 15 power.",
-        "element": "Nature",
-        "target": "Self",
-        "category": "Heal",
-        "rarity": "Common",
-        "baseCost": 0,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "HEAL",
-                "power": 15,
-                "target": "SELF"
-            }
-        ]
-    },
-    "seed_bomb_v2": {
-        "id": "seed_bomb_v2",
-        "name": "Seed Bomb",
-        "description": "Deal 15 power per card played by host this turn.",
-        "element": "Nature",
-        "target": "Single",
-        "category": "Attack",
-        "rarity": "Uncommon",
-        "baseCost": 2,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "ATTACK",
-                "power": 15,
-                "scaling": "CARDS_PLAYED",
-                "target": "TARGET"
             }
         ]
     },
@@ -1531,8 +1314,8 @@
     "soothe": {
         "id": "soothe",
         "name": "Soothe",
-        "description": "Remove debuff by 1 stack.",
-        "element": "Nature",
+        "description": "Remove 1 stack of a debuff from an ally.",
+        "element": "None",
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
@@ -1560,10 +1343,10 @@
     "pollen_cloud": {
         "id": "pollen_cloud",
         "name": "Pollen Cloud",
-        "description": "4 power. Apply 1 Weakened and 1 Poison.",
+        "description": "Apply 1 Weakened to each enemy.",
         "element": "Nature",
-        "target": "Single",
-        "category": "Attack",
+        "target": "Side",
+        "category": "Status",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -1573,19 +1356,8 @@
         ],
         "actions": [
             {
-                "type": "ATTACK",
-                "power": 4,
-                "target": "TARGET"
-            },
-            {
                 "type": "STATUS",
                 "status": "Weakened",
-                "stacks": 1,
-                "target": "TARGET"
-            },
-            {
-                "type": "STATUS",
-                "status": "Poison",
                 "stacks": 1,
                 "target": "TARGET"
             }
@@ -1710,9 +1482,9 @@
     "crippling_vine": {
         "id": "crippling_vine",
         "name": "Crippling Vine",
-        "description": "30 power. Apply 2 Weakened, 2 Dazed and 3 Poison.",
+        "description": "20 power to the enemy side. Apply 2 Weakened to each.",
         "element": "Nature",
-        "target": "Single",
+        "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
@@ -1724,25 +1496,13 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 30,
+                "power": 20,
                 "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Weakened",
                 "stacks": 2,
-                "target": "TARGET"
-            },
-            {
-                "type": "STATUS",
-                "status": "Dazed",
-                "stacks": 2,
-                "target": "TARGET"
-            },
-            {
-                "type": "STATUS",
-                "status": "Poison",
-                "stacks": 3,
                 "target": "TARGET"
             }
         ]
@@ -1816,7 +1576,7 @@
     "nettle_sting": {
         "id": "nettle_sting",
         "name": "Nettle Sting",
-        "description": "22 power and 1 stack of Poison.",
+        "description": "22 power. Apply 1 Poison.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -2402,26 +2162,6 @@
                 "type": "DISCARD",
                 "count": 2
             }
-        ]
-    },
-    "hoofbeat_daemon": {
-        "id": "hoofbeat_daemon",
-        "name": "Hoofbeat Daemon",
-        "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
-        "element": "Air",
-        "target": "Self",
-        "category": "Daemon",
-        "exhaust": true,
-        "rarity": "Rare",
-        "baseCost": 2,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [],
-        "hooks": [
-            "hoofbeat_daemon_hook"
         ]
     },
     "gale_slash": {
@@ -3766,7 +3506,7 @@
     "battle_rhythm": {
         "id": "battle_rhythm",
         "name": "Battle Rhythm",
-        "description": "25 power. If above 50% HP, gain 2 Strength. Otherwise gain 2 Sharp.",
+        "description": "25 power. Above half HP: gain 2 Strength. Otherwise gain 2 Sharp.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -3841,7 +3581,7 @@
     "ragnarok_edge": {
         "id": "ragnarok_edge",
         "name": "Ragnarok Edge",
-        "description": "20 power. +0.7 power per 1% of your max HP missing (max 50%).",
+        "description": "20 power. +1 power per 1% of your max HP missing (max 50%).",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -3858,7 +3598,7 @@
                 "power": 20,
                 "target": "TARGET",
                 "scaling": "MISSING_HP",
-                "scalingPower": 0.7
+                "scalingPower": 1
             }
         ]
     },
@@ -3889,7 +3629,7 @@
     "slag_strike": {
         "id": "slag_strike",
         "name": "Slag Strike",
-        "description": "21 power. Gain 1 Sharp.",
+        "description": "22 power. Gain 1 Sharp.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -3903,7 +3643,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 21,
+                "power": 22,
                 "target": "TARGET"
             },
             {
@@ -3951,7 +3691,7 @@
     "ash_communion": {
         "id": "ash_communion",
         "name": "Ash Communion",
-        "description": "Consume your Burn. Heal with 30 power per stack consumed.",
+        "description": "Consume your Burn: heal with 30 power per stack consumed.",
         "element": "Fire",
         "target": "Self",
         "category": "Heal",
@@ -3980,7 +3720,7 @@
     "cinder_lance": {
         "id": "cinder_lance",
         "name": "Cinder Lance",
-        "description": "34 power. +5 power per stack of Sharp.",
+        "description": "40 power. +6 power per stack of Sharp you hold.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -3994,16 +3734,17 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 34,
+                "power": 40,
                 "target": "TARGET",
-                "scaling": "SHARP_STACKS"
+                "scaling": "SHARP_STACKS",
+                "scalingPower": 6
             }
         ]
     },
     "war_pact": {
         "id": "war_pact",
         "name": "War Pact",
-        "description": "Above half HP: gain 2 Strengthened and 2 Dazed. Below half: heal with 15 power.",
+        "description": "Above half HP: gain 2 Strength and 2 Dazed. Below half: heal with 15 power.",
         "element": "Fire",
         "target": "Self",
         "category": "Skill",
@@ -4058,7 +3799,7 @@
     "unbound_fang": {
         "id": "unbound_fang",
         "name": "Unbound Fang",
-        "description": "Deal 5 power for each stack of Strengthened you hold, then lose half of them.",
+        "description": "5 power per stack of Strength you hold, then lose half of them.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -4186,28 +3927,6 @@
             }
         ]
     },
-    "squirrel_away": {
-        "id": "squirrel_away",
-        "name": "Squirrel Away",
-        "description": "Draw 2.",
-        "element": "None",
-        "target": "Self",
-        "category": "Skill",
-        "rarity": "Common",
-        "baseCost": 1,
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
-        "actions": [
-            {
-                "type": "DRAW",
-                "amount": 2,
-                "target": "SELF"
-            }
-        ]
-    },
     "nagging_bite": {
         "id": "nagging_bite",
         "name": "Nagging Bite",
@@ -4271,8 +3990,8 @@
     "slander": {
         "id": "slander",
         "name": "Slander",
-        "description": "10 power per stack of Dazed on the target.",
-        "element": "Nature",
+        "description": "15 power per stack of Dazed on the target.",
+        "element": "Water",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
@@ -4285,9 +4004,9 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 10,
-                "scaling": "DAZED_STACKS",
-                "target": "TARGET"
+                "power": 15,
+                "target": "TARGET",
+                "scaling": "DAZED_STACKS"
             }
         ]
     },
@@ -4322,7 +4041,7 @@
     "hexbloom": {
         "id": "hexbloom",
         "name": "Hexbloom",
-        "description": "Apply 1 Poison per stack of Weakened on the target, then remove the Weakened.",
+        "description": "Apply 1 Poison per Weakened on the target, then remove the Weakened.",
         "element": "Nature",
         "target": "Single",
         "category": "Status",
@@ -4380,7 +4099,7 @@
     "heartwood": {
         "id": "heartwood",
         "name": "Heartwood",
-        "description": "Gain 6 BarkShield. Apply 1 Poison.",
+        "description": "Gain 6 Bark Shield. Apply 1 Poison to the target.",
         "element": "Nature",
         "target": "Single",
         "category": "Status",
@@ -4444,7 +4163,7 @@
     "blightbloom": {
         "id": "blightbloom",
         "name": "Blightbloom",
-        "description": "20 power. Apply 5 Poison.",
+        "description": "30 power. Apply 5 Poison.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -4458,7 +4177,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 20,
+                "power": 30,
                 "target": "TARGET"
             },
             {
@@ -6130,7 +5849,7 @@
     "undertow": {
         "id": "undertow",
         "name": "Undertow",
-        "description": "The current pulls: draw a card. You gain 1 Weakened.",
+        "description": "Draw a card. You gain 1 Weakened.",
         "element": "Water",
         "target": "Self",
         "category": "Skill",
@@ -6180,7 +5899,7 @@
     "venom_fang": {
         "id": "venom_fang",
         "name": "Venom Fang",
-        "description": "Strike with envenomed fangs: 25 power.",
+        "description": "30 power.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -6194,7 +5913,7 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 25,
+                "power": 30,
                 "target": "TARGET"
             }
         ]
@@ -6254,7 +5973,7 @@
     "riptide": {
         "id": "riptide",
         "name": "Riptide",
-        "description": "Daemon: whenever an enemy plays a card, deal 8 power to it.",
+        "description": "Daemon (exhaust): whenever an enemy plays a card, deal 8 power to it.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
@@ -6274,7 +5993,7 @@
     "short_circuit": {
         "id": "short_circuit",
         "name": "Short Circuit",
-        "description": "Daemon: whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
+        "description": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
@@ -6294,7 +6013,7 @@
     "reactive_plating": {
         "id": "reactive_plating",
         "name": "Reactive Plating",
-        "description": "Daemon: When an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 Sharp granted per turn.",
+        "description": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 per turn.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
@@ -6436,7 +6155,7 @@
     "spreading_rot": {
         "id": "spreading_rot",
         "name": "Spreading Rot",
-        "description": "2 stacks of Poison to side.",
+        "description": "Apply 2 Poison to the enemy side.",
         "element": "Water",
         "target": "Side",
         "category": "Status",
@@ -6459,7 +6178,7 @@
     "tidal_battery": {
         "id": "tidal_battery",
         "name": "Tidal Battery",
-        "description": "Side gains 1 Energy next turn.",
+        "description": "Every ally gains 1 Energized.",
         "element": "Water",
         "target": "Side",
         "category": "Skill",
@@ -6480,19 +6199,19 @@
         ]
     },
     "bark_lash": {
-        "constraints": [
-            "not_stunned",
-            "not_asleep",
-            "energy_base"
-        ],
         "id": "bark_lash",
         "name": "Bark Lash",
-        "description": "1 power for each stack of Bark Shield you hold.",
+        "description": "1 power per point of Bark Shield you hold.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
             {
                 "type": "ATTACK",
@@ -6502,20 +6221,772 @@
             }
         ]
     },
-    "seed_spit": {
+    "serpent_flurry": {
+        "id": "serpent_flurry",
+        "name": "Serpent Flurry",
+        "description": "Three strikes of 10 power.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
         "constraints": [
             "not_stunned",
             "not_asleep",
             "energy_base"
         ],
-        "id": "seed_spit",
-        "name": "Seed Spit",
-        "description": "6 power. Apply 1 Poison.",
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 10,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "thorn_whip": {
+        "id": "thorn_whip",
+        "name": "Thorn Whip",
+        "description": "15 power. +5 power per Sharp you hold.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET",
+                "scaling": "SHARP_STACKS"
+            }
+        ]
+    },
+    "tackle": {
+        "id": "tackle",
+        "name": "Tackle",
+        "description": "12 power.",
+        "element": "None",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 12,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "deep_scan": {
+        "id": "deep_scan",
+        "name": "Deep Scan",
+        "description": "Draw 2.",
+        "element": "None",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "DRAW",
+                "amount": 2,
+                "target": "SELF"
+            }
+        ]
+    },
+    "mend": {
+        "id": "mend",
+        "name": "Mend",
+        "description": "Heal an ally with 20 power.",
+        "element": "None",
+        "target": "Self",
+        "category": "Heal",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "HEAL",
+                "power": 20,
+                "target": "SELF"
+            }
+        ]
+    },
+    "overclock_core": {
+        "id": "overclock_core",
+        "name": "Overclock Core",
+        "description": "Daemon (exhaust): Max Energy +1 for the rest of the battle.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "MAX_ENERGY",
+                "amount": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "short_fuse": {
+        "id": "short_fuse",
+        "name": "Short Fuse",
+        "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "short_fuse_discharge"
+        ]
+    },
+    "static_ward": {
+        "id": "static_ward",
+        "name": "Static Ward",
+        "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "static_ward_arc"
+        ]
+    },
+    "core_overclock": {
+        "id": "core_overclock",
+        "name": "Core Overclock",
+        "description": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "daemon_double_strength"
+        ]
+    },
+    "cinder_armor": {
+        "id": "cinder_armor",
+        "name": "Cinder Armor",
+        "description": "Daemon (exhaust): cards that add Burn also add 1 Sharp to the host.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "daemon_burn_sharp_synergy"
+        ]
+    },
+    "ember_ward": {
+        "id": "ember_ward",
+        "name": "Ember Ward",
+        "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "ember_ward_retort"
+        ]
+    },
+    "feedback_loop": {
+        "id": "feedback_loop",
+        "name": "Feedback Loop",
+        "description": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 7 power.",
+        "element": "Water",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "daemon_draw_damage_proc"
+        ]
+    },
+    "hoofbeat": {
+        "id": "hoofbeat",
+        "name": "Hoofbeat",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, deal 8 power to a random enemy.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "hoofbeat_daemon_hook"
+        ]
+    },
+    "echo_chamber": {
+        "id": "echo_chamber",
+        "name": "Echo Chamber",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+        "element": "Nature",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Rare",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "echo_chamber_daemon_hook"
+        ]
+    },
+    "thermal_overload": {
+        "id": "thermal_overload",
+        "name": "Thermal Overload",
+        "description": "Daemon (exhaust): your Burns deal 50% more damage. Host takes 5 Fire damage at turn end.",
+        "element": "Fire",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "thermal_overload_hook",
+            "thermal_overload_burn_boost",
+            "thermal_overload_logic"
+        ]
+    },
+    "ember_jab": {
+        "id": "ember_jab",
+        "name": "Ember Jab",
+        "description": "8 power. Apply 1 Burn.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 8,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "brand": {
+        "id": "brand",
+        "name": "Brand",
+        "description": "25 power. If the target is Burning, apply 1 more Burn.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 25,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET",
+                "conditionals": [
+                    "target_burned"
+                ]
+            }
+        ]
+    },
+    "flare_burst": {
+        "id": "flare_burst",
+        "name": "Flare Burst",
+        "description": "15 power, twice.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "pack_tactics": {
+        "id": "pack_tactics",
+        "name": "Pack Tactics",
+        "description": "23 power, three times.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 23,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 23,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 23,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "howl": {
+        "id": "howl",
+        "name": "Howl",
+        "description": "Every ally gains 1 Strength.",
+        "element": "Fire",
+        "target": "Side",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Strengthened",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "snarl": {
+        "id": "snarl",
+        "name": "Snarl",
+        "description": "Apply 2 Weakened.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "snap": {
+        "id": "snap",
+        "name": "Snap",
+        "description": "20 power. +12 power if the target is Weakened.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 12,
+                "target": "TARGET",
+                "conditionals": [
+                    {
+                        "type": "HAS_STATUS",
+                        "target": "TARGET",
+                        "value": "Weakened"
+                    }
+                ]
+            }
+        ]
+    },
+    "sharp_edge": {
+        "id": "sharp_edge",
+        "name": "Sharp Edge",
+        "description": "Consume your Sharp: 15 power per stack consumed.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET",
+                "scaling": "STATUS_CONSUMED"
+            }
+        ]
+    },
+    "flashover": {
+        "id": "flashover",
+        "name": "Flashover",
+        "description": "50 power. +15 power per Burn on the target.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 50,
+                "target": "TARGET",
+                "scaling": "TARGET_STATUS_STACKS",
+                "scalingStatus": "Burn",
+                "scalingPower": 15
+            }
+        ]
+    },
+    "wildfire": {
+        "id": "wildfire",
+        "name": "Wildfire",
+        "description": "45 power to the enemy side. Apply 1 Burn to each.",
+        "element": "Fire",
+        "target": "Side",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 3,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 45,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "whirlpool": {
+        "id": "whirlpool",
+        "name": "Whirlpool",
+        "description": "8 power. Draw a card. Apply 2 Dazed.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 8,
+                "target": "TARGET"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "riptide_run": {
+        "id": "riptide_run",
+        "name": "Riptide Run",
+        "description": "20 power. Refund 1 Energy if this is the third or later card you played this turn.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET"
+            },
+            {
+                "type": "ENERGY",
+                "amount": 1,
+                "target": "SELF",
+                "conditionals": [
+                    {
+                        "type": "CARDS_PLAYED",
+                        "target": "SELF",
+                        "value": 3
+                    }
+                ]
+            }
+        ]
+    },
+    "tide_pool": {
+        "id": "tide_pool",
+        "name": "Tide Pool",
+        "description": "Gain 1 Energized. Draw 1.",
+        "element": "Water",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Energized",
+                "stacks": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "venom_glut": {
+        "id": "venom_glut",
+        "name": "Venom Glut",
+        "description": "Consume the target's Poison: 15 power per stack consumed.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "consume": true,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET",
+                "scaling": "STATUS_CONSUMED"
+            }
+        ]
+    },
+    "tidal_wave": {
+        "id": "tidal_wave",
+        "name": "Tidal Wave",
+        "description": "55 power to the enemy side.",
+        "element": "Water",
+        "target": "Side",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 3,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 55,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "acorn_toss": {
+        "id": "acorn_toss",
+        "name": "Acorn Toss",
+        "description": "6 power, twice.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
         "actions": [
             {
                 "type": "ATTACK",
@@ -6523,65 +6994,248 @@
                 "target": "TARGET"
             },
             {
+                "type": "ATTACK",
+                "power": 6,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "seed_bomb": {
+        "id": "seed_bomb",
+        "name": "Seed Bomb",
+        "description": "20 power per card you played this turn.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET",
+                "scaling": "CARDS_PLAYED"
+            }
+        ]
+    },
+    "tend": {
+        "id": "tend",
+        "name": "Tend",
+        "description": "An ally gains 1 Sharp and heals with 8 power.",
+        "element": "Nature",
+        "target": "Self",
+        "category": "Heal",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
                 "type": "STATUS",
-                "status": "Poison",
+                "status": "Sharp",
+                "stacks": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "HEAL",
+                "power": 8,
+                "target": "SELF"
+            }
+        ]
+    },
+    "bolster": {
+        "id": "bolster",
+        "name": "Bolster",
+        "description": "An ally gains 3 Sharp.",
+        "element": "Nature",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 3,
+                "target": "SELF"
+            }
+        ]
+    },
+    "verdant_ward": {
+        "id": "verdant_ward",
+        "name": "Verdant Ward",
+        "description": "Every ally gains 2 Regen and 1 Sharp.",
+        "element": "Nature",
+        "target": "Side",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Regen",
+                "stacks": 2,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
                 "stacks": 1,
                 "target": "TARGET"
             }
         ]
     },
-    "serpent_flurry": {
+    "heckle": {
+        "id": "heckle",
+        "name": "Heckle",
+        "description": "Apply 1 Dazed and 1 Weakened.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Common",
+        "baseCost": 0,
         "constraints": [
             "not_stunned",
             "not_asleep",
             "energy_base"
         ],
-        "id": "serpent_flurry",
-        "name": "Serpent Flurry",
-        "description": "Three strikes of 9 power.",
-        "element": "Water",
-        "target": "Single",
-        "category": "Attack",
-        "rarity": "Uncommon",
-        "baseCost": 1,
         "actions": [
             {
-                "type": "ATTACK",
-                "power": 9,
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
                 "target": "TARGET"
             },
             {
-                "type": "ATTACK",
-                "power": 9,
-                "target": "TARGET"
-            },
-            {
-                "type": "ATTACK",
-                "power": 9,
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 1,
                 "target": "TARGET"
             }
         ]
     },
-    "thorn_whip": {
+    "pile_on": {
+        "id": "pile_on",
+        "name": "Pile On",
+        "description": "45 power. If the target is Dazed, hit again.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 2,
         "constraints": [
             "not_stunned",
             "not_asleep",
             "energy_base"
         ],
-        "id": "thorn_whip",
-        "name": "Thorn Whip",
-        "description": "15 power. +5 power per Sharp stack you have.",
-        "element": "Nature",
-        "target": "Single",
-        "category": "Attack",
-        "rarity": "Uncommon",
-        "baseCost": 1,
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 15,
+                "power": 45,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 45,
                 "target": "TARGET",
-                "scaling": "SHARP_STACKS"
+                "conditionals": [
+                    "target_dazed"
+                ]
+            }
+        ]
+    },
+    "sap_strength": {
+        "id": "sap_strength",
+        "name": "Sap Strength",
+        "description": "20 power. +6 power per Weakened on the target.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET",
+                "scaling": "TARGET_STATUS_STACKS",
+                "scalingStatus": "Weakened",
+                "scalingPower": 6
+            }
+        ]
+    },
+    "shell_share": {
+        "id": "shell_share",
+        "name": "Shell Share",
+        "description": "An ally gains 6 Bark Shield.",
+        "element": "Nature",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "BarkShield",
+                "stacks": 6,
+                "target": "SELF"
+            }
+        ]
+    },
+    "bark_smash": {
+        "id": "bark_smash",
+        "name": "Bark Smash",
+        "description": "Consume your Bark Shield: 6 power per point consumed.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Common",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "BarkShield",
+                "consume": true,
+                "target": "SELF"
+            },
+            {
+                "type": "ATTACK",
+                "power": 6,
+                "target": "TARGET",
+                "scaling": "STATUS_CONSUMED"
             }
         ]
     }

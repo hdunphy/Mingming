@@ -320,8 +320,8 @@
             }
         ]
     },
-    "core_overclock_daemon": {
-        "id": "core_overclock_daemon",
+    "core_overclock": {
+        "id": "core_overclock",
         "name": "CORE_OVERCLOCK",
         "description": "Daemon: +20% damage per stack of Strength. No cap.",
         "hooks": [
@@ -337,8 +337,8 @@
             }
         ]
     },
-    "cinder_armor_daemon": {
-        "id": "cinder_armor_daemon",
+    "cinder_armor": {
+        "id": "cinder_armor",
         "name": "CINDER_ARMOR",
         "description": "Daemon: Cards that add burn also add 1 Sharp to host.",
         "hooks": [
@@ -365,8 +365,8 @@
             }
         ]
     },
-    "feedback_loop_daemon": {
-        "id": "feedback_loop_daemon",
+    "feedback_loop": {
+        "id": "feedback_loop",
         "name": "FEEDBACK_LOOP",
         "description": "Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count.",
         "hooks": [
@@ -393,8 +393,8 @@
             }
         ]
     },
-    "hoofbeat_daemon": {
-        "id": "hoofbeat_daemon",
+    "hoofbeat": {
+        "id": "hoofbeat",
         "name": "HOOFBEAT_DAEMON",
         "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
         "hooks": [
@@ -553,33 +553,40 @@
     },
     "skoll_v2": {
         "id": "skoll_v2",
-        "name": "SOLAR_OVERDRIVE_OS",
-        "description": "Skoll's attacks deal +10% damage per stack of Strength she holds. No cap. Whenever an ally plays a Fire attack, Skoll gains 1 Strengthened.",
+        "name": "EMBER_FUSE",
+        "description": "Sköll's attacks on a Burning target apply 1 more Burn.",
         "hooks": [
             {
-                "id": "skoll_v2_solar_charge",
+                "id": "skoll_v2_ember_fuse",
                 "trigger": "onActionStart",
                 "priority": 40,
                 "when": {
-                    "source": "ALLY",
+                    "source": "SELF",
                     "actionType": "ATTACK",
-                    "programElement": "Fire"
+                    "targetStatus": {
+                        "status": "Burn",
+                        "minStacks": 1
+                    }
                 },
                 "do": [
                     {
                         "type": "STATUS",
-                        "target": "SELF",
-                        "status": "Strengthened",
+                        "target": "TARGET",
+                        "status": "Burn",
                         "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s EMBER_FUSE feeds the fire on {target}!"
                     }
                 ]
             }
         ],
         "vfx": {
-            "shape": "spark",
-            "color": "#ff9a2e",
-            "at": "owner",
-            "note": "SOLAR_OVERDRIVE"
+            "shape": "crack",
+            "color": "#ff6a1f",
+            "at": "target",
+            "note": "EMBER_FUSE — the detonation"
         }
     },
     "jormungandr_v1": {
@@ -1585,6 +1592,100 @@
                     {
                         "type": "LOG",
                         "text": "  💧 {owner}'s DRIP_FEED feeds the poisoned."
+                    }
+                ]
+            }
+        ]
+    },
+    "overclock_core": {
+        "id": "overclock_core",
+        "name": "OVERCLOCK_CORE",
+        "description": "Daemon (exhaust): Max Energy +1 for the rest of the battle."
+    },
+    "short_fuse": {
+        "id": "short_fuse",
+        "name": "SHORT_FUSE",
+        "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point.",
+        "hooks": [
+            {
+                "id": "short_fuse_discharge",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "currentEnergy": {
+                        "operator": "GT",
+                        "value": 0
+                    }
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 10,
+                        "element": "None",
+                        "scaling": "CURRENT_ENERGY"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SHORT_FUSE burns {target}'s hoarded charge!"
+                    }
+                ]
+            }
+        ]
+    },
+    "static_ward": {
+        "id": "static_ward",
+        "name": "STATIC_WARD",
+        "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power.",
+        "hooks": [
+            {
+                "id": "static_ward_arc",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 8,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s STATIC_WARD earths {target}'s interference!"
+                    }
+                ]
+            }
+        ]
+    },
+    "ember_ward": {
+        "id": "ember_ward",
+        "name": "EMBER_WARD",
+        "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn.",
+        "hooks": [
+            {
+                "id": "ember_ward_retort",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "isAttack": true
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Burn",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s EMBER_WARD scorches {target}!"
                     }
                 ]
             }

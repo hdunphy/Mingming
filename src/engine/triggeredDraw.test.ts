@@ -65,7 +65,12 @@ describe('surge_protection is wired to the triggered check', () => {
         // INLINE object last - so the override won and the "draw check" was really an energy
         // check against cost 0, i.e. always true. It had never been a draw condition at all.
         expect(refund.conditionals![0].type).toBe('CARDS_DRAWN_TRIGGERED');
-        expect(card.description).toContain('card, OS or daemon');
+        // TICKET 162a: collection v2 reworded it to "if an effect drew you a card this turn",
+        // which is the phrasing ticket 136t already ruled for `starfall` — Henry cut the list
+        // because "for each card a card, OS or daemon drew you" does not read. The assertion's
+        // job is unchanged: the TEXT has to tell the player the count excludes the draw-phase
+        // refill, because that exclusion is the whole difference between the two scalers.
+        expect(card.description).toContain('an effect drew you');
     });
 
     it('NO card inline-overrides a library constraint type (the footgun that hid this bug)', () => {

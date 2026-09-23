@@ -659,9 +659,22 @@ export const LOOPING_FREE_DRAWS: ReadonlySet<string> = new Set([
  * of turns at six or more**. Capping it would cost that deck 10.9 field points against a loop it
  * has never run.
  *
+ * `ignite` joined it under ticket 162a, which gave the card a conditional cantrip — *"apply 1 Burn;
+ * if the target was ALREADY Burning, draw a card"*. That makes it a 0-energy card that draws, so
+ * the tripwire below stopped the build until somebody measured it. Measured, 1,200 games on
+ * fenrir_v2 (the deck that runs two copies and the most Burn in the roster): **max 8 casts in a
+ * turn, 0.3% of turns at six or more**, against `undertow`'s max 18 and 12.7%.
+ *
+ * The number that actually settles it is the one the wild rule exists for — the deletion turn.
+ * fenrir_v2's worst turn is **85.5% of a health pool** and it spends 0.1% of turns above 75%;
+ * jormungandr_v1 on `undertow` was at **145%** before its brake and 118.6% after. Chaining `ignite`
+ * piles a status that caps at 4 and draws cards into a deck with no draw payoff, so the chain does
+ * not convert into damage the way `undertow`'s did. Capping it would cost fenrir_v2 the two-copy
+ * opener its whole kit is built on, for a loop it does not have.
+ *
  * This set exists so the tripwire can tell "measured and excluded" from "nobody has looked".
  */
-export const MEASURED_NOT_LOOPING: ReadonlySet<string> = new Set(['forage']);
+export const MEASURED_NOT_LOOPING: ReadonlySet<string> = new Set(['forage', 'ignite']);
 
 /** Every 0-energy card that draws — the population the two sets above must between them cover. */
 export function freeDrawCardIds(ids: ReadonlyArray<string>): string[] {

@@ -23,12 +23,12 @@ export function initDaemonHooks() {
         'thermal_overload',
         'echo_chamber',
         'defensive_daemon',
-        'core_overclock_daemon',
-        'cinder_armor_daemon',
-        'feedback_loop_daemon',
+        'core_overclock',
+        'cinder_armor',
+        'feedback_loop',
         'fertile_ground_daemon',
         'einherjar_standard',
-        'hoofbeat_daemon',
+        'hoofbeat',
         /*
          * TICKET 69's Tidewrack toolbox, printed 2026-08-30. Both are `when.source: OPPONENT`
          * daemons — `riptide` taxes cards PLAYED, `short_circuit` taxes engine draws.
@@ -47,7 +47,21 @@ export function initDaemonHooks() {
         // `daemonCoverage.test.ts` is what proves that is a shape and not an omission.
         'reactive_plating',
         'scrubber',
-        'drip_feed'
+        'drip_feed',
+        /*
+         * TICKET 162a — collection v2's four new daemons. THE ALLOWLIST TRAP ABOVE IS WHY THESE
+         * FOUR LINES ARE THE FIRST THING WRITTEN, not the last: a daemon whose hooks.json entry
+         * and whose printing are both perfect does nothing at all if its key is missing here, with
+         * no error and no failing test but `daemonCoverage`.
+         *
+         * `overclock_core` is deliberately absent. Its effect is the card's own MAX_ENERGY action
+         * rather than a hook, so it has no `hooks` block to register — `daemonCoverage.test.ts` is
+         * what proves that is a shape and not an omission, exactly as it does for `discharge` and
+         * `vent`.
+         */
+        'short_fuse',
+        'static_ward',
+        'ember_ward'
     ];
 
     // Validate JSON on boot

@@ -23,6 +23,7 @@ import path from 'node:path';
 import { loadScenario } from './scenarioIO';
 import { buildScenarioState } from './buildScenarioState';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { resolveProgramId } from '../../engine/data/programAliases';
 import type { ComposedScenario } from './scenarioSchema';
 
 const ROOT = path.join(__dirname);
@@ -64,7 +65,10 @@ describe('committed scenario files', () => {
         const unknown = [...new Set([
             ...scenario.setup.player.deck,
             ...scenario.setup.enemies.flatMap(e => e.deck ?? []),
-        ].filter(id => !ProgramRegistry[id]))];
+        // TICKET 162a: resolve the v2 renames first. These files are RECORDS of fights that were
+        // played — rewriting `water_slap` inside them to match a rename would make the record a
+        // lie about what was cast, so the reader resolves instead. See `programAliases.ts`.
+        ].filter(id => !ProgramRegistry[resolveProgramId(id)]))];
         expect(unknown, `unknown card ids in ${path.basename(file)}`).toEqual([]);
 
         const state = buildScenarioState(scenario.setup);

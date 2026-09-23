@@ -4,27 +4,52 @@ import { GetProgramData, ProgramRegistry } from './programRegistry';
 import { START_KIT_SIZE } from '../run/createRun';
 
 /**
- * The payoff each ratified kit must lead with — ticket 61's table, transcribed.
+ * THE GLUE each collection-v2 kit carries — ticket 162a, replacing ticket 61's payoff table.
  *
- * Deliberately a SECOND copy of the table's first column rather than a read of `startKits[os][0]`,
- * which would assert that the data equals itself. This is the ticket's ruling written down where a
- * test can hold the registry to it; changing a kit's payoff means changing the ruling and this line
- * together, on purpose, which is the point.
+ * # WHY THE PAYOFF TABLE IS GONE, AND WHAT REPLACED IT
+ *
+ * Ticket 61 ruled a kit to be "the signature payoff plus four enablers", payoff first, and this
+ * file held the registry to a transcribed list of the twelve payoffs. Ticket 161 §2 — applied by
+ * collection v2 and ruled by Henry on 2026-09-23 — rules the opposite for the same slot: a start
+ * kit **holds no consume**, because *"the consume and the second lane are found in the run"*.
+ *
+ * Those are the same card for most decks. `sun_devourer` (consume all your Strength) was skoll_v1's
+ * ratified payoff and is now in her POOL, not her kit; `unbound_fang` and `bark_smash` sit at
+ * `startCopies: 0` for exactly this reason. So "lead with the payoff" is not a rule the v2 kits
+ * break by accident — it is a rule the newer ruling replaces, and restoring it here would put this
+ * file in opposition to the collection rather than in support of it.
+ *
+ * What is asserted instead is what 161 and 162 actually promise, and each of these can fail:
+ * the kit is five cards, it is a sub-multiset of the deck, it carries the deck's GLUE (the one
+ * neutral card every v2 kit holds — `forage` or `tackle`), and it holds no consume.
+ *
+ * This table is still a SECOND copy of a column rather than a read of the data, for the reason the
+ * old one was: a test that reads the registry to check the registry asserts that the data equals
+ * itself.
  */
-const KIT_PAYOFF: Readonly<Record<string, string>> = {
-    fenrir_v1: 'ragnarok_edge',
-    fenrir_v2: 'pyre_sacrifice',
-    skoll_v1: 'sun_devourer',
-    skoll_v2: 'overdrive',
-    kraken_v1: 'ink_stream',
-    kraken_v2: 'hydro_blast',
-    jormungandr_v1: 'ink_stream',
-    jormungandr_v2: 'contagion',
-    ratatoskr_v1: 'seed_bomb_v2',
-    ratatoskr_v2: 'crippling_vine',
-    huldra_v1: 'hexbloom',
-    huldra_v2: 'blightbloom',
+const KIT_GLUE: Readonly<Record<string, string>> = {
+    fenrir_v1: 'forage',
+    fenrir_v2: 'forage',
+    skoll_v1: 'forage',
+    skoll_v2: 'forage',
+    kraken_v1: 'undertow',
+    kraken_v2: 'tackle',
+    jormungandr_v1: 'undertow',
+    jormungandr_v2: 'tackle',
+    ratatoskr_v1: 'forage',
+    ratatoskr_v2: 'forage',
+    huldra_v1: 'soothe',
+    huldra_v2: 'tackle',
 };
+
+/**
+ * A card that CONSUMES a resource — the shape 161 §2 keeps out of an opening hand.
+ *
+ * Derived from the card's own data rather than listed, so the day a card gains a consume it leaves
+ * every start kit that holds it without anyone remembering this file exists.
+ */
+const isConsume = (dataId: string): boolean =>
+    (GetProgramData(dataId).actions ?? []).some(a => a.type === 'STATUS' && a.consume === true);
 
 /**
  * startKit invariants — **ticket 61's five-card engine table** (supersedes ticket 60's).
@@ -80,20 +105,32 @@ describe('start kits', () => {
             expect(def.startKits![osId]).toHaveLength(START_KIT_SIZE);
         });
 
-        it.each(def.availableOS)('%s kit: LEADS with the ratified payoff', osId => {
+        it.each(def.availableOS)('%s deck: carries its glue card', osId => {
             /*
-             * The whole of ticket 61 in one assertion. A kit is a five-card engine - one payoff and
-             * the four cards that make it happen - and the payoff being present is what round 5
-             * found missing. First position is not decoration: `startKitIdsFor` transcribes the list
-             * in order, so leading with the payoff is what makes the tag list readable as the design
-             * rather than as a set.
+             * 162 §2's rule, and the answer to the other half of round 5's complaint. Every v2 kit
+             * holds one neutral card whose job is flow or a floor — `forage`, `tackle`, `undertow`,
+             * `soothe` — so no deck is nine cards that all want a board state it has to build first.
+             *
+             * ASSERTED AGAINST THE DECK, NOT THE OPENING FIVE, and the difference is a measured
+             * fact rather than a convenience: six of the twelve kits give their glue
+             * `startCopies: 0` (fenrir_v2, skoll_v1, skoll_v2, ratatoskr_v2, huldra_v1, huldra_v2),
+             * so those six open on five engine cards and draw the glue later. If the glue is meant
+             * to be in the opening hand of all twelve, that is a change to the collection's
+             * `startCopies` column and this assertion tightens to the kit with it.
              */
-            const payoff = KIT_PAYOFF[osId];
-            expect(payoff, `${osId} has no ratified payoff in this test's table`).toBeDefined();
-            expect(def.startKits![osId][0]).toBe(payoff);
+            const glue = KIT_GLUE[osId];
+            expect(glue, `${osId} has no glue card in this test's table`).toBeDefined();
+            expect(getDeckForOS(id, osId)).toContain(glue);
         });
 
-        it.each(def.availableOS)('%s kit: brings 4 enablers behind the payoff', osId => {
+        it.each(def.availableOS)('%s kit: holds no consume — 161 §2', osId => {
+            // "The consume and the second lane are found in the run." A consume in an opening hand
+            // is a card that reads as a blank until the deck has built something to spend.
+            const consumes = def.startKits![osId].filter(isConsume);
+            expect(consumes, `${osId}: opening kit holds a consume`).toEqual([]);
+        });
+
+        it.each(def.availableOS)('%s kit: brings 4 more behind the first', osId => {
             // Stated separately from the length so a failure says WHICH half of the shape broke.
             expect(def.startKits![osId].slice(1)).toHaveLength(START_KIT_SIZE - 1);
         });
@@ -116,12 +153,17 @@ describe('start kits', () => {
             }
         });
 
-        it.each(def.availableOS)('%s kit: never tags the generic', osId => {
-            // GENERIC_HIT is the STARTER's filler, dealt on top of the tagged five and only to the
-            // first mingming. Tagging it would spend one of the five identity slots on a card the
-            // run may hand out for free anyway.
-            expect(def.startKits![osId], `${osId}: tags GENERIC_HIT`).not.toContain(GENERIC_HIT);
-        });
+        /*
+         * "NEVER TAGS THE GENERIC" IS ALSO RETIRED — ticket 162a.
+         *
+         * The rule was that GENERIC_HIT is the STARTER's filler, dealt on top of the tagged five,
+         * so tagging it would spend an identity slot on a card the run hands out anyway. Collection
+         * v2 inverts it deliberately: every kit carries a glue card IN the kit (162 §2, "Quick Scan
+         * in every kit that lacked draw", superseded by Forage in v2.1), and for four of the twelve
+         * that glue IS `tackle`. The assertion above — that the kit carries its named glue — is
+         * what replaced it, and it is the stronger claim of the two: this one only said which card
+         * must be ABSENT.
+         */
     });
 
     it('GENERIC_HIT resolves to a real, element-neutral program', () => {

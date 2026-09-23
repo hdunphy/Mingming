@@ -220,15 +220,27 @@ describe('Tidewrack, authored', () => {
         const { fight } = fightFor('gym_tidewrack');
         const pile: ReadonlyArray<string> = fight.enemyDeckIds;
 
+        /*
+         * TICKET 162a: the NUMBERS moved, the claim did not. Collection v2 rules `ink_stream`
+         * KRAKEN-ONLY (162 §2, Henry's 09-21 directions), so jormungandr_v1 no longer holds it at
+         * all — his v1 lane is cards-played plus refund ramp, `serpents_coil` and `riptide_run`.
+         *
+         * That makes the swap's claim STRONGER, not weaker: the gym pile now holds zero copies of
+         * the triggered-draw payoff rather than two, and what a future edit could silently undo is
+         * restoring kraken_v1 to this gym. Asserted as zero rather than deleted, because "no
+         * `ink_stream` in the pile" is exactly the property the row was bought for.
+         */
         expect(pile.filter((id) => id === 'ink_stream').length,
-            'jormungandr_v1 keeps its two; kraken_v1\'s two are what the swap removed').toBe(2);
+            'ink_stream is Kraken-only since collection v2; kraken_v1 is not in this gym').toBe(0);
         expect(pile.filter((id) => id === 'undertow').length,
-            'the third cantrip left with kraken_v1').toBe(2);
-        for (const gone of ['whirlpool_v2', 'pressure_point']) {
+            'jormungandr_v1 opens on two; the third cantrip left with kraken_v1').toBe(2);
+        for (const gone of ['whirlpool', 'pressure_point']) {
             expect(pile, `${gone} is ABYSSAL_INK_SYS's draw half and should be out of the pile`).not.toContain(gone);
         }
         // And the replacement really is present, or the swap dropped a body rather than changing one.
-        expect(pile, 'TIDAL_CRUSH\'s 3e payoff').toContain('maelstrom');
+        // TICKET 162a: kraken_v2's 3e payoff in collection v2 is `hydro_blast` (120 power, Henry's
+        // v2.1 note); `maelstrom` moved to that OS's POOL, so the gym pile no longer opens with it.
+        expect(pile, 'TIDAL_CRUSH\'s 3e payoff').toContain('hydro_blast');
     });
 
     it('telegraphs on the offer screen and carries to the region final elite', () => {

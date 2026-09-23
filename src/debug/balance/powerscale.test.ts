@@ -47,14 +47,14 @@ describe('149c-1 — a daemon is worth its cast AND its hooks', () => {
     it('adds the hook price to an on-cast action instead of dropping one of them', () => {
         /*
          * The bug, in the shape 149b measured it (`research/scorer-pricing.md` §2): an in-memory
-         * `feedback_loop_daemon` with an added on-cast ATTACK 10 scored **1.2 instead of 3.2** —
+         * `feedback_loop` with an added on-cast ATTACK 10 scored **1.2 instead of 3.2** —
          * the on-cast action alone. The hook branch was gated on `score === 0` and ASSIGNED, so
          * giving a daemon anything to do on cast silently deleted the reason the card exists.
          *
          * Asserted as an inequality against both halves rather than against a literal, because the
          * literal moves the first time DRAW or ATTACK is repriced and the RULE does not.
          */
-        const base = registry['feedback_loop_daemon'];
+        const base = registry['feedback_loop'];
         expect(base).toBeDefined();
         expect(hookIdsOf(base).length).toBeGreaterThan(0);
 
@@ -65,13 +65,13 @@ describe('149c-1 — a daemon is worth its cast AND its hooks', () => {
         // be given: "install this, and draw a card while you do it".
         const withCast: ProgramData = {
             ...base,
-            id: 'feedback_loop_daemon__test_with_cast',
+            id: 'feedback_loop__test_with_cast',
             actions: [{ type: 'DRAW', amount: 1, target: 'SELF' }],
         } as unknown as ProgramData;
 
         // The on-cast action on its own, priced as the daemon it is (premium and all).
         const castOnly = calculatePowerscale({
-            ...withCast, id: 'feedback_loop_daemon__test_cast_only', hooks: [],
+            ...withCast, id: 'feedback_loop__test_cast_only', hooks: [],
         } as unknown as ProgramData).score;
         expect(castOnly).toBeGreaterThan(0);
 
@@ -178,7 +178,7 @@ describe('149c-2 — what a drawn card is worth', () => {
         expect(scored.length).toBeGreaterThan(100);
 
         // The five names the ledger reports as newly over band, each of which draws.
-        for (const id of ['dread_tidings', 'whirlpool_v2', 'pressure_point', 'rejuvenation', 'scry']) {
+        for (const id of ['dread_tidings', 'whirlpool', 'pressure_point', 'rejuvenation', 'scry']) {
             const card = registry[id];
             expect(card, id).toBeDefined();
             expect(draws(card), id).toBe(true);
@@ -343,7 +343,10 @@ describe('149c-5 — the band is a target, not a cliff', () => {
         expect(bandVerdict(-1.6, 6.5).state).toBe('MANUAL REVIEW');
 
         // And it really is where the drawback tail lands, not just where a synthetic zero lands.
-        for (const id of ['scrubber', 'vent', 'wither_feast', 'dark_pact', 'desperate_strike']) {
+        // TICKET 162a dropped `desperate_strike` from this list, and the reason is the card, not
+        // the rule: collection v2 gave it an 8-power ATTACK on top of the Strength and the 3% self
+        // damage, so it is no longer a card whose score is net-negative. The four that remain are.
+        for (const id of ['scrubber', 'vent', 'wither_feast', 'dark_pact']) {
             const card = registry[id];
             expect(card, id).toBeDefined();
             const band = budgetBandFor(Number(card.baseCost)).over;
@@ -419,11 +422,11 @@ describe('149c-6 — one rate per trigger, not one constant for fourteen cards',
 
     it('flags a trigger the census never measured instead of defaulting it', () => {
         /*
-         * `core_overclock_daemon` is a damage multiplier on `onDamageCalculated` with no element
+         * `core_overclock` is a damage multiplier on `onDamageCalculated` with no element
          * gate — a class the census has no rate for. A fallback rate would read as a measurement,
          * which is the failure mode ticket 66 spent a whole census correcting.
          */
-        const scored = calculatePowerscale(registry['core_overclock_daemon']);
+        const scored = calculatePowerscale(registry['core_overclock']);
         expect(scored.score).toBe(0);
         expect(scored.manualReview.join(' ')).toContain('HOOK:');
     });
@@ -449,7 +452,7 @@ describe('149c-6 — one rate per trigger, not one constant for fourteen cards',
          * every other class is its own floor. That is a finding, not a gap: an OPPONENT-triggered
          * hook cannot be built around, because the rate is the opponent's behaviour.
          */
-        const echo = calculatePowerscale(registry['echo_chamber_v2']);
+        const echo = calculatePowerscale(registry['echo_chamber']);
         expect(echo.hookFloor).toBeGreaterThan(0);
         expect(echo.hookCeiling / echo.hookFloor).toBeCloseTo(
             TRIGGER_RATE_CEILING.OWN_ZERO_COST_PLAY / TRIGGER_RATE_FLOOR.OWN_ZERO_COST_PLAY, 1);

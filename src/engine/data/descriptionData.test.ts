@@ -114,7 +114,9 @@ const ALLOWED: Record<string, string> = {
 
 const ALLOWED_FIRMWARE: Record<string, string> = {
     fafnir_v1: 'HOARD_ENGINE is hand-written in CustomFirmware.ts (hooks: [])',
-    skoll_v2: 'SOLAR_OVERDRIVE is hand-written in CustomFirmware.ts (hooks: [])',
+    // TICKET 162a: `skoll_v2` LEFT this list. SOLAR_OVERDRIVE was hand-written firmware; EMBER_FUSE
+    // is data, and its one number is in the hook payload where the rule says it belongs.
+    overclock_core: 'the +1 is the CARD\'s MAX_ENERGY action; the hooks.json entry carries only the name',
     hraesvelgr_v2: 'UPDRAFT_KERNEL is hand-written in CustomFirmware.ts (hooks: [])',
     ymir_v2: 'GLACIAL_HEART is hand-written in CustomFirmware.ts (hooks: [])',
     hel_v2: 'UNDERWORLD_GATEWAY is hand-written in CustomFirmware.ts; its numbers are OS_KNOBS.hel',
@@ -122,7 +124,7 @@ const ALLOWED_FIRMWARE: Record<string, string> = {
     ratatoskr_v1: 'GOSSIP_NODE percentage is applied in the heal path, not printed in the hook',
     driver_war_footing: 'the turn-4 escalation is a driver, evaluated outside the hook payload',
     reactive_plating: 'the per-turn grant cap lives in daemonHooks.ts, not in the hook payload',
-    hoofbeat_daemon: 'daemon hook power is printed; the turn-gate number is in daemonHooks.ts',
+    hoofbeat: 'daemon hook power is printed; the turn-gate number is in daemonHooks.ts',
 };
 
 describe('ticket 139 — every number a card prints is a number its data holds', () => {
