@@ -314,6 +314,27 @@ Twenty cards read OVER and Henry ruled them fine (2026-09-23). The two extremes,
 
 Open, and bookkeeping rather than balance: `BUDGET_BANDS` still holds 10/30/65/105 where v2.1 rules 12/30/70/120. The two disagree on ten of 98 cards, all within a rung's tolerance.
 
+## 0-MEASURE-A-COLLECTION-v2-DECK-AT-3v3-OR-NOT-AT-ALL (162c, 2026-09-23)
+
+Henry, on the 1v1 table below: *"She shares the str payoff with fenrir — we need to look at these as 3v3 decks not just 1v1."* He is right, and the size of it is the point.
+
+`scratch/t162c_comps.ts` runs six comps round-robin, both turn orders. The comps are not invented — each is a triple from `collection.json`'s own `partners` field, Henry's statement of which OS wants which. Field win rate against the other five:
+
+| comp | members | field |
+| --- | --- | ---: |
+| detonation | sköll_v2 + fenrir_v2 + kraken_v2 | **80%** |
+| poison | jorm_v2 + huldra_v2 + rat_v2 | **80%** |
+| water-engine | jorm_v1 + kraken_v1 + rat_v1 | **70%** |
+| keeper | huldra_v1 + rat_v1 + fenrir_v1 | 30% |
+| strength | sköll_v1 + fenrir_v1 + huldra_v1 | **20%** |
+| dazed | kraken_v1 + rat_v2 + huldra_v1 | **20%** |
+
+**A body moves up to FIFTY POINTS between the two instruments.** `jormungandr_v1` reads 20.9% alone and **70%** in the water-engine comp (+49). `ratatoskr_v2` 33.8% → **80%** (+46). `huldra_v2` 50% → 80% (+30). `kraken_v1` 45.7% → 70% (+24). **The §7 1v1 table below must not be used to rank decks**, and the two 1v1 "structural findings" it produced — jormungandr_v1 at 20.9%, ratatoskr_v2 at 33.8% — are instrument artefacts. A collection whose OS descriptions say *"whenever an ALLY..."* eleven times out of twelve cannot be measured a body at a time.
+
+**The one deck 3v3 does NOT rescue is sköll_v1**, and the test is controlled: `strength` and `keeper` differ by exactly one body (sköll_v1 ↔ ratatoskr_v1) and keeper is the better comp, 30% against 20%, beating it 2/2 head to head. Her own solitaire gain is +8.3 where the other passengers gain 24–49. She also drags `fenrir_v1` from 69.9% to 20%, the largest negative in the table. The kit finding below is the mechanism.
+
+**CONFIDENCE IS LOW AND THE NUMBER OF GAMES IS WHY.** Ten games a comp (one iteration, fifteen pairs, both orders) took **58 minutes** — 3v3 battles with draw engines run 70–340s each. A 2/10 has a 95% interval of roughly 3–56%. This is a smoke read that says WHICH INSTRUMENT TO USE; it is not evidence about any single comp. Three iterations is ~3 hours and is what a ruling should quote.
+
 ## 0-SKÖLL-v1-MAKES-A-CURRENCY-NOTHING-IN-HER-KIT-SPENDS (162c, 2026-09-23)
 
 158 §2 rules a kit to be two enablers, a consume, a scalar and a glue, *"the consume/scalar pair is required"*. Checked against the shipped kits (`scratch/t162c_shape.ts`): all twelve carry glue, ten carry a scalar, and **skoll_v1 and kraken_v2 carry neither a consume nor a scalar**.

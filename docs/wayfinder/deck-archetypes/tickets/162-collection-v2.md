@@ -231,3 +231,32 @@ The full 140 comp grid (`npm run balance`, twelve `.balance.ts` suites) is a mul
 `npm run decks` now also writes `collection-v2/registry.json` — the 98 cards, the twelve kits with their `startCopies`, the species pools and the run-only list, all read from the live registry (`src/debug/balance/collectionExport.ts`). `build.py` prefers that file over `collection.py` and falls back to the design draft with `--design` or when the export is absent.
 
 The data crosses ONCE, in the direction that has a natural reader. Porting `build.py`'s 20 KB of presentation into TypeScript would be a rewrite of a working page for no gain; making Python read the registry would mean parsing `mingmingRegistry.ts` in a build script. Two design-only fields have no registry home — 158 §2's `shape` and `cur` — and are CARRIED from `collection.json`, never invented: a card the design file has not heard of renders unclassified rather than guessed. A registry-sourced run deliberately does not rewrite `collection.json`, which is the record of what Henry ruled.
+
+## 11. 162c redone at 3v3 — Henry, 2026-09-23
+
+*"She shares the str payoff with fenrir — we need to look at these as 3v3 decks not just 1v1."* Correct, and §7's table is retired as a ranking because of it.
+
+`scratch/t162c_comps.ts`: six comps, round-robin, both turn orders. Each comp is a triple taken from `collection.json`'s own `partners` field rather than invented here.
+
+| comp | members | field |
+| --- | --- | ---: |
+| detonation | sköll_v2 + fenrir_v2 + kraken_v2 | **80%** |
+| poison | jormungandr_v2 + huldra_v2 + ratatoskr_v2 | **80%** |
+| water-engine | jormungandr_v1 + kraken_v1 + ratatoskr_v1 | **70%** |
+| keeper | huldra_v1 + ratatoskr_v1 + fenrir_v1 | 30% |
+| strength | sköll_v1 + fenrir_v1 + huldra_v1 | **20%** |
+| dazed | kraken_v1 + ratatoskr_v2 + huldra_v1 | **20%** |
+
+### The instrument, not the decks
+
+A body moves as much as fifty points between the two readings. `jormungandr_v1` is 20.9% alone and **70%** in the comp built around Undertow (+49); `ratatoskr_v2` 33.8% → **80%** (+46); `huldra_v2` 50% → 80%; `kraken_v1` 45.7% → 70%. **§9's two "structural" findings about jormungandr_v1 and ratatoskr_v2 were instrument artefacts** and are withdrawn. A collection whose OS text says *"whenever an ally…"* in eleven of twelve entries cannot be measured a body at a time.
+
+### The exception, and it is a controlled test
+
+`strength` and `keeper` differ by **exactly one body** — sköll_v1 against ratatoskr_v1, with fenrir_v1 and huldra_v1 in both. Keeper is the better comp (30% vs 20%) and beat strength 2/2 head to head. Sköll v1's own solitaire gain is **+8.3** where the other rescued passengers gain 24–49, and she takes `fenrir_v1` from 69.9% down to 20%, the largest negative in the table.
+
+So the 3v3 lens does not rescue this one, and §9's kit finding is the mechanism: her kit makes Strength and holds nothing that reads it, because `brute_force` sits in her pool. Fenrir's only Strength scalar in his own kit is one `unbound_fang`. Two bodies making a currency and one card spending it is not a shared payoff.
+
+### Confidence
+
+**Ten games a comp.** Fifteen pairs at one iteration, both orders, took **58 minutes** — 3v3 battles with draw engines run 70–340 seconds each. A 2/10 carries a 95% interval of roughly 3–56%. This says which INSTRUMENT to use; it is not evidence about any one comp. Three iterations is about three hours and is what a ruling should quote.
