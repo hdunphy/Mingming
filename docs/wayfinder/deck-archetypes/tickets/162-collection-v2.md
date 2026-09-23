@@ -1,6 +1,6 @@
 # Ticket 162 — Collection v2: archive the card pool, start again under the grammar
 
-**Type:** data (registry) + design review. **Status:** **RULED for playtest, 2026-09-23** (v2.1b) — Henry: *"This is good, we should commit it for play testing tonight."* 162a is Legion's next row. **Asked by Henry 2026-09-22:** *"I think we need to revisit
+**Type:** data (registry) + design review. **Status:** **162a SHIPPED 2026-09-23** (`172bc68`..`993ad09`, gate green); 162b/c/d open. Ruled for playtest 2026-09-23 (v2.1b) — Henry: *"This is good, we should commit it for play testing tonight."* 162a is Legion's next row. **Asked by Henry 2026-09-22:** *"I think we need to revisit
 the card pool. My latest playtest showed they were not exciting and it is still hard to build decks.
 Can we archive the current card collection and start a new one. Try to build a card collection after
 the notes I uploaded yesterday."* **Relates to:** 160 (this is 160's sessions done in one pass as a
@@ -108,3 +108,35 @@ Then:
 - **162c — measure.** 140 grid + 141 gym check + run gate on v2; the 160 §5 numbers before/after.
 - **162d — the browser as a dev tool.** `build.py`'s output wired to `npm run decks` so the HTML
   regenerates from the registry, not from a copy.
+
+## 6. 162a as shipped, 2026-09-23
+
+Four commits, `172bc68`..`993ad09`. Gate green: eslint 0, `tsc -b` 0, **2,635 vitest across 193 files**, `vite build` clean.
+
+**The registry is 268 entries, not 98.** 243 + 38 − 13 renamed. The scope ruling (Henry, 09-21: *"leave the non-EA mingmings for after EA"*) leaves twenty species fielding v1 decks and ~90 scenario fixtures naming v1 cards, so deleting those entries would break the calibration corpus for no gameplay benefit. What keeps a v1 card out of a player's hands is `RewardSystem`'s **`V2_RUN_POOL`** gate — when every party member is a launch species the offerable set is the twelve kits ∪ the twelve species pools ∪ the run-only cards, and nothing else. `archive/README.md` states this where whoever opens the archive will read it.
+
+**The 13 renames are aliased at `GetProgramData`, not find-and-replaced.** `water_slap` is a RECORD in ~90 scenario files and in Henry's run logs; rewriting one to match a rename makes it a lie about what was cast. The table is deliberately NOT folded into `ProgramRegistry` as extra keys — eight call sites walk `Object.keys()` and every one would see each renamed card twice. `GENERIC_HIT` and `MARKET_NEUTRAL_UTILITY` DID move to the new ids: a constant is not a record.
+
+**Three engine seams, authored before the cards** (`162a step 2a`): `scalingPower` on `SHARP_STACKS` (cinder_lance +6 while thorn_whip stays +5); `TARGET_STATUS_STACKS`, an ADDITIVE per-stack bonus read off the defender, for flashover (50 + 15/Burn) and sap_strength (20 + 6/Weakened) — `BURN_STACKS`/`DAZED_STACKS` multiply, so a 50-power base would read 0 on a clean board; a `CARDS_PLAYED` constraint for riptide_run, per-caster per ticket 123. Plus `MAX_ENERGY` as a card action for overclock_core, which the HOOK side has had since ticket 68.
+
+**EMBER_FUSE is data and the hand-written SOLAR_OVERDRIVE is deleted.** The old OS lived in `CustomFirmware.ts` because it needed a scaling cap the data path could not express; EMBER_FUSE needs no cap because Burn has its own. **It fires once per CARD, not per hit** — `onActionStart` is dispatched before the action loop. That is the literal reading of the printed sentence and it matches the kit, but `pack_tactics` in sköll_v2's kit gets one proc rather than three; pinned in `emberFuse.test.ts` so moving it is a ruling.
+
+**Deviations from the collection, and why:**
+- `heartwood` ships `target: Single`, not `Self`. Its own text is *"apply 1 Poison to the target"* and a Self program has no enemy to poison, so `Self` would silently delete half the card. Shipped as it already was.
+- The eight ally-target cards ship on §5.4's fallback because 160-e1 did not land first: Soothe, Mend, Tend, Bolster, Shell Share are `Self` with a `TODO(160-e1)`; Howl, Verdant Ward, Tidal Battery are `Side`, which `actionTargetIds` already widens to whichever side the card is aimed at. **Huldra v1's and Rat v1's keeper lanes only reach their own caster tonight.**
+- The marketplace's guaranteed neutral slot keeps its eleven v1 ids (`hamstring` and friends), which are therefore IN the v2 run pool. Narrowing them broke ticket 69's own guarantee and left the slot with no buff answer at all; **162b should print a v2 replacement for `hamstring`.**
+
+**Two of ticket 61's kit rules retired, because 161 §2 replaces them:** *the kit leads with the payoff* (most decks' payoff IS their consume, and 161 keeps consumes out of the opening five) and *the kit never tags the generic* (v2 puts the glue in the kit). `startKits.test.ts` now asserts what 161/162 promise and can still fail: five cards, sub-multiset of the deck, carries the deck's glue, holds no consume. **Henry's to confirm.**
+
+**`ignite` tripped ticket 152's tripwire** — its new conditional cantrip makes it a 0-energy card that draws. Measured on fenrir_v2, 1,200 games: max 8 casts in a turn, 0.3% of turns at ≥6, worst turn 85.5% of a health pool (undertow was max 18, 12.7%, 145%). **MEASURED_NOT_LOOPING.**
+
+## 7. The deltas for 162c — measured, not re-baselined
+
+§5.5 says record them and do not re-baseline. 1v1 probe, 1,200 games per OS over 30 opponents (`results/t162/GRID.txt`). Field win %: **ratatoskr_v1 80.5, fenrir_v2 79.3, kraken_v2 75.2, fenrir_v1 69.9, sköll_v2 66.9, jormungandr_v2 62.6, huldra_v2 50.0, kraken_v1 45.7, ratatoskr_v2 33.8, huldra_v1 33.6, jormungandr_v1 20.9, sköll_v1 11.7.**
+
+Mean 52.5, **sd 22.5**, spread 68.8, two of twelve in the 47–64 band — against the last ruled grid's sd 8.6 and 31 of 32. That is a fresh pool with draft numbers in it, which is what §4 says it is; the decks are different decks, so a cell is not a regression against the old grid.
+
+Two findings that are structural rather than numeric, for 162b to answer before any knob:
+- **sköll_v1 (11.7%)** is the Strength MULTI-HIT deck under v2.1b's multi-hit rule with the Strength CONSUME moved to Fenrir. It builds a pile it has nothing to spend.
+- **jormungandr_v1 (20.9%)** lost `ink_stream` to Kraken and is a cards-played deck whose only payoff is `serpents_coil`.
+- **fenrir_v1 spends 17.0% of its turns dealing ≥75% of a health pool** (next worst 8.1%, nine of twelve under 2%) on a p50 of 55.2% damage a turn — `war_pact`×2 + `ragnarok_edge`×2 under UNBOUND_KERNEL. That reads like a mechanism, not a number.

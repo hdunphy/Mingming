@@ -206,12 +206,23 @@ cards drawn and cards played this turn, so every iteration pays for itself. Pair
 was tried and fails too — ratatoskr_v1 holds `seed_bomb_v2`, also a cards-played scaler.
 
 So it is a MEASURED LIST: `LOOPING_FREE_DRAWS` = `undertow`, `slipstream`, `glimmer`, each with its
-number; `MEASURED_NOT_LOOPING` = `forage`, with the number that excludes it. **A tripwire test**
+number; `MEASURED_NOT_LOOPING` = `forage` and `ignite`, each with the number that excludes it. **A tripwire test**
 requires every 0-energy card that draws to be in one set or the other, so a new cantrip fails until
 somebody measures it with `scratch/t152_cardloop.ts` and decides. Do not "simplify" this back into
 a property test.
 
 Affects two shipped lists: `jormungandr_v1` (`undertow`×2) and `sleipnir_v1` (`slipstream`×2).
+
+**THE TRIPWIRE FIRED ON 2026-09-23 (ticket 162a), which is the only proof it works.** Collection
+v2 gives `ignite` a conditional cantrip — *apply 1 Burn; if the target was ALREADY Burning, draw a
+card* — so it became a 0-energy card that draws and the build stopped until somebody measured it.
+Measured on `fenrir_v2` (two copies, the most Burn in the roster), 1,200 games: **max 8 casts in a
+turn, 0.3% of turns at ≥6**, against `undertow`'s max 18 and 12.7%. The number that settles it is
+the deletion turn the rule exists for: fenrir_v2's worst turn is **85.5% of a health pool** and it
+spends 0.1% of turns above 75%, where jormungandr_v1 on `undertow` was at **145%** before its brake.
+Chaining `ignite` piles a status that caps at 4 into a deck with no draw payoff, so it does not
+convert. **MEASURED_NOT_LOOPING**; capping it would cost fenrir_v2 the two-copy opener its kit is
+built on, for a loop it does not have.
 
 **`undertow` ITSELF CHANGED ON 2026-09-23** (Henry: *"Ship 1 weakened"*) — it now reads "draw a
 card. You gain 1 Weakened." That takes jormungandr_v1 from 69.6% to 48.2%, right at the EA peer
@@ -264,7 +275,38 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
-**2026-09-23 — 160 SUPERSEDED by 162** except 160-e1 (ally-target cards, Legion's first row, before 162a) and §5 (now 162c); r1/r2 ship in 162a. Order tonight: **160-e1 → 162a**; fallback (Self/AllySide targets + TODO) only if e1 cannot land before the playtest.
+## 0-COLLECTION-v2-IS-UNBALANCED-AND-THAT-IS-EXPECTED (162a, 2026-09-23) — THE DELTAS FOR 162c
+
+Ticket 162 §4: *"Not priced. Not measured."* §5.5: *"the grid is expected to move — do not re-baseline tonight, record the deltas."* Here they are, measured AFTER the cut on the 1v1 probe (`scratch/t149_castprobe.ts --width 1 --iter 20`, 1,200 games per OS over 30 opponents; full table in `results/t162/GRID.txt`).
+
+| OS | field win % | vs the 47–64 EA band |
+| --- | ---: | --- |
+| ratatoskr_v1 | **80.5** | far over |
+| fenrir_v2 | **79.3** | far over |
+| kraken_v2 | **75.2** | far over |
+| fenrir_v1 | **69.9** | over |
+| sköll_v2 | 66.9 | over |
+| jormungandr_v2 | 62.6 | IN |
+| huldra_v2 | 50.0 | IN |
+| kraken_v1 | 45.7 | just under |
+| ratatoskr_v2 | 33.8 | under |
+| huldra_v1 | 33.6 | under |
+| jormungandr_v1 | **20.9** | far under |
+| sköll_v1 | **11.7** | far under |
+
+**Mean 52.5, sd 22.5, spread 68.8 points, two of twelve in band.** For comparison the last ruled grid (136u) was **sd 8.6 with 31 of 32 in band**, and `jormungandr_v1` was 48.2% the same morning. So this is not a tuned roster — it is a fresh card pool with draft numbers in it, which is exactly what 162 §4 says it is. **Do not read a cell as a regression against the old grid; the decks are different decks.**
+
+Two things worth carrying into 162b/162c rather than rediscovering. **The tails are structural, not numeric.** `sköll_v1` at 11.7% is the Strength MULTI-HIT deck under the v2.1b multi-hit rule (band power split across hits) with the Strength CONSUME moved to Fenrir — it builds a pile it has nothing to spend. `jormungandr_v1` at 20.9% lost `ink_stream` to Kraken (Henry's 09-21 ruling) and is now a cards-played deck whose payoff is `serpents_coil` alone. Both are pricing questions for 162b and possibly kit questions, not knob-turns.
+
+**`fenrir_v1` spends 17.0% of its turns dealing ≥75% of a health pool** (next worst is huldra_v2 at 8.1%, and nine of twelve are under 2%), on a p50 of 55.2% damage a turn. That is the one line in the table that looks like a mechanism rather than a number: `war_pact`×2 + `ragnarok_edge`×2 under UNBOUND_KERNEL, opening on five cards that all feed each other.
+
+**2026-09-23 — 162a SHIPPED. COLLECTION v2 IS THE REGISTRY.** `172bc68`..`993ad09`, four commits, gate green (eslint 0, tsc 0, **2,635 vitest across 193 files**, build clean). The v1 pool and the twelve v1 kits are in `src/engine/data/archive/` and nothing loads them. The registry is **268 entries, not 98** — the 20 post-EA species still field v1 decks and ~90 scenario fixtures still name v1 cards, so what keeps a v1 card out of a player's hands is `RewardSystem`'s **V2_RUN_POOL** gate, not the registry's size: an all-launch-species party is offered the 98 and nothing else. The thirteen renames resolve through `data/programAliases.ts` at `GetProgramData` — deliberately NOT folded in as extra registry keys, because eight places walk `Object.keys()` and every one would see each renamed card twice.
+
+**160-e1 DID NOT LAND FIRST, and the eight ally-target cards shipped on §5.4's fallback.** `Ally` and `AllySide` are not `TargetType`s and there is no picker. Soothe, Mend, Tend, Bolster and Shell Share ship `target: Self` with a `TODO(160-e1)`; Howl, Verdant Ward and Tidal Battery ship `Side` (which `actionTargetIds` already widens to whichever side the card is aimed at — how `tidal_battery` has shipped since ticket 69). **So Huldra v1's and Rat v1's keeper lanes only heal and buff their own caster tonight.** That is castable and playable, and it is the half of the playtest worth knowing is not real yet. e1 turns five `Self` into `Ally` and nothing else.
+
+**THREE THINGS FOR HENRY TO RULE, none blocking:** (1) Two of ticket 61's kit rules are RETIRED because 161 §2 replaces them — *the kit leads with the payoff* (most decks' payoff IS their consume, and 161 keeps consumes out of the opening five) and *the kit never tags the generic* (v2 puts the glue IN the kit). Reasons are in `startKits.test.ts`. (2) `heartwood` ships `target: Single`, not the collection's `Self`: its own text says *"apply 1 Poison to the target"* and a Self program has no enemy, so `Self` would delete half the card. (3) **EMBER_FUSE fires once per CARD, not once per hit** (`onActionStart` is dispatched before the action loop). That matches the printed sentence and the kit — v2 is the detonation deck, Sköll v1 is where the multi-hits live — but `pack_tactics` in v2's kit gets one proc, not three. Pinned in `emberFuse.test.ts` so moving it is a ruling and not an accident.
+
+**2026-09-23 — 160 SUPERSEDED by 162** except 160-e1 (ally-target cards, now the fallback's follow-up) and §5 (now 162c); r1/r2 shipped in 162a.
 
 **2026-09-23 — 162 RULED for playtest (v2.1b); 163 OPENED.** Henry: commit collection v2.1b for tonight — 162a is Legion's next row (archive programs.json, load `collection-v2/collection.json`, EMBER_FUSE + Ignite hooks, ally-target cards with Self fallbacks if 160-e1 is not in, no re-baseline tonight). **163 the upgrade pass:** card `+` versions by a per-shape generator rule (flat +25%, status +1 stack, scalar +25%/stack, multi-hit +1 hit, ally-target also self, daemon wider trigger), bought at the workshop / free at the gym gate; OS **patches** — six generic riders (Amplifier, Repeater, Relay, Splitter, Overclock, Failsafe) any OS accepts, one slot per body, written against the grammar so Relay/Splitter turn a solitaire OS into a party one; tiers rejected, Obelisk fork later. Four questions for Henry in 163 §5.
 
