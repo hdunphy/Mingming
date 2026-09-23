@@ -271,6 +271,24 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const programData = GetProgramData(card.dataId);
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
+    /*
+     * TICKET 160-e1 — an ally card played at an enemy is not a play.
+     *
+     * THE REDUCER IS WHERE THIS HAS TO LIVE, not the picker. `targeting.isValidCardTarget` governs
+     * what a pointer may drop on, and nothing else in the game goes through it: a scenario file, a
+     * replay, the balance harness and the AI all call PLAY_PROGRAM directly. Before this check the
+     * loosest of those paths was the effective rule, which is how a card that reads "an ally gains
+     * 3 Sharp" could hand three Sharp to the opponent.
+     *
+     * Rejected silently, like every other validation failure above it — the UI explains the refusal
+     * through `targetVerdict`, and a log line here would spam the AI's search.
+     */
+    if (programData.allyTarget && targetEntity) {
+        const casterOnPlayerSide = state.playerParty.some(e => e.id === sourceId);
+        const targetOnPlayerSide = state.playerParty.some(e => e.id === targetId);
+        if (casterOnPlayerSide !== targetOnPlayerSide) return state;
+    }
+
     const modifier = sourceEntity.nextProgramModifier;
     // A modifier restricted via appliesTo only DISCOUNTS a card of that
     // category (e.g. UNSTOPPABLE_MASS discounts an Attack). The charge is

@@ -32,6 +32,21 @@ import type { IBattleEntity, ProgramData } from '../../engine/types';
  * silent rules change smuggled in under a UI ticket is how a fight stops matching its tests.
  */
 export function isValidCardTarget(data: ProgramData, isEnemy: boolean): boolean {
+    /*
+     * TICKET 160-e1 — the ONE early return, and why it is early.
+     *
+     * An `allyTarget` card lands on your side and nowhere else. It has to be checked before the
+     * rule below rather than folded into it, because the rule below has a carve-out — "a card
+     * carrying a HEAL or a STATUS may be pointed at an ally" — which is a WIDENING, and a widening
+     * cannot express a restriction. Bolster is 3 Sharp; under that carve-out alone it is legal on
+     * an enemy, and handing the enemy three Sharp is a misclick the player cannot undo.
+     *
+     * That carve-out stays for everything else. It is what lets `soothe`-shaped cards work at all
+     * without a flag, and removing it here would silently un-target a dozen cards this ticket is
+     * not about.
+     */
+    if (data.allyTarget) return !isEnemy;
+
     const targetType = data.target;
     return (
         (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
@@ -61,7 +76,12 @@ export function describeLegalTargets(data: ProgramData): string {
         return isDamaging(data) ? 'ONE ENEMY (OR AN ALLY)' : 'ANY LIVING UNIT';
     }
     if (enemies) return data.target === 'Single' ? 'ONE ENEMY' : 'ENEMIES';
-    if (allies) return data.target === 'Self' ? 'SELF' : 'YOUR SIDE';
+    // 160-e1: an ally card says WHICH ally. "YOUR SIDE" on a card that lands on one of three
+    // bodies is the difference between a heal and a team heal, and the player is choosing.
+    if (allies) {
+        if (data.target === 'Self') return 'SELF';
+        return data.allyTarget && data.target === 'Single' ? 'ONE ALLY (OR YOURSELF)' : 'YOUR SIDE';
+    }
     return 'NO LEGAL TARGET';
 }
 
@@ -79,7 +99,10 @@ export function shortTargetLabel(data: ProgramData): string {
     const { enemies, allies } = legalSides(data);
     if (enemies && allies) return isDamaging(data) ? 'ENEMY*' : 'ANY';
     if (enemies) return data.target === 'Single' ? 'ENEMY' : 'ENEMIES';
-    if (allies) return data.target === 'Self' ? 'SELF' : 'ALLIES';
+    if (allies) {
+        if (data.target === 'Self') return 'SELF';
+        return data.allyTarget && data.target === 'Single' ? 'ALLY' : 'ALLIES';
+    }
     return '—';
 }
 

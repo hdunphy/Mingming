@@ -1316,7 +1316,8 @@
         "name": "Soothe",
         "description": "Remove 1 stack of a debuff from an ally.",
         "element": "None",
-        "target": "Self",
+        "target": "Single",
+        "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 0,
@@ -1330,13 +1331,13 @@
                 "type": "STATUS",
                 "status": "Weakened",
                 "stacks": -1,
-                "target": "SELF"
+                "target": "TARGET"
             },
             {
                 "type": "STATUS",
                 "status": "Dazed",
                 "stacks": -1,
-                "target": "SELF"
+                "target": "TARGET"
             }
         ]
     },
@@ -6181,6 +6182,7 @@
         "description": "Every ally gains 1 Energized.",
         "element": "Water",
         "target": "Side",
+        "allyTarget": true,
         "category": "Skill",
         "rarity": "Uncommon",
         "baseCost": 2,
@@ -6325,7 +6327,8 @@
         "name": "Mend",
         "description": "Heal an ally with 20 power.",
         "element": "None",
-        "target": "Self",
+        "target": "Single",
+        "allyTarget": true,
         "category": "Heal",
         "rarity": "Common",
         "baseCost": 1,
@@ -6338,7 +6341,7 @@
             {
                 "type": "HEAL",
                 "power": 20,
-                "target": "SELF"
+                "target": "TARGET"
             }
         ]
     },
@@ -6671,6 +6674,7 @@
         "description": "Every ally gains 1 Strength.",
         "element": "Fire",
         "target": "Side",
+        "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
@@ -7028,7 +7032,8 @@
         "name": "Tend",
         "description": "An ally gains 1 Sharp and heals with 8 power.",
         "element": "Nature",
-        "target": "Self",
+        "target": "Single",
+        "allyTarget": true,
         "category": "Heal",
         "rarity": "Common",
         "baseCost": 0,
@@ -7042,12 +7047,12 @@
                 "type": "STATUS",
                 "status": "Sharp",
                 "stacks": 1,
-                "target": "SELF"
+                "target": "TARGET"
             },
             {
                 "type": "HEAL",
                 "power": 8,
-                "target": "SELF"
+                "target": "TARGET"
             }
         ]
     },
@@ -7056,7 +7061,8 @@
         "name": "Bolster",
         "description": "An ally gains 3 Sharp.",
         "element": "Nature",
-        "target": "Self",
+        "target": "Single",
+        "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
@@ -7070,7 +7076,7 @@
                 "type": "STATUS",
                 "status": "Sharp",
                 "stacks": 3,
-                "target": "SELF"
+                "target": "TARGET"
             }
         ]
     },
@@ -7080,6 +7086,7 @@
         "description": "Every ally gains 2 Regen and 1 Sharp.",
         "element": "Nature",
         "target": "Side",
+        "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 2,
@@ -7192,7 +7199,8 @@
         "name": "Shell Share",
         "description": "An ally gains 6 Bark Shield.",
         "element": "Nature",
-        "target": "Self",
+        "target": "Single",
+        "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
         "baseCost": 1,
@@ -7206,7 +7214,7 @@
                 "type": "STATUS",
                 "status": "BarkShield",
                 "stacks": 6,
-                "target": "SELF"
+                "target": "TARGET"
             }
         ]
     },

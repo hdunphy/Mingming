@@ -450,7 +450,23 @@ function findBestSequence(
         // Determine valid targets based on card target type
         let potentialTargets: IBattleEntity[] = [];
 
-        if (programData.target === 'Self') {
+        if (programData.allyTarget) {
+            /*
+             * TICKET 160-e1 — FIRST, ahead of every heuristic below it.
+             *
+             * The branches after this one INFER a card's side from its payload: "it heals and does
+             * not attack, so it is for an ally". That inference is what `allyTarget` replaces, and
+             * it gets three of the eight new cards wrong — `bolster` (3 Sharp), `shell_share`
+             * (6 Bark Shield) and `howl` (1 Strength to the side) carry no HEAL at all, so the AI
+             * would have enumerated them against the enemy party and then scored handing the
+             * opponent a buff.
+             *
+             * A `Side` ally card still enumerates every friendly body: `actionTargetIds` widens it
+             * to the caster's whole side regardless, so the choice is free, but the search must see
+             * at least one legal target or the card is never considered.
+             */
+            potentialTargets = [...myParty];
+        } else if (programData.target === 'Self') {
             potentialTargets = [...myParty]; // Self cards target own units
             // A lifesteal card (ATTACK on TARGET plus HEAL on SELF) is an attack, not a
             // heal: its payload target is consumed by the ATTACK, and the HEAL resolves

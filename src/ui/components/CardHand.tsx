@@ -52,7 +52,15 @@ import '../screens/runShell.css';
  * words, and the card face's readout beside it says what this caster actually does to that
  * target. Two numbers that never claimed to be the same one.
  */
-const formatAction = (action: ProgramAction): string => {
+/*
+ * TICKET 160-e1 — an ally card's actions say "an ally", not "the target".
+ *
+ * `formatAction` reads the ACTION, which only knows `SELF` or `TARGET`; whether a target is a
+ * friend is a property of the CARD. So the card's flag is threaded in rather than inferred, and
+ * the word changes for every action on it at once — a card that says "an ally gains 3 Sharp" and
+ * a tooltip that says "→ the target" is the tooltip the flag exists to fix.
+ */
+const formatAction = (action: ProgramAction, allyTarget = false): string => {
     /*
      * ── TICKET 155g — WRITTEN AGAINST THE REAL UNION ────────────────────────────────────────
      *
@@ -74,15 +82,20 @@ const formatAction = (action: ProgramAction): string => {
             if (action.target === 'SELF') return `⚔️ Recoil onto the caster — ${p}${hits > 1 ? ` ×${hits}` : ''}`;
             return `⚔️ ${p}${hits > 1 ? ` ×${hits} hits` : ''}`;
         }
-        case 'HEAL':
-            return typeof action.power === 'number' ? `💚 Heals with ${action.power} power` : '💚 Restores HP';
+        case 'HEAL': {
+            const who = action.target === 'SELF' ? '' : allyTarget ? ' an ally' : '';
+            return typeof action.power === 'number'
+                ? `💚 Heals${who} with ${action.power} power`
+                : `💚 Restores${who ? who + "'s" : ''} HP`;
+        }
         case 'STATUS': {
             // The headline case, and the one that printed "STATUS". Says what lands, how much of
             // it, and on whom — the three things a player is asking.
             const stacks = action.stacks ?? 1;
             const where = action.target === 'SELF' ? 'the caster'
-                : action.target === 'Side' || action.target === 'SIDE' ? 'their whole side'
+                : action.target === 'Side' || action.target === 'SIDE' ? (allyTarget ? 'your whole side' : 'their whole side')
                 : action.target === 'All' || action.target === 'ALL' ? 'everyone'
+                : allyTarget ? 'the chosen ally'
                 : 'the target';
             return `✦ ${stacks}× ${action.status} → ${where}`;
         }
@@ -573,7 +586,7 @@ const CardHand: React.FC<{
                                             <div className="tooltip-section">
                                                 <div className="tooltip-label">Effects</div>
                                                 {data.actions.map((action, i) => (
-                                                    <div key={i} className="tooltip-action">{formatAction(action)}</div>
+                                                    <div key={i} className="tooltip-action">{formatAction(action, data.allyTarget)}</div>
                                                 ))}
                                             </div>
                                             <div className="tooltip-section">

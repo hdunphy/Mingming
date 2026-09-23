@@ -619,6 +619,29 @@ export interface ProgramData {
    * scored at its first cast. See `GROWTH_HORIZON_PLAYS` in powerscale.ts.
    */
   readonly growPerPlay?: number;
+  /**
+   * TICKET 160-e1 — **this card is aimed at a FRIENDLY unit.**
+   *
+   * A flag rather than a new `TargetType`, and that choice is the whole design. `target` says how
+   * WIDE a card reaches — one unit, a side, everything — and every consumer in the engine, the AI
+   * and the UI already reads it that way. Which SIDE it reaches is a second, independent question,
+   * and folding it into the first (an `Ally` and an `AllySide` member) would have meant every
+   * `switch` on `TargetType` growing two cases that behave exactly like `Single` and `Side` in all
+   * but one respect. Two orthogonal facts, two fields.
+   *
+   * - `target: 'Single'` + `allyTarget` — one ally, the caster included. Tend, Bolster, Mend,
+   *   Shell Share, Soothe.
+   * - `target: 'Side'` + `allyTarget` — your whole side. Howl, Verdant Ward, Tidal Battery.
+   * - `target: 'Self'` + `allyTarget` is a contradiction — a Self card has no target to pick —
+   *   and `allyTargeting.test.ts` fails the build for one.
+   *
+   * WHAT ENFORCES IT. Three places, because the picker is not a rule: `targeting.isValidCardTarget`
+   * (what the pointer may drop on), `TacticalAI`'s enumeration (what the AI considers), and
+   * `battleReducer.handlePlayProgram` (what is legal at all). The reducer's check is the one that
+   * matters — a scenario file, a replay and a test all reach it without going near the UI, and
+   * before this flag existed the loosest of the three was the effective rule.
+   */
+  readonly allyTarget?: boolean;
   readonly artReference?: string;
 }
 

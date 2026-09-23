@@ -950,7 +950,19 @@ export function actionTargetIds(
         return [sourceId];
     }
     if (programData?.target === 'Side' || programData?.target === 'All') {
-        const isOnPlayerSide = state.playerParty.some(e => e.id === targetId);
+        /*
+         * TICKET 160-e1: an `allyTarget` side card resolves against the CASTER'S side, whatever it
+         * was aimed at. Everything else keeps reading the declared target's side, which is the rule
+         * that makes an enemy's Side card hit the player and the player's hit the enemy.
+         *
+         * Stated rather than left to the aim, because the two disagree in exactly one case and it
+         * is a case that reaches here: an enemy AI casting `howl` has no picker in front of it, and
+         * a Side card with no legal enemy left would otherwise resolve against whoever `targetId`
+         * happened to name. A card that says "every ally" must not depend on where it was pointed.
+         */
+        const isOnPlayerSide = programData.allyTarget
+            ? state.playerParty.some(e => e.id === sourceId)
+            : state.playerParty.some(e => e.id === targetId);
         const party = isOnPlayerSide ? state.playerParty : state.enemyParty;
         return party.filter(e => e.currentHp > 0).map(e => e.id);
     }

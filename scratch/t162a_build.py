@@ -50,8 +50,8 @@ PLAYED_3 = {'type': 'CARDS_PLAYED', 'target': 'SELF', 'value': 3}
 # ---------------------------------------------------------------------------------------------
 ACTIONS = {
     # --- None / glue -------------------------------------------------------------------------
-    'soothe':     [S('Weakened', -1, 'SELF'), S('Dazed', -1, 'SELF')],
-    'mend':       [H(20, 'SELF')],
+    'soothe':     [S('Weakened', -1, 'TARGET'), S('Dazed', -1, 'TARGET')],
+    'mend':       [H(20, 'TARGET')],
     'forage':     None,   # unchanged
 
     # --- Fire: ignition ----------------------------------------------------------------------
@@ -109,8 +109,8 @@ ACTIONS = {
     # --- Nature: Ratatoskr -------------------------------------------------------------------
     'acorn_toss':     [A(6), A(6)],
     'seed_bomb':      [A(20, scaling='CARDS_PLAYED')],
-    'tend':           [S('Sharp', 1, 'SELF'), H(8, 'SELF')],
-    'bolster':        [S('Sharp', 3, 'SELF')],
+    'tend':           [S('Sharp', 1, 'TARGET'), H(8, 'TARGET')],
+    'bolster':        [S('Sharp', 3, 'TARGET')],
     'verdant_ward':   [S('Regen', 2, 'TARGET'), S('Sharp', 1, 'TARGET')],
     'pollen_cloud':   [S('Weakened', 1)],
     'heckle':         [S('Dazed', 1), S('Weakened', 1)],
@@ -119,7 +119,7 @@ ACTIONS = {
 
     # --- Nature: Huldra ----------------------------------------------------------------------
     'sap_strength': [A(20, scaling='TARGET_STATUS_STACKS', scalingStatus='Weakened', scalingPower=6)],
-    'shell_share':  [S('BarkShield', 6, 'SELF')],
+    'shell_share':  [S('BarkShield', 6, 'TARGET')],
     'bark_smash':   [CONS('BarkShield', 'SELF'), A(6, scaling='STATUS_CONSUMED')],
     'blightbloom':  [A(30), S('Poison', 5)],
 
@@ -147,14 +147,16 @@ HOOKS = {
 }
 
 # Cards whose PROGRAM-LEVEL target deviates from the collection, with the reason.
+#
+# 160-e1 SHIPPED, so `Ally` and `AllySide` are no longer fallbacks. They are not TargetTypes either:
+# `target` says how WIDE a card reaches and `allyTarget` says which SIDE, which are two orthogonal
+# facts (see the note on `ProgramData.allyTarget`). The collection's two words map onto them.
+ALLY_TARGET = {
+    'Ally':     'Single',   # one ally, the caster included
+    'AllySide': 'Side',     # your whole side
+}
+
 TARGET_OVERRIDE = {
-    # 160-e1 is not in: there is no `Ally` TargetType and no ally picker. `Self` keeps the card
-    # castable tonight (162 §5.4: "do not hold the playtest on the picker").
-    'soothe': 'Self', 'mend': 'Self', 'tend': 'Self', 'bolster': 'Self', 'shell_share': 'Self',
-    # `AllySide` likewise. `Side` is the engine's own name for it and `actionTargetIds` already
-    # widens a Side card to whichever side its declared target is on — which is how `tidal_battery`
-    # has shipped since ticket 69. Aimed at an ally it is "every ally", which is the printed card.
-    'howl': 'Side', 'verdant_ward': 'Side', 'tidal_battery': 'Side',
     # NOT the collection's `Self`. Heartwood's own text is "Gain 6 Bark Shield. Apply 1 Poison TO
     # THE TARGET" — a Self program has no enemy to poison, so `Self` would silently delete half the
     # card. Shipped as it already is (`Single`, with the shield action on SELF). Flagged for Henry.
@@ -181,7 +183,9 @@ def build():
         entry['description'] = c['text']
         entry['element'] = c['el']
         entry['category'] = c['cat']
-        entry['target'] = TARGET_OVERRIDE.get(cid, c['tgt'])
+        entry['target'] = TARGET_OVERRIDE.get(cid) or ALLY_TARGET.get(c['tgt'], c['tgt'])
+        if c['tgt'] in ALLY_TARGET:
+            entry['allyTarget'] = True
         entry['baseCost'] = c['cost']
         entry.setdefault('rarity', 'Common')
         entry['constraints'] = list(STD)
@@ -194,7 +198,7 @@ def build():
         elif 'actions' not in entry:
             raise SystemExit('no actions for %s' % cid)
         # key order: id first, then the printed face, then the machinery
-        order = ['id', 'name', 'description', 'element', 'target', 'category', 'exhaust',
+        order = ['id', 'name', 'description', 'element', 'target', 'allyTarget', 'category', 'exhaust',
                  'rarity', 'baseCost', 'constraints', 'actions', 'hooks', 'isToken',
                  'discardEffect', 'growPerPlay']
         entry = {k: entry[k] for k in order if k in entry} | {k: v for k, v in entry.items() if k not in order}
