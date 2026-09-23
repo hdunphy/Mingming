@@ -1,5 +1,22 @@
+"""
+Render the collection browser.
+
+TICKET 162d — THE SOURCE IS THE REGISTRY WHEN THERE IS ONE.
+
+    npm run decks              # refresh registry.json from the live registry
+    python build.py            # render browser.html from it
+    python build.py --design   # render from collection.py instead, as before
+
+`registry_source.apply` is the whole of it, and it lives in its own module because these two lines
+have been lost twice already to edits made from a pre-162d copy of this file. The loss is silent —
+the page still renders, it just describes the DRAFT collection rather than the shipped one.
+`src/debug/balance/collectionBrowser.test.ts` fails the gate if this call goes missing again.
+"""
 import json, collections, html
+import registry_source
 from collection import CARDS, OS, RUN_ONLY, CHANGELOG
+
+CARDS, OS, RUN_ONLY, FROM_REGISTRY = registry_source.apply(CARDS, OS, RUN_ONLY)
 
 C = {c['id']: c for c in CARDS}
 assert len(C) == len(CARDS), 'duplicate id'
@@ -180,5 +197,9 @@ const active={{}};
 document.querySelectorAll('#filters .chip').forEach(b=>b.addEventListener('click',()=>{{const k=b.dataset.k,v=b.dataset.v; active[k]=active[k]===v?null:v; document.querySelectorAll(`#filters .chip[data-k="${{k}}"]`).forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===active[k]))); document.querySelectorAll('#allTiles .rs').forEach(t=>{{t.hidden=Object.entries(active).some(([kk,vv])=>vv&&t.dataset[kk]!==vv)}});}}));
 </script>'''
 open('browser.html', 'w', encoding='utf-8').write(page)
-json.dump({'cards': CARDS, 'os': OS, 'run_only': RUN_ONLY}, open('collection.json', 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+# `collection.json` is the DESIGN record — what Henry ruled on 2026-09-23 — and it is where the
+# `shape` / `cur` tags live, which `registry_source` reads and cannot reconstruct. A registry-sourced
+# run must not overwrite it.
+if not FROM_REGISTRY:
+    json.dump({'cards': CARDS, 'os': OS, 'run_only': RUN_ONLY}, open('collection.json', 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
 print(len(page)//1024, 'KB', len(CARDS), 'cards')
