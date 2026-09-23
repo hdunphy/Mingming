@@ -78,7 +78,7 @@ The browser's first section is the change log. 98 cards.
 
 ## 5. Rows — 162a is GO (2026-09-23)
 
-**Legion, for tonight's playtest — 162a in this order:**
+**Legion, for tonight's playtest — 160-e1 FIRST (ally-target cards: `Ally` target type in the reducer, the hand's picker offers allies for flagged cards, the AI enumerates ally targets, beam gate re-run), then 162a in this order:**
 1. Archive: `programs.json` → `src/engine/data/archive/programs-v1.json`; the old EA kits and start
    kits in `mingmingRegistry.ts` go with it (keep the file readable for the card browser's history).
 2. Load `collection-v2/collection.json`: every card in `cards[]` becomes a `programs.json` entry (ids as
@@ -91,7 +91,7 @@ The browser's first section is the change log. 98 cards.
 3. `hooks.json`: **EMBER_FUSE** (Sköll v2: attack on a Burning target → +1 Burn to it); Ignite's
    "draw if the target was already Burning"; Undertow's self-Weakened (already tested).
 4. **Ally-target cards** (Tend, Bolster, Shell Share, Mend, Soothe, Howl, Verdant Ward, Tidal Battery)
-   need 160-e1. If e1 cannot land tonight: ship them with `target: Self` / `AllySide` fallbacks and a
+   need 160-e1 (step 0). If e1 cannot land before the playtest: ship them with `target: Self` / `AllySide` fallbacks and a
    `TODO(160-e1)` so the kits are castable; do not hold the playtest on the picker.
 5. `npm run gate`; the grid is expected to move — do **not** re-baseline tonight, record the deltas
    in the write-back for 162c.
