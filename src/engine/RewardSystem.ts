@@ -32,7 +32,9 @@
 import { PRNG, type PrngSeed } from './core/PRNG';
 import { SeedStream } from './core/SeedStream';
 import { ProgramRegistry } from './data/programRegistry';
-import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, getDeckForOS } from './data/mingmingRegistry';
+import { resolveProgramId } from './data/programAliases';
+import { v2RunPool } from './data/speciesPools';
+import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
 import { FIGHT_KINDS } from './run/encounter';
@@ -355,13 +357,64 @@ const CALIBRATION_ONLY: ReadonlySet<string> = (() => {
     for (const species of Object.keys(MingmingRegistry)) {
         const isPlayable = (PLAYABLE_SPECIES as ReadonlyArray<string>).includes(species);
         for (const os of MingmingRegistry[species]?.availableOS ?? []) {
-            for (const dataId of getDeckForOS(species, os)) (isPlayable ? playable : other).add(dataId);
+            // TICKET 162a: canonical ids on BOTH sides of the subtraction. A non-EA deck still says
+            // `water_slap`; without resolving it, `tackle` would look like a card no playable deck
+            // runs and fall out of every reward pool in the game.
+            for (const dataId of getDeckForOS(species, os)) (isPlayable ? playable : other).add(resolveProgramId(dataId));
         }
     }
     return new Set([...other].filter((dataId) => !playable.has(dataId)));
 })();
 
-export function isRewardable(dataId: string): boolean {
+/**
+ * TICKET 162a — **the Early-Access run pool: collection v2, and nothing else.**
+ *
+ * ## The complaint this answers
+ *
+ * Henry, 2026-09-22: *"My latest playtest showed they were not exciting and it is still hard to
+ * build decks."* `CALIBRATION_ONLY` above excludes exactly one species' cards, so the shop and the
+ * reward screen have been drawing from the whole registry by ELEMENT — every Fire card any of the
+ * twenty post-EA species runs, offered to a party that can never field those species. That is a
+ * hundred and seventy cards of noise between the player and the eight their deck is built around.
+ *
+ * ## The rule
+ *
+ * When every member of the party is a LAUNCH species, the offerable set is collection v2's run
+ * pool: the twelve kits, the twelve species pools, and the run-only cards. Ninety-eight cards.
+ * A mixed or post-EA party falls through to the old behaviour unchanged, because those species
+ * have no v2 pool yet and gating them would leave them with nothing to be offered.
+ *
+ * ## Why this is a gate and not a deletion
+ *
+ * The registry still holds the v1 entries (`archive/README.md` says why: twenty species and ~90
+ * scenario fixtures still name them). A card is kept OUT OF A PLAYER'S HANDS here, at the one
+ * place that decides what a run may offer, rather than by shrinking a registry the balance corpus
+ * depends on. Turning it off is deleting one condition.
+ */
+const V2_RUN_POOL: ReadonlySet<string> = v2RunPool((osId) => {
+    const species = Object.keys(MingmingRegistry)
+        .find((id) => (MingmingRegistry[id]?.availableOS ?? []).includes(osId));
+    return species ? getDeckForOS(species, osId).map(resolveProgramId) : [];
+});
+
+/** Every OS in `SPECIES_CARD_POOLS` belongs to a launch species; this is the set of those species. */
+const V2_SPECIES: ReadonlySet<string> = new Set(LAUNCH_SPECIES);
+
+/**
+ * Is this party one the v2 pool speaks for? True only when EVERY member is a launch species — a
+ * party with one post-EA member has cards the v2 pool does not name, and narrowing the pool under
+ * it would offer that member nothing.
+ */
+export function usesV2Pool(party: ReadonlyArray<IRewardPartyMember>): boolean {
+    return party.length > 0 && party.every((m) => V2_SPECIES.has(m.definitionId));
+}
+
+
+export function isRewardable(rawId: string): boolean {
+    // TICKET 162a: resolve the v2 renames before asking anything about the card. A deck that still
+    // says `water_slap` contributes `tackle` to the playable set, so the same card cannot be both
+    // rewardable under one spelling and calibration-only under the other.
+    const dataId = resolveProgramId(rawId);
     const data = ProgramRegistry[dataId];
     if (!data || data.isToken || (data.rarity as string) === 'Token') return false;
     return !CALIBRATION_ONLY.has(dataId);
@@ -449,7 +502,17 @@ export function rewardCardPool(
         }
     }
 
-    return ids.length > 0 ? ids : getPoolForElement(fallbackElement);
+    const pool = ids.length > 0 ? ids : getPoolForElement(fallbackElement);
+
+    /*
+     * TICKET 162a: an Early-Access party is offered collection v2 and nothing else. See
+     * `V2_RUN_POOL`. The intersection is applied HERE rather than inside `getPoolForElement`
+     * because the element rule is also the FALLBACK for a party that contributes no elements, and
+     * a fallback that can return an empty list is a fight the player wins and gets nothing for.
+     */
+    if (!usesV2Pool(party)) return pool;
+    const narrowed = pool.filter((dataId) => V2_RUN_POOL.has(dataId));
+    return narrowed.length > 0 ? narrowed : pool;
 }
 
 // ---------------------------------------------------------------------------------------------

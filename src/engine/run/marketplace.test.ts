@@ -508,10 +508,13 @@ describe('a price is the card’s printed energy, and nothing else', () => {
         // These three are all 2-energy; the old model billed them 40, 56 and 80.
         expect(ProgramRegistry.bracing_cold.rarity).toBe('Common');
         expect(ProgramRegistry.strength_burst.rarity).toBe('Uncommon');
-        expect(ProgramRegistry.core_overclock_daemon.rarity).toBe('Rare');
+        // TICKET 162a renamed it `core_overclock`; `core_overclock_daemon` still resolves through
+        // `programAliases`, but a DIRECT registry index does not go through the table by design.
+        expect(ProgramRegistry.core_overclock.rarity).toBe('Rare');
         expect(cardPrice('bracing_cold')).toBe(35);
         expect(cardPrice('strength_burst')).toBe(35);
-        expect(cardPrice('core_overclock_daemon')).toBe(35);
+        expect(cardPrice('core_overclock_daemon'), 'and the old id still prices, through the alias').toBe(35);
+        expect(cardPrice('core_overclock')).toBe(35);
     });
 
     it('holds that at registry scale: every energy bucket is multi-rarity and single-priced', () => {
@@ -790,7 +793,7 @@ describe('the generics, measured against the run’s income', () => {
         expect(trio.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
         // And a solo run holds the same three — the allowance is the starter's, not the party's.
         expect(RUN.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
-        expect(GENERIC_HIT).toBe('water_slap');
+        expect(GENERIC_HIT).toBe('tackle');
     });
 
     it('quotes the income table the derivation is written against', () => {

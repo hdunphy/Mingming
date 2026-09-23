@@ -27,7 +27,7 @@ import {
     rollDropTable,
     blueprintRateFor,
 } from './RewardSystem';
-import { ProgramRegistry } from './data/programRegistry';
+import { GetProgramData, ProgramRegistry } from './data/programRegistry';
 import { getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
 import { encounterSeed } from './run/encounter';
 import type { IRegionNode, IRunState } from './runTypes';
@@ -519,8 +519,18 @@ describe('RewardSystem', () => {
              * lazily unioned the whole roster.
              */
             const fielded = rewardCardPool([{ definitionId: 'kraken', activeOS: 'kraken_v1' }]);
+            /*
+             * TICKET 162a added the `element !== 'None'` filter, and it is a fixture fix rather
+             * than a weakening. `getPoolForElement` folds every NEUTRAL card into every element's
+             * pool — it always has — so a benched species' neutral cards were never excluded by
+             * this rule and never claimed to be. It went unnoticed until collection v2 put `forage`
+             * (element None) in fenrir_v1's kit and not in kraken_v1's. The claim under test is
+             * that a benched species' ELEMENTAL cards stop being offered, which is what the bench
+             * is for.
+             */
             const benched = getDeckForOS('fenrir', 'fenrir_v1')
-                .filter((id) => !getDeckForOS('kraken', 'kraken_v1').includes(id));
+                .filter((id) => !getDeckForOS('kraken', 'kraken_v1').includes(id))
+                .filter((id) => GetProgramData(id).element !== 'None');
 
             expect(benched.length, 'fixture assumes fenrir has cards kraken does not')
                 .toBeGreaterThan(0);
@@ -532,8 +542,9 @@ describe('RewardSystem', () => {
         it('dedupes for membership — a doubled card is not a doubled drop chance', () => {
             const pool = rewardCardPool(FENRIR_V1);
             expect(new Set(pool).size).toBe(pool.length);
-            // fenrir_v1 doubles blood_rite; the pool still lists it once.
-            expect(getDeckForOS('fenrir', 'fenrir_v1').filter((id) => id === 'blood_rite')).toHaveLength(2);
+            // fenrir_v1 doubles war_pact (it doubled blood_rite until collection v2); the pool
+            // still lists it once.
+            expect(getDeckForOS('fenrir', 'fenrir_v1').filter((id) => id === 'war_pact')).toHaveLength(2);
         });
 
         it('can offer a card the player already holds — duplicates are legal', () => {

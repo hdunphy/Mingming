@@ -57,6 +57,8 @@ import { SeedStream } from '../core/SeedStream';
 import { MACRO_IDS, MacroRegistry } from '../data/macroRegistry';
 import { LAUNCH_SPECIES } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
+import { NEUTRAL_UTILITY_IDS } from '../data/speciesPools';
+import { resolveProgramId } from '../data/programAliases';
 import { isRewardable, rewardCardPool, type IRewardPartyMember } from '../RewardSystem';
 import { numericBaseCost } from '../types';
 import type { Element } from '../types';
@@ -223,52 +225,13 @@ export const MARKET_TOTAL_SLOTS = MARKET_STOCK_SIZE + MARKET_NEUTRAL_SLOTS + MAR
  * Ordered, not sorted, so the file reads as a curated list and a diff shows an addition as an
  * addition.
  */
-export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = [
-    // The ruled seed entry (67 R4.3). The answer to an escalating Strengthened aura, buyable by a
-    // party that brought none of it.
-    'hamstring',
-    // 18 power + 2 Strengthened. The other side of the same duality, for a party with no buff of
-    // its own.
-    'adrenaline',
-    // Draw 2 at 1e. Card flow is the one thing every archetype wants and several launch decks have
-    // no source of.
-    'squirrel_away',
-    // Daemon: gain 1 Sharp. A permanent, and the only neutral one.
-    'harden_daemon',
-    /*
-     * TICKET 69's TIDEWRACK ENTRIES, printed 2026-08-30 (Henry: *"riptide and short circuit need to
-     * be added"*). Ruled in that ticket as direction; the numbers below are the printing.
-     *
-     * Both answer the same thing — Tidewrack converts its own card flow into damage TWICE within a
-     * turn (`ink_stream` x4 at 33 power per triggered draw, `serpents_coil` x2 at 10 per card
-     * played) — and mitigation cannot: Sharp and Weakened are worth 1 power a stack against hits
-     * printed at 33-105. The lever is the flow itself, so these tax the flow.
-     *
-     * They are deliberately NOT redundant. `riptide` taxes BREADTH (how many cards a turn) and
-     * `short_circuit` taxes DEPTH (how much of that is engine rather than the natural draw), which
-     * is why a zoo pays both and an ordinary enemy pays almost nothing.
-     */
-    'riptide',
-    'short_circuit',
-    /*
-     * THE REMAINING FIVE (`research/69-toolbox-printings.md`, Henry 2026-08-30). With these the
-     * standing law is satisfied for all three gyms: every boss has at least three counter flavors
-     * reachable by any party, none of them element-locked.
-     *
-     * By gym, so the list can be read as the answer set it is:
-     *   Emberfall (WAR FOOTING, a Strengthened aura) -> `hamstring`, `discharge`, `reactive_plating`
-     *   Tidewrack (TIDAL SURGE, a draw-zoo)          -> `riptide`, `short_circuit`, `reactive_plating`
-     *   Rootfall  (ROOT ROT, a poison clock)         -> `scrubber`, `vent`, `drip_feed`
-     *
-     * `reactive_plating` answers two of the three on purpose (ruled): a Strengthened aura and a zoo
-     * of small hits are the same problem from the defender's side.
-     */
-    'reactive_plating',
-    'discharge',
-    'scrubber',
-    'vent',
-    'drip_feed',
-];
+/*
+ * TICKET 162a moved the IDS to `data/speciesPools.ts` and left the reasoning above where it was
+ * written. One list, because the v2 pool gate has to see the same ids this slot offers — a card
+ * the shop guarantees and the pool excludes is the disagreement ticket 69 closed from the other
+ * side. The notes on each entry are in that file.
+ */
+export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = NEUTRAL_UTILITY_IDS;
 
 /**
  * THE RULED ANSWER SET PER GYM — ticket 69's standing law, as data rather than as prose.
@@ -389,7 +352,7 @@ export const SELL_PRICE_BY_ENERGY: ReadonlyArray<number> = [5, 10, 15, 20];
 
 /** What the market pays for one card. Above `MAX_PRICED_ENERGY` sells as the top rung, as it buys. */
 export function sellPrice(dataId: string): number {
-    const data = ProgramRegistry[dataId];
+    const data = ProgramRegistry[resolveProgramId(dataId)];
     const energy = Math.min(numericBaseCost(data?.baseCost ?? 0), MAX_PRICED_ENERGY);
     return SELL_PRICE_BY_ENERGY[Math.max(0, energy)];
 }
@@ -459,7 +422,7 @@ export const REROLL_PRICE = MARKET_REFRESH_PRICE;
  * priced as the expensive card it plays as.
  */
 export function cardPrice(dataId: string): number {
-    const data = ProgramRegistry[dataId];
+    const data = ProgramRegistry[resolveProgramId(dataId)];
     // An unknown id prices as the cheapest rung rather than throwing: a price is asked for by a
     // render, and a shop row that crashes is worse than one that is wrong by 30 scrap.
     if (!data) return CARD_PRICE_BY_ENERGY[0];
@@ -775,6 +738,8 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
 
     // The neutral slot is a RESERVATION, not an outsider: `hamstring` and friends are in every
     // party's pool now, and the point of the slot is that a 33-card draw cannot crowd them out.
+    // Ticket 162a keeps that true under the v2 pool gate by putting this list IN the pool — see
+    // `NEUTRAL_UTILITY_IDS` in `speciesPools.ts`, which is where these ids now live.
     const neutral = MARKET_NEUTRAL_UTILITY.filter((id) => isRewardable(id));
 
     /*
