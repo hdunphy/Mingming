@@ -75,6 +75,8 @@ Both rules are now written into `collection.py`'s header and applied: bands 0e �
 (Ember Jab hit / Ignite cantrip; Snarl single / Pollen Cloud side; Acorn Toss multi-hit / Tackle flat).
 The browser's first section is the change log. 98 cards.
 
+**v2.1b (same day):** Henry — *Flare Burst underpowered · Ragnarok 1p per stack · Flashover priced so the average at 2 Burn is 80 · all multi-hits underpowered: same scaling as a normal card, 1e = 30/hits · Scald 2 Burn · Pile On 45.* Applied: the MULTI-HIT RULE (band power split across hits — Flare Burst 15×2, Pack Tactics 23×3, Serpent Flurry 10×3, Acorn Toss 6×2), Ragnarok Edge +1/1% (max 50), Flashover 50 + 15/Burn, Scald 2 Burn + 1 self Dazed, Pile On 45 (again if Dazed).
+
 ## 5. Rows (after Henry's review)
 
 - **162a — archive.** `programs.json` → `src/engine/data/archive/programs-v1.json` (kept for the
