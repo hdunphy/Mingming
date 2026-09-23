@@ -13,14 +13,26 @@ produces a median that describes the AUDITOR rather than the pool — which is e
 
 Run: python3 scratch/t162b_split.py
 """
-import csv, json, os, statistics
+import csv, json, os, re, statistics
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LEDGER = os.path.join(ROOT, 'results', 't162', 'LEDGER.tsv')
 PROGRAMS = os.path.join(ROOT, 'src', 'engine', 'data', 'programs.json')
 
-REPO_BAND = {0: 10, 1: 30, 2: 65, 3: 105}     # powerscale.BUDGET_BANDS, x10 into power
-V21_BAND = {0: 12, 1: 30, 2: 70, 3: 120}      # Henry's v2.1 slot tax (162 §4b)
+def live_bands():
+    """
+    The bands the scorer is ACTUALLY using, read out of `powerscale.ts`.
+
+    Hardcoded until 2026-09-23, as two tables: the repo's curve and Henry's v2.1 slot tax, printed
+    side by side because they disagreed. Henry then ruled *"keep my numbers"* and `BUDGET_BANDS`
+    became the slot tax, at which point a hardcoded "repo" column was a second copy of a number
+    that had moved — a script whose whole job is to correct a misreading, misreading something.
+    """
+    src = open(os.path.join(ROOT, 'src', 'debug', 'balance', 'powerscale.ts'), encoding='utf-8').read()
+    block = src[src.index('export const BUDGET_BANDS'):src.index(']', src.index('export const BUDGET_BANDS'))]
+    return {int(c): float(o) * 10 for c, o in re.findall(r'cost:\s*(\d+),\s*over:\s*([\d.]+)', block)}
+
+BAND = live_bands()
 
 def reads_a_pile(card):
     """The card's value depends on a board the auditor cannot see."""
@@ -34,7 +46,8 @@ def main():
     programs = json.load(open(PROGRAMS, encoding='utf-8'))
     power = lambda r: float(r['score']) * 10
 
-    print('cost   auditor can read        it only guesses        daemons        repo   v2.1')
+    print("Henry's slot tax, ruled 2026-09-23, is the band: " + ' / '.join(f'{BAND[c]:.0f}' for c in (0, 1, 2, 3)) + ' power.\n')
+    print('cost   auditor can read        it only guesses        daemons        band')
     for cost in (0, 1, 2, 3):
         at = [r for r in rows if int(r['cost']) == cost]
         daemons = [r for r in at if programs[r['id']]['category'] == 'Daemon']
@@ -42,15 +55,15 @@ def main():
         flat = [r for r in rest if not reads_a_pile(programs[r['id']])]
         pile = [r for r in rest if reads_a_pile(programs[r['id']])]
         med = lambda xs: f'{statistics.median(power(x) for x in xs):5.0f} (n={len(xs):2d})' if xs else '      —    '
-        print(f'  {cost}e   {med(flat)}        {med(pile)}       {med(daemons)}   {REPO_BAND[cost]:4d}   {V21_BAND[cost]:4d}')
+        print(f'  {cost}e   {med(flat)}        {med(pile)}       {med(daemons)}   {BAND[cost]:4.0f}')
 
-    print('\nFlat cards under their v2.1 band — the only pricing rows this ledger supports:')
+    print('\nFlat cards more than 10% under band — see REDLINE.md for the filtered review list:')
     for cost in (0, 1, 2, 3):
         for r in sorted((r for r in rows if int(r['cost']) == cost
                          and programs[r['id']]['category'] != 'Daemon'
                          and not reads_a_pile(programs[r['id']])
-                         and power(r) < V21_BAND[cost] * 0.9), key=power):
-            print(f'  {r["id"]:<18} {power(r):5.0f} power vs {V21_BAND[cost]:3d}   {programs[r["id"]]["description"][:56]}')
+                         and power(r) < BAND[cost] * 0.9), key=power):
+            print(f'  {r["id"]:<18} {power(r):5.0f} power vs {BAND[cost]:3.0f}   {programs[r["id"]]["description"][:56]}')
 
 if __name__ == '__main__':
     main()

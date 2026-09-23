@@ -157,17 +157,10 @@ export const DEBUFFS = ['Burn', 'Poison', 'Dazed', 'Stunned', 'Weakened', 'Aslee
 /**
  * Section 1.3's target-score table, one band per energy cost.
  *
- * These now sit exactly on the docs/power_curve_spec.md rev 3 damage curve (10/40/90/140
- * power for 0/1/2/3e, divided by 10 to match the ATTACK branch's `power/10` scoring unit).
- * `over` IS the point target now, not a redline above it - rev 3's whole premise is a firm
- * "a 1-energy card should deal 40 power" target, not a range with slack above it. `under`
- * is 80% of `over`, an advisory amber line with no particular derivation beyond "clearly
- * short of the target."
- *
- * The 3+ band has no upper bound of its own - a 4-cost card is expected to reach 19.0
- * (190 power), legitimately above the 3-cost band's 14.0. Read the 3-band's `over` as "a
- * 3-cost card is expected to reach 14, and one far past 14 is the same overbudget problem a
- * 2-cost card past 9 is" - a 4e card is supposed to clear it, that's fine.
+ * Divided by 10 to match the ATTACK branch's `power/10` scoring unit, so `over: 3.0` is a
+ * 30-power target. `over` IS the point target, not a redline above it; `under` is 80% of it, an
+ * advisory amber line. The numbers themselves are Henry's slot tax — see the block above
+ * `BUDGET_BANDS`.
  */
 export interface BudgetBand {
     /** Lowest energy cost this band covers. The last band is open-ended (`3+`). */
@@ -178,15 +171,40 @@ export interface BudgetBand {
     under: number | null;
 }
 
-// rev 3.2 (ticket 24): the curve moved 10/40/90/140 -> 10/35/75/120, so the bands move
-// with it. The POWER UNIT itself is unchanged - a point of power still buys the same
-// fraction of a health pool - so the per-status prices below are deliberately NOT rescaled.
-// What changed is only how much power a card of a given cost is allowed to carry.
+/*
+ * ── HENRY'S SLOT TAX, RULED 2026-09-23 (ticket 162 §4b, adopted by 162b) ──────────────────
+ *
+ * **10 / 30 / 65 / 105 power  ->  12 / 30 / 70 / 120.** Henry: *"keep my numbers."*
+ *
+ * The rule behind the change, in his words: *"you pay for the cost of playing 1 card — 1e ≈ 30,
+ * 2e at least 70"*, and the principle underneath it is that **a 2e or 3e card must beat two 1e
+ * cards**. It spends a hand slot as well as the Energy, and the old curve charged it only for the
+ * Energy — which is why a 2-energy card at 65 was a worse deal than two 1-energy cards at 30 each
+ * and the pool's 2e rung read as a tax on itself.
+ *
+ * WHAT MOVED, AND WHAT DID NOT. The 1e rung is unchanged at 30, so the curve is anchored where the
+ * roster is densest (41 of collection v2's 98 cards) and every price below is still denominated
+ * against the same power unit. `under` stays at 80% of `over`, which is where it has always been.
+ *
+ * WHAT THIS REPRICES. Every costed card in the registry, not only collection v2's 98 — the 170 v1
+ * entries twenty post-EA species still field are audited against this table too. That is the
+ * intended blast radius: one curve, or the audit says two different things about two halves of the
+ * same registry. The v1 entries move by at most a rung's tolerance at 0e and 2e; `results/t162/`
+ * holds the before/after.
+ *
+ * The 3+ band still has no upper bound of its own — a 4-cost card is expected to clear 12.0
+ * legitimately.
+ *
+ * (Was: rev 3.2 / ticket 24's 10/35/75/120 curve, itself down from 10/40/90/140. The POWER UNIT
+ * has never changed through any of these — a point of power still buys the same fraction of a
+ * health pool — so the per-status prices below are deliberately NOT rescaled. What moves is only
+ * how much power a card of a given cost is expected to carry.)
+ */
 export const BUDGET_BANDS: ReadonlyArray<BudgetBand> = [
-    { cost: 0, over: 1.0, under: 0.8 },
+    { cost: 0, over: 1.2, under: 0.96 },
     { cost: 1, over: 3.0, under: 2.4 },
-    { cost: 2, over: 6.5, under: 5.2 },
-    { cost: 3, over: 10.5, under: 8.4 },
+    { cost: 2, over: 7.0, under: 5.6 },
+    { cost: 3, over: 12.0, under: 9.6 },
 ];
 
 /**

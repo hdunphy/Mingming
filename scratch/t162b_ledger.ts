@@ -3,19 +3,17 @@
  *
  * §5: *"162b — score. 149c over the 99; ledger to Henry; MANUAL REVIEW rows ruled."*
  *
- * # WHY IT PRINTS TWO BANDS AND NOT ONE
+ * # ONE BAND NOW — Henry ruled it, 2026-09-23
  *
- * `powerscale.BUDGET_BANDS` is the curve the whole repo is audited against — 1.0 / 3.0 / 6.5 / 10.5
- * in scorer units, i.e. 10 / 30 / 65 / 105 power. Henry's v2.1 review (162 §4b, 2026-09-23) ruled a
- * different one for collection v2, the SLOT TAX: *"0e ≈ 12, 1e ≈ 30, 2e at least 70, 3e ≥ 120 — you
- * pay for the cost of playing 1 card"*, with the rule behind it that a 2e or 3e card must beat two
- * 1e cards because it spends a slot as well as the Energy.
+ * This printed TWO bands while they disagreed: `powerscale.BUDGET_BANDS` (the curve the repo was
+ * audited against, 10/30/65/105 power) and Henry's v2.1 SLOT TAX (12/30/70/120, *"a 2e card must
+ * beat two 1e cards — you pay for the cost of playing 1 card"*). Reporting both and changing
+ * neither was the right call for a ledger whose job was to ASK the question.
  *
- * Those disagree at three of the four costs. Scoring v2 against the old curve would measure it
- * against a rule Henry replaced; MOVING `BUDGET_BANDS` would reprice all 268 registry entries,
- * including the 170 v1 cards twenty post-EA species still field, which is a far larger change than
- * the row that asked for a ledger. So this prints both, and where they disagree is a decision for
- * Henry rather than one this script makes.
+ * He answered it — *"keep my numbers"* — and `BUDGET_BANDS` is the slot tax now, so the `tax`
+ * columns below read identical to the `curve` ones. They are kept rather than deleted because the
+ * before/after in `results/t162/` is read against them, and a column that proves two numbers agree
+ * costs nothing; `slotTaxFor` asserts the agreement rather than restating the table.
  *
  * # WHAT THE SCORER CANNOT SEE, STATED ONCE
  *
@@ -51,11 +49,20 @@ const TSV = process.argv.includes('--tsv');
 /**
  * Henry's v2.1 slot tax, in scorer units (the scorer counts /10 power).
  *
- * Deliberately a LOCAL table and not a change to `powerscale.BUDGET_BANDS` — see the header. The
- * 1e rung is the one both curves agree on, which is the reason the disagreement is legible at all.
+ * NOT a second copy of the number since he ruled *"keep my numbers"*: it reads `BUDGET_BANDS` and
+ * asserts the two agree, so the day somebody moves the band table this script says so instead of
+ * quietly comparing the pool against a curve nobody uses.
  */
-const SLOT_TAX: Readonly<Record<number, number>> = { 0: 1.2, 1: 3.0, 2: 7.0, 3: 12.0 };
-const slotTaxFor = (cost: number): number => SLOT_TAX[Math.min(3, Math.max(0, cost))];
+const slotTaxFor = (cost: number): number => budgetBandFor(cost).over;
+
+const EXPECTED_SLOT_TAX: ReadonlyArray<[number, number]> = [[0, 1.2], [1, 3.0], [2, 7.0], [3, 12.0]];
+for (const [cost, want] of EXPECTED_SLOT_TAX) {
+    if (Math.abs(slotTaxFor(cost) - want) > 1e-9) {
+        console.warn(`[162b] BUDGET_BANDS no longer matches Henry's v2.1 slot tax at ${cost}e: `
+            + `${slotTaxFor(cost) * 10} power against the ruled ${want * 10}. Ledger still runs; the`
+            + ' "tax" columns below are now whatever the band table says, not the 09-23 ruling.');
+    }
+}
 
 /** Which OS runs this card, so a firmware-boosted score can be read as one. */
 const OWNERS: Map<string, string[]> = (() => {

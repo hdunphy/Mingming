@@ -1,26 +1,26 @@
 # 162b LEDGER — collection v2, 98 cards
 
 
-## 0e — 18 cards, repo curve 1, Henry's slot tax 1.2
+## 0e — 18 cards, repo curve 1.2, Henry's slot tax 1.2
 
-corrosive_leak    0e      2.3   curve +130% OUT OF BAND        tax  1.2   +92% OUT OF BAND        jormungandr_v1*
-ignite            0e      2.2   curve +120% OUT OF BAND        tax  1.2   +83% OUT OF BAND        fenrir_v2 skoll_v2
-ember_jab         0e      1.7   curve +70% OUT OF BAND        tax  1.2   +42% OUT OF BAND        fenrir_v2 skoll_v2
-undertow          0e      1.5   curve +50% OUT OF BAND        tax  1.2   +25% OUT OF BAND        kraken_v1 jormungandr_v1
-scald             0e      1.4   curve +40% OUT OF BAND        tax  1.2   +17% OUT OF BAND        skoll_v2* kraken_v2
-acorn_toss        0e      1.2   curve +20% OUT OF BAND        tax  1.2    +0% IN BAND            ratatoskr_v1 ratatoskr_v2
-tackle            0e      1.2   curve +20% OUT OF BAND        tax  1.2    +0% IN BAND            kraken_v2 jormungandr_v1 jormungandr_v2 huldra_v2
-blind_spot        0e      1.1   curve +10% WITHIN TOLERANCE   tax  1.2    -8% IN BAND            jormungandr_v1
-shrug_off         0e        1   curve +0% IN BAND            tax  1.2   -17% IN BAND            ratatoskr_v1
-tend              0e        1   curve +0% IN BAND            tax  1.2   -17% IN BAND            ratatoskr_v1 huldra_v1
-heckle            0e      0.9   curve -10% IN BAND            tax  1.2   -25% IN BAND            ratatoskr_v2
-soothe            0e      0.9   curve -10% IN BAND            tax  1.2   -25% IN BAND            huldra_v1
-pollen_cloud      0e ≋    0.8   curve -20% IN BAND            tax  1.2   -33% IN BAND            ratatoskr_v2 huldra_v1*
-bark_lash         0e      0.7   curve -30% IN BAND            tax  1.2   -42% IN BAND            huldra_v2
-snarl             0e      0.7   curve -30% IN BAND            tax  1.2   -42% IN BAND            skoll_v1 ratatoskr_v2*
-war_pact          0e      0.7   curve -30% IN BAND            tax  1.2   -42% IN BAND            fenrir_v1
-forage            0e      0.5   curve -50% IN BAND            tax  1.2   -58% IN BAND            fenrir_v1 fenrir_v2 skoll_v1 skoll_v2 ratatoskr_v1 ratatoskr_v2
-desperate_strike  0e      0.4   curve -60% IN BAND            tax  1.2   -67% IN BAND            fenrir_v1
+corrosive_leak    0e      2.3   curve +92% OUT OF BAND        tax  1.2   +92% OUT OF BAND        jormungandr_v1*
+ignite            0e      2.2   curve +83% OUT OF BAND        tax  1.2   +83% OUT OF BAND        fenrir_v2 skoll_v2
+ember_jab         0e      1.7   curve +42% OUT OF BAND        tax  1.2   +42% OUT OF BAND        fenrir_v2 skoll_v2
+undertow          0e      1.5   curve +25% OUT OF BAND        tax  1.2   +25% OUT OF BAND        kraken_v1 jormungandr_v1
+scald             0e      1.4   curve +17% OUT OF BAND        tax  1.2   +17% OUT OF BAND        skoll_v2* kraken_v2
+acorn_toss        0e      1.2   curve +0% IN BAND            tax  1.2    +0% IN BAND            ratatoskr_v1 ratatoskr_v2
+tackle            0e      1.2   curve +0% IN BAND            tax  1.2    +0% IN BAND            kraken_v2 jormungandr_v1 jormungandr_v2 huldra_v2
+blind_spot        0e      1.1   curve -8% IN BAND            tax  1.2    -8% IN BAND            jormungandr_v1
+shrug_off         0e        1   curve -17% IN BAND            tax  1.2   -17% IN BAND            ratatoskr_v1
+tend              0e        1   curve -17% IN BAND            tax  1.2   -17% IN BAND            ratatoskr_v1 huldra_v1
+heckle            0e      0.9   curve -25% IN BAND            tax  1.2   -25% IN BAND            ratatoskr_v2
+soothe            0e      0.9   curve -25% IN BAND            tax  1.2   -25% IN BAND            huldra_v1
+pollen_cloud      0e ≋    0.8   curve -33% IN BAND            tax  1.2   -33% IN BAND            ratatoskr_v2 huldra_v1*
+bark_lash         0e      0.7   curve -42% IN BAND            tax  1.2   -42% IN BAND            huldra_v2
+snarl             0e      0.7   curve -42% IN BAND            tax  1.2   -42% IN BAND            skoll_v1 ratatoskr_v2*
+war_pact          0e      0.7   curve -42% IN BAND            tax  1.2   -42% IN BAND            fenrir_v1
+forage            0e      0.5   curve -58% IN BAND            tax  1.2   -58% IN BAND            fenrir_v1 fenrir_v2 skoll_v1 skoll_v2 ratatoskr_v1 ratatoskr_v2
+desperate_strike  0e      0.4   curve -67% IN BAND            tax  1.2   -67% IN BAND            fenrir_v1
 
 ## 1e — 41 cards, repo curve 3, Henry's slot tax 3
 
@@ -66,50 +66,50 @@ toxic_surge       1e      0.3   curve -90% IN BAND            tax    3   -90% IN
 scavenge_data     1e        0   curve -100% MANUAL REVIEW      tax    3  -100% MANUAL REVIEW      UNPRICED:SEARCH  kraken_v1* jormungandr_v1*
 unbound_fang      1e     -1.3   curve -143% MANUAL REVIEW      tax    3  -143% MANUAL REVIEW      fenrir_v1
 
-## 2e — 35 cards, repo curve 6.5, Henry's slot tax 7
+## 2e — 35 cards, repo curve 7, Henry's slot tax 7
 
-contagion         2e     20.4   curve +214% OUT OF BAND        tax    7  +191% OUT OF BAND        UNPRICED:MULTIPLY_STATUS  jormungandr_v2*
-sun_devourer      2e     20.4   curve +214% OUT OF BAND        tax    7  +191% OUT OF BAND        fenrir_v1*
-riptide           2e     11.9   curve +83% OUT OF BAND        tax    7   +70% OUT OF BAND        jormungandr_v2*
-capacitor         2e      9.5   curve +46% OUT OF BAND        tax    7   +36% OUT OF BAND        kraken_v2
-ink_cloud         2e ≋    7.7   curve +18% OUT OF BAND        tax    7   +10% WITHIN TOLERANCE   kraken_v1* kraken_v2*
-pile_on           2e      7.7   curve +18% OUT OF BAND        tax    7   +10% WITHIN TOLERANCE   ratatoskr_v2*
-tidal_battery     2e ≋    7.7   curve +18% OUT OF BAND        tax    7   +10% WITHIN TOLERANCE   kraken_v2* jormungandr_v1*
-blightbloom       2e      7.5   curve +15% WITHIN TOLERANCE   tax    7    +7% WITHIN TOLERANCE   jormungandr_v2* huldra_v2*
-boiling_surge     2e      7.3   curve +12% WITHIN TOLERANCE   tax    7    +4% WITHIN TOLERANCE   kraken_v2
-ember_ward        2e      7.1   curve +9% WITHIN TOLERANCE   tax    7    +1% WITHIN TOLERANCE   fenrir_v2*
-pack_tactics      2e      6.9   curve +6% WITHIN TOLERANCE   tax    7    -1% IN BAND            skoll_v1* skoll_v2
-verdant_ward      2e ≋    6.1   curve -6% IN BAND            tax    7   -13% IN BAND            ratatoskr_v1* huldra_v1* huldra_v2*
-crippling_vine    2e ≋    5.9   curve -9% IN BAND            tax    7   -16% IN BAND            ratatoskr_v2* huldra_v1*
-heat_wave         2e ≋    5.6   curve -14% IN BAND            tax    7   -20% IN BAND            UNPRICED:MULTIPLY_STATUS  fenrir_v2* skoll_v2 kraken_v2*
-flashover         2e        5   curve -23% IN BAND            tax    7   -29% IN BAND            fenrir_v2 skoll_v2
-seed_bomb         2e        5   curve -23% IN BAND            tax    7   -29% IN BAND            ratatoskr_v1
-short_circuit     2e      4.8   curve -26% IN BAND            tax    7   -31% IN BAND            kraken_v1*
-crushing_depths   2e      4.5   curve -31% IN BAND            tax    7   -36% IN BAND            kraken_v1
-slander           2e      4.5   curve -31% IN BAND            tax    7   -36% IN BAND            kraken_v1
-ash_communion     2e      4.3   curve -34% IN BAND            tax    7   -39% IN BAND            fenrir_v2* skoll_v2*
-cinder_lance      2e        4   curve -38% IN BAND            tax    7   -43% IN BAND            fenrir_v2
-inferno           2e ≋      4   curve -38% IN BAND            tax    7   -43% IN BAND            fenrir_v2* skoll_v2*
-echo_chamber      2e      3.6   curve -45% IN BAND            tax    7   -49% IN BAND            ratatoskr_v1* ratatoskr_v2*
-sharp_edge        2e      3.6   curve -45% IN BAND            tax    7   -49% IN BAND            fenrir_v2
-hexbloom          2e      3.5   curve -46% IN BAND            tax    7   -50% IN BAND            ratatoskr_v2* huldra_v1
-short_fuse        2e      2.9   curve -55% IN BAND            tax    7   -59% IN BAND            
-hoofbeat          2e      2.8   curve -57% IN BAND            tax    7   -60% IN BAND            ratatoskr_v1*
-reactive_plating  2e      2.7   curve -58% IN BAND            tax    7   -61% IN BAND            UNPRICED:COUNTER,COUNTER  skoll_v1* huldra_v2*
-venom_glut        2e      1.2   curve -82% IN BAND            tax    7   -83% IN BAND            jormungandr_v2*
-bark_smash        2e      0.7   curve -89% IN BAND            tax    7   -90% IN BAND            huldra_v2
+contagion         2e     20.4   curve +191% OUT OF BAND        tax    7  +191% OUT OF BAND        UNPRICED:MULTIPLY_STATUS  jormungandr_v2*
+sun_devourer      2e     20.4   curve +191% OUT OF BAND        tax    7  +191% OUT OF BAND        fenrir_v1*
+riptide           2e     11.9   curve +70% OUT OF BAND        tax    7   +70% OUT OF BAND        jormungandr_v2*
+capacitor         2e      9.5   curve +36% OUT OF BAND        tax    7   +36% OUT OF BAND        kraken_v2
+ink_cloud         2e ≋    7.7   curve +10% WITHIN TOLERANCE   tax    7   +10% WITHIN TOLERANCE   kraken_v1* kraken_v2*
+pile_on           2e      7.7   curve +10% WITHIN TOLERANCE   tax    7   +10% WITHIN TOLERANCE   ratatoskr_v2*
+tidal_battery     2e ≋    7.7   curve +10% WITHIN TOLERANCE   tax    7   +10% WITHIN TOLERANCE   kraken_v2* jormungandr_v1*
+blightbloom       2e      7.5   curve +7% WITHIN TOLERANCE   tax    7    +7% WITHIN TOLERANCE   jormungandr_v2* huldra_v2*
+boiling_surge     2e      7.3   curve +4% WITHIN TOLERANCE   tax    7    +4% WITHIN TOLERANCE   kraken_v2
+ember_ward        2e      7.1   curve +1% WITHIN TOLERANCE   tax    7    +1% WITHIN TOLERANCE   fenrir_v2*
+pack_tactics      2e      6.9   curve -1% IN BAND            tax    7    -1% IN BAND            skoll_v1* skoll_v2
+verdant_ward      2e ≋    6.1   curve -13% IN BAND            tax    7   -13% IN BAND            ratatoskr_v1* huldra_v1* huldra_v2*
+crippling_vine    2e ≋    5.9   curve -16% IN BAND            tax    7   -16% IN BAND            ratatoskr_v2* huldra_v1*
+heat_wave         2e ≋    5.6   curve -20% IN BAND            tax    7   -20% IN BAND            UNPRICED:MULTIPLY_STATUS  fenrir_v2* skoll_v2 kraken_v2*
+flashover         2e        5   curve -29% IN BAND            tax    7   -29% IN BAND            fenrir_v2 skoll_v2
+seed_bomb         2e        5   curve -29% IN BAND            tax    7   -29% IN BAND            ratatoskr_v1
+short_circuit     2e      4.8   curve -31% IN BAND            tax    7   -31% IN BAND            kraken_v1*
+crushing_depths   2e      4.5   curve -36% IN BAND            tax    7   -36% IN BAND            kraken_v1
+slander           2e      4.5   curve -36% IN BAND            tax    7   -36% IN BAND            kraken_v1
+ash_communion     2e      4.3   curve -39% IN BAND            tax    7   -39% IN BAND            fenrir_v2* skoll_v2*
+cinder_lance      2e        4   curve -43% IN BAND            tax    7   -43% IN BAND            fenrir_v2
+inferno           2e ≋      4   curve -43% IN BAND            tax    7   -43% IN BAND            fenrir_v2* skoll_v2*
+echo_chamber      2e      3.6   curve -49% IN BAND            tax    7   -49% IN BAND            ratatoskr_v1* ratatoskr_v2*
+sharp_edge        2e      3.6   curve -49% IN BAND            tax    7   -49% IN BAND            fenrir_v2
+hexbloom          2e      3.5   curve -50% IN BAND            tax    7   -50% IN BAND            ratatoskr_v2* huldra_v1
+short_fuse        2e      2.9   curve -59% IN BAND            tax    7   -59% IN BAND            
+hoofbeat          2e      2.8   curve -60% IN BAND            tax    7   -60% IN BAND            ratatoskr_v1*
+reactive_plating  2e      2.7   curve -61% IN BAND            tax    7   -61% IN BAND            UNPRICED:COUNTER,COUNTER  skoll_v1* huldra_v2*
+venom_glut        2e      1.2   curve -83% IN BAND            tax    7   -83% IN BAND            jormungandr_v2*
+bark_smash        2e      0.7   curve -90% IN BAND            tax    7   -90% IN BAND            huldra_v2
 cinder_armor      2e      0.2   curve -97% IN BAND            tax    7   -97% IN BAND            fenrir_v2* skoll_v2*
 core_overclock    2e        0   curve -100% MANUAL REVIEW      tax    7  -100% MANUAL REVIEW      UNPRICED:HOOK:onDamageCalculated  fenrir_v1* skoll_v1*
 overclock_core    2e        0   curve -100% MANUAL REVIEW      tax    7  -100% MANUAL REVIEW      UNPRICED:MAX_ENERGY  kraken_v2*
 static_ward       2e        0   curve -100% MANUAL REVIEW      tax    7  -100% MANUAL REVIEW      UNPRICED:HOOK:onStatusApplied  kraken_v1* huldra_v1*
 thermal_overload  2e        0   curve -100% MANUAL REVIEW      tax    7  -100% MANUAL REVIEW      UNPRICED:HOOK:onDamageCalculated,HOOK:onStatusDamageCalculated,HP  skoll_v2*
 
-## 3e — 4 cards, repo curve 10.5, Henry's slot tax 12
+## 3e — 4 cards, repo curve 12, Henry's slot tax 12
 
-tidal_wave        3e ≋   12.1   curve +15% WITHIN TOLERANCE   tax   12    +1% WITHIN TOLERANCE   kraken_v2*
-hydro_blast       3e       12   curve +14% WITHIN TOLERANCE   tax   12    +0% IN BAND            kraken_v2 jormungandr_v1*
-wildfire          3e ≋   11.9   curve +13% WITHIN TOLERANCE   tax   12    -1% IN BAND            skoll_v2*
-maelstrom         3e     11.5   curve +10% WITHIN TOLERANCE   tax   12    -4% IN BAND            kraken_v2*
+tidal_wave        3e ≋   12.1   curve +1% WITHIN TOLERANCE   tax   12    +1% WITHIN TOLERANCE   kraken_v2*
+hydro_blast       3e       12   curve +0% IN BAND            tax   12    +0% IN BAND            kraken_v2 jormungandr_v1*
+wildfire          3e ≋   11.9   curve -1% IN BAND            tax   12    -1% IN BAND            skoll_v2*
+maelstrom         3e     11.5   curve -4% IN BAND            tax   12    -4% IN BAND            kraken_v2*
 
 
 ## Summary
@@ -121,7 +121,7 @@ MANUAL REVIEW             10   contagion core_overclock heat_wave overclock_core
 side cards judged at 3v3  11   (≡ in the tables above)
 OUT OF BAND (over)        20
 25%+ under the slot tax   34
-the two curves disagree   10   acorn_toss blind_spot hydro_blast ink_cloud maelstrom pack_tactics pile_on tackle tidal_battery wildfire
+the two curves disagree   0   
 median vs slot tax, 0e  -17%   (n=18)
 median vs slot tax, 1e  +0%   (n=41)
 median vs slot tax, 2e  -36%   (n=35)

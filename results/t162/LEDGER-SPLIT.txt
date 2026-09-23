@@ -1,10 +1,12 @@
-cost   auditor can read        it only guesses        daemons        repo   v2.1
-  0e      10 (n=17)            7 (n= 1)             —         10     12
-  1e      30 (n=34)           22 (n= 6)           8 (n= 1)     30     30
-  2e      74 (n=10)           45 (n=13)          28 (n=12)     65     70
-  3e     120 (n= 4)              —                 —        105    120
+Henry's slot tax, ruled 2026-09-23, is the band: 12 / 30 / 70 / 120 power.
 
-Flat cards under their v2.1 band — the only pricing rows this ledger supports:
+cost   auditor can read        it only guesses        daemons        band
+  0e      10 (n=17)            7 (n= 1)             —         12
+  1e      30 (n=34)           22 (n= 6)           8 (n= 1)     30
+  2e      74 (n=10)           45 (n=13)          28 (n=12)     70
+  3e     120 (n= 4)              —                 —        120
+
+Flat cards more than 10% under band — see REDLINE.md for the filtered review list:
   desperate_strike       4 power vs  12   8 power. Gain 1 Strength. Lose 3% of your max HP.
   forage                 5 power vs  12   Draw 1. Take damage equal to 15 power.
   snarl                  7 power vs  12   Apply 2 Weakened.
