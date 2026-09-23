@@ -275,6 +275,8 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-23 — 163 is implementable.** §4 rewritten as Legion rows with data shapes and tests: 163a `+` registry (no pricing gate; `+` exempt from the band flag) → 163b workshop Upgrade tab + gym-gate free upgrade + `CARD_UPGRADED` → 163c patches engine (`patches[]` max 1, `modifies` fields on the firmware runner, six patches, plaque chip) → 163d patches in the run → 163e measure. After 160-e1, 162a and the playtest prep.
+
 **2026-09-23 — 163a rule revised** (Henry): status upgrades are +(1 + Energy cost) stacks (0e +1 … 3e +4); raw numbers +40%; draw/Energized unchanged. `collection-v2/upgrades_gen.py` regenerates `upgrades.json`. Burn caps at 4 and detonates past it, so Inferno+ (5 Burn to the side), Wildfire+ (5 each) and Heat Wave+ (double, then +3 each) are detonation cards by the rule — **RULED intended** (Henry: *"upgrades are supposed to be broken"*). 149c prices `+` rows but does not band-flag them.
 
 ## 0-A-v2-RUN-CANNOT-CLEAR-A-GYM (162c, 2026-09-23) — THE ONE BLOCKER

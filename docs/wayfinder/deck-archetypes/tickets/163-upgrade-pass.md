@@ -88,17 +88,36 @@ a Relay on a self-only OS scores high and on an ally-reading OS scores zero — 
 patch in the pool), an elite pays one (the second coin the research doc asked for), and the gym gate
 offers a choice of two.
 
-## 4. Order
+## 4. Rows for Legion (after 162a and the playtest prep)
 
-1. **163a — card `+` data.** Generate 98 `+` lines by §2's rule; Henry reviews the table (one
-   screen); 149c scores them; ship as registry entries.
-2. **163b — upgrade venue.** Workshop "Upgrade" tab + gym-gate free upgrade; `CARD_UPGRADED` in the
-   run log; tile `+` mark.
-3. **163c — patches engine.** `patches[]` on the member; `modifies` in the firmware runner; the six
-   patches in `hooks.json`; plaque chip.
-4. **163d — patches in the run.** Reward pool seeding, elite payout, gym-gate choice, shop stock.
-5. **163e — measure.** 157's walker with "upgrade highest-149c card when scrap ≥ price" vs never;
-   deck-power curve fight 1 → gym; "sent to collection" rate.
+- **163a — the `+` registry.** Read `collection-v2/upgrades.json`; for every entry add a
+  `programs.json` card `id: "<id>+"`, `name: "<name>+"`, same cost/element/category/target/shape,
+  `upgradeOf: "<id>"`, text = `plus`. Where the text implies an action the schema lacks (an "and you"
+  ally+self target, "two the first time each turn", "hit again if Dazed" on `+` only where base has it),
+  extend the action rather than approximating — list any you cannot in the write-back. Tests: every base
+  card has exactly one `+`; every `+` resolves in the cast-every-card smoke test; `+` rows are **exempt
+  from the 149c band flag** (they are priced for the ledger only — Henry: upgrades are supposed to be
+  broken). No pricing gate: this row does not wait on 162b.
+- **163b — the venue.** Deck instances carry `upgraded: boolean` (the instance points at the `+` id;
+  the collection entry keeps the base id so persistence can be added later without a migration —
+  reserve `collectionEntry.upgrades: Record<cardId, true>` unused). Workshop gets an **Upgrade** tab:
+  pick a card in the active deck, pay scrap (band 25–40, tune from the run log), one per visit. The gym
+  gate offers one free upgrade. `CARD_UPGRADED { from, to, price, node }` in the run log; the tile shows
+  `+` after the name and the changed number in the element colour; `LoadoutEditor`'s deck rows show `+`.
+  Tests: an upgrade replaces exactly one instance; the price is deducted; the run log row round-trips.
+- **163c — patches, engine.** `IRunMember.patches: PatchId[]` (max 1). A patch is a `hooks.json`
+  entry `kind: 'patch'` with `modifies: { field, op, value }` applied by the firmware runner when it
+  resolves the host OS's hook: `field` ∈ `amount` (Amplifier: +1 / ×1.5), `triggers` (Repeater: +1
+  per turn), `actor` (Relay: `self` → `side`), `target` (Splitter: `self` → `ally`), `drawback`
+  (Failsafe: removed); Overclock is a status-value modifier on the member (+1 effective stack for
+  scalars/consumes on this body). Six patches authored against those fields, not against OS ids. The
+  plaque shows the patch as a chip beside the OS name; hover reads the modified OS text. Tests: each
+  patch on each of the twelve produces a well-formed hook (72 cells) and the AI still enumerates.
+- **163d — patches in the run.** Reward pool seeding (161 §2) puts the host body's best patch in that
+  run's pool; an elite pays a patch; the gym gate offers a choice of two; the shop stocks Amplifier.
+  `PATCH_TAKEN` in the run log.
+- **163e — measure.** 157's walker with "upgrade the highest-149c card when scrap ≥ price" vs never;
+  deck-power curve fight 1 → gym; "sent to collection" rate; patch take-rate by kind.
 
 ## 5. Decisions — RULED by Henry 2026-09-23
 
