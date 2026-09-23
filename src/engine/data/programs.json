@@ -6130,7 +6130,7 @@
     "undertow": {
         "id": "undertow",
         "name": "Undertow",
-        "description": "The current pulls: draw a card.",
+        "description": "The current pulls: draw a card. You gain 1 Weakened.",
         "element": "Water",
         "target": "Self",
         "category": "Skill",
@@ -6145,6 +6145,12 @@
             {
                 "type": "DRAW",
                 "amount": 1,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Weakened",
+                "stacks": 1,
                 "target": "SELF"
             }
         ]

@@ -189,12 +189,34 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 the deck ships.** `IEnemyLoadout.duplicateCantrips`, applied in `rollEncounter` to the side's
 ASSEMBLED pile.
 
-A **pure cantrip** is 0 energy, draws, and does nothing else. All three clauses matter, and the
-third is the one people will want to drop: `forage` is 0-cost and draws and is DELIBERATELY not one,
-because it also costs the caster 15 power — the brake is in the card. The rule is a property, not a
-name list, so a future cantrip with a cost is fine and one without is caught, neither needing anyone
-to remember. Affects two shipped lists: `jormungandr_v1` (`undertow`×2) and `sleipnir_v1`
-(`slipstream`×2).
+**AMENDED 2026-09-23.** It was a property test — *0 energy, draws, and does nothing else* — and that
+lasted one day. The third clause was justified by "a price stops the third repetition", and the
+brake measurement falsified it: `undertow` with `forage`'s own 15-power recoil still chained
+FOURTEEN deep. The clause also made the rule ESCAPABLE — Henry shipped a self-Weaken rider on
+`undertow` the same day and the card fell straight out of a rule written for it (two tests caught
+it; that is the only reason it is not live).
+
+The obvious widening (*0 energy and it draws*) is wrong the other way: it catches `forage`, which
+**does not loop** — max 4 casts in a turn on ratatoskr_v1 and 0.0% of turns at six or more, against
+`undertow`'s max 18. Capping it costs ratatoskr_v1, an EA deck, **10.9 field points** for nothing.
+
+**Card properties cannot separate them, because the difference is not in the card.** `undertow`
+chains on jormungandr_v1 because that deck holds `ink_stream` and `serpents_coil`, which scale on
+cards drawn and cards played this turn, so every iteration pays for itself. Pairing the conditions
+was tried and fails too — ratatoskr_v1 holds `seed_bomb_v2`, also a cards-played scaler.
+
+So it is a MEASURED LIST: `LOOPING_FREE_DRAWS` = `undertow`, `slipstream`, `glimmer`, each with its
+number; `MEASURED_NOT_LOOPING` = `forage`, with the number that excludes it. **A tripwire test**
+requires every 0-energy card that draws to be in one set or the other, so a new cantrip fails until
+somebody measures it with `scratch/t152_cardloop.ts` and decides. Do not "simplify" this back into
+a property test.
+
+Affects two shipped lists: `jormungandr_v1` (`undertow`×2) and `sleipnir_v1` (`slipstream`×2).
+
+**`undertow` ITSELF CHANGED ON 2026-09-23** (Henry: *"Ship 1 weakened"*) — it now reads "draw a
+card. You gain 1 Weakened." That takes jormungandr_v1 from 69.6% to 48.2%, right at the EA peer
+median, and costs kraken_v1 (one copy, no loop) 47.3% → 41.4%. It does NOT remove the loop — 9.9%
+of turns still chain six deep — so the wild rule below is still what stops the player meeting it.
 
 **THE DECK LISTS ARE UNCHANGED.** `mingmingRegistry` still reads `undertow ×2`; the balance corpus
 still measures the deck it always measured; a PLAYER who drafts two can still loop them, which is

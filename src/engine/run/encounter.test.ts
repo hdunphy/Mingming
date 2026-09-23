@@ -23,7 +23,10 @@ import { describe, expect, it, vi } from 'vitest';
 import {
     FIGHT_KINDS,
     ENEMY_LADDER,
+    LOOPING_FREE_DRAWS,
+    MEASURED_NOT_LOOPING,
     dedupeCantrips,
+    freeDrawCardIds,
     encounterSeed,
     enemyPartySize,
     isFightNode,
@@ -36,6 +39,7 @@ import {
 import { buildBattleSetup, toMingmingState } from './battleSetup';
 import { STARTER_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './createRun';
 import { authoredBossFor } from './bosses';
+import { getInflatedProgramRegistry } from '../data/programRegistry';
 import { GYM_REGISTRY, gymCompElementPlan, type IGymOffer } from './gyms';
 import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { createBattleState } from '../data/battleFactories';
@@ -299,15 +303,15 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
         enemies.flatMap((enemy) => getDeckForOS(enemy.definitionId, enemy.activeOS));
 
     /**
-     * Ticket 152's rule, re-expressed rather than imported: a wild keeps the FIRST copy of a pure
-     * cantrip and drops the rest. Written out here so the test states the expectation instead of
-     * asking the code under test what it did.
+     * Ticket 152's rule, re-expressed rather than imported: a wild keeps the FIRST copy of a
+     * looping free draw and drops the rest. Written out here so the test states the expectation
+     * instead of asking the code under test what it did.
      */
-    const PURE_CANTRIPS = ['undertow', 'slipstream', 'glimmer'];
+    const CAPPED = ['undertow', 'slipstream', 'glimmer'];
     const withoutDuplicateCantrips = (deck: ReadonlyArray<string>): string[] => {
         const seen = new Set<string>();
         return deck.filter((id) => {
-            if (!PURE_CANTRIPS.includes(id)) return true;
+            if (!CAPPED.includes(id)) return true;
             if (seen.has(id)) return false;
             seen.add(id);
             return true;
@@ -894,16 +898,46 @@ describe('ticket 152: the rung decides whether the player meets the loop', () =>
         }
     });
 
-    it('leaves `forage` alone, because the brake is in the card', () => {
+    it('has an opinion about EVERY 0-energy card that draws — the tripwire', () => {
         /*
-         * `forage` is 0-cost and it draws — and it also takes 15 power out of the caster, so
-         * looping it kills the looper. `ratatoskr_v1` and `hel_v2` both ship two, and both keep
-         * them at every rung.
+         * The cost of a measured list instead of a property test: a new cantrip is not caught by
+         * construction. This is what replaces that safety.
          *
-         * Excluding it by that property rather than by name is the difference between a rule and
-         * a blocklist: a future cantrip WITH a cost is fine without anyone remembering to think
-         * about it, and a future one without a cost is caught without anyone remembering to add
-         * it.
+         * Every 0-energy card in the registry that draws must be either CAPPED or explicitly
+         * MEASURED AND EXCLUDED. Add a new one and this fails until somebody runs it through
+         * `scratch/t152_cardloop.ts` and decides which set it belongs in — so a missed card is a
+         * conversation rather than a silent regression.
+         *
+         * It is also what caught the rule going stale: the day `undertow` gained a self-Weaken
+         * rider it stopped matching the old property test, and a wild silently got both copies
+         * back.
+         */
+        const allIds = Object.keys(getInflatedProgramRegistry());
+        const freeDraws = freeDrawCardIds(allIds);
+
+        // The population is real - if this ever reads zero, the detector broke, not the pool.
+        expect(freeDraws.length).toBeGreaterThan(0);
+        expect(freeDraws).toContain('undertow');
+
+        const unruled = freeDraws.filter(
+            (id) => !LOOPING_FREE_DRAWS.has(id) && !MEASURED_NOT_LOOPING.has(id),
+        );
+        expect(unruled, 'measure these with scratch/t152_cardloop.ts, then add them to one of the two sets').toEqual([]);
+    });
+
+        it('leaves `forage` alone, because it was measured and it does not loop', () => {
+        /*
+         * This test's REASON changed on 2026-09-23 even though its assertion did not, and the
+         * reason is the part worth keeping.
+         *
+         * It used to be a property: `forage` costs the caster 15 power, so the brake is in the
+         * card. That justification is dead — `undertow` was measured with the same 15-power
+         * recoil and still chained fourteen deep. A price does not stop a loop whose payoff
+         * scales with the loop.
+         *
+         * What survives is the measurement itself: 1,200 games on ratatoskr_v1 put `forage` at a
+         * maximum of 4 casts in a turn and 0.0% of turns at six or more, against `undertow`'s max
+         * 18. Capping it would cost that deck 10.9 field points against a loop it has never run.
          */
         const pile = dedupeCantrips(['forage', 'forage', 'undertow', 'undertow'], ENEMY_LADDER.wild);
         expect(count(pile, 'forage')).toBe(2);

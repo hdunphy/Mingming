@@ -252,3 +252,62 @@ cast's damage, so a recoil arm scored its own recoil as damage DEALT and `recoil
 worst turn against the shipped 145.0% — the brake appearing to make the card more dangerous.
 `scratch/t152_gates.ts` splits self-facing casts into their own column now, which is also where the
 40.4% figure comes from.
+
+## 9. Shipped (2026-09-23) — `undertow` gains 1 self-Weakened, and the wild rule is rewritten
+
+Henry, off §8's table: *"Ship 1 weakened"*.
+
+`undertow` is now **"The current pulls: draw a card. You gain 1 Weakened."** — `STATUS Weakened 1`
+on SELF beside the draw. §8 measured it: jormungandr_v1 69.6% → **48.2%**, right at the 47–64% EA
+peer band's median, with the worst turn down from 145% of a health pool to 118.6%.
+
+It is a pool card, so the tax is shared, and that is the point rather than a side effect: a free
+draw that costs you nothing is what made the chain worth running in the first place. Ledger:
+
+| | |
+|---|---|
+| `undertow` scorer | 1.8 → **1.5** (+80% over the 0e band → +50%) |
+| jormungandr_v1 field | 69.6% → **48.2%** |
+| kraken_v1 field (one copy, no loop) | 47.3% → **41.4%** |
+
+**It does not remove the loop**, and §8 is the record of why nothing could: 9.9% of turns still
+chain six deep, max 14. §7's wild rule is still what stops the player meeting it.
+
+### The wild rule had to be rewritten, and the tests are what noticed
+
+Adding a second action made `undertow` stop matching §7's condition — *0 energy, draws, **and does
+nothing else*** — so a wild silently got both copies back. Two tests failed the moment the card
+changed, which is the only reason this is a paragraph rather than a regression.
+
+The third clause was justified by *"there is no price that stops the third repetition"*. §8
+falsified it: `undertow` with `forage`'s own 15-power recoil still chained fourteen deep. **A price
+does not stop a loop whose payoff scales with the loop.** Worse, the clause made the rule escapable
+— a cantrip that gains any flavour falls out of a rule written for it.
+
+The obvious widening (*0 energy and it draws*) was measured too, and is wrong the other way. It
+catches `forage`, and `forage` **does not loop**:
+
+| card, 1,200 games | max casts in a turn | turns at ≥6 |
+|---|---|---|
+| `undertow` on jormungandr_v1 | **18** | 12.7% |
+| `undertow` + self-Weaken | 14 | 9.9% |
+| `forage` on ratatoskr_v1 | **4** | 0.0% |
+| `forage` on hel_v2 | 3 | 0.0% |
+
+Capping `forage` costs ratatoskr_v1 — an **EA** deck — **10.9 field points** (64.7% → 53.8%)
+against a loop it has never run.
+
+**Card properties cannot separate them, because the difference is not in the card.** `undertow`
+chains on jormungandr_v1 because that deck holds `ink_stream` (scales on cards drawn this turn) and
+`serpents_coil` (cards played this turn), so every iteration pays for itself several times over.
+Pairing the two conditions was tried and does not separate them either: ratatoskr_v1 holds
+`seed_bomb_v2`, which is also a cards-played scaler, so that rule still catches `forage`.
+
+So the rule is now a **measured list** — `LOOPING_FREE_DRAWS` = `undertow`, `slipstream`, `glimmer`
+— with the number beside each entry, and `MEASURED_NOT_LOOPING` = `forage` with the number that
+excludes it. The evidence is the condition, and it is written down.
+
+**What keeps that honest is a tripwire test**: every 0-energy card in the registry that draws must
+appear in one of the two sets, so a new cantrip fails a test until somebody measures it and decides.
+A missed card becomes a conversation instead of a silent regression — which is exactly the failure
+mode this section is about.

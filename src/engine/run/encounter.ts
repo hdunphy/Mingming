@@ -611,33 +611,70 @@ function enemyDeckFor(
 }
 
 /**
- * A card that costs nothing and does nothing but draw — ticket 152's condition.
+ * ── THE CARDS A WILD MAY NOT HOLD TWO OF — ticket 152, and this is a MEASURED list ──────
  *
- * The three parts are each doing work, and the third is the one worth arguing about:
+ * It was a property test: *0 energy, draws, and does nothing else*. That lasted one day. The
+ * third clause was justified by "there is no price that stops the third repetition", and the
+ * 2026-09-23 brake measurement falsified it — `undertow` with a 15-power recoil, `forage`'s own
+ * number, still chained **fourteen deep** in a turn and still removed three quarters of a health
+ * pool once every thirteen turns. A price does not stop a loop whose payoff scales with the loop.
  *
- *   - **0 energy**, so casting it is free and a hand of them resolves in one turn;
- *   - **it draws**, so a copy can put its twin back in your hand;
- *   - **and it does NOTHING ELSE**, so there is no price that stops the third repetition.
+ * Worse, the clause made the rule ESCAPABLE. Henry shipped a self-Weaken rider on `undertow` the
+ * same day, and the card fell straight out of a rule written for it. A rule a card can wriggle
+ * out of by gaining flavour is not a rule.
  *
- * That last clause is why `forage` is not one. It is 0-cost and it draws — and it also takes 15
- * power out of the caster, so looping it kills the looper. The brake is in the card. Excluding it
- * by that property rather than by name is the difference between a rule and a blocklist: a future
- * cantrip with a cost is fine here without anyone remembering to think about it, and a future
- * cantrip without one is caught without anyone remembering to add it.
+ * So the obvious widening — drop the third clause, keep *0 energy and it draws* — was measured
+ * too, and it is wrong in the other direction. That catches `forage`, and `forage` **does not
+ * loop**: 1,200 games on ratatoskr_v1 put it at a maximum of 4 casts in a turn and 0.0% of turns
+ * at six or more, against `undertow`'s max 18 and 12.7%. Removing a copy from ratatoskr_v1 costs
+ * that deck **10.9 field points** and buys nothing.
  *
- * Reads the INFLATED registry, so a card whose actions are assembled from the action library is
- * judged on what it actually does rather than on what its json literal happens to list.
+ * Card properties cannot separate them, because the difference is not in the card. `undertow`
+ * chains on jormungandr_v1 because that deck holds `ink_stream` (scales on cards drawn this turn)
+ * and `serpents_coil` (cards played this turn), so every iteration pays for itself several times
+ * over. `forage` sits in decks that do not pay for drawing, so the AI never bothers.
+ *
+ * Hence a list, with the measurement beside each entry. That is not an arbitrary cap in the sense
+ * Henry's standing rule forbids — the evidence IS the condition, and it is written down. What
+ * keeps it honest is the tripwire in `encounter.test.ts`: every 0-energy card that draws must
+ * appear in this set or in `MEASURED_NOT_LOOPING`, so a new cantrip fails a test until somebody
+ * measures it and decides. A missed card becomes a conversation instead of a silent regression.
  */
-function isPureCantrip(dataId: string): boolean {
-    const data = GetProgramData(dataId);
-    if (!data || data.id === 'missing') return false;
-    if (numericBaseCost(data.baseCost) !== 0) return false;
-    const actions = data.actions ?? [];
-    return actions.length > 0 && actions.every(action => (action.type as string) === 'DRAW');
+export const LOOPING_FREE_DRAWS: ReadonlySet<string> = new Set([
+    // max 18 casts in one turn, 12.7% of turns at >=6, on jormungandr_v1 (1,200 games).
+    'undertow',
+    // Same shape, same deck shape: sleipnir_v1 runs two and holds `stampede`, which scales on
+    // cards played this turn. Not separately measured at depth; caught on the evidence that its
+    // twin is the same card with a different name.
+    'slipstream',
+    // No shipped deck runs two, so this costs nothing today. Listed because it is the same card
+    // again, and tickets 111/113 are the record of what it did when a deck could chain it.
+    'glimmer',
+]);
+
+/**
+ * 0-energy draws that were measured and are NOT capped, with the number that says why.
+ *
+ * `forage` is "draw 1, take 15 power". 1,200 games on ratatoskr_v1: **max 4 casts in a turn, 0.0%
+ * of turns at six or more**. Capping it would cost that deck 10.9 field points against a loop it
+ * has never run.
+ *
+ * This set exists so the tripwire can tell "measured and excluded" from "nobody has looked".
+ */
+export const MEASURED_NOT_LOOPING: ReadonlySet<string> = new Set(['forage']);
+
+/** Every 0-energy card that draws — the population the two sets above must between them cover. */
+export function freeDrawCardIds(ids: ReadonlyArray<string>): string[] {
+    return ids.filter((dataId) => {
+        const data = GetProgramData(dataId);
+        if (!data || data.id === 'missing') return false;
+        if (numericBaseCost(data.baseCost) !== 0) return false;
+        return (data.actions ?? []).some((action) => (action.type as string) === 'DRAW');
+    });
 }
 
 /**
- * ── TICKET 152 — ONE PURE CANTRIP AT A WILD, HOWEVER MANY THE DECK SHIPS ───────────────
+ * ── TICKET 152 — ONE LOOPING FREE DRAW AT A WILD, HOWEVER MANY THE DECK SHIPS ───────────────
  *
  * Henry, 2026-09-22: *"remove the double undertow cards from all wild encounters. It should only
  * be in elites and bosses."* See `IEnemyLoadout.duplicateCantrips` for the measurement behind it.
@@ -651,7 +688,7 @@ function isPureCantrip(dataId: string): boolean {
  *
  * It touches two shipped lists, and they are the only two: `jormungandr_v1` (`undertow` x2, the
  * deck this ticket is about) and `sleipnir_v1` (`slipstream` x2). `ratatoskr_v1` and `hel_v2` run
- * `forage` x2 and are deliberately untouched — see `isPureCantrip`.
+ * `forage` x2 and keep both — measured at max 4 casts in a turn, see `MEASURED_NOT_LOOPING`.
  *
  * Order is preserved and the FIRST copy is the one kept, so a wild's list is a prefix-stable
  * subsequence of the tuned list. That matters more than it looks: the deck is shuffled from a
@@ -663,7 +700,7 @@ export function dedupeCantrips(deck: ReadonlyArray<string>, loadout: IEnemyLoado
     const seen = new Set<string>();
     const out: string[] = [];
     for (const dataId of deck) {
-        if (isPureCantrip(dataId)) {
+        if (LOOPING_FREE_DRAWS.has(dataId)) {
             if (seen.has(dataId)) continue;
             seen.add(dataId);
         }
