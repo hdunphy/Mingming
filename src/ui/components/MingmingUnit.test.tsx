@@ -69,7 +69,7 @@ function board(over: Partial<IBattleState> = {}): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: PLAYERS,
         enemyParty: ENEMIES,
         playerDeck: {

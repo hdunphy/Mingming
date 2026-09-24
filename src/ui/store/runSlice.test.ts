@@ -314,20 +314,20 @@ describe('resolving an encounter', () => {
 
 describe('drivers', () => {
     it('adds a driver', () => {
-        const state = runReducer({ run: makeRun() }, addDriver('relic_a'));
-        expect(state.run?.drivers).toEqual(['relic_a']);
+        const state = runReducer({ run: makeRun() }, addDriver('driver_a'));
+        expect(state.run?.drivers).toEqual(['driver_a']);
     });
 
     it('dedupes — a driver is a passive, not currency', () => {
         // `createBattleState` applies the list once per entry, so a duplicate would silently
         // double the bonus.
-        let state = runReducer({ run: makeRun() }, addDriver('relic_a'));
-        state = runReducer(state, addDriver('relic_a'));
-        expect(state.run?.drivers).toEqual(['relic_a']);
+        let state = runReducer({ run: makeRun() }, addDriver('driver_a'));
+        state = runReducer(state, addDriver('driver_a'));
+        expect(state.run?.drivers).toEqual(['driver_a']);
     });
 
     it('is a no-op with no run in progress', () => {
-        expect(runReducer({ run: null }, addDriver('relic_a')).run).toBeNull();
+        expect(runReducer({ run: null }, addDriver('driver_a')).run).toBeNull();
     });
 });
 

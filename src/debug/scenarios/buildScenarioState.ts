@@ -51,7 +51,6 @@ import type {
 } from '../../engine/types';
 import { initializeBattleEntity } from '../../engine/types';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
-import { GetRelic } from '../../engine/data/relicRegistry';
 import { applyDrivers } from '../../engine/data/driverRegistry';
 import { instantiateDeck } from '../../engine/data/battleFactories';
 import { drawCards } from '../../engine/deckLogic';
@@ -119,54 +118,13 @@ function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBa
     return entity;
 }
 
-/**
- * The player-side relic bonuses `createBattleState` applies at battle start, mirrored here
- * so `player.relics` is not decorative.
- *
- * The enemy side has its own list since ticket 68 (`setup.enemyDrivers`) and goes through
- * `driverRegistry.applyDrivers` instead — the same function the live factory calls, so the two
- * sides cannot drift. This one stays because it carries ticket 02's registry-drift policy for the
- * player's list, which `applyDrivers` deliberately does not replicate.
- *
- * `GetRelic` throws on an unknown id. Scenarios follow the registry-drift policy from
- * ticket 02 (warn, then continue) rather than hard-failing an entire scenario library over
- * one renamed relic.
+/*
+ * TICKET 16: the player-side `applyRelics` that sat here is gone with the relics. Both sides now go
+ * through `driverRegistry.applyDrivers` — the same function the live factory calls — so a scenario
+ * and a run can never disagree about what a Driver does. An unknown id is warned about once and
+ * skipped inside `applyDrivers`, which is ticket 02's registry-drift policy (warn, then continue)
+ * by another route.
  */
-function applyRelics(entity: IBattleEntity, relicIds: ReadonlyArray<string>): IBattleEntity {
-    let result = entity;
-
-    for (const relicId of relicIds) {
-        let effect: string;
-        try {
-            effect = GetRelic(relicId).effect;
-        } catch {
-            console.warn(`[buildScenarioState] Unknown relic '${relicId}' in scenario; skipping.`);
-            continue;
-        }
-
-        if (effect === 'ENERGY_CAP_BONUS') {
-            result = {
-                ...result,
-                maxEnergy: result.maxEnergy + 1,
-                currentEnergy: result.currentEnergy + 1,
-            };
-        }
-        if (effect === 'DRAW_BONUS') {
-            result = { ...result, cardDraw: result.cardDraw + 1 };
-        }
-        if (effect === 'ATTACK_MULTIPLIER') {
-            result = {
-                ...result,
-                relicBonuses: {
-                    ...result.relicBonuses!,
-                    attackMod: result.relicBonuses!.attackMod * 1.1,
-                },
-            };
-        }
-    }
-
-    return result;
-}
 
 /**
  * Build a live battle state from a composed scenario setup.
@@ -195,7 +153,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
     const rng = new SeedStream(battleSeed);
 
     const playerParty: IBattleEntity[] = setup.player.party.map(member =>
-        applyRelics(buildEntity(member, rng), setup.player.relics),
+        applyDrivers(buildEntity(member, rng), setup.player.drivers),
     );
 
     // Enemies keep the activeOS `initializeBattleEntity` resolved. `createBattleState`
@@ -266,7 +224,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: setup.player.relics,
+        activeDrivers: setup.player.drivers,
 
         playerParty,
         enemyParty: finalEnemyParty,

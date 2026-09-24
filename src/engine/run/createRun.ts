@@ -18,6 +18,7 @@ import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegi
 import type { IMingmingState } from '../types';
 import type { IRunCard, IRunState, MacroSlots } from '../runTypes';
 import { generateRegionGraph } from './regionGraph';
+import { assignDriverStakes } from './driverStakes';
 import type { IGymOffer } from './gyms';
 
 // ---------------------------------------------------------------------------------------------
@@ -280,7 +281,9 @@ export function createRun(input: CreateRunInput): IRunState {
         tier: offer.gym.tier,
         biomes: offer.biomes,
 
-        nodes: graph.nodes,
+        // Ticket 17: every elite and ambush carries the Driver it pays, rolled here because the
+        // pool depends on the OFFER's biomes and the graph generator only knows the seed.
+        nodes: assignDriverStakes(graph.nodes, offer.biomes, seed),
         currentNodeId: graph.entryNodeId,
 
         partyIds: party.map((m) => m.id),

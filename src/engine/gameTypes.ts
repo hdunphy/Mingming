@@ -63,7 +63,11 @@ export interface IRewardBundle {
     readonly blueprints: ReadonlyArray<string>;
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
-    readonly relicChoices?: ReadonlyArray<string>;
+    /**
+     * Ticket 17: the Driver this fight pays — the node's `driverStake`, carried on the bundle so the
+     * report can show it and the claim can install it. Only an elite or an ambush sets it.
+     */
+    readonly driver?: string;
     /**
      * TICKET 163d — **the patch an elite pays out**, as `{ memberId, patchId }` pairs, one per
      * party member so the player fits it to whichever body they choose.

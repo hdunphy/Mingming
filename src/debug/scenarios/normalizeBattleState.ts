@@ -14,7 +14,6 @@
  *     state.enemyMode           -> 'MOVES'
  *     state.lastStatusConsumed  -> 0
  *     state.elementPlays        -> zero-filled for every member of Element
- *     entity.relicBonuses       -> { draw: 0, energy: 0, attackMod: 1 }
  *     entity.hooks              -> []
  *     entity.activeOS           -> GetMingmingData(definitionId).availableOS[0]
  *     entity.currentIntent      -> null
@@ -32,8 +31,6 @@ import { ELEMENTS } from '../../engine/types';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 
-/** Fill-class default for IBattleEntity.relicBonuses. */
-export const DEFAULT_RELIC_BONUSES = { draw: 0, energy: 0, attackMod: 1 } as const;
 
 /** Fill-class default for IBattleState.enemyMode - undefined means MOVES everywhere. */
 export const DEFAULT_ENEMY_MODE = 'MOVES' as const;
@@ -66,7 +63,6 @@ export function normalizeBattleEntity(entity: IBattleEntity): IBattleEntity {
 
     return {
         ...rest,
-        relicBonuses: entity.relicBonuses ?? { ...DEFAULT_RELIC_BONUSES },
         hooks: entity.hooks ?? [],
         currentIntent: entity.currentIntent ?? null,
         playsThisTurn: entity.playsThisTurn ?? 0,

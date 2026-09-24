@@ -29,7 +29,7 @@
 
 import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
-import { RelicRegistry } from '../../engine/data/relicRegistry';
+import { playerDriverOptions } from '../../engine/data/driverRegistry';
 import { getActiveSlotId, listSlots } from '../../engine/SaveSlots';
 import { rollSeed } from '../../engine/core/SeedStream';
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
@@ -93,7 +93,8 @@ export interface LauncherDraft {
     deckMode: DeckMode;
     /** Only read when `deckMode === 'loaded'`. */
     loadedDeck: string[];
-    relics: string[];
+    /** The player side's Drivers (ticket 16; was `relics`). */
+    drivers: string[];
     gauntlet: GauntletContext | null;
     /** Envelope `name` for save-to-file. */
     name: string;
@@ -128,12 +129,9 @@ export function cardOptions(): string[] {
     return Object.keys(ProgramRegistry).sort();
 }
 
-export function relicOptions(): Array<{ id: string; name: string; description: string }> {
-    return Object.values(RelicRegistry).map((relic) => ({
-        id: relic.id,
-        name: relic.name,
-        description: relic.description,
-    }));
+/** The player Drivers, for the launcher's DRIVERS pills (ticket 16; was `relicOptions`). */
+export function driverOptions(): Array<{ id: string; name: string; description: string }> {
+    return [...playerDriverOptions()];
 }
 
 // --- Draft construction ------------------------------------------------------
@@ -182,7 +180,7 @@ export function createDraft(): LauncherDraft {
         enemies: [],
         deckMode: 'base',
         loadedDeck: [],
-        relics: [],
+        drivers: [],
         gauntlet: null,
         name: 'scratch scenario',
     };
@@ -350,7 +348,7 @@ export function toComposedSetup(
         player: {
             party: draft.party.map(toMemberSetup),
             deck: resolveDeck(draft, run).cards,
-            relics: [...draft.relics],
+            drivers: [...draft.drivers],
         },
         enemies: draft.enemies.map(toEnemySetup),
         ...(draft.gauntlet ? { gauntlet: draft.gauntlet } : {}),
@@ -380,7 +378,7 @@ export function draftFromSetup(setup: ComposedSetup, name: string): LauncherDraf
         enemies: setup.enemies.map(toUnit),
         deckMode: 'loaded',
         loadedDeck: [...setup.player.deck],
-        relics: [...setup.player.relics],
+        drivers: [...setup.player.drivers],
         gauntlet: setup.gauntlet ?? null,
         name,
     };

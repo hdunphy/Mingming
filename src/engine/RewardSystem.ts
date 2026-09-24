@@ -36,6 +36,7 @@ import { resolveProgramId } from './data/programAliases';
 import { v2RunPool } from './data/speciesPools';
 import { bestPatchFor, PATCH_SLOTS } from './data/patchRegistry';
 import { rawFirmwareHooks } from './data/firmwareRegistry';
+import { paysDriver } from './run/driverStakes';
 import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
@@ -781,14 +782,25 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         blueprints: allBlueprints,
         cards: [],
         cardChoices: allCardChoices,
-        ...(nodeKind === 'elite' ? { patchChoices: elitePatchOffer(party) } : {}),
+        /*
+         * TICKET 163d, RE-POINTED AT THE DRIVER by the 2026-09-24 merge.
+         *
+         * It read `nodeKind === 'elite'` because 163 §3 says *"an elite pays one"*, written when an
+         * elite's other prize was a relic. Ticket 17 replaced that with the Driver and decided which
+         * nodes pay it — elites AND ambushes, because Henry ruled an ambush is harder than an elite
+         * and should carry the same stakes. `paysDriver` is that list, so the patch asks IT rather
+         * than keeping a second opinion about which fights are the big ones: the two prizes arrive
+         * on the same screen and cannot drift apart when the list next changes.
+         */
+        ...(paysDriver(nodeKind) ? { patchChoices: elitePatchOffer(party) } : {}),
     };
 }
 
 /**
- * TICKET 163d — **the patch an elite pays**, one per party member.
+ * TICKET 163d — **the patch a Driver-paying node pays**, one per party member.
  *
- * 163 §3 puts a patch on the elite as *"the second coin the research doc asked for"*, and 161 §2's
+ * 163 §3 puts a patch on the elite as *"the second coin the research doc asked for"*; the
+ * 2026-09-24 merge widened "elite" to `paysDriver` — see the call site, and 161 §2's
  * seeding rule says which one: *"the host body's best patch."* So every member is offered the rider
  * that changes the most about ITS firmware, and the player fits one of them — the choice is which
  * BODY to improve, which is the decision a 3v3 game wants to be asking.

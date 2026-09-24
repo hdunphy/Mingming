@@ -99,8 +99,13 @@ function initFirmwareHooks() {
         let hooks: HookDefinition[] = [];
 
         if (data && data.hooks) {
-            hooks = data.hooks.map(h => HookFactory.createHook(h));
-            // TICKET 163c: keep the DATA beside the built hooks. A patch transforms data.
+            // Ticket 16: a Driver's hooks are told which Driver they belong to, so a hook flagged
+            // `proc` can announce the DRIVER (not just itself) when it fires. Firmware hooks get
+            // no owner id and can never announce — a proc is a Driver's concept.
+            const driverId = key.startsWith('driver_') ? key : undefined;
+            hooks = data.hooks.map(h => HookFactory.createHook(h, driverId));
+            // TICKET 163c: keep the DATA beside the built hooks. A patch transforms data, and
+            // `FIRMWARE_REGISTRY` holds closures — see `rawFirmwareHooks`.
             RAW_FIRMWARE_HOOKS[key] = data.hooks;
         }
 

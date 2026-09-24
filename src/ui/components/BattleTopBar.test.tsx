@@ -102,19 +102,29 @@ describe('145c — and does not say what Henry cut', () => {
     });
 });
 
-describe('145c — the Drivers row', () => {
-    it('names each Driver, and says nothing when the run has none', () => {
-        const none = { gymId: 'gym_rootfall', drivers: [], nodes: [], currentNodeId: '' } as unknown as IRunState;
-        expect(render(battle(), none)).not.toContain('battle-drivers');
+describe('145c — the Drivers row (ticket 16: read off the battle, with the rule text as tooltip)', () => {
+    it('names each Driver, and says nothing when the party has none', () => {
+        const run = { gymId: 'gym_rootfall', drivers: [], nodes: [], currentNodeId: '' } as unknown as IRunState;
+        expect(render(battle({ activeDrivers: [] } as never), run)).not.toContain('battle-drivers');
 
-        const some = { ...none, drivers: ['root_rot'] } as unknown as IRunState;
-        const markup = render(battle(), some);
+        const markup = render(battle({ activeDrivers: ['driver_first_blood'] } as never), run);
         expect(markup).toContain('battle-drivers');
         expect(markup).toContain('DRIVERS');
+        expect(markup).toContain('FIRST BLOOD');
+        // The tooltip is the rule — a chip with a name and no rule is a rule you cannot play around.
+        expect(markup).toContain('title="The first attack card this side plays each turn deals 20% more damage."');
     });
 
-    it('is absent outside a run — a debug scenario has no gym and no Drivers', () => {
-        expect(render(battle(), null)).not.toContain('battle-drivers');
+    it('shows the Drivers outside a run — a debug scenario fields them too', () => {
+        // Until ticket 17 wires the elite drop, the scenario launcher is where a Driver gets tried;
+        // a row keyed off `run.drivers` was blank there, which is the one place it was needed.
+        const markup = render(battle({ activeDrivers: ['driver_antivenom'] } as never), null);
+        expect(markup).toContain('battle-drivers');
+        expect(markup).toContain('ANTIVENOM');
+    });
+
+    it('does not flash before anything has procced', () => {
+        expect(render(battle({ activeDrivers: ['driver_antivenom'] } as never), null)).not.toContain('is-proc');
     });
 });
 

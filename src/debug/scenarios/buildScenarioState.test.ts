@@ -47,7 +47,7 @@ function makeSetup(overrides: Partial<ComposedSetup> = {}): ComposedSetup {
                 'ignite',
                 'strength_burst',
             ],
-            relics: [],
+            drivers: [],
         },
         enemies: [
             {
@@ -223,7 +223,7 @@ describe('buildScenarioState - per-entity overrides', () => {
     });
 });
 
-describe('buildScenarioState - decks, relics and enemyMode', () => {
+describe('buildScenarioState - decks, drivers and enemyMode', () => {
     it('expands the player deck into instances and deals an opening hand', () => {
         const setup = makeSetup();
         const state = buildScenarioState(setup);
@@ -278,23 +278,26 @@ describe('buildScenarioState - decks, relics and enemyMode', () => {
         expect(state.enemyParty[0].currentIntent).toBeNull();
     });
 
-    it('threads relics onto activeRelics and applies their battle-start bonuses', () => {
+    it('threads drivers onto activeDrivers and attaches their hooks to the player side only', () => {
+        // Ticket 16: the player side goes through the same `applyDrivers` as the enemy side and the
+        // live factory, so a Driver here is a Driver in the shipped game, hook for hook.
         const plain = buildScenarioState(makeSetup());
         const setup = makeSetup();
-        setup.player.relics = ['heatsink', 'expansion_slot'];
+        setup.player.drivers = ['driver_first_blood', 'driver_antivenom'];
         const buffed = buildScenarioState(setup);
 
-        expect(buffed.activeRelics).toEqual(['heatsink', 'expansion_slot']);
-        expect(buffed.playerParty[0].maxEnergy).toBe(plain.playerParty[0].maxEnergy + 1);
-        expect(buffed.playerParty[0].cardDraw).toBe(plain.playerParty[0].cardDraw + 1);
-        // Enemies never receive player relics.
-        expect(buffed.enemyParty[0].cardDraw).toBe(plain.enemyParty[0].cardDraw);
+        expect(buffed.activeDrivers).toEqual(['driver_first_blood', 'driver_antivenom']);
+        expect(buffed.playerParty[0].hooks).toContain('driver_first_blood_boost');
+        expect(buffed.playerParty[0].hooks).toContain('driver_antivenom_purge');
+        expect(plain.playerParty[0].hooks).toEqual([]);
+        // Enemies never receive player Drivers.
+        expect(buffed.enemyParty[0].hooks ?? []).not.toContain('driver_first_blood_boost');
     });
 
-    it('warns and continues on an unknown relic', () => {
+    it('warns and continues on an unknown driver', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const setup = makeSetup();
-        setup.player.relics = ['no_such_relic'];
+        setup.player.drivers = ['no_such_driver'];
 
         expect(() => buildScenarioState(setup)).not.toThrow();
         expect(warn).toHaveBeenCalled();
@@ -310,7 +313,6 @@ describe('buildScenarioState - canonical form and guards', () => {
         expect(state.elementPlays).toBeDefined();
         expect(Object.values(state.elementPlays!).every(v => v === 0)).toBe(true);
         for (const entity of [...state.playerParty, ...state.enemyParty]) {
-            expect(entity.relicBonuses).toBeDefined();
             expect(entity.hooks).toEqual([]);
             expect(entity.playsThisTurn).toBe(0);
             expect(entity.currentIntent !== undefined).toBe(true);

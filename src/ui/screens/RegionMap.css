@@ -144,6 +144,20 @@
 .rm-node.fogged .rm-node-second-element,
 .rm-node.fogged .rm-node-scout-ring { opacity: 0.35; }
 
+/* Ticket 17: the Driver at stake. Solid, in the Driver chip's violet (`.battle-driver-chip`), so a
+   ring on the map and the chip in the fight are the same word. */
+.rm-node-stake-ring {
+    fill: none;
+    stroke: #a78bfa;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.7));
+}
+
+/* Ticket 17: the ambush is marked HIGH RISK — their 3 vs your 2 — with a red disc fill rather than a
+   red stroke, because the stroke is the element and must keep saying so. */
+.rm-node.risk .rm-node-disc { fill: rgba(190, 30, 45, 0.45); }
+.rm-node.risk.reachable .rm-node-disc { stroke: #ff5a5a; }
+
 .rm-node.reachable { cursor: pointer; }
 .rm-node.reachable .rm-node-disc { stroke: #7a5cff; stroke-width: 3; }
 .rm-node.reachable:hover .rm-node-disc { fill: #241c46; }

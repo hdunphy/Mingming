@@ -28,6 +28,7 @@ import { getBestAction } from '../../engine/ai/TacticalAI';
 import { canFireMacro } from '../../engine/battleReducer';
 import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable } from '../../engine/RewardSystem';
+import { paysDriver } from '../../engine/run/driverStakes';
 import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
@@ -49,8 +50,6 @@ import {
 } from '../store/runSlice';
 import { logRunEvent } from '../store/runLogMiddleware';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
-import { RelicRegistry } from '../../engine/data/relicRegistry';
-import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
 import PlayedCardReveal from './PlayedCardReveal';
@@ -178,7 +177,6 @@ const BattleArena: React.FC = () => {
     // receives from a won fight is blueprints, which are the one persistent currency.
     const run = useSelector((state: RootState) => state.run.run);
     const gauntlet = run?.gauntlet ?? null;
-    const drivers = run?.drivers;
     // Ticket 24. `seenTips` is a ranch field, so the lesson outlives the run that taught it.
     const seenTips = useSelector((state: RootState) => state.game.seenTips);
 
@@ -657,6 +655,15 @@ const BattleArena: React.FC = () => {
      * so a scenario pays what an ordinary fight pays rather than nothing.
      */
     const nodeKind: NodeKind = run?.nodes.find(n => n.id === run.currentNodeId)?.kind ?? 'wild';
+    /**
+     * TICKET 17: the Driver this node pays, stamped on it at run creation (`driverStakes.ts`) and
+     * shown on the map before the player walked here. Read off the node rather than re-rolled, so
+     * the report pays exactly what the map promised. Undefined for every node kind that does not
+     * pay one and for every debug scenario.
+     */
+    const driverStake: string | undefined = paysDriver(nodeKind)
+        ? run?.nodes.find(n => n.id === run.currentNodeId)?.driverStake
+        : undefined;
 
     /**
      * Won fights since the last blueprint — the pity floor's counter (2026-09-01), read beside
@@ -735,12 +742,22 @@ const BattleArena: React.FC = () => {
      * a state no code produces. `rollDraftRounds` and `IRewardBundle.draftRounds` are still there
      * for 18 to re-wire; what is gone is the invocation.
      *
-     * The driver choice on a gauntlet's last fight stays as ticket 11 left it — ticket 16 owns
-     * drivers and has not been through here yet.
+     * TICKET 16 REMOVED THE GYM-CLEAR DRIVER PICK. The last fight of a gauntlet used to pay "choose
+     * one of three random relics" on top of the bundle, rolled from `Date.now()` and dispatched as
+     * `addDriver`. The relics are deleted, and `economy-session.md` / `macros-and-drivers.md` rule
+     * that Drivers are ELITE drops — *"ONE harder fight, the Driver visible as the stakes"* — which
+     * is ticket 17's node, not the gym's. Henry ruled the removal 2026-09-11.
+     *
+     * TICKET 17 PUTS THE DRIVER BACK, AT THE RIGHT NODE. An elite's or an ambush's win carries the
+     * node's `driverStake` on the bundle — not rolled here, READ here, because the map already
+     * showed it. It rides the bundle rather than being dispatched on victory so the report can say
+     * what was won, and it is installed on CONTINUE with the cards (a Driver is run-scoped, so the
+     * crash-safety argument that banks blueprints on drop does not apply — a fight replayed after a
+     * crash pays it again).
      */
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
-            let bundle = rollDropTable({
+            const rolled = rollDropTable({
                 defeated: battleState.enemyParty,
                 nodeKind,
                 party: battleState.playerParty,
@@ -756,18 +773,7 @@ const BattleArena: React.FC = () => {
                 dryFights,
                 firstRun,
             });
-
-            // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
-            if (gauntlet && gauntlet.fightIndex >= gauntlet.totalFights - 1) {
-                const held = new Set(drivers ?? []);
-                const available = Object.keys(RelicRegistry).filter(r => !held.has(r));
-
-                if (available.length > 0) {
-                    const prng = new PRNG(Date.now().toString());
-                    const { shuffled } = prng.shuffle(available);
-                    bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
-                }
-            }
+            const bundle = driverStake ? { ...rolled, driver: driverStake } : rolled;
 
             // ticket 55: reviewed, not a defect, and deliberately NOT derived during render. The
             // bundle is ROLLED from a seeded PRNG and must be rolled exactly once per victory: a
@@ -777,7 +783,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers, dryFights, firstRun]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, driverStake, dryFights, firstRun]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -918,7 +924,6 @@ const BattleArena: React.FC = () => {
      */
     const handleContinue = (
         chosenCards: IOwnedProgram[],
-        chosenRelic?: string,
         storedInstanceIds: ReadonlyArray<string> = [],
         chosenPatch?: { readonly memberId: string; readonly patchId: string },
     ) => {
@@ -964,10 +969,11 @@ const BattleArena: React.FC = () => {
                 if (forDeck.length > 0) dispatch(addRunCards(forDeck));
                 if (forCollection.length > 0) dispatch(addRunCollection(forCollection));
             }
-            if (chosenRelic) {
-                dispatch(addDriver(chosenRelic));
+            // Ticket 17: the node's Driver, installed party-wide for the rest of the run. `addDriver`
+            // dedupes, so re-fighting a node whose Driver you already hold is not a second copy.
+            if (rewardBundle.driver) {
+                dispatch(addDriver(rewardBundle.driver));
             }
-
             /*
              * TICKET 59: report the pick outcome, one row per offered triple.
              *

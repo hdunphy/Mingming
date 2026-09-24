@@ -75,6 +75,13 @@ const HookDefinitionSchema = z.object({
     id: z.string(),
     trigger: z.string(),
     priority: z.number(),
+    /**
+     * Ticket 16: this hook's firing IS the Driver's visible proc. `HookFactory` emits a
+     * `DRIVER_PROC` battle event when a hook flagged here passes its `when`, and the UI flashes the
+     * Driver chip and floats its name on the owner. Declared in the schema for HANDOFF 8c2's reason
+     * (zod strips undeclared keys, silently): a flag that is not here is a flag that never fires.
+     */
+    proc: z.boolean().optional(),
     when: HookConditionSchema.optional(),
     condition: z.any().optional(),
     do: z.array(HookActionSchema).optional(),

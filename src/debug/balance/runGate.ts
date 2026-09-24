@@ -116,12 +116,15 @@ import type { IBattleEntity, IMingmingState } from '../../engine/types';
 import type { ComposedSetup, EnemySetup, PartyMemberSetup } from '../scenarios/scenarioSchema';
 import { BALANCE_IV, BALANCE_STAT_JITTER } from './balanceScenarios';
 import { quietly } from './balanceReporting';
-import { DEFAULT_MAX_TURNS, aggregate, runBatch, type RunResult } from './runBatch';
+import { DEFAULT_MAX_TURNS, aggregate, runBatch, type BatchOptions, type RunResult } from './runBatch';
 import { ElementalMatrix } from '../../engine/combatUtils';
 import type { Element } from '../../engine/types';
 import type { AiTier } from '../../engine/ai/TacticalAI';
 import type { HandbuiltParty } from './handbuiltParties';
 import { tweakEnemyDeck } from './experimentalTweaks';
+import { createMacroPolicy, type MacroLoadout, type MacroRule } from './macroPolicy';
+import { DRIVER_IDS, describeDriver } from '../../engine/data/driverRegistry';
+import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 
 // ---------------------------------------------------------------------------------------------
 // The ruled targets
@@ -831,7 +834,8 @@ export interface BossOverride {
      * question §12 used it for, and which would have silently changed meaning if the field had been
      * left pointing at a mechanism only two of the three gyms still use.
      */
-    readonly relics?: 'off';
+    /** Ticket 16: was `relics`. The boss's signature Driver, off. */
+    readonly driver?: 'off';
 }
 
 /** Apply a run-scoped override to a sampled boss team. A no-op for every other fight. */
@@ -842,7 +846,7 @@ function withBossOverride(
 ): ReadonlyArray<IBattleEntity> {
     if (!override || cell.kind !== 'gauntlet') return enemyParty;
     if (!isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS)) return enemyParty;
-    if (override.ivs === undefined && override.relics === undefined) return enemyParty;
+    if (override.ivs === undefined && override.driver === undefined) return enemyParty;
 
     return enemyParty.map((enemy) => {
         const stats = override.ivs
@@ -862,12 +866,12 @@ function withBossOverride(
 
 /** A one-line description of the override, for a report header that must not lose its provenance. */
 export function describeBossOverride(override: BossOverride | undefined): string {
-    if (!override || (override.ivs === undefined && override.relics === undefined)) {
+    if (!override || (override.ivs === undefined && override.driver === undefined)) {
         return 'boss as shipped';
     }
     const parts: string[] = [];
     if (override.ivs) parts.push(`BOSS_IVS ${override.ivs.hp}/${override.ivs.attack}/${override.ivs.defense}`);
-    if (override.relics === 'off') parts.push('boss signature passive OFF (the gym Driver; tuned OS and deck untouched)');
+    if (override.driver === 'off') parts.push('boss signature passive OFF (the gym Driver; tuned OS and deck untouched)');
     return `ISOLATION — ${parts.join(' + ')}`;
 }
 
@@ -930,6 +934,8 @@ function setupForEncounter(
     enemyDeckIds: ReadonlyArray<string>,
     /** Ticket 68: the fight's enemy-side Drivers, carried on the encounter. */
     enemyDrivers: ReadonlyArray<string> = [],
+    /** Ticket 77 B2: the PLAYER side's Drivers. Empty in the bare arm — `createRun` deals none. */
+    playerDrivers: ReadonlyArray<string> = [],
 ): ComposedSetup {
     const enemies: EnemySetup[] = enemyParty.map((enemy, index) => ({
         definitionId: enemy.definitionId,
@@ -945,7 +951,7 @@ function setupForEncounter(
         // `rollEncounter`'s own ruling, re-exported by the encounter module so this cannot drift:
         // a run enemy plays cards, not telegraphed intents. `runBatch` rejects anything else.
         enemyMode: RUN_ENEMY_MODE,
-        player: { party: party.map(asSetupMember), deck: [...deck], relics: [] },
+        player: { party: party.map(asSetupMember), deck: [...deck], drivers: [...playerDrivers] },
         enemies,
         // Ticket 68. Omitted rather than sent empty so that every setup written before this ticket
         // serializes byte-identically — the gate's own repros are compared as JSON.
@@ -1021,6 +1027,14 @@ export function sampleFight(
     lean?: string,
     /** How much of its own kit the party has assembled — ticket 77 Track A. See `DeckMode`. */
     deckMode?: DeckMode,
+    /**
+     * TICKET 77 TRACK B2: a Driver the PLAYER side runs, as `run.drivers` would hold it after an
+     * elite drop (ticket 17). `battleSetup.ts` copies `run.drivers` onto the player side in the game;
+     * this harness builds its setup directly, so the flag lands on `setup.player.drivers` here and
+     * `createBattleState` applies it through the same `applyDrivers` the game uses. Validated by the
+     * CLI against `DRIVER_IDS` — an unknown id throws there, never a silent no-op here.
+     */
+    playerDriver?: string,
 ): SampledFight {
     const seed = `run-gate:${cell.id}:${index}`;
 
@@ -1123,9 +1137,10 @@ export function sampleFight(
     // shipped game would field — only the named knob differs from the 0/60 baseline.
     const enemyParty = withBossOverride(cell, encounter.enemyParty, bossOverride);
 
-    // `--boss-relics off` means "the boss without its signature passive". Ticket 68 moved where that
-    // passive lives for an authored gym, so the flag follows it — see `BossOverride.relics`.
-    const stripSignature = bossOverride?.relics === 'off'
+    // `--boss-driver off` (ticket 16; `--boss-relics off` still accepted) means "the boss without its
+    // signature passive". Ticket 68 moved where that passive lives for an authored gym, so the flag
+    // follows it — see `BossOverride.driver`.
+    const stripSignature = bossOverride?.driver === 'off'
         && cell.kind === 'gauntlet'
         && isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS);
     const enemyDrivers = stripSignature ? [] : (encounter.enemyDrivers ?? []);
@@ -1138,7 +1153,10 @@ export function sampleFight(
     const enemyDeckIds = tweakEnemyDeck(encounter.enemyDeckIds, tweaks ?? []);
 
     return {
-        setup: setupForEncounter(encounter.seed, party, deck, enemyParty, enemyDeckIds, enemyDrivers),
+        setup: setupForEncounter(
+            encounter.seed, party, deck, enemyParty, enemyDeckIds, enemyDrivers,
+            playerDriver === undefined ? [] : [playerDriver],
+        ),
         lineup,
         enemyDrivers,
         enemyAiTier: encounter.enemyAiTier,
@@ -1225,12 +1243,33 @@ export interface CellDiagnostics {
     readonly enemyDamagePerTurn: number;
     /** Cards the player's deck held, averaged over samples — the dilution denominator. */
     readonly deckSize: number;
+    /** Ticket 77 B1: macros the policy fired, per fight. 0 when no policy ran. */
+    readonly macrosFiredPerFight: number;
+    /** Ticket 77 B1: which rule fired them, totals over the cell. Empty when no policy ran. */
+    readonly macroRules: Readonly<Partial<Record<MacroRule, number>>>;
+    /** Ticket 77 B2/C: `DRIVER_PROC` events from the PLAYER side, per fight. */
+    readonly playerProcsPerFight: number;
+    /** Ticket 77 C: `DRIVER_PROC` events from the ENEMY side, per fight — the boss Driver firing. */
+    readonly enemyProcsPerFight: number;
 }
 
 /** Pull ticket 77's four player-side numbers out of a cell's raw runs. */
-function diagnose(runs: ReadonlyArray<RunResult>, deckSizes: ReadonlyArray<number>): CellDiagnostics | undefined {
+function diagnose(
+    runs: ReadonlyArray<RunResult>,
+    deckSizes: ReadonlyArray<number>,
+    procs: { player: number; enemy: number } = { player: 0, enemy: 0 },
+): CellDiagnostics | undefined {
     const withTelemetry = runs.filter((r) => r.telemetry !== undefined);
     if (withTelemetry.length === 0) return undefined;
+
+    let macros = 0;
+    const macroRules: Partial<Record<MacroRule, number>> = {};
+    for (const run of runs) {
+        for (const fire of run.macrosFired ?? []) {
+            macros += 1;
+            macroRules[fire.rule] = (macroRules[fire.rule] ?? 0) + 1;
+        }
+    }
 
     let payoff = 0;
     let playerDamage = 0;
@@ -1259,6 +1298,10 @@ function diagnose(runs: ReadonlyArray<RunResult>, deckSizes: ReadonlyArray<numbe
         playerDamagePerTurn: turns === 0 ? 0 : playerDamage / turns,
         enemyDamagePerTurn: turns === 0 ? 0 : enemyDamage / turns,
         deckSize: deckSizes.length === 0 ? 0 : deckSizes.reduce((a, b) => a + b, 0) / deckSizes.length,
+        macrosFiredPerFight: runs.length === 0 ? 0 : macros / runs.length,
+        macroRules,
+        playerProcsPerFight: runs.length === 0 ? 0 : procs.player / runs.length,
+        enemyProcsPerFight: runs.length === 0 ? 0 : procs.enemy / runs.length,
     };
 }
 
@@ -1354,6 +1397,38 @@ export interface MeasureOptions {
      * is read down in `sampleFight`.
      */
     readonly tweaks?: ReadonlyArray<string>;
+    /** Ticket 77 B2: a Driver on the PLAYER side. Validated against `DRIVER_IDS` — see `sampleFightFor`. */
+    readonly playerDriver?: string;
+    /** Ticket 77 B1: the macro rack the harness policy fires from. Undefined = no rack, the bare arm. */
+    readonly macros?: MacroLoadout;
+}
+
+/**
+ * THE ONE PLACE `MeasureOptions` BECOMES A `sampleFight` CALL.
+ *
+ * Extracted from `measureCell` so that `optionsThreading.test.ts` can assert on the path the arms
+ * actually run — not on `sampleFight` called by hand with the right arguments, which is what the
+ * tests did before and which would have passed straight through the `--toolbox` bug (the flag was
+ * declared, parsed, printed, and dropped at exactly this call). A flag added to `MeasureOptions`
+ * and forgotten here is now a failing test rather than a ninety-minute measurement of the bare arm.
+ */
+export function sampleFightFor(cell: RunGateCell, index: number, options: MeasureOptions): SampledFight {
+    if (options.playerDriver !== undefined && !DRIVER_IDS.includes(options.playerDriver)) {
+        throw new Error(
+            `[run-gate] unknown --player-driver "${options.playerDriver}". Known: ${DRIVER_IDS.join(', ')}`,
+        );
+    }
+    return sampleFight(
+        cell, index, options.matchup ?? 'blind', options.bossOverride, options.gymId,
+        options.handbuilt, options.toolbox, options.tweaks, options.lean, options.deckMode,
+        options.playerDriver,
+    );
+}
+
+/** One banner line for `--player-driver`. */
+export function describePlayerDriver(id: string): string {
+    const { name, description } = describeDriver(id);
+    return `${id} (${name}: ${description})`;
 }
 
 /**
@@ -1371,6 +1446,29 @@ export interface MeasureOptions {
  * quietly shrink the sample and make `--iterations` mean different things in different bands. The
  * walk is bounded so a cell that can never be sampled fails loudly instead of spinning.
  */
+/**
+ * The other seam: `MeasureOptions` -> the `runBatch` options one sample plays under. Exported for
+ * the same reason as `sampleFightFor` — `--macros` is threaded HERE, not into `sampleFight`, and a
+ * policy built and never handed to the batch would print MACRO ARM over a bare measurement.
+ *
+ * A new policy per sample, because the policy IS the rack and `runBatch` plays one battle here.
+ */
+export function batchOptionsFor(cell: RunGateCell, fight: SampledFight, options: MeasureOptions): BatchOptions {
+    const bossFight = cell.kind === 'gauntlet' && isBossFight(cell.fightIndex ?? 0, GAUNTLET_FIGHTS);
+    return {
+        iterations: 1,
+        maxTurns: options.maxTurns ?? DEFAULT_MAX_TURNS,
+        startingSide: 'PLAYER',
+        // Ticket 60's ladder. Without this the gate would play every rung at the process
+        // default — full lookahead everywhere — and report a game the run does not field.
+        enemyAiTier: fight.enemyAiTier,
+        // Ticket 77: the arms are judged on whether the player's ENGINE assembled, not only on
+        // whether it won, and `played`/`totalDamage` are where that lives.
+        telemetry: true,
+        ...(options.macros === undefined ? {} : { playerPolicy: createMacroPolicy(options.macros, { bossFight }) }),
+    };
+}
+
 export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMeasurement {
     const started = Date.now();
     const runs: RunResult[] = [];
@@ -1378,6 +1476,35 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
     const lineupsSeen: string[] = [];
     const deckSizes: number[] = [];
 
+    /*
+     * Ticket 77 B2/C: count the Drivers PROCCING, per side, over the cell. `HookFactory` emits a
+     * `DRIVER_PROC` for every `proc: true` hook that passes its `when` outside the AI's search, and
+     * that event — not the LOG line — is what the ticket's "procs/fight" column reads. Subscribed
+     * for the length of the cell; the preview inside `macroPolicy` runs muted so it never counts.
+     */
+    const procs = { player: 0, enemy: 0 };
+    const unsubscribe = globalBattleEventBus.subscribe((event: BattleEvent) => {
+        if (event.type !== 'DRIVER_PROC') return;
+        if (event.fromPlayer) procs.player += 1;
+        else procs.enemy += 1;
+    });
+    try {
+        return measureCellInner(cell, options, started, runs, enemiesSeen, lineupsSeen, deckSizes, procs);
+    } finally {
+        unsubscribe();
+    }
+}
+
+function measureCellInner(
+    cell: RunGateCell,
+    options: MeasureOptions,
+    started: number,
+    runs: RunResult[],
+    enemiesSeen: string[],
+    lineupsSeen: string[],
+    deckSizes: number[],
+    procs: { player: number; enemy: number },
+): CellMeasurement {
     const limit = options.iterations * 8 + 16;
     let index = 0;
     while (runs.length < options.iterations) {
@@ -1405,26 +1532,13 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
              * `sampleFight`, because the failure is silent, survives a full green suite, and costs
              * whatever the run cost.
              */
-            fight = sampleFight(
-                cell, at, options.matchup ?? 'blind', options.bossOverride, options.gymId,
-                options.handbuilt, options.toolbox, options.tweaks, options.lean, options.deckMode,
-            );
+            fight = sampleFightFor(cell, at, options);
         } catch (error) {
             if (error instanceof NoSuchNodeError) continue;
             throw error;
         }
 
-        const batch = quietly(() => runBatch(fight.setup, {
-            iterations: 1,
-            maxTurns: options.maxTurns ?? DEFAULT_MAX_TURNS,
-            startingSide: 'PLAYER',
-            // Ticket 60's ladder. Without this the gate would play every rung at the process
-            // default — full lookahead everywhere — and report a game the run does not field.
-            enemyAiTier: fight.enemyAiTier,
-            // Ticket 77: the arms are judged on whether the player's ENGINE assembled, not only on
-            // whether it won, and `played`/`totalDamage` are where that lives.
-            telemetry: true,
-        }));
+        const batch = quietly(() => runBatch(fight.setup, batchOptionsFor(cell, fight, options)));
         runs.push(...batch.runs);
         enemiesSeen.push(fight.enemy.join(' + '));
         deckSizes.push(fight.setup.player.deck.length);
@@ -1446,7 +1560,7 @@ export function measureCell(cell: RunGateCell, options: MeasureOptions): CellMea
         elapsedMs: Date.now() - started,
         enemiesSeen,
         lineupsSeen,
-        diagnostics: diagnose(runs, deckSizes),
+        diagnostics: diagnose(runs, deckSizes, procs),
     };
 }
 

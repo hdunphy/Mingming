@@ -144,14 +144,8 @@ export interface IMingmingState {
   hpIV: number;
 }
 
-// --- System Deemons / Relics ---
-
-export interface IRelic {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly effect: string; // Internal ID for logic
-}
+// TICKET 16: `IRelic` and the four stat relics are gone. Party-wide passives are DRIVERS
+// (`data/driverRegistry.ts`) — hook-bearing entries in `lib/hooks.json`, never a stat table.
 
 /**
  * Volatile Combat State: Existing only during battle.
@@ -174,9 +168,8 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentHp: number;
   readonly currentEnergy: number;
   readonly tempHp: number; // Shields
-  readonly relicBonuses?: { draw: number; energy: number; attackMod: number };
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
-  readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
+  readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Drivers, passives)
   readonly activeOS?: string; // Current Operating System ID
   /**
    * TICKET 163c — **the patch fitted to this body's firmware**, at most one (`PATCH_SLOTS`).
@@ -327,8 +320,7 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     hooks: [],
     activeOS: instance.activeOS || definition.availableOS[0], // Default to first available OS
     daemons: [],
-    artReference: definition.artReference,
-    relicBonuses: { draw: 0, energy: 0, attackMod: 1 }
+    artReference: definition.artReference
   };
 }
 
@@ -704,7 +696,13 @@ export interface IBattleState {
   readonly turn: number;
   readonly phase: TurnPhase;
   readonly activeSide: 'PLAYER' | 'ENEMY';
-  readonly activeRelics: ReadonlyArray<string>;
+  /**
+   * TICKET 16: the PLAYER side's Driver ids, as `createBattleState` copied them from the run. The
+   * enemy side's travel on the encounter and are attached straight to its members' `hooks`. Was
+   * `activeRelics`; the four stat relics it named are deleted and the field only ever meant
+   * "which party-wide passives is the player running" — which is what a Driver is.
+   */
+  readonly activeDrivers: ReadonlyArray<string>;
 
   readonly playerParty: ReadonlyArray<IBattleEntity>;
   readonly enemyParty: ReadonlyArray<IBattleEntity>;

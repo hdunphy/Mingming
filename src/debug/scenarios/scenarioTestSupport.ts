@@ -51,7 +51,6 @@ export function createRichEntity(overrides: Partial<IBattleEntity> = {}): IBattl
         name: 'Draugr',
         primaryElement: 'Dark',
         secondaryElement: 'Ice',
-        relicBonuses: { draw: 1, energy: 2, attackMod: 1.5 },
         hooks: ['hook_a'],
         activeOS: 'draugr_v2',
         playsThisTurn: 2,
@@ -88,7 +87,7 @@ export function createSparseBattleState(overrides: Partial<IBattleState> = {}): 
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
 
         playerParty: [createSparseEntity()],
         enemyParty: [createSparseEntity({ id: 'e1', definitionId: 'draugr', name: 'Draugr' })],

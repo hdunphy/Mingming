@@ -1,0 +1,91 @@
+[balance:drivers] Ticket 16 — the Driver compounding canary. Report-only.
+[balance:drivers]   population  REFERENCE_PANEL ring (each comp vs the next): 6 matchups x 1 seeds x 2 orders = 12 battles/arm
+[balance:drivers]   arms        bare + 2: driver_static_field, driver_tenth_strike
+[balance:drivers]   fidelity    beam 8; AI_LITE is read from the environment
+[balance:drivers]   maxTurns    40   (standalone 3v3s — NOT a run)
+
+[balance:drivers]   bare                         1/12  panel-zoo vs panel-control         28s
+[balance:drivers]   bare                         2/12  panel-zoo vs panel-control         52s
+[balance:drivers]   bare                         3/12  panel-control vs panel-ramp        85s
+[balance:drivers]   bare                         4/12  panel-control vs panel-ramp        118s
+[balance:drivers]   bare                         5/12  panel-ramp vs panel-burst          132s
+[balance:drivers]   bare                         6/12  panel-ramp vs panel-burst          146s
+[balance:drivers]   bare                         7/12  panel-burst vs panel-mixed-a       151s
+[balance:drivers]   bare                         8/12  panel-burst vs panel-mixed-a       164s
+[balance:drivers]   bare                         9/12  panel-mixed-a vs panel-mixed-b     179s
+[balance:drivers]   bare                        10/12  panel-mixed-a vs panel-mixed-b     187s
+[balance:drivers]   bare                        11/12  panel-mixed-b vs panel-zoo         205s
+[balance:drivers]   bare                        12/12  panel-mixed-b vs panel-zoo         215s
+[balance:drivers]   driver_static_field          1/12  panel-zoo vs panel-control         246s
+[balance:drivers]   driver_static_field          2/12  panel-zoo vs panel-control         277s
+[balance:drivers]   driver_static_field          3/12  panel-control vs panel-ramp        315s
+[balance:drivers]   driver_static_field          4/12  panel-control vs panel-ramp        349s
+[balance:drivers]   driver_static_field          5/12  panel-ramp vs panel-burst          370s
+[balance:drivers]   driver_static_field          6/12  panel-ramp vs panel-burst          382s
+[balance:drivers]   driver_static_field          7/12  panel-burst vs panel-mixed-a       390s
+[balance:drivers]   driver_static_field          8/12  panel-burst vs panel-mixed-a       405s
+[balance:drivers]   driver_static_field          9/12  panel-mixed-a vs panel-mixed-b     419s
+[balance:drivers]   driver_static_field         10/12  panel-mixed-a vs panel-mixed-b     430s
+[balance:drivers]   driver_static_field         11/12  panel-mixed-b vs panel-zoo         441s
+[balance:drivers]   driver_static_field         12/12  panel-mixed-b vs panel-zoo         455s
+[balance:drivers]   driver_tenth_strike          1/12  panel-zoo vs panel-control         495s
+[balance:drivers]   driver_tenth_strike          2/12  panel-zoo vs panel-control         531s
+[balance:drivers]   driver_tenth_strike          3/12  panel-control vs panel-ramp        578s
+[balance:drivers]   driver_tenth_strike          4/12  panel-control vs panel-ramp        622s
+[balance:drivers]   driver_tenth_strike          5/12  panel-ramp vs panel-burst          642s
+[balance:drivers]   driver_tenth_strike          6/12  panel-ramp vs panel-burst          664s
+[balance:drivers]   driver_tenth_strike          7/12  panel-burst vs panel-mixed-a       670s
+[balance:drivers]   driver_tenth_strike          8/12  panel-burst vs panel-mixed-a       689s
+[balance:drivers]   driver_tenth_strike          9/12  panel-mixed-a vs panel-mixed-b     709s
+[balance:drivers]   driver_tenth_strike         10/12  panel-mixed-a vs panel-mixed-b     721s
+[balance:drivers]   driver_tenth_strike         11/12  panel-mixed-b vs panel-zoo         745s
+[balance:drivers]   driver_tenth_strike         12/12  panel-mixed-b vs panel-zoo         758s
+
+[balance:drivers] ARM                                  n  win%   flips(+/-)  procs/battle  silent  turns  ftk  stall  sweeps
+[balance:drivers] bare (no Driver)                     12   58.3%    0/0         0.00         0     6.7    0      0  panel-control,panel-ramp,panel-mixed-b
+[balance:drivers] STATIC FIELD                         12   58.3%    0/0        30.42         0     6.0    0      0  panel-control,panel-ramp,panel-mixed-b
+[balance:drivers] TENTH STRIKE                         12   58.3%    1/1         2.08         0     6.8    0      0  panel-control,panel-mixed-a,panel-mixed-b
+
+[balance:drivers] arm                       matchup                            order   winner  turns  procs
+[balance:drivers] bare                      panel-zoo vs panel-control         PLAYER  ENEMY       5      0
+[balance:drivers] bare                      panel-zoo vs panel-control         ENEMY   ENEMY       5      0
+[balance:drivers] bare                      panel-control vs panel-ramp        PLAYER  PLAYER      7      0
+[balance:drivers] bare                      panel-control vs panel-ramp        ENEMY   PLAYER      9      0
+[balance:drivers] bare                      panel-ramp vs panel-burst          PLAYER  PLAYER      5      0
+[balance:drivers] bare                      panel-ramp vs panel-burst          ENEMY   PLAYER      9      0
+[balance:drivers] bare                      panel-burst vs panel-mixed-a       PLAYER  ENEMY       3      0
+[balance:drivers] bare                      panel-burst vs panel-mixed-a       ENEMY   ENEMY       5      0
+[balance:drivers] bare                      panel-mixed-a vs panel-mixed-b     PLAYER  PLAYER      6      0
+[balance:drivers] bare                      panel-mixed-a vs panel-mixed-b     ENEMY   ENEMY      12      0
+[balance:drivers] bare                      panel-mixed-b vs panel-zoo         PLAYER  PLAYER      6      0
+[balance:drivers] bare                      panel-mixed-b vs panel-zoo         ENEMY   PLAYER      8      0
+[balance:drivers] driver_static_field       panel-zoo vs panel-control         PLAYER  ENEMY       5     29
+[balance:drivers] driver_static_field       panel-zoo vs panel-control         ENEMY   ENEMY       5     20
+[balance:drivers] driver_static_field       panel-control vs panel-ramp        PLAYER  PLAYER      7     43
+[balance:drivers] driver_static_field       panel-control vs panel-ramp        ENEMY   PLAYER      8     45
+[balance:drivers] driver_static_field       panel-ramp vs panel-burst          PLAYER  PLAYER      5     27
+[balance:drivers] driver_static_field       panel-ramp vs panel-burst          ENEMY   PLAYER      6     22
+[balance:drivers] driver_static_field       panel-burst vs panel-mixed-a       PLAYER  ENEMY       4     27
+[balance:drivers] driver_static_field       panel-burst vs panel-mixed-a       ENEMY   ENEMY       5     20
+[balance:drivers] driver_static_field       panel-mixed-a vs panel-mixed-b     PLAYER  PLAYER      4     29
+[balance:drivers] driver_static_field       panel-mixed-a vs panel-mixed-b     ENEMY   ENEMY       9     35
+[balance:drivers] driver_static_field       panel-mixed-b vs panel-zoo         PLAYER  PLAYER      6     33
+[balance:drivers] driver_static_field       panel-mixed-b vs panel-zoo         ENEMY   PLAYER      8     35
+[balance:drivers] driver_tenth_strike       panel-zoo vs panel-control         PLAYER  ENEMY       5      1
+[balance:drivers] driver_tenth_strike       panel-zoo vs panel-control         ENEMY   ENEMY       5      1
+[balance:drivers] driver_tenth_strike       panel-control vs panel-ramp        PLAYER  PLAYER      7      3
+[balance:drivers] driver_tenth_strike       panel-control vs panel-ramp        ENEMY   PLAYER      9      3
+[balance:drivers] driver_tenth_strike       panel-ramp vs panel-burst          PLAYER  PLAYER      5      1
+[balance:drivers] driver_tenth_strike       panel-ramp vs panel-burst          ENEMY   ENEMY      10      2
+[balance:drivers] driver_tenth_strike       panel-burst vs panel-mixed-a       PLAYER  ENEMY       3      1
+[balance:drivers] driver_tenth_strike       panel-burst vs panel-mixed-a       ENEMY   ENEMY       5      1
+[balance:drivers] driver_tenth_strike       panel-mixed-a vs panel-mixed-b     PLAYER  PLAYER      6      3
+[balance:drivers] driver_tenth_strike       panel-mixed-a vs panel-mixed-b     ENEMY   PLAYER     12      5
+[balance:drivers] driver_tenth_strike       panel-mixed-b vs panel-zoo         PLAYER  PLAYER      6      2
+[balance:drivers] driver_tenth_strike       panel-mixed-b vs panel-zoo         ENEMY   PLAYER      8      2
+
+[balance:drivers] READ: procs/battle is the rate census; silent = battles the Driver never fired in
+[balance:drivers]       (silent == n means the arm is VOID, not null). flips are paired against the bare
+[balance:drivers]       arm on (matchup, seed, order). sweeps = comps at 100% on this sample — a flag,
+[balance:drivers]       never a verdict at this n. Findings confirm at full, beamless lookahead.
+[balance:drivers] done in 758s

@@ -16,7 +16,9 @@
     "decks": "vite-node src/debug/balance/runDeckBrowser.ts",
     "balance:run-gate": "vite-node src/debug/balance/runRunGate.ts",
     "desktop:build": "node scripts/desktop-build.mjs",
-    "balance:snowball": "vite-node src/debug/balance/runSnowball.ts"
+    "balance:snowball": "vite-node src/debug/balance/runSnowball.ts",
+    "balance:77": "node scripts/ticket77-arms.mjs",
+    "balance:drivers": "vite-node src/debug/balance/runDriverCanary.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",

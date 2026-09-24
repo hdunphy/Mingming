@@ -78,7 +78,7 @@ describe('computeDamagePreview', () => {
             sessionId: 'test',
             turn: 1,
             activeSide: 'PLAYER',
-            activeRelics: [],
+            activeDrivers: [],
             phase: 'ACTION',
             playerParty: [weak, strong],
             enemyParty: [enemy],

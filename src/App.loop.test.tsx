@@ -21,6 +21,7 @@ import { act } from 'react';
 import { makeStore, mountApp, click, clickText, fire, flush } from './testing/interaction';
 import type { TestStore } from './testing/interaction';
 import { setBattleState } from './ui/store/battleSlice';
+import { setRun } from './ui/store/runSlice';
 import { GetProgramData } from './engine/data/programRegistry';
 
 /*
@@ -231,5 +232,55 @@ describe('the core loop, click by click', () => {
         expect(run.phase).toBe('map');
         expect(run.fightsResolved).toBe(fightsBefore + 1);
         expect(host.querySelector('.rm-travel-button')).not.toBeNull();
+    });
+
+    it('an ELITE won → the report shows the Driver the map promised, CONTINUE → the party holds it (ticket 17)', async () => {
+        /*
+         * The stake is READ off the node, never rolled at the win, so the test plants one on the
+         * first reachable node and asks whether it reaches the run. The node kind is changed too:
+         * an elite's encounter is built by kind (tuned deck, OS, lite AI) and the claim is that the
+         * whole path — node → bundle → report → CONTINUE → `run.drivers` — carries one id through.
+         */
+        const store = makeStore();
+        const host = await atTheMap(store);
+        const run = store.getState().run.run!;
+        const here = run.nodes.find((n) => n.id === run.currentNodeId)!;
+        const first = run.nodes.find((n) => here.edges.includes(n.id))!;
+        await act(async () => {
+            store.dispatch(setRun({
+                ...run,
+                nodes: run.nodes.map((n) => (n.id === first.id
+                    ? { ...n, kind: 'elite' as const, driverStake: 'driver_first_blood' }
+                    : n)),
+            }));
+        });
+        await flush();
+        // The map says it before the click: the stake is on the travel button's own label.
+        expect(host.querySelector('.rm-travel-button')!.textContent).toContain('stakes: FIRST BLOOD');
+        expect(host.querySelector('.rm-node-stake-ring')).not.toBeNull();
+
+        await enterFirstNode(host);
+        expect(store.getState().run.run!.drivers).toEqual([]);
+        const live = store.getState().battle.battle!;
+        const weakened = { ...live, enemyParty: live.enemyParty.map((enemy) => ({ ...enemy, currentHp: 1 })) };
+        await act(async () => { store.dispatch(setBattleState(weakened)); });
+
+        await playAnAttackAtTheEnemy(host, store);
+        // An elite fields the player's own party size; one hit at 1 HP kills one body. Finish the rest.
+        for (let guard = 0; guard < 4 && !store.getState().battle.battle!.enemyParty.every((e) => e.currentHp <= 0); guard += 1) {
+            await playAnAttackAtTheEnemy(host, store);
+        }
+        expect(store.getState().battle.battle!.enemyParty.every((e) => e.currentHp <= 0)).toBe(true);
+        await clickText(host, 'VIEW REWARDS');
+        await flush();
+        expect(host.querySelector('[data-testid="reward-driver"]')!.textContent).toContain('FIRST BLOOD');
+        for (const skip of [...host.querySelectorAll('button')].filter((b) => b.textContent?.trim() === 'SKIP')) {
+            await click(skip);
+        }
+        await clickText(host, 'CONTINUE SYNCHRONIZATION');
+        await flush();
+
+        expect(store.getState().run.run!.drivers).toEqual(['driver_first_blood']);
+        expect(store.getState().run.run!.phase).toBe('map');
     });
 });

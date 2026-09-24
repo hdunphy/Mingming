@@ -87,6 +87,54 @@ describe('142c — a rival and a scout say what they are', () => {
         expect(render(graph.entryNodeId, graph.nodes, RIVAL_ELEMENTS)).toContain('rm-legend-rival');
     });
 });
+describe('17 — the stakes are said before the player commits', () => {
+    /*
+     * `economy-session.md`: *"ONE harder fight, the Driver visible as the stakes."* The map is
+     * where "visible" happens. The graph fixture carries no stakes (they are stamped by `createRun`,
+     * not the generator), so they are planted here; the claim is that a planted stake reaches the
+     * label, the ring and the legend — and that the fog keeps it.
+     */
+    const elite = graph.nodes.find((n) => n.kind === 'elite' && !n.scout)!;
+    const ambush = graph.nodes.find((n) => n.kind === 'ambush')!;
+    const beside = (id: string) => graph.nodes.find((n) => n.edges.includes(id))!.id;
+    const staked = graph.nodes.map((n) => (
+        n.id === elite.id ? { ...n, driverStake: 'driver_first_blood' }
+            : n.id === ambush.id ? { ...n, driverStake: 'driver_antivenom' } : n));
+
+    it('names the Driver on an elite, and rings the node', () => {
+        const markup = render(beside(elite.id), staked, RIVAL_ELEMENTS);
+        expect(markup).toContain('stakes: FIRST BLOOD');
+        expect(markup).toContain('rm-node-stake-ring');
+        expect(markup).toContain('Driver at stake: FIRST BLOOD');
+        expect(markup).toContain('rm-legend-stakes');
+    });
+
+    it('marks the ambush HIGH RISK and calls its Driver a bonus (Henry, 2026-09-12)', () => {
+        const markup = render(beside(ambush.id), staked, RIVAL_ELEMENTS);
+        expect(markup).toContain('HIGH RISK');
+        expect(markup).toContain('bonus: ANTIVENOM');
+        expect(markup).toMatch(/rm-node[^"]* risk/);
+    });
+
+    it('keeps the stake behind the fog — a node you cannot see the kind of does not show its prize', () => {
+        // Standing at the entry, an exit elite two or more layers away is fogged.
+        const far = staked.find((n) => n.driverStake && n.layer >= 3)!;
+        const markup = render(graph.entryNodeId, staked, RIVAL_ELEMENTS);
+        const name = far.driverStake === 'driver_first_blood' ? 'FIRST BLOOD' : 'ANTIVENOM';
+        // The other planted node may be revealed; assert on the far one's absence only if it is
+        // the only carrier of that name.
+        if (!staked.some((n) => n.id !== far.id && n.driverStake === far.driverStake)) {
+            expect(markup).not.toContain(name);
+        }
+    });
+
+    it('says nothing about stakes when no node has one', () => {
+        const markup = render(graph.entryNodeId, graph.nodes, RIVAL_ELEMENTS);
+        expect(markup).not.toContain('rm-legend-stakes');
+        expect(markup).not.toContain('rm-node-stake-ring');
+    });
+});
+
 describe('RegionMap', () => {
     it('draws every node and every undirected edge exactly once', () => {
         const markup = render();

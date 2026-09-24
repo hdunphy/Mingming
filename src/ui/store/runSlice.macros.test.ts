@@ -290,7 +290,7 @@ describe('buying a macro and firing it', () => {
         } as IBattleEntity);
         return {
             sessionId: 's', seed: 'x', turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
-            activeRelics: [], playerParty: [unit('p1')], enemyParty: [unit('e1')],
+            activeDrivers: [], playerParty: [unit('p1')], enemyParty: [unit('e1')],
             playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
             enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
             logs: [], osLogs: [], procs: [],

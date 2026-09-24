@@ -41,33 +41,17 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                         healPower: mutation.payload.healPower
                     });
                 } else {
-                    const target = newState.playerParty.find(e => e.id === mutation.targetId) || newState.enemyParty.find(e => e.id === mutation.targetId);
-                    let amount = mutation.payload.amount;
-
-                    if (target && target.currentHp - amount <= 0 && newState.activeRelics.includes('buffer_cache')) {
-                        // Check if it's a player unit (optional? description says "a Mingming")
-                        const isPlayerUnit = newState.playerParty.some(e => e.id === target.id);
-                        if (isPlayerUnit) {
-                            amount = target.currentHp - 1;
-                            newState = addLog(newState, `🛡️ [BUFFER CACHE] ${target.name} stayed at 1 HP!`);
-
-                            // To make it once per battle, we could remove it from activeRelics, 
-                            // but the description says "The first time a Mingming would be knocked out".
-                            // If we have 3 Mingmings, does it apply to each? 
-                            // "The first time A Mingming" usually means the first one to hit 0.
-                            // Let's remove it from activeRelics to make it truly once-per-battle.
-                            newState = {
-                                ...newState,
-                                activeRelics: newState.activeRelics.filter(r => r !== 'buffer_cache')
-                            };
-                        }
-                    }
-
+                    // TICKET 16: `buffer_cache`'s death-prevent branch sat here, reading the relic
+                    // id off `activeRelics`. The relics are deleted; a Driver that wants this shape
+                    // is a hook (`onHpThresholdCrossed` is how BULWARK REFLEX does it).
                     newState = effectHandlers['ATTACK'](newState, {
                         sourceId: 'SYSTEM',
                         targetId: mutation.targetId,
                         power: 0,
-                        damageOverride: amount,
+                        // Ticket 16 removed the `buffer_cache` branch that used to bind `amount` as
+                        // a local above this block, so the payload is read directly — the same
+                        // value, one indirection fewer.
+                        damageOverride: mutation.payload.amount,
                         element: mutation.payload.element || 'None',
                         // Ticket 146b. Every engine price in the game comes through here as an HP
                         // mutation, and from inside `handleAttack` they are indistinguishable from

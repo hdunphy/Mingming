@@ -47,7 +47,7 @@ const makeState = (playerParty: IBattleEntity[], enemyParty: IBattleEntity[], ha
     turn: 1,
     phase: 'ACTION',
     activeSide: 'PLAYER',
-    activeRelics: [],
+    activeDrivers: [],
     playerParty,
     enemyParty,
     playerDeck: { ownerId: 'PLAYER', hand, drawpile: [], discard: [], exhaust: [], deck: [] },

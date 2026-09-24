@@ -40,6 +40,7 @@ export type RecipeName =
     | 'stanceLight'
     | 'discountPrimed'
     | 'breach'
+    | 'driverProc'
     | 'uiClick'
     | 'uiError';
 
@@ -64,6 +65,7 @@ export const ALL_RECIPE_NAMES = [
     'stanceLight',
     'discountPrimed',
     'breach',
+    'driverProc',
     'uiClick',
     'uiError',
 ] as const satisfies readonly RecipeName[];
@@ -284,6 +286,12 @@ export const SFX_RECIPES: Record<RecipeName, SfxRecipe> = {
         s.tone({ freq: 110, endFreq: 220, type: 'sawtooth', attack: 0.05, decay: 0.55, gain: 0.16 });
         s.noise({ duration: 0.6, filterType: 'lowpass', filterFreq: 300, filterEndFreq: 4200, gain: 0.14 });
         s.arp([440, 554.37, 659.25, 880], { delay: 0.28, step: 0.09, type: 'square', decay: 0.2, gain: 0.07 });
+    },
+
+    /** Ticket 16: a Driver procs — a short two-note chime, distinct from the OS's status tick. */
+    driverProc: (s) => {
+        s.tone({ freq: 660, type: 'triangle', attack: 0.005, decay: 0.12, gain: 0.09 });
+        s.tone({ freq: 990, type: 'triangle', delay: 0.07, attack: 0.005, decay: 0.18, gain: 0.08 });
     },
 
     /** Micro tick for buttons/tabs. */

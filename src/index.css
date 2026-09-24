@@ -2127,6 +2127,15 @@ body {
   font-size: 1.2rem;
 }
 
+.hud-float-proc {
+  /* Ticket 16: a Driver's name off the member it fired on. Smaller than a heal, tracked like a
+     label rather than a number, and in the chip's violet so the two read as one event. */
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .hud-float-absorbed {
   font-size: 0.85rem;
   font-weight: 700;
@@ -2827,6 +2836,28 @@ body {
   border-radius: 50%;
   background: #7c3aed;
   box-shadow: 0 0 6px #7c3aed;
+}
+
+/* Ticket 16: the PROC-VISIBLE law's other half. `BattleTopBar` re-keys the chip on every
+   DRIVER_PROC it hears for that Driver, so the animation restarts even when two procs land in
+   the same second. Colour, not motion, for the chip itself — the float on the unit is the motion. */
+.battle-driver-chip.is-proc {
+  animation: driver-chip-proc 900ms ease-out;
+}
+
+.battle-driver-chip.is-proc i {
+  animation: driver-dot-proc 900ms ease-out;
+}
+
+@keyframes driver-chip-proc {
+  0%   { background: rgba(196, 181, 253, 0.85); border-color: #ede9fe; color: #1a1030; box-shadow: 0 0 18px rgba(167, 139, 250, 0.9); }
+  35%  { background: rgba(167, 139, 250, 0.45); border-color: #c4b5fd; color: #f5f3ff; box-shadow: 0 0 12px rgba(167, 139, 250, 0.6); }
+  100% { background: rgba(124, 58, 237, 0.12); border-color: rgba(124, 58, 237, 0.55); color: #dfe4ea; box-shadow: none; }
+}
+
+@keyframes driver-dot-proc {
+  0%   { transform: scale(2.2); background: #fff; box-shadow: 0 0 14px #fff; }
+  100% { transform: scale(1); background: #7c3aed; box-shadow: 0 0 6px #7c3aed; }
 }
 
 /* Past three Drivers the chips go icon-only with the name on hover (§2a): five

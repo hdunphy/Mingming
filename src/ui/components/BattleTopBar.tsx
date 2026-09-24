@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import type { IBattleState } from '../../engine/types';
 import { describeDriver } from '../../engine/data/driverRegistry';
+import { globalBattleEventBus } from '../../engine/events';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { Icon } from '../theme/Icon';
 import AudioControls from './AudioControls';
@@ -67,7 +68,31 @@ export interface BattleTopBarProps {
 const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, logOpen = false, onOpenSettings }) => {
     const run = useSelector((state: RootState) => state.run.run);
     const gauntlet = run?.gauntlet ?? null;
-    const drivers = run?.drivers ?? [];
+    /*
+     * TICKET 16: the PLAYER's Drivers, read off the BATTLE rather than the run. They are the same
+     * list — `buildBattleSetup` copies `run.drivers` into `setup.drivers` and `createBattleState`
+     * into `activeDrivers` — but the battle's copy is the one that is actually fighting, and it is
+     * also the only one a debug scenario has (no run, so the row used to be blank there, which is
+     * exactly where a Driver gets tried out until ticket 17 wires the elite drop).
+     */
+    const drivers = battleState.activeDrivers ?? [];
+
+    /*
+     * TICKET 16 — PROC-VISIBLE, the chip's half. A `DRIVER_PROC` on the bus re-keys that Driver's
+     * chip, so its `is-proc` animation restarts on every firing rather than once. Held as a counter
+     * per Driver id, not a boolean: two procs in one second must flash twice. The bus is muted under
+     * a preview and silent inside the AI's search, so nothing here can flash for a fight that is
+     * not happening.
+     */
+    const [procKeys, setProcKeys] = React.useState<Record<string, number>>({});
+    React.useEffect(() => {
+        const unsubscribe = globalBattleEventBus.subscribe((event) => {
+            if (event.type !== 'DRIVER_PROC' || !event.fromPlayer) return;
+            const id = event.driverId;
+            setProcKeys((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+        });
+        return unsubscribe;
+    }, []);
 
     const isPlayerTurn = battleState.activeSide === 'PLAYER';
     const gym = run ? GYM_REGISTRY[run.gymId] : undefined;
@@ -150,19 +175,29 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
             </div>
 
             {/*
-              * THE DRIVERS ROW, under the bar on the left (§2a). A Driver is the gym leader's
-              * standing rule for this whole run — ticket 68 ruling 4 put it on the offer screen
-              * because the route is irreversible, and this is the other half of that: it is still
-              * true while you are fighting, and a rule you cannot see is a rule you cannot play
-              * around. NOT the same thing as a unit's daemons, which live on its plaque.
+              * THE DRIVERS ROW, under the bar on the left (§2a). The PLAYER's party-wide passives
+              * for this run (ticket 16) — a standing rule the whole party runs under, and a rule you
+              * cannot see is a rule you cannot play around. Each chip carries its rule text as the
+              * tooltip and flashes when its Driver procs. NOT the same thing as a unit's daemons,
+              * which live on its plaque.
               */}
             {drivers.length > 0 && (
                 <div className="battle-drivers" data-testid="battle-drivers">
                     <span className="battle-drivers-label">DRIVERS</span>
                     {drivers.map((id) => {
                         const { name, description } = describeDriver(id);
+                        const procKey = procKeys[id] ?? 0;
                         return (
-                            <span key={id} className="battle-driver-chip" title={description}>
+                            <span
+                                // The proc count is part of the key ON PURPOSE: a re-mount is what
+                                // restarts a CSS animation, and toggling a class off and on again
+                                // within one commit does not.
+                                key={`${id}:${procKey}`}
+                                className={`battle-driver-chip${procKey > 0 ? ' is-proc' : ''}`}
+                                title={description}
+                                data-testid={`battle-driver-${id}`}
+                                data-procs={procKey}
+                            >
                                 <i />
                                 {name}
                             </span>

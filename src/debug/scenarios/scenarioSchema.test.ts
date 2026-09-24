@@ -22,7 +22,7 @@ function composedScenario() {
                     { definitionId: 'fenrir', attackIV: 31, defenseIV: 0, hpIV: 15 },
                 ],
                 deck: ['ignite', 'scorch'],
-                relics: [] as string[],
+                drivers: [] as string[],
             },
             enemies: [
                 { definitionId: 'draugr', attackIV: 0, defenseIV: 0, hpIV: 0 },

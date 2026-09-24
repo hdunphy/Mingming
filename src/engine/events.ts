@@ -18,7 +18,8 @@ export type BattleEventType =
     | 'CARD_DRAWN'
     | 'TURN_START' // Explicit turn start event
     | 'TURN_END' // Explicit turn end event
-    | 'LEVEL_UP';
+    | 'LEVEL_UP'
+    | 'DRIVER_PROC';
 
 export interface BaseEvent {
     readonly type: BattleEventType;
@@ -182,7 +183,34 @@ export interface LevelUpEvent extends BaseEvent {
     readonly newLevel: number;
 }
 
+/**
+ * TICKET 16 — a Driver just did its thing, and the player is meant to see it.
+ *
+ * `macros-and-drivers.md`: *"Driver law: PROC-VISIBLE, not merely small. Flat percents rejected as
+ * INVISIBLE (the 2%-status disease) ... Every driver names a trigger moment the player watches."*
+ * The engine's half of that law is this event, emitted by `HookFactory` when a hook flagged
+ * `proc: true` passes its condition. The UI's half is the chip flash in `BattleTopBar` and the
+ * float on the owner (`useBattleVfx`).
+ *
+ * Emitted by the hook's OWNER — the party member whose copy of the Driver fired — so a party-wide
+ * Driver that fires per member (OVERKILL RECOVERY heals each) announces once per member, which is
+ * the truth of what happened. Muted with the rest of the bus under a preview, and never emitted
+ * inside the AI's search (`isSimulating`).
+ */
+export interface DriverProcEvent extends BaseEvent {
+    readonly type: 'DRIVER_PROC';
+    /** The Driver, e.g. `driver_first_blood`. */
+    readonly driverId: string;
+    /** The hook that fired, e.g. `driver_first_blood_fire`. */
+    readonly hookId: string;
+    /** The member whose copy of the Driver fired. */
+    readonly ownerId: string;
+    /** Whose side the owner is on. */
+    readonly fromPlayer: boolean;
+}
+
 export type BattleEvent =
+    | DriverProcEvent
     | BattleStartedEvent
     | BattleEndedEvent
     | ProgramPlayedEvent

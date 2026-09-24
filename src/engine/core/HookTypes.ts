@@ -222,6 +222,16 @@ export type DataHookDefinition = {
     id: string;
     trigger: keyof Omit<HookDefinition, 'id' | 'priority' | 'onDamageCalculated' | 'onStatusDamageCalculated' | 'onHealCalculated'>;
     priority: HookPriority;
+    /**
+     * TICKET 16 — the Driver law is PROC-VISIBLE: *"every Driver names a trigger moment and the UI
+     * flashes it when it procs."* A hook flagged `proc` announces itself through a `DRIVER_PROC`
+     * battle event whenever its `when` passes (`HookFactory.announceProc`). It is a flag rather
+     * than "every `driver_` hook" because a Driver is usually SEVERAL hooks — a counter that
+     * advances on every attack and a payoff that fires on the tenth — and only the payoff is the
+     * moment the player is meant to see. Read on both hook kinds; meaningful only for hooks whose
+     * definition belongs to a Driver (`driverRegistry.driverIdForHook`).
+     */
+    proc?: boolean;
     when?: HookCondition;
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     do: HookAction[];
@@ -231,6 +241,8 @@ export type ModifierDataHookDefinition = {
     id: string;
     trigger: 'onDamageCalculated' | 'onPowerCalculated' | 'onStatusDamageCalculated' | 'onCostCalculated' | 'onHealCalculated';
     priority: HookPriority;
+    /** Ticket 16: see `DataHookDefinition.proc`. */
+    proc?: boolean;
     when?: HookCondition;
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     multiplier?: number;

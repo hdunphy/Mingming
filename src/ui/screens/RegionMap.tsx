@@ -37,6 +37,7 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 import type { IRegionNode } from '../../engine/runTypes';
+import { describeDriver } from '../../engine/data/driverRegistry';
 import {
     FIGHT_KINDS,
     NODE_ICON,
@@ -240,6 +241,18 @@ export default function RegionMap({
         if (laid.revealed && FIGHT_KINDS.includes(laid.node.kind) && elements.length > 0) {
             parts.push(elements.join(' + '));
         }
+        /*
+         * TICKET 17 — THE STAKES, said before the player commits. An elite or an ambush pays a
+         * Driver and the node has known which one since the run was rolled; a map that hid it
+         * would be asking the player to route toward a prize they cannot see. The ambush is also
+         * MARKED: it is the one fight that outnumbers you by design (their 3 vs your 2), and Henry's
+         * reading is that it is harder than the elite — so it says so, and calls the Driver its
+         * bonus rather than its exam.
+         */
+        if (laid.revealed && laid.node.kind === 'ambush') parts.push('HIGH RISK — they outnumber you');
+        if (laid.revealed && laid.node.driverStake) {
+            parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${describeDriver(laid.node.driverStake).name}`);
+        }
         parts.push(`biome ${laid.node.biomeIndex + 1}`, `layer ${laid.node.layer}`);
         if (laid.node.pocket) parts.push('dead end');
         if (laid.node.visited > 0) parts.push(`visited ${laid.node.visited}×`);
@@ -350,6 +363,9 @@ export default function RegionMap({
                                     laid.reachable ? 'reachable' : '',
                                     laid.revealed ? '' : 'fogged',
                                     laid.node.pocket ? 'pocket' : '',
+                                    // Ticket 17: the ambush's high-risk tint, and the stake ring.
+                                    laid.revealed && laid.node.kind === 'ambush' ? 'risk' : '',
+                                    laid.revealed && laid.node.driverStake ? 'staked' : '',
                                 ].filter(Boolean).join(' ')}
                                 onClick={laid.reachable ? () => onTravel(laid.node) : undefined}
                             >
@@ -406,6 +422,20 @@ export default function RegionMap({
                                         style={{ fill: ELEMENT_COLOR[secondElement] ?? undefined }}
                                     />
                                 )}
+                                {/*
+                                  * TICKET 17: the stake ring. A solid violet ring — the Driver chip's
+                                  * colour, so the map and the battle bar say "Driver" in one voice — on
+                                  * every node that pays one. The scout's ring is dashed and sits at the
+                                  * same radius; a node can be both, and the two read as one annotation.
+                                  */}
+                                {laid.revealed && laid.node.driverStake && (
+                                    <circle
+                                        cx={x} cy={y} r={R + 4}
+                                        className="rm-node-stake-ring"
+                                    >
+                                        <title>{`Driver at stake: ${describeDriver(laid.node.driverStake).name}`}</title>
+                                    </circle>
+                                )}
                                 {laid.revealed && laid.node.scout && (
                                     <circle
                                         cx={x} cy={y} r={R + 4}
@@ -439,6 +469,13 @@ export default function RegionMap({
                     <span className="rm-legend-rival">
                         · a <strong>rival</strong> fields the two elements your route needs, not this
                         biome&apos;s — the dot is its second element
+                    </span>
+                )}
+                {/* Ticket 17: the stake ring and the ambush tint, explained once where the fog is. */}
+                {layout.nodes.some((n) => n.revealed && n.node.driverStake) && (
+                    <span className="rm-legend-stakes">
+                        · a <strong>violet ring</strong> is a Driver at stake — win the fight, keep the Driver for the run;
+                        a red <strong>ambush</strong> outnumbers you and pays one as a bonus
                     </span>
                 )}
                 <span className="rm-legend-fog">

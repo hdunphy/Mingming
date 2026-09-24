@@ -29,6 +29,7 @@ import PROGRAMS from './programs.json';
 import HOOKS from './lib/hooks.json';
 import { SHARP_STACKS_POWER_PER_STACK, MISSING_HP_PCT_CAP } from '../actions/ActionExecutors';
 import { STANCE_BONUS } from '../core/Hooks';
+import { HP_CROSSING_THRESHOLD } from '../resolutionEngine';
 import { statusGlossary } from './statusGlossary';
 import { REGEN_PERCENT_PER_TURN, POISON_PERCENT_PER_STACK, BURN_CONFIG } from '../StatusBehaviors';
 
@@ -84,6 +85,8 @@ function dataNumbers(node: unknown, acc = new Set<number>()): Set<number> {
             acc.add(Math.round(STANCE_BONUS.dark * 100));
             acc.add(Math.round(STANCE_BONUS.light * 100));
         }
+        // Ticket 16: "drops below 50%" is the engine's threshold event, not a number in the hook.
+        if (key === 'trigger' && value === 'onHpThresholdCrossed') acc.add(Math.round(HP_CROSSING_THRESHOLD * 100));
         dataNumbers(value, acc);
     }
     return acc;
