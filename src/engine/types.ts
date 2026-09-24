@@ -178,6 +178,18 @@ export interface IBattleEntity extends IMingmingState {
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
   readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
   readonly activeOS?: string; // Current Operating System ID
+  /**
+   * TICKET 163c — **the patch fitted to this body's firmware**, at most one (`PATCH_SLOTS`).
+   *
+   * Not a second `hooks` list: a patch has no hooks of its own. It is a TRANSFORM applied to the
+   * host OS's hook data when this entity's hooks are collected (`resolutionEngine.entityHooksFor`),
+   * which is what lets two bodies running the same firmware behave differently — the whole point,
+   * and the reason it cannot be baked into `FIRMWARE_REGISTRY` at boot the way a firmware is.
+   *
+   * Run-scoped: it is copied onto the battle entity from `IRunState.patches` at setup, and 163 §5
+   * rules no persistence across runs.
+   */
+  readonly patches?: ReadonlyArray<string>;
   readonly daemons: ReadonlyArray<ProgramEntity>; // Persistent "installed" software
   readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;

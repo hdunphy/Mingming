@@ -1,12 +1,10 @@
 import type { IBattleEntity } from '../types';
 import { type HookDefinition, type HookContext } from './HookTypes';
-import { getHook } from './HookRegistry';
-import { getOSBehavior } from '../data/firmwareRegistry';
+import { entityHooksFor } from './entityHooks';
 
 export * from './HookTypes';
 export { getHook, registerHook } from './HookRegistry';
 
-import { GetProgramData } from '../data/programRegistry';
 
 /**
  * Ticket 77: the stance percentages, as a knob rather than two literals.
@@ -110,28 +108,10 @@ export const applyHealModifiers = (
     // 1. Collect Hooks as Pairs
     const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
     entities.forEach(e => {
-        const entityHooks = new Set<string>();
-        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
-        if (e.activeOS) {
-            const os = getOSBehavior(e.activeOS);
-            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
-        }
-        // Scan Daemons
-        if (e.daemons) {
-            e.daemons.forEach(daemon => {
-                const data = GetProgramData(daemon.dataId);
-                if (data.hooks) {
-                    data.hooks.forEach(h => entityHooks.add(h));
-                }
-            });
-        }
-
-        entityHooks.forEach(id => {
-            const registered = getHook(id);
-            if (registered && registered.onHealCalculated) {
-                hookPairs.push({ hook: registered, owner: e });
-            }
-        });
+        // TICKET 163c: the shared collector. This was a hand-rolled copy of
+        // `entityHooksFor` — one of three — and a patch makes a body's hooks a function
+        // of more than its firmware id, which three copies would not have known.
+        for (const hook of entityHooksFor(e, 'onHealCalculated')) hookPairs.push({ hook, owner: e });
     });
 
     // 2. Sort by Priority
@@ -182,25 +162,10 @@ export const applyPowerModifiers = (
 
     const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
     entities.forEach(e => {
-        const entityHooks = new Set<string>();
-        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
-        if (e.activeOS) {
-            const os = getOSBehavior(e.activeOS);
-            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
-        }
-        if (e.daemons) {
-            e.daemons.forEach(daemon => {
-                const data = GetProgramData(daemon.dataId);
-                if (data.hooks) data.hooks.forEach(h => entityHooks.add(h));
-            });
-        }
-
-        entityHooks.forEach(id => {
-            const registered = getHook(id);
-            if (registered && registered.onPowerCalculated) {
-                hookPairs.push({ hook: registered, owner: e });
-            }
-        });
+        // TICKET 163c: the shared collector. This was a hand-rolled copy of
+        // `entityHooksFor` — one of three — and a patch makes a body's hooks a function
+        // of more than its firmware id, which three copies would not have known.
+        for (const hook of entityHooksFor(e, 'onPowerCalculated')) hookPairs.push({ hook, owner: e });
     });
 
     hookPairs.sort((a, b) => b.hook.priority - a.hook.priority);
@@ -234,28 +199,10 @@ export const applyDamageModifiers = (
     // 1. Collect Hooks as Pairs
     const hookPairs: { hook: HookDefinition, owner: IBattleEntity }[] = [];
     entities.forEach(e => {
-        const entityHooks = new Set<string>();
-        if (e.hooks) e.hooks.forEach(h => entityHooks.add(h));
-        if (e.activeOS) {
-            const os = getOSBehavior(e.activeOS);
-            if (os) os.hooks.forEach(h => entityHooks.add(h.id));
-        }
-        // Scan Daemons
-        if (e.daemons) {
-            e.daemons.forEach(daemon => {
-                const data = GetProgramData(daemon.dataId);
-                if (data.hooks) {
-                    data.hooks.forEach(h => entityHooks.add(h));
-                }
-            });
-        }
-
-        entityHooks.forEach(id => {
-            const registered = getHook(id);
-            if (registered && registered.onDamageCalculated) {
-                hookPairs.push({ hook: registered, owner: e });
-            }
-        });
+        // TICKET 163c: the shared collector. This was a hand-rolled copy of
+        // `entityHooksFor` — one of three — and a patch makes a body's hooks a function
+        // of more than its firmware id, which three copies would not have known.
+        for (const hook of entityHooksFor(e, 'onDamageCalculated')) hookPairs.push({ hook, owner: e });
     });
 
     // 2. Sort by Priority

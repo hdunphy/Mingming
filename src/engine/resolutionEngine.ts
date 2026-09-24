@@ -2,7 +2,9 @@ import type { IBattleState, IBattleEntity, ProgramData } from './types';
 import { numericBaseCost } from './types';
 import { globalBattleEventBus } from './events';
 import { type MutationRequest, type HookContext, type HookDefinition, type HookResult, type EventHook, getHook } from './core/Hooks';
-import { hookRegistryVersion } from './core/HookRegistry';
+import { entityHooksFor } from './core/entityHooks';
+// TICKET 163c: re-exported so the test seam keeps its old import path while the rule moved.
+export { clearEntityHookCache } from './core/entityHooks';
 import { effectHandlers } from './effectHandlers';
 import { getOSBehavior } from './data/firmwareRegistry';
 import { drawCards, discardCard, exhaustCard, returnCard, searchCard, HAND_SIZE_LIMIT } from './deckLogic';
@@ -364,95 +366,6 @@ export function fireHpThresholdCrossed(state: IBattleState, unitId: string): IBa
 }
 
 
-/*
- * ============================================================================================
- * TICKET 144b — THE PER-ENTITY HOOK LIST, BUILT ONCE INSTEAD OF NINETY THOUSAND TIMES
- * ============================================================================================
- *
- * Three functions below (`executeResolutionStackInner`, `executeStatusDamageCalculated`,
- * `executeCostCalculated`) each opened with the same twenty lines: walk every living entity, build
- * a `Set` of hook ids from `e.hooks` + the firmware's hooks + every daemon's program data, then
- * `getHook` each id and keep the ones carrying this phase. That ran on EVERY hook phase of EVERY
- * simulated action — ticket 127 counted 93,889 reducer calls for one 3v3 decision, and the profile
- * put `executeResolutionStack` and its callbacks at 38% of the run.
- *
- * None of that work depends on the battle. An entity's hook set is a function of three fields —
- * its `activeOS`, its own `hooks` list, and its daemons' `dataId`s — none of which change during a
- * resolution, and all of which are cheap to key on. So it is computed once per distinct shape and
- * reused.
- *
- * WHY THE ORDER IS PROVABLY THE SAME, which is the only thing that matters for the identity gate:
- *
- *   1. the id set was insertion-ordered (`Set` preserves insertion order) — own hooks, then
- *      firmware, then daemons — and `collectEntityHooks` walks the same three sources in the same
- *      order into an array with the same dedupe;
- *   2. the phase filter was applied while iterating that set, so filtering the cached array by
- *      phase yields the same subsequence;
- *   3. entities are still visited in `[...playerParty, ...enemyParty]` order, and each entity's
- *      hooks are still appended as a block;
- *   4. the priority sort is unchanged, and `Array.prototype.sort` is stable in V8, so equal
- *      priorities keep the order steps 1-3 produced.
- *
- * The cache is keyed on the registry's generation as well as the entity shape, because
- * registration is NOT a boot-only event: firmware registers lazily on first `getOSBehavior`, and
- * test files register hand-built hooks at module scope. Without that, the first test to run would
- * pin every later one to its view of the registry.
- */
-interface EntityHookCacheEntry {
-    /** Every registered hook this entity carries, in the order the old `Set` walk produced. */
-    readonly all: HookDefinition[];
-    /** Lazily filled per phase — most phases are never asked for on most entities. */
-    readonly byPhase: Map<string, HookDefinition[]>;
-}
-
-const entityHookCache = new Map<string, EntityHookCacheEntry>();
-let entityHookCacheVersion = -1;
-
-/** The three fields an entity's hook set is a function of. Nothing else may enter this key. */
-function entityHookKey(e: IBattleEntity): string {
-    const own = e.hooks ? e.hooks.join(',') : '';
-    const daemons = e.daemons ? e.daemons.map(d => d.dataId).join(',') : '';
-    return `${e.activeOS ?? ''}|${own}|${daemons}`;
-}
-
-function entityHooksFor(e: IBattleEntity, phase: string): HookDefinition[] {
-    const registryVersion = hookRegistryVersion();
-    if (registryVersion !== entityHookCacheVersion) {
-        entityHookCache.clear();
-        entityHookCacheVersion = registryVersion;
-    }
-
-    const key = entityHookKey(e);
-    let entry = entityHookCache.get(key);
-    if (!entry) {
-        const ids = new Set<string>();
-        if (e.hooks) e.hooks.forEach(h => ids.add(h));
-        if (e.activeOS) {
-            const os = getOSBehavior(e.activeOS);
-            if (os) os.hooks.forEach(h => ids.add(h.id));
-        }
-        if (e.daemons) {
-            e.daemons.forEach(daemon => {
-                const data = GetProgramData(daemon.dataId);
-                if (data.hooks) data.hooks.forEach(h => ids.add(h));
-            });
-        }
-        const all: HookDefinition[] = [];
-        ids.forEach(id => {
-            const registered = getHook(id);
-            if (registered) all.push(registered);
-        });
-        entry = { all, byPhase: new Map() };
-        entityHookCache.set(key, entry);
-    }
-
-    let forPhase = entry.byPhase.get(phase);
-    if (!forPhase) {
-        forPhase = entry.all.filter(h => (h as unknown as Record<string, unknown>)[phase]);
-        entry.byPhase.set(phase, forPhase);
-    }
-    return forPhase;
-}
 
 /** The (hook, owner) pairs for one phase, in the order the three call sites always built them. */
 function collectHookPairs(
@@ -470,12 +383,6 @@ function collectHookPairs(
     }
     pairs.sort((a, b) => b.hook.priority - a.hook.priority);
     return pairs;
-}
-
-/** Test seam: a suite that rebuilds the registry in place can drop the memo explicitly. */
-export function clearEntityHookCache(): void {
-    entityHookCache.clear();
-    entityHookCacheVersion = -1;
 }
 
 function executeResolutionStackInner(

@@ -99,6 +99,32 @@ export const MISSING_HP_PCT_CAP = 50;
 export const SHARP_STACKS_POWER_PER_STACK = 5;
 
 /**
+ * TICKET 163c — **OVERCLOCK: every stack this body holds counts for one more.**
+ *
+ * 163 §3's sixth patch, and §4 is explicit that it is *"a status-value modifier on the member"*
+ * rather than a hook change: nothing in a firmware's hook data says what a Sharp stack is worth to
+ * a card that cashes it, so there is no hook for a transform to touch. `patchRegistry` carries it
+ * as an identity transform and the work happens HERE, where a scaler reads a pile.
+ *
+ * ONE MORE STACK, NOT ONE MORE PER STACK. A body with 3 Sharp and OVERCLOCK scales as 4, not as 6.
+ * That is §3's own wording (*"worth one more in every payoff that reads them"*) and it is the
+ * version that stays a patch rather than becoming a second firmware: +1 is a fixed favour that a
+ * three-stack deck feels and a ten-stack deck barely does, which is the right curve for something
+ * found in a chest.
+ *
+ * ON A PILE THE BODY ACTUALLY HAS, and that clause is load-bearing. A body holding NO Sharp scales
+ * at 0, not at 1 — otherwise Overclock would turn every scaler into a card with a floor, which is
+ * a different and much larger change than the one Henry ruled.
+ */
+export const OVERCLOCK_PATCH_ID = 'overclock';
+
+function overclocked(source: IBattleEntity | undefined, stacks: number): number {
+    if (stacks <= 0) return stacks;
+    return source?.patches?.includes(OVERCLOCK_PATCH_ID) === true ? stacks + 1 : stacks;
+}
+
+
+/**
  * Ticket 74: the per-event-count scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DRAWN_TRIGGERED`,
  * `CARDS_DISCARDED`) are deliberately UNCAPPED, and that is a design decision, not an oversight.
  *
@@ -193,7 +219,7 @@ export function getEffectiveAttackPower(
         // live shield is routinely 7.36 stacks. Without the floor this reproduces ticket 36's
         // fractional-product bug, which put 22.5 HP of damage into an entity.
         const shield = source.statusEffects.find(s => s.type === 'BarkShield')?.stacks || 0;
-        return power * Math.floor(shield);
+        return power * overclocked(source, Math.floor(shield));
     }
     if (action.scaling === 'SHARP_STACKS') {
         /*
@@ -205,7 +231,7 @@ export function getEffectiveAttackPower(
          * prevent, from the other direction. A card that says 6 now carries the 6.
          */
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-        return power + (action.scalingPower ?? SHARP_STACKS_POWER_PER_STACK) * sharpStacks;
+        return power + (action.scalingPower ?? SHARP_STACKS_POWER_PER_STACK) * overclocked(source, sharpStacks);
     }
     if (action.scaling === 'TARGET_STATUS_STACKS') {
         /*
@@ -225,6 +251,8 @@ export function getEffectiveAttackPower(
         const stacks = action.scalingStatus
             ? (target?.statusEffects.find(s => s.type === action.scalingStatus)?.stacks || 0)
             : 0;
+        // The TARGET's pile, so Overclock — a modifier on the body that HOLDS it — does not
+        // apply: this scaler reads the enemy's board, not the caster's currency.
         return power + (action.scalingPower || 0) * Math.floor(stacks);
     }
     if (action.scaling === 'MISSING_HP') {
@@ -244,7 +272,7 @@ export function getEffectiveAttackPower(
         // an effective ~98 power for 1 Energy against a 40 budget. That card still exists, so
         // if a Strength deck runs away it is the row to look at first.
         const strengthStacks = source.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
-        return power * Math.min(strengthStacks, STRENGTH_STACK_CAP);
+        return power * Math.min(overclocked(source, strengthStacks), STRENGTH_STACK_CAP);
     }
     return power;
 }
@@ -531,7 +559,25 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             const existingStatus = target.statusEffects.find(s => s.type === status);
             const consumedStacks = existingStatus ? existingStatus.stacks : 0;
 
-            let newState: IBattleState = { ...state, lastStatusConsumed: consumedStacks };
+            /*
+             * TICKET 163c — OVERCLOCK counts for a CONSUME too, and only when the caster is eating
+             * its OWN pile.
+             *
+             * §3's wording is *"worth one more in every payoff that reads them"*, and a consume is
+             * the payoff that reads hardest: Sun Devourer is 40 power a stack. But the patch is a
+             * modifier on the body that HOLDS the currency, so it applies when the consume lands on
+             * SELF (`sharp_edge`, `sun_devourer`, `bark_smash`) and not when it eats the enemy's
+             * board (`crushing_depths`, `venom_glut`), which is the same line the target-side
+             * scaler above draws.
+             *
+             * It changes what the payoff COUNTS, not what is removed — the pile shed below is the
+             * real one. A patch that deleted a stack the body never had would be a different and
+             * much stranger card.
+             */
+            const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+            const counted = targetId === sourceId ? overclocked(source, consumedStacks) : consumedStacks;
+
+            let newState: IBattleState = { ...state, lastStatusConsumed: counted };
             if (consumedStacks > 0) {
                 const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                     party.map(e => {

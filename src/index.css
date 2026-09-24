@@ -291,6 +291,31 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* TICKET 163c — THE PATCH CHIP, one letter beside the firmware version.
+   A patch is a rider ON the firmware, so it sits on the firmware chip rather than taking a badge
+   row of its own — the status row is already the thing ticket 145 had to defend from overflow, and
+   a seventh mark on a body would be spending that budget on something the player fits once a run.
+   Amber against the chip's cyan: a different currency, not a louder one. */
+.hud-os-patch {
+  font-size: 0.5rem;
+  font-weight: 900;
+  color: #ffd479;
+  border: 1px solid #ffd47955;
+  border-radius: 2px;
+  padding: 0 2px;
+  margin-left: 2px;
+  line-height: 1.2;
+}
+
+/* The rider's rule, under the firmware's own sentence in the plaque tooltip. Its own line and its
+   own colour, because it is a SECOND rule rather than a longer first one. */
+.tooltip-os-patch {
+  display: block;
+  margin-top: 6px;
+  color: #ffd479;
+  font-size: 0.72rem;
+}
+
 /* ── Status Badges ─────────────────────────────────────────────────────
    ITS OWN ROW, AND THE ROW HOLDS SIX. Henry, 2026-09-07, with a screenshot of a six-status
    enemy: *"statuses can go so far and cover the picture."* The row lived in `.hud-top-row` with

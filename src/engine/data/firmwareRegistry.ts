@@ -100,6 +100,8 @@ function initFirmwareHooks() {
 
         if (data && data.hooks) {
             hooks = data.hooks.map(h => HookFactory.createHook(h));
+            // TICKET 163c: keep the DATA beside the built hooks. A patch transforms data.
+            RAW_FIRMWARE_HOOKS[key] = data.hooks;
         }
 
         if (CustomFirmware[key]) {
@@ -122,6 +124,27 @@ function initFirmwareHooks() {
 
     isInitialized = true;
 }
+
+/**
+ * TICKET 163c — the RAW `hooks.json` data for one firmware, before `HookFactory` builds it.
+ *
+ * A patch is a transform from hook data to hook data (`patchRegistry`), so it needs the data — and
+ * `FIRMWARE_REGISTRY` holds built closures, which cannot be transformed. Exposed as its own
+ * accessor rather than by keeping `validatedData` module-level and public, so the ONE legitimate
+ * reason to want the raw shape is named at the door.
+ *
+ * Returns only what is in the file. `CustomFirmware`'s hand-written hooks are code, not data, and a
+ * patch cannot reach them — which is a real limit worth knowing: FAFNIR, UPDRAFT, GLACIAL_HEART,
+ * UNDERWORLD_GATEWAY and fenrir_v1's berserk clause take no patch today. All five are post-EA, so
+ * nothing the twelve launch OSes ship is affected; `patchedHooks.test.ts` asserts that boundary
+ * rather than leaving it as a comment.
+ */
+export const rawFirmwareHooks = (osId: string): ReadonlyArray<DataHookDefinition | ModifierDataHookDefinition> => {
+    initFirmwareHooks();
+    return RAW_FIRMWARE_HOOKS[osId] ?? [];
+};
+
+const RAW_FIRMWARE_HOOKS: Record<string, Array<DataHookDefinition | ModifierDataHookDefinition>> = {};
 
 export const getOSBehavior = (osId: string): OSDefinition | undefined => {
     initFirmwareHooks();

@@ -30,6 +30,7 @@ import { createPortal } from 'react-dom';
 
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { getPatch } from '../../engine/data/patchRegistry';
 import { getElementAccent } from '../utils/contrastText';
 import { Icon } from '../theme/Icon';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
@@ -62,6 +63,9 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
     const { ref: osIconRef, rect } = useAnchoredRect<HTMLDivElement>(showOSTooltip);
     if (!entity.activeOS) return null;
     const behavior = getOSBehavior(entity.activeOS);
+    // One slot (163 §5), so the first is the only one; written as a lookup rather than a map so an
+    // id the registry does not know renders nothing instead of a broken chip.
+    const patch = getPatch(entity.patches?.[0] ?? '');
     return (
         <div
             ref={osIconRef}
@@ -83,6 +87,14 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
                             so the chip could not take its element tint. */}
                         <Icon name="firmware" className="hud-os-icon" />
             <span className="hud-os-version">{entity.activeOS.includes('_v2') ? 'V2' : 'V1'}</span>
+            {/*
+              * TICKET 163c — THE PATCH CHIP, beside the OS name (§3). A patch is a rider on the
+              * firmware, so it reads as a mark ON the firmware chip rather than as a badge of its
+              * own: the player's question is "what is this body's OS doing", and the patch is part
+              * of that answer. The tooltip below carries its rule, exactly as the OS's own text is
+              * carried there and for the same reason — a chip has room for a word, not a sentence.
+              */}
+            {patch && <span className="hud-os-patch" title={patch.text}>{patch.name.charAt(0)}</span>}
 
             {showOSTooltip && rect !== null && createPortal(
                 <div
@@ -105,6 +117,13 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
                     <div className="tooltip-divider" />
                     <div className="tooltip-body">
                         {behavior?.description}
+                        {patch && (
+                            // The MODIFIED reading, as §3 asks: the firmware's own sentence, then
+                            // what the rider does to it. Two lines rather than a rewritten one,
+                            // because rewriting an OS's text per patch would be seventy-two
+                            // sentences — the authored table this whole row exists to avoid.
+                            <span className="tooltip-os-patch">{patch.name} — {patch.text}</span>
+                        )}
                     </div>
                     <div className="tooltip-footer">TECHNICAL READOUT // SECTOR 0</div>
                 </div>,
