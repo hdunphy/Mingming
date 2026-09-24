@@ -62,6 +62,7 @@ import {
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { cardFace } from './runShell';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
@@ -431,7 +432,15 @@ describe('WorkshopNode — the assembly stage', () => {
         const markup = render(makeRun(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
         expect(markup).toContain(`ASSEMBLE → PARTY — ${short} SHORT`);
-        expect(markup.match(/<button[^>]* disabled=""/g)?.length).toBe(2);
+        /*
+         * Two ASSEMBLE verbs plus every row of 163b's upgrade bench, which a 10-scrap purse also
+         * cannot cover — the cheapest upgrade is 25. Spelled out rather than scoped away, because
+         * "a purse this thin greys out the bench too" is the same claim this case is making and is
+         * worth failing if it ever stops being true.
+         */
+        const poor = makeRun(10);
+        const bench = new Set(poor.deck.filter((c) => hasUpgrade(c.dataId)).map((c) => c.dataId)).size;
+        expect(markup.match(/<button[^>]* disabled=""/g)?.length).toBe(2 + bench);
         expect(markup).toContain('<span class="rs-chip">1 × BLUEPRINT</span>');
     });
 
@@ -703,8 +712,13 @@ describe('WorkshopNode — the standing laws', () => {
         const ranch = makeRanch({ fenrir: 2, skoll: 1 });
         const markup = render(makeRun(400), ranch, { initialSpeciesId: 'skoll' });
 
+        // TICKET 163b adds the upgrade bench at the foot of the bay — one row per upgradable card
+        // in the deck. Derived from the run, like every other term here, so a deck that can
+        // upgrade nothing still counts right.
+        const benchRun = makeRun(400);
+        const bench = new Set(benchRun.deck.filter((c) => hasUpgrade(c.dataId)).map((c) => c.dataId)).size;
         const expected = 2 + Object.keys(ranch.blueprints).length
-            + GetMingmingData('skoll').availableOS.length + 2 + 1;
+            + GetMingmingData('skoll').availableOS.length + 2 + 1 + bench;
         expect(markup.match(/<button/g)?.length).toBe(expected);
         // Every one of them a real button with an explicit type — a bare `<button>` inside a form is
         // a submit, and this screen will one day live inside one.

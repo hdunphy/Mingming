@@ -65,6 +65,7 @@ import {
     rollMarketStock,
     sellPrice,
 } from '../../engine/run/marketplace';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { MacroRegistry } from '../../engine/data/macroRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
@@ -262,8 +263,22 @@ interface SellRow {
     readonly disabled: boolean;
 }
 
+/**
+ * The SELL panel's rows, and only those.
+ *
+ * TICKET 163b put an upgrade bench on this screen and it draws `.rs-row` buttons too, so a scrape
+ * of every row on the page stopped being a scrape of the sell list. Sliced from the sell panel's
+ * own heading rather than by filtering out rows that look like upgrades — this file's claims are
+ * about what the SELL panel lists, and a filter would let a bench row that happened to look like a
+ * sale slip into an assertion about selling.
+ */
+const sellPanel = (markup: string): string => {
+    const at = markup.indexOf('SELL — YOUR CARDS');
+    return at === -1 ? '' : markup.slice(at);
+};
+
 const rowsIn = (markup: string): SellRow[] =>
-    [...markup.matchAll(/<button[^>]*class="rs-row"[\s\S]*?<\/button>/g)].map(([html]) => ({
+    [...sellPanel(markup).matchAll(/<button[^>]*class="rs-row"[\s\S]*?<\/button>/g)].map(([html]) => ({
         name: spanText(html, 'rs-rnm'),
         tags: [...html.matchAll(/<span class="rs-t">([\s\S]*?)<\/span>/g)].map((m) => m[1]),
         count: Number(spanText(html, 'rs-x').replace('×', '') || 1),
@@ -667,7 +682,9 @@ describe('MarketplaceNode', () => {
         expect(generics).toHaveLength(1);
         expect(generics[0].count).toBe(run.deck.filter((c) => c.dataId === GENERIC_HIT).length);
         expect(generics[0].count).toBeGreaterThan(1);
-        expect(markup.match(/class="rs-x"/g)).toHaveLength(rows.filter((r) => r.count > 1).length);
+        // Counted inside the sell panel: 163b's upgrade bench stacks by card too and prints its
+        // own ×N, and this claim is about the sell list.
+        expect(sellPanel(markup).match(/class="rs-x"/g)).toHaveLength(rows.filter((r) => r.count > 1).length);
     });
 
     it('prices every sell row at sellPrice, strictly under what the same card buys for', () => {
@@ -816,7 +833,10 @@ describe('MarketplaceNode', () => {
         // chip, EDIT LOADOUT and LEAVE. Derived rather than a literal, so a route that can recruit
         // nothing — where the slot is absent by design rather than drawn dead — still counts right.
         const blueprints = rollBlueprintOffer(run, marketNodeOf(run)) ? 1 : 0;
-        expect(markup.match(/<button/g)).toHaveLength(offers + macros + rows + blueprints + 3);
+        // TICKET 163b: and one per upgradable card in the deck — the bench is a row list like the
+        // others, so it is derived from the run the same way rather than added as a literal.
+        const bench = new Set(run.deck.filter((c) => hasUpgrade(c.dataId)).map((c) => c.dataId)).size;
+        expect(markup.match(/<button/g)).toHaveLength(offers + macros + rows + blueprints + bench + 3);
         // And each of the four affordance classes appears ONLY on a button — the check that catches
         // a `<div class="rs-row">` that looks and styles identically and cannot be tabbed to.
         for (const cls of ['rs-card', 'rs-row', 'rs-f', 'rs-btn']) {

@@ -380,3 +380,16 @@
 
 /* A column of rows or chips — the mockups' `.cards`. */
 .rs-cards { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+
+/*
+ * TICKET 163b — the number an upgrade MOVED, in the card's own element colour.
+ *
+ * §4's ask, and the colour is `--el` rather than a new one because the question the highlight
+ * answers is "what did this upgrade buy me", and the element is already how every other surface
+ * says "this card". Weight rather than a background: a chip here would compete with `.rs-g`, the
+ * cost gem, which is the only filled element-coloured shape on a tile.
+ */
+.rs-upn {
+    color: var(--el);
+    font-weight: 700;
+}

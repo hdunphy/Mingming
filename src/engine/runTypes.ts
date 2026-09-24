@@ -163,6 +163,23 @@ export interface IRunCard {
     readonly instanceId: string;
     readonly dataId: string;
     readonly ownerId: string | null; // null = bought, drafted, or granted by an event
+    /**
+     * TICKET 163b — **this instance has been upgraded**, and `dataId` is therefore the `+` id.
+     *
+     * The upgrade happens IN PLACE: the instance keeps its `instanceId` and its `ownerId` and
+     * swaps which card it points at. That is what makes *"an upgrade replaces exactly one copy"*
+     * literally true — a mint-and-delete would give the player a card they did not have and take
+     * one they did, which reads the same in a deck list and differently in every log that follows
+     * an instance.
+     *
+     * REDUNDANT WITH `dataId`, AND DELIBERATELY SO. 163b §4 asks for the flag, and the reason is
+     * the persistence door 163 §5 leaves open: *"no persistence across runs to start; the data
+     * shape must leave the door open."* When upgrades survive a run they will be a map on the
+     * collection entry keyed by BASE id, and the thing that has to be read at that point is "was
+     * this copy upgraded", not "does this string end in a plus". `runSlice.upgrade.test.ts` pins
+     * the two agreeing, so the redundancy is checked rather than trusted.
+     */
+    readonly upgraded?: true;
 }
 
 /**
@@ -361,6 +378,26 @@ export interface IRunState {
     readonly boughtBlueprints?: ReadonlyArray<string>;
 
     /**
+     * TICKET 163b — which upgrade benches have been used, as `nodeId:visitCount` keys.
+     *
+     * Henry ruled ONE UPGRADE PER VISIT (163 §2) and, on 2026-09-24, that the bench appears at BOTH
+     * stops — the market stall and the workshop — so the allowance is per node per visit and this
+     * is where it is spent. The gym gate's free upgrade is not in here: it is once per gauntlet and
+     * `IGauntletProgress` already knows how far into one you are.
+     *
+     * Keyed on `node.visited` rather than on a refresh count, which is the one place this differs
+     * from `boughtBlueprints` above and is the difference between the two rules. A stall's stock is
+     * a SHELF — buy the card and it is gone until you pay to restock — so its key is the shelf's
+     * identity. An upgrade bench is a SERVICE: walking back in is a new visit and a new allowance,
+     * at the price of re-fighting the wilds on the way, which is ticket 07's answer to farming and
+     * the reason `visited` is a count rather than a boolean.
+     *
+     * Optional with `.default([])`, the `boughtBlueprints` precedent: a run saved before this field
+     * is a run that has upgraded nothing.
+     */
+    readonly upgradesTaken?: ReadonlyArray<string>;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -507,6 +544,10 @@ export const RunCardSchema = z.object({
     instanceId: z.string(),
     dataId: z.string(),
     ownerId: z.string().nullable(),
+    // TICKET 163b. `.optional()` and never defaulted: the ABSENCE of the flag is the ordinary
+    // state, and a `false` on every card in every save would be three hundred bytes a run saying
+    // nothing. A card saved before this field is a card nobody had upgraded.
+    upgraded: z.literal(true).optional(),
 });
 
 export const GauntletProgressSchema = z.object({
@@ -549,6 +590,7 @@ export const RunStateSchema = z.object({
     blueprintDryFights: z.number().int().min(0).default(0),
     // Ticket 142 §7, add-only like the field above it.
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
+    upgradesTaken: z.array(z.string()).default([]),
     boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),

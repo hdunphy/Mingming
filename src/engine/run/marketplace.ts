@@ -430,6 +430,44 @@ export function cardPrice(dataId: string): number {
     return CARD_PRICE_BY_ENERGY[energy];
 }
 
+/**
+ * TICKET 163b — **what an upgrade costs**, on Henry's band of 25–40 scrap (163 §2).
+ *
+ * By the card's ENERGY, exactly as `cardPrice` is, and for the reason that header gives: the cost
+ * is the only property of a card this file is allowed to read, because a price that reads power or
+ * rarity is a second balance opinion living in a shop. Four rungs across the ruled band:
+ *
+ *     0e 25   ·   1e 30   ·   2e 35   ·   3e 40
+ *
+ * IT IS FLATTER THAN BUYING, and that is the design rather than an accident of the band. Buying
+ * spans 15–45 — three times — because a 3e card is three times the card a 0e one is. An UPGRADE is
+ * roughly the same size of favour whatever it lands on: a rung of stacks, forty percent, one more
+ * swing. The band Henry ruled is 25–40, which is 1.6x across the same four rungs, and that ratio is
+ * the ruling's content.
+ *
+ * TUNE FROM THE RUN LOG, which 163b says out loud. `CARD_UPGRADED` records the price paid, so the
+ * question *"is 30 scrap a real decision at fight four"* is answerable from a walker run rather
+ * than from this comment. Until it is answered these are Henry's numbers and not a derivation.
+ */
+export const UPGRADE_PRICE_BY_ENERGY: ReadonlyArray<number> = [25, 30, 35, 40];
+
+/** What upgrading this card costs. Unknown ids price at the cheapest rung, as `cardPrice` does. */
+export function upgradePrice(dataId: string): number {
+    const data = ProgramRegistry[resolveProgramId(dataId)];
+    if (!data) return UPGRADE_PRICE_BY_ENERGY[0];
+    const energy = Math.min(Math.max(numericBaseCost(data.baseCost), 0), UPGRADE_PRICE_BY_ENERGY.length - 1);
+    return UPGRADE_PRICE_BY_ENERGY[energy];
+}
+
+/**
+ * The gym gate's upgrade is FREE — 163 §2, *"and a free upgrade at the gym gate (the rest-site
+ * venue). Both answer 153's 'scrap is not scarce'."*
+ *
+ * A named constant rather than a literal 0 at the call site, so the reducer that charges it is the
+ * same reducer that charges the bench and there is no second code path to keep honest.
+ */
+export const GYM_GATE_UPGRADE_PRICE = 0;
+
 // =================================================================================================
 // Macro prices — ticket 15
 // =================================================================================================

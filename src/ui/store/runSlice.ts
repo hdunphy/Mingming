@@ -81,7 +81,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
-import { isMarketNode } from '../../engine/run/marketplace';
+import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import {
     biomeRevealModifier,
@@ -91,6 +91,7 @@ import {
     macroOfferBlockFor,
     macroRackBlockFor,
 } from '../../engine/data/macroRegistry';
+import { upgradeIdFor } from '../../engine/data/plusRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { minimumActiveDeck } from '../../engine/run/createRun';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
@@ -374,6 +375,69 @@ const runSlice = createSlice({
             if (run.scrap < price) return { run };
             if (run.deck.some((held) => held.instanceId === card.instanceId)) return { run };
             return { run: { ...run, scrap: run.scrap - price, deck: [...run.deck, card] } };
+        },
+
+        /**
+         * TICKET 163b — **UPGRADE ONE CARD IN THE ACTIVE DECK.** The bench's whole verb.
+         *
+         * One reducer for all three venues (the market stall, the workshop, the gym gate), which is
+         * the `buyMarketCard` convention held to: scrap-down and thing-changes are ONE action, the
+         * affordability check lives beside the mutation, and an ineligible dispatch is a SILENT
+         * NO-OP rather than a throw. **The gym gate differs in exactly one fact: the price it names
+         * is free.** Its once-per is the same `benchKey` every other bench spends, because a gym
+         * node walked back into is a new attempt at the gauntlet and a new allowance — the same
+         * answer ticket 07 gives every other revisit, paid for in the wilds on the way.
+         *
+         * THE PRICE IS NOT TRUSTED FROM THE PAYLOAD. `buyMarketCard` takes the caller's price
+         * because a shop offer's price is rolled with the stock and the reducer has no way to
+         * re-derive it. An upgrade's price is a pure function of the card, so this one RE-DERIVES it
+         * and ignores anything else it is handed — except a free one, which is a venue fact rather
+         * than a card fact and is therefore the one thing `free` is allowed to say.
+         *
+         * IN PLACE, KEEPING THE INSTANCE. The copy keeps its `instanceId` and its `ownerId` and
+         * changes which card it points at, so "an upgrade replaces exactly one copy" is literally
+         * what happens — see `IRunCard.upgraded`. A player holding two Venom Fang upgrades one of
+         * them, and the other is untouched, which a mint-and-delete would have made a coin flip.
+         *
+         * THE COLLECTION IS NOT TOUCHED, on 163 §2's word: *"pick a card in the ACTIVE DECK."* A
+         * card in the collection is not in play, and letting the bench reach it would make the
+         * upgrade a stockpiling decision rather than a deck-building one.
+         */
+        upgradeDeckCard: (
+            state,
+            action: PayloadAction<{ instanceId: string; benchKey?: string; free?: boolean }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { instanceId, benchKey, free } = action.payload;
+
+            // One per visit, per bench. `benchKey` is `nodeId:visitCount` (see `upgradesTaken`).
+            // Optional rather than required so a test, a scenario or a future venue can exercise
+            // the verb without inventing a bench — not because any shipped venue omits it.
+            const spent = run.upgradesTaken ?? [];
+            if (benchKey !== undefined && spent.includes(benchKey)) return { run };
+
+            const index = run.deck.findIndex((card) => card.instanceId === instanceId);
+            if (index === -1) return { run };
+            const card = run.deck[index];
+            // `upgradeIdFor` answers "already upgraded", "no `+` authored" and "not a real card"
+            // with the same undefined, which are the same answer at a bench.
+            const to = upgradeIdFor(card.dataId);
+            if (to === undefined) return { run };
+
+            const price = free === true ? 0 : upgradePrice(card.dataId);
+            if (run.scrap < price) return { run };
+
+            const deck = [...run.deck];
+            deck[index] = { ...card, dataId: to, upgraded: true };
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    deck,
+                    upgradesTaken: benchKey === undefined ? spent : [...spent, benchKey],
+                },
+            };
         },
 
         /**
@@ -1251,6 +1315,7 @@ export const {
     addRunCollection,
     removeRunCard,
     buyMarketCard,
+    upgradeDeckCard,
     // `removeRunCardForScrap` was exported here until 2026-08-26. Paid removal is deleted; free
     // editing at the four surfaces replaced it, and `sellRunCard` is the verb that pays.
     sellRunCard,

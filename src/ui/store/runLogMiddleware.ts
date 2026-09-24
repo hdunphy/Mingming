@@ -546,6 +546,29 @@ export function createRunLogMiddleware(
                     });
                     break;
                 }
+                case 'run/upgradeDeckCard': {
+                    /*
+                     * TICKET 163b. Read off the BEFORE state, because by the time this runs the
+                     * instance already points at the `+` id and `from` would be `to`. `price` is
+                     * derived the same way the reducer derives it rather than taken from the
+                     * payload — the payload carries `free`, not a number, precisely so that no
+                     * caller can write a price into the log the player did not pay.
+                     */
+                    const instanceId = String(payload?.instanceId ?? '');
+                    const before = runBefore?.deck.find((card) => card.instanceId === instanceId);
+                    const after = runAfter?.deck.find((card) => card.instanceId === instanceId);
+                    // A no-op dispatch (unaffordable, ineligible, bench already used) changes
+                    // nothing, and a log row for a thing that did not happen is worse than none.
+                    if (before && after && before.dataId !== after.dataId) {
+                        record(runAfter, {
+                            kind: 'CARD_UPGRADED',
+                            from: before.dataId,
+                            to: after.dataId,
+                            price: (runBefore?.scrap ?? 0) - (runAfter?.scrap ?? 0),
+                        });
+                    }
+                    break;
+                }
                 case 'run/sellRunCard': {
                     // `CARD_REMOVED` still, because that is what happened to the deck — the card
                     // left it. The paired `SCRAP` row below now carries a POSITIVE delta, which is

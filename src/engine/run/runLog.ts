@@ -217,6 +217,15 @@ export type IRunEvent = IRunEventBase & (
     | { readonly kind: 'CARD_REMOVED'; readonly dataId: string; readonly price: number }
     | { readonly kind: 'RECRUITED'; readonly definitionId: string; readonly cards: ReadonlyArray<string> }
     | { readonly kind: 'REFLASHED'; readonly memberId: string; readonly osId: string }
+    /**
+     * TICKET 163b — a card in the active deck became its `+` form.
+     *
+     * `from` and `to` rather than one id and a flag, because the row has to be readable without
+     * the registry: a run read three tickets from now should say "Venom Fang -> Venom Fang+" off
+     * the log alone. `price` is the field 163b asks to TUNE the band from — a gym-gate upgrade
+     * records 0, which is how "how many upgrades were free" is a question the log can answer.
+     */
+    | { readonly kind: 'CARD_UPGRADED'; readonly from: string; readonly to: string; readonly price: number }
     | { readonly kind: 'MACRO_BOUGHT'; readonly macroId: string; readonly price: number }
     | { readonly kind: 'MACRO_FIRED'; readonly macroId: string }
     | { readonly kind: 'REROLLED'; readonly price: number }

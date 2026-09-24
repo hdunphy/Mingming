@@ -36,6 +36,7 @@
 
 import type { ReactElement, ReactNode } from 'react';
 
+import { describeUpgrade } from './runShell';
 import type { Banner } from './runShell';
 
 /**
@@ -171,6 +172,13 @@ export function CardFace({ face, count, tags, target, readout, keywords, extras 
         readonly element: string;
         readonly cost: number;
         readonly banner: Banner;
+        /**
+         * TICKET 163b — when the face knows which card it is, an UPGRADED card's moved numbers
+         * are picked out in the element colour (§4). Optional because several callers build a face
+         * by hand from a stack or an offer and have nothing to look up; those render plain text,
+         * which is what they rendered before.
+         */
+        readonly dataId?: string;
     };
     readonly count?: number;
     readonly tags?: string;
@@ -193,7 +201,22 @@ export function CardFace({ face, count, tags, target, readout, keywords, extras 
                 <span className="rs-cnm">{face.name}</span>
                 {target && <span className="rs-tgt">{target}</span>}
             </span>
-            <span className="rs-desc">{face.description}</span>
+            <span className="rs-desc">
+                {face.dataId === undefined
+                    ? face.description
+                    : describeUpgrade(face.dataId).map((seg, i) => (
+                        /*
+                         * Unchanged text is the RAW STRING, not a wrapped span. A card with no
+                         * upgrade comes back as one unchanged segment, so this renders byte-for-byte
+                         * what `{face.description}` rendered before 163b — which is what keeps a
+                         * highlight for ninety-eight cards from being a DOM change for all 268.
+                         *
+                         * Index keys: the segments are a pure function of one immutable string, so
+                         * the list cannot reorder and there is no identity to preserve across it.
+                         */
+                        seg.changed ? <span key={i} className="rs-upn">{seg.text}</span> : seg.text
+                    ))}
+            </span>
             {keywords}
             <span className="rs-tags">
                 <ElementMark element={face.element} />
@@ -217,6 +240,13 @@ export function CardTileFace({ face, count, tags }: {
         readonly element: string;
         readonly cost: number;
         readonly banner: Banner;
+        /**
+         * TICKET 163b — when the face knows which card it is, an UPGRADED card's moved numbers
+         * are picked out in the element colour (§4). Optional because several callers build a face
+         * by hand from a stack or an offer and have nothing to look up; those render plain text,
+         * which is what they rendered before.
+         */
+        readonly dataId?: string;
     };
     /** Copies held. Prints the ×N badge above 1, exactly as the collection grid does. */
     readonly count?: number;

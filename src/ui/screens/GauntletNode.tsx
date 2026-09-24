@@ -60,6 +60,7 @@ import { initializeBattleEntity } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import { startBattle } from '../store/battleSlice';
+import { UpgradeBench } from './UpgradeBench';
 import './GauntletNode.css';
 import { Icon } from '../theme/Icon';
 
@@ -293,6 +294,26 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                     <button type="button" className="gn-button subtle" onClick={onEditLoadout}>
                         Edit loadout — last chance before the gym
                     </button>
+                )}
+                {/*
+                  * TICKET 163b — THE GATE'S FREE UPGRADE (163 §2), under the SAME guard as the
+                  * editor above and for the same reason. The ruling that gates the editor to
+                  * `fightIndex === 0` is about healing: three fights with no recovery between them
+                  * means anything offered between rounds two and three lets a player answer the
+                  * boss they just saw. A free upgrade is exactly that kind of answer, so it lives
+                  * before fight one or not at all.
+                  *
+                  * The once-per is the bench key, not this guard. The guard stops it being OFFERED
+                  * mid-gauntlet; `upgradesTaken` stops it being PRESSED twice before fight one,
+                  * which is the half a render cannot enforce.
+                  */}
+                {gauntlet.fightIndex === 0 && (
+                    <UpgradeBench
+                        run={run}
+                        benchKey={`${node.id}:${node.visited}`}
+                        free
+                        heading="THE GATE — ONE FREE UPGRADE"
+                    />
                 )}
                 <button
                     type="button"

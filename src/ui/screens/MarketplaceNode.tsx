@@ -80,6 +80,7 @@ import { cardFace, colorFor, groupByData } from './runShell';
 import './runShell.css';
 import './MarketplaceNode.css';
 import { Icon } from '../theme/Icon';
+import { UpgradeBench } from './UpgradeBench';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
 
 /**
@@ -451,6 +452,19 @@ export default function MarketplaceNode({
                         {macroStock.length === 0 && <span className="mk-empty">No macros this visit.</span>}
                     </div>
                 </div>
+
+                {/*
+                  * TICKET 163b — the upgrade bench, above the sell panel because it is the verb
+                  * that IMPROVES a deck and selling is the one that shrinks it. Henry ruled the
+                  * bench appears at both stops (2026-09-24), so the same component is mounted in
+                  * `WorkshopNode` and at the gym gate; the only thing this call site decides is
+                  * whose once-per-visit allowance is being spent.
+                  */}
+                <UpgradeBench
+                    run={run}
+                    benchKey={`${node.id}:${node.visited}`}
+                    heading="UPGRADE — ONE CARD IN YOUR DECK"
+                />
 
                 <div className="rs-panel mk-sell">
                     <h2>SELL — YOUR CARDS <span className="mk-sub">(deck + collection)</span></h2>

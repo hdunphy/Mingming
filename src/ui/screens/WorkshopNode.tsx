@@ -87,6 +87,7 @@ import { benchPartyMember, recruitIntoParty, recruitToBench, reflashEngine } fro
 import type { RootState } from '../store/store';
 import { ElementMark } from './CardChassis';
 import { cardFace, colorFor } from './runShell';
+import { UpgradeBench } from './UpgradeBench';
 import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
@@ -652,6 +653,21 @@ export default function WorkshopNode({
                     <div className={`rs-pill ${run.deck.length <= floor ? 'at-floor' : ''}`}>
                         DECK <b>{run.deck.length}</b> / floor {floor}
                     </div>
+
+                    {/*
+                      * TICKET 163b — the upgrade bench. Henry ruled it appears at BOTH stops
+                      * (2026-09-24), so the same component is mounted here and in the market stall;
+                      * the allowance is per node per visit, so standing in both on one lap is two
+                      * upgrades and walking back into either is another, at the price of the wilds
+                      * on the way. This is the workshop's only CARD verb — everything else on the
+                      * screen is about bodies — which is why it sits at the foot of the bay rather
+                      * than competing with the assembly stage.
+                      */}
+                    <UpgradeBench
+                        run={run}
+                        benchKey={`${node.id}:${node.visited}`}
+                        heading="UPGRADE — ONE CARD IN YOUR DECK"
+                    />
                 </div>
             </div>
         </section>
