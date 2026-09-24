@@ -1,5 +1,7 @@
 # Ticket 150 — Two OS bonuses ride the power, not the HP; and hel_v2's dead hook goes
 
+> **Status: OPEN — 150a/b/c SHIPPED 2026-09-22 (f8428b2, ba35b95, 782fea8). Left: 150d KINETIC_RAM → onPowerCalculated, arm B `bonus: 2.5` (RULED 2026-09-24), and 150e (the law comment in HookFactory + the descriptionData assertion). Close when 150d lands.**
+
 > **2026-09-22 — 150a, 150b and 150c SHIPPED. Henry ruled `bonus: 4`** after §3's `bonus: 3`
 > failed its own ±5 gate by −10.7 field points; 4 lands at +1.8, and it is §2's own un-STAB'd
 > figure (3.9). Numbers in

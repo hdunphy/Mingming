@@ -1,5 +1,7 @@
 # Ticket 163 — The upgrade pass: card `+` versions and OS patches
 
+> **Status: 163b, 163c, 163d SHIPPED 2026-09-24 (fbe93f4, a331def, 73ce677) — upgrades at three benches, six patches written against fields, one slot per body, patches from elites/ambushes, the gate and the shop. Post-merge the elite payout rides paysDriver (6c25d2b). OPEN: 163e — measure on 157's walker (upgrade take-rate, patch take-rate by kind, deck-power curve fight 1 → gym, the shop's 50-scrap patch price is Legion's number to tune from it). The status line below is history.**
+
 **Type:** design → engine + data + UI. **Status:** **163a SHIPPED 2026-09-24 (`fa26724`), ruled closed (`577b577`); 163b–163e OPEN — Legion's next rows.** Asked by Henry 2026-09-23 after ruling
 collection v2.1b into playtest: *"I want to start on an upgrade pass. How can we implement card
 upgrades, what would OS upgrades look like?"* **Takes over** 161 §3 (card upgrades) — 161 keeps the

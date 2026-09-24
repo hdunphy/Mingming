@@ -275,6 +275,8 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-24 — MERGE LANDED, HOUSEKEEPING, and what is actually left.** `steam-prep-september` is merged onto `playtest-polish` (`6c25d2b`; Legion's write-up `986635d`: ten commits not four, five conflicts, hooks.json merged as JSON, relics gone with 163d's elite payout on `paysDriver`, the canary unmoved). `playtest-polish` is the September line. **Henry signed off 142, 146, 147, 155 and 162 — CLOSED.** 148 CLOSED as superseded (157 is its measurement, 161/163 its levers); 153, 156, 160, 161, 151, 95 closed as housekeeping; the map's Destination is rewritten for the EA/v2 scope. **Correction to the block below: 150a–c SHIPPED 09-22** (`f8428b2`, `ba35b95`, `782fea8`); only 150d and 150e are open. **The arc's open list, in order: 150d (arm B, `bonus: 2.5`) + 150e → 154a → 158-r1 (tags into the registry + recruit/loadout readout) → 157 walker (§5 as ruled) → 163e on the walker.** After those the deck-archetypes map is empty except post-EA species. Two design sessions with no rows stay under "Not yet specified" (the standardised balance report; playtest & ship criteria) — Henry's to call, not blockers.
+
 ## 0-MERGE-steam-prep-september-ONTO-COLLECTION-v2 (2026-09-24, `6c25d2b`)
 
 Drivers (tickets 16/17) and ticket 77's Tracks B+C are on `playtest-polish`. **TEN commits came across, not four** — the branch had moved since the instruction was written, and the six extra are ticket 77 (17 arms, 2,700 battles, the macro/root-rot harness and `scripts/ticket77-arms.mjs`). Henry ruled all ten. 132 files, 11,741 insertions; `package-lock.json` untouched as instructed.

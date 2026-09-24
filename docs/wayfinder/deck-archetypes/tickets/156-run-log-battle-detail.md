@@ -1,5 +1,7 @@
 # Ticket 156 — The run log records the fights, not just that they happened
 
+> **Status: CLOSED 2026-09-24 — shipped: §2 fight rows and active time (1a556bc, ce27ee8), §4 runread (22d1488), per-fight transcript behind a switch (1d1d46e). 157's walker writes in this row schema.**
+
 **Type:** instrument (engine event → run log → export). **Status:** OPEN, asked by Henry 2026-09-20
 after his Emberglass run: *"Is that all the logs? Do we not save the actual battle logs? That might
 be useful for debugging."* **Relates to:** 155 (the defect pass — this is how the next playtest

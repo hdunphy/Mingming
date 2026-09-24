@@ -1,5 +1,7 @@
 # Ticket 146 — Game juice (v2, RULED 2026-09-12): the cast sequence, element trails, hit-stop, status tells, OS tells
 
+> **Status: CLOSED 2026-09-24 — signed off by Henry after playtest. 146a–h shipped (5b9817e … b8fda21); 155a fixed the dead-on-arrival cast sequence.**
+
 **Type:** UI/VFX + three small engine event fields. **Status:** RULED by Henry in the 2026-09-12
 design session (answers to `research/vfx-capabilities.md` §5, quoted below); ready for Legion.
 **Depends on:** 145 (built: `useStageAnchors()`, the plaque, the reveal lane). **Relates to:** 147

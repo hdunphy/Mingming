@@ -1,5 +1,7 @@
 # Ticket 162 — Collection v2: archive the card pool, start again under the grammar
 
+> **Status: CLOSED 2026-09-24 — signed off by Henry. 162a–e all shipped (172bc68..517b206, 162e c95ab75); v2.1b is the playtest collection; slot-tax bands 12/30/70/120 are BUDGET_BANDS; Sköll v1 kit swap gated at 37f9d40. Ruled: no numeric tuning before playtest; the run-gate reading is noise until 157's walker. Below is the history.**
+
 **Type:** data (registry) + design review. **Status:** **162a SHIPPED 2026-09-23** (`172bc68`..`993ad09`, gate green); 162b/c/d open. Ruled for playtest 2026-09-23 (v2.1b) — Henry: *"This is good, we should commit it for play testing tonight."* 162a is Legion's next row. **Asked by Henry 2026-09-22:** *"I think we need to revisit
 the card pool. My latest playtest showed they were not exciting and it is still hard to build decks.
 Can we archive the current card collection and start a new one. Try to build a card collection after

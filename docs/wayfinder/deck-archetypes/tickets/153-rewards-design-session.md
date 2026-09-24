@@ -1,5 +1,7 @@
 # Ticket 153 — Design session: rewards that reward (cards, scrap, and the blueprint hunt)
 
+> **Status: CLOSED 2026-09-24 — Henry: "good for now". Absorbed by 161 (kits), 163 (upgrades at three benches, patches from elites/gate/shop) and 142 (blueprint pool). Reopen with a fresh playtest note if scrap still feels flat on the merged build; 163e's take-rates are the numbers to read first.**
+
 **Type:** wayfinder:grilling — a design session with Henry; nothing is pre-authorised for
 implementation. **Status:** OPEN, opened 2026-09-11 at Henry's request off the 2026-09-10 playtest
 (142 §6).

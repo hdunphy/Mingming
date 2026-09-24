@@ -1,5 +1,7 @@
 # Ticket 161 — Start kits that grow, and card upgrades
 
+> **Status: CLOSED 2026-09-24 — APPLIED: the start-kit shape shipped inside 162a; the upgrade half is 163; ticket 61's two kit rules retired (ruled 09-24).**
+
 **Type:** design session → engine (upgrades) + data (kits). **Status:** OPEN, asked by Henry 2026-09-22:
 *"Another thing we need to do is fix the starter decks and add upgrades. I think that will help with the
 run progression."* **Relates to:** 148 (the progression curve — this is its first lever), 153 (rewards —

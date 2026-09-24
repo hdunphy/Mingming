@@ -1,5 +1,7 @@
 # Ticket 155 — Battle-screen defect pass: what Henry's 2026-09-19 build showed, and why
 
+> **Status: CLOSED 2026-09-24 — signed off by Henry after playtest. 155a–h shipped (2465ab2, 478dc8a, ac0dd86, 3ebffcd, 518599a, 3fab96c).**
+
 **Type:** UI + one hook fix. **Status:** OPEN — Henry's playtest report 2026-09-19 (*"the hand takes
 up too much space … any time I drag a card all the text gets highlighted … draw pile shows +4 …
 energy pips don't appear … discard count is on the End Turn button … tooltips are not very helpful

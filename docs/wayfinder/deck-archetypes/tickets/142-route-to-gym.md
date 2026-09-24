@@ -1,5 +1,7 @@
 # Ticket 142 — The route to the gym: rivals on the road, and a scout at the last exit
 
+> **Status: CLOSED 2026-09-24 — signed off by Henry after playtest ("I'm signing off on 142, 146, 147, 155 and 162"). 142a–g shipped; 142h's end-to-end walk is 157's walker. §5's biome alternative stays on file as the fallback.**
+
 **Status:** RE-RULED 2026-09-11 — build Henry's alternative (§7; 142d–h ready for Legion). History: approved direction by Henry 2026-09-05 ("let's try your idea"); Henry's alternative is
 recorded in §5 and is NOT dead — it is the fallback if this does not fix the feel.
 **Branch:** `legion/ai-perf`, one commit per lettered row, authored as Henry.

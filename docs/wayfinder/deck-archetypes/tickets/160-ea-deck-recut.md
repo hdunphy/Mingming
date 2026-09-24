@@ -1,4 +1,6 @@
 # Ticket 160 — The EA re-cut: twelve OSes, two directions each, one grammar
+
+> **Status: CLOSED 2026-09-24 — SUPERSEDED by 162 (its nine sessions became collection v2); 160-e1 shipped (b9c6b44); §5's numbers are 162c. The "OPEN" line below is history.**
 > **2026-09-23 — SUPERSEDED by [162](162-collection-v2.md)** except **160-e1** (ally-target cards — Legion's first row, before 162a) and **§5** (the before/after numbers — now 162c). 160-r1/r2 ship inside 162a as Overclock Core and Short Fuse. The nine sessions were done in one pass as collection v2.
 
 **Type:** design sessions (Henry designs, assistant costs and measures) → registry commits per deck.

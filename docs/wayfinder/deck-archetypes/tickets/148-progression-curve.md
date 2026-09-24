@@ -1,5 +1,7 @@
 # Ticket 148 — The progression curve: does a run make the player stronger, and by how much
 
+> **Status: CLOSED 2026-09-24 — SUPERSEDED. Nothing here was ever run. P0–P3 are answered by 157's walker (its first output is 148's P-table), the lever session became 161 (kits) and 163 (upgrades, patches), and 156's runread is the table it wanted to read from. Continue in 157, not here.**
+
 > **Playtest input 2026-09-10** (Henry, see 142 §6): *"I still don't feel like I'm leveling up with my decks. I almost always send cards to the collection and search for 2–3 cards to add."* Deck size went 8→17→8→17→8 across the run because every boundary bench removes the recruit's five engine cards; and the type triangle at biome scale makes benching down to one on-type body the rational move at every seam. Two questions for this ticket's design session: a progression axis that survives a bench, and what makes an off-type body worth keeping through a biome.
 
 **Type:** measurement first, then Henry's design session. **Lane:** balance, aimed at the

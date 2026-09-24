@@ -1,5 +1,7 @@
 # Ticket 147 — SFX pass (v2, 2026-09-12): what the genre does, what Henry owns, and the cue list that pairs with 146
 
+> **Status: CLOSED 2026-09-24 — signed off by Henry after playtest. 147a–e shipped (3862d5f, 6803e57, 12a5404, c1c13e0, 49a8c10).**
+
 **Type:** audio. **Status:** ASSETS PICKED AND IN THE REPO 2026-09-19 (§8) — 147a/b/d/e ready for Legion. Earlier: REVISED for the 146 design session; sources and the pack inventory
 in §1–§3 are research, the cue table in §4 is the spec, §7 is what Henry still has to answer.
 **Relates to:** 146 (every row there has a cue here — the two tickets are built together),
