@@ -435,11 +435,10 @@ export function auditCardBudget(): {
         /*
          * TICKET 163a — the ninety-eight `+` cards are not audited against the band.
          *
-         * They are over it by construction (Henry: *"upgrades are supposed to be broken"*), so
-         * auditing them would add ninety-eight redlines that all say the same true and useless
-         * thing, and bury the base-card redlines this report exists to surface. `scratch/
-         * t163a_ledger.ts` prices them on their own, against their BASE rather than against a
-         * cost band, which is the comparison that can actually be wrong.
+         * Henry, 2026-09-24: *"upgrades are supposed to be broken. So no need to score them."*
+         * Auditing them would add ninety-eight redlines that all say the same true and useless
+         * thing, and bury the base-card redlines this report exists to surface. See
+         * `isBandExempt` for the ruling in full.
          */
         if (isBandExempt(card)) continue;
         const band = budgetBandFor(numericBaseCost(card.baseCost));

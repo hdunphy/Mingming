@@ -1,29 +1,28 @@
 /**
- * TICKET 163a — THE `+` LEDGER: what each upgrade is worth, and which ones jumped a rung.
+ * TICKET 163a — THE `+` LEDGER. **RUN ONCE; THE REVIEW IT WAS BUILT FOR IS RETIRED.**
  *
- * §2: *"The scorer prices `<id>+` as its own row; the ledger flags any `+` more than one band
- * above its base."*
+ * §2 asked for it: *"the scorer prices `<id>+` as its own row; the ledger flags any `+` more than
+ * one band above its base."* It was built, run, and put in front of Henry with twelve cards flagged
+ * at two rungs or more — Ember Ward+ at +439%, because the rule turned "the attacker gains 1 Burn"
+ * into 4 on a hook that fires every time you are hit.
  *
- * # WHY THE BAND IS NOT THE QUESTION HERE
+ * Henry, 2026-09-24: *"upgrades are supposed to be broken. So no need to score them."* The flag is
+ * retired, `powerscale.isBandExempt` carries the ruling, and no `+` row is audited anywhere.
  *
- * 162b's ledger asks "is this card priced for its cost?" and that question has no answer for an
- * upgrade: a `+` is over its cost band by construction, and Henry ruled that intended — *"upgrades
- * are supposed to be broken"*. `powerscale.isBandExempt` is where that ruling lives, and the card
- * budget audit skips these rows entirely.
+ * # WHY THE FILE IS STILL HERE
  *
- * So this ledger asks the only question that CAN be wrong: **how far did the upgrade move the
- * card, and is that distance in line with every other upgrade?** The generator applied one rule per
- * shape — status stacks +(1 + cost), raw numbers +40%, one more hit, one more card — and those
- * rules were written to feel comparable. Where they are not, the number says so, and it is a
- * printing to look at rather than a band to argue with.
+ * Two reasons, and neither is "in case he changes his mind".
  *
- * # THE RUNG
+ * It is the RECORD of a measurement, which is what `results/t163/LEDGER-PLUS.txt` is beside every
+ * other report in `results/` — a ruling is worth reading next to the number it overrode.
  *
- * A `+` that scores past the band TWO costs above its own is the ticket's flag: a 1e card that
- * prices like a 3e card is not an upgrade any more, it is a different card sharing a name. One
- * rung up is expected and unremarkable — that IS the pass.
- *
- * Side and All cards are judged on the worse of their two widths, 149c §4.2, exactly as 162b does.
+ * And it is what found the bug. `SHARP_STACKS`, `STRENGTH_STACKS` and `TARGET_STATUS_STACKS` fell
+ * off the end of `powerscale`'s ATTACK chain and contributed a silent zero on six SHIPPED cards —
+ * Flashover priced as "50 power" with its +15-per-Burn invisible. Nothing found that in the two
+ * tickets those cards lived through, because no report ever asked a question whose answer had to
+ * move. This one did: it moved every scaler's rider at once and five of them reported a lift of
+ * exactly nothing. That is a technique worth keeping the shape of, on a pool where the scorer's
+ * blind spots are the expensive kind of wrong.
  *
  * Run: npx vite-node scratch/t163a_ledger.ts
  *      npx vite-node scratch/t163a_ledger.ts -- --tsv

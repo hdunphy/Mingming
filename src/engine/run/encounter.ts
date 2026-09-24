@@ -650,44 +650,6 @@ export const LOOPING_FREE_DRAWS: ReadonlySet<string> = new Set([
     // No shipped deck runs two, so this costs nothing today. Listed because it is the same card
     // again, and tickets 111/113 are the record of what it did when a deck could chain it.
     'glimmer',
-    /*
-     * TICKET 163a — **`ignite+` is a loop and its base is not.** This is the tripwire below doing
-     * the job it was built for, on the first upgrade pass to reach it.
-     *
-     * Measured on ONE instrument so the two readings can be compared: `t149_castprobe` on
-     * fenrir_v2 (two copies, the deck 162a measured the base on), 25 iterations against the 1v1
-     * opponent set, base and `+` run back to back.
-     *
-     *     ignite    7.7% of turns at >=3, 0.3% at >=6, max 8   (results/t163/ignite__fenrir_v2.jsonl)
-     *     ignite+  26.3% of turns at >=3, 23.1% at >=6, max 16 (results/t163/ignite_plus__fenrir_v2.jsonl)
-     *
-     * Seventy-seven times the rate at six or more, from a rule that only moved a number. The base
-     * card draws IF THE TARGET WAS ALREADY BURNING, and at 1 Burn a cast that is a real condition:
-     * the pile decays, so a turn often opens on a clean target and the first cast pays nothing.
-     * At 2 Burn the target is burning essentially always, and the condition stops being one — the
-     * upgrade did not make the cantrip bigger, it made it UNCONDITIONAL.
-     *
-     * CAPPING IT HERE IS NOT THE WHOLE ANSWER, and saying so is the point of this note. This list
-     * governs the pile an ENEMY brings to a wild. The deck that loops is the PLAYER's, and 163b's
-     * workshop is what puts `ignite+` in it — twice, since fenrir_v2 ships two copies. The cap is
-     * the half that can be applied today; whether `ignite+` keeps this printing at all is Henry's,
-     * and the write-up asks him.
-     */
-    'ignite+',
-    /*
-     * `undertow+` is here because its BASE is, not because the measurement asked for it. Same
-     * probe, same deck (jormungandr_v1, both copies swapped):
-     *
-     *     undertow   0.3% of turns at >=3, 0.0% at >=6, max 4
-     *     undertow+  0.0% of turns at >=3, 0.0% at >=6, max 2
-     *
-     * It loops LESS: the `+` rule doubled the self-Weakened and left the draw at one, so the
-     * upgrade is a bigger brake on the same engine. (Both numbers sit below the 12.7%/max 18 that
-     * ticket 152 published, because that was a different harness — which is exactly why the base
-     * was re-run here rather than compared across instruments.) Uncapping a card whose base is
-     * capped is a ruling, not a build step, so it inherits the cap and the reading is on file.
-     */
-    'undertow+',
 ]);
 
 /**
@@ -710,24 +672,47 @@ export const LOOPING_FREE_DRAWS: ReadonlySet<string> = new Set([
  * not convert into damage the way `undertow`'s did. Capping it would cost fenrir_v2 the two-copy
  * opener its whole kit is built on, for a loop it does not have.
  *
- * `forage+` joined under ticket 163a. The upgrade HALVES the self-damage (15 power -> 8), which is
- * the brake moving in the direction that should worry this list, so it was measured rather than
- * assumed: same probe, same deck (ratatoskr_v1, both copies), base and `+` back to back — **0.2%
- * of turns at >=3 and max 7 for `forage`, 0.3% and max 7 for `forage+`**. The price was never what
- * stopped it (the paragraph above says so), so halving the price did not start it.
- *
- * `ignite+` did NOT join them, and it is the only card on that pass that did not. It is capped
- * instead, and the measurement is written beside its entry in `LOOPING_FREE_DRAWS`.
+ * NEITHER SET COVERS AN UPGRADE any more — Henry ruled the whole class out on 2026-09-24. See
+ * `freeDrawCardIds` below for the ruling and the number behind it.
  *
  * This set exists so the tripwire can tell "measured and excluded" from "nobody has looked".
  */
-export const MEASURED_NOT_LOOPING: ReadonlySet<string> = new Set(['forage', 'ignite', 'forage+']);
+export const MEASURED_NOT_LOOPING: ReadonlySet<string> = new Set(['forage', 'ignite']);
 
-/** Every 0-energy card that draws — the population the two sets above must between them cover. */
+/**
+ * Every 0-energy card that draws — the population the two sets above must between them cover.
+ *
+ * ## UPGRADES ARE OUT OF THE POPULATION — RULED BY HENRY, 2026-09-24
+ *
+ * *"Leave ignite broken — upgrades are supposed to be broken."*
+ *
+ * 163a put ninety-eight `+` cards in the registry and three of them landed in this population.
+ * They were measured, on one instrument, base and `+` back to back on the deck that runs two
+ * copies:
+ *
+ *     forage     0.2% of turns at >=3, max 7   ->  forage+    0.3%, max 7
+ *     undertow   0.3% of turns at >=3, max 4   ->  undertow+  0.0%, max 2
+ *     ignite     7.7% at >=3,  0.3% at >=6, max 8
+ *     ignite+   26.3% at >=3, 23.1% at >=6, max 16
+ *
+ * `ignite+` IS A LOOP, seventy-seven times its base's rate above six casts: the base draws only if
+ * the target was ALREADY burning, and at 1 Burn that is a real condition because the pile decays,
+ * while at 2 Burn it is not a condition at all. That was put to Henry with three ways to fix it and
+ * he took none of them. The measurement is kept here because the ruling is only worth anything
+ * beside the number it overrode.
+ *
+ * SO THE EXEMPTION IS THE CLASS, NOT THE CARD. Listing `ignite+` as an exception would leave the
+ * next upgrade asking the same question, and the answer would be the same — the ticket-163 pass is
+ * *defined* as cards that break their own budget. The rule this tripwire protects is about the
+ * shipped pool, and it is untouched: a BASE card that starts drawing for nothing still stops the
+ * build until somebody measures it, which `encounter.test.ts` asserts directly so this widening
+ * cannot quietly swallow one.
+ */
 export function freeDrawCardIds(ids: ReadonlyArray<string>): string[] {
     return ids.filter((dataId) => {
         const data = GetProgramData(dataId);
         if (!data || data.id === 'missing') return false;
+        if (data.upgradeOf) return false;
         if (numericBaseCost(data.baseCost) !== 0) return false;
         return (data.actions ?? []).some((action) => (action.type as string) === 'DRAW');
     });

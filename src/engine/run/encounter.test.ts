@@ -941,6 +941,27 @@ describe('ticket 152: the rung decides whether the player meets the loop', () =>
         expect(unruled, 'measure these with scratch/t152_cardloop.ts, then add them to one of the two sets').toEqual([]);
     });
 
+    it('lets an UPGRADE through, and only because Henry ruled the class out', () => {
+        /*
+         * Henry, 2026-09-24: *"Leave ignite broken — upgrades are supposed to be broken."*
+         *
+         * `ignite+` was measured at 23.1% of turns above six casts against its base's 0.3% and
+         * ruled intended anyway, so `freeDrawCardIds` drops the whole `upgradeOf` class rather
+         * than carrying an exception per card. This test is the receipt for that: the population
+         * really does contain a card that would otherwise be unruled, so the widening is doing
+         * something, and it is doing exactly that.
+         */
+        const all = Object.keys(getInflatedProgramRegistry());
+        const upgraded = all.filter((id) => getInflatedProgramRegistry()[id].upgradeOf);
+        expect(upgraded.length).toBeGreaterThan(0);
+        expect(freeDrawCardIds(upgraded)).toEqual([]);
+
+        // The same card WITHOUT the flag is still in the population — so what excuses it is the
+        // ruling, not some property of the card that a base card could drift into.
+        expect(freeDrawCardIds(['ignite'])).toEqual(['ignite']);
+    });
+
+
         it('leaves `forage` alone, because it was measured and it does not loop', () => {
         /*
          * This test's REASON changed on 2026-09-23 even though its assertion did not, and the

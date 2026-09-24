@@ -264,22 +264,26 @@ export function bandVerdict(score: number, band: number): BandVerdict {
 }
 
 /**
- * TICKET 163a — **an upgraded card is priced and NOT judged.**
+ * TICKET 163a — **an upgraded card is not scored.**
  *
- * Henry, 2026-09-23: *"upgrades are supposed to be broken."* A `+` card is the same card with a
- * bigger number, so it is over its cost band by construction — that is what an upgrade IS, and a
- * band flag on ninety-eight of them would say nothing except that the pass did what it was ruled
- * to do. Three of them (Inferno+, Wildfire+, Heat Wave+) push Burn past its cap of 4 and detonate,
- * also ruled intended.
+ * Henry, 2026-09-24, closing the row: *"upgrades are supposed to be broken. So no need to score
+ * them."* He had the ledger in front of him — twelve `+` cards flagged as clearing the band two
+ * costs above their own, Ember Ward+ at +439% — and ruled the whole question out rather than any
+ * card in it.
  *
- * So the SCORE is still computed and still printed — 163 §2 wants the ledger to show how far each
- * `+` moved, and `budget-plus.txt` is that table. What is suppressed is the VERDICT, and only for
- * these cards. This is a predicate rather than a branch inside `bandVerdict` because `bandVerdict`
- * takes two numbers and knows nothing about a card; a report that wants to exempt a row asks here.
+ * That is a ruling about what the SCORER IS FOR, not a favour to ninety-eight cards. This file
+ * prices a card against the budget its cost buys, and an upgrade is by definition a card that no
+ * longer pays that budget: the pass exists to break it. A band verdict on a `+` row says only that
+ * ticket 163 did what it was ruled to do, and a report that prints ninety-eight of those buries
+ * the base-card rows it exists to surface.
  *
- * It is NOT a licence for the rest of the pool. The base card keeps its band, and a `+` more than
- * one band above its base is still worth Henry's eye — 163 §2 asks for that flag specifically, and
- * `budget-plus.txt` prints it as the `rungs` column rather than as a band state.
+ * So the rows are skipped, not softened — `balanceReport`'s audit passes over them entirely, and
+ * `cardBudgetAudit.test.ts` asserts the width rule against base cards only. `calculatePowerscale`
+ * still WORKS on a `+` card, because it takes card data and knows nothing about tickets; what is
+ * retired is asking anyone to read the answer.
+ *
+ * It is not a licence for the rest of the pool. The base card keeps its band, and `isBandExempt`
+ * is driven by `upgradeOf` rather than by a name ending in `+`, so nothing else can wander in.
  */
 export function isBandExempt(card: Pick<ProgramData, 'upgradeOf'>): boolean {
     return card.upgradeOf !== undefined;

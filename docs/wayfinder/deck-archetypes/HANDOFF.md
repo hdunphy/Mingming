@@ -275,7 +275,7 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
-**2026-09-24 — 163a SHIPPED (`fa26724`): the 98 `+` cards are in the registry.** Every card in `collection-v2/upgrades.json` now has a `<id>+` entry with `upgradeOf`, the text Henry ruled, and actions built from the BASE card's actions rather than from its prose — `scratch/t163a_build.py` moves the numbers the text moved and then proves the two agree, and it REFUSED four cards (`blood_rite`, `pile_on`, `molten_core`, `thorn_whip`) rather than guessing, which is why the other 68 are worth trusting. **Nothing can reach one**: four doors closed (`isRewardable`, `EncounterGenerator`, the codex denominator, the band audit), guarded by `plusRegistry.test.ts` and mutation-tested. `EncounterGenerator` was a LIVE LEAK — its pools walk the whole registry, so an enemy would have been dealt Hydro Blast+ at 170 power. **Open for Henry: two things below, and neither blocks a playtest** (a `+` card cannot be obtained until 163b builds the workshop tab).
+**2026-09-24 — 163a SHIPPED (`fa26724`): the 98 `+` cards are in the registry.** Every card in `collection-v2/upgrades.json` now has a `<id>+` entry with `upgradeOf`, the text Henry ruled, and actions built from the BASE card's actions rather than from its prose — `scratch/t163a_build.py` moves the numbers the text moved and then proves the two agree, and it REFUSED four cards (`blood_rite`, `pile_on`, `molten_core`, `thorn_whip`) rather than guessing, which is why the other 68 are worth trusting. **Nothing can reach one**: four doors closed (`isRewardable`, `EncounterGenerator`, the codex denominator, the band audit), guarded by `plusRegistry.test.ts` and mutation-tested. `EncounterGenerator` was a LIVE LEAK — its pools walk the whole registry, so an enemy would have been dealt Hydro Blast+ at 170 power. **Both things it raised were RULED the same evening** — see the block below; nothing from 163a is waiting.
 
 **2026-09-24 — the Sköll kit swap is GATED.** Ruling (3) of the 162c set asked Legion to run the gate on `37f9d40`. Done: 2,783 green at that commit, nothing pinned the old list, `brute_force` reads Strength (`25 power, +8 if you have Strength`) so 158 §2's pair rule is satisfied in the opening five. No change needed.
 
@@ -287,24 +287,21 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 **2026-09-23 — 163a rule revised** (Henry): status upgrades are +(1 + Energy cost) stacks (0e +1 … 3e +4); raw numbers +40%; draw/Energized unchanged. `collection-v2/upgrades_gen.py` regenerates `upgrades.json`. Burn caps at 4 and detonates past it, so Inferno+ (5 Burn to the side), Wildfire+ (5 each) and Heat Wave+ (double, then +3 each) are detonation cards by the rule — **RULED intended** (Henry: *"upgrades are supposed to be broken"*). 149c prices `+` rows but does not band-flag them.
 
-## 0-IGNITE-PLUS-IS-A-LOOP-AND-ITS-BASE-IS-NOT (163a, 2026-09-24) — HENRY'S CALL
+## 0-UPGRADES-ARE-RULED-BROKEN-AND-NOT-SCORED (163a, 2026-09-24) — SETTLED
 
-Ticket 152's tripwire fired on the first upgrade pass to reach it, which is the whole reason it exists. All three new 0-energy draws were measured on ONE instrument (`t149_castprobe`, base and `+` back to back on the deck that runs two copies), so the readings compare:
+Henry, closing 163a: *"Leave ignite broken — upgrades are supposed to be broken. So no need to score them."* Two decisions, both applied. **Do not re-litigate either from a measurement** — he had the measurement.
 
-| card | >=3 casts in a turn | >=6 | max | verdict |
-| --- | ---: | ---: | ---: | --- |
-| `forage` | 0.2% | 0.0% | 7 | — |
-| `forage+` | 0.3% | 0.0% | 7 | not a loop; halving the self-damage changed nothing |
-| `undertow` | 0.3% | 0.0% | 4 | — |
-| `undertow+` | 0.0% | 0.0% | 2 | loops LESS — the `+` doubled the self-Weakened |
-| `ignite` | 7.7% | 0.3% | 8 | — |
-| **`ignite+`** | **26.3%** | **23.1%** | **16** | **a loop** |
+**(1) `ignite+` stands as printed.** Ticket 152's tripwire fired on it. All three new 0-energy draws were measured on ONE instrument (`t149_castprobe`, base and `+` back to back on the deck that runs two copies):
 
-Seventy-seven times the rate at six or more, from a rule that only moved a number. Ignite draws IF THE TARGET WAS ALREADY BURNING, and at 1 Burn that is a real condition — the pile decays, so a turn often opens on a clean target and the first cast pays nothing. At 2 Burn it is not a condition any more. **The upgrade did not make the cantrip bigger, it made it unconditional.**
+| card | >=3 casts in a turn | >=6 | max |
+| --- | ---: | ---: | ---: |
+| `forage` → `forage+` | 0.2% → 0.3% | 0.0% → 0.0% | 7 → 7 |
+| `undertow` → `undertow+` | 0.3% → 0.0% | 0.0% → 0.0% | 4 → 2 |
+| `ignite` → **`ignite+`** | 7.7% → **26.3%** | 0.3% → **23.1%** | 8 → **16** |
 
-Capped alongside its base in `LOOPING_FREE_DRAWS`, and that is only half an answer: the list governs the pile an ENEMY brings to a wild, and the deck that loops is the player's fenrir_v2, which ships TWO copies for 163b's workshop to upgrade. **Henry's options**: (a) accept it under *"upgrades are supposed to be broken"*, which is a real reading; (b) give Ignite+ a different upgrade that keeps the condition — 1 Burn and something else; (c) make the draw once a turn. The cards are unreachable until 163b, so nothing is on fire.
+`ignite+` is a loop its base is not, seventy-seven times the rate above six casts, because the base draws only if the target was ALREADY burning — at 1 Burn a real condition, since the pile decays; at 2 Burn not a condition at all. Three fixes were put to Henry and he took none. **`freeDrawCardIds` now drops the whole `upgradeOf` class**, not `ignite+` by name: the next upgrade would ask the same question and get the same answer, and the ticket-163 pass is *defined* as cards that break their budget. The rule is untouched for the shipped pool — a BASE card that starts drawing for nothing still stops the build, and `encounter.test.ts` asserts that directly so the widening cannot swallow one.
 
-The measurement note: the base numbers here sit below the 12.7% / max 18 ticket 152 published, because that was a different harness. Which is exactly why the base was re-run rather than compared across instruments.
+**(2) No `+` row is scored.** The ledger was built, run and read first — twelve cards flagged at two rungs or more, Ember Ward+ at +439% because the rule turned "the attacker gains 1 Burn" into 4 on a hook that fires every time you are hit — and Henry ruled the question out rather than any card in it. `powerscale.isBandExempt` carries the ruling, the card budget audit passes over them, and §2's rung flag is struck from the ticket. `scratch/t163a_ledger.ts` and `results/t163/LEDGER-PLUS.txt` stay as the record of the number the ruling overrode — and because that ledger is what found the scorer bug below.
 
 ## 0-THE-SCORER-WAS-READING-THREE-SCALINGS-AS-ZERO (163a, 2026-09-24) — FIXED, AND IT TOUCHES 162b
 
