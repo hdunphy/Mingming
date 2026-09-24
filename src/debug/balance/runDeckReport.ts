@@ -21,6 +21,7 @@ import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { BALANCE_SPECIES, CONTROL_SPECIES, matchupScenario, mirrorScenario } from './balanceScenarios';
 import { quietly } from './balanceReporting';
 import { runPairedBatch } from './runBatch';
+import { speciesOwningFirmware } from '../../engine/run/gyms';
 import {
     buildDeckReport,
     writeDeckReport,
@@ -65,9 +66,9 @@ function allSubjectIds(): string[] {
         .flatMap(s => MingmingRegistry[s].availableOS);
 }
 
-function speciesOf(osId: string): string | undefined {
-    return Object.keys(MingmingRegistry).find(s => MingmingRegistry[s].availableOS.includes(osId));
-}
+// TICKET 154 §6: one resolution, in `run/gyms.ts`. Same signature as the local copy it replaces,
+// so every call site below is unchanged.
+const speciesOf = speciesOwningFirmware;
 
 async function main(): Promise<void> {
     const args = parseArgs(process.argv.slice(2));

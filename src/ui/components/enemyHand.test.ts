@@ -12,10 +12,16 @@
  * had — claiming to know a card that has not been shuffled yet — and `unknown` is what forecloses
  * it.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 
 import { enemyHandView, highestEnemyEnergy, stackHand } from './enemyHand';
 import type { IBattleEntity, IBattleState, ProgramEntity } from '../../engine/types';
+import { allowRegistryMisses } from '../../engine/data/registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// stackHand is SUPPOSED to skip a card the registry has since dropped — that is the case under test.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('stackHand is SUPPOSED to skip a card the registry has since dropped — that is the case under test'));
 
 const card = (dataId: string, n = 1): ProgramEntity[] =>
     Array.from({ length: n }, (_, i) => ({

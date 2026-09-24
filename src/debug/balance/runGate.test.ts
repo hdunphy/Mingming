@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { BOSS_IVS, GAUNTLET_ENEMY_COUNT, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { ENEMY_LADDER, RUN_ENEMY_MODE } from '../../engine/run/encounter';
-import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS, LAUNCH_SPECIES } from '../../engine/data/mingmingRegistry';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import { ElementalMatrix } from '../../engine/combatUtils';
 import { minimumActiveDeck } from '../../engine/run/createRun';
-import { GYM_REGISTRY } from '../../engine/run/gyms';
+import { GYM_REGISTRY, speciesOwningFirmware } from '../../engine/run/gyms';
 import { authoredBossFor } from '../../engine/run/bosses';
 import {
     CELLS,
@@ -657,6 +657,25 @@ describe('band verdicts grade the quantity the target describes', () => {
         // number it is printing.
         for (const id of ['wild', 'elite'] as const) {
             expect(bandVerdict(RUN_GATE_TARGETS[id], RUN_GATE_TARGETS[id])).toBe(true);
+        }
+    });
+});
+
+/**
+ * TICKET 154 §6 — the gate's firmware→species resolution is now `run/gyms.speciesOwningFirmware`,
+ * which searches the WHOLE registry where the local copy searched `LAUNCH_SPECIES` only. That is the
+ * same answer for every id this gate can hold, and this is the sentence that makes it a fact rather
+ * than an argument: `TUNED_OS_IDS` is built from `LAUNCH_SPECIES`, and a firmware belongs to exactly
+ * one species, so the wider search cannot reach a species the narrow one would have skipped.
+ */
+describe('154 §6 — the shared resolution answers the same as the copy it replaced', () => {
+    it('resolves every tuned firmware to a LAUNCH species, and to exactly one', () => {
+        expect(TUNED_OS_IDS.length).toBeGreaterThan(0);
+        for (const osId of TUNED_OS_IDS) {
+            const owners = Object.values(MingmingRegistry).filter((d) => d.availableOS.includes(osId));
+            expect(owners, `${osId} is owned by ${owners.length} species`).toHaveLength(1);
+            expect(speciesOwningFirmware(osId)).toBe(owners[0].id);
+            expect(LAUNCH_SPECIES, `${osId} resolves outside the launch cut`).toContain(owners[0].id);
         }
     });
 });

@@ -1,10 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import { effectHandlers } from './effectHandlers';
 import { type IBattleState, type IBattleEntity, type ProgramData, StatusType } from './types';
 import { calculateModifier } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { TestProgramRegistry } from './data/testProgramRegistry';
+import { allowRegistryMisses } from './data/registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// hand-built battle entities carry invented definitionIds (`def1`/`def2`) and were never registry-backed.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('hand-built battle entities carry invented definitionIds (`def1`/`def2`) and were never registry-backed'));
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
     const original = await importOriginal<typeof import('./data/programRegistry')>();

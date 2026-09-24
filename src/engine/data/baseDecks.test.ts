@@ -1,6 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { MingmingRegistry, getDeckForOS, PLAYABLE_SPECIES } from './mingmingRegistry';
 import { GetProgramData } from './programRegistry';
+import { allowRegistryMisses } from './registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// getDeckForOS returning [] for an unknown species is the case under test.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('getDeckForOS returning [] for an unknown species is the case under test'));
 
 /**
  * Per-OS starting-deck invariants (ticket 13, deck template from ticket 04):

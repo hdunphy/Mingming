@@ -3,11 +3,17 @@
  * Each test exercises a bug through the REAL reducer + registry
  * (no mocked GetProgramData) so the wiring itself is covered.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { battleReducer } from './battleReducer';
 import type { IBattleState, IBattleEntity, ProgramEntity, StatusEffectInstance } from './types';
 import { StatusExecutor } from './actions/ActionExecutors';
 import type { HookContext } from './core/Hooks';
+import { allowRegistryMisses } from './data/registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// hand-built battle entities carry invented definitionIds (`def1`/`def2`) and were never registry-backed.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('hand-built battle entities carry invented definitionIds (`def1`/`def2`) and were never registry-backed'));
 
 function makeEntity(overrides: Partial<IBattleEntity> & { id: string; name: string }): IBattleEntity {
     return {

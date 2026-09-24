@@ -1,5 +1,7 @@
 # Ticket 154 — The registry sentinels let a bad id travel
 
+> **Status: CLOSED 2026-09-24 — 154a shipped (throw in DEV, sentinel in PROD, no call-site changes), and §6's three hand-written firmware→species resolutions folded onto `speciesOwningFirmware`. 142d is pinned as a test; a production build is unchanged. 154b/c/d are recorded as the further arms and are not open work — reopen against a fresh incident, not on principle.**
+
 **Type:** wayfinder:task — engine hygiene, no balance surface. **Status:** OPEN, opened 2026-09-11
 off ticket 142d, where the sentinel cost an afternoon and was then misdiagnosed twice.
 **Henry:** *"Add a ticket for that please"* — after asking *"Did you fix the bug?"* about 142d's
@@ -103,3 +105,105 @@ point is that they are known, not forgotten.
 - The three "not.toBe('missing')" assertions in §3 stay green, and the ticket says whether they are
   now redundant or still earning their place.
 - `npm run gate` clean.
+
+---
+
+## 8. Write-back (2026-09-24) — 154a shipped, and §6 folded in
+
+### What it does
+
+`src/engine/data/registryMiss.ts` holds the whole decision in one place, and both accessors call it
+where their `console.warn` used to be:
+
+```ts
+if (import.meta.env.DEV && tolerated === 0) throw new Error(message + hint);
+console.warn(message);
+```
+
+**A shipped build is byte-for-byte what it was** — same sentinel object, same warning, same recovery
+— which is what let 154a land without touching any of the 40 call sites §4 measured. `App.tsx`
+already gates the debug root on `import.meta.env.DEV`, so the switch is not a new convention.
+
+**The message carries the diagnosis, not just the id.** §2's incident was a CATEGORY confusion — a
+firmware id where a species id was wanted — and that is by far the likeliest way either lookup
+misses, so the throw names `speciesOwningFirmware` rather than leaving the reader to rediscover it
+for a third time. The `Program` half points at `archive/programs-v1.json`, since 162a's alias table
+has already been consulted by the time the lookup fails, so a miss there means the card does not
+exist under any spelling. The old `console.trace()` for an empty id is gone: an Error carries the
+same stack and the runner prints it instead of it being scrolled past.
+
+### The escape hatch, and why it is shaped the way it is
+
+`allowRegistryMisses(reason)` returns a release function, and a suite holds it for one file:
+
+```ts
+beforeAll(() => allowRegistryMisses('stackHand skips a card the registry dropped'));
+```
+
+`beforeAll` uses the returned function as its teardown, so the tolerance cannot leak into the next
+file. It is a COUNTER, not a boolean, so a nested hold cannot be switched off by the inner release —
+asserted, along with idempotent release, in `registryMiss.test.ts`.
+
+**It is deliberately not a global switch, a `.env` entry or a vitest setup file.** A blanket opt-out
+would turn the whole thing back into a `console.warn`, and 154a's entire value is that a bad id
+stops in the suite that produced it.
+
+### What the throw found: eleven tests in six files, and they are two different things
+
+Turning it on failed 11 tests. Every one is now green, and the split is worth recording because it
+is §2's "read as noise" claim, quantified:
+
+- **Three files MEANT to reach the sentinel** and are pinning graceful degradation —
+  `enemyHand.test.ts` (`stackHand` skips a card the registry has dropped from a saved run),
+  `RewardSystem.test.ts` (the element-pool fallback), `baseDecks.test.ts` (`getDeckForOS` returning
+  `[]`). These hold the hatch and say why.
+- **Three files build battle entities with INVENTED `definitionId`s** — `def1`, `def2`, `test_def`
+  in `Kernel.test.ts`, `BugFixes.test.ts`, `drawFormula.test.ts`. Those were never registry-backed,
+  and `generateIntents` has been asking the registry about them on every pre-turn for as long as
+  they have existed. **That is the noise §2 describes, with a count on it.** They hold the hatch
+  rather than being given real species ids: a real species brings a real moveset, which would change
+  what those tests measure, and the ticket is not licensed to do that.
+
+### The §3 assertions: still there, no longer the enforcement
+
+`baseDecks.test.ts:51`, `EncounterGenerator.test.ts:27` and `encounter.test.ts:439` all assert
+`.id).not.toBe('missing')` after the fact. **They stay green and they are now unreachable as
+failures** — under 154a a bad id throws inside `GetProgramData` before the expectation is evaluated,
+so the red they would have produced arrives earlier and with a better message.
+
+They are NOT being deleted. Each is a scar from a bad id that travelled far enough to need catching
+at the far end (§3), and the sentence still states what that far end requires. What has changed is
+that the requirement is enforced upstream instead of being checked downstream — which is the whole
+point of the ticket, and the right epitaph for the assertions that were standing in for it.
+
+### §6 — the three hand-written resolutions, folded in
+
+`liveness.ts:132`, `runDeckReport.ts:69` and `runGate.ts:235` each re-implemented firmware → species
+by walking `MingmingRegistry` looking for `availableOS.includes(osId)`. All three now call
+`run/gyms.speciesOwningFirmware`, which 142d named once and converted the two engine copies onto.
+It was free, so it is in.
+
+One of the three was not a literal equivalence and is worth the sentence: `runGate`'s copy searched
+`LAUNCH_SPECIES` only, and the shared function searches the whole registry. Same answer for every id
+this gate can hold — `TUNED_OS_IDS` is built FROM `LAUNCH_SPECIES`, and a firmware belongs to exactly
+one species — and `runGate.test.ts` now asserts both halves of that rather than leaving it as an
+argument in a comment.
+
+### §7's gates
+
+| gate | result |
+|---|---|
+| 142d's bug reproduced as a test | `registryMiss.test.ts` — `GetMingmingData(MingmingRegistry.kraken.availableOS[0])` throws, and the message names `speciesOwningFirmware`. Asserted against a firmware id READ FROM the registry, so it cannot rot into a test about a string |
+| no production behaviour change | `vi.stubEnv('DEV', false)` → both accessors return the sentinel with `id: 'missing'`, `primaryElement: 'None'`, `baseCost: 99`, `actions: []`, and do not throw |
+| the three §3 assertions stay green | yes — see above for whether they still earn their place |
+| `npm run gate` clean | eslint 0, `tsc -b` 0, **2,998 vitest across 210 files**, build clean |
+
+All three claims in `registryMiss.test.ts` were mutation-tested: with the throw disabled 7 of the 9
+fail; with the hatch ignored, the 2 that describe the hatch fail. Nothing passes vacuously.
+
+### What is NOT done
+
+154b (a loud error tile where the sentinel renders), 154c (`T | undefined` at 40 call sites) and
+154d (branded `SpeciesId` / `FirmwareId`, the only arm that prevents the CLASS) are untouched. 154d
+stays recorded as the end state: it would have made 142d a compile error rather than a runtime
+throw, and it is the arm to reach for if 154a proves insufficient.

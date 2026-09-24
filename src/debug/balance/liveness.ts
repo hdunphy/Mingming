@@ -43,6 +43,7 @@ import { HookLibrarySchema } from '../../engine/data/HookSchema';
 import { matchupScenario, mirrorScenario, BALANCE_SPECIES, CONTROL_SPECIES } from './balanceScenarios';
 import { runBatch } from './runBatch';
 import { quietly } from './balanceReporting';
+import { speciesOwningFirmware } from '../../engine/run/gyms';
 
 const RAW = JSON.parse(fs.readFileSync('src/engine/data/lib/hooks.json', 'utf8'));
 const PARSED = HookLibrarySchema.parse(RAW);
@@ -129,7 +130,9 @@ for (const os of osIds) {
 }
 
 for (const os of osIds) {
-  const sp = Object.keys(MingmingRegistry).find(s => MingmingRegistry[s].availableOS.includes(os))!;
+  // TICKET 154 §6: the firmware -> species resolution, once, in `run/gyms.ts`. This was one of
+  // three hand-written copies left in the debug toolkit after 142d converted the engine's two.
+  const sp = speciesOwningFirmware(os)!;
   quietly(() => runBatch({ ...mirrorScenario(sp), seed: `LV:m:${os}` }, { iterations: 6, maxTurns: 60 }));
   quietly(() => runBatch(matchupScenario({ player: sp, enemy: CONTROL_SPECIES, playerOS: os, seed: `LV:c:${os}` }), { iterations: 6, maxTurns: 60 }));
   for (const opp of BALANCE_SPECIES.filter(s => s !== CONTROL_SPECIES && s !== sp).slice(0, 5))

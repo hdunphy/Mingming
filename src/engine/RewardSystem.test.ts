@@ -12,7 +12,7 @@
  * that leaves no trace in the type system, because the payout has no visit parameter to shrink.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import {
     BLUEPRINT_DROP_RATE,
     SALVAGE_CHOICES_PER_FOE,
@@ -33,6 +33,12 @@ import { encounterSeed } from './run/encounter';
 import type { IRegionNode, IRunState } from './runTypes';
 import type { Element, IBattleEntity } from './types';
 import { ELEMENTS } from './types';
+import { allowRegistryMisses } from './data/registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// the element-pool fallback is measured by asking for a party member whose species does not exist.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('the element-pool fallback is measured by asking for a party member whose species does not exist'));
 
 function makeDeadEntity(id: string, defId: string, name: string, element: Element = 'Fire'): IBattleEntity {
     return {

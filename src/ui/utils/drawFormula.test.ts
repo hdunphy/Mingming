@@ -13,12 +13,18 @@
  * start-deck ruling was derived from it.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 
 import { describeDraw, drawTooltipLines } from './drawFormula';
 import { battleReducer } from '../../engine/battleReducer';
 import { HAND_SIZE_LIMIT } from '../../engine/deckLogic';
 import type { Element, IBattleEntity, IBattleState, ProgramEntity } from '../../engine/types';
+import { allowRegistryMisses } from '../../engine/data/registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// hand-built party members carry an invented definitionId (`test_def`) and were never registry-backed.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('hand-built party members carry an invented definitionId (`test_def`) and were never registry-backed'));
 
 function unit(id: string, over: Partial<IBattleEntity> = {}): IBattleEntity {
     return {

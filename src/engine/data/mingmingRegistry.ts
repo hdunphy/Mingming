@@ -1,4 +1,5 @@
 import type { IMingmingDefinition } from "../types";
+import { reportRegistryMiss } from './registryMiss';
 
 export const MingmingRegistry: Record<string, IMingmingDefinition> = {
     "fenrir": {
@@ -1058,7 +1059,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
 export const GetMingmingData = (id: string): IMingmingDefinition => {
     const data = MingmingRegistry[id];
     if (!data) {
-        console.warn(`Mingming ID not found: ${id}`);
+        // TICKET 154a: throws in DEV, warns in a shipped build. The sentinel below is unchanged.
+        reportRegistryMiss('Mingming', id);
         return {
             id: 'missing',
             name: 'Missing Mingming',

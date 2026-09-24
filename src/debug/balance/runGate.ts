@@ -125,6 +125,7 @@ import { tweakEnemyDeck } from './experimentalTweaks';
 import { createMacroPolicy, type MacroLoadout, type MacroRule } from './macroPolicy';
 import { DRIVER_IDS, describeDriver } from '../../engine/data/driverRegistry';
 import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
+import { speciesOwningFirmware } from '../../engine/run/gyms';
 
 // ---------------------------------------------------------------------------------------------
 // The ruled targets
@@ -234,8 +235,14 @@ export const TUNED_OS_IDS: ReadonlyArray<string> = LAUNCH_SPECIES.flatMap(
     (species) => MingmingRegistry[species].availableOS,
 );
 
-const speciesOf = (osId: string): string =>
-    LAUNCH_SPECIES.find((s) => MingmingRegistry[s].availableOS.includes(osId))!;
+/*
+ * TICKET 154 §6: the third and last hand-written firmware -> species resolution, folded onto
+ * `run/gyms.ts`. The old copy searched LAUNCH_SPECIES only; this one searches the whole registry,
+ * which is the same answer for every id this gate can hold — `TUNED_OS_IDS` is built FROM
+ * `LAUNCH_SPECIES` above, and a firmware belongs to exactly one species. `runGate.test.ts` pins
+ * that rather than leaving it as an argument.
+ */
+const speciesOf = (osId: string): string => speciesOwningFirmware(osId)!;
 
 /**
  * **HOW THE PLAYER DECKS ARE SAMPLED, AND WHY THAT SAMPLE IS REPRESENTATIVE.**

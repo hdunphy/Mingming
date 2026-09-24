@@ -2,6 +2,7 @@ import type { ProgramAction, ProgramConstraint, ProgramData } from '../types';
 import programsData from './programs.json';
 import { initDaemonHooks } from './daemonHooks';
 import { resolveProgramId } from './programAliases';
+import { reportRegistryMiss } from './registryMiss';
 
 export const BURNED_CONSTRAINT = { type: 'HAS_STATUS' as const, target: 'TARGET' as const, value: 'Burn' }
 export const DAZED_CONSTRAINT = { type: 'HAS_STATUS' as const, target: 'TARGET' as const, value: 'Dazed' }
@@ -116,8 +117,8 @@ export const GetProgramData = (rawId: string): ProgramData => {
     if (memo) return memo;
     const rawData = ProgramRegistry[id] || InternalTestRegistry[id];
     if (!rawData) {
-        console.warn(`Program ID not found: ${id}`);
-        if (!id) console.trace();
+        // TICKET 154a: throws in DEV, warns in a shipped build. The sentinel below is unchanged.
+        reportRegistryMiss('Program', id);
         return {
             id: 'missing',
             name: 'Missing Program',
