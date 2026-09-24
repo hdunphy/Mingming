@@ -39,6 +39,7 @@ import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import { SPECIES_CARD_POOLS, RUN_ONLY_CARDS } from '../../engine/data/speciesPools';
 import { MingmingRegistry, LAUNCH_SPECIES, getDeckForOS } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { grammarFor } from '../../engine/data/osGrammar';
 import { numericBaseCost, type ProgramData } from '../../engine/types';
 
 export const COLLECTION_DIR = path.join('docs', 'wayfinder', 'deck-archetypes', 'collection-v2');
@@ -58,6 +59,24 @@ export interface ExportedOS {
     /** `[id, copies, lane, startCopies]` — `build.py`'s tuple, lane carried from the design file. */
     kit: Array<[string, number, string, number]>;
     pool: string[];
+    /*
+     * TICKET 158-r1 — THE GRAMMAR TRAVELS WITH THE EXPORT NOW.
+     *
+     * Henry ruled (158 §5.3) that `cur`, `tempo` and `partners` move out of the design file and
+     * into the registry, so that the walker, the recruit readout and the browser read ONE source.
+     * These four fields are that source arriving at the browser: `registry_source.apply` overwrites
+     * the page's copy with them, exactly as it already does for `kit`, `pool` and `text`.
+     *
+     * BOTH the tokens and the designed line, for the reason `osGrammar.ts` gives at length: the
+     * tokens are what a machine matches, and the line is the only place Henry's parentheticals live.
+     * The browser prints the line and filters on the tokens.
+     */
+    cur: string;
+    cur_tokens: string[];
+    tempo: string;
+    tempo_kinds: string[];
+    /** `[osId, why]`, resolved from the display names the design file used. */
+    partners: Array<[string, string]>;
 }
 
 export interface CollectionExport {
@@ -126,11 +145,19 @@ export function buildCollectionExport(): CollectionExport {
         for (const id of pool) wanted.add(id);
 
         const firmware = getOSBehavior(osId);
+        const grammar = grammarFor(osId);
         osRows.push({
             sp: species, el: def.primaryElement ?? 'None', id: osId,
             os: firmware?.name ?? osId,
             text: firmware?.description ?? '',
             kit, pool,
+            // An OS with no grammar recorded exports empties rather than being left out: the page
+            // draws a row for it either way, and a missing key would read as a build failure.
+            cur: grammar?.currencyText ?? '',
+            cur_tokens: [...(grammar?.currency ?? [])],
+            tempo: grammar?.tempoText ?? '',
+            tempo_kinds: [...(grammar?.tempo ?? [])],
+            partners: (grammar?.partners ?? []).map((p) => [p.osId, p.why] as [string, string]),
         });
     }
 

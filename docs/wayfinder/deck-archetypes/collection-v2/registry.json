@@ -1270,6 +1270,29 @@
         "flare_burst",
         "core_overclock",
         "howl"
+      ],
+      "cur": "Strength · HP",
+      "cur_tokens": [
+        "Strength",
+        "HP"
+      ],
+      "tempo": "ramp (Str consume) · ramp (HP as fuel)",
+      "tempo_kinds": [
+        "ramp"
+      ],
+      "partners": [
+        [
+          "skoll_v1",
+          "Howl / TREACHERY put Strength on Fenrir for free"
+        ],
+        [
+          "huldra_v1",
+          "Weakens the attackers so the recoil deck survives"
+        ],
+        [
+          "ratatoskr_v1",
+          "GOSSIP heals the HP Fenrir spends"
+        ]
       ]
     },
     {
@@ -1329,6 +1352,30 @@
         "cinder_armor",
         "ash_communion",
         "heat_wave"
+      ],
+      "cur": "Burn → Sharp",
+      "cur_tokens": [
+        "Burn",
+        "Sharp"
+      ],
+      "tempo": "ramp (Burn → Sharp → consume) · control (side Burn)",
+      "tempo_kinds": [
+        "ramp",
+        "control"
+      ],
+      "partners": [
+        [
+          "kraken_v2",
+          "Scald / Boiling Surge are Burn — steam feeds CINDER_WALL"
+        ],
+        [
+          "skoll_v2",
+          "Every Brand and Ember Jab is a Sharp for Fenrir"
+        ],
+        [
+          "huldra_v1",
+          "Bolster’s Sharp lands on Fenrir; Cinder Lance reads it"
+        ]
       ]
     },
     {
@@ -1382,6 +1429,29 @@
         "reactive_plating",
         "core_overclock",
         "crimson_draw"
+      ],
+      "cur": "Strength",
+      "cur_tokens": [
+        "Strength"
+      ],
+      "tempo": "zoo (Str multi-hit) · control (deny + battery)",
+      "tempo_kinds": [
+        "zoo",
+        "control"
+      ],
+      "partners": [
+        [
+          "fenrir_v1",
+          "Howl + UNBOUND_KERNEL: Fenrir’s consume eats Sköll’s Strength"
+        ],
+        [
+          "huldra_v1",
+          "Bolster keeps allies alive to be hit; ALLURE turns the buff into Weakened"
+        ],
+        [
+          "huldra_v2",
+          "Bark on allies = chip damage that still procs TREACHERY without killing"
+        ]
       ]
     },
     {
@@ -1441,6 +1511,29 @@
         "scald",
         "ash_communion",
         "cinder_armor"
+      ],
+      "cur": "Burn (detonation)",
+      "cur_tokens": [
+        "Burn"
+      ],
+      "tempo": "ramp (push piles past 4) · zoo (cheap Burn riders)",
+      "tempo_kinds": [
+        "ramp",
+        "zoo"
+      ],
+      "partners": [
+        [
+          "fenrir_v2",
+          "Every Burn Sköll adds is Sharp for Fenrir"
+        ],
+        [
+          "kraken_v2",
+          "Steam Burns pre-load the pile Sköll detonates"
+        ],
+        [
+          "jormungandr_v2",
+          "Two clocks: Poison and Burn ignore Sharp walls"
+        ]
       ]
     },
     {
@@ -1494,6 +1587,29 @@
         "mend",
         "verdant_ward",
         "deep_scan"
+      ],
+      "cur": "cards (0e casts)",
+      "cur_tokens": [
+        "cards"
+      ],
+      "tempo": "zoo (cards-played scalar) · keeper (heal + draw)",
+      "tempo_kinds": [
+        "zoo",
+        "keeper"
+      ],
+      "partners": [
+        [
+          "ratatoskr_v2",
+          "Two 0e engines share one pile; INSTIGATOR Dazes what GOSSIP heals through"
+        ],
+        [
+          "jormungandr_v1",
+          "Undertow is a 0e cast AND a Water card for OUROBOROS"
+        ],
+        [
+          "fenrir_v1",
+          "GOSSIP refunds the HP the berserker spends"
+        ]
       ]
     },
     {
@@ -1547,6 +1663,30 @@
         "echo_chamber",
         "crippling_vine",
         "snarl"
+      ],
+      "cur": "cards (0e) → Dazed",
+      "cur_tokens": [
+        "cards",
+        "Dazed"
+      ],
+      "tempo": "zoo (binary Dazed riders) · control (Weakened riders)",
+      "tempo_kinds": [
+        "zoo",
+        "control"
+      ],
+      "partners": [
+        [
+          "kraken_v1",
+          "Rat makes Dazed by the cast; Crushing Depths consumes it per stack"
+        ],
+        [
+          "jormungandr_v2",
+          "Dazed on the target is +power on each of Serpent Flurry’s three hits"
+        ],
+        [
+          "huldra_v1",
+          "Rat’s Weakened feeds Sap Strength and Hexbloom"
+        ]
       ]
     },
     {
@@ -1600,6 +1740,29 @@
         "hydro_blast",
         "tide_pool",
         "tidal_battery"
+      ],
+      "cur": "cards (played)",
+      "cur_tokens": [
+        "cards"
+      ],
+      "tempo": "zoo (cards-played scalar) · ramp (refunds)",
+      "tempo_kinds": [
+        "zoo",
+        "ramp"
+      ],
+      "partners": [
+        [
+          "kraken_v1",
+          "Both engines eat Undertow; ABYSSAL_INK turns Jorm’s draws into Dazed"
+        ],
+        [
+          "ratatoskr_v1",
+          "0e Water cards proc GOSSIP too"
+        ],
+        [
+          "kraken_v2",
+          "Jorm’s refunds pay for Kraken’s 3e turn"
+        ]
       ]
     },
     {
@@ -1653,6 +1816,29 @@
         "blightbloom",
         "nettle_sting",
         "riptide"
+      ],
+      "cur": "Poison",
+      "cur_tokens": [
+        "Poison"
+      ],
+      "tempo": "zoo (Poison riders × multi-hit) · ramp (double, then trigger)",
+      "tempo_kinds": [
+        "zoo",
+        "ramp"
+      ],
+      "partners": [
+        [
+          "huldra_v2",
+          "Thornguard’s conditional Poison is TOXIN_FANG fuel"
+        ],
+        [
+          "huldra_v1",
+          "Hexbloom converts Weakened into a pile Jorm reads"
+        ],
+        [
+          "ratatoskr_v2",
+          "Dazed on the target adds to every one of the flurry’s hits"
+        ]
       ]
     },
     {
@@ -1706,6 +1892,30 @@
         "feedback_loop",
         "deep_scan",
         "static_ward"
+      ],
+      "cur": "cards (drawn) → Dazed",
+      "cur_tokens": [
+        "cards",
+        "Dazed"
+      ],
+      "tempo": "zoo (draw scalar) · control (Dazed consume)",
+      "tempo_kinds": [
+        "zoo",
+        "control"
+      ],
+      "partners": [
+        [
+          "jormungandr_v1",
+          "Undertow serves both OSes"
+        ],
+        [
+          "ratatoskr_v2",
+          "Two Dazed engines, one Crushing Depths"
+        ],
+        [
+          "skoll_v1",
+          "Dazed on the target is per-hit power for Flare Burst"
+        ]
       ]
     },
     {
@@ -1759,6 +1969,29 @@
         "tidal_battery",
         "ink_cloud",
         "heat_wave"
+      ],
+      "cur": "Energy",
+      "cur_tokens": [
+        "Energy"
+      ],
+      "tempo": "ramp (Energized → 3e) · control (steam Burn)",
+      "tempo_kinds": [
+        "ramp",
+        "control"
+      ],
+      "partners": [
+        [
+          "fenrir_v2",
+          "Every steam Burn is a Sharp for Fenrir"
+        ],
+        [
+          "skoll_v2",
+          "Steam pre-loads the piles Sköll detonates"
+        ],
+        [
+          "jormungandr_v1",
+          "Refunds pay for the 3e turn"
+        ]
       ]
     },
     {
@@ -1818,6 +2051,35 @@
         "mend",
         "static_ward",
         "pollen_cloud"
+      ],
+      "cur": "Sharp/Regen (given) → Weakened",
+      "cur_tokens": [
+        "Sharp",
+        "Regen",
+        "Weakened"
+      ],
+      "tempo": "control (Weakened scalar/consume) · keeper (ally buffs)",
+      "tempo_kinds": [
+        "control",
+        "keeper"
+      ],
+      "partners": [
+        [
+          "fenrir_v1",
+          "Weakened cancels enemy Strength stack for stack; Bolster’s Sharp lands where Cinder Lance reads it"
+        ],
+        [
+          "skoll_v1",
+          "Weakened cancels enemy Strength stack for stack; Bolster’s Sharp lands where Cinder Lance reads it"
+        ],
+        [
+          "jormungandr_v2",
+          "Hexbloom’s Poison is TOXIN_FANG fuel"
+        ],
+        [
+          "ratatoskr_v2",
+          "Rat’s Weakened riders feed Sap Strength"
+        ]
       ]
     },
     {
@@ -1871,6 +2133,29 @@
         "verdant_ward",
         "mend",
         "iron_bark"
+      ],
+      "cur": "Bark",
+      "cur_tokens": [
+        "Bark"
+      ],
+      "tempo": "ramp (Bark scalar/consume) · control (Bark → Poison, shield allies)",
+      "tempo_kinds": [
+        "ramp",
+        "control"
+      ],
+      "partners": [
+        [
+          "jormungandr_v2",
+          "Thornguard’s Poison is TOXIN_FANG fuel"
+        ],
+        [
+          "skoll_v1",
+          "Bark on allies keeps TREACHERY’s chip damage survivable"
+        ],
+        [
+          "ratatoskr_v1",
+          "A shielded zoo heals AND poisons"
+        ]
       ]
     }
   ],

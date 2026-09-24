@@ -23,6 +23,13 @@ source and they are carried across rather than invented.
 
 `--design` forces the old behaviour, and so does a missing `registry.json` — anyone without a Node
 toolchain still gets a page.
+
+TICKET 158-r1 amends one line of the paragraph above. The OS-level `cur`, `tempo` and `partners`
+ARE overwritten now, because Henry ruled them into the registry (`src/engine/data/osGrammar.ts`) so
+that the walker, the recruit readout and this page read one source. `collection.py` no longer
+carries them, so a `--design` run has no grammar to show and says so on the page rather than
+printing a blank fact. The per-CARD `shape` and `cur` tags are untouched and still design-only —
+those are 158 §2's card grammar, a different field with the same name.
 """
 import json
 import os
@@ -64,6 +71,13 @@ def apply(cards, os_list, run_only, argv=None):
             entry['pool'] = list(shipped['pool'])
             entry['os'] = shipped['os'] or entry['os']
             entry['text'] = shipped['text'] or entry['text']
+            # TICKET 158-r1: the OS grammar is the REGISTRY's now (`src/engine/data/osGrammar.ts`),
+            # not the design file's, so it is set here rather than carried across. `collection.py`
+            # no longer defines `cur` / `tempo` / `partners` on an OS at all — see the note in
+            # `build.py` for what a `--design` run shows instead.
+            entry['cur'] = shipped.get('cur', '')
+            entry['tempo'] = shipped.get('tempo', '')
+            entry['partners'] = [tuple(p) for p in shipped.get('partners', [])]
 
     print('source: registry.json (%d cards, %d OS)' % (len(cards), len(os_list)))
     return cards, os_list, list(reg['run_only']), True

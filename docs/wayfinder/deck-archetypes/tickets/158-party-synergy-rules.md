@@ -1,5 +1,7 @@
 # Ticket 158 — Rules for building a party that plays as one deck
 
+> **Status: CLOSED 2026-09-24 — 158-r1 shipped: `cur`, `tempo` and `partners` live in `src/engine/data/osGrammar.ts`, the design file no longer carries them, and the recruit and loadout screens read them. R1–R7 stand as the design law and are not "open work" — collection v2 is their first application, and the next one reopens a row here rather than the ticket.**
+
 **Type:** design session, **Henry designs**; this ticket is the rulebook draft he asked for and the
 measurements that check a rule. **Status:** OPEN, asked by Henry 2026-09-20: *"I do think I need to
 have more synergies between the mingmings and look for better interplay between them. I want to
@@ -179,3 +181,96 @@ pair with no bridge.
    loadout screens, the OS row shows its currency chips and tempo, and a partner already in the party is marked.
 
 The rules themselves (R1–R7) stand as the design law; collection v2 is their first application.
+
+---
+
+## 6. Write-back (2026-09-24) — 158-r1 shipped
+
+### What moved, and where it lives now
+
+`src/engine/data/osGrammar.ts` holds `currency`, `tempo` and `partners` for the EA twelve.
+`collection.py`'s OS dicts no longer define them; `collectionExport.ts` writes them into
+`registry.json`; `registry_source.apply` sets them on the page's copy exactly as it already does for
+`kit`, `pool` and `text`. One source, three readers, which is the whole of §5.3.
+
+**Both the tokens and the designed line are carried, and neither is redundant.** Henry writes these
+as prose — `'cards (0e) → Dazed'`, `'zoo (binary Dazed riders) · control (Weakened riders)'` — and
+the ruling asks for arrays. The tokens are what a machine matches (157's walker, a chip row); the
+line is the only place the parentheticals live, and *"ramp (push piles past 4)"* is a different plan
+from *"ramp (Str consume)"*. Dropping them to satisfy a type would have been the implementation
+editing the design.
+
+**Partners are firmware ids now.** The design file said `'Rat v1'`, and nothing could join that to
+`ratatoskr_v1` — which is precisely why the readout could not mark *"this partner is already in your
+party"* before today. Resolved once, through a hand-written name table in `scratch/t158r1_build.py`,
+because a fuzzy matcher is a silent way to attach a hint to the wrong body.
+
+### Two things the transcription found
+
+- **`keeper` is a fourth tempo.** §5.3 names `'zoo'|'ramp'|'control'`, and the data has `keeper` on
+  `ratatoskr_v1` (*"keeper (heal + draw)"*) and `huldra_v1` (*"keeper (ally buffs)"*). The DATA is
+  the design, so the type is four wide. Flagged rather than dropped: if Henry meant three, two OS
+  need re-tagging, and that is a design call.
+- **One partner entry names two bodies.** `huldra_v1`'s first is `'Fenrir v1 / Sköll v1'`. The ruled
+  shape is `{osId, why}[]`, so it becomes two rows carrying the same sentence. The sentence was NOT
+  split to match — its two clauses do not divide along the slash (the second names Cinder Lance,
+  which is `fenrir_v2`'s card). Left as Henry wrote it.
+
+### What the grammar actually looks like, now that it can be counted
+
+Measured and pinned in `osGrammar.test.ts` rather than described:
+
+- **Eleven distinct currencies across twelve firmware**, of which five are shared and six are banked
+  by exactly one body. **`cards` alone is banked by four** — both ratatoskrs, `jormungandr_v1` and
+  `kraken_v1`, all counting the same thing. That concentration is the census §3 wanted.
+- **Tempo: ramp 7, control 7, zoo 7, keeper 2.** The three ruled tempos are evenly spread.
+- **The partner web is 37 rows and overwhelmingly mutual — five are one-way.** Symmetry is NOT
+  asserted (a one-way hint is legitimate design; `huldra_v1` feeds far more decks than feed it), but
+  the exact five are pinned so a design pass that makes a pairing one-way fails and gets read. The
+  one worth an eye is `ratatoskr_v1 → ratatoskr_v2`: a species pointing at its own other firmware,
+  unreturned.
+
+### The readout
+
+`OSGrammarRow` is one component at three sites — the workshop's OS choice at assembly, both sides of
+the reflash comparison, and the loadout editor's party and bench rows. `compact` drops the partner
+prose to a count for the list surfaces.
+
+**The partner mark is the part that needed the move.** Currency and tempo are facts about one
+firmware and a player can read them off the OS text in time. What they cannot work out at the
+assembly bay is whether the body in front of them fits the party they are already running —
+`partnersInParty` joins the authored web against `run.partyIds`, so a hint only appears once it is a
+FACT about the field. Read from the PARTY, not the roster: a benched body is not feeding anybody's
+currency.
+
+**An OS with no grammar recorded draws nothing**, not `currency: —`. `grammarFor` is undefined for
+every post-EA firmware because nobody has written its currency down, which is a different statement
+from "it has none", and a dash would be the screen making the call for them.
+
+### The browser
+
+The page reads the registry for these three fields now, so **a `--design` run has no grammar to
+show**. It says so — *"from the registry — run `npm run decks`"* — rather than printing three blank
+facts, which is the one regression this row accepts and the reason it is named here.
+
+The partner list renders the OS's own NAME (`TREACHERY_KERNEL`) where it used to render Henry's
+shorthand (`Sköll v1`), because ids are what is stored now and the name is what the page's own
+headings use. If the shorthand read better, the fix is a display table in `build.py`, not a second
+copy of the grammar.
+
+### Gate
+
+`npm run gate`: eslint 0, `tsc -b` 0, **3,024 vitest across 212 files**, build clean.
+`collectionBrowser.test.ts` still passes — `build.py` still imports and calls `registry_source.apply`
+and still refuses to rewrite `collection.json` from a registry-sourced run.
+
+`registry.json` was regenerated in the container (`npm run decks` needs vite-node, which the machine
+still cannot run), with a full md5 manifest comparison of `src`, `scripts` and `collection-v2` run
+first — the only differences were this row's own edits. **`browser.html` was then rebuilt ON THE
+MACHINE** with `python build.py`, and came out byte-identical to the container's build.
+
+**That comparison earned its keep immediately: the container's `collection.py` was STALE** — the
+machine's copy carried 162e's new EMBER_FUSE sentence and a `skoll_v1` kit swap (`brute_force` into
+the kit, `snarl` into the pool) that matches the shipped registry. The edit was re-applied to the
+machine's copy instead, and the twelve grammar values were then verified equal between
+`collection.json` and the machine's `collection.py` before anything was written.

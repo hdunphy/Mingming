@@ -67,6 +67,7 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { minimumActiveDeck, RECRUIT_KIT_SIZE } from '../../engine/run/createRun';
+import { OSGrammarRow } from '../components/OSGrammarRow';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
     WORKSHOP_REFLASH_SCRAP,
@@ -185,6 +186,12 @@ export default function WorkshopNode({
 
     const memberOf = (id: string): IRanchMember | undefined => ranch.roster.find((m) => m.id === id);
     const partyMembers = run.partyIds.map(memberOf).filter((m): m is IRanchMember => m !== undefined);
+    /*
+     * TICKET 158-r1: the firmware on the field, which is what turns an authored partner hint into
+     * a fact about THIS party. Read from the party rather than the roster — a benched body is not
+     * feeding anybody's currency.
+     */
+    const partyOS = partyMembers.map((m) => m.activeOS);
     const benchMembers = bench.map(memberOf).filter((m): m is IRanchMember => m !== undefined);
 
     const selected = speciesId ? species.find((entry) => entry.speciesId === speciesId) ?? null : null;
@@ -330,6 +337,7 @@ export default function WorkshopNode({
                                 <p className="ws-osdesc">
                                     {(member && getOSBehavior(member.activeOS)?.description) ?? 'No firmware description.'}
                                 </p>
+                                {member && <OSGrammarRow osId={member.activeOS} partyOS={partyOS} />}
                                 <h4>ENGINE IN DECK NOW</h4>
                                 {member && <EngineRows ids={engineIdsFor(member)} />}
                             </div>
@@ -344,6 +352,10 @@ export default function WorkshopNode({
                                 <p className="ws-osdesc">
                                     {getOSBehavior(targetOS)?.description ?? 'No firmware description.'}
                                 </p>
+                                {/* The reflash is the one screen where both grammars are visible at
+                                    once, which is the comparison the ruling is for: a reflash that
+                                    changes currency changes what the rest of the party feeds. */}
+                                <OSGrammarRow osId={targetOS} partyOS={partyOS} />
                                 <h4>ENGINE THAT REPLACES IT</h4>
                                 {member && <EngineRows ids={engineIdsForSpecies(member.definitionId, targetOS)} />}
                             </div>
@@ -521,6 +533,12 @@ export default function WorkshopNode({
                                                 <span className="ws-osdesc">
                                                     {os?.description ?? 'No firmware description.'}
                                                 </span>
+                                                {/* TICKET 158-r1, Henry's §5.3 ruling: the row that
+                                                    chooses an OS says what it banks, how fast it
+                                                    plays, and which of its authored partners is
+                                                    already on the field. Compact here — the panel
+                                                    is a picker, not a reading surface. */}
+                                                <OSGrammarRow osId={id} partyOS={partyOS} compact />
                                             </button>
                                         );
                                     })}

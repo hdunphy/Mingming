@@ -393,3 +393,19 @@
     color: var(--el);
     font-weight: 700;
 }
+
+/* ── TICKET 158-r1 — the OS grammar readout (currency · tempo · partners on the field) ────────── */
+.os-gram { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; }
+.og-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.og-label { font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: #6d7d8f; }
+.og-tempo-label { margin-left: 4px; }
+.og-chip {
+    display: inline-flex; align-items: center; padding: 0 6px; border-radius: 999px;
+    border: 1px solid var(--og); color: var(--og); background: rgba(0, 0, 0, .35);
+    font-size: 10px; font-weight: 800; letter-spacing: .04em; line-height: 1.6; cursor: help;
+}
+.og-tempo { font-size: 10.5px; color: #c6ccd4; letter-spacing: .06em; cursor: help; }
+.og-partners { margin: 2px 0 0; padding-left: 15px; font-size: 11px; line-height: 1.45; color: #9fb4c8; }
+.og-partners b { color: #d8e2ec; }
+.og-solo { margin: 2px 0 0; font-size: 11px; color: #6d7d8f; }
+.og-mark { font-size: 10px; color: #6fd3a0; letter-spacing: .04em; cursor: help; }

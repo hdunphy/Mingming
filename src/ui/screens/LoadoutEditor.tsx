@@ -57,6 +57,7 @@ import { cardFace, colorFor, groupByData, isPayoff, type Banner } from './runShe
 import './runShell.css';
 import './LoadoutEditor.css';
 import { CardTileFace, ElementMark } from './CardChassis';
+import { OSGrammarRow } from '../components/OSGrammarRow';
 
 /** Eight big cards, four across and two down. The mockup's page size, and the reason it pages. */
 export const CARDS_PER_PAGE = 8;
@@ -149,6 +150,10 @@ export default function LoadoutEditor({
     const atFloor = run.deck.length <= floor;
 
     const memberOf = (id: string): IRanchMember | undefined => ranch.roster.find((m) => m.id === id);
+    /** TICKET 158-r1: the firmware actually on the field, for the partner mark. */
+    const partyOS = run.partyIds
+        .map((id) => memberOf(id)?.activeOS)
+        .filter((os): os is string => os !== undefined);
 
     const collectionStacks = useMemo(
         () => stacksOf(collection, bench, ranch.roster), [collection, bench, ranch.roster]);
@@ -231,6 +236,8 @@ export default function LoadoutEditor({
                 </button>
             </div>
 
+            {/* TICKET 158-r1: the firmware on the field. A benched body is not feeding anybody's
+                currency, so the mark on a bench row reads against the PARTY, not the roster. */}
             <div className="led-roster">
                 {run.partyIds.map((id) => {
                     const member = memberOf(id);
@@ -257,6 +264,7 @@ export default function LoadoutEditor({
                                         ? `${memberCardCount(id)} in deck · bench`
                                         : `${memberCardCount(id)} in deck`}
                             </span>
+                            <OSGrammarRow osId={member.activeOS} partyOS={partyOS} compact />
                         </button>
                     );
                 })}
@@ -279,6 +287,10 @@ export default function LoadoutEditor({
                                 <span className="rs-os">{member.activeOS}</span>
                             </span>
                             <span className="rs-meta">{swapping === id ? 'pick a slot' : 'benched'}</span>
+                            {/* A benched body still shows its grammar, and the mark answers the
+                                question the bench exists for: would swapping this one in feed
+                                somebody who is already out there. */}
+                            <OSGrammarRow osId={member.activeOS} partyOS={partyOS} compact />
                         </button>
                     );
                 })}

@@ -51,6 +51,9 @@ TYP = {'Attack': ('#ff9d8f', '<path d="M4 20l6-6M14 4l6 6-9 9-6-6z"/><path d="M3
        'Status': ('#8fc7f5', '<path d="M12 3l2.5 5.5L20 10l-4.5 3.5L17 20l-5-3-5 3 1.5-6.5L4 10l5.5-1.5z"/>'), 'Heal': ('#7fd6a4', '<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/>'), 'Daemon': ('#c9a2f0', '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}
 SHAPE = {'enabler': '#7dd3fc', 'scalar': '#ffd479', 'consume': '#f472b6', 'glue': '#9fb4c8', 'hate': '#f87171', 'converter': '#c4b5fd'}
 STAT = {'keep': ('#7fd6a4', 'KEEP'), 'revise': ('#ffd479', 'REVISE'), 'new': ('#22d3ee', 'NEW')}
+# 158-r1: firmware id -> the OS's own name, for the partner list.
+OS_NAME = {o['id']: o['os'] for o in OS}
+
 def svg(p): return f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{p}</svg>'
 def e(s): return html.escape(str(s))
 
@@ -85,12 +88,20 @@ for o in OS:
     def lane(title, sub, ks):
         return f'<div class="lane"><h3>{e(title)}<span>{e(sub)}</span></h3><div class="tiles">{"".join(tile(k[0], k[1], k[3]) for k in ks)}</div></div>'
     pool = ''.join(tile(p, small=True) for p in o['pool'])
-    partners = ''.join(f'<li><b>{e(a)}</b> — {e(b)}</li>' for a, b in o['partners'])
+    # TICKET 158-r1: the grammar comes from the registry now (`src/engine/data/osGrammar.ts`, via
+    # `registry_source.apply`), and `partners` names FIRMWARE IDS rather than the display names the
+    # design file used. `OS_NAME` turns an id back into the OS's own name, which is what a reader of
+    # this page knows a body by. A `--design` run has no grammar at all and says so rather than
+    # printing three blank facts.
+    partners = ''.join(f'<li><b>{e(OS_NAME.get(a, a))}</b> — {e(b)}</li>' for a, b in o.get('partners') or [])
+    if not partners:
+        partners = '<li><i>Not in this build — the OS grammar lives in the registry (158-r1). Run <code>npm run decks</code>, then rebuild.</i></li>'
+    grammar_missing = '<i>from the registry — run <code>npm run decks</code></i>'
     builds = ''.join(build_row(n, ids) for n, ids in o['builds'])
     kitn = sum(k[1] for k in o['kit'])
     main += f'''<section id="{o['id']}" class="os" style="--el:{el}">
 <header><div class="sp">{e(o['sp'])} <i>· {e(o['el'])}</i></div><h2>{e(o['os'])}</h2><p class="ostext">{e(o['text'])}</p>
-<div class="facts"><span><em>currency</em>{e(o['cur'])}</span><span><em>tempo</em>{e(o['tempo'])}</span><span><em>ally output</em>{e(o['ally'])}</span><span><em>kit</em>{kitn} cards · start kit ★ 5</span></div></header>
+<div class="facts"><span><em>currency</em>{e(o.get('cur')) or grammar_missing}</span><span><em>tempo</em>{e(o.get('tempo')) or grammar_missing}</span><span><em>ally output</em>{e(o['ally'])}</span><span><em>kit</em>{kitn} cards · start kit ★ 5</span></div></header>
 <div class="lanes">{lane('Lane A · '+o['laneA'][0], o['laneA'][1], laneA)}{lane('Lane B · '+o['laneB'][0], o['laneB'][1], laneB)}<div class="lane glue"><h3>Glue<span>castable from any hand</span></h3><div class="tiles">{"".join(tile(k[0],k[1],k[3]) for k in glue)}</div></div></div>
 <div class="pool"><h3>Found in the run<span>seeded into this species’ reward pool and shop — the consumes and the second lane live here</span></h3><div class="tiles">{pool}</div></div>
 <div class="two"><div class="builds"><h3>Possible decks<span>8 cards, ≤2 copies; the third is the party build</span></h3>{builds}</div><div class="partners"><h3>Plug and play<span>who feeds, who reads</span></h3><ul>{partners}</ul></div></div>
