@@ -280,3 +280,7 @@ Henry: *"Keep my numbers. And add a list of redlined cards to review later."*
 **All five UNDER rows are daemons**, whose price is a trigger rate: `short_circuit`, `short_fuse`, `hoofbeat`, `feedback_loop`, `cinder_armor`. Collection v2 has no ordinary card the scorer can read and calls under-priced.
 
 The §6 deviation about `heartwood` and the §9 kit finding about `sköll_v1` are carried on the page too, in a KIT section, because a kit problem answered with a pricing knob is the most likely wrong turn from here.
+
+## 11. Ruled 2026-09-24 — EMBER_FUSE is per HIT
+
+Henry: *"lets make ember_fuse back to per hit."* The OS reads *"Sköll's attacks on a Burning target apply 1 more Burn"* and the kit holds Pack Tactics (three hits) for exactly that reason. **162e (Legion):** move the hook from `onActionStart` (once per card) to the per-hit point in the damage loop so a 3-hit card on a Burning target applies 3 Burn; update the printed sentence to *"each hit on a Burning target applies 1 more Burn"*; flip the pin in `emberFuse.test.ts` to assert three procs from Pack Tactics and one from Brand; `HOOK_FIRED` fires per hit (146's tell plays per hit — check the rate limiter in 147b handles it). Also retired by this ruling: nothing else — the 61 kit rules and Heartwood `Single` were ruled 09-24 and are done.

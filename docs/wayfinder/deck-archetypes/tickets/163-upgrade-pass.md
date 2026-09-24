@@ -1,6 +1,6 @@
 # Ticket 163 — The upgrade pass: card `+` versions and OS patches
 
-**Type:** design → engine + data + UI. **Status:** **RULED 2026-09-23** (§5 answers below; 163a table delivered in `collection-v2/upgrades.json` and the browser's Upgrades tab). Asked by Henry 2026-09-23 after ruling
+**Type:** design → engine + data + UI. **Status:** **163a SHIPPED 2026-09-24 (`fa26724`), ruled closed (`577b577`); 163b–163e OPEN — Legion's next rows.** Asked by Henry 2026-09-23 after ruling
 collection v2.1b into playtest: *"I want to start on an upgrade pass. How can we implement card
 upgrades, what would OS upgrades look like?"* **Takes over** 161 §3 (card upgrades) — 161 keeps the
 start-kit half. **Relates to:** 162 (the collection this upgrades), 153 (the scrap sink), 148 (the
