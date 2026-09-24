@@ -1,0 +1,77 @@
+
+> mingming_app@0.0.0 balance:walk
+> vite-node src/debug/balance/runRunWalker.ts --seeds 10 --label t157
+
+  fenrir_v1: 10 runs in 5 s
+  fenrir_v2: 10 runs in 1 s
+  skoll_v1: 10 runs in 374 s
+  skoll_v2: 10 runs in 62 s
+  kraken_v1: 10 runs in 634 s
+  kraken_v2: 10 runs in 13 s
+  jormungandr_v1: 10 runs in 2 s
+  jormungandr_v2: 10 runs in 6 s
+  ratatoskr_v1: 10 runs in 4 s
+  ratatoskr_v2: 10 runs in 7 s
+  huldra_v1: 10 runs in 145 s
+  huldra_v2: 10 runs in 6 s
+
+=== 157 — RUN WALKER, policy v0 ===
+
+starter           runs  wins   fights   deck power f1 → f4 → f8 → gym
+fenrir_v1           10   0%     2.6   1.93 → 2.74 → 4.01 →    —
+fenrir_v2           10   0%     3.4   2.02 → 3.05 →    — →    —
+skoll_v1            10   0%     3.2   2.31 → 3.33 → 3.66 → 3.59
+skoll_v2            10   0%     5.2   2.16 → 3.32 → 4.24 → 4.93
+kraken_v1           10   0%     4.9   2.49 → 3.58 → 3.41 → 3.59
+kraken_v2           10   0%     2.3   3.50 → 4.06 →    — →    —
+jormungandr_v1      10   0%     1.6   1.84 → 2.58 →    — →    —
+jormungandr_v2      10   0%     3.5   1.80 → 3.04 →    — →    —
+ratatoskr_v1        10   0%     2.9   1.56 → 2.87 →    — →    —
+ratatoskr_v2        10   0%     2.3   1.28 →    — →    — →    —
+huldra_v1           10   0%     4.2   1.61 → 2.69 → 4.49 → 5.15
+huldra_v2           10   0%     3.7   1.87 → 2.93 → 3.66 →    —
+
+--- win rate by fight index (conditional on reaching it) ---
+starter              1    2    3    4    5    6    7    8    9   10   11   12   13
+fenrir_v1           40   75   67   50  100  100  100  100  100  100    0    ·    ·
+fenrir_v2          100   60   67   50  100    0    ·    ·    ·    ·    ·    ·    ·
+skoll_v1            80   75   17  100  100  100  100  100  100  100    0    ·    ·
+skoll_v2           100  100   90   33  100  100   67   50  100    0    ·    ·    ·
+kraken_v1           90   89   75   67   75   67  100   50  100  100  100  100    0
+kraken_v2           60   67   50   50    0    ·    ·    ·    ·    ·    ·    ·    ·
+jormungandr_v1      10  100  100  100  100  100    0    ·    ·    ·    ·    ·    ·
+jormungandr_v2      90  100   78    0    ·    ·    ·    ·    ·    ·    ·    ·    ·
+ratatoskr_v1        90   67   33  100    0    ·    ·    ·    ·    ·    ·    ·    ·
+ratatoskr_v2        70   86    0    ·    ·    ·    ·    ·    ·    ·    ·    ·    ·
+huldra_v1          100   90   67   33   50  100  100  100  100    0    ·    ·    ·
+huldra_v2          100   60  100   17  100  100  100  100    0    ·    ·    ·    ·
+
+--- where runs end, and what the rewards did ---
+starter           died in biome 0/1/2   picks taken/offered   → collection   bought  recruits   survivor HP
+fenrir_v1                     9/0/1      21/63        5%           2       1      40%
+fenrir_v2                     8/2/0      24/72        0%           2       0      45%
+skoll_v1                      9/0/1      31/93        3%           4       2      51%
+skoll_v2                      5/4/1      54/162       2%          11       7      56%
+kraken_v1                     6/2/2      52/156       6%           7       6      50%
+kraken_v2                     9/1/0      15/45        7%           2       2      45%
+jormungandr_v1                9/1/0       7/21        0%           2       1      36%
+jormungandr_v2               10/0/0      26/78        4%           7       2      42%
+ratatoskr_v1                  8/2/0      19/57        0%           3       1      58%
+ratatoskr_v2                 10/0/0      13/39        0%           5       4      28%
+huldra_v1                     8/1/1      46/138       0%           5       5      57%
+huldra_v2                     9/1/0      33/99        0%           1       2      44%
+
+--- who the walker recruited (§5.2: partner first, then the counter element) ---
+fenrir_v1         huldra_v1 ×1
+skoll_v1          fenrir_v1 ×1, huldra_v1 ×1
+skoll_v2          fenrir_v2 ×6, kraken_v2 ×1
+kraken_v1         jormungandr_v1 ×4, ratatoskr_v1 ×2
+kraken_v2         fenrir_v2 ×1, jormungandr_v1 ×1
+jormungandr_v1    kraken_v1 ×1
+jormungandr_v2    huldra_v1 ×2
+ratatoskr_v1      fenrir_v1 ×1
+ratatoskr_v2      huldra_v1 ×4
+huldra_v1         fenrir_v2 ×4, jormungandr_v2 ×1
+huldra_v2         jormungandr_v2 ×2
+
+POOLED: 0/120 runs cleared the gym (0.0%).

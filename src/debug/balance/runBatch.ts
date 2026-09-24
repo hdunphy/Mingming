@@ -287,6 +287,31 @@ export interface RunResult {
     deadCards: { player: number; enemy: number };
     /** Card instances that reached a hand at all, per side - the ratio's denominator. */
     cardsSeen: { player: number; enemy: number };
+    /**
+     * TICKET 157 — THE PLAYER SIDE AS THE BATTLE LEFT IT.
+     *
+     * Every other field here is a summary, because every other consumer measures a POOL of battles
+     * and one battle's end state means nothing to an average. The run walker is the first consumer
+     * that plays battles in SEQUENCE, and the gauntlet is the one place a run carries HP between
+     * them (`IGauntletProgress.persistedHp` — *"FULL HEAL between regular nodes"*, so outside the
+     * gym there is nothing to carry).
+     *
+     * Reported for every battle rather than behind a flag: it is three numbers per body off a state
+     * this function already holds, and a field that exists only when asked for is a field the next
+     * caller forgets to ask for. In player-party (setup) order; a downed body reports 0 rather than
+     * being left out, because the walker needs to know WHO died and not only how many.
+     */
+    playerEnd: ReadonlyArray<{ id: string; definitionId: string; hp: number; maxHp: number }>;
+    /**
+     * The enemy side's end HP, by entity id, and it is not symmetry for its own sake.
+     *
+     * `RewardSystem.rollDropTable` pays **only for entities at `currentHp <= 0`** — *"the fight's
+     * size is its CORPSES, not the player's party"* — so a walker that handed it the enemy party as
+     * it was ROLLED would be handing it a fight nobody won, and every reward would come back empty.
+     * (It did, for one build of `runWalker`, and the fix is this field rather than the walker
+     * guessing which bodies fell.) Only HP, because that is the only thing the drop table asks.
+     */
+    enemyEnd: ReadonlyArray<{ id: string; hp: number }>;
     /** Ticket 26: present only when `BatchOptions.telemetry` was set. */
     telemetry?: RunTelemetry;
     /** Ticket 70's four numbers. Always collected — see `SnowballRecord`. */
@@ -808,6 +833,15 @@ export function runOne(
         truncated,
         deadCards: { player: deadRatio('PLAYER'), enemy: deadRatio('ENEMY') },
         cardsSeen: { player: seen.PLAYER.size, enemy: seen.ENEMY.size },
+        // Ticket 157. Read off the final state rather than tracked as it moves: one read at the
+        // end cannot drift from what the battle actually did.
+        playerEnd: state.playerParty.map((entity) => ({
+            id: entity.id,
+            definitionId: entity.definitionId,
+            hp: Math.max(0, entity.currentHp),
+            maxHp: entity.maxHp,
+        })),
+        enemyEnd: state.enemyParty.map((entity) => ({ id: entity.id, hp: Math.max(0, entity.currentHp) })),
         ...(telemetry ? { telemetry } : {}),
         ...(playerPolicy ? { macrosFired: [...playerPolicy.fired] } : {}),
         snowball: {

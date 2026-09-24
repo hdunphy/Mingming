@@ -46,6 +46,10 @@ function run(partial: Omit<Partial<RunResult>, 'snowball'> & { snowball?: Partia
         truncated: false,
         deadCards: { player: 0, enemy: 0 },
         cardsSeen: { player: 9, enemy: 9 },
+        // Ticket 157 added `playerEnd`. This suite is about the snowball record and never reads it,
+        // so the default is empty and `...partial` still lets a case supply one.
+        playerEnd: [],
+        enemyEnd: [],
         ...partial,
         snowball,
     };
