@@ -90,14 +90,7 @@ offers a choice of two.
 
 ## 4. Rows for Legion (after 162a and the playtest prep)
 
-- **163a — the `+` registry.** Read `collection-v2/upgrades.json`; for every entry add a
-  `programs.json` card `id: "<id>+"`, `name: "<name>+"`, same cost/element/category/target/shape,
-  `upgradeOf: "<id>"`, text = `plus`. Where the text implies an action the schema lacks (an "and you"
-  ally+self target, "two the first time each turn", "hit again if Dazed" on `+` only where base has it),
-  extend the action rather than approximating — list any you cannot in the write-back. Tests: every base
-  card has exactly one `+`; every `+` resolves in the cast-every-card smoke test; `+` rows are **exempt
-  from the 149c band flag** (they are priced for the ledger only — Henry: upgrades are supposed to be
-  broken). No pricing gate: this row does not wait on 162b.
+- **163a — the `+` registry. SHIPPED 2026-09-24 (`fa26724`).** All 98 cards in `upgrades.json` are `programs.json` entries `id: "<id>+"`, `upgradeOf: "<id>"`, text = `plus`. Actions are built from the BASE card's actions by `scratch/t163a_build.py` and then PROVED against the printed text — four cards (`blood_rite`, `pile_on`, `molten_core`, `thorn_whip`) were refused by the generic path and hand-written with the reason. Twelve daemons got their own `hooks.json` blocks (`<id>+`, hook ids `<hookid>+`); `daemonHooks.ts` registers a `<key>+` beside its base, derived rather than listed, so the allowlist trap does not grow twelve new chances to fall into it. **The schema extensions the row asked about**: none were needed — the "and you" ally cards are the aimed action plus a SELF copy, Echo Chamber+'s "two the first time each turn" is Reactive Plating's counter-gate pattern, and Hexbloom+'s damage rider is `TARGET_STATUS_STACKS` off a base of 0. **Unreachable by design**: `isRewardable` false on `upgradeOf`, `EncounterGenerator` draws from base cards only (a live leak — its pools walk the whole registry), out of the codex denominator, exempt from the band flag (`powerscale.isBandExempt`). `plusRegistry.test.ts` (10 tests, mutation-tested) holds every claim; `t162_cardcheck.ts --plus` casts all 98 on a stocked and an empty board; `t163a_ledger.ts` prices each `+` against its base. **Two things for Henry, neither blocking**: `ignite+` is a loop its base is not (HANDOFF 0-IGNITE-PLUS-IS-A-LOOP), and the twelve cards flagged at 2+ rungs in `results/t163/LEDGER-PLUS.txt`.
 - **163b — the venue.** Deck instances carry `upgraded: boolean` (the instance points at the `+` id;
   the collection entry keeps the base id so persistence can be added later without a migration —
   reserve `collectionEntry.upgrades: Record<cardId, true>` unused). Workshop gets an **Upgrade** tab:
@@ -132,6 +125,8 @@ must leave the door open (an `upgrades` map on the collection entry, unused unti
 per-1% is capped; Contagion double then +2; Hexbloom adds 5 power per Weakened; Overclock Core +1
 Energized now; Echo Chamber two tokens the first time each turn; Tend/Mend/Soothe "and you"). Henry
 reviews the table in the browser; 149c prices each `+` as its own row; then it ships as registry entries.
+
+**163a's one open printing question (2026-09-24).** The five "and you" ally upgrades (Tend+, Mend+, Soothe+, Bolster+, Shell Share+) are the aimed action plus a SELF copy, and 160-e1's ally picker lets you aim at YOURSELF — so aiming one of these at your own body pays twice. The engine has no "a DIFFERENT ally" target and inventing one inside an upgrade row would decide a targeting rule by accident, so it ships as measured and is written down here instead. Cheap to change either way once 163b makes the cards reachable.
 
 **Ruling (Henry, 09-23): upgrades are supposed to be broken.** The rule is applied without cap exceptions — Inferno+, Wildfire+ and Heat Wave+ push Burn past its cap of 4 and detonate. 149c prices `+` rows for the ledger but they are exempt from the band flag.
 

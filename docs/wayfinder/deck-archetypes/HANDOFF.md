@@ -275,6 +275,10 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-24 — 163a SHIPPED (`fa26724`): the 98 `+` cards are in the registry.** Every card in `collection-v2/upgrades.json` now has a `<id>+` entry with `upgradeOf`, the text Henry ruled, and actions built from the BASE card's actions rather than from its prose — `scratch/t163a_build.py` moves the numbers the text moved and then proves the two agree, and it REFUSED four cards (`blood_rite`, `pile_on`, `molten_core`, `thorn_whip`) rather than guessing, which is why the other 68 are worth trusting. **Nothing can reach one**: four doors closed (`isRewardable`, `EncounterGenerator`, the codex denominator, the band audit), guarded by `plusRegistry.test.ts` and mutation-tested. `EncounterGenerator` was a LIVE LEAK — its pools walk the whole registry, so an enemy would have been dealt Hydro Blast+ at 170 power. **Open for Henry: two things below, and neither blocks a playtest** (a `+` card cannot be obtained until 163b builds the workshop tab).
+
+**2026-09-24 — the Sköll kit swap is GATED.** Ruling (3) of the 162c set asked Legion to run the gate on `37f9d40`. Done: 2,783 green at that commit, nothing pinned the old list, `brute_force` reads Strength (`25 power, +8 if you have Strength`) so 158 §2's pair rule is satisfied in the opening five. No change needed.
+
 **2026-09-24 — Henry's rulings on 162c.** (1) **The run-gate result is NOISE** — it ran the un-drifted starter kit against the gym, which 161 deliberately weakened; ignore 0-A-v2-RUN-CANNOT-CLEAR-A-GYM until the walker (157) or a drifted-deck gate exists. (2) **The 1v1/3v3 deck tables wait for playtest**; no numeric tuning. (3) **Sköll v1 kit swap, APPLIED** in `mingmingRegistry.ts` + `speciesPools.ts` + `collection.py`: Brute Force into the kit and the start five, Snarl to the pool — the opening five now holds a Strength reader (158 §2's pair rule). **Legion: run the gate** (the device VM cannot — rollup native module), regenerate `registry.json`/browser, and fix any kit test that pinned the old list. (4) **YES** to retiring ticket 61's two kit rules that 161 replaces. (5) **YES** Heartwood ships `Single`. (6) **EMBER_FUSE per card vs per hit — still Henry's**; recommendation on file is per hit (Pack Tactics is in Sköll v2's kit for exactly that).
 
 **2026-09-24 — repo repair.** Two of my commits last night (`1398552`, `ce40788`) wrote `collection-v2/build.py` and `browser.html` from a pre-162d working copy and silently un-did 162d twice; Legion restored it and guarded it (`collectionBrowser.test.ts`). Now `upgrades_gen.py` also goes through `registry_source.apply`, `browser.html` is regenerated from `registry.json` on the machine, and `tickets/157` + `research/single-player-card-games.md` — never actually committed on 09-20/21 — are in. Rule for me from here: never commit `build.py`, `browser.html` or `registry.json` from the container; edit the design/generator files and regenerate on the machine. **163 is NOT built** (no `upgradeOf`, no `<id>+` in the registry) — it stands as written, after Henry rules the 162c findings.
@@ -282,6 +286,42 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 **2026-09-23 — 163 is implementable.** §4 rewritten as Legion rows with data shapes and tests: 163a `+` registry (no pricing gate; `+` exempt from the band flag) → 163b workshop Upgrade tab + gym-gate free upgrade + `CARD_UPGRADED` → 163c patches engine (`patches[]` max 1, `modifies` fields on the firmware runner, six patches, plaque chip) → 163d patches in the run → 163e measure. After 160-e1, 162a and the playtest prep.
 
 **2026-09-23 — 163a rule revised** (Henry): status upgrades are +(1 + Energy cost) stacks (0e +1 … 3e +4); raw numbers +40%; draw/Energized unchanged. `collection-v2/upgrades_gen.py` regenerates `upgrades.json`. Burn caps at 4 and detonates past it, so Inferno+ (5 Burn to the side), Wildfire+ (5 each) and Heat Wave+ (double, then +3 each) are detonation cards by the rule — **RULED intended** (Henry: *"upgrades are supposed to be broken"*). 149c prices `+` rows but does not band-flag them.
+
+## 0-IGNITE-PLUS-IS-A-LOOP-AND-ITS-BASE-IS-NOT (163a, 2026-09-24) — HENRY'S CALL
+
+Ticket 152's tripwire fired on the first upgrade pass to reach it, which is the whole reason it exists. All three new 0-energy draws were measured on ONE instrument (`t149_castprobe`, base and `+` back to back on the deck that runs two copies), so the readings compare:
+
+| card | >=3 casts in a turn | >=6 | max | verdict |
+| --- | ---: | ---: | ---: | --- |
+| `forage` | 0.2% | 0.0% | 7 | — |
+| `forage+` | 0.3% | 0.0% | 7 | not a loop; halving the self-damage changed nothing |
+| `undertow` | 0.3% | 0.0% | 4 | — |
+| `undertow+` | 0.0% | 0.0% | 2 | loops LESS — the `+` doubled the self-Weakened |
+| `ignite` | 7.7% | 0.3% | 8 | — |
+| **`ignite+`** | **26.3%** | **23.1%** | **16** | **a loop** |
+
+Seventy-seven times the rate at six or more, from a rule that only moved a number. Ignite draws IF THE TARGET WAS ALREADY BURNING, and at 1 Burn that is a real condition — the pile decays, so a turn often opens on a clean target and the first cast pays nothing. At 2 Burn it is not a condition any more. **The upgrade did not make the cantrip bigger, it made it unconditional.**
+
+Capped alongside its base in `LOOPING_FREE_DRAWS`, and that is only half an answer: the list governs the pile an ENEMY brings to a wild, and the deck that loops is the player's fenrir_v2, which ships TWO copies for 163b's workshop to upgrade. **Henry's options**: (a) accept it under *"upgrades are supposed to be broken"*, which is a real reading; (b) give Ignite+ a different upgrade that keeps the condition — 1 Burn and something else; (c) make the draw once a turn. The cards are unreachable until 163b, so nothing is on fire.
+
+The measurement note: the base numbers here sit below the 12.7% / max 18 ticket 152 published, because that was a different harness. Which is exactly why the base was re-run rather than compared across instruments.
+
+## 0-THE-SCORER-WAS-READING-THREE-SCALINGS-AS-ZERO (163a, 2026-09-24) — FIXED, AND IT TOUCHES 162b
+
+`SHARP_STACKS`, `STRENGTH_STACKS` and `TARGET_STATUS_STACKS` fell off the end of `powerscale`'s ATTACK chain and contributed **nothing, with no flag**. Six shipped cards were priced at their printed base with the whole rider invisible:
+
+| card | printed | what the scorer saw |
+| --- | --- | --- |
+| `flashover` | 50 power, **+15 per Burn on the target** | 50 |
+| `cinder_lance` | 40 power, +6 per Sharp | 40 |
+| `sap_strength` | 20 power, +6 per Weakened | 20 |
+| `thorn_whip` / `spike_launch` | 15 power, +5 per Sharp | 15 |
+| `unbound_fang` | 5 power **per stack of Strength** | 5 |
+
+Found because 163a's ledger asks a question 162b's could not: the `+` pass moved every one of those riders and the scorer reported a lift of **exactly zero** on all five that have one. A card that does not move when its only number moves is an instrument fault, not a dud upgrade.
+
+**FLAGGED, NOT PRICED.** Every `ASSUMED_` constant in that file came out of ticket 66's census of real battles, and the Sharp, Strength and target-Burn piles have not been measured — a number invented there would read as a measurement, which is the failure ticket 66 spent a census correcting. So they say UNPRICED and the ledgers print it. **This means 162b's ledger under-read those rows**, including `flashover`, which is one of the cards the 2e-rung conversation was about. Re-pricing them needs a census; that is a ticket, not a line.
+
 
 ## 0-A-v2-RUN-CANNOT-CLEAR-A-GYM (162c, 2026-09-23) — THE ONE BLOCKER
 
