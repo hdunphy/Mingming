@@ -398,6 +398,22 @@ export interface IRunState {
     readonly upgradesTaken?: ReadonlyArray<string>;
 
     /**
+     * TICKET 163d — **the patch fitted to each party member's firmware**, by member id.
+     *
+     * RUN STATE, not roster state, on 163 §5 decision 5: *"no persistence across runs to start."*
+     * `IRanchMember` is the individual that survives a run; a patch is something the run found, so
+     * it dies with the run exactly as `drivers` and `scrap` do. Keyed by member id rather than held
+     * on the member for the same reason `partyIds` is a list of ids — one place owns a Mingming,
+     * and it is the roster.
+     *
+     * At most `PATCH_SLOTS` (one) per member. The cap is enforced in the reducer rather than by the
+     * type, because a type cannot say "one" about an array in a way zod will also say.
+     *
+     * Optional with `.default({})`: a run saved before this field is a run that found none.
+     */
+    readonly patches?: Readonly<Record<string, ReadonlyArray<string>>>;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -591,6 +607,7 @@ export const RunStateSchema = z.object({
     // Ticket 142 §7, add-only like the field above it.
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
     upgradesTaken: z.array(z.string()).default([]),
+    patches: z.record(z.string(), z.array(z.string())).default({}),
     boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),

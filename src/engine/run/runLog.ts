@@ -226,6 +226,14 @@ export type IRunEvent = IRunEventBase & (
      * records 0, which is how "how many upgrades were free" is a question the log can answer.
      */
     | { readonly kind: 'CARD_UPGRADED'; readonly from: string; readonly to: string; readonly price: number }
+    /**
+     * TICKET 163d — a patch was fitted to a body.
+     *
+     * `memberId` rather than a species, because the question 163e asks of this row is *"take-rate
+     * by kind"* and the interesting cut is which BODY took which rider — a party can field two
+     * Kraken-shaped problems and give them different answers.
+     */
+    | { readonly kind: 'PATCH_TAKEN'; readonly memberId: string; readonly patchId: string }
     | { readonly kind: 'MACRO_BOUGHT'; readonly macroId: string; readonly price: number }
     | { readonly kind: 'MACRO_FIRED'; readonly macroId: string }
     | { readonly kind: 'REROLLED'; readonly price: number }

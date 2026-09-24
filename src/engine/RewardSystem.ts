@@ -34,6 +34,8 @@ import { SeedStream } from './core/SeedStream';
 import { ProgramRegistry } from './data/programRegistry';
 import { resolveProgramId } from './data/programAliases';
 import { v2RunPool } from './data/speciesPools';
+import { bestPatchFor, PATCH_SLOTS } from './data/patchRegistry';
+import { rawFirmwareHooks } from './data/firmwareRegistry';
 import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
@@ -302,6 +304,13 @@ export function scrapForWin(nodeKind: NodeKind, defeatedCount: number): number {
 export interface IRewardPartyMember {
     readonly definitionId: string;
     readonly activeOS?: string;
+    /**
+     * TICKET 163d — the INSTANCE id, for a reward that is fitted to one body rather than to the
+     * party. Optional because the three shapes this interface is structurally satisfied by
+     * (`IBattleEntity`, `IMingmingState`, `IRanchMember`) all carry one, and the two older readers
+     * (`usesV2Pool`, `rewardCardPool`) ask only about species.
+     */
+    readonly id?: string;
 }
 
 /**
@@ -772,7 +781,38 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         blueprints: allBlueprints,
         cards: [],
         cardChoices: allCardChoices,
+        ...(nodeKind === 'elite' ? { patchChoices: elitePatchOffer(party) } : {}),
     };
+}
+
+/**
+ * TICKET 163d — **the patch an elite pays**, one per party member.
+ *
+ * 163 §3 puts a patch on the elite as *"the second coin the research doc asked for"*, and 161 §2's
+ * seeding rule says which one: *"the host body's best patch."* So every member is offered the rider
+ * that changes the most about ITS firmware, and the player fits one of them — the choice is which
+ * BODY to improve, which is the decision a 3v3 game wants to be asking.
+ *
+ * Not random, and not a draw from a pool. A random patch is a no-op on most firmware (see
+ * `patchTouchCount`), and an elite that pays a rider the winner's team cannot use is a prize that
+ * teaches the player to stop reading prizes.
+ *
+ * A member who already carries one is left out rather than offered a patch they cannot fit — one
+ * slot per body (163 §5), and a dead row in a reward screen is ticket 20's silently-inert control.
+ */
+export function elitePatchOffer(
+    party: ReadonlyArray<IRewardPartyMember>,
+    held: Readonly<Record<string, ReadonlyArray<string>>> = {},
+): Array<{ memberId: string; patchId: string }> {
+    const offers: Array<{ memberId: string; patchId: string }> = [];
+    for (const member of party) {
+        const memberId = member.id;
+        if (memberId === undefined) continue;
+        if ((held[memberId] ?? []).length >= PATCH_SLOTS) continue;
+        if (!member.activeOS) continue;
+        offers.push({ memberId, patchId: bestPatchFor(rawFirmwareHooks(member.activeOS)).id });
+    }
+    return offers;
 }
 
 // --- Gym Clear Mini-Draft ---

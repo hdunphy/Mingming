@@ -65,6 +65,19 @@ export interface IRewardBundle {
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
     readonly relicChoices?: ReadonlyArray<string>;
     /**
+     * TICKET 163d — **the patch an elite pays out**, as `{ memberId, patchId }` pairs, one per
+     * party member so the player fits it to whichever body they choose.
+     *
+     * 163 §3's "where": *"an elite pays one (the second coin the research doc asked for)."* One
+     * patch per body rather than one for the party, because a patch is fitted to a FIRMWARE — the
+     * same rider is a gift on one body and a no-op on another, and offering a single id would make
+     * the prize a lottery on which member happens to run the right OS.
+     *
+     * Absent on every other node kind; absent and empty mean the same thing, as `enemyDrivers`
+     * says of itself for the same reason.
+     */
+    readonly patchChoices?: ReadonlyArray<{ readonly memberId: string; readonly patchId: string }>;
+    /**
      * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented before the normal
      * report. **Nothing sets this since ticket 12** — the gauntlet and its draft belong to ticket
      * 18, which is where the invocation went. `RewardSystem.rollDraftRounds` and `BattleReport`'s

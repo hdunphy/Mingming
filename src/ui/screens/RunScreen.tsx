@@ -353,6 +353,7 @@ export default function RunScreen(): ReactNode {
                     node={current}
                     party={marketParty}
                     biomeName={biome?.name}
+                    ranch={ranch}
                     onEditLoadout={() => setEditorContext(contextLine('MARKETPLACE'))}
                     onLeave={() => setClosedNodeId(current.id)}
                 />

@@ -101,6 +101,14 @@ export interface IBattleSetup {
     /** Was `relics`. Applied to the player side and copied to `IBattleState.activeRelics`. */
     readonly drivers: ReadonlyArray<string>;
     /**
+     * TICKET 163d — each party member's patch, by member id, carried from `IRunState.patches`.
+     *
+     * Beside `drivers` rather than folded into `IMingmingState`, and the distinction is the one
+     * `drivers` already makes: a Driver is a thing the RUN owns and applies to a body, and so is a
+     * patch. `IMingmingState` is the individual in the save file, which outlives the run.
+     */
+    readonly patches?: Readonly<Record<string, ReadonlyArray<string>>>;
+    /**
      * The ENEMY side's Drivers — ticket 68 build step 1. Applied to every enemy member by the same
      * `applyDrivers` the player's list goes through, so a Driver that works on one side works on
      * the other by construction.
@@ -191,6 +199,17 @@ export function createBattleState(
         // `data/driverRegistry.applyDrivers`, so that the enemy side below can go through the
         // identical path rather than a copy of it. Nothing about the player's Drivers changed.
         entity = applyDrivers(entity, setup.drivers);
+
+        /*
+         * TICKET 163d — the run's patch for THIS member, onto the entity that fights.
+         *
+         * A plain field rather than an `applyPatches` the way Drivers get an `applyDrivers`,
+         * because a Driver CHANGES STATS at setup and a patch changes nothing until a hook
+         * resolves: `entityHooksFor` reads `entity.patches` and rebuilds the firmware's hooks for
+         * this body. So all setup has to do is carry it across.
+         */
+        const fitted = setup.patches?.[mm.id];
+        if (fitted && fitted.length > 0) entity = { ...entity, patches: [...fitted] };
 
         return entity;
     });

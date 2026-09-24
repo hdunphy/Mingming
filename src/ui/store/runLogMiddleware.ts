@@ -569,6 +569,17 @@ export function createRunLogMiddleware(
                     }
                     break;
                 }
+                case 'run/fitPatch': {
+                    // TICKET 163d. Only when it TOOK — a full slot or an unknown id is a silent
+                    // no-op in the reducer, and a log row for a thing that did not happen is
+                    // worse than none. Read off the after-state's own list.
+                    const memberId = String(payload?.memberId ?? '');
+                    const patchId = String(payload?.patchId ?? '');
+                    const before = (runBefore?.patches?.[memberId] ?? []).length;
+                    const after = (runAfter?.patches?.[memberId] ?? []).length;
+                    if (after > before) record(runAfter, { kind: 'PATCH_TAKEN', memberId, patchId });
+                    break;
+                }
                 case 'run/sellRunCard': {
                     // `CARD_REMOVED` still, because that is what happened to the deck — the card
                     // left it. The paired `SCRAP` row below now carries a POSITIVE delta, which is

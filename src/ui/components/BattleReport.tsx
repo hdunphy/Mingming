@@ -5,6 +5,7 @@ import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetRelic } from '../../engine/data/relicRegistry';
+import { getPatch } from '../../engine/data/patchRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
@@ -36,6 +37,8 @@ interface BattleReportProps {
         chosenCards: IOwnedProgram[],
         chosenRelic?: string,
         storedInstanceIds?: ReadonlyArray<string>,
+        /** TICKET 163d: which body the elite's patch was fitted to, when the bundle offered one. */
+        chosenPatch?: { readonly memberId: string; readonly patchId: string },
     ) => void;
 }
 
@@ -114,6 +117,8 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
      */
     const [stored, setStored] = useState<Record<number, boolean>>({});
     const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
+    // TICKET 163d: which body the patch goes on, when the elite offered one. Null is a real answer.
+    const [selectedPatch, setSelectedPatch] = useState<string | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
     //
@@ -145,6 +150,14 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     const allCardsResolved = bundle.cardChoices.every((_, index) => isResolved(index));
 
     const needsRelic = !!bundle.relicChoices && bundle.relicChoices.length > 0;
+    /*
+     * TICKET 163d — the elite's patch. OPTIONAL, unlike the relic above.
+     *
+     * The relic is mandatory because there is at most one a run and it dilutes nothing. A patch is
+     * a COMMITMENT: one slot per body, no replacing, so a player who has just met a firmware they
+     * do not understand should be allowed to walk past it. `canContinue` below does not wait on it.
+     */
+    const patchOffers = bundle.patchChoices ?? [];
     // The relic is still mandatory, and deliberately: there is at most one per run (the last
     // gauntlet fight), it is a party-wide passive rather than a card in the deck, and it cannot
     // dilute anything. Nothing in the playtest complained about it.
@@ -180,7 +193,12 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
             .filter(([, on]) => on)
             .map(([index]) => selections[Number(index)]?.instanceId)
             .filter((id): id is string => id !== undefined);
-        onContinue(chosen, selectedRelic || undefined, storedIds);
+        onContinue(
+            chosen,
+            selectedRelic || undefined,
+            storedIds,
+            (bundle.patchChoices ?? []).find((offer) => offer.memberId === selectedPatch),
+        );
     };
 
     /** Advance the draft; card=null means the round was skipped. */
@@ -420,6 +438,41 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                                     <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>🏆</div>
                                                     <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px' }}>{relic.name}</div>
                                                     <div style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: '1.4' }}>{relic.description}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TICKET 163d — the elite's patch, one row per body that can take one.
+                                The CHOICE is which member to improve, not which rider: each body is
+                                already offered the one that changes the most about its own firmware
+                                (`elitePatchOffer`), because a random patch is a no-op on most. */}
+                            {patchOffers.length > 0 && (
+                                <div style={{ padding: '12px 14px', background: 'rgba(255,212,121,0.08)', borderRadius: '8px', border: '1px solid rgba(255,212,121,0.4)' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#ffd479', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>FIRMWARE PATCH — FIT IT TO ONE BODY</div>
+                                    <div style={{ fontSize: '0.7rem', color: '#9aa3ad', marginBottom: '10px' }}>One slot each, and it cannot be swapped later. Walking past it is allowed.</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+                                        {patchOffers.map((offer) => {
+                                            const patch = getPatch(offer.patchId);
+                                            const body = winners.find((w) => w.id === offer.memberId);
+                                            const isSelected = selectedPatch === offer.memberId;
+                                            return (
+                                                <div
+                                                    key={offer.memberId}
+                                                    onClick={() => { playSfx('rewardClaim'); setSelectedPatch(isSelected ? null : offer.memberId); }}
+                                                    style={{
+                                                        padding: '12px',
+                                                        background: isSelected ? 'rgba(255,212,121,0.25)' : 'rgba(0,0,0,0.4)',
+                                                        border: `2px solid ${isSelected ? '#ffd479' : 'rgba(255,255,255,0.1)'}`,
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }}>{body?.name ?? offer.memberId}</div>
+                                                    <div style={{ color: '#ffd479', fontSize: '0.8rem', margin: '4px 0' }}>{patch?.name}</div>
+                                                    <div style={{ color: '#aaa', fontSize: '0.72rem', lineHeight: '1.4' }}>{patch?.text}</div>
                                                 </div>
                                             );
                                         })}

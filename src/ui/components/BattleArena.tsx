@@ -37,6 +37,7 @@ import {
     addRunCards,
     addRunCollection,
     addRunScrap,
+    fitPatch,
     advanceGauntlet,
     consumeMacro,
     endRun,
@@ -919,6 +920,7 @@ const BattleArena: React.FC = () => {
         chosenCards: IOwnedProgram[],
         chosenRelic?: string,
         storedInstanceIds: ReadonlyArray<string> = [],
+        chosenPatch?: { readonly memberId: string; readonly patchId: string },
     ) => {
         if (rewardBundle) {
             // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints — and ticket 12
@@ -927,6 +929,16 @@ const BattleArena: React.FC = () => {
             // lose them. What is claimed here is the run-scoped half.
             if (rewardBundle.scraps > 0) {
                 dispatch(addRunScrap(rewardBundle.scraps));
+            }
+            /*
+             * TICKET 163d — the elite's patch. Run-scoped like the scrap above and the driver
+             * below, and claimed here for the same reason: if the app closes on this screen the run
+             * resumes at `phase: 'encounter'` and re-rolls the identical fight from the identical
+             * seed, so nothing is lost by not banking it early. A blueprint is the exception
+             * because it is RANCH state, which is why it is banked on drop instead.
+             */
+            if (chosenPatch) {
+                dispatch(fitPatch({ memberId: chosenPatch.memberId, patchId: chosenPatch.patchId }));
             }
             if (chosenCards.length > 0) {
                 /*

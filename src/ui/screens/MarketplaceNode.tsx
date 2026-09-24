@@ -71,7 +71,7 @@ import {
 } from '../../engine/run/marketplace';
 import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
-import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
+import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import { buyMacro, buyMarketBlueprint, buyMarketCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
 import { addBlueprint } from '../store/gameSlice';
@@ -81,6 +81,7 @@ import './runShell.css';
 import './MarketplaceNode.css';
 import { Icon } from '../theme/Icon';
 import { UpgradeBench } from './UpgradeBench';
+import { PatchBench } from './PatchBench';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
 
 /**
@@ -111,6 +112,13 @@ export interface MarketplaceNodeProps {
     readonly party: ReadonlyArray<IRewardPartyMember>;
     /** For the context line. The biome you are shopping in changes what the pool is worth. */
     readonly biomeName?: string;
+    /**
+     * TICKET 163d — the roster, for the patch shelf: a patch is fitted to a NAMED body, and
+     * `party` here is reward vocabulary (`definitionId` + `activeOS`) with no nickname on it.
+     * Optional so the debug scenarios that mount this screen without a ranch keep working — they
+     * see the stall minus one shelf, which is the same thing a run with nothing to patch sees.
+     */
+    readonly ranch?: IRanchState;
     /** Opens the shared `LoadoutEditor`. One of ticket 61 §3's four doors. */
     readonly onEditLoadout: () => void;
     /** Closes the stall back to the map. See `RunScreen` for why leaving is a UI state and not a move. */
@@ -118,7 +126,7 @@ export interface MarketplaceNodeProps {
 }
 
 export default function MarketplaceNode({
-    run, node, party, biomeName, onEditLoadout, onLeave,
+    run, node, party, biomeName, ranch, onEditLoadout, onLeave,
 }: MarketplaceNodeProps): ReactNode {
     const dispatch = useDispatch();
 
@@ -460,6 +468,10 @@ export default function MarketplaceNode({
                   * `WorkshopNode` and at the gym gate; the only thing this call site decides is
                   * whose once-per-visit allowance is being spent.
                   */}
+                {/* TICKET 163d — the stall stocks AMPLIFIER (163 §3: "the boring one every OS can
+                    take and the workshop's default stock"). One rider, every body, for scrap. */}
+                {ranch && <PatchBench run={run} ranch={ranch} venue="shop" />}
+
                 <UpgradeBench
                     run={run}
                     benchKey={`${node.id}:${node.visited}`}

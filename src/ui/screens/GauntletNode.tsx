@@ -61,6 +61,7 @@ import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../en
 import { playSfx } from '../audio/AudioEngine';
 import { startBattle } from '../store/battleSlice';
 import { UpgradeBench } from './UpgradeBench';
+import { PatchBench } from './PatchBench';
 import './GauntletNode.css';
 import { Icon } from '../theme/Icon';
 
@@ -307,6 +308,9 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                   * mid-gauntlet; `upgradesTaken` stops it being PRESSED twice before fight one,
                   * which is the half a render cannot enforce.
                   */}
+                {/* TICKET 163d — the gate's CHOICE OF TWO (163 §3), under the same pre-gauntlet
+                    guard as everything else here, and for the same healing argument. */}
+                {gauntlet.fightIndex === 0 && <PatchBench run={run} ranch={ranch} venue="gate" />}
                 {gauntlet.fightIndex === 0 && (
                     <UpgradeBench
                         run={run}

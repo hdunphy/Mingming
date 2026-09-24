@@ -92,6 +92,7 @@ import {
     macroRackBlockFor,
 } from '../../engine/data/macroRegistry';
 import { upgradeIdFor } from '../../engine/data/plusRegistry';
+import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { minimumActiveDeck } from '../../engine/run/createRun';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
@@ -436,6 +437,45 @@ const runSlice = createSlice({
                     scrap: run.scrap - price,
                     deck,
                     upgradesTaken: benchKey === undefined ? spent : [...spent, benchKey],
+                },
+            };
+        },
+
+        /**
+         * TICKET 163d — **FIT A PATCH to one party member's firmware.**
+         *
+         * One slot per body (163 §5 decision 4: one, and no second at the gym), so this REPLACES
+         * nothing: a member who already carries one is refused, silently, the way every other
+         * ineligible dispatch in this slice is. Replacing would be a different decision — it turns
+         * a patch from a commitment into an inventory slot — and Henry has not made it.
+         *
+         * FREE BY DEFAULT, because two of the three doors have already charged: an elite was fought
+         * for, and the gate's choice of two is 163 §3's free one. The SHOP is the third door and it
+         * takes scrap, so the price rides the action — scrap-down and thing-arrives in ONE reducer,
+         * which is the convention `buyMarketCard` sets and the reason there is no `spendRunScrap`
+         * call anywhere near a purchase.
+         *
+         * Refuses a member who is not in the party. The bench is not a body in this fight, and a
+         * patch fitted to someone standing outside it is a rule nobody could see working.
+         */
+        fitPatch: (
+            state,
+            action: PayloadAction<{ memberId: string; patchId: string; price?: number }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { memberId, patchId, price = 0 } = action.payload;
+            if (!run.partyIds.includes(memberId)) return { run };
+            if (getPatch(patchId) === undefined) return { run };
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            const held = run.patches?.[memberId] ?? [];
+            if (held.length >= PATCH_SLOTS) return { run };
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    patches: { ...(run.patches ?? {}), [memberId]: [...held, patchId] },
                 },
             };
         },
@@ -1316,6 +1356,7 @@ export const {
     removeRunCard,
     buyMarketCard,
     upgradeDeckCard,
+    fitPatch,
     // `removeRunCardForScrap` was exported here until 2026-08-26. Paid removal is deleted; free
     // editing at the four surfaces replaced it, and `sellRunCard` is the verb that pays.
     sellRunCard,

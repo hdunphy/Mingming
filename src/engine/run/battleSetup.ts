@@ -89,6 +89,9 @@ export function buildBattleSetup(
         party,
         deck: run.deck.map((card) => card.dataId),
         drivers: [...run.drivers],
+        // TICKET 163d: copied for the reason the comment below gives about `persistedHp` — the run
+        // is deeply readonly and the factory is free to read this however it likes.
+        patches: { ...(run.patches ?? {}) },
         // Copied rather than aliased: `IRunState` is deeply readonly and `IBattleSetup` is handed to
         // a factory that is free to read it however it likes. A zero in here is a downed member —
         // see the header, and `IBattleSetup.persistedHp`.
