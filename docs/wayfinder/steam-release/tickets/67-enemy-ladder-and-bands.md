@@ -1,5 +1,7 @@
 # The enemy ladder, and the three bands the run gate says we are failing (ticket 67)
 
+> **2026-09-24 — RE-KEYED TO THE WALKER (Henry). The instrument this ticket's Done-when names (`balance:run-gate` inside ±5) was ruled NOISE on collection v2 on 09-24: it runs the un-drifted starter kit, which 161 deliberately weakened. Done-when is now: deck-archetypes 157's walker (a played run: picks, upgrades, patches, strategic recruits) reports the three bands, and they sit inside ±5 of 95/75/60. The 60±5 gauntlet-compound target stands until the walker says otherwise. 2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. **
+
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: session-67-build (steps 1-2 only; the grilling is Henry's)

@@ -1,5 +1,7 @@
 # Events node system + the first event set (ticket 30)
 
+> **2026-09-24 — NOTE. "Card removal" is not an outcome verb (deleted in 61). Verbs that exist now: card pick (V2_RUN_POOL-narrowed), a free `+` upgrade (163b), an OS patch (163d), a blueprint (142g), scrap, a Macro.**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

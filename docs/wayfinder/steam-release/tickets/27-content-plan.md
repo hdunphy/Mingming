@@ -1,5 +1,7 @@
 # Content plan: biome pairs, gyms, tiers and events at launch — in numbers (ticket 27)
 
+> **2026-09-24 — MOSTLY RULED ELSEWHERE. (a) the three leaders: authored by 68/71/72/74, reconciled with the scout in 28a. (c) Air at EA and (d) the six-element fallback: both DEAD under Henry's EA-scope ruling (2026-09-22: Fire, Water, Nature only; six species, twelve kits; the rest post-EA). What is left of this ticket is (b): the event count and the modifier count.**
+
 - Type: wayfinder:grilling (RE-CUT 2026-08-21 by ticket 05 — most numbers are ruled; see Question)
 - Status: open
 - Assignee: 

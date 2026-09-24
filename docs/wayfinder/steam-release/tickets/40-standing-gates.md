@@ -1,5 +1,7 @@
 # Standing quality gates: parity, canary and determinism in CI; release checklist script (ticket 40)
 
+> **2026-09-24 — NOTE. The short canary set is the 162c partner comps (the EA 3v3 set: detonation, poison, water-engine, keeper, strength, dazed) plus `npm run balance:drivers`; `teamComps.ts` is mostly post-EA species. The run gate's bands are ruled NOISE on v2 until 157's walker (see 67).**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

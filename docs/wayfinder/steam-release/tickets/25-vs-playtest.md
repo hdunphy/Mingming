@@ -1,5 +1,7 @@
 # Vertical Slice playtest round: protocol, scoresheet, findings (ticket 25)
 
+> **2026-09-24 — RE-SCOPED against deck-archetypes 161/162/163 (Henry's rulings). The testers play collection v2 (98 cards) with in-place `+` upgrades at three benches and one OS patch per body; the run log already records CARD_UPGRADED and PATCH_TAKEN — add "upgrades taken / patches fitted" to the scoresheet. "Removed" is not a verb any more (61); "sold" is. The 20–25 deck gate STANDS (Henry: grow the deck, but only to about 20–25 — mostly replacing; no extra Strike/Block filler, the three tackles are the filler). PREREQ 25-pre (Legion): gate the stranger slot on V2_RUN_POOL for all-EA parties (69's open flag — `marketplace.ts` still draws from the whole registry, so a post-EA card can appear in the stall).**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

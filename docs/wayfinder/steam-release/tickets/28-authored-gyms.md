@@ -1,5 +1,7 @@
 # Authored gym bosses: curated 3v3 teams with signature firmware per biome pair (ticket 28)
 
+> **2026-09-24 — RE-SCOPED. The gyms ARE authored (`bosses.ts` AUTHORED_BOSSES: WAR FOOTING / TIDAL SURGE / ROOT ROT); the 1.5× warden frame, `boss_relic_*` and "signature firmware" are gone (a Driver now); deck-archetypes 109 is closed. DEFECT: `gyms.ts` GYM_REGISTRY.leaderComp (142b placeholders) disagrees with AUTHORED_BOSSES at every gym, and the scout previews leaderComp while the gauntlet fields AUTHORED_BOSSES — the free look shows a team the gym does not field. **28a (Legion): one table.** Henry ruled "bosses, but whichever trio has the better synergies (zoo / control / ramp)". Recommendation from the 158 partner tags and the 162c 3v3 read: Emberfall = fenrir_v2 + sköll_v2 + kraken_v2 (detonation, 80%); Tidewrack = jormungandr_v1 + kraken_v1 + ratatoskr_v1 (water-engine, 70%); Rootfall = huldra_v2 + ratatoskr_v2 + jormungandr_v2 (poison, 80%). Each keeps the gym's two own-element bodies plus one guest. Canary the three trios at 3 iterations (162c's n=10 is a smoke read) before locking, keep the authored OS/Driver lines, make the scout read the same table, and delete leaderComp. The remaining 28 work is names, flavour, icons.**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

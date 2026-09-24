@@ -1,5 +1,7 @@
 # Rootfall is the worst gym, and the counter-cards are a net negative at all three (ticket 75)
 
+> **2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. Rulings 1–3 are recorded. The toolbox cards are still in V2_RUN_POOL (NEUTRAL_UTILITY_IDS), so "is the toolbox a net negative" is re-askable — on 157's walker. Effectively closed as ruled; the re-measure is 157's.**
+
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: 

@@ -1,5 +1,7 @@
 # The first-KO snowball: action economy, overkill aversion, and comebacks (ticket 70)
 
+> **2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. The rally rule is engine-level and survived the merge. Henry's feel verdict (the only open item) happens on the v2 build; the 8.3 → 16.7% comeback baseline would need a re-take on 157's walker if a number is wanted. Ruling 7 is done (16 closed: TENTH STRIKE renamed).**
+
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: legion-70-measure (MEASUREMENT STEP ONLY - the grilling is Henry's)

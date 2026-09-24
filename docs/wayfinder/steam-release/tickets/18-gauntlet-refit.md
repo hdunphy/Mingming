@@ -1,5 +1,7 @@
 # Gym gauntlet refit: three unhealed fights, boss draws one mingming per biome (ticket 18)
 
+> **2026-09-24 — THE 3× PAYOUT, RULED (Henry). The gym is the last fight, so a payout only means something if it PERSISTS: blueprints do (the ranch), scrap does not (assembly costs none, the run is over). **18a (Legion):** the gym clear pays blueprints only — one authored end-of-gauntlet award (18's option 2) sized at what the three fights pay today (≈4.5), zero scrap; the per-enemy scrap drop inside the gauntlet goes. The gym-gate free upgrade and two patch offers (163b/d) are pre-fight spends and stay.**
+
 - Type: wayfinder:task
 - Status: closed
 - Assignee: agent

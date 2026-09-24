@@ -1,5 +1,7 @@
 # Species art pass: 16 battle portraits to the ruled standard (ticket 33)
 
+> **2026-09-24 — RE-SCOPED by EA scope (Henry 2026-09-22): 6 battle portraits for EA (fenrir, sköll, kraken, jormungandr, ratatoskr, huldra); the other 10 are post-EA.**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

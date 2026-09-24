@@ -1,7 +1,9 @@
 # Party synergy: the only channel between members is the enemy's status bar (ticket 78)
 
+> **CLOSED 2026-09-24 — SUPERSEDED by deck-archetypes 158 / 158-r1. Step 1 (a synergy block per OS: produces / reads) and step 4 (the recruit-screen readout) are 158's currency / tempo / partners tags and 158-r1 verbatim; 151 (this ticket's HOLD) is closed. The examples here are v1-pool cards. The measured pair matrix goes to 157's walker.**
+
 - Type: wayfinder:grilling (measurement first — the matrix runs before Henry's session; the session designs bridges only where the matrix says a pair is dead)
-- Status: open
+- Status: closed
 - Assignee: matrix + tags: agent; session + bridge design: Henry (with deck-archetypes for the printings)
 - Blocked by: nothing for the tags and the matrix; the recruit-screen readout is UI (34 chassis) and waits on the tags being ratified
 - Phase: Vertical Slice

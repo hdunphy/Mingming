@@ -1,5 +1,7 @@
 # Achievements and Steam Cloud design: the list, in numbers (ticket 44)
 
+> **2026-09-24 — RE-SCOPED. "All 16 species assembled" → the EA six (blueprintPool is the EA roster, 142 §8); codex milestones use 31a's EA denominators. New material to list: first `+` upgrade, first patch, a gym won with the counter-disadvantage (Henry's own 142 §8 example).**
+
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: 

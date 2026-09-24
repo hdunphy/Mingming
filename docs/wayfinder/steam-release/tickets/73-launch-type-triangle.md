@@ -1,5 +1,7 @@
 # The launch triangle: 17.5% of EA matchups are decided at character select (ticket 73)
 
+> **2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. The 12 EA decks are different decks (162a: "do not read a cell as a regression against the old grid"), the grid was deliberately not re-run, and Henry ruled the 1v1/3v3 tables wait for playtest. Q1 (is a sharp triangle the point) is live; Q3's cells no longer exist as measured.**
+
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: 

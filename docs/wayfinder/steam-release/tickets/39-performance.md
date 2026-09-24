@@ -1,5 +1,7 @@
 # Performance pass: AI turn time, motion cost, bundle size on Deck-class hardware (ticket 39)
 
+> **2026-09-24 — NOTE. The beam is a ladder rung (deck-archetypes 144): wild 8, elite 8, gym 0 (beamless). The gym boss's unbeamed 3v3 turn is the p95 case to measure; "confirm AI_BEAM=8" is no longer the question.**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

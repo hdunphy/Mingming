@@ -1,5 +1,7 @@
 # Codex: seen/played species, OS and cards; completion payouts (ticket 31)
 
+> **2026-09-24 — RULED, RE-SCOPED. The registry is 366 entries (98 v2 + 170 archived v1 + 98 `+` + tokens); `codex.ts` counts 264 while an EA run can meet ~109, and species = 16 while blueprints are the EA six — the codex is incompletable at EA as built. **Henry: a `+` card is a MARK on its base card's row, not its own entry.** **31a (Legion):** EA denominators = LAUNCH_SPECIES (already exported) × (V2_RUN_POOL ∪ neutral utility); archived v1 cards and post-EA species are not counted in the EA build; the `+` mark on the row; strike the `boss_relic_*` paragraph (they are gone). 44 inherits these denominators.**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: agent

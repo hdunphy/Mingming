@@ -142,3 +142,8 @@ reviews the table in the browser; 149c prices each `+` as its own row; then it s
 4. Do `+` and patches persist to the collection across runs (meta-progression), or reset per run?
    (Research: StS resets; Obelisk persists per hero. Persisting is the stronger "my roster" feeling
    and the bigger balance surface.)
+
+
+## 6. 163f — `+` cards in the stall (RULED by Henry 2026-09-24)
+
+An upgraded card may be found in the market stall for sale, priced below buying the base and upgrading it — Henry: *"less than buying then upgrading the card, like 10–20% discount"*. Price = (card price by energy 15/25/35/45 + bench price 25/30/35/40) × 0.85, rounded to 5: **35 / 45 / 60 / 70** by energy. `isRewardable` keeps refusing `+` cards everywhere else (rewards, enemies, the codex denominator); the stall gets a single explicit exception — at most one `+` card in stock per run, drawn from the party's V2 pool, on the 142e static stock. Codex: a `+` seen or played is a MARK on the base card's row, not a row (31a). Lands after 163e; measured by the walker's take-rate like the rest.
