@@ -102,7 +102,7 @@ describe('every measureCell option reaches the fight', () => {
 
     it('`--tweak` threads, and does not perturb what a paired arm holds fixed', () => {
         /*
-         * The live knob (`rootfall-rat-v2`) is applied process-wide before any fight is built, so
+         * The live knobs (`root-rot-c1` / `-c3`) are applied process-wide before any fight is built, so
          * what `sampleFight` must guarantee is the NEGATIVE: passing the list changes nothing about
          * the seed, the roll or the deck. The seam is kept even when no knob reads it here, because
          * the threading guarantee was earned by a bug — `--toolbox` declared, parsed, banner-printed
@@ -233,7 +233,7 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
     }
 
     it('an unknown knob names the live ones rather than failing vaguely', () => {
-        expect(() => validateTweaks(['nonsense'])).toThrow(/live knobs are "rootfall-rat-v2"/);
+        expect(() => validateTweaks(['nonsense'])).toThrow(/live knobs are "root-rot-c1"/);
     });
 
     it('the empty list is accepted and does nothing', () => {
@@ -242,39 +242,36 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
         expect(describeTweaks([])).toEqual([]);
     });
 
-    it('`rootfall-rat-v2` swaps exactly one body of the authored trio', () => {
+    it('`rootfall-rat-v2` is RETIRED — 28a shipped the swap it was there to measure', () => {
         /*
-         * Ticket 76 arm 4. Snapshotted and restored because this mutates a process-global — without
-         * that, every test after this one in the same worker would fight a Rootfall boss nobody
-         * authored, which is the contamination this whole module exists to keep out of the tree.
+         * TICKET 28a (Henry, 2026-09-24). Ticket 76 arm 4's candidate was *"Rootfall fields
+         * ratatoskr_v2 in place of ratatoskr_v1"*, and 28a made that the authored trio — on the
+         * synergy argument rather than on this knob's numbers, which were never run.
+         *
+         * A knob whose experiment has shipped is not left switched off "in case" (this module's own
+         * header): it is retired, and the refusal names the ruling. Asserted rather than deleted,
+         * because the name is printed in committed research docs and shell history.
          */
-        const before = structuredClone(AUTHORED_BOSSES['gym_rootfall']);
-        try {
-            expect(applyRegistryTweaks([ROOT_KNOB])).toEqual([ROOT_KNOB]);
-
-            const after = AUTHORED_BOSSES['gym_rootfall'];
-            expect(after.members.map((m) => m.os))
-                .toEqual(before.members.map((m) => (m.os === 'ratatoskr_v1' ? 'ratatoskr_v2' : m.os)));
-            expect(after.members).toHaveLength(before.members.length);
-            expect(after.members.map((m) => m.species), 'the SPECIES must not move — only the firmware')
-                .toEqual(before.members.map((m) => m.species));
-            expect(after.driver, 'ROOT ROT is a separate arm and must not ride along').toBe(before.driver);
-        } finally {
-            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = before;
+        expect(AUTHORED_BOSSES['gym_rootfall'].members.map((m) => m.os)).toContain('ratatoskr_v2');
+        expect(AUTHORED_BOSSES['gym_rootfall'].members.map((m) => m.os)).not.toContain('ratatoskr_v1');
+        for (const fn of [validateTweaks, describeTweaks, applyRegistryTweaks]) {
+            expect(() => fn([ROOT_KNOB])).toThrow(/28a/);
         }
     });
 
-    it('refuses if the trio no longer fields the body it means to swap', () => {
-        const before = structuredClone(AUTHORED_BOSSES['gym_rootfall']);
-        try {
-            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = {
-                ...before,
-                members: before.members.map((m) => (m.os === 'ratatoskr_v1' ? { ...m, os: 'ratatoskr_v2' } : m)),
-            };
-            expect(() => applyRegistryTweaks([ROOT_KNOB])).toThrow(/no longer fields ratatoskr_v1/);
-        } finally {
-            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = before;
-        }
+    it('names the ruling that retired it, not a stale-trio error', () => {
+        /*
+         * This case used to assert the knob's OWN staleness guard — *"Rootfall no longer fields
+         * ratatoskr_v1, so this has nothing to swap"* — by mutating the trio to simulate exactly the
+         * change 28a then made for real. The guard fired as designed, which is how the gate caught
+         * 28a in the first place.
+         *
+         * A guard that has done its job is not the message the next reader needs. The knob is
+         * retired now, so the refusal names the RULING (*"COMMITTED by 28a"*) rather than describing
+         * a mismatch and sending them to ticket 76 to find out why.
+         */
+        expect(() => applyRegistryTweaks([ROOT_KNOB])).toThrow(/COMMITTED by steam-release ticket 28a/);
+        expect(() => applyRegistryTweaks([ROOT_KNOB])).not.toThrow(/no longer fields/);
     });
 
     it('`tweakEnemyDeck` returns the pile untouched', () => {

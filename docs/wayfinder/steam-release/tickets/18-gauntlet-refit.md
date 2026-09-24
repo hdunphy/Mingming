@@ -1,6 +1,6 @@
 # Gym gauntlet refit: three unhealed fights, boss draws one mingming per biome (ticket 18)
 
-> **2026-09-24 — THE 3× PAYOUT, RULED (Henry). The gym is the last fight, so a payout only means something if it PERSISTS: blueprints do (the ranch), scrap does not (assembly costs none, the run is over). **18a (Legion):** the gym clear pays blueprints only — one authored end-of-gauntlet award (18's option 2) sized at what the three fights pay today (≈4.5), zero scrap; the per-enemy scrap drop inside the gauntlet goes. The gym-gate free upgrade and two patch offers (163b/d) are pre-fight spends and stay.**
+> **2026-09-24 — 18a IS DONE. The gauntlet's three fights pay nothing; clearing the gym pays one authored blueprint award sized at exactly what those nine per-body rolls paid in expectation (4.5). Zero scrap. The gym-gate free upgrade and two patch offers (163b/d) are pre-fight spends and are untouched. Write-back at the foot of this file.**
 
 - Type: wayfinder:task
 - Status: closed
@@ -163,3 +163,37 @@ actually do** — whether a won run leaves you flush is exactly the kind of thin
 and arithmetic does not. If it needs cutting afterwards the options are unchanged: divide the gym
 row by three, or replace per-enemy drops with one authored end-of-gauntlet award (which is what
 `RewardSystem`'s own comment predicted this ticket would want).
+
+---
+
+## 18a — done (2026-09-24)
+
+> Henry: *"The gym is the last fight, so a payout only means something if it PERSISTS: blueprints do
+> (the ranch), scrap does not (assembly costs none, the run is over)."*
+
+`rollDropTable` returns an empty bundle for `nodeKind: 'gym'` — no scrap, no blueprint, no card pick,
+and **not even the pity floor**, which is the one thing that could still have paid. `BattleArena`
+pays `gymClearBlueprints` beside `markGymCleared`, banked on the spot for ticket 12's reason: a player
+who beats the leader and then loses the app has beaten the leader.
+
+**The size is today's size exactly, and that is why it is not a round number.**
+`BLUEPRINT_DROP_RATE.gym` is 0.50 PER BODY and the gauntlet is three bodies over three fights: nine
+rolls at a half, an expectation of **4.5**. Four guaranteed plus a fifth on a coin flip is the only
+integer-plus-roll shape whose expectation is 4.5, so this is a change of SHAPE — one award that
+persists instead of nine rolls that mostly do not — and not a quiet re-tune. Rounding to 4 would have
+cut the gym's pay by 11% and to 5 raised it by 11%, either of which is a balance decision smuggled
+inside a delivery change.
+
+**Recorded in case Henry wants the authored number truly authored: 5 flat** is the alternative. It is
++0.5 a run and it makes the whole award deterministic.
+
+The species are the boss trio's, one per body in line-up order — the same rule the per-enemy drop
+used (*"the species is the one you just defeated"*), applied to the fight that was actually the exam.
+The fifth, when it lands, repeats the leader. An unauthored gym pays nothing rather than four copies
+of `undefined`.
+
+The rate table is NOT zeroed: `BLUEPRINT_DROP_RATE.gym` and `scrapForWin` are read by the report, the
+codex and the run gate as *"what a gym node is worth"*, and a zero there would say the exam pays
+nothing, which is the opposite of this ruling. `gym` came out of the two per-kind rate loops in
+`blueprintPayout.test.ts` and `RewardSystem.test.ts`, each with a comment saying where the number
+means something now.

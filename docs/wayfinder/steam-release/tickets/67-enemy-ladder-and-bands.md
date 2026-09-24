@@ -71,9 +71,23 @@ Ticket 61's package 2, verbatim, plus whatever the answers change:
 
 ## Done when
 
-`npm run balance:run-gate` reports all three bands inside ±5, at a sample size whose Wilson interval
-is narrower than the window (the tool flags `UNDER-SAMPLED` when it is not), and the per-cell table
-shows no non-monotonic step the ruling did not ask for.
+**RE-KEYED 2026-09-24 (Henry), and applied 2026-09-24 now that the walker exists.**
+`npm run balance:walk` — deck-archetypes 157's run walker, which plays a whole run with picks,
+upgrades, patches and strategic recruits — reports the three bands inside ±5 of **95 / 75 / 60**,
+at a sample size whose interval is narrower than the window. The 60±5 gauntlet-compound target
+stands until the walker says otherwise.
+
+`balance:run-gate` is NOT the instrument any more: it fights the un-drifted starter kit, which 161
+deliberately weakened, so on collection v2 it measures a deck no player ever holds past fight one.
+Both were measured on 2026-09-24 and they agree about the direction and disagree about nothing:
+the gate reads **67%** on its wild/biome-0 cell and the walker reads **77.5%** on fight one, against
+the same ruled 95.
+
+**The first walker reading is in and it is not close** (`results/t157/FINDINGS.md`): eight of twelve
+starters are under the wild target on their FIRST fight, `jormungandr_v1` at 10%, and **0 of 120
+runs reached the gym band at all** — so the elite and gauntlet bands are currently unmeasurable
+rather than failing. That is this ticket's question, restated with a number: **the opening fight is
+about thirty points under target on two independent instruments.**
 
 ## Notes for whoever takes it
 

@@ -18,57 +18,99 @@ import {
     codexSpeciesIds,
     milestonesMet,
     milestonesToFire,
+    codexPlusMark,
+    codexAllSpeciesIds,
 } from './codex';
 import { LAUNCH_SPECIES, MingmingRegistry, PLAYABLE_SPECIES } from './data/mingmingRegistry';
 import { ProgramRegistry } from './data/programRegistry';
+import { inV2RunPool, isRewardable } from './RewardSystem';
 import type { ICodex } from './runTypes';
 
 const empty: ICodex = { seen: [], played: [], species: [], assembled: [], os: [] };
 const line = (codex: ICodex, id: string) => codexProgress(codex).find((l) => l.id === id)!;
 
 describe('what there is to collect', () => {
-    it('counts every card except the tokens', () => {
-        // A token is generated mid-battle by another card — never drafted, bought or chosen. Making
-        // 100% depend on having drawn the right generator is a completion nobody can pursue.
+    /**
+     * TICKET 31a (Henry, 2026-09-24) — **THE DENOMINATOR IS WHAT AN EARLY-ACCESS RUN CAN MEET.**
+     *
+     * The registry is 366 entries; this used to count 264 of them while an EA run can meet about
+     * 109. That is not a hard codex, it is an **incompletable** one, and it reads to a player as a
+     * bug in their save rather than as content they have not reached.
+     */
+    it('counts only cards an EA run can be offered — v2, minus tokens, minus the `+` forms', () => {
         const ids = codexCardIds();
         const tokens = Object.keys(ProgramRegistry).filter((id) => ProgramRegistry[id].isToken === true);
-        // TICKET 163a: the ninety-eight `+` cards come out of the denominator on the same argument
-        // as the tokens — nothing in the game can offer one, so counting them would make 100%
-        // depend on content a player cannot reach. When 163b builds the workshop tab, whether an
-        // upgrade is its own codex row or a mark on its base row is Henry's call.
         const upgrades = Object.keys(ProgramRegistry).filter((id) => ProgramRegistry[id].upgradeOf);
-
         expect(tokens.length).toBeGreaterThan(0);
         expect(upgrades.length).toBeGreaterThan(0);
-        expect(ids).toHaveLength(Object.keys(ProgramRegistry).length - tokens.length - upgrades.length);
+
         for (const token of tokens) expect(ids).not.toContain(token);
         for (const upgrade of upgrades) expect(ids).not.toContain(upgrade);
+        // The archived v1 collection, which is the exclusion 31a adds and by far the largest.
+        for (const id of ids) expect(inV2RunPool(id), `${id} is outside the EA run pool`).toBe(true);
+        expect(ids.length).toBeLessThan(Object.keys(ProgramRegistry).length / 2);
     });
 
-    it('counts the playable species and never the control', () => {
-        // `mingmingRegistry` says it outright: enumerate through `PLAYABLE_SPECIES` "or the control
-        // shows up as a wild Mingming". A codex is player-facing.
-        expect(codexSpeciesIds()).toEqual([...PLAYABLE_SPECIES]);
+    it('counts every card the three doors CAN hand over, so the codex is completable', () => {
+        /*
+         * The other direction, and the one that matters: a filter that narrowed too far would make
+         * the codex trivially completable and nothing would notice. `rewardCardPool` (rewards and
+         * the stall's five pool slots), the neutral reservation and the run-only daemons are the
+         * three doors, and `inV2RunPool` is the gate all of them already share — so the set this
+         * counts and the set the game can offer are the same set by construction, not by agreement.
+         */
+        const ids = new Set(codexCardIds());
+        const offerable = Object.keys(ProgramRegistry).filter(
+            (id) => inV2RunPool(id) && isRewardable(id) && ProgramRegistry[id].isToken !== true,
+        );
+        expect(offerable.length).toBeGreaterThan(50);
+        for (const id of offerable) expect(ids.has(id), `${id} is offerable and uncounted`).toBe(true);
+    });
+
+    it('folds a `+` into its base card\'s row rather than giving it one — Henry, 31a', () => {
+        // *"A `+` card is a MARK on its base card's row, not its own entry."* So seeing `venom_fang+`
+        // is seeing `venom_fang`, and the collection does not grow a second row nobody can finish.
+        const upgrade = Object.keys(ProgramRegistry).find((id) => ProgramRegistry[id].upgradeOf)!;
+        const base = codexPlusMark(upgrade)!;
+        expect(base).toBe(upgrade.slice(0, -1));
+        expect(codexCardIds()).toContain(base);
+        expect(codexCardIds()).not.toContain(upgrade);
+        expect(codexPlusMark(base)).toBeNull();
+        expect(codexPlusMark('not_a_card')).toBeNull();
+    });
+
+    it('counts the EA six as the species denominator, and never the control', () => {
+        // Sixteen is the eventual roster; six is what blueprints can be dropped for, because 162a
+        // parked the other ten on the archived pool until after EA. At sixteen the species track
+        // read 6/16 for a player who had done everything the game offers.
+        expect(codexSpeciesIds()).toEqual([...LAUNCH_SPECIES]);
         expect(codexSpeciesIds()).not.toContain('control');
         expect(Object.keys(MingmingRegistry)).toContain('control');
     });
 
-    it('keeps the launch list separate from the whole roster', () => {
+    it('keeps the whole roster reachable as a separate number', () => {
         // Two denominators exist and conflating them would misreport progress in both directions.
         expect(codexLaunchSpeciesIds()).toEqual([...LAUNCH_SPECIES]);
-        expect(codexLaunchSpeciesIds().length).toBeLessThan(codexSpeciesIds().length);
+        expect(codexAllSpeciesIds()).toEqual([...PLAYABLE_SPECIES]);
+        expect(codexSpeciesIds().length).toBeLessThan(codexAllSpeciesIds().length);
     });
 
-    it('counts equippable firmware only — no boss signatures, and no lazy-registry race', () => {
-        // `FIRMWARE_REGISTRY` is populated lazily and holds the three `boss_relic_*` signatures the
-        // player can never equip. Counting those would make the codex incompletable by three.
+    it('counts the EA twelve firmware only — no Drivers, and no lazy-registry race', () => {
+        /*
+         * `FIRMWARE_REGISTRY` is populated lazily and holds the `driver_*` enemy Drivers, which
+         * ruling 4 puts out of the player's reach. Deriving from `availableOS` keeps them out
+         * without a filter anyone maintains.
+         *
+         * TICKET 31a: the `boss_relic_*` clause that used to stand here is struck — ticket 16
+         * DELETED that firmware, `gauntlet.test.ts` asserts none is registered, and a test naming
+         * them as a live hazard sends the next reader looking for something that is gone. What it
+         * asserts instead is the 31a narrowing: the EA six's firmware, which is twelve.
+         */
         const os = codexOsIds();
-        expect(os.length).toBeGreaterThan(0);
-        for (const id of os) expect(id.startsWith('boss_relic_')).toBe(false);
-        // Derived by inverting `availableOS`, so every entry belongs to a playable species.
-        for (const id of os) {
-            expect(PLAYABLE_SPECIES.some((s) => MingmingRegistry[s]?.availableOS.includes(id))).toBe(true);
-        }
+        const expected = LAUNCH_SPECIES.flatMap((s) => MingmingRegistry[s]?.availableOS ?? []);
+        expect(os).toEqual(expected);
+        expect(os).toHaveLength(12);
+        for (const id of os) expect(id.startsWith('driver_')).toBe(false);
     });
 });
 

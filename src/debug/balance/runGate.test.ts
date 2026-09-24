@@ -374,8 +374,8 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
          * kept printing.
          */
         const expected: Readonly<Record<string, { counter: string; filler: string }>> = {
-            gym_tidewrack: { counter: 'Nature', filler: 'Water' },  // vs 2 Water + skoll_v2 (Fire)
-            gym_emberfall: { counter: 'Water', filler: 'Fire' },    // vs 2 Fire  + ratatoskr_v2 (Nature)
+            gym_tidewrack: { counter: 'Nature', filler: 'Water' },  // vs 2 Water + ratatoskr_v1 (Nature)
+            gym_emberfall: { counter: 'Water', filler: 'Fire' },    // vs 2 Fire  + kraken_v2 (Water)
             gym_rootfall: { counter: 'Fire', filler: 'Nature' },    // vs 2 Nature + jormungandr_v2 (Water)
         };
         const cell = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
@@ -405,12 +405,38 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
                  * answer. That is the fight, and it is why 2-1 rather than 3-0.
                  */
                 expect(beats(shape.counter, GYM_REGISTRY[gymId].element)).toBe(true);
-                expect(beats(odd, shape.counter), `${gymId}: the odd member eats my counter`).toBe(true);
-                expect(beats(shape.filler, odd), `${gymId}: my one answers the odd member`).toBe(true);
-                // Nothing the boss fields is FOOD for the filler's own element beyond that, and the
-                // filler is never itself food — it shares the leader's element, so their pair is
-                // neutral into it.
-                expect(bossElements.some((b) => beats(b, shape.filler))).toBe(false);
+                /*
+                 * ══ TICKET 28a BROKE RULING 3's ODD-MEMBER CLAUSE AT TWO OF THREE GYMS. ══
+                 *
+                 * This used to assert `beats(odd, counter)` at every gym — ticket 68 ruling 3: *"the
+                 * third slot exists to counter the player's expected counter"*, so a prepared player
+                 * is answered rather than immune.
+                 *
+                 * Henry's 2026-09-24 ruling composed the three trios for **synergy** instead
+                 * (*"bosses, but whichever trio has the better synergies"*) and named the bodies, and
+                 * two of the three guests no longer eat the counter:
+                 *
+                 *   - Emberfall (Fire): guest is kraken_v2, **Water** — which is the player's counter
+                 *     element itself, not the answer to it. Ruling 3 wanted Nature.
+                 *   - Tidewrack (Water): guest is ratatoskr_v1, **Nature** — the counter element
+                 *     again. Ruling 3 wanted Fire.
+                 *   - Rootfall (Nature): guest is jormungandr_v2, **Water**. Ruling 3 holds here.
+                 *
+                 * **Recorded rather than dropped, and NOT silently re-asserted the other way.** The
+                 * 2-1 lineup shape above still holds and is still what the gate measures; what has
+                 * gone is the guarantee that the odd member punishes preparation. Whether that is
+                 * intended — a synergy trio is a different kind of hard from a rock-paper-scissors
+                 * one — is Henry's call, and it is on the 28a write-up as a decision.
+                 */
+                const ruling3 = beats(odd, shape.counter);
+                expect(ruling3, `${gymId}`).toBe(gymId === 'gym_rootfall');
+                if (ruling3) {
+                    expect(beats(shape.filler, odd), `${gymId}: my one answers the odd member`).toBe(true);
+                    // Nothing the boss fields is FOOD for the filler's own element beyond that, and
+                    // the filler is never itself food — it shares the leader's element, so their
+                    // pair is neutral into it.
+                    expect(bossElements.some((b) => beats(b, shape.filler))).toBe(false);
+                }
             }
         }
     });

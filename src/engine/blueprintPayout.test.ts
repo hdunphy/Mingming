@@ -82,7 +82,14 @@ describe('the blueprint roll', () => {
     const seeds = endOfFightSeeds(SAMPLE);
 
     it('pays each fight kind at the rate its table states, per BODY (three bodies: no solo bonus)', () => {
-        for (const kind of ['wild', 'elite', 'ambush', 'gym'] as NodeKind[]) {
+        /*
+         * TICKET 18a DROPPED `gym` FROM THIS LOOP. The gauntlet's three fights pay nothing at all
+         * now — Henry, 2026-09-24: *"the gym is the last fight, so a payout only means something if
+         * it PERSISTS"* — so `BLUEPRINT_DROP_RATE.gym` is no longer a rate any roll consults. It is
+         * the figure the one end-of-gauntlet award is SIZED against (nine rolls at a half = 4.5),
+         * and `RewardSystem.test.ts`'s 18a block asserts that arithmetic against the award itself.
+         */
+        for (const kind of ['wild', 'elite', 'ambush'] as NodeKind[]) {
             const { perBody } = measure(kind, 3, seeds);
             // ±3 points: wide enough that the LCG's own lumpiness is not a flake, tight enough that
             // a table read as per-FIGHT (which would land near a third of this) fails loudly.

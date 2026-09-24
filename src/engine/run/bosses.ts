@@ -69,18 +69,43 @@ export interface IAuthoredBoss {
 /**
  * The authored gym bosses, by gym id. A gym absent from this table fields ticket 18's formula boss.
  *
- * **EMBERFALL** (ruling 5): fenrir_v1 (UNBOUND_KERNEL) + skoll_v1 (TREACHERY_KERNEL) + ratatoskr_v2
- * (INSTIGATOR_OS), under **WAR FOOTING**. Henry's design note, kept because it is the intent the
- * measurement should be read against: *"skoll_v1 punishes wide chip (zoo feeds it) — deliberate; the
- * first fight in the game that pushes back on the dominant zoo comp."* The intended counter, for the
- * sim gate's record, is a control-leaning 2 Water + 1 Fire.
+ * ══ TICKET 28a (Henry, 2026-09-24) — **THIS IS THE ONE GYM COMP TABLE NOW.** ══
+ *
+ * `gyms.ts` carried a second one, `IGym.leaderComp`, put there by 142b as an explicit placeholder
+ * (*"ticket 28 should overwrite these with the authored teams"*). It never was, and the two
+ * disagreed at every gym — so **the scout previewed a team the gauntlet does not field**, which is
+ * the worst shape a free look can take: not missing information, but wrong information the player
+ * has no reason to distrust. `leaderComp` is deleted; `gymCompElementPlan` and `scoutFirmwareFor`
+ * read this table, and so does 157's walker when it recruits toward the gym.
+ *
+ * **The trios also changed**, on Henry's ruling: *"bosses, but whichever trio has the better
+ * synergies (zoo / control / ramp)"*. Each gym fields **two own-element bodies plus one guest** and
+ * a single readable plan, drawn from 158's partner tags — which is the same authored web the recruit
+ * policy reads, so a gym is now a party built by the rules the player builds under.
+ *
+ * Kept from the old entries, exactly: the **Driver** at each gym, and the design notes below, which
+ * are the intent the measurement is read against.
+ *
+ * **EMBERFALL** — **fenrir_v2 (CINDER_WALL) + skoll_v2 (EMBER_FUSE) + kraken_v2 (TIDAL_CRUSH)**,
+ * under **WAR FOOTING**. 28a, on Henry's "better synergies" ruling.
+ *
+ * The plan is DETONATION, and it is one plan rather than three bodies: skoll_v2 pushes Burn piles
+ * past the cap, kraken_v2's steam pre-loads them, and every Burn either applies is a Sharp for
+ * fenrir_v2 — which is `osGrammar`'s authored partner line for that pair, word for word (*"Steam
+ * Burns pre-load the pile Sköll detonates"*, *"Every Burn Sköll adds is Sharp for Fenrir"*). Two
+ * Fire bodies, one Water guest.
+ *
+ * Henry's note on the OLD trio is kept, because the thing it wanted is still true of this one:
+ * *"skoll_v1 punishes wide chip (zoo feeds it) — deliberate; the first fight in the game that pushes
+ * back on the dominant zoo comp."* Burn on every body punishes width the same way, without the v1
+ * kit. The intended counter for the gate's record is unchanged: control-leaning 2 Water + 1 Fire.
  */
 export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
     gym_emberfall: {
         members: [
-            { species: 'fenrir', os: 'fenrir_v1' },
-            { species: 'skoll', os: 'skoll_v1' },
-            { species: 'ratatoskr', os: 'ratatoskr_v2' },
+            { species: 'fenrir', os: 'fenrir_v2' },
+            { species: 'skoll', os: 'skoll_v2' },
+            { species: 'kraken', os: 'kraken_v2' },
         ],
         driver: DRIVER_WAR_FOOTING,
     },
@@ -118,11 +143,30 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
      * which is maximally efficient against many small hits — plus ticket 69's toolbox (riptide,
      * Short Circuit).
      */
+    /*
+     * TICKET 28a supersedes the composition above, and does it by going BACK to the shape ticket 74
+     * moved away from — so the reason is stated rather than buried.
+     *
+     * 74 swapped `kraken_v1` out because the trio was "two card-count engines plus a closer" and the
+     * FLOW was the multiplier. That was measured against the V1 COLLECTION. Collection v2 re-cut
+     * every card the argument was about: `ink_stream`, `whirlpool_v2` and `pressure_point` are not
+     * in kraken_v1's kit any more, and `undertow` now costs the caster a Weakened (152). The engine
+     * 74 pulled apart is not the engine that ships.
+     *
+     * What ships instead is the WATER ENGINE as `osGrammar` authors it: jormungandr_v1 and kraken_v1
+     * are listed partners in both directions (*"Both engines eat Undertow; ABYSSAL_INK turns Jorm's
+     * draws into Dazed"*), and ratatoskr_v1's GOSSIP heals through it. Two Water bodies, one Nature
+     * guest, under TIDAL SURGE — whose 10-card threshold charges off two engines again rather than
+     * one.
+     *
+     * 74's intended counter stands: **Nature**, the only launch element with Weakened, plus ticket
+     * 69's toolbox.
+     */
     gym_tidewrack: {
         members: [
             { species: 'jormungandr', os: 'jormungandr_v1' },
-            { species: 'kraken', os: 'kraken_v2' },
-            { species: 'skoll', os: 'skoll_v2' },
+            { species: 'kraken', os: 'kraken_v1' },
+            { species: 'ratatoskr', os: 'ratatoskr_v1' },
         ],
         driver: DRIVER_TIDAL_SURGE,
     },
@@ -141,10 +185,23 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
      * that motivated the toolbox: `soothe` (0e, 1 stack) loses the race, and `purify` is Light and
      * so off-EA.
      */
+    /*
+     * TICKET 28a changes ONE body — `ratatoskr_v1` (GOSSIP_NODE) becomes `ratatoskr_v2`
+     * (INSTIGATOR_OS) — which tightens the fight around the poison rather than re-composing it.
+     *
+     * The old third slot was party-wide 0-cost sustain: a different plan bolted to the poison one.
+     * `ratatoskr_v2` banks Dazed off the same 0-cost casts, and Dazed is +power on every one of
+     * jormungandr_v2's three flurry hits — `osGrammar`'s own line (*"Dazed on the target adds to
+     * every one of the flurry's hits"*) — while huldra_v2's Bark→Poison feeds TOXIN_FANG from the
+     * other side. One plan, three bodies. It also settles the note 72 left: GOSSIP_NODE now appears
+     * at no gym, so no OS is fielded twice across the three.
+     *
+     * 72's intended counter stands: **Fire** by type, plus ticket 69's cleanse toolbox.
+     */
     gym_rootfall: {
         members: [
             { species: 'huldra', os: 'huldra_v2' },
-            { species: 'ratatoskr', os: 'ratatoskr_v1' },
+            { species: 'ratatoskr', os: 'ratatoskr_v2' },
             { species: 'jormungandr', os: 'jormungandr_v2' },
         ],
         driver: DRIVER_ROOT_ROT,

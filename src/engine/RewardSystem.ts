@@ -419,6 +419,31 @@ export function usesV2Pool(party: ReadonlyArray<IRewardPartyMember>): boolean {
     return party.length > 0 && party.every((m) => V2_SPECIES.has(m.definitionId));
 }
 
+/**
+ * TICKET 25-pre — **is this card one an Early-Access run may hand a player at all?**
+ *
+ * `rewardCardPool` applies `V2_RUN_POOL` to the pool it builds, which covers every reward and the
+ * marketplace's five pool slots. It does NOT cover the stall's **stranger** slot, because that slot
+ * is by definition the COMPLEMENT of the pool — `marketplace.ts` drew it from
+ * `Object.keys(ProgramRegistry)` and therefore from the archived v1 collection and the ten post-EA
+ * species as well.
+ *
+ * Ticket 69's own comment is the argument for fixing it here rather than with a second list: the
+ * off-pool slot exists so a party meets a card *its team could not otherwise be offered*, and an
+ * archived card is not that — it is a card the game does not ship. Henry's 2026-09-24 ruling names
+ * it as 25's prerequisite.
+ *
+ * Exported as a PREDICATE rather than as the set, for the reason `V2_RUN_POOL`'s own comment gives:
+ * it is a gate at the one place that decides what a run may offer, and handing out the set invites
+ * a second copy of the rule somewhere else.
+ *
+ * Note the union is already right: `v2RunPool` seeds itself with `RUN_ONLY_CARDS` and
+ * `NEUTRAL_UTILITY_IDS`, so the neutral-utility answers stay reachable without a second clause here.
+ */
+export function inV2RunPool(dataId: string): boolean {
+    return V2_RUN_POOL.has(resolveProgramId(dataId));
+}
+
 
 export function isRewardable(rawId: string): boolean {
     // TICKET 162a: resolve the v2 renames before asking anything about the card. A deck that still
@@ -727,8 +752,65 @@ export interface IRewardRollInput {
  * **There is no re-entry parameter and no falloff.** See the module header: repeat fights on a
  * re-entered node pay full rewards, by Henry's amendment of 2026-08-21.
  */
+/**
+ * TICKET 18a (Henry, 2026-09-24) — **THE GYM PAYS BLUEPRINTS, AND ONLY AT THE END.**
+ *
+ * > *"The gym is the last fight, so a payout only means something if it PERSISTS: blueprints do
+ * > (the ranch), scrap does not (assembly costs none, the run is over)."*
+ *
+ * So the gauntlet's three fights pay **nothing** — no scrap, no blueprint, no card pick — and
+ * clearing it pays one authored award. The gate's free upgrade and its two patch offers (163b/d)
+ * are PRE-fight spends and are untouched by this.
+ *
+ * # THE SIZE IS TODAY'S SIZE, EXACTLY, AND THAT IS WHY IT IS NOT AN INTEGER
+ *
+ * `BLUEPRINT_DROP_RATE.gym` is 0.50 PER BODY, and the gauntlet is three bodies over three fights:
+ * nine rolls at a half, an expectation of **4.5 blueprints**. Henry sized the award at *"today's
+ * total (≈4.5)"*, and 4.5 is not a number of blueprints anybody can be handed.
+ *
+ * **Four guaranteed, plus a fifth on a coin flip.** That is the only shape whose expectation is
+ * exactly the 4.5 that ships today, so the change is a change of SHAPE — one award that persists,
+ * instead of nine rolls that mostly do not — and not a quiet re-tune of the payout. Rounding to 4
+ * would have cut the gym's pay by 11%, and to 5 raised it by 11%; either would have been a balance
+ * decision smuggled inside a delivery change.
+ *
+ * Recorded for Henry in case he wants the authored number to be truly authored: **5 flat** is the
+ * alternative, it is +0.5 a run, and it would make the whole award deterministic.
+ *
+ * # WHICH SPECIES
+ *
+ * The boss trio's, one per body, in line-up order — which is the same rule the per-enemy drop used
+ * (*"the species is the one you just defeated"*), applied to the fight that was actually the exam.
+ * The fifth, when it lands, repeats the leader.
+ */
+export const GYM_CLEAR_BLUEPRINTS = 4;
+export const GYM_CLEAR_BONUS_CHANCE = 0.5;
+
+export function gymClearBlueprints(seed: PrngSeed, bossSpecies: ReadonlyArray<string>): string[] {
+    if (bossSpecies.length === 0) return [];
+    const out: string[] = [];
+    for (let i = 0; i < GYM_CLEAR_BLUEPRINTS; i += 1) out.push(bossSpecies[i % bossSpecies.length]);
+    // The coin flip that makes the expectation exactly 4.5. Seeded off the fight like everything
+    // else here, so a gym clear replayed from a crash pays the same award.
+    if (new PRNG(seed).next().value < GYM_CLEAR_BONUS_CHANCE) out.push(bossSpecies[0]);
+    return out;
+}
+
 export function rollDropTable(input: IRewardRollInput): IRewardBundle {
     const { defeated, nodeKind, party, seed, dryFights = 0, firstRun = false } = input;
+
+    /*
+     * TICKET 18a: the gauntlet's fights pay nothing at all. The award is `gymClearBlueprints`,
+     * paid once when the third fight is won — see that function for the size and its arithmetic.
+     *
+     * Returned HERE rather than by zeroing `BLUEPRINT_DROP_RATE.gym` and `scrapForWin`, because
+     * those two tables are read by the report, the codex and the run gate as *"what a gym node is
+     * worth"*, and a zero in them would say the exam pays nothing — which is the opposite of what
+     * this ruling does.
+     */
+    if (nodeKind === 'gym') {
+        return { scraps: 0, blueprints: [], cards: [], cardChoices: [] };
+    }
 
     /*
      * THE FIGHT'S SIZE IS ITS CORPSES, not the player's party.

@@ -31,7 +31,8 @@ import { describe, expect, it } from 'vitest';
 import { generateRegionGraph, REGION_PARAMS } from './regionGraph';
 import { createRun } from './createRun';
 import { encounterSpeciesPool, scoutFirmwareFor, rollEncounter, gradeFor, enemyLoadoutFor, rivalElementPlan } from './encounter';
-import { GYM_REGISTRY, offerGyms, pathElementsFor, type IGymOffer } from './gyms';
+import { GYM_REGISTRY, gymLeaderFirmware, offerGyms, pathElementsFor, type IGymOffer } from './gyms';
+import { authoredBossFor } from './bosses';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 import { BLUEPRINT_DROP_RATE } from '../RewardSystem';
 import type { IBiome, IRunState } from '../runTypes';
@@ -244,7 +245,7 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
     it('fields TWO of the leader comp, as themselves — the firmware is the preview', () => {
         const firmware = scoutFirmwareFor(run, scout);
         expect(firmware).toHaveLength(2);
-        for (const os of firmware) expect(GYM_REGISTRY.gym_rootfall.leaderComp).toContain(os);
+        for (const os of firmware) expect(gymLeaderFirmware('gym_rootfall')).toContain(os);
 
         const { enemyParty } = rollEncounter({ run, node: scout, party: [member('mm1', 'fenrir')] });
         expect(enemyParty).toHaveLength(2);
@@ -274,11 +275,46 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
 
     it('every gym has a comp to cut, and every firmware in it is real', () => {
         for (const gym of Object.values(GYM_REGISTRY)) {
-            expect(gym.leaderComp).toHaveLength(3);
-            for (const os of gym.leaderComp) {
+            expect(gymLeaderFirmware(gym.id)).toHaveLength(3);
+            for (const os of gymLeaderFirmware(gym.id)) {
                 expect(Object.values(MingmingRegistry).some(d => d.availableOS.includes(os)),
                     `${gym.id} fields unknown firmware ${os}`).toBe(true);
             }
         }
+    });
+
+    /**
+     * TICKET 28a — **ONE TABLE, and this is the assertion that keeps it one.**
+     *
+     * Until 2026-09-24 the scout read `IGym.leaderComp` (a 142b placeholder) and the gauntlet read
+     * `bosses.AUTHORED_BOSSES`, and they disagreed at EVERY gym. Nothing failed, because nothing
+     * compared them: the preview and the exam were two facts about the same fight that no test ever
+     * put side by side. `leaderComp` is deleted, and this is what stops a second one growing back.
+     */
+    it('previews the team the gauntlet actually fields — 28a\'s one table', () => {
+        for (const gymId of Object.keys(GYM_REGISTRY)) {
+            const authored = authoredBossFor(gymId);
+            expect(authored, `${gymId} has no authored boss`).toBeDefined();
+            expect(gymLeaderFirmware(gymId)).toEqual(authored!.members.map((m) => m.os));
+        }
+    });
+
+    it('fields two own-element bodies and one guest at every gym — 28a\'s composition rule', () => {
+        // Henry's ruling is "whichever trio synergises best", and the shape every candidate kept is
+        // 2 + 1. Asserted so a later re-composition has to decide to break it rather than drift.
+        for (const gym of Object.values(GYM_REGISTRY)) {
+            const elements = gymLeaderFirmware(gym.id)
+                .map((os) => Object.values(MingmingRegistry).find((d) => d.availableOS.includes(os))?.primaryElement);
+            expect(elements.filter((e) => e === gym.element), `${gym.id}`).toHaveLength(2);
+            expect(elements.filter((e) => e !== gym.element), `${gym.id}`).toHaveLength(1);
+        }
+    });
+
+    it('fields no OS at more than one gym — a roster, not a pool', () => {
+        // 72's own note, now true of all three: "the same OS at two gyms makes the roster read as a
+        // pool". It was not true before 28a — `ratatoskr_v2` sat at Emberfall and `kraken_v2` and
+        // `skoll_v2` at Tidewrack while Rootfall and Emberfall each held one of their partners.
+        const all = Object.keys(GYM_REGISTRY).flatMap((id) => [...gymLeaderFirmware(id)]);
+        expect(new Set(all).size, `${all.join(', ')}`).toBe(all.length);
     });
 });

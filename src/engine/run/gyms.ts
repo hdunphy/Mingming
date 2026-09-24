@@ -14,6 +14,7 @@
 import { SeedStream } from '../core/SeedStream';
 import type { IBiome } from '../runTypes';
 import { MingmingRegistry } from '../data/mingmingRegistry';
+import { authoredBossFor } from './bosses';
 
 // ---------------------------------------------------------------------------------------------
 // The leaders
@@ -26,16 +27,18 @@ export interface IGym {
     readonly element: string;
     /** Difficulty, 0-based. `IRunState.tier` is copied from here at run start. */
     readonly tier: number;
-    /**
-     * TICKET 142b — the three firmwares the leader fields, and the thing the SCOUT shows two of.
+    /*
+     * TICKET 28a (Henry, 2026-09-24) — `leaderComp` IS GONE FROM THIS INTERFACE.
      *
-     * **Placeholders, like `name`, and ticket 28 owns the real ones.** These are the ticket-140
-     * comp grid's best measured comps of each gym's element pair, which is the most defensible
-     * stand-in available: it is what a good player would build for that element, so a cut of it is
-     * a fair preview of the exam. Ticket 28 should overwrite these with the authored teams and
-     * leave nothing else here alone.
+     * 142b put three firmware ids here as an explicit placeholder and said so: *"ticket 28 should
+     * overwrite these with the authored teams."* It never did, so the game carried TWO gym comp
+     * tables that disagreed at every gym — `bosses.AUTHORED_BOSSES` is what the gauntlet fields, and
+     * this is what the scout previewed. A free look at a team the gym does not field is worse than
+     * no free look: the player has no reason to distrust it.
+     *
+     * The authored table is the only one now. `gymCompElementPlan` below reads it, and so does
+     * `encounter.scoutFirmwareFor`.
      */
-    readonly leaderComp: ReadonlyArray<string>;
 }
 
 /**
@@ -58,18 +61,9 @@ export interface IGym {
  * `exploration-map.md`'s "harder tiers unlock by beating gyms" is post-launch content.
  */
 export const GYM_REGISTRY: Readonly<Record<string, IGym>> = {
-    gym_emberfall: {
-        id: 'gym_emberfall', name: 'Emberfall', element: 'Fire', tier: 0,
-        leaderComp: ['fenrir_v1', 'skoll_v1', 'jormungandr_v1'],
-    },
-    gym_tidewrack: {
-        id: 'gym_tidewrack', name: 'Tidewrack', element: 'Water', tier: 0,
-        leaderComp: ['kraken_v1', 'jormungandr_v1', 'huldra_v2'],
-    },
-    gym_rootfall: {
-        id: 'gym_rootfall', name: 'Rootfall', element: 'Nature', tier: 0,
-        leaderComp: ['kraken_v1', 'ratatoskr_v1', 'huldra_v1'],
-    },
+    gym_emberfall: { id: 'gym_emberfall', name: 'Emberfall', element: 'Fire', tier: 0 },
+    gym_tidewrack: { id: 'gym_tidewrack', name: 'Tidewrack', element: 'Water', tier: 0 },
+    gym_rootfall: { id: 'gym_rootfall', name: 'Rootfall', element: 'Nature', tier: 0 },
 };
 
 /**
@@ -266,6 +260,22 @@ function walkOrderFor(gymElement: string): ReadonlyArray<string> {
  * bad id TRAVELS. Resolve firmware ids here, where the lookup can return undefined and a caller
  * has to decide what that means.
  */
+/**
+ * TICKET 28a — **the firmware a gym's leader actually fields**, from the authored table.
+ *
+ * One accessor rather than three reads of `AUTHORED_BOSSES.members`, because the three consumers —
+ * the biome element plan below, the scout's preview, and 157's walker when it recruits toward the
+ * gym — have to agree, and the way two tables came to disagree in the first place was that each
+ * consumer read whichever one was nearest.
+ *
+ * Returns `[]` for a gym with no authored boss, which is ticket 18's formula-boss case: the biome
+ * plan then falls back to the gym's own element and the scout shows nothing, both of which are what
+ * they did before an authored table existed.
+ */
+export function gymLeaderFirmware(gymId: string): ReadonlyArray<string> {
+    return authoredBossFor(gymId)?.members.map((member) => member.os) ?? [];
+}
+
 export function speciesOwningFirmware(firmwareId: string): string | undefined {
     return Object.values(MingmingRegistry)
         .find((definition) => definition.availableOS.includes(firmwareId))?.id;
@@ -291,7 +301,9 @@ export function speciesOwningFirmware(firmwareId: string): string | undefined {
  */
 export function gymCompElementPlan(gym: IGym): ReadonlyArray<string> {
     const perBody: string[] = [];
-    for (const firmware of gym.leaderComp) {
+    // TICKET 28a: the ONE comp table. This used to read `gym.leaderComp`, a 142b placeholder that
+    // disagreed with what the gauntlet fields at every gym.
+    for (const firmware of gymLeaderFirmware(gym.id)) {
         const speciesId = speciesOwningFirmware(firmware);
         const element = speciesId ? MingmingRegistry[speciesId]?.primaryElement : undefined;
         if (element) perBody.push(element);

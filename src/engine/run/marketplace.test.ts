@@ -65,13 +65,16 @@ import {
     marketStockSeed,
     rollMarketStock,
     sellPrice,
+    upgradedCardPrice,
+    upgradedOfferFor,
+    upgradePrice,
 } from './marketplace';
 import { STARTER_GENERICS, createRun } from './createRun';
 import { encounterSeed } from './encounter';
 import { nodeSeed } from './nodeSeed';
 import { offerGyms } from './gyms';
 import { PARTY_SIZE } from '../party';
-import { isRewardable, rewardCardPool, scrapForWin } from '../RewardSystem';
+import { isRewardable, rewardCardPool, scrapForWin, inV2RunPool } from '../RewardSystem';
 import { GENERIC_HIT, MingmingRegistry, getDeckForOS } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
 import { numericBaseCost } from '../types';
@@ -1011,5 +1014,158 @@ describe("each shop is its own shelf, and it persists", () => {
         const ownedCopy = [{ ...shelf.offers[0].card, instanceId: 'owned_elsewhere' }];
         expect(isOfferSold(ownedCopy, shelf.offers[0])).toBe(false);
         expect(shelf.offers.every((o) => !isOfferSold(ownedCopy, o))).toBe(true);
+    });
+});
+
+/**
+ * TICKET 25-pre (Henry, 2026-09-24) — **THE STRANGER SLOT IS A CARD THE GAME SHIPS.**
+ *
+ * The off-pool slot drew from `ProgramRegistry` entire, so an Early-Access party could be sold a
+ * card out of the archived v1 collection or out of one of the ten post-EA species. Ticket 69's own
+ * argument for the slot is that it offers *"a card the party could not otherwise be offered"* — an
+ * archived card is not that; it is a card nobody can be offered, because the game does not ship it.
+ *
+ * Named as ticket 25's prerequisite because the vertical-slice playtest is the first time testers
+ * see the stall with collection v2 in it, and a v1 card on that shelf is a bug report about the
+ * collection rather than about the shop.
+ */
+describe('25-pre — an EA party is never sold a card outside collection v2', () => {
+    const EA_PARTY = [
+        { definitionId: 'fenrir', activeOS: 'fenrir_v1', id: 'mm1' },
+        { definitionId: 'kraken', activeOS: 'kraken_v1', id: 'mm2' },
+    ];
+
+    const stallIds = (party: typeof EA_PARTY, seeds: number, slots?: (slot: string) => boolean): string[] => {
+        const out: string[] = [];
+        for (let i = 0; i < seeds; i += 1) {
+            const run = makeRun(`stranger-${i}`);
+            for (const node of run.nodes.filter((n) => isMarketNode(n.kind))) {
+                const stock = rollMarketStock({ run, node, party });
+                out.push(...stock.offers.filter((o) => slots?.(o.slot) ?? true).map((o) => o.card.dataId));
+            }
+        }
+        return out;
+    };
+
+    /*
+     * 163f's `+` slot is the ONE declared exception to this rule, so it is excluded by NAME here
+     * rather than by widening `inV2RunPool`. That is the whole difference between an exception and a
+     * hole: this test failed when 163f landed, which is exactly what should happen when a new door
+     * opens onto a shelf a previous ticket closed.
+     */
+    const NOT_UPGRADED = (slot: string): boolean => slot !== 'upgraded';
+
+    it('offers nothing an EA run could not otherwise reach — every shelf slot, every market', () => {
+        const ids = stallIds(EA_PARTY, 12, NOT_UPGRADED);
+        expect(ids.length, 'no markets were rolled — the fixture is not exercising anything').toBeGreaterThan(30);
+        const outside = [...new Set(ids)].filter((id) => !inV2RunPool(id));
+        expect(outside, 'an archived-v1 or post-EA card reached the stall').toEqual([]);
+    });
+
+    it('still fills the stranger slot, so the gate narrowed it rather than emptying it', () => {
+        // The failure this guards is the quiet one: a filter that leaves nothing turns a seven-slot
+        // shelf into a six-slot shelf and no test notices.
+        const run = makeRun('stranger-fill');
+        const node = run.nodes.find((n) => isMarketNode(n.kind))!;
+        const stock = rollMarketStock({ run, node, party: EA_PARTY });
+        expect(stock.offers.filter((o) => o.slot === 'stranger')).toHaveLength(MARKET_WILDCARD_SLOTS);
+    });
+
+    it('leaves a party the v2 pool cannot speak for on the full complement', () => {
+        /*
+         * `usesV2Pool` is false the moment one member is post-EA, and the gate follows it rather
+         * than holding a second opinion: narrowing the shelf under a party whose own cards are not
+         * in `V2_RUN_POOL` would offer that member nothing. Asserted by finding a stranger the EA
+         * gate would have refused.
+         */
+        const mixed = [...EA_PARTY, { definitionId: 'ymir', activeOS: 'ymir_v1', id: 'mm3' }];
+        const ids = stallIds(mixed, 12, NOT_UPGRADED);
+        expect(ids.some((id) => !inV2RunPool(id)), 'the mixed party saw only v2 cards — check `usesV2Pool`').toBe(true);
+    });
+});
+
+/**
+ * TICKET 163f (Henry, 2026-09-23) — **ONE `+` CARD IN THE STALL, AND IT IS A DOOR, NOT A HOLE.**
+ *
+ * > *"An upgraded card may be found in the market stall for sale, priced below buying the base and
+ * > upgrading it — less than buying then upgrading the card, like 10–20% discount."*
+ *
+ * `isRewardable` refuses every `+` everywhere else, because the only way to hold one is to upgrade
+ * its base (163a). This shelf is the single explicit exception, and what has to be pinned is each
+ * of the three sides it is bounded on — one per RUN, from the PARTY's pool, at the derived price.
+ */
+describe('163f — the one upgraded card in the stall', () => {
+    const EA = [
+        { definitionId: 'fenrir', activeOS: 'fenrir_v1', id: 'mm1' },
+        { definitionId: 'kraken', activeOS: 'kraken_v1', id: 'mm2' },
+    ];
+
+    const upgradedSlots = (seed: string) => {
+        const run = makeRun(seed);
+        return run.nodes.filter((n) => isMarketNode(n.kind)).map((node) => ({
+            node,
+            offers: rollMarketStock({ run, node, party: EA }).offers.filter((o) => o.slot === 'upgraded'),
+        }));
+    };
+
+    it('appears at exactly ONE market in a run, however many the run has', () => {
+        for (let i = 0; i < 8; i += 1) {
+            const rows = upgradedSlots(`plus-run-${i}`);
+            expect(rows.length, 'the run rolled no markets').toBeGreaterThan(1);
+            expect(rows.filter((r) => r.offers.length > 0)).toHaveLength(1);
+        }
+    });
+
+    it('is an EXTRA slot, so a run that meets it loses nothing from the five', () => {
+        const run = makeRun('plus-extra');
+        const counts = run.nodes.filter((n) => isMarketNode(n.kind)).map((node) => {
+            const offers = rollMarketStock({ run, node, party: EA }).offers;
+            return { total: offers.length, pool: offers.filter((o) => o.slot === 'pool').length };
+        });
+        for (const row of counts) expect(row.pool).toBe(MARKET_STOCK_SIZE);
+        expect(new Set(counts.map((c) => c.total))).toEqual(new Set([MARKET_TOTAL_SLOTS, MARKET_TOTAL_SLOTS + 1]));
+    });
+
+    it('offers the `+` of a card THIS PARTY can use, not a stranger\'s', () => {
+        const run = makeRun('plus-pool');
+        const pool = rewardCardPool(EA);
+        for (const node of run.nodes.filter((n) => isMarketNode(n.kind))) {
+            for (const offer of rollMarketStock({ run, node, party: EA }).offers.filter((o) => o.slot === 'upgraded')) {
+                const id = offer.card.dataId;
+                expect(id.endsWith('+'), id).toBe(true);
+                expect(pool, `${id} is not an upgrade of anything in the party's pool`).toContain(id.slice(0, -1));
+            }
+        }
+    });
+
+    it('prices it at base + bench, less 15% — 35 / 45 / 60 / 70 by energy', () => {
+        // Derived, not tabled: the DISCOUNT is the ruling and the four numbers fall out of it, so a
+        // move to either price table carries this with it. The four rungs are asserted because they
+        // are the numbers Henry named.
+        const byEnergy = ['tackle', 'venom_fang', 'pack_tactics', 'hydro_blast'];
+        expect(byEnergy.map((id) => upgradedCardPrice(`${id}+`))).toEqual([35, 45, 60, 70]);
+        for (const id of byEnergy) {
+            const full = cardPrice(id) + upgradePrice(id);
+            expect(upgradedCardPrice(`${id}+`), `${id} is not a discount`).toBeLessThan(full);
+            expect(upgradedCardPrice(`${id}+`) / full).toBeGreaterThan(0.80);
+            expect(upgradedCardPrice(`${id}+`) / full).toBeLessThan(0.90);
+        }
+    });
+
+    it('cannot be farmed by refreshing — the slot is a property of the RUN, not of the visit', () => {
+        // `marketStockSeed` moves with `marketRefreshes` and `upgradedOfferFor` deliberately does
+        // not read it, so a player who refreshes the wrong stall does not eventually roll one up.
+        const run = makeRun('plus-farm');
+        const markets = run.nodes.filter((n) => isMarketNode(n.kind));
+        const carrier = markets.find((n) => upgradedOfferFor(run, n, rewardCardPool(EA)) !== null)!;
+        const other = markets.find((n) => n.id !== carrier.id)!;
+        for (let refreshes = 0; refreshes < 4; refreshes += 1) {
+            const refreshed = { ...run, marketRefreshes: { [other.id]: refreshes } };
+            expect(upgradedOfferFor(refreshed, other, rewardCardPool(EA))).toBeNull();
+        }
+    });
+
+    it('offers nothing when the party has no upgradable card, rather than reaching outside the pool', () => {
+        expect(upgradedOfferFor(makeRun('plus-empty'), makeRun('plus-empty').nodes.find((n) => isMarketNode(n.kind))!, [])).toBeNull();
     });
 });

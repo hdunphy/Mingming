@@ -63,7 +63,6 @@
  * this module needs and the reason it exists without loosening the card type for everyone else.
  */
 
-import { AUTHORED_BOSSES, type IAuthoredBoss } from '../../engine/run/bosses';
 import { FIRMWARE_REGISTRY, getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { DRIVER_ROOT_ROT } from '../../engine/data/driverRegistry';
 import { HookLibraryItemSchema } from '../../engine/data/HookSchema';
@@ -214,6 +213,15 @@ const RETIRED: ReadonlyArray<{ readonly matches: (name: string) => boolean; read
         why: 'COMMITTED by ticket 74 follow-up — thorn_tithe is printed at 30 power. The reprice arm '
             + 'measured 30 as free (75.0%, p = 1.00 paired against 40). See research/73 §7.4.',
     },
+    {
+        matches: (n) => n === ROOTFALL_RAT_V2,
+        why: 'COMMITTED by steam-release ticket 28a (Henry, 2026-09-24) — Rootfall\'s authored trio '
+            + 'FIELDS ratatoskr_v2 now, so the knob has nothing left to swap and the baseline IS the '
+            + 'arm. This was ticket 76 arm 4\'s candidate; 28a took it on the synergy argument '
+            + '(INSTIGATOR banks Dazed off the same 0-cost casts, and Dazed is +power on every one '
+            + 'of jormungandr_v2\'s three flurry hits) rather than on this knob\'s numbers, which '
+            + 'were never run. Drop the flag.',
+    },
 ];
 
 export type TweakName = string;
@@ -229,14 +237,12 @@ export function validateTweaks(names: ReadonlyArray<string>): void {
     for (const name of names) {
         const retired = RETIRED.find((entry) => entry.matches(name));
         if (retired) throw new Error(`[tweaks] "${name}" ${retired.why}`);
-        if (name === ROOTFALL_RAT_V2) continue;
         const candidate = rootRotCandidate(name);
         if (candidate === 'c2') throw new Error(C2_REFUSAL);
         if (candidate !== undefined) continue;
         throw new Error(
-            `[tweaks] unknown tweak "${name}". The live knobs are "${ROOTFALL_RAT_V2}" `
-            + '(ticket 76 arm 4) and "root-rot-c1" / "root-rot-c3" (ticket 77 Track C). Everything else '
-            + 'this module carried has been ruled on and printed.',
+            `[tweaks] unknown tweak "${name}". The live knobs are "root-rot-c1" / "root-rot-c3" `
+            + '(ticket 77 Track C). Everything else this module carried has been ruled on and printed.',
         );
     }
 }
@@ -245,10 +251,6 @@ export function validateTweaks(names: ReadonlyArray<string>): void {
 export function describeTweaks(names: ReadonlyArray<string>): ReadonlyArray<string> {
     validateTweaks(names);
     return names.map((name) => {
-        if (name === ROOTFALL_RAT_V2) {
-            return `${ROOTFALL_RAT_V2}: Rootfall's trio fields ratatoskr_v2 in place of ratatoskr_v1 `
-                + '(candidate only — ticket 76 moves no lever before Henry\'s session)';
-        }
         const candidate = rootRotCandidate(name);
         if (candidate === 'c1' || candidate === 'c3') {
             return `${name}: driver_root_rot's hooks REPLACED for this run — ${ROOT_ROT_CANDIDATES[candidate].description} `
@@ -275,23 +277,8 @@ export function applyRegistryTweaks(names: ReadonlyArray<string>): ReadonlyArray
             applied.push(name);
             continue;
         }
-        if (name !== ROOTFALL_RAT_V2) continue;
-
-        const gym = AUTHORED_BOSSES['gym_rootfall'];
-        if (gym === undefined) throw new Error('[tweaks] gym_rootfall has no authored boss');
-
-        const slot = gym.members.findIndex((m) => m.os === 'ratatoskr_v1');
-        if (slot < 0) {
-            // The trio changed under the knob — measuring it now would describe the wrong experiment.
-            throw new Error(
-                '[tweaks] Rootfall no longer fields ratatoskr_v1, so `rootfall-rat-v2` has nothing to '
-                + 'swap. The candidate is stale; re-read ticket 76 before running this arm.',
-            );
-        }
-
-        const members = gym.members.map((m, i) => (i === slot ? { ...m, os: 'ratatoskr_v2' } : m));
-        (AUTHORED_BOSSES as Record<string, IAuthoredBoss>)['gym_rootfall'] = { ...gym, members };
-        applied.push(name);
+        // TICKET 28a: `rootfall-rat-v2`'s swap is SHIPPED, so the knob is retired above rather than
+        // applied here. `validateTweaks` has already thrown by the time this loop sees the name.
     }
 
     return applied;

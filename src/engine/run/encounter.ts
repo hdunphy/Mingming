@@ -45,7 +45,7 @@ import { initializeBattleEntity, numericBaseCost } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
 import { authoredBossFor } from './bosses';
-import { GYM_REGISTRY, gymCompElementPlan, pathElementsFor, speciesOwningFirmware } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan, gymLeaderFirmware, pathElementsFor, speciesOwningFirmware } from './gyms';
 import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
 
@@ -814,7 +814,10 @@ export function gymDriverForNode(run: IRunState, node: IRegionNode): string | un
  */
 export function scoutFirmwareFor(run: IRunState, node: IRegionNode): string[] {
     if (!node.scout) return [];
-    const comp = GYM_REGISTRY[run.gymId]?.leaderComp ?? [];
+    // TICKET 28a: the scout previews the team the GAUNTLET FIELDS. It read `leaderComp`, a 142b
+    // placeholder that disagreed with `AUTHORED_BOSSES` at every gym — so the one free look at the
+    // exam showed the wrong paper, which is worse than showing none.
+    const comp = gymLeaderFirmware(run.gymId);
     if (comp.length === 0) return [];
     const stream = new SeedStream(new SeedStream(encounterSeed(run, node)).fork('scout-comp'));
     return stream.shuffle([...comp]).slice(0, 2);

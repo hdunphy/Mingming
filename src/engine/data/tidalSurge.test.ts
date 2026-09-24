@@ -29,6 +29,7 @@ import { applyMutations, executeResolutionStack } from '../resolutionEngine';
 import { resolveSideCounterKey as sideKey } from '../core/HookTypes';
 import type { IBiome } from '../runTypes';
 import type { IBattleEntity, IBattleState, IMingmingState } from '../types';
+import { GetProgramData } from './programRegistry';
 
 const DRIVER = 'driver_tidal_surge';
 
@@ -201,46 +202,71 @@ describe('Tidewrack, authored', () => {
     it('is the authored trio and not a rolled one', () => {
         const { fight } = fightFor('gym_tidewrack');
         const running = fight.enemyParty.map((e: IBattleEntity) => e.activeOS).sort();
-        // TICKET 74: kraken_v1 -> kraken_v2. Transcribed rather than read back off `AUTHORED_BOSSES`
-        // on purpose — a pin that derives its expectation from the table it guards passes whatever
-        // the table says, which is the one thing a pin must not do.
-        expect(running).toEqual(['jormungandr_v1', 'kraken_v2', 'skoll_v2']);
+        /*
+         * TICKET 28a (Henry, 2026-09-24) re-composed this gym, and it went BACK to `kraken_v1` —
+         * the body ticket 74 took out. Both moves were right at the time and the reason is in
+         * `bosses.ts`: 74's argument was about the FLOW of two card-count engines, measured against
+         * the V1 collection, and 162 re-cut every card it was about (`ink_stream` is kraken-only
+         * now, `whirlpool` and `pressure_point` are not in the kit, `undertow` costs a Weakened).
+         * The two-engine fight 74 dismantled is not the fight this trio plays.
+         *
+         * Still TRANSCRIBED rather than read back off `AUTHORED_BOSSES` — a pin that derives its
+         * expectation from the table it guards passes whatever the table says, which is the one
+         * thing a pin must not do. So this line moving is the signal that the gym was re-composed,
+         * and it did its job on 28a.
+         */
+        expect(running).toEqual(['jormungandr_v1', 'kraken_v1', 'ratatoskr_v1']);
     });
 
-    it('fields ONE draw engine after ticket 74, which is the substance of the swap', () => {
-        /*
-         * The comp swap is only worth what it takes out of the pile, and that is the thing a future
-         * edit could silently undo — restoring `kraken_v1`, or handing `kraken_v2` a draw payoff,
-         * would leave the trio assertion above green while putting the two-engine fight back.
-         *
-         * research/73: `CARDS_DRAWN_TRIGGERED` is scoped per-Mingming, so an `ink_stream` is worth
-         * whatever its OWN body drew this turn. Two bodies each holding the payoff AND its own
-         * cantrips is the 30.0% fight; one body holding it is the ticket's bet.
-         */
+    /**
+     * ══ TICKET 28a PUT THE SECOND DRAW ENGINE BACK, AND THIS IS THE ROW THAT SAYS SO. ══
+     *
+     * Ticket 74 removed `kraken_v1` from this gym because the trio was *"two card-count-and-draw
+     * engines plus a closer"*: research/73 measured the fight at **30.0% against a ~84.3% per-fight
+     * guide**, and found the cause was not the payoff card's printed power (a 64% cut to
+     * `ink_stream` bought 13 points and did not clear, p = 0.22) but the FLOW —
+     * `CARDS_DRAWN_TRIGGERED` is scoped per-Mingming, so each engine multiplies its own cantrips.
+     *
+     * **Henry's 28a ruling composes for synergy and names `jormungandr_v1 + kraken_v1 +
+     * ratatoskr_v1`, which is the two-engine shape again.** This row used to assert the absence; it
+     * asserts the RETURN, with the count, because the alternative is a silently re-created fight
+     * that one ticket already measured as too hard.
+     *
+     * What is genuinely different is the collection, not the composition, and it is not obviously
+     * enough: `undertow` costs the caster a Weakened since 152, and the v2 kits are not the v1 ones.
+     * What is NOT different is the thing 74 actually indicted — **the pile holds two `ink_stream`
+     * again**, and both engines are on the field to read their own draws.
+     *
+     * Canaried on the real boss fight before shipping (`results/t28a-canary.txt`): the boss goes
+     * **33% → 100%** against its own named counter party. That is three battles and not a number,
+     * but it points the same way 73's 1,200 did. **Flagged to Henry on the 28a write-up as a
+     * decision, shipped as ruled.**
+     */
+    it('fields TWO draw engines again — 74\'s shape, returned by 28a and flagged', () => {
         const { fight } = fightFor('gym_tidewrack');
         const pile: ReadonlyArray<string> = fight.enemyDeckIds;
+        const running = fight.enemyParty.map((e: IBattleEntity) => e.activeOS);
+
+        // Both engines on the field: OUROBOROS_LOOP counts cards played, ABYSSAL_INK turns draws
+        // into Dazed, and each reads its OWN body's count.
+        expect(running).toContain('jormungandr_v1');
+        expect(running).toContain('kraken_v1');
+
+        // And the payoff is in the pile, twice — the exact quantity 73's arms were run against.
+        expect(pile.filter((id) => id === 'ink_stream').length,
+            '74\'s indictment was the FLOW, and the pile that carried it is back').toBe(2);
+        expect(pile.filter((id) => id === 'undertow').length,
+            'the shared cantrip both engines eat').toBeGreaterThan(0);
 
         /*
-         * TICKET 162a: the NUMBERS moved, the claim did not. Collection v2 rules `ink_stream`
-         * KRAKEN-ONLY (162 §2, Henry's 09-21 directions), so jormungandr_v1 no longer holds it at
-         * all — his v1 lane is cards-played plus refund ramp, `serpents_coil` and `riptide_run`.
-         *
-         * That makes the swap's claim STRONGER, not weaker: the gym pile now holds zero copies of
-         * the triggered-draw payoff rather than two, and what a future edit could silently undo is
-         * restoring kraken_v1 to this gym. Asserted as zero rather than deleted, because "no
-         * `ink_stream` in the pile" is exactly the property the row was bought for.
+         * The one thing that IS different, pinned so a future reader can tell the two fights apart:
+         * `undertow` costs its caster a Weakened now (152), so the cantrip that feeds both engines
+         * is no longer free. Whether that is enough to make this a different fight is the open
+         * question, not something this test should decide.
          */
-        expect(pile.filter((id) => id === 'ink_stream').length,
-            'ink_stream is Kraken-only since collection v2; kraken_v1 is not in this gym').toBe(0);
-        expect(pile.filter((id) => id === 'undertow').length,
-            'jormungandr_v1 opens on two; the third cantrip left with kraken_v1').toBe(2);
-        for (const gone of ['whirlpool', 'pressure_point']) {
-            expect(pile, `${gone} is ABYSSAL_INK_SYS's draw half and should be out of the pile`).not.toContain(gone);
-        }
-        // And the replacement really is present, or the swap dropped a body rather than changing one.
-        // TICKET 162a: kraken_v2's 3e payoff in collection v2 is `hydro_blast` (120 power, Henry's
-        // v2.1 note); `maelstrom` moved to that OS's POOL, so the gym pile no longer opens with it.
-        expect(pile, 'TIDAL_CRUSH\'s 3e payoff').toContain('hydro_blast');
+        const undertow = GetProgramData('undertow');
+        expect((undertow.actions ?? []).some((a) => (a as { status?: string }).status === 'Weakened'),
+            'ticket 152 put a self-Weakened on undertow; without it this is 74\'s fight exactly').toBe(true);
     });
 
     it('telegraphs on the offer screen and carries to the region final elite', () => {

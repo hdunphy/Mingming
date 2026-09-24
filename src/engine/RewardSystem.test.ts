@@ -26,7 +26,11 @@ import {
     rollDraftRounds,
     rollDropTable,
     blueprintRateFor,
+    gymClearBlueprints,
+    GYM_CLEAR_BLUEPRINTS,
+    GYM_CLEAR_BONUS_CHANCE,
 } from './RewardSystem';
+import { GAUNTLET_FIGHTS } from './run/gauntlet';
 import { GetProgramData, ProgramRegistry } from './data/programRegistry';
 import { getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
 import { encounterSeed } from './run/encounter';
@@ -154,7 +158,15 @@ describe('RewardSystem', () => {
             // fights ONE body, and a one-body fight is a solo fight, which the ruling pays 10 points
             // above the table. Comparing to the raw number here would be asserting that the solo
             // bonus does not exist — this file's own sampler is the shape the bonus is for.
-            for (const kind of ['wild', 'ambush', 'elite', 'gym'] as const) {
+            /*
+             * TICKET 18a DROPPED `gym` FROM THIS LOOP, and the gap is the point rather than an
+             * omission. The gauntlet pays nothing per fight now — Henry, 2026-09-24: *"the gym is
+             * the last fight, so a payout only means something if it PERSISTS"* — so its table entry
+             * is what the CLEAR award is sized against (`gymClearBlueprints`) and no longer what any
+             * roll consults. `BLUEPRINT_DROP_RATE.gym` is asserted in the 18a block below, against
+             * the award, which is the only place it means anything now.
+             */
+            for (const kind of ['wild', 'ambush', 'elite'] as const) {
                 const expected = blueprintRateFor(kind, 1);
                 const observed = dropRate(kind);
                 expect(Math.abs(observed - expected),
@@ -757,5 +769,77 @@ describe('RewardSystem', () => {
             expect(getScrapYield('Legendary')).toBe(10);
             expect(getScrapYield()).toBe(10);
         });
+    });
+});
+
+/**
+ * TICKET 18a (Henry, 2026-09-24) — **THE GYM PAYS BLUEPRINTS ONLY, AND ONLY WHEN IT IS CLEARED.**
+ *
+ * > *"The gym is the last fight, so a payout only means something if it PERSISTS: blueprints do
+ * > (the ranch), scrap does not (assembly costs none, the run is over)."*
+ *
+ * Two claims, and the second is the one that could have been fudged. The first is that the gauntlet
+ * pays nothing per fight. The second is that the award is **the same size as what it replaces** —
+ * nine rolls at `BLUEPRINT_DROP_RATE.gym` is an expectation of 4.5 blueprints, and rounding that to
+ * a whole number would have moved the gym's pay by 11% inside a delivery change.
+ */
+describe('18a — the gauntlet pays nothing, and the clear pays blueprints', () => {
+    const boss = ['fenrir', 'skoll', 'kraken'];
+
+    it('pays no scrap, no blueprint and no pick for a gym fight', () => {
+        const bundle = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe'), makeDeadEntity('e2', 'skoll', 'Foe')],
+            nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-pays-nothing', dryFights: 9, firstRun: true,
+        });
+        expect(bundle.scraps).toBe(0);
+        expect(bundle.blueprints).toEqual([]);
+        expect(bundle.cardChoices).toEqual([]);
+        expect(bundle.cards).toEqual([]);
+    });
+
+    it('ignores even the pity floor, which is the one thing that could still have paid', () => {
+        // `dryFights: 9` is well past `BLUEPRINT_PITY_FIGHTS`, so the per-body path would have
+        // GUARANTEED a drop. The gym branch returns before any of that runs.
+        const bundle = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'kraken', 'Foe')],
+            nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-pity', dryFights: 99,
+        });
+        expect(bundle.blueprints).toEqual([]);
+    });
+
+    it('pays FOUR blueprints on a clear, one per body in line-up order', () => {
+        const award = gymClearBlueprints('a-seed-that-loses-the-flip', boss);
+        expect(award.length).toBeGreaterThanOrEqual(GYM_CLEAR_BLUEPRINTS);
+        expect(award.slice(0, 3)).toEqual(boss);
+        expect(award[3]).toBe(boss[0]);
+    });
+
+    it('has an expectation of exactly 4.5 — the number it replaces', () => {
+        /*
+         * The arithmetic, asserted rather than asserted-in-a-comment: `BLUEPRINT_DROP_RATE.gym` is
+         * per BODY, the gauntlet is three bodies over three fights, so today's expectation is
+         * 9 x 0.50 = 4.5. Four guaranteed plus a coin flip is the only integer-plus-roll shape that
+         * matches it, which is why the award is not a round number.
+         */
+        const today = 3 * GAUNTLET_FIGHTS * BLUEPRINT_DROP_RATE.gym;
+        expect(today).toBe(4.5);
+        expect(GYM_CLEAR_BLUEPRINTS + GYM_CLEAR_BONUS_CHANCE).toBe(today);
+
+        // And measured, over enough seeds that the flip shows: the mean lands on 4.5.
+        const sizes = Array.from({ length: 400 }, (_, i) => gymClearBlueprints(`flip-${i}`, boss).length);
+        const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
+        expect(mean).toBeGreaterThan(4.3);
+        expect(mean).toBeLessThan(4.7);
+        expect(new Set(sizes)).toEqual(new Set([4, 5]));
+    });
+
+    it('is deterministic in the seed, so a clear replayed after a crash pays the same award', () => {
+        expect(gymClearBlueprints('same', boss)).toEqual(gymClearBlueprints('same', boss));
+    });
+
+    it('pays nothing when there is no authored boss to pay for', () => {
+        // Ticket 18's formula-boss case. An empty award is honest; an award of four copies of
+        // `undefined` would reach `addBlueprint` and sit in the ranch as a species nobody has.
+        expect(gymClearBlueprints('seed', [])).toEqual([]);
     });
 });

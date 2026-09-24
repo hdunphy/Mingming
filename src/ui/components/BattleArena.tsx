@@ -27,7 +27,8 @@ import { isValidCardTarget, targetVerdict } from '../utils/targeting';
 import { getBestAction } from '../../engine/ai/TacticalAI';
 import { canFireMacro } from '../../engine/battleReducer';
 import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
-import { rollDropTable } from '../../engine/RewardSystem';
+import { rollDropTable, gymClearBlueprints } from '../../engine/RewardSystem';
+import { authoredBossFor } from '../../engine/run/bosses';
 import { paysDriver } from '../../engine/run/driverStakes';
 import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
 import BattleReport from './BattleReport';
@@ -1030,6 +1031,30 @@ const BattleArena: React.FC = () => {
              * The double dispatch is free because both reducers are idempotent by construction:
              * `markGymCleared` ignores a gym it already holds, and `recordTierCleared` is monotonic.
              */
+            /*
+             * TICKET 18a (Henry, 2026-09-24) — **THE GYM'S PAYOUT, PAID ONCE, IN BLUEPRINTS.**
+             *
+             * > *"The gym is the last fight, so a payout only means something if it PERSISTS:
+             * > blueprints do (the ranch), scrap does not (assembly costs none, the run is over)."*
+             *
+             * The three gauntlet fights now pay nothing (`rollDropTable` returns an empty bundle for
+             * `nodeKind: 'gym'`), and this is the award that replaces them — sized at exactly what
+             * those nine per-body rolls paid in expectation. See `gymClearBlueprints` for the
+             * arithmetic and for why it is four-plus-a-coin-flip rather than a round number.
+             *
+             * Banked here, beside `markGymCleared`, and for the same reason ticket 12 banks every
+             * other blueprint on drop rather than on claim: **a player who beats the leader and then
+             * loses the app has beaten the leader.** `recordBankedBlueprint` keeps the pity counter
+             * honest exactly as the per-fight path does.
+             */
+            for (const speciesId of gymClearBlueprints(
+                battleState?.seed ?? run.seed,
+                (authoredBossFor(run.gymId)?.members ?? []).map((m) => m.species),
+            )) {
+                dispatch(addBlueprint(speciesId));
+                dispatch(recordBankedBlueprint(speciesId));
+            }
+
             dispatch(markGymCleared(run.gymId));
             dispatch(recordTierCleared(run.tier));
             // Ordered after `finishGauntlet`, which sets the phase back to 'map': the run is over,

@@ -1,6 +1,6 @@
 # Vertical Slice playtest round: protocol, scoresheet, findings (ticket 25)
 
-> **2026-09-24 — RE-SCOPED against deck-archetypes 161/162/163 (Henry's rulings). The testers play collection v2 (98 cards) with in-place `+` upgrades at three benches and one OS patch per body; the run log already records CARD_UPGRADED and PATCH_TAKEN — add "upgrades taken / patches fitted" to the scoresheet. "Removed" is not a verb any more (61); "sold" is. The 20–25 deck gate STANDS (Henry: grow the deck, but only to about 20–25 — mostly replacing; no extra Strike/Block filler, the three tackles are the filler). PREREQ 25-pre (Legion): gate the stranger slot on V2_RUN_POOL for all-EA parties (69's open flag — `marketplace.ts` still draws from the whole registry, so a post-EA card can appear in the stall).**
+> **2026-09-24 — RE-SCOPED against deck-archetypes 161/162/163 (Henry's rulings). The testers play collection v2 (98 cards) with in-place `+` upgrades at three benches and one OS patch per body; the run log already records CARD_UPGRADED and PATCH_TAKEN — add "upgrades taken / patches fitted" to the scoresheet. "Removed" is not a verb any more (61); "sold" is. The 20–25 deck gate STANDS (Henry: grow the deck, but only to about 20–25 — mostly replacing; no extra Strike/Block filler, the three tackles are the filler). **25-pre is DONE (2026-09-24)** — see the write-back at the foot of this file. This ticket is unblocked on that count.**
 
 - Type: wayfinder:task
 - Status: open
@@ -20,3 +20,28 @@ The first playtest of the LOOP (previous rounds tested fights). Protocol file un
 
 _(open)_
 
+---
+
+## 25-pre — done (2026-09-24)
+
+**The stranger slot is gated to the EA pool.** `marketplace.rollMarketStock` drew that slot from
+`Object.keys(ProgramRegistry)` entire, so an all-EA party could be sold a card out of the archived v1
+collection or out of one of the ten post-EA species — on the one shelf whose whole job is *"this is
+not one of your team's cards"*. It is: it is not anyone's.
+
+Narrowed by **the same gate `rewardCardPool` already narrows rewards with**, and on the same
+`usesV2Pool` test, so a party with a post-EA member keeps the full complement rather than being
+handed a shelf that cannot speak for it. `RewardSystem.inV2RunPool` is that gate, exported as a
+predicate rather than as the set so a second copy of the rule cannot grow somewhere else; the union
+is already right, because `v2RunPool` seeds itself with the run-only daemons and the neutral-utility
+answers.
+
+`marketplace.test.ts` asserts it three ways — nothing outside the pool on any shelf slot across
+twelve runs' markets, the stranger slot still FILLED (a filter that emptied it would quietly drop the
+shelf to six), and a mixed party still seeing the full complement. Mutation-tested by removing the
+gate; the first of the three fails.
+
+**It caught its own next hole immediately.** Deck-archetypes 163f landed a `+` card on this shelf the
+same day, and the first assertion went red — which is what should happen when a new door opens onto a
+shelf a previous row closed. The `+` slot is excluded there by NAME, as a declared exception rather
+than by widening the pool gate.

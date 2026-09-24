@@ -34,6 +34,7 @@
  */
 
 import { LAUNCH_SPECIES, MingmingRegistry, PLAYABLE_SPECIES } from './data/mingmingRegistry';
+import { inV2RunPool } from './RewardSystem';
 import { ProgramRegistry } from './data/programRegistry';
 import type { ICodex } from './runTypes';
 
@@ -44,42 +45,71 @@ import type { ICodex } from './runTypes';
 /**
  * Every card the codex counts.
  *
- * **Tokens are excluded, and that is the filter with an argument behind it.** `programs.json` holds
- * 216 entries, four of which are `rarity: 'Token'` (`hoof_strike`, `feedback_token`,
- * `sky_burial_risen`, `sky_burial_ascended`). A token is generated mid-battle by another card; it
- * is never drafted, bought, owned or chosen. Counting them would make 100% depend on having drawn
- * the right generator at the right moment, which is a completion the player cannot pursue.
+ * ══ TICKET 31a (Henry, 2026-09-24) — **THE DENOMINATOR IS WHAT AN EA RUN CAN MEET.** ══
  *
- * So the codex's denominator is **212**, and the tokens still record if they are played — they just
- * do not make the target harder to reach.
+ * The registry holds 366 entries: 98 collection-v2 cards, ~170 archived v1 cards, 98 `+` forms and
+ * the tokens. This function counted 264 of them while an Early-Access run can meet about 109, so
+ * **the codex was incompletable as built** — not hard, impossible, and impossible in a way that
+ * reads to a player as a bug in their save.
+ *
+ * Three exclusions now, each for the same reason and none of them a taste call:
+ *
+ * 1. **Tokens.** A token is generated mid-battle by another card; it is never drafted, bought,
+ *    owned or chosen. Counting one makes 100% depend on having drawn the right generator at the
+ *    right moment. They still RECORD when played — they just do not make the target harder.
+ * 2. **The `+` forms** (163a). Ninety-eight upgraded cards exist and none is ever offered:
+ *    `isRewardable` refuses them everywhere, and the only way to hold one is to upgrade its base.
+ *    **Henry ruled what they are instead: a `+` is a MARK on its base card's row, never a row of
+ *    its own.** `codexPlusMark` below is that rule; the base row is what completion counts.
+ * 3. **Everything outside the EA run pool** — the archived v1 collection. `inV2RunPool` is the same
+ *    gate `rewardCardPool` narrows rewards with and 25-pre narrows the stall's stranger with, so
+ *    the codex counts exactly what the three doors can hand over, and one edit moves all four.
+ *
+ * The union is right without a fourth clause: `v2RunPool` seeds itself with `RUN_ONLY_CARDS` and
+ * `NEUTRAL_UTILITY_IDS`, so the run-only daemons and the neutral answers are counted.
  */
 export function codexCardIds(): string[] {
     // `isToken`, not `rarity === 'Token'`: the data carries "Token" in its rarity column but the
     // `Rarity` union does not admit it, so the flag is the typed question and the string is a
     // coincidence of the JSON.
-    //
-    // TICKET 163a excludes the `+` cards on exactly the argument above. Ninety-eight upgraded forms
-    // are in the registry and NONE of them can be reached — there is no pool that offers one and,
-    // until 163b builds the workshop tab, no way to make one. Counting them would move the
-    // denominator to 310 and make 100% depend on content that does not yet exist. When 163b lands,
-    // whether an upgraded card is its own codex row or a mark on its base row is a design question
-    // for Henry, not something this filter should decide by default.
-    return Object.keys(ProgramRegistry)
-        .filter((id) => ProgramRegistry[id].isToken !== true && !ProgramRegistry[id].upgradeOf);
+    return Object.keys(ProgramRegistry).filter((id) => {
+        const data = ProgramRegistry[id];
+        return data.isToken !== true && !data.upgradeOf && inV2RunPool(id);
+    });
 }
 
 /**
- * Every species the codex counts: `PLAYABLE_SPECIES`, which is the registry minus the control.
+ * TICKET 31a — **is this card a `+`, and if so which row does it mark?**
  *
- * `MingmingRegistry` holds 17 entries and one of them (`control`) exists only as a balance-harness
- * baseline — `mingmingRegistry` says out loud that anything player-facing must enumerate through
- * `PLAYABLE_SPECIES` "or the control shows up as a wild Mingming". A codex is player-facing.
+ * Henry, 2026-09-24: *"a `+` card is a MARK on its base card's row, not its own entry."* So a codex
+ * that has seen `venom_fang+` has seen `venom_fang`, and the row says so with a mark rather than the
+ * collection growing a second row nobody can complete separately.
  *
- * The narrower `LAUNCH_SPECIES` (6) is what Early Access actually ships; it is exported below as
- * `codexLaunchSpeciesIds` so a screen can show "6 of 6 at launch" beside "6 of 16 eventually"
- * without either number pretending to be the other.
+ * Returns the base id for an upgraded card and `null` for everything else, so a caller can fold a
+ * `+` into the row it belongs to without asking the registry a second question.
+ */
+export function codexPlusMark(dataId: string): string | null {
+    return ProgramRegistry[dataId]?.upgradeOf ?? null;
+}
+
+/**
+ * Every species the codex counts. **TICKET 31a: `LAUNCH_SPECIES` — the EA six.**
+ *
+ * It was `PLAYABLE_SPECIES` (16), which is the registry minus the balance control. Sixteen is the
+ * eventual roster; **six is what blueprints can be dropped for**, because 162a parked the other ten
+ * on the archived v1 pool until after EA. A denominator of sixteen made the species track
+ * permanently 6/16 for a player who had done everything the game offers.
+ *
+ * `PLAYABLE_SPECIES` is still exported below, so a screen can show *"6 of 6 at launch"* beside
+ * *"6 of 16 eventually"* without either number pretending to be the other — which is the shape the
+ * old comment here wanted and got backwards.
  */
 export function codexSpeciesIds(): string[] {
+    return [...LAUNCH_SPECIES];
+}
+
+/** The eventual roster, for a screen that wants to show what EA is a slice of. */
+export function codexAllSpeciesIds(): string[] {
     return [...PLAYABLE_SPECIES];
 }
 
@@ -90,20 +120,25 @@ export function codexLaunchSpeciesIds(): string[] {
 /**
  * Every firmware the codex counts, derived by inverting `IMingmingDefinition.availableOS`.
  *
- * **Not** `Object.keys(FIRMWARE_REGISTRY)`, for two reasons. It is lazily populated — it is empty
- * until something calls `getOSBehavior`, so enumerating it directly is a race with whatever else
- * the app happened to do first. And it contains entries the player can never equip: the three
- * `boss_relic_*` signatures (ticket 18) and, since ticket 68, the `driver_*` enemy Drivers — which
- * ruling 4 puts explicitly out of the player's reach (*"enemy signature Drivers never enter the
- * player pool"*). Counting either would make the codex permanently incompletable.
+ * **Not** `Object.keys(FIRMWARE_REGISTRY)`, for two reasons. It is lazily populated — empty until
+ * something calls `getOSBehavior`, so enumerating it directly is a race with whatever else the app
+ * happened to do first. And it contains entries the player can never equip: since ticket 68 the
+ * `driver_*` enemy Drivers, which ruling 4 puts explicitly out of reach (*"enemy signature Drivers
+ * never enter the player pool"*). Counting one would make the codex permanently incompletable.
  *
- * Deriving from `availableOS` means that stays true without a filter anyone has to maintain: a
- * Driver is never on a species' list, so it can never be counted, and the next authored gym's
- * Driver needs no edit here.
+ * TICKET 31a struck the `boss_relic_*` clause that used to stand beside that one: those three
+ * firmware are DELETED (ticket 16), `gauntlet.test.ts` asserts none is registered anywhere, and a
+ * comment naming them as a live hazard sends the next reader looking for something that is gone.
+ *
+ * Deriving from `availableOS` means the Driver exclusion stays true without a filter anyone has to
+ * maintain: a Driver is never on a species' list, and the next authored gym's needs no edit here.
+ *
+ * TICKET 31a also narrows the species to `codexSpeciesIds` — the EA six — so this is the twelve EA
+ * firmware rather than thirty-two, for the same reason the species track is six.
  */
 export function codexOsIds(): string[] {
     const ids: string[] = [];
-    for (const species of PLAYABLE_SPECIES) {
+    for (const species of codexSpeciesIds()) {
         for (const os of MingmingRegistry[species]?.availableOS ?? []) {
             if (!ids.includes(os)) ids.push(os);
         }

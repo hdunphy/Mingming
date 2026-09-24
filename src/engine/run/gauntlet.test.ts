@@ -36,6 +36,7 @@ import {
     rollGauntletFight,
 } from './gauntlet';
 import { authoredBossFor } from './bosses';
+import { MingmingRegistry } from '../data/mingmingRegistry';
 import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { getOSBehavior } from '../data/firmwareRegistry';
 import { ENEMY_LADDER, gradeFor } from './encounter';
@@ -606,7 +607,14 @@ describe('gauntletOpponentElements', () => {
             .enemyParty.map((e) => e.primaryElement as string);
 
         expect(promised).toEqual(delivered);
-        expect(promised).toEqual(['Fire', 'Fire', 'Nature']);
+        // TICKET 28a re-composed Emberfall: fenrir_v2 + skoll_v2 + kraken_v2, so the guest is Water
+        // where it used to be Nature. Derived from the authored table rather than retyped, because
+        // the claim is "two of the gym's element plus one guest" and not "these three words".
+        const elements = authoredBossFor('gym_emberfall')!.members
+            .map((m) => MingmingRegistry[m.species].primaryElement as string);
+        expect(promised).toEqual(elements);
+        expect(promised.filter((e) => e === 'Fire')).toHaveLength(2);
+        expect(promised.filter((e) => e !== 'Fire')).toHaveLength(1);
     });
 });
 
