@@ -565,7 +565,9 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
 
                     // Modifier Phase
                     const latestSource = finalState[activePartyKey].find(e => e.id === sourceId)!;
-                    const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
+                    // TICKET 162e: `action` rides the per-hit context so a hook can ask about THIS
+                    // swing rather than about the card it came from. See `HookContext.action`.
+                    const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState, action };
                     const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                     if (hitCancelled) continue;
                     finalState = afterMod;
@@ -855,7 +857,7 @@ function handleFireMacro(
         const latestSource = finalState.playerParty.find(e => e.id === sourceId);
         if (!latestSource || latestSource.currentHp <= 0) break;
 
-        const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
+        const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState, action };
         const { state: afterMod, isCancelled } = executeResolutionStack('onModifierPhase', hitContext);
         if (isCancelled) continue;
         finalState = afterMod;
@@ -1010,7 +1012,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 }
 
                 // Modifier Phase
-                const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0 };
+                const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0, action };
                 const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                 if (hitCancelled) continue;
                 finalState = afterMod;

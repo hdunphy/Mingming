@@ -156,6 +156,31 @@ describe('162a — the six daemons whose effect is a hook, not an action', () =>
         expect(stacks(unit(s, 'e1'), 'Burn'), 'the attacker is scorched').toBeGreaterThan(0);
     });
 
+    it('ember_ward answers an ATTACK and not a debuff \u2014 the half that was a no-op', () => {
+        /*
+         * TICKET 162e. Its printing is *"whenever an ally is hit BY AN ATTACK"* and the condition
+         * carrying that word was `isAttack`, which had been in `HookSchema` since ticket 103 and
+         * READ BY NOTHING — the exact trap ticket 107's test names. So this card was scorching an
+         * enemy for applying Weakened, and had been since 162a shipped it.
+         *
+         * 162e implemented the field (EMBER_FUSE needed a real per-swing gate to move to a per-hit
+         * trigger) and this is the assertion that says so. It is written as the NEGATIVE case
+         * because the positive one above passed throughout the bug.
+         */
+        let s = makeState({
+            player: [{ id: 'p1', name: 'Host' }, { id: 'p2', name: 'Ally' }],
+            enemy: [{ id: 'e1', name: 'Debuffer' }],
+            hand: ['ember_ward'],
+            enemyHand: ['snarl'],
+        });
+        s = play(s, 'p1', 'p1', 'h1');
+
+        s = { ...s, activeSide: 'ENEMY' };
+        s = play(s, 'e1', 'p2', 'eh1');      // 2 Weakened onto the ally \u2014 no attack anywhere
+        expect(stacks(unit(s, 'p2'), 'Weakened'), 'the debuff still lands').toBeGreaterThan(0);
+        expect(stacks(unit(s, 'e1'), 'Burn'), 'and the ward stays out of it').toBe(0);
+    });
+
     it('thermal_overload costs its host HP at end of turn', () => {
         let s = makeState({
             player: [{ id: 'p1', name: 'Host' }],

@@ -148,7 +148,7 @@ dict(sp='Sköll', el='Fire', id='skoll_v1', os='TREACHERY_KERNEL', text='Wheneve
      pool=['pack_tactics','snarl','battle_rhythm','reactive_plating','core_overclock','crimson_draw'],
      partners=[('Fenrir v1','Howl + UNBOUND_KERNEL: Fenrir’s consume eats Sköll’s Strength'),('Huldra v1','Bolster keeps allies alive to be hit; ALLURE turns the buff into Weakened'),('Huldra v2','Bark on allies = chip damage that still procs TREACHERY without killing')],
      builds=[('Flurry','fury_strike fury_strike flare_burst flare_burst pack_tactics brute_force battle_rhythm forage'),('Pack leader','snarl snarl snap snap howl howl brute_force forage'),('With Fenrir v1','fury_strike flare_burst flare_burst brute_force howl howl snap forage')]),
-dict(sp='Sköll', el='Fire', id='skoll_v2', os='EMBER_FUSE (new)', text='Sköll’s attacks on a Burning target apply 1 more Burn. (Burn is permanent, caps at 4, and detonates past the cap.)',
+dict(sp='Sköll', el='Fire', id='skoll_v2', os='EMBER_FUSE (new)', text='Each of Sköll’s hits on a Burning target applies 1 more Burn — so a three-hit card pays three times. (Burn is permanent, caps at 4, and detonates past the cap.)',
      cur='Burn (detonation)', ally='every ally’s Burn is a fuse Sköll can light', tempo='ramp (push piles past 4) · zoo (cheap Burn riders)',
      laneA=('Detonator', 'Get a pile to 3–4, then Heat Wave or one more hit sets it off.'), laneB=('Kindling', 'Many 0e Burn riders; a scalar that reads the pile.'),
      kit=[('ember_jab',2,'B',2),('brand',2,'A',1),('ignite',1,'B',1),('flashover',1,'B',1),('heat_wave',1,'A',0),('pack_tactics',1,'A',0),('forage',1,'G',0)],

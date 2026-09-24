@@ -149,8 +149,38 @@ function statusPitch(status: string): number {
  */
 const SAME_CAST_MS = 150;
 
-/** A card hits at most a side — three bodies — so the series never climbs past a third step. */
-const MAX_HIT_STEP = 2;
+/**
+ * A card hits at most a side — three bodies — so the series never climbs past a third step.
+ *
+ * 162e reuses it for repeated HOOK firings, where a card CAN exceed three (Serpent Flurry+ is four
+ * swings). The clamp is right there too: the step is a readability device, not a count, and a
+ * fourth rising semitone would be a pitch nobody can place rather than information.
+ */
+export const MAX_HIT_STEP = 2;
+
+/**
+ * Where in a stated series this event sits — 147b's `step`, DETECTED rather than counted.
+ *
+ * One rule, two callers since 162e: a cast's per-target impacts, and a hook firing once per swing
+ * of a multi-hit card. Written once because it is one rule, and because two copies of "same key,
+ * close enough in time, clamped" is the shape that drifts — the impact path would get a fix the
+ * hook path did not.
+ *
+ * DETECTING is the load-bearing word. A bare counter would pitch a LONE event by whatever it
+ * happened to be sitting at, and would also exempt it from coalescing — which is the protection
+ * `step` is allowed to bypass precisely because the caller has stated a series. A different key,
+ * or a gap wider than one cast, starts over at 0.
+ */
+export function nextSeriesStep(
+    prior: { key: string; step: number; at: number },
+    key: string,
+    at: number,
+    windowMs: number = SAME_CAST_MS,
+): number {
+    return prior.key === key && at - prior.at < windowMs
+        ? Math.min(prior.step + 1, MAX_HIT_STEP)
+        : 0;
+}
 
 function stacksOf(target: IBattleEntity | undefined, status: StatusType | undefined): number {
     if (!target || !status) return 0;
@@ -194,6 +224,20 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
      */
     const hitStepRef = React.useRef(0);
     const lastHitAtRef = React.useRef(0);
+    /*
+     * The same series detection for a HOOK firing several times in one cast — ticket 162e.
+     *
+     * EMBER_FUSE moved to a per-hit trigger, so Pack Tactics now fires it three times inside one
+     * reducer tick. Three `playSfx` calls with the same cue name land in the same millisecond,
+     * which is well inside 147b's 60 ms coalescing window: without a `step` the player would HEAR
+     * ONE PROC while the board took three Burn, and the audio would be telling them something
+     * untrue about the thing they are trying to learn.
+     *
+     * Keyed on the hook id rather than counted blind, for the reason the note above gives and one
+     * more: two different firmware firing in the same beat are not a series, they are two events,
+     * and stepping the second would pitch it for no reason the player could work out.
+     */
+    const hookStepRef = React.useRef<{ key: string; step: number; at: number }>({ key: '', step: 0, at: 0 });
     const slotRef = React.useRef<Record<string, number>>({});
     // Pending timeouts, cleared on unmount (pendingTimeoutsRef pattern from MingmingUnit).
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -336,9 +380,13 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                         // One cast landing on several bodies, or a new cast? 146c staggers a
                         // Side card's impacts by 40ms; the next cast is hundreds of ms away.
                         const at = typeof performance !== 'undefined' ? performance.now() : Date.now();
-                        const hitStep = at - lastHitAtRef.current < SAME_CAST_MS
-                            ? Math.min(hitStepRef.current + 1, MAX_HIT_STEP)
-                            : 0;
+                        // 162e: the same helper the hook path uses — one series rule, one place.
+                        // The key is constant here because every impact of a cast IS the series;
+                        // `lastHitAtRef` is what separates one cast from the next.
+                        const hitStep = nextSeriesStep(
+                            { key: 'impact', step: hitStepRef.current, at: lastHitAtRef.current },
+                            'impact', at,
+                        );
                         hitStepRef.current = hitStep;
                         lastHitAtRef.current = at;
                         playSfx(impactCue(element, effectiveness), {
@@ -448,8 +496,14 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                      * 147d. One cue per Early Access OS, the family blip for the rest. The engine
                      * only fires this for hooks that actually DID something (`emitHookFired`'s
                      * own predicate), so this is not the sound of a hook being checked.
+                     *
+                     * 162e: and a hook can now fire several times in one cast, so it carries the
+                     * same stated-series `step` a multi-target impact does. See `hookStepRef`.
                      */
-                    playSfx(hookCue(findEntity(event.ownerId), event.osId, event.daemonId));
+                    const hookAt = Date.now();
+                    const hookStep = nextSeriesStep(hookStepRef.current, event.hookId, hookAt);
+                    hookStepRef.current = { key: event.hookId, step: hookStep, at: hookAt };
+                    playSfx(hookCue(findEntity(event.ownerId), event.osId, event.daemonId), { step: hookStep });
                     return;
                 }
                 case 'PROGRAM_PLAYED': {

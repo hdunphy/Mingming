@@ -154,9 +154,12 @@ function helBloodHpCost(pct: number, owner: IBattleEntity): number {
  * was "stack Strength and cash it in", and Henry's 09-21 directions split them — Fenrir v1 keeps
  * the Strength consume, Sköll v1 keeps the Strength multi-hit, and v2 becomes the detonation deck.
  *
- * Its replacement, EMBER_FUSE, IS data (`hooks.json`, `skoll_v2`): an attack that lands on a
- * Burning target adds a Burn to it. It needs no cap at all, because Burn has its own — which is
- * the CONDITION-shaped bound Henry asks for in place of a number.
+ * Its replacement, EMBER_FUSE, IS data (`hooks.json`, `skoll_v2`): each HIT that lands on a Burning
+ * target adds a Burn to it (per hit since ticket 162e — it shipped per card and Henry moved it on
+ * 2026-09-24, so Pack Tactics pays three times). It needs no cap at all, because Burn has its own,
+ * which is the CONDITION-shaped bound Henry asks for in place of a number — and per-hit makes that
+ * bound bite: three swings on a target holding 1 Burn reach the cap of 4 exactly, and a fourth
+ * detonates.
  *
  * The old firmware, the 5-stack cap it was written around, and the deck it powered are in
  * `archive/programs-v1.json` and `archive/ea-kits-v1.json`. `__setSkollStrengthCap` went with it;

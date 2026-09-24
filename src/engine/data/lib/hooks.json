@@ -554,15 +554,15 @@
     "skoll_v2": {
         "id": "skoll_v2",
         "name": "EMBER_FUSE",
-        "description": "Sköll's attacks on a Burning target apply 1 more Burn.",
+        "description": "Each of Sköll's hits on a Burning target applies 1 more Burn.",
         "hooks": [
             {
                 "id": "skoll_v2_ember_fuse",
-                "trigger": "onActionStart",
+                "trigger": "onPostDamage",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "actionType": "ATTACK",
+                    "isAttack": true,
                     "targetStatus": {
                         "status": "Burn",
                         "minStacks": 1

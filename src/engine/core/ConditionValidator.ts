@@ -52,6 +52,20 @@ export const ConditionValidator = {
             if (condition.target === 'OPPONENT' && isOwnerPlayer === isTargetPlayer) return false;
         }
 
+        // 1b. THIS ACTION Check — ticket 162e.
+        //
+        // `actionType` below asks about the CARD ("does it have an ATTACK anywhere"); this asks
+        // about the SWING. A per-hit hook needs the second question, and the field that was meant
+        // to answer it had been in the schema since ticket 103 with nothing reading it. See
+        // `HookCondition.isAttack` for what that cost `ember_ward`.
+        //
+        // `context.action` is set only at the per-hit dispatches, so `isAttack: true` is false at
+        // `onActionStart` / `onActionEnd` / `runVitalsHook` rather than accidentally true — a hook
+        // that wants a swing cannot get one from a dispatch that has no swing.
+        if (condition.isAttack !== undefined) {
+            if ((context.action?.type === 'ATTACK') !== condition.isAttack) return false;
+        }
+
         // 2. Program Checks
         if (condition.actionType && context.program) {
             // A program satisfies the actionType check if ANY of its actions match

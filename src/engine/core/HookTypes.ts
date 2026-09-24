@@ -2,7 +2,7 @@
 // resolved to the DOM's global `Element` interface, because `lib: ["DOM"]` is on and the game's
 // union was never imported here. Found by ticket 55 — the `(action as any).element` reaches in
 // `HookFactory` were papering over it.
-import type { Element, IBattleState, IBattleEntity, ProgramData, StatusType, ActionType, ProgramCategory } from '../types';
+import type { Element, IBattleState, IBattleEntity, ProgramData, ProgramAction, StatusType, ActionType, ProgramCategory } from '../types';
 
 /**
  * Counter scoping: 'OWNER' (the default for hook counters) namespaces the key
@@ -86,6 +86,17 @@ export type HookContext = {
     triggerDepth: number;
     isNaturalDraw?: boolean; // For Kraken's OS
     statusApplied?: StatusType; // For Fenrir's OS
+    /**
+     * TICKET 162e — **the ONE action this dispatch is about**, set at the three per-hit sites in
+     * `battleReducer` (a card's action loop, a macro's, an enemy intent's).
+     *
+     * `program` is the whole card and is the wrong question for a per-hit hook: `actionType` in a
+     * condition asks *"does this card have an ATTACK anywhere in it"*, which is true for the STATUS
+     * half of an attack-plus-rider card too. A hook that must fire once per SWING needs the swing,
+     * and this is it. Absent at the once-per-card dispatches (`onActionStart`, `onActionEnd`) and at
+     * `runVitalsHook`, where there is no single action and `isAttack` therefore cannot pass.
+     */
+    action?: ProgramAction;
 };
 
 export type HookCondition = {
@@ -93,6 +104,21 @@ export type HookCondition = {
     source?: 'SELF' | 'ALLY' | 'OPPONENT' | 'ANY';
     target?: 'SELF' | 'ALLY' | 'OPPONENT' | 'ANY';
     actionType?: ActionType;
+    /**
+     * TICKET 162e — **passes when THIS action is an ATTACK.** Reads `context.action`, so it is
+     * meaningful only at the per-hit dispatches (`onModifierPhase`, `onPostDamage`).
+     *
+     * It was in `HookSchema` from ticket 103 and READ BY NOTHING until now, which ticket 107's test
+     * calls out by name: *"declared in the schema, read by nothing, and silently a no-op for
+     * whoever tries it"*. Two shipped hooks had since tried it — `ember_ward` and `ember_ward+`,
+     * whose printing is *"whenever an ally is hit BY AN ATTACK"* and which were firing on any
+     * enemy action that resolved on an ally, a Weakened application included. Implementing the
+     * field fixes both of them and is what lets EMBER_FUSE move to a per-hit trigger at all.
+     *
+     * Distinct from `actionType` on purpose, and the difference is the bug above: `actionType`
+     * asks about the CARD, this asks about the SWING.
+     */
+    isAttack?: boolean;
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;

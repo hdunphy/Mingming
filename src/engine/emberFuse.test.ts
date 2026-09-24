@@ -1,7 +1,14 @@
 /**
- * TICKET 162a — EMBER_FUSE (skoll_v2), the OS that replaced SOLAR_OVERDRIVE.
+ * TICKET 162e — EMBER_FUSE (skoll_v2) fires PER HIT.
  *
- * *"Sköll's attacks on a Burning target apply 1 more Burn."*
+ * *"Each of Sköll's hits on a Burning target applies 1 more Burn."*
+ *
+ * 162a shipped it on `onActionStart`, which is dispatched once before the action loop, so it paid
+ * once per CARD. That was the literal reading of the old sentence and it was PINNED here rather
+ * than assumed, with a note saying a move to per-hit would be a ruling. Henry ruled it on
+ * 2026-09-24, so the trigger is `onPostDamage` — inside the loop, once per swing — and this file
+ * now pins the opposite number. The old test is what made the change a one-line question instead
+ * of an archaeology session.
  *
  * Three things are worth a test and the rest is not. The TRIGGER is conditional on the target's
  * board, which is the half that fails silently if `targetStatus` is dropped by zod (the schema's
@@ -71,22 +78,36 @@ describe('EMBER_FUSE — an attack on a Burning target adds a Burn', () => {
     });
 
     /*
-     * ONCE PER CARD, NOT ONCE PER HIT — measured, and it is a design fact worth knowing.
+     * ONCE PER HIT — Henry, 2026-09-24, and the reason the trigger moved.
      *
-     * `onActionStart` is dispatched by `battleReducer` at step 5, before the action loop, so it
-     * fires once for the CARD however many ATTACK actions the card holds. `flare_burst` is 15
-     * power twice and pays the OS once.
+     * `onActionStart` fires before the action loop and therefore once per CARD; `onPostDamage`
+     * fires inside it, after each swing resolves. Post- rather than pre-: a Burn added BEFORE the
+     * swing would be on the board when that swing's own damage is calculated, so a Burn-scaling
+     * attack would read the stack EMBER_FUSE had just given it. Each hit reads the board it landed
+     * into, and the stack it adds is there for the next one.
      *
-     * That is the literal reading of Henry's sentence ("Sköll's ATTACKS on a Burning target apply
-     * 1 more Burn") and it matches the kit: skoll_v2's list is ember_jab, brand, ignite, flashover,
-     * heat_wave and one pack_tactics — the detonation deck, not the multi-hit one. Sköll v1 is
-     * where the multi-hits live. Pinned rather than assumed, because if this OS is ever meant to
-     * pay per hit the trigger has to move to a per-damage-event one, and that is a ruling.
+     * Pack Tactics is 23 power three times, so on a target holding 1 Burn it procs three times and
+     * the pile reaches the cap of 4 exactly.
      */
-    it('fires once per CARD, not once per hit', () => {
+    const osProcs = (dataId: string, targetBurn: number): number => {
+        const withOS = play({ casterOS: 'skoll_v2', dataId, casterId: 'p1', targetBurn });
+        const without = play({ dataId, casterId: 'p1', targetBurn });
+        return burnOn(withOS.enemyParty[0]) - burnOn(without.enemyParty[0]);
+    };
+
+    it('fires once per HIT: three from pack_tactics, one from brand', () => {
+        expect(GetProgramData('pack_tactics').actions.filter(a => a.type === 'ATTACK')).toHaveLength(3);
+        expect(osProcs('pack_tactics', 1)).toBe(3);
+
+        // Brand is one swing plus a Burn rider of its own. One swing, one proc — and the rider is
+        // a STATUS action, which `isAttack` excludes, so it does not pay the OS a second time.
+        expect(GetProgramData('brand').actions.filter(a => a.type === 'ATTACK')).toHaveLength(1);
+        expect(osProcs('brand', 1)).toBe(1);
+    });
+
+    it('pays flare_burst twice, where it used to pay once', () => {
         expect(GetProgramData('flare_burst').actions.filter(a => a.type === 'ATTACK')).toHaveLength(2);
-        const state = play({ casterOS: 'skoll_v2', dataId: 'flare_burst', casterId: 'p1', targetBurn: 1 });
-        expect(burnOn(state.enemyParty[0])).toBe(2);
+        expect(osProcs('flare_burst', 1)).toBe(2);
     });
 
     it('is hers alone: an ally swinging at the same Burning target does not fire it', () => {
