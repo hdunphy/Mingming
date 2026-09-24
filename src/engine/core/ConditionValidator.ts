@@ -158,10 +158,24 @@ export const ConditionValidator = {
             if (operator === 'EQ' && !(currentVal === value)) return false;
         }
 
-        // 10. Current Energy Check
+        /*
+         * 10. Current Energy Check — **the SOURCE's Energy, not the hook owner's.**
+         *
+         * TICKET 162a: it read `owner.currentEnergy`, and that had never been observed because the
+         * field had no user until `short_fuse` ("an enemy that ends its turn with unspent Energy
+         * takes 10 power per point"). Its condition is `{ source: 'OPPONENT', currentEnergy: > 0 }`,
+         * which the old reading turned into *"an enemy acted AND **I** still have Energy"* — so the
+         * daemon taxed an enemy who had spent out, as long as its own host was holding some. The
+         * card's whole point is the CONDITION, and the condition was about the wrong body.
+         *
+         * `context.source` is the entity every trigger names as the actor — `onTurnEnd` dispatches
+         * one hook per unit with `source: entity`, which is exactly the unit whose Energy this asks
+         * about. Falls back to the owner when a trigger carries no source, so a future hook that
+         * writes `currentEnergy` with no `source` clause still means something.
+         */
         if (condition.currentEnergy) {
             const { operator, value } = condition.currentEnergy;
-            const currentVal = owner.currentEnergy;
+            const currentVal = (context.source ?? owner).currentEnergy;
             if (operator === 'LT' && !(currentVal < value)) return false;
             if (operator === 'GT' && !(currentVal > value)) return false;
             if (operator === 'LTE' && !(currentVal <= value)) return false;
