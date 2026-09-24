@@ -417,6 +417,20 @@ export function isRewardable(rawId: string): boolean {
     const dataId = resolveProgramId(rawId);
     const data = ProgramRegistry[dataId];
     if (!data || data.isToken || (data.rarity as string) === 'Token') return false;
+    /*
+     * TICKET 163a — a `+` card is NOT a card a run can be offered.
+     *
+     * The upgraded forms are real registry entries (163 §2: one per card, `upgradeOf` naming the
+     * base) and there are ninety-eight of them, every one stronger than something already in the
+     * pool. The only way to hold one is to UPGRADE the base — the workshop tab and the gym gate,
+     * which 163b builds. Until then, and after, being offered one straight is not a thing.
+     *
+     * It goes HERE rather than in `rewardCardPool` because this is the function the element pools,
+     * the v2 run pool and the marketplace's off-pool wild slot all already share, and the comment
+     * above this one records what it cost to learn that a second copy of "is this a real card"
+     * drifts from the first.
+     */
+    if (data.upgradeOf) return false;
     return !CALIBRATION_ONLY.has(dataId);
 }
 

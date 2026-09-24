@@ -127,11 +127,28 @@ const ALLOWED_FIRMWARE: Record<string, string> = {
     hoofbeat: 'daemon hook power is printed; the turn-gate number is in daemonHooks.ts',
 };
 
+/**
+ * TICKET 163a — an upgraded card answers to its BASE's allowlist entry.
+ *
+ * `<id>+` is the same card with a bigger number: 163 §1's rule is that an upgrade never changes a
+ * card's SHAPE, only what it counts. So wherever text and data are related by code rather than by
+ * equality on the base — Molten Core's printed 4 being 2 unconditional plus 2 conditional, Crimson
+ * Draw's percentage heal — the same relationship holds on the `+`, with different numbers on both
+ * sides of it. Re-listing the ninety-eight would make the allowlist twice as long and say nothing
+ * new, and a second copy is one edit away from disagreeing with the first.
+ *
+ * It does mean a `+` inherits its base's exemption. That is not a hole an upgrade can hide in: the
+ * exemption is per-card and the shapes are identical by the ticket's own rule, so a `+` that broke
+ * the relationship would be a card that broke §1 — and `plusRegistry.test.ts` is where that is
+ * caught, against the base's actions rather than against prose.
+ */
+const allowlistKey = (id: string): string => (id.endsWith('+') ? id.slice(0, -1) : id);
+
 describe('ticket 139 — every number a card prints is a number its data holds', () => {
     it('holds for every card in the registry', () => {
         const offenders: string[] = [];
         for (const [id, card] of Object.entries(CARDS)) {
-            if (id in ALLOWED) continue;
+            if (allowlistKey(id) in ALLOWED) continue;
             const described = describedNumbers(String(card.description ?? ''));
             if (described.length === 0) continue;
             const held = dataNumbers(card.actions ?? []);
@@ -147,7 +164,7 @@ describe('ticket 139 — every number a card prints is a number its data holds',
     it('holds for every firmware description', () => {
         const offenders: string[] = [];
         for (const [id, entry] of Object.entries(FIRMWARE)) {
-            if (id in ALLOWED_FIRMWARE) continue;
+            if (allowlistKey(id) in ALLOWED_FIRMWARE) continue;
             const described = describedNumbers(String(entry.description ?? ''));
             if (described.length === 0) continue;
             const held = dataNumbers(entry.hooks ?? []);

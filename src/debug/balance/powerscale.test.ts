@@ -600,8 +600,17 @@ describe('149c-8 — consuming your own pile is not removal', () => {
                 && ['Burn', 'Poison', 'Dazed', 'Stunned', 'Weakened', 'Asleep', 'Vulnerable']
                     .includes(a.status as string));
 
+        /*
+         * TICKET 163a: `ash_communion+` self-consumes exactly as its base does — an upgrade moves
+         * a number and never a shape (163 §1) — so it belongs in this list and its ARRIVAL is not
+         * the clause reaching somewhere new. Derived from the three rather than listed as four, so
+         * this stays a containment check on the CLAUSE: a fourth base card self-consuming still
+         * fails here, and a `+` whose upgrade quietly dropped the consume fails too.
+         */
+        const SELF_CONSUMERS = ['ash_communion', 'bloodwrath', 'umbral_feast'];
+        const withUpgrades = [...SELF_CONSUMERS, ...SELF_CONSUMERS.filter(id => registry[`${id}+`]).map(id => `${id}+`)];
         const affected = Object.values(registry).filter(selfConsumesADebuff).map(c => c.id).sort();
-        expect(affected).toEqual(['ash_communion', 'bloodwrath', 'umbral_feast']);
+        expect(affected).toEqual(withUpgrades.sort());
 
         // `purify` sheds Poison and Burn from itself by stacks, not by consuming: still removal,
         // still premium-charged, untouched by this row.

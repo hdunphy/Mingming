@@ -22,12 +22,24 @@
  * that misreads "nothing" as "something" shows up — `bark_smash` on no shield, `venom_glut` on a
  * clean target, `flashover` on an unburnt one.
  *
+ * # TICKET 163a — `--plus`
+ *
+ * The same two passes over the ninety-eight UPGRADED cards instead. They are worth running through
+ * this rather than through a new script for one reason: the flags below were tuned by finding real
+ * bugs with them, and a `+` card fails in exactly the ways a base card does — a number moved into
+ * a field nothing reads, a status that lands negative, a second action that silently no-ops.
+ *
+ * It is also the only way to CAST a `+` card at all right now. Nothing in the game can offer one
+ * (`RewardSystem.isRewardable`), so until 163b builds the workshop there is no playtest that would
+ * find a broken one.
+ *
  * Run: npx vite-node scratch/t162_cardcheck.ts            (both passes)
  *      npx vite-node scratch/t162_cardcheck.ts -- --bare  (the empty board only)
+ *      npx vite-node scratch/t162_cardcheck.ts -- --plus  (163a's ninety-eight upgraded cards)
  */
 import { battleReducer } from '../src/engine/battleReducer';
 import { createSparseBattleState, createSparseEntity } from '../src/debug/scenarios/scenarioTestSupport';
-import { GetProgramData } from '../src/engine/data/programRegistry';
+import { GetProgramData, getInflatedProgramRegistry } from '../src/engine/data/programRegistry';
 import type { IBattleState, IBattleEntity, StatusEffectInstance } from '../src/engine/types';
 
 /** Every id whose actions `scratch/t162a_build.py` authored — the new 24 plus the 13 revised. */
@@ -66,9 +78,17 @@ function board(stocked: boolean): IBattleState {
             ? [st(id, 'Burn', 2), st(id, 'Poison', 3), st(id, 'Dazed', 3), st(id, 'Weakened', 2)]
             : [],
     });
-    const pile = Array.from({ length: 6 }, (_, i) => (
-        { id: `d${i}`, dataId: 'tackle', currentCost: 0, isPlayable: true }
-    ));
+    /*
+     * A MIXED drawpile, not six copies of one neutral card. `scavenge_data` and its `+` are
+     * SEARCH actions with an element criterion — "draw a Water card" — and against an all-`tackle`
+     * pile they find nothing, resolve as a no-op and get flagged as broken cards. That is the
+     * probe being wrong about the board rather than the card being wrong, which is the same shape
+     * of false positive the `forage` note below records. Two Water cards, so a `+` searching for
+     * two can find two.
+     */
+    const pile = ['tackle', 'venom_fang', 'ember_jab', 'venom_fang', 'acorn_toss', 'tackle'].map(
+        (dataId, i) => ({ id: `d${i}`, dataId, currentCost: 0, isPlayable: true }),
+    );
     return createSparseBattleState({
         activeSide: 'PLAYER', phase: 'ACTION',
         playerParty: [caster, ally],
@@ -147,7 +167,9 @@ function cast(dataId: string, stocked: boolean): { lines: string[]; problems: st
         problems.push('resolved with no observable effect on any body');
     }
     const casterAfter = snap(find(after, 'p1'));
-    if (casterAfter.energy > 5 && dataId !== 'surge_protection' && dataId !== 'riptide_run') {
+    // The two cards that are SUPPOSED to hand Energy back, and their `+` forms.
+    const REFUNDS = new Set(['surge_protection', 'riptide_run', 'surge_protection+', 'riptide_run+']);
+    if (casterAfter.energy > 5 && !REFUNDS.has(dataId)) {
         problems.push(`gained Energy above the frame (${casterAfter.energy})`);
     }
     for (const id of ['p1', 'p2', 'e1', 'e2']) {
@@ -162,6 +184,11 @@ function cast(dataId: string, stocked: boolean): { lines: string[]; problems: st
 }
 
 const BARE_ONLY = process.argv.includes('--bare');
+const PLUS_ONLY = process.argv.includes('--plus');
+/** 163a: every upgraded card, read off the registry rather than listed — a `+` added later is in. */
+const SUBJECTS = PLUS_ONLY
+    ? Object.keys(getInflatedProgramRegistry()).filter((id) => getInflatedProgramRegistry()[id].upgradeOf).sort()
+    : CARDS;
 let issues = 0;
 
 for (const stocked of BARE_ONLY ? [false] : [true, false]) {
@@ -173,7 +200,7 @@ for (const stocked of BARE_ONLY ? [false] : [true, false]) {
     if (stocked) console.log('         Target e1: Burn 2, Poison 3, Dazed 3, Weakened 2.   Ally p2: Weakened 2, 500 hp.');
     console.log('='.repeat(100));
 
-    for (const id of CARDS) {
+    for (const id of SUBJECTS) {
         const data = GetProgramData(id);
         const { lines, problems } = cast(id, stocked);
         const aim = data.allyTarget ? 'at ALLY p2' : 'at FOE e1';

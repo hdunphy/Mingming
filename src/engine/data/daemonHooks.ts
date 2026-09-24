@@ -73,7 +73,20 @@ export function initDaemonHooks() {
         validatedData = HOOKS_DATA as unknown as HookLibrary; // Fallback
     }
 
-    daemonKeys.forEach(key => {
+    /*
+     * TICKET 163a — the `+` daemons register beside their base, DERIVED rather than listed.
+     *
+     * The allowlist above is a trap the comments in it already describe: a daemon whose hooks.json
+     * entry and whose printing are both perfect does nothing at all if its key is missing here. The
+     * `+` pass adds twelve more chances to fall into it, so it does not add twelve more lines —
+     * `<key>+` is registered whenever hooks.json holds one, and a `+` daemon cannot be inert unless
+     * its base is. `daemonCoverage.test.ts` is still the backstop for both.
+     */
+    const registerKeys = daemonKeys.flatMap(key => (
+        validatedData[`${key}+`] ? [key, `${key}+`] : [key]
+    ));
+
+    registerKeys.forEach(key => {
         const data = validatedData[key];
         if (data && data.hooks) {
             data.hooks.forEach(h => {

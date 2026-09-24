@@ -1,0 +1,129 @@
+# 163a — the `+` ledger, 98 upgraded cards
+
+
+## 0e — 18 cards, band 1.2, next rung 3
+
+corrosive_leak+      0e  base    2.3 ->    5.5   lift +3.2     +139%  one rung
+scald+               0e  base    1.4 ->    2.6   lift +1.2      +86%  
+ember_jab+           0e  base    1.7 ->    2.6   lift +0.9      +53%  
+ignite+              0e  base    2.2 ->    3.1   lift +0.9      +41%  one rung
+soothe+              0e  base    0.9 ->    1.8   lift +0.9     +100%  
+tend+                0e  base      1 ->    1.8   lift +0.8      +80%  
+bark_lash+           0e  base    0.7 ->    1.4   lift +0.7     +100%  
+pollen_cloud+        0e  base    0.8 ->    1.5   lift +0.7      +88%  
+acorn_toss+          0e  base    1.2 ->    1.8   lift +0.6      +50%  
+forage+              0e  base    0.5 ->    1.1   lift +0.6     +120%  
+blind_spot+          0e  base    1.1 ->    1.6   lift +0.5      +45%  
+desperate_strike+    0e  base    0.4 ->    0.9   lift +0.5     +125%  
+heckle+              0e  base    0.9 ->    1.4   lift +0.5      +56%  
+snarl+               0e  base    0.7 ->    1.1   lift +0.4      +57%  
+shrug_off+           0e  base      1 ->    1.3   lift +0.3      +30%  
+tackle+              0e  base    1.2 ->    1.5   lift +0.3      +25%  
+war_pact+            0e  base    0.7 ->    0.9   lift +0.2      +29%  
+undertow+            0e  base    1.5 ->    1.2   lift -0.3      -20%  
+
+## 1e — 41 cards, band 3, next rung 7
+
+spreading_rot+       1e  base      2 ->    6.6   lift +4.6     +230%  
+tide_pool+           1e  base      5 ->    8.1   lift +3.1      +62%  one rung
+corrosive_bolt+      1e  base    1.8 ->    4.5   lift +2.7     +150%  
+shell_share+         1e  base    2.4 ->    4.6   lift +2.2      +92%  
+glass_cannon+        1e  base    3.2 ->    5.2   lift +2        +63%  
+thornguard+          1e  base    3.3 ->    5.2   lift +1.9      +58%  
+flare_burst+         1e  base      3 ->    4.5   lift +1.5      +50%  
+ink_stream+          1e  base    4.1 ->    5.6   lift +1.5      +37%  
+nettle_sting+        1e  base    2.5 ->      4   lift +1.5      +60%  
+toxic_surge+         1e  base    0.3 ->    1.8   lift +1.5     +500%    UNPRICED:TRIGGER_STATUS
+serpents_coil+       1e  base    2.5 ->    3.8   lift +1.3      +52%  
+howl+                1e  base    1.1 ->    2.2   lift +1.1     +100%  
+brand+               1e  base    3.1 ->    4.1   lift +1        +32%  
+brute_force+         1e  base    3.1 ->    4.1   lift +1        +32%  
+ragnarok_edge+       1e  base      7 ->      8   lift +1        +14%  one rung
+riptide_run+         1e  base    4.5 ->    5.5   lift +1        +22%  
+serpent_flurry+      1e  base      3 ->      4   lift +1        +33%  
+snap+                1e  base    2.8 ->    3.8   lift +1        +36%  
+surge_protection+    1e  base      5 ->      6   lift +1        +20%  
+venom_fang+          1e  base      3 ->      4   lift +1        +33%  
+whirlpool+           1e  base    3.6 ->    4.6   lift +1        +28%  
+bolster+             1e  base    1.1 ->      2   lift +0.9      +82%  
+deep_scan+           1e  base    3.2 ->    4.1   lift +0.9      +28%  
+fury_strike+         1e  base      3 ->    3.9   lift +0.9      +30%  
+molten_core+         1e  base    3.9 ->    4.7   lift +0.8      +21%  
+pressure_point+      1e  base    3.5 ->    4.3   lift +0.8      +23%  
+battle_rhythm+       1e  base    3.1 ->    3.8   lift +0.7      +23%  
+crimson_draw+        1e  base    4.1 ->    4.8   lift +0.7      +17%  
+heartwood+           1e  base    2.5 ->    3.2   lift +0.7      +28%  
+mend+                1e  base    1.5 ->    2.2   lift +0.7      +47%  
+rejuvenation+        1e  base    3.5 ->    4.2   lift +0.7      +20%  
+thorn_tithe+         1e  base    4.1 ->    4.8   lift +0.7      +17%  
+iron_bark+           1e  base    3.1 ->    3.7   lift +0.6      +19%  
+slag_strike+         1e  base    2.5 ->    3.1   lift +0.6      +24%  
+blood_rite+          1e  base    3.4 ->    3.9   lift +0.5      +15%  
+nagging_bite+        1e  base    2.9 ->    3.4   lift +0.5      +17%  
+feedback_loop+       1e  base    0.8 ->    1.2   lift +0.4      +50%  
+unbound_fang+        1e  base   -1.3 ->   -1.1   lift +0.2         .    UNPRICED:ATTACK:STRENGTH_STACKS
+sap_strength+        1e  base      2 ->      2   lift +0         +0%    UNPRICED:ATTACK:TARGET_STATUS_STACKS
+scavenge_data+       1e  base      0 ->      0   lift +0           .    UNPRICED:SEARCH
+thorn_whip+          1e  base    1.5 ->    1.5   lift +0         +0%    UNPRICED:ATTACK:SHARP_STACKS
+
+## 2e — 35 cards, band 7, next rung 12
+
+ember_ward+          2e  base    7.1 ->   38.3   lift +31.2    +439%  ** 3 RUNGS **
+sun_devourer+        2e  base   20.4 ->   28.4   lift +8        +39%  ** 3 RUNGS **
+tidal_battery+       2e  base    7.7 ->   15.4   lift +7.7     +100%  ** 3 RUNGS **
+inferno+             2e  base      4 ->   11.2   lift +7.2     +180%  
+heat_wave+           2e  base    5.6 ->   12.2   lift +6.6     +118%  ** 3 RUNGS **  UNPRICED:MULTIPLY_STATUS
+blightbloom+         2e  base    7.5 ->   13.8   lift +6.3      +84%  ** 3 RUNGS **
+riptide+             2e  base   11.9 ->     17   lift +5.1      +43%  ** 3 RUNGS **
+overclock_core+      2e  base      0 ->    4.3   lift +4.3         .    UNPRICED:MAX_ENERGY
+venom_glut+          2e  base    1.2 ->    5.2   lift +4       +333%  
+echo_chamber+        2e  base    3.6 ->    7.3   lift +3.7     +103%    UNPRICED:COUNTER,COUNTER
+pile_on+             2e  base    7.7 ->   11.1   lift +3.4      +44%  
+ink_cloud+           2e  base    7.7 ->     11   lift +3.3      +43%  
+capacitor+           2e  base    9.5 ->   12.6   lift +3.1      +33%  ** 3 RUNGS **
+crushing_depths+     2e  base    4.5 ->    7.5   lift +3        +67%  
+verdant_ward+        2e  base    6.1 ->    8.7   lift +2.6      +43%  
+seed_bomb+           2e  base      5 ->    7.5   lift +2.5      +50%  
+crippling_vine+      2e  base    5.9 ->    8.3   lift +2.4      +41%  
+pack_tactics+        2e  base    6.9 ->    9.2   lift +2.3      +33%  
+boiling_surge+       2e  base    7.3 ->    9.3   lift +2        +27%  
+contagion+           2e  base   20.4 ->   22.2   lift +1.8       +9%  ** 3 RUNGS **  UNPRICED:MULTIPLY_STATUS
+short_fuse+          2e  base    2.9 ->    4.5   lift +1.6      +55%  
+sharp_edge+          2e  base    3.6 ->    5.1   lift +1.5      +42%  
+slander+             2e  base    4.5 ->      6   lift +1.5      +33%  
+hoofbeat+            2e  base    2.8 ->    4.1   lift +1.3      +46%  
+short_circuit+       2e  base    4.8 ->    6.1   lift +1.3      +27%  
+bark_smash+          2e  base    0.7 ->    1.9   lift +1.2     +171%  
+ash_communion+       2e  base    4.3 ->    5.3   lift +1        +23%  
+cinder_armor+        2e  base    0.2 ->    0.7   lift +0.5     +250%  
+cinder_lance+        2e  base      4 ->      4   lift +0         +0%    UNPRICED:ATTACK:SHARP_STACKS
+core_overclock+      2e  base      0 ->      0   lift +0           .    UNPRICED:HOOK:onDamageCalculated
+flashover+           2e  base      5 ->      5   lift +0         +0%    UNPRICED:ATTACK:TARGET_STATUS_STACKS
+hexbloom+            2e  base    3.5 ->    3.5   lift +0         +0%    UNPRICED:ATTACK:TARGET_STATUS_STACKS
+reactive_plating+    2e  base    2.7 ->    2.7   lift +0         +0%    UNPRICED:COUNTER,COUNTER
+static_ward+         2e  base      0 ->      0   lift +0           .    UNPRICED:HOOK:onStatusApplied
+thermal_overload+    2e  base      0 ->      0   lift +0           .    UNPRICED:HOOK:onDamageCalculated,HOOK:onStatusDamageCalculated,HP
+
+## 3e — 4 cards, band 12, next rung 12
+
+wildfire+            3e  base   11.9 ->   21.1   lift +9.2      +77%  ** 3 RUNGS **
+hydro_blast+         3e  base     12 ->     17   lift +5        +42%  ** 3 RUNGS **
+tidal_wave+          3e  base   12.1 ->   16.5   lift +4.4      +36%  ** 3 RUNGS **
+maelstrom+           3e  base   11.5 ->   15.5   lift +4        +35%  ** 3 RUNGS **
+
+
+## Summary
+
+upgraded cards          98
+median lift             +1
+§2's flag: 2+ rungs      12   blightbloom+ capacitor+ contagion+ ember_ward+ heat_wave+ hydro_blast+ maelstrom+ riptide+ sun_devourer+ tidal_battery+ tidal_wave+ wildfire+
+one rung (expected)     4
+scored NO HIGHER        11   cinder_lance+ core_overclock+ flashover+ hexbloom+ reactive_plating+ sap_strength+ scavenge_data+ static_ward+ thermal_overload+ thorn_whip+ undertow+
+  — an upgrade the scorer cannot see is not the same as one that does nothing:
+    check the UNPRICED column before reading a flat row as a dud upgrade.
+median lift, 0e        +57%   (n=18)
+median lift, 1e        +30%   (n=41)
+median lift, 2e        +42%   (n=35)
+median lift, 3e        +42%   (n=4)
+
+-> results/t163/LEDGER-PLUS.tsv

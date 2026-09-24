@@ -32,10 +32,17 @@ describe('what there is to collect', () => {
         // 100% depend on having drawn the right generator is a completion nobody can pursue.
         const ids = codexCardIds();
         const tokens = Object.keys(ProgramRegistry).filter((id) => ProgramRegistry[id].isToken === true);
+        // TICKET 163a: the ninety-eight `+` cards come out of the denominator on the same argument
+        // as the tokens — nothing in the game can offer one, so counting them would make 100%
+        // depend on content a player cannot reach. When 163b builds the workshop tab, whether an
+        // upgrade is its own codex row or a mark on its base row is Henry's call.
+        const upgrades = Object.keys(ProgramRegistry).filter((id) => ProgramRegistry[id].upgradeOf);
 
         expect(tokens.length).toBeGreaterThan(0);
-        expect(ids).toHaveLength(Object.keys(ProgramRegistry).length - tokens.length);
+        expect(upgrades.length).toBeGreaterThan(0);
+        expect(ids).toHaveLength(Object.keys(ProgramRegistry).length - tokens.length - upgrades.length);
         for (const token of tokens) expect(ids).not.toContain(token);
+        for (const upgrade of upgrades) expect(ids).not.toContain(upgrade);
     });
 
     it('counts the playable species and never the control', () => {

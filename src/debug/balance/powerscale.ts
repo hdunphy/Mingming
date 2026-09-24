@@ -263,6 +263,28 @@ export function bandVerdict(score: number, band: number): BandVerdict {
     return { state: 'OUT OF BAND', pct, label: `OUT OF BAND ${signed}` };
 }
 
+/**
+ * TICKET 163a — **an upgraded card is priced and NOT judged.**
+ *
+ * Henry, 2026-09-23: *"upgrades are supposed to be broken."* A `+` card is the same card with a
+ * bigger number, so it is over its cost band by construction — that is what an upgrade IS, and a
+ * band flag on ninety-eight of them would say nothing except that the pass did what it was ruled
+ * to do. Three of them (Inferno+, Wildfire+, Heat Wave+) push Burn past its cap of 4 and detonate,
+ * also ruled intended.
+ *
+ * So the SCORE is still computed and still printed — 163 §2 wants the ledger to show how far each
+ * `+` moved, and `budget-plus.txt` is that table. What is suppressed is the VERDICT, and only for
+ * these cards. This is a predicate rather than a branch inside `bandVerdict` because `bandVerdict`
+ * takes two numbers and knows nothing about a card; a report that wants to exempt a row asks here.
+ *
+ * It is NOT a licence for the rest of the pool. The base card keeps its band, and a `+` more than
+ * one band above its base is still worth Henry's eye — 163 §2 asks for that flag specifically, and
+ * `budget-plus.txt` prints it as the `rungs` column rather than as a band state.
+ */
+export function isBandExempt(card: Pick<ProgramData, 'upgradeOf'>): boolean {
+    return card.upgradeOf !== undefined;
+}
+
 /** The band a card of this cost is budgeted against. Costs above 3 use the 3+ band. */
 export function budgetBandFor(cost: number): BudgetBand {
     let band = BUDGET_BANDS[0];
@@ -1137,6 +1159,32 @@ const scoreAtWidth = (
             else if (action.scaling === 'BURN_STACKS' || action.scaling === 'SELF_ANY_STATUS') {
                 manualReview.push(`ATTACK:${action.scaling}`);
             }
+            /*
+             * TICKET 163a — three more scalings this scorer cannot price, found by the `+` ledger.
+             *
+             * `SHARP_STACKS`, `STRENGTH_STACKS` and `TARGET_STATUS_STACKS` fell off the end of this
+             * chain and contributed NOTHING, with no flag. That is the one outcome the paragraph
+             * above rules out: a silent zero reads as a price, and six shipped cards were priced at
+             * their printed base with their whole rider invisible — `flashover` (50 **+15 per
+             * Burn**), `cinder_lance` (40 +6 per Sharp), `sap_strength` (20 +6 per Weakened),
+             * `thorn_whip` and `spike_launch` (15 +5 per Sharp), and `unbound_fang`, whose power is
+             * MULTIPLIED by the pile and was therefore read at 5.
+             *
+             * Found because 163a's ledger asks a question 162b's could not: the `+` pass moved every
+             * one of those riders and the scorer reported a lift of **exactly zero** on all five
+             * that have one. A card that does not move when its only number moves is an instrument
+             * fault, not a dud upgrade.
+             *
+             * FLAGGED, NOT PRICED, on this file's own rule: every `ASSUMED_` constant here came out
+             * of ticket 66's census of real battles, and the Sharp, Strength and target-Burn piles
+             * have not been measured. A number invented here would read as a measurement. So these
+             * say UNPRICED and the ledger prints it, which is the honest state until somebody runs
+             * the census — and it is a smaller claim than the zero they were making before.
+             */
+            else if (action.scaling === 'SHARP_STACKS' || action.scaling === 'STRENGTH_STACKS'
+                || action.scaling === 'TARGET_STATUS_STACKS') {
+                manualReview.push(`ATTACK:${action.scaling}`);
+            }
 
             // Ticket 53: RAMPAGE growth. Charge the AVERAGE over the assumed horizon, so the
             // printed power is what the card opens at and the score is what it is worth.
@@ -1718,7 +1766,11 @@ export function meanAttackScore(): number {
     if (meanAttackScoreCache !== null) return meanAttackScoreCache;
     const registry = getInflatedProgramRegistry();
     const attacks = (Object.values(registry) as ProgramData[]).filter(
-        c => (c.actions ?? []).some(a => (a.type as string) === 'ATTACK') && !c.isToken,
+        // TICKET 163a: BASE cards only. This mean is the scorer's own reference rate — §4.5 prices
+        // an OS multiplier as `(m - 1) x meanAttackScore()` — so letting ninety-eight upgraded
+        // attacks into it would have raised every firmware's price because the UPGRADE PASS
+        // shipped, which is a balance instrument reading its own reflection.
+        c => (c.actions ?? []).some(a => (a.type as string) === 'ATTACK') && !c.isToken && !c.upgradeOf,
     );
     const total = attacks.reduce((sum: number, c) => sum + Math.max(0, scoreAtWidth(c, '1v1').score), 0);
     meanAttackScoreCache = attacks.length > 0 ? total / attacks.length : 0;

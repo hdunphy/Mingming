@@ -57,7 +57,15 @@ export function codexCardIds(): string[] {
     // `isToken`, not `rarity === 'Token'`: the data carries "Token" in its rarity column but the
     // `Rarity` union does not admit it, so the flag is the typed question and the string is a
     // coincidence of the JSON.
-    return Object.keys(ProgramRegistry).filter((id) => ProgramRegistry[id].isToken !== true);
+    //
+    // TICKET 163a excludes the `+` cards on exactly the argument above. Ninety-eight upgraded forms
+    // are in the registry and NONE of them can be reached — there is no pool that offers one and,
+    // until 163b builds the workshop tab, no way to make one. Counting them would move the
+    // denominator to 310 and make 100% depend on content that does not yet exist. When 163b lands,
+    // whether an upgraded card is its own codex row or a mark on its base row is a design question
+    // for Henry, not something this filter should decide by default.
+    return Object.keys(ProgramRegistry)
+        .filter((id) => ProgramRegistry[id].isToken !== true && !ProgramRegistry[id].upgradeOf);
 }
 
 /**

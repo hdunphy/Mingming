@@ -1690,5 +1690,435 @@
                 ]
             }
         ]
+    },
+    "short_fuse+": {
+        "id": "short_fuse+",
+        "name": "SHORT_FUSE+",
+        "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 15 power per point.",
+        "hooks": [
+            {
+                "id": "short_fuse_discharge+",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "currentEnergy": {
+                        "operator": "GT",
+                        "value": 0
+                    }
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 15,
+                        "element": "None",
+                        "scaling": "CURRENT_ENERGY"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SHORT_FUSE burns {target}'s hoarded charge!"
+                    }
+                ]
+            }
+        ]
+    },
+    "riptide+": {
+        "id": "riptide+",
+        "name": "RIPTIDE+",
+        "description": "Daemon (exhaust): whenever an enemy plays a card, deal 11 power to it.",
+        "hooks": [
+            {
+                "id": "riptide_undertow+",
+                "trigger": "onActionEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 11,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s RIPTIDE drags {target} back!"
+                    }
+                ]
+            }
+        ]
+    },
+    "short_circuit+": {
+        "id": "short_circuit+",
+        "name": "SHORT_CIRCUIT+",
+        "description": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 20 power to it.",
+        "hooks": [
+            {
+                "id": "short_circuit_discharge+",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "isNaturalDraw": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 20,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SHORT_CIRCUIT arcs into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "static_ward+": {
+        "id": "static_ward+",
+        "name": "STATIC_WARD+",
+        "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 11 power.",
+        "hooks": [
+            {
+                "id": "static_ward_arc+",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 11,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s STATIC_WARD earths {target}'s interference!"
+                    }
+                ]
+            }
+        ]
+    },
+    "feedback_loop+": {
+        "id": "feedback_loop+",
+        "name": "FEEDBACK_LOOP+",
+        "description": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 10 power.",
+        "hooks": [
+            {
+                "id": "daemon_draw_damage_proc+",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "isNaturalDraw": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 10,
+                        "element": "Water"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s FEEDBACK_LOOP discharges into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "hoofbeat+": {
+        "id": "hoofbeat+",
+        "name": "HOOFBEAT_DAEMON+",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, deal 11 power to a random enemy.",
+        "hooks": [
+            {
+                "id": "hoofbeat_daemon_hook+",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 11,
+                        "element": "Air"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s HOOFBEAT_DAEMON stampedes into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "cinder_armor+": {
+        "id": "cinder_armor+",
+        "name": "CINDER_ARMOR+",
+        "description": "Daemon (exhaust): cards that add Burn also add 4 Sharp to the host.",
+        "hooks": [
+            {
+                "id": "daemon_burn_sharp_synergy+",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "statusApplied": "Burn"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Sharp",
+                        "stacks": 4
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s CINDER_ARMOR hardens! +1 Sharp."
+                    }
+                ]
+            }
+        ]
+    },
+    "ember_ward+": {
+        "id": "ember_ward+",
+        "name": "EMBER_WARD+",
+        "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 4 Burn.",
+        "hooks": [
+            {
+                "id": "ember_ward_retort+",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "isAttack": true
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Burn",
+                        "stacks": 4
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s EMBER_WARD scorches {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "core_overclock+": {
+        "id": "core_overclock+",
+        "name": "CORE_OVERCLOCK+",
+        "description": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+        "hooks": [
+            {
+                "id": "daemon_double_strength+",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 1.3,
+                "scaling": "STRENGTH_STACKS"
+            }
+        ]
+    },
+    "thermal_overload+": {
+        "id": "thermal_overload+",
+        "name": "THERMAL_OVERLOAD+",
+        "description": "Daemon (exhaust): your Burns deal 75% more damage. Host takes 5 Fire damage at turn end.",
+        "hooks": [
+            {
+                "id": "thermal_overload_hook+",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 1.25
+            },
+            {
+                "id": "thermal_overload_burn_boost+",
+                "trigger": "onStatusDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "target": "OPPONENT"
+                },
+                "multiplier": 1.75
+            },
+            {
+                "id": "thermal_overload_logic+",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "amount": -5,
+                        "element": "Fire"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s THERMAL_OVERLOAD causes 5 overheat damage!"
+                    }
+                ]
+            }
+        ]
+    },
+    "reactive_plating+": {
+        "id": "reactive_plating+",
+        "name": "REACTIVE_PLATING+",
+        "description": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 5 per turn.",
+        "hooks": [
+            {
+                "id": "reactive_plating_proc+",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "counter": {
+                        "key": "reactive_plating_plus_grants",
+                        "operator": "LT",
+                        "value": 5,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_plus_grants",
+                        "operator": "ADD",
+                        "amount": 1,
+                        "scope": "SIDE"
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Sharp",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  🛡️ {owner}'s REACTIVE_PLATING+ hardens {target}!"
+                    }
+                ]
+            },
+            {
+                "id": "reactive_plating_reset+",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_plus_grants",
+                        "operator": "RESET",
+                        "scope": "SIDE"
+                    }
+                ]
+            }
+        ]
+    },
+    "echo_chamber+": {
+        "id": "echo_chamber+",
+        "name": "ECHO_CHAMBER_DAEMON+",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand — two the first time each turn.",
+        "hooks": [
+            {
+                "id": "echo_chamber_daemon_hook+",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false
+                },
+                "do": [
+                    {
+                        "type": "GENERATE_CARD",
+                        "dataId": "feedback_token",
+                        "target": "SELF"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s ECHO_CHAMBER_DAEMON+ generates Feedback!"
+                    }
+                ]
+            },
+            {
+                "id": "echo_chamber_encore+",
+                "trigger": "onActionStart",
+                "priority": 41,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false,
+                    "counter": {
+                        "key": "echo_chamber_plus_encore",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "echo_chamber_plus_encore",
+                        "operator": "ADD",
+                        "amount": 1,
+                        "scope": "OWNER"
+                    },
+                    {
+                        "type": "GENERATE_CARD",
+                        "dataId": "feedback_token",
+                        "target": "SELF"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s ECHO_CHAMBER_DAEMON+ echoes twice!"
+                    }
+                ]
+            },
+            {
+                "id": "echo_chamber_encore_reset+",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "echo_chamber_plus_encore",
+                        "operator": "RESET",
+                        "scope": "OWNER"
+                    }
+                ]
+            }
+        ]
     }
 }

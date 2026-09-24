@@ -642,6 +642,29 @@ export interface ProgramData {
    * before this flag existed the loosest of the three was the effective rule.
    */
   readonly allyTarget?: boolean;
+  /**
+   * TICKET 163a — **this card is the upgraded form of `upgradeOf`.** Its own id is `<base>+`.
+   *
+   * A `+` card is an ordinary registry entry in every respect but one: it is NOT REACHABLE. There
+   * is no pool it belongs to and no way to be offered one — `RewardSystem.isRewardable` returns
+   * false for anything carrying this field, which closes the reward screen, the marketplace's
+   * off-pool slot and the element pools at the single place all three already agree on. Until 163b
+   * builds the workshop's Upgrade tab, the only things that can reach a `+` card are a test, a
+   * scenario file and the scorer.
+   *
+   * That is deliberate and it is the shape of the row: 163a puts the cards in the registry so they
+   * can be read, priced and cast, and putting them into a player's hands is a separate decision on
+   * a separate row.
+   *
+   * ONE RUNG, NOT A LADDER. `<base>+` never has a `+` of its own, and `plusRegistry.test.ts` fails
+   * the build for an `upgradeOf` that points at something already upgraded. Henry ruled one
+   * upgraded form per card (163 §2); a second rung is a new ticket, not a second suffix.
+   *
+   * NOT PRICED AGAINST THE BAND. Henry, 2026-09-23: *"upgrades are supposed to be broken."* 149c
+   * prices a `+` row for the ledger and `powerscale` does not band-flag it — Inferno+, Wildfire+
+   * and Heat Wave+ push Burn past its cap of 4 and detonate, which is the point of the pass.
+   */
+  readonly upgradeOf?: string;
   readonly artReference?: string;
 }
 

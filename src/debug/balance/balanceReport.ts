@@ -51,6 +51,7 @@ import {
     bandVerdict,
     budgetBandFor,
     calculatePowerscale,
+    isBandExempt,
     scoreAllOS,
 } from './powerscale';
 import type { BandState, OsScore } from './powerscale';
@@ -431,6 +432,16 @@ export function auditCardBudget(): {
     const watchlist: CardBudgetEntry[] = [];
     for (const id of ids) {
         const card = registry[id] as ProgramData;
+        /*
+         * TICKET 163a — the ninety-eight `+` cards are not audited against the band.
+         *
+         * They are over it by construction (Henry: *"upgrades are supposed to be broken"*), so
+         * auditing them would add ninety-eight redlines that all say the same true and useless
+         * thing, and bury the base-card redlines this report exists to surface. `scratch/
+         * t163a_ledger.ts` prices them on their own, against their BASE rather than against a
+         * cost band, which is the comparison that can actually be wrong.
+         */
+        if (isBandExempt(card)) continue;
         const band = budgetBandFor(numericBaseCost(card.baseCost));
         const { score1v1, score3v3, perEnergy, manualReview, hookFloor, hookCeiling } =
             calculatePowerscale(card);

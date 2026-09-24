@@ -24,8 +24,9 @@
  *     damage divisor. Everything is gated on `isSimulating()` false so the AI's lookahead is not
  *     counted (0-AI-SIM-COUNTS).
  *
- * NOTHING ON DISK IS TOUCHED. `--swap from:to` replaces one card id in the owner deck in memory
- * (used to put `fire_punch_v2`, which no shipped deck runs, on a Fire frame for the benchmark).
+ * NOTHING ON DISK IS TOUCHED. `--swap from:to` replaces EVERY copy of a card id in the owner deck
+ * in memory (used to put `fire_punch_v2`, which no shipped deck runs, on a Fire frame for the
+ * benchmark, and by 163a to put a `+` card in the deck its base lives in).
  *
  * Run: npx vite-node scratch/t149_castprobe.ts -- --width 1 --owner nidhoggr_v2 --cards umbral_feast --iter 20 --out results/t149_consume/w1_nidhoggr_v2.jsonl
  *      npx vite-node scratch/t149_castprobe.ts -- --width 3 --comp zoo --owner huldra_v1 --cards hexbloom --opps ink_loop,control --iter 5 --out results/t149_consume/w3_huldra_v1.jsonl
@@ -68,10 +69,19 @@ const SPECIES = speciesOf(OWNER);
 if (SWAP) {
     const [from, to] = SWAP.split(':');
     const decks = (MingmingRegistry[SPECIES] as unknown as { decks: Record<string, string[]> }).decks;
-    const i = decks[OWNER].indexOf(from);
-    if (i === -1) throw new Error(`SWAP DID NOT TAKE: ${from} not in ${OWNER}`);
-    decks[OWNER][i] = to;
-    console.error(`swap: ${OWNER}[${i}] ${from} -> ${to}`);
+    /*
+     * EVERY copy, not the first. It replaced one until 163a, which was harmless for the benchmark
+     * it was written for (`fire_punch_v2` swapped onto a frame that held one copy of the card it
+     * replaced) and WRONG for the question ticket 152 asks: a loop needs TWO copies drawing each
+     * other, so a swap that left the second copy as the base card would have measured a mixed
+     * pile and reported it as the upgrade's number.
+     */
+    const before = decks[OWNER].length;
+    const hits = decks[OWNER].filter((c) => c === from).length;
+    if (hits === 0) throw new Error(`SWAP DID NOT TAKE: ${from} not in ${OWNER}`);
+    decks[OWNER] = decks[OWNER].map((c) => (c === from ? to : c));
+    if (decks[OWNER].length !== before) throw new Error('SWAP CHANGED THE DECK SIZE');
+    console.error(`swap: ${OWNER} ${from} -> ${to} (${hits} cop${hits === 1 ? 'y' : 'ies'})`);
 }
 const DECK_CARDS = (MingmingRegistry[SPECIES] as unknown as { decks: Record<string, string[]> }).decks[OWNER];
 const CARDS = new Set(arg('cards', DECK_CARDS.join(',')).split(',').filter(Boolean));

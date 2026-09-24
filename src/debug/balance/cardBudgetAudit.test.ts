@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { auditCardBudget, budgetRedline } from './balanceReport';
-import { BAND_TOLERANCE_PCT, bandVerdict, budgetBandFor, calculatePowerscale } from './powerscale';
+import { BAND_TOLERANCE_PCT, bandVerdict, budgetBandFor, calculatePowerscale, isBandExempt } from './powerscale';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import { numericBaseCost } from '../../engine/types';
 
@@ -37,7 +37,12 @@ describe('149c-4 — which width the band verdict is taken against', () => {
          * that is fine at 1v1 and egregious at 3v3 stays on the list, which is the whole reason
          * this is not simply "score everything at 1v1".
          */
-        const sides = Object.values(registry).filter(c => c.target === 'Side' || c.target === 'All');
+        // TICKET 163a: the `+` cards are not audited at all (`isBandExempt`) — they are over band
+        // by construction and Henry ruled that intended — so the width rule has nothing to say
+        // about them. Excluded HERE rather than by loosening the assertion below, which is the one
+        // that proves an over-band Side card is on the list.
+        const sides = Object.values(registry)
+            .filter(c => !isBandExempt(c) && (c.target === 'Side' || c.target === 'All'));
         expect(sides.length).toBeGreaterThan(0);
 
         let judgedOnTheWideReading = 0;

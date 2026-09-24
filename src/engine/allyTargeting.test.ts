@@ -49,12 +49,19 @@ function play(dataId: string, casterId: string, targetId: string): IBattleState 
 }
 
 describe('160-e1 — the data', () => {
-    it('flags exactly the eight cards the collection prints as ally-facing', () => {
+    it('flags exactly the eight cards the collection prints as ally-facing, and their upgrades', () => {
         const flagged = Object.values(getInflatedProgramRegistry())
             .filter((p) => (p as ProgramData).allyTarget)
             .map((p) => (p as ProgramData).id)
             .sort();
-        expect(flagged).toEqual([...ALLY_CARDS, ...ALLY_SIDE_CARDS].sort());
+        /*
+         * TICKET 163a: sixteen, not eight — every ally card has a `+` and an upgrade never changes
+         * a card's SHAPE (163 §1), so the flag rides across. Written as a derivation from the eight
+         * rather than a second list of sixteen: an ally card added later gets its `+` counted here
+         * without anyone remembering this line, and a `+` that LOST the flag still fails.
+         */
+        const base = [...ALLY_CARDS, ...ALLY_SIDE_CARDS];
+        expect(flagged).toEqual([...base, ...base.map((id) => `${id}+`)].sort());
     });
 
     it('never combines allyTarget with Self — a Self card has no target to pick', () => {
