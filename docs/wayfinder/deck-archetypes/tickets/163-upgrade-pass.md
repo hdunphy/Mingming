@@ -1,6 +1,6 @@
 # Ticket 163 — The upgrade pass: card `+` versions and OS patches
 
-> **Status: 163b, 163c, 163d SHIPPED 2026-09-24 (fbe93f4, a331def, 73ce677) — upgrades at three benches, six patches written against fields, one slot per body, patches from elites/ambushes, the gate and the shop. Post-merge the elite payout rides paysDriver (6c25d2b). OPEN: 163e — measure on 157's walker (upgrade take-rate, patch take-rate by kind, deck-power curve fight 1 → gym, the shop's 50-scrap patch price is Legion's number to tune from it). The status line below is history.**
+> **Status: CLOSED 2026-09-24 — every row shipped. 163a the `+` registry, 163b the three benches, 163c the six patches, 163d patches in a run, 163e the measurement (`results/t163e/FINDINGS.md`: 54% upgrade take-rate that moves deck power +0.06, the shop patch re-priced 50 → 45 on the ordering condition, and **five of the six patches are never taken in play**), 163f the `+` in the stall at 35/45/60/70. Two decisions are open for Henry and are on the write-back, not on this ticket's status. The line below is history.**
 
 **Type:** design → engine + data + UI. **Status:** **163a SHIPPED 2026-09-24 (`fa26724`), ruled closed (`577b577`); 163b–163e OPEN — Legion's next rows.** Asked by Henry 2026-09-23 after ruling
 collection v2.1b into playtest: *"I want to start on an upgrade pass. How can we implement card
@@ -147,3 +147,91 @@ reviews the table in the browser; 149c prices each `+` as its own row; then it s
 ## 6. 163f — `+` cards in the stall (RULED by Henry 2026-09-24)
 
 An upgraded card may be found in the market stall for sale, priced below buying the base and upgrading it — Henry: *"less than buying then upgrading the card, like 10–20% discount"*. Price = (card price by energy 15/25/35/45 + bench price 25/30/35/40) × 0.85, rounded to 5: **35 / 45 / 60 / 70** by energy. `isRewardable` keeps refusing `+` cards everywhere else (rewards, enemies, the codex denominator); the stall gets a single explicit exception — at most one `+` card in stock per run, drawn from the party's V2 pool, on the 142e static stock. Codex: a `+` seen or played is a MARK on the base card's row, not a row (31a). Lands after 163e; measured by the walker's take-rate like the rest.
+
+---
+
+## 7. Write-back (2026-09-24) — 163e, and the ticket closes
+
+`npm run balance:walk -- --upgrades both` runs the pair; `--patch-price N` sweeps the shelf. Report:
+`results/t163e/FINDINGS.md`, raw in `arms.txt` and `price-25.txt`. Three points, 120 runs each,
+**paired** — the same seeds, graphs and offers, one spending policy apart.
+
+### The upgrade arm is used and changes almost nothing
+
+"Upgrade the highest-149c card when scrap ≥ price" vs never: **54% take-rate** (58 upgrades at 108
+benches, 1,810 scrap at a mean of 31), and deck power moves **+0.06 at fight 4** and **+0.02 at
+fight 8**. Mean fights survived +0.17; deaths in biome 0 97 → 93. Every one of those is inside the
+noise of 120 runs.
+
+**That is the arithmetic working, not a disappointment.** An upgrade is +40% on ONE card in a deck
+of twelve to eighteen, and 163 §1's own rule is that it never changes a card's shape. What would
+make it a large effect is a run long enough to take five or six, and 157 measured that 100 of 120
+runs end in biome 0.
+
+Highest-scoring card rather than lowest, and that choice is the arm's character: upgrading the best
+card COMPOUNDS what the deck already does, while upgrading the worst raises a floor the deck is
+trying to draw around. §5's wording picks the first. "Upgrade the worst" is a different question and
+is not this row's.
+
+### The shop's patch price: 50 → **45**, and the take-rate is not what decided it
+
+| shelf price | upgrades competing | take-rate |
+|---|---|---|
+| 50 | no | 8 of 46 — **17%** |
+| 50 | yes | 3 of 47 — **6%** |
+| 25 | yes | 9 of 51 — **18%** |
+
+Halving the price triples the take-rate, so the shelf is price-sensitive and 50 sat above what a run
+can pay. **But the binding constraint is the PURSE**, and pricing to hit a take-rate now would be
+fitting a number to a brokenness that lives in the opening fight.
+
+So the CONDITION sets it. A patch is permanent, run-long, one slot per body and no replacing — which
+puts it between an **upgrade** (permanent, but one card: 25–40) and a **blueprint** (a whole body
+and its engine: 50). `upgrade ceiling < patch < blueprint` is **45** in this economy's fives. At 50 a
+patch cost the same as a body, which is the one thing it certainly is not. The slope says 45 will
+read about 8%; **re-measure after 157's opening-fight ruling**, which `--patch-price` makes free.
+
+### Five of the six patches are never taken — a finding, not a fix
+
+Across 360 runs: **amplifier ×145, splitter ×3, and nothing else at all.** `bestPatchFor` leads the
+gate's choice-of-two and the elite's offer and picks Amplifier on almost every EA firmware; the shop
+stocks Amplifier by ruling. So the six riders 163c wrote against FIELDS are, in play, one rider.
+
+Not a bug in `patchRegistry` — the 72-cell matrix says every transform is well-formed. Three things
+could be true and they need different fixes: the twelve EA firmware are Amplifier-shaped;
+`patchTouchCount` is the wrong ranking; or the gate should offer a SPREAD rather than the best two.
+163 §3's own argument was that a random patch is a no-op on most bodies, which is why the offer is
+ranked at all — so "just randomise it" is not the answer. **Henry's call.**
+
+### And 153's number, confirmed on a second corpus
+
+1.2% and 1.4% "sent to collection" across the two arms (408 and 370 picks) — the same ~2% 157
+measured over a different 120 runs.
+
+### Decisions
+
+1. **The patch shelf ships at 45** on the ordering condition; re-measure after the opening-fight
+   ruling.
+2. **Five of six patches are dead in practice** — roster fact, ranking bug, or offer shape?
+3. **The upgrade bench is a small, working effect.** Nothing to tune here; it gets large when runs
+   get long, which is 157's question.
+
+### 163f is also in (2026-09-24)
+
+`upgradedCardPrice` + `upgradedOfferFor` in `marketplace.ts`, and `MarketSlot` gains `'upgraded'`.
+One `+` per RUN, on the market node a seeded draw over the run's own market nodes picks — so it needs
+no new run state and cannot be farmed by refreshing (`marketStockSeed` moves with `marketRefreshes`;
+this deliberately does not read it). Drawn from the PARTY's pool, so it is an upgrade of a card this
+team can use rather than a second stranger, and it is an EXTRA slot, so a run that meets it loses
+nothing from the five.
+
+**The price is derived, not tabled.** Henry's rule is *"less than buying then upgrading, like 10–20%
+discount"*; buy-then-upgrade is 40/55/70/85 and 0.85 of it, to the nearest five, is
+**35 / 45 / 60 / 70** — the numbers he named, and the only 5%-step multiplier that keeps all four
+rungs on a multiple of five without rounding two of them the wrong way. The DISCOUNT is the ruling,
+so a move to either price table carries this with it.
+
+It is the single declared exception to `isRewardable`'s refusal of `+` cards, and 25-pre's test —
+*"no card outside the EA pool reaches the stall"* — **failed when it landed**, which is exactly what
+should happen when a new door opens onto a shelf a previous ticket closed. The exception is excluded
+there by NAME rather than by widening the pool gate.

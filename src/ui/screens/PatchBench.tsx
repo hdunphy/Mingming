@@ -25,14 +25,45 @@ import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 
 /**
- * What the shop charges for a patch.
+ * What the shop charges for a patch. **45 — tuned by ticket 163e, 2026-09-24.**
  *
- * MINE, NOT HENRY'S — 163 §3 says the shop stocks Amplifier and names no price. Set level with
- * `MARKET_BLUEPRINT_PRICE` and `MARKET_REFRESH_PRICE` (both 50), which is the rung this shelf
- * already uses for "a thing that changes the run rather than the deck". `PATCH_TAKEN` records
- * nothing about price, so the number to tune it from is the take-rate 163e measures.
+ * MINE, NOT HENRY'S: 163 §3 says the shop stocks Amplifier and names no price. It was 50, set level
+ * with `MARKET_BLUEPRINT_PRICE` and `MARKET_REFRESH_PRICE`, and the note here said the number to
+ * tune it from was the take-rate 163e would measure. It has been measured, so here is the number
+ * and here is what it is and is not based on.
+ *
+ * # THE CONDITION, WHICH IS WHAT SETS THE NUMBER
+ *
+ * A patch is a permanent, run-long rider, **one slot per body and no replacing** (163 §5). That
+ * places it exactly between the two things either side of it on the same shelves:
+ *
+ *   - an **upgrade** is permanent too, but it is ONE CARD — 25–40 by energy (`UPGRADE_PRICE_BY_ENERGY`);
+ *   - a **blueprint** is a whole BODY and its five-card engine — 50 (`MARKET_BLUEPRINT_PRICE`).
+ *
+ * So `upgrade ceiling < patch < blueprint`, which in this economy's fives is **45**. At 50 a patch
+ * cost the same as a body, which is the one thing it certainly is not.
+ *
+ * # WHAT THE TAKE-RATE MEASURED, AND WHY IT DID NOT SET THE PRICE
+ *
+ * 157's walker, 120 runs per point (`results/t163e/`):
+ *
+ * | shelf price | upgrades competing for the purse | take-rate |
+ * |---|---|---|
+ * | 50 | no  | 8 of 46 — **17%** |
+ * | 50 | yes | 3 of 47 — **6%**  |
+ * | 25 | yes | 9 of 51 — **18%** |
+ *
+ * Halving the price triples the take-rate, so the shelf is price-sensitive and 50 was above what
+ * the run can pay. But the slope also says 45 will read about 8% — barely different from 50 — and
+ * **that is not a reason to go lower.** The binding constraint is the PURSE, not the price: 157
+ * measured that 100 of 120 runs die in biome 0, having banked one or two fights' scrap. A shelf
+ * almost nobody reaches cannot be tuned by its own take-rate without pricing it against a run that
+ * does not exist yet.
+ *
+ * **So: 45 on the ordering condition, and re-measure after the opening-fight ruling 157 asks for.**
+ * Pricing to hit a take-rate now would be fitting this number to a brokenness somewhere else.
  */
-export const SHOP_PATCH_PRICE = 50;
+export const SHOP_PATCH_PRICE = 45;
 
 export interface PatchBenchProps {
     readonly run: IRunState;

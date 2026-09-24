@@ -52,14 +52,18 @@ import { configureStore } from '@reduxjs/toolkit';
 import runReducer, {
     startRun, enterNode, resolveEncounter, endRun, addRunScrap, addRunCards, addRunCollection,
     buyMarketCard, recruitIntoParty, beginGauntlet, advanceGauntlet, finishGauntlet,
-    recordFightBlueprintOutcome, addDriver, fitPatch,
+    recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard,
 } from '../../ui/store/runSlice';
 import { createRun, recruitDeckFor } from '../../engine/run/createRun';
-import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware } from '../../engine/run/gyms';
+import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompElementPlan } from '../../engine/run/gyms';
 import { rollEncounter, isFightNode, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { rollDropTable } from '../../engine/RewardSystem';
-import { rollMarketStock, rollBlueprintOffer, isMarketNode } from '../../engine/run/marketplace';
+import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice } from '../../engine/run/marketplace';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
+import { gatePatchChoices, PATCH_SLOTS, SHOP_STOCK_PATCH } from '../../engine/data/patchRegistry';
+import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
+import { SHOP_PATCH_PRICE } from '../../ui/screens/PatchBench';
 import { MingmingRegistry, LAUNCH_SPECIES, GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { grammarFor } from '../../engine/data/osGrammar';
@@ -279,6 +283,10 @@ export function chooseRecruit(
     partyOS: ReadonlyArray<string>,
     gymElement: string,
 ): RecruitChoice | null {
+    // TICKET 28a: `gymElement` is the element the gym's AUTHORED comp mostly fields, derived by the
+    // caller from `gymCompElementPlan` — one table, the same one the scout previews. It used to be
+    // the gym's own `element`, which happened to agree because a gym fields two of its own bodies;
+    // reading the comp means a re-composition moves the walker with it rather than past it.
     const definition = MingmingRegistry[speciesId];
     if (!definition) return null;
 
@@ -315,6 +323,65 @@ export function chooseRecruit(
     return best === null ? null : { speciesId: best.speciesId, osId: best.osId, why: best.why };
 }
 
+/**
+ * TICKET 163e's policy: **upgrade the highest-149c card in the deck that has a `+`, when the purse
+ * covers it.**
+ *
+ * Highest rather than lowest, and the choice is the arm's whole character. An upgrade is *"the same
+ * card with a bigger number"* (163 §1) — it never changes a card's shape — so upgrading the best
+ * card compounds what the deck already does, while upgrading the worst raises a floor the deck is
+ * trying to draw around. §5's wording picks the first, and the take-rate this measures is therefore
+ * a take-rate for the COMPOUNDING policy. A "upgrade the worst" arm is a different question and is
+ * not this row's.
+ *
+ * Returns the instance to upgrade, or null when nothing in the deck has a `+` the purse can reach —
+ * which is a bench walked past, and is counted.
+ */
+export function chooseUpgrade(
+    deck: ReadonlyArray<IRunCard>,
+    scrap: number,
+    free: boolean,
+): { instanceId: string; from: string; to: string; price: number } | null {
+    const candidates = deck
+        .filter((card) => hasUpgrade(card.dataId))
+        .map((card) => ({ card, score: scoreOf(card.dataId), price: free ? 0 : upgradePrice(card.dataId) }))
+        .filter((row): row is { card: IRunCard; score: number; price: number } =>
+            row.score !== null && row.price <= scrap)
+        .sort((a, b) => b.score - a.score || a.card.instanceId.localeCompare(b.card.instanceId));
+    if (candidates.length === 0) return null;
+    const { card, price } = candidates[0];
+    return { instanceId: card.instanceId, from: card.dataId, to: `${card.dataId}+`, price };
+}
+
+/**
+ * TICKET 163e's other half: **which patch a body takes at the gate, and whether one is worth 50
+ * scrap at the shop.**
+ *
+ * The gate offers a choice of two per body, free (163 §3), and `gatePatchChoices` already leads with
+ * the rider that changes the most about THIS firmware — so the policy is simply "take the first",
+ * and what is being measured is the DISTRIBUTION that produces. The shop stocks Amplifier at
+ * `SHOP_PATCH_PRICE`, which is the number this row existed to tune — and did: it was 50, set level
+ * with `MARKET_BLUEPRINT_PRICE`, and 163e moved it to 45 on the ordering condition
+ * `upgrade ceiling < patch < blueprint`. See that constant's comment for what the take-rate could
+ * and could not decide.
+ *
+ * Returns the ids to fit, one per body with a free slot, in party order.
+ */
+export function choosePatches(
+    party: ReadonlyArray<IMingmingState>,
+    held: Readonly<Record<string, ReadonlyArray<string>>>,
+    venue: 'gate' | 'shop',
+): Array<{ memberId: string; patchId: string }> {
+    const out: Array<{ memberId: string; patchId: string }> = [];
+    for (const member of party) {
+        if ((held[member.id] ?? []).length >= PATCH_SLOTS) continue;
+        if (venue === 'shop') { out.push({ memberId: member.id, patchId: SHOP_STOCK_PATCH }); continue; }
+        const pair = gatePatchChoices(rawFirmwareHooks(member.activeOS ?? ''), held[member.id] ?? []);
+        if (pair.length > 0) out.push({ memberId: member.id, patchId: pair[0] });
+    }
+    return out;
+}
+
 // ---------------------------------------------------------------------------------------------
 // The walk
 // ---------------------------------------------------------------------------------------------
@@ -325,6 +392,22 @@ export interface WalkInput {
     readonly starter: string;
     /** Which of the three offered gyms. `index % 3` from the caller spreads a batch evenly. */
     readonly gymIndex: number;
+    /**
+     * TICKET 163e's arm: **"upgrade the highest-149c card when scrap ≥ price" vs never.**
+     *
+     * The comparison is the measurement. An upgrade costs 25–40 scrap out of the same purse a card
+     * costs 15–45 from, so the two arms are not "with and without a free bonus" — they are two
+     * spending policies, and the interesting number is whether the upgrade one ends up with a
+     * better deck or merely a poorer one.
+     */
+    readonly upgrades?: boolean;
+    /**
+     * TICKET 163e: what the shop charges for a patch. `SHOP_PATCH_PRICE` is MINE rather than
+     * Henry's — 163 §3 names no price — so this row is the first thing that could argue with it,
+     * and the sweep this field enables is what moved it from 50 to 45. Kept overridable so the next
+     * sweep (after 157's opening-fight ruling) needs no edit to the shipped constant.
+     */
+    readonly patchPrice?: number;
 }
 
 export interface FightRecord {
@@ -352,6 +435,14 @@ export interface WalkResult {
     readonly bought: ReadonlyArray<{ dataId: string; price: number }>;
     readonly recruits: ReadonlyArray<RecruitChoice>;
     readonly steps: ReadonlyArray<StepReason>;
+    /** 163e: every upgrade bought, by base id and price. */
+    readonly upgraded: ReadonlyArray<{ from: string; to: string; price: number }>;
+    /** 163e: every patch fitted, by id and where it came from. */
+    readonly patches: ReadonlyArray<{ patchId: string; from: 'elite' | 'gate' | 'shop'; price: number }>;
+    /** 163e: benches walked past with nothing affordable or nothing upgradable. */
+    readonly benchesMissed: number;
+    /** 163e: bodies that stood in front of the shop's patch shelf — the shop take-rate's denominator. */
+    readonly patchShelvesSeen: number;
     readonly finalDeck: ReadonlyArray<string>;
     readonly scrapAtEnd: number;
     /** 156's rows, so `runRead` can read this run exactly as it reads a human one. */
@@ -452,6 +543,11 @@ export function walkRun(input: WalkInput): WalkResult {
     const bought: Array<{ dataId: string; price: number }> = [];
     const recruits: RecruitChoice[] = [];
     const steps: StepReason[] = [];
+    const upgraded: Array<{ from: string; to: string; price: number }> = [];
+    const patchesTaken: Array<{ patchId: string; from: 'elite' | 'gate' | 'shop'; price: number }> = [];
+    let benchesMissed = 0;
+    /** 163e: how often a body stood in front of the shop's patch shelf — the take-rate denominator. */
+    let patchShelvesSeen = 0;
     let blueprints = 0;
     let outcome: 'victory' | 'defeat' = 'defeat';
 
@@ -559,6 +655,7 @@ export function walkRun(input: WalkInput): WalkResult {
         // first offer is the same "equip the first found" rule the blueprint row uses.
         for (const offerRow of bundle.patchChoices ?? []) {
             store.dispatch(fitPatch({ memberId: offerRow.memberId, patchId: offerRow.patchId }));
+            patchesTaken.push({ patchId: offerRow.patchId, from: 'elite', price: 0 });
             record({ kind: 'PATCH_TAKEN', memberId: offerRow.memberId, patchId: offerRow.patchId }, fights.length);
             break;
         }
@@ -609,6 +706,52 @@ export function walkRun(input: WalkInput): WalkResult {
             blueprints += 1;
             record({ kind: 'SCRAP', delta: -bp.price, reason: 'blueprint' }, fights.length);
         }
+
+        // TICKET 163e: the shop's Amplifier at `SHOP_PATCH_PRICE`. Bought AFTER the card and the
+        // blueprint, which is the order the policy already ranks them in — a patch is the newest
+        // shelf and has the least evidence behind its price, so it should not outbid the two that do.
+        const patchPrice = input.patchPrice ?? SHOP_PATCH_PRICE;
+        for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'shop')) {
+            patchShelvesSeen += 1;
+            if (runNow().scrap < patchPrice) break;
+            store.dispatch(fitPatch({ memberId: fit.memberId, patchId: fit.patchId, price: patchPrice }));
+            patchesTaken.push({ patchId: fit.patchId, from: 'shop', price: patchPrice });
+            record({ kind: 'PATCH_TAKEN', memberId: fit.memberId, patchId: fit.patchId }, fights.length);
+            break;
+        }
+    };
+
+    /**
+     * TICKET 163e — the upgrade bench, at whichever venue the walker is standing in.
+     *
+     * 163b ships three: the market stall, the workshop node and the gym gate (free, once). One
+     * upgrade per visit, which `upgradeDeckCard`'s `benchKey` enforces — the walker passes the same
+     * `nodeId:visit` key the screens do rather than counting for itself.
+     *
+     * A bench walked past with nothing affordable or nothing upgradable is COUNTED rather than
+     * ignored: "the player stood at a bench and could not use it" is a different number from "there
+     * was no bench", and 163e's take-rate needs the denominator.
+     */
+    const upgradeBench = (node: IRegionNode, free: boolean): void => {
+        const run = runNow();
+        const choice = chooseUpgrade(run.deck, run.scrap, free);
+        /*
+         * THE BENCH IS COUNTED IN BOTH ARMS, and only the purchase is gated.
+         *
+         * The first build returned before counting when the arm was off, which left the control arm
+         * reporting "0 of 0 benches" — a take-rate with no denominator, and the one number a
+         * paired comparison actually needs. A bench the walker stood at is a bench whether or not
+         * the policy spent at it.
+         */
+        if (!choice) { benchesMissed += 1; return; }
+        if (input.upgrades !== true) { benchesMissed += 1; return; }
+        const before = runNow().deck.filter((c) => c.upgraded === true).length;
+        store.dispatch(upgradeDeckCard({
+            instanceId: choice.instanceId, benchKey: `${node.id}:${node.visited}`, free,
+        }));
+        if (runNow().deck.filter((c) => c.upgraded === true).length === before) { benchesMissed += 1; return; }
+        upgraded.push({ from: choice.from, to: choice.to, price: choice.price });
+        record({ kind: 'CARD_UPGRADED', from: choice.from, to: choice.to, price: choice.price }, fights.length);
     };
 
     /** §5.2's strategic recruit, at a workshop, while a blueprint is held and the party has room. */
@@ -619,13 +762,17 @@ export function walkRun(input: WalkInput): WalkResult {
         const candidates = LAUNCH_SPECIES.filter((s) => !held.has(s));
         const partyOS = partyMembers().map((m) => m.activeOS!).filter(Boolean);
 
+        // TICKET 28a: the element the gym's authored comp actually fields most, from the one table.
+        // `gymCompElementPlan` sorts gym-element-first, so its head is that element.
+        const gymPlan = gymCompElementPlan(gym);
+        const target = gymPlan[0] ?? gym.element;
         const ranked = candidates
-            .map((speciesId) => chooseRecruit(speciesId, partyOS, gym.element))
+            .map((speciesId) => chooseRecruit(speciesId, partyOS, target))
             .filter((c): c is RecruitChoice => c !== null)
             .map((c) => ({
                 choice: c,
                 rank: (grammarFor(c.osId)?.partners ?? []).some((p) => partyOS.includes(p.osId)) ? 0
-                    : MingmingRegistry[c.speciesId].primaryElement === COUNTERED_BY[gym.element] ? 1 : 2,
+                    : MingmingRegistry[c.speciesId].primaryElement === COUNTERED_BY[target] ? 1 : 2,
             }))
             .sort((a, b) => a.rank - b.rank || a.choice.osId.localeCompare(b.choice.osId));
         if (ranked.length === 0) return;
@@ -648,6 +795,19 @@ export function walkRun(input: WalkInput): WalkResult {
         const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
 
         if (node.kind === 'gym') {
+            /*
+             * THE GYM GATE, which is the one venue that is free (163 §3: *"the gym gate offers a
+             * choice of two; the shop stocks Amplifier"*, and the upgrade there is free, once). It
+             * runs BEFORE `beginGauntlet` because that is where the screen puts it — the gauntlet is
+             * three fights with no healing and no shopping between them.
+             */
+            upgradeBench(node, true);
+            for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'gate')) {
+                store.dispatch(fitPatch({ memberId: fit.memberId, patchId: fit.patchId }));
+                patchesTaken.push({ patchId: fit.patchId, from: 'gate', price: 0 });
+                record({ kind: 'PATCH_TAKEN', memberId: fit.memberId, patchId: fit.patchId }, fights.length);
+            }
+
             const persisted: Record<string, number> = {};
             store.dispatch(beginGauntlet());
             let cleared = true;
@@ -672,8 +832,10 @@ export function walkRun(input: WalkInput): WalkResult {
             takeRewards(node, corpses(encounter, result));
         } else if (isMarketNode(node.kind)) {
             shop(node);
+            upgradeBench(node, false);
         } else if (node.kind === 'workshop') {
             workshop(node);
+            upgradeBench(node, false);
         }
 
         const next = chooseStep(runNow(), gymNodeId, blueprints);
@@ -689,6 +851,7 @@ export function walkRun(input: WalkInput): WalkResult {
     return {
         seed, starter, gymId: gym.id, gymElement: gym.element, outcome,
         fights, picks, bought, recruits, steps,
+        upgraded, patches: patchesTaken, benchesMissed, patchShelvesSeen,
         finalDeck: deckIds(), scrapAtEnd: runNow().scrap, log,
     };
 }
@@ -716,6 +879,10 @@ export interface WalkSummary {
     readonly recruitedOS: Readonly<Record<string, number>>;
     /** 142 §6's bench pressure: mean HP fraction of the survivors at the end of each fight. */
     readonly meanSurvivorHp: number | null;
+    /** 163e: upgrades bought, benches walked past, and the scrap spent on them. */
+    readonly upgrades: { taken: number; missed: number; scrap: number };
+    /** 163e: patches fitted, by where they came from and by which rider. */
+    readonly patches: { total: number; byVenue: Readonly<Record<string, number>>; byKind: Readonly<Record<string, number>>; shopShelves: number };
 }
 
 const mean = (xs: ReadonlyArray<number>): number | null =>
@@ -770,14 +937,32 @@ export function summarise(starter: string, results: ReadonlyArray<WalkResult>): 
         recruits: results.reduce((n, r) => n + r.recruits.length, 0),
         recruitedOS,
         meanSurvivorHp: mean(survivorHp),
+        upgrades: {
+            taken: results.reduce((n, r) => n + r.upgraded.length, 0),
+            missed: results.reduce((n, r) => n + r.benchesMissed, 0),
+            scrap: results.reduce((n, r) => n + r.upgraded.reduce((m, u) => m + u.price, 0), 0),
+        },
+        patches: {
+            total: results.reduce((n, r) => n + r.patches.length, 0),
+            byVenue: results.flatMap((r) => r.patches).reduce<Record<string, number>>((acc, p) => {
+                acc[p.from] = (acc[p.from] ?? 0) + 1; return acc;
+            }, {}),
+            byKind: results.flatMap((r) => r.patches).reduce<Record<string, number>>((acc, p) => {
+                acc[p.patchId] = (acc[p.patchId] ?? 0) + 1; return acc;
+            }, {}),
+            shopShelves: results.reduce((n, r) => n + r.patchShelvesSeen, 0),
+        },
     };
 }
 
 /** Walk `seeds` runs of one starter. Seeds are labelled, so a row can be reproduced by hand. */
-export function walkStarter(starter: string, seeds: number, label = 'walk'): WalkResult[] {
+export function walkStarter(starter: string, seeds: number, label = 'walk', upgrades = false, patchPrice?: number): WalkResult[] {
     const out: WalkResult[] = [];
     for (let i = 0; i < seeds; i += 1) {
-        out.push(walkRun({ seed: `${label}:${starter}:${i}`, starter, gymIndex: i % 3 }));
+        // The SAME seed in both arms, so the two are paired: the graph, the enemies and the offers
+        // are identical and the only difference is the spending policy. An unpaired comparison at
+        // ten seeds would be measuring the region generator.
+        out.push(walkRun({ seed: `${label}:${starter}:${i}`, starter, gymIndex: i % 3, upgrades, patchPrice }));
     }
     return out;
 }
@@ -832,6 +1017,21 @@ export function printWalkReport(summaries: ReadonlyArray<WalkSummary>): void {
         const rows = Object.entries(s.recruitedOS).sort((a, b) => b[1] - a[1]);
         if (rows.length > 0) console.log(`${s.starter.padEnd(17)} ${rows.map(([os, n]) => `${os} ×${n}`).join(', ')}`);
     }
+
+    console.log('\n--- 163e: upgrades and patches ---');
+    console.log('starter           upgrades taken/benches   scrap spent   patches (elite/gate/shop)');
+    for (const s of summaries) {
+        const benches = s.upgrades.taken + s.upgrades.missed;
+        const venues = ['elite', 'gate', 'shop'].map((v) => s.patches.byVenue[v] ?? 0).join('/');
+        console.log(
+            `${s.starter.padEnd(17)} ${String(s.upgrades.taken).padStart(8)}/${String(benches).padEnd(8)}`
+            + `  ${pct(s.upgrades.taken, benches)}   ${String(s.upgrades.scrap).padStart(6)}        ${String(s.patches.total).padStart(3)} (${venues})`
+            + `   shop shelf ${s.patches.byVenue.shop ?? 0}/${s.patches.shopShelves} ${pct(s.patches.byVenue.shop ?? 0, s.patches.shopShelves)}`,
+        );
+    }
+    const kinds = summaries.flatMap((s) => Object.entries(s.patches.byKind))
+        .reduce<Record<string, number>>((acc, [k, n]) => { acc[k] = (acc[k] ?? 0) + n; return acc; }, {});
+    console.log(`patch kinds: ${Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ×${n}`).join(', ') || '(none)'}`);
 
     const runs = summaries.reduce((n, s) => n + s.runs, 0);
     const wins = summaries.reduce((n, s) => n + s.victories, 0);

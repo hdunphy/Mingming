@@ -19,15 +19,26 @@ function main(): void {
     const seeds = Number(get('--seeds') ?? 30);
     const starters = get('--starter')?.split(',').map((s) => s.trim()).filter(Boolean) ?? eaStarters();
     const label = get('--label') ?? 'walk';
+    // TICKET 163e's arm. `--upgrades both` runs the pair — same seeds, same graphs, same offers,
+    // one spending policy apart — which is the only shape in which ten seeds says anything.
+    const arm = get('--upgrades') ?? 'off';
+    // 163e: sweep the shop's patch price without editing the shipped constant.
+    const patchPrice = get('--patch-price') === undefined ? undefined : Number(get('--patch-price'));
 
-    const summaries: WalkSummary[] = [];
-    for (const starter of starters) {
-        const started = Date.now();
-        const results = walkStarter(starter, seeds, label);
-        summaries.push(summarise(starter, results));
-        console.error(`  ${starter}: ${seeds} runs in ${((Date.now() - started) / 1000).toFixed(0)} s`);
-    }
-    printWalkReport(summaries);
+    const run = (upgrades: boolean, title: string): void => {
+        const summaries: WalkSummary[] = [];
+        for (const starter of starters) {
+            const started = Date.now();
+            const results = walkStarter(starter, seeds, label, upgrades, patchPrice);
+            summaries.push(summarise(starter, results));
+            console.error(`  [${title}] ${starter}: ${seeds} runs in ${((Date.now() - started) / 1000).toFixed(0)} s`);
+        }
+        console.log(`\n########## ARM: ${title}${patchPrice === undefined ? '' : ` · patch ${patchPrice} scrap`} ##########`);
+        printWalkReport(summaries);
+    };
+
+    if (arm === 'both') { run(false, 'no upgrades'); run(true, 'upgrades'); }
+    else run(arm === 'on', arm === 'on' ? 'upgrades' : 'no upgrades');
 }
 
 main();

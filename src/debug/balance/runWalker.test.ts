@@ -19,9 +19,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    scoreOf, deckPower, chooseStep, choosePick, chooseRecruit, walkRun, eaStarters,
-    NO_FIRMWARE_OS,
+    scoreOf, deckPower, chooseStep, choosePick, chooseRecruit, chooseUpgrade, choosePatches,
+    walkRun, eaStarters, NO_FIRMWARE_OS,
 } from './runWalker';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
+import { upgradePrice } from '../../engine/run/marketplace';
+import { PATCH_SLOTS, SHOP_STOCK_PATCH, bestPatchFor } from '../../engine/data/patchRegistry';
+import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { NO_FIRMWARE_OS as GATE_NO_FIRMWARE_OS, sampleFight, CELLS } from './runGate';
 import { runOne } from './runBatch';
 import { createRun } from '../../engine/run/createRun';
@@ -269,5 +273,86 @@ describe('157 — a whole walk', () => {
         // moves the walker without anybody remembering to.
         expect(eaStarters()).toHaveLength(12);
         for (const osId of eaStarters()) expect(grammarFor(osId), `${osId} has no grammar`).toBeDefined();
+    });
+});
+
+describe('163e — the upgrade policy', () => {
+    const card = (dataId: string, n = 0) => ({ instanceId: `i${n}`, dataId, ownerId: null });
+
+    it('upgrades the HIGHEST-scoring card that has a `+`, which is the arm\'s whole character', () => {
+        /*
+         * Highest rather than lowest, and it is a choice. An upgrade never changes a card's SHAPE
+         * (163 §1), so upgrading the best card compounds what the deck already does while upgrading
+         * the worst raises a floor the deck is trying to draw around. §5's wording picks the first.
+         */
+        const deck = [card('tackle', 0), card('ragnarok_edge', 1), card('forage', 2)]
+            .filter((c) => hasUpgrade(c.dataId));
+        expect(deck.length).toBeGreaterThan(1);
+        const best = [...deck].sort((a, b) => scoreOf(b.dataId)! - scoreOf(a.dataId)!)[0];
+        expect(chooseUpgrade(deck, 999, false)?.from).toBe(best.dataId);
+    });
+
+    it('refuses what the purse cannot reach, and takes a cheaper card instead of nothing', () => {
+        const dear = 'ragnarok_edge';
+        const cheap = 'tackle';
+        if (!hasUpgrade(dear) || !hasUpgrade(cheap)) return;
+        const deck = [card(dear, 0), card(cheap, 1)];
+        expect(chooseUpgrade(deck, 0, false)).toBeNull();
+        // One scrap short of the dear one: the policy still spends, on the one it can afford.
+        const short = upgradePrice(dear) - 1;
+        const choice = chooseUpgrade(deck, short, false);
+        if (upgradePrice(cheap) <= short) expect(choice?.from).toBe(cheap);
+    });
+
+    it('is FREE at the gate, so an empty purse still upgrades', () => {
+        // 163 §3: the gym gate is free, once. The only venue where scrap is not the gate.
+        const deck = [card('tackle', 0)].filter((c) => hasUpgrade(c.dataId));
+        if (deck.length === 0) return;
+        expect(chooseUpgrade(deck, 0, true)).not.toBeNull();
+        expect(chooseUpgrade(deck, 0, true)!.price).toBe(0);
+    });
+
+    it('takes nothing when the deck holds no `+`, rather than inventing one', () => {
+        const deck = [card('a_card_that_was_cut', 0)];
+        expect(chooseUpgrade(deck, 999, false)).toBeNull();
+    });
+
+    it('names the `+` it is buying, so the log says what the run got', () => {
+        const deck = [card('venom_fang', 0)].filter((c) => hasUpgrade(c.dataId));
+        if (deck.length === 0) return;
+        const choice = chooseUpgrade(deck, 999, false)!;
+        expect(choice.to).toBe(`${choice.from}+`);
+        expect(choice.price).toBe(upgradePrice(choice.from));
+    });
+});
+
+describe('163e — the patch policy', () => {
+    const member = (id: string, osId: string) => ({
+        id, definitionId: 'kraken', activeOS: osId,
+        blueprintsCollected: 0, attackIV: 15, defenseIV: 15, hpIV: 15,
+    });
+
+    it('at the GATE takes the rider that fits THIS firmware, which is what makes it a choice', () => {
+        // `gatePatchChoices` leads with `bestPatchFor`, so the policy is "take the first" and what
+        // is being measured is the distribution that produces — not a preference of the walker's.
+        const fits = choosePatches([member('mm1', 'kraken_v1')], {}, 'gate');
+        expect(fits).toHaveLength(1);
+        expect(fits[0].patchId).toBe(bestPatchFor(rawFirmwareHooks('kraken_v1')).id);
+    });
+
+    it('at the SHOP takes Amplifier, which is what §3 says the shelf stocks', () => {
+        expect(choosePatches([member('mm1', 'kraken_v1')], {}, 'shop')[0].patchId).toBe(SHOP_STOCK_PATCH);
+    });
+
+    it('skips a body whose slot is already full — one per body, and no replacing', () => {
+        expect(PATCH_SLOTS).toBe(1);
+        expect(choosePatches([member('mm1', 'kraken_v1')], { mm1: ['amplifier'] }, 'gate')).toEqual([]);
+        expect(choosePatches([member('mm1', 'kraken_v1')], { mm1: ['amplifier'] }, 'shop')).toEqual([]);
+    });
+
+    it('offers one per body, so a party of three is three decisions', () => {
+        const party = [member('mm1', 'kraken_v1'), member('mm2', 'fenrir_v1'), member('mm3', 'huldra_v1')];
+        expect(choosePatches(party, {}, 'gate')).toHaveLength(3);
+        expect(choosePatches(party, { mm2: ['relay'] }, 'gate')).toHaveLength(2);
     });
 });
