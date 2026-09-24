@@ -275,6 +275,53 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+## 0-MERGE-steam-prep-september-ONTO-COLLECTION-v2 (2026-09-24, `6c25d2b`)
+
+Drivers (tickets 16/17) and ticket 77's Tracks B+C are on `playtest-polish`. **TEN commits came across, not four** — the branch had moved since the instruction was written, and the six extra are ticket 77 (17 arms, 2,700 battles, the macro/root-rot harness and `scripts/ticket77-arms.mjs`). Henry ruled all ten. 132 files, 11,741 insertions; `package-lock.json` untouched as instructed.
+
+**FIVE CONFLICTS, not the four predicted.** Four were the expected keep-both:
+
+| file | what collided | resolution |
+| --- | --- | --- |
+| `lib/hooks.json` | our 20 additions (EMBER_FUSE moved, 12 `+` daemons) vs their 15 `driver_*` | **merged as JSON, not as text.** Base/ours/theirs parsed and reconciled by key: no key was edited by both sides, so nothing had to be arbitrated. 82 keys, valid, 18 drivers, 12 `+` hooks |
+| `firmwareRegistry.ts` | our `RAW_FIRMWARE_HOOKS` line vs their `createHook(h, driverId)` | both |
+| `resolutionEngine.ts` | our 146b `cause` field vs their two-field version | **ours, then corrected** — `amount` was a local their `buffer_cache` branch used to bind, and that branch is deleted, so it reads `mutation.payload.amount` now |
+| `useBattleVfx.ts` | our 162e cue imports vs their `describeDriver` | both |
+| **`BattleReport.tsx`** (unpredicted) | 163d's patch panel vs the relic removal | relics out, patch in, and `onContinue` lost its `chosenRelic` argument — the patch now rides in its place |
+
+**THE hooks.json MERGE IS WORTH KNOWING ABOUT.** Eight conflict blocks in an 88KB file, all of them "both sides appended keys". Resolving that by hand in the markers is how a JSON file ships with a duplicated or dropped entry, so it was done structurally instead: the three versions parsed, keys reconciled, and the result re-validated. It also caught one thing a text merge would have got wrong — their side still carries the four `*_daemon` keys 162a RENAMED, and a naive union would have resurrected four dead entries under ids nothing points at. They were deliberately left out.
+
+**THE RELIC GREP FOUND THREE THINGS, one of them real.**
+
+1. **Six committed ticket-118 snapshots stopped loading.** `activeRelics` → `activeDrivers` is ticket 16's rename, and the scenario schema migrated the SETUP half (`player.relics`) but not the STATE half — the field is required, so the rename made it absent rather than wrong and six playtest positions failed outright. Fixed in `scenarioSchema` with the same preprocess the setup half uses. **Those files are evidence, not fixtures**; the loader reads old files, which is what that preprocess is for.
+
+2. **One test fixture string**, `runSlice.test.ts`'s `'relic_a'` driver id — renamed.
+
+3. **Everything else is legitimate** and stays: `boss_relic_*` is a set of gym-boss OS ids (a different thing entirely, and `RanchScreen.test.tsx` asserts the player never sees the word), `--boss-relics` is a kept CLI alias, and several tests assert the relics are GONE. **Zero dangling references to the deleted registry**; the only live mentions of the old vocabulary are the three lines of the migration itself.
+
+**ONE REAL INTERACTION, found by the suite.** Their `DEEP CACHE` case played `undertow` to make a triggered draw and asserted the drawer gains 1 Strengthened. It read 0 — because ticket 152 gave `undertow` a self-Weakened rider and **Strengthened cancels Weakened stack for stack**, so the Driver's grant and the card's own drawback annihilate. The Driver fires correctly; the card it was measured with now erases the measurement. Swapped to `forage`, whose drawback is HP and cancels nothing. Also fixed: their new `BattleTopBar.proc.test.tsx` used `onOpenLog`, which ticket 155 renamed to `onToggleLog`.
+
+**163d's ELITE PAYOUT IS RE-POINTED AT THE DRIVER**, per Henry's amendment. It read `nodeKind === 'elite'` because §3 says an elite pays a patch — written when an elite's other prize was a relic. Ticket 17 replaced that with the Driver and decided which nodes pay it: elites AND ambushes, because an ambush is harder. The patch asks `paysDriver` now rather than keeping a second opinion about which fights are the big ones, so the two prizes arrive together and cannot drift apart.
+
+**THE CANARY NUMBERS DID NOT MOVE.** One pass on the merged tree, `AI_LITE=1 --beam 8 --iterations 1` (`results/merge/canary-merged.txt`), against the committed `canary-drivers.txt`:
+
+| arm | procs/battle committed (n=180) | merged (n=12) |
+| --- | ---: | ---: |
+| FIRST BLOOD | 5.52 | 5.50 |
+| THIRD → TENTH STRIKE | 1.92 | 2.00 |
+| STATIC FIELD | 32.92 | 31.75 |
+| ANTIVENOM | 1.19 | 0.75 |
+| OVERKILL RECOVERY | 5.27 | 4.58 |
+| BULWARK REFLEX | 1.86 | 2.08 |
+| DEEP CACHE | 2.07 | 2.58 |
+| ELEMENT | 8.35 | 8.92 |
+
+**Read the RATES, not the win rates.** procs/battle is a per-battle census and survives n=12; every arm lands within noise of its committed number, which is the answer to "do the Drivers still fire the same way against collection v2" — yes. Win% at n=12 is worthless (the bare arm reads 50.0% against its committed 56.7%, and the standard error is about 14 points), so nothing should be concluded from it. ANTIVENOM is still mostly silent (52% of battles committed, 9 of 12 here) and DEEP CACHE still silent in a chunk — the same story, not a new one.
+
+**The committed baseline predates the ticket-16 amendment**: it says THIRD STRIKE where the tree now says TENTH STRIKE. Worth knowing before that file is used as a reference again.
+
+Gate on the merged tree: eslint 0, tsc -b 0, **2,983 vitest across 209 files**, build clean. `npm run decks` re-run and `build.py` re-rendered (98 cards, 12 OS); 162d's browser test passes. The browser and `registry.json` were regenerated in the container rather than on the machine — the device VM still cannot run vite-node (rollup native) — which is safe here because the container was brought to full md5 parity with the merged tree first.
+
 **2026-09-24 — 162e and the whole of 163b–d are SHIPPED** (`c95ab75`, `fbe93f4`, `a331def`, `73ce677`). The upgrade venue, the patches engine and patches in a run are all in; gate green at 2,921 tests across 203 files. **Still open from Henry's queue, in his order: 150a–c, then 150d (ruled arm B, `bonus: 2.5`), then 154a, then 157's run walker, then 163e's measurement on it.** Nothing below blocks a playtest — a patch and an upgrade are both reachable in a run now.
 
 **2026-09-24 — 162e: EMBER_FUSE per hit, and the condition that says "attack" now does something.** The trigger moved to `onPostDamage` (per swing) from `onActionStart` (per card); Pack Tactics on a Burning target applies 3. POST rather than pre, on 162a's `molten_core` lesson — a Burn added before the swing would be read by that swing's own damage. **Two things the "check the rate limiter" instruction found.** (1) `isAttack` had been in `HookSchema` since ticket 103 and READ BY NOTHING — ticket 107's test says so by name — and `ember_ward`/`ember_ward+` had since tried it, so they were scorching an enemy for applying WEAKENED. Implementing the field fixed both; the negative case now has the test it never had. (2) 147b coalesces identical cues inside 60ms, so three procs in one tick would have been ONE audible proc against three Burn on the board. `HOOK_FIRED` now carries the stated-series `step`, and the detection rule is one exported helper instead of two copies.
