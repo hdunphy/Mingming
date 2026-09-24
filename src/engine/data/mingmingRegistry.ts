@@ -240,7 +240,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         decks: {
             // TREACHERY consume-cycle: get hit, grow the pile, DEVOUR it. `crimson_draw`
             // extends the feeding window by keeping her alive inside her own drawback.
-            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "flare_burst", "snarl", "snap", "howl", "forage"],
+            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "flare_burst", "brute_force", "snap", "howl", "forage"],
             // Solar ignition: `strength_burst` lights the core, `overdrive`/`glass_cannon` nuke
             // under +75%. `all_in`'s 3 self-Burn is the first card in the game that expresses
             // symmetric detonation risk - at cap 4 it sits one stray stack from blowing up on
@@ -262,7 +262,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v1 keeps one `sun_devourer` as the consume payoff; v2 keeps `strength_burst` to light
         // the core and `glass_cannon` to cash it, leaving `all_in`'s self-Burn risk to be drafted.
         startKits: {
-            "skoll_v1": ["fury_strike", "flare_burst", "flare_burst", "snarl", "snap"],
+            "skoll_v1": ["fury_strike", "flare_burst", "flare_burst", "brute_force", "snap"],
             "skoll_v2": ["ember_jab", "ember_jab", "brand", "ignite", "flashover"]
         },
         moves: [

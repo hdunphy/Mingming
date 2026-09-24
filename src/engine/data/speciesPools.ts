@@ -29,7 +29,7 @@
 export const SPECIES_CARD_POOLS: Readonly<Record<string, ReadonlyArray<string>>> = Object.freeze({
     fenrir_v1: ['sun_devourer', 'fury_strike', 'blood_rite', 'flare_burst', 'core_overclock', 'howl'],
     fenrir_v2: ['inferno', 'molten_core', 'ember_ward', 'cinder_armor', 'ash_communion', 'heat_wave'],
-    skoll_v1: ['pack_tactics', 'brute_force', 'battle_rhythm', 'reactive_plating', 'core_overclock', 'crimson_draw'],
+    skoll_v1: ['pack_tactics', 'snarl', 'battle_rhythm', 'reactive_plating', 'core_overclock', 'crimson_draw'],
     skoll_v2: ['wildfire', 'inferno', 'thermal_overload', 'scald', 'ash_communion', 'cinder_armor'],
     ratatoskr_v1: ['echo_chamber', 'hoofbeat', 'rejuvenation', 'mend', 'verdant_ward', 'deep_scan'],
     ratatoskr_v2: ['pile_on', 'hexbloom', 'thorn_tithe', 'echo_chamber', 'crippling_vine', 'snarl'],
