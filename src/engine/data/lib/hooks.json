@@ -749,7 +749,7 @@
         "hooks": [
             {
                 "id": "gullin_v2_ram",
-                "trigger": "onDamageCalculated",
+                "trigger": "onPowerCalculated",
                 "priority": 40,
                 "when": {
                     "source": "SELF",

@@ -199,6 +199,61 @@ describe('ticket 139 — every number a card prints is a number its data holds',
 });
 
 /**
+ * TICKET 150e — A `bonus` HAS A UNIT, AND THE PRINTED SENTENCE HAS TO NAME THE RIGHT ONE.
+ *
+ * The rest of this file asks whether a printed NUMBER is in the data. This asks the question one
+ * level up: whether the printed UNIT is. `bonus` is one field that means two quantities depending
+ * on the trigger it is read at (`HookFactory.createHook` carries the law):
+ *
+ *   - `onPowerCalculated` → POWER, in at step 1 of `calculateDamage` before every dial;
+ *   - `onDamageCalculated` → FLAT HP, in at step 5 after the /45 divisor, STAB and resistances.
+ *
+ * KINETIC_RAM is why this exists. Its description said *"+2.5 **power** per stack"* while its hook
+ * paid 2.5 flat HP — a x2.5 disagreement between the text and the data that lived through two
+ * tickets, because every number it printed WAS in its own data and the test above passed. The unit
+ * was the lie, and nothing was looking at units. 150d moved it; this is what stops it coming back,
+ * on it or on the next payoff somebody writes.
+ *
+ * Both directions, because both are wrong: a damage-side bonus must not claim power, and a
+ * power-side bonus must not claim damage or HP.
+ */
+describe('ticket 150e — a bonus names the unit its trigger actually pays in', () => {
+    const bonusHooks = Object.entries(FIRMWARE).flatMap(([id, entry]) =>
+        ((entry.hooks ?? []) as Loose[])
+            .filter(h => typeof h.bonus === 'number')
+            .map(h => ({
+                osId: id,
+                hookId: String(h.id),
+                trigger: String(h.trigger),
+                description: String(entry.description ?? ''),
+            })));
+
+    /**
+     * The guard that keeps the two claims below from passing on an empty walk. If a refactor
+     * renames `bonus` or moves firmware out of `hooks.json`, this fails rather than the offender
+     * lists going quietly green — the difference between "no firmware breaks the law" and "no
+     * firmware was looked at".
+     */
+    it('finds the bonus hooks it is here to judge', () => {
+        expect(bonusHooks.map(h => h.hookId).sort()).toEqual(['gullin_v2_ram', 'jorm_v2_toxin_fang']);
+    });
+
+    it('never prints "power" for a bonus that is paid in flat HP', () => {
+        const offenders = bonusHooks
+            .filter(h => h.trigger === 'onDamageCalculated' && /\bpower\b/i.test(h.description))
+            .map(h => `${h.osId}/${h.hookId}: onDamageCalculated pays flat HP — "${h.description}"`);
+        expect(offenders, 'move the hook to onPowerCalculated, or stop printing "power"').toEqual([]);
+    });
+
+    it('never prints "damage" or "HP" for a bonus that is paid in power', () => {
+        const offenders = bonusHooks
+            .filter(h => h.trigger === 'onPowerCalculated' && /\bdamage\b|\bHP\b/i.test(h.description))
+            .map(h => `${h.osId}/${h.hookId}: onPowerCalculated pays power — "${h.description}"`);
+        expect(offenders, 'print "power", or move the hook back to onDamageCalculated').toEqual([]);
+    });
+});
+
+/**
  * The status glossary is what a player reads for a MECHANIC rather than a card, and it had no test
  * at all — which is how Regen's entry came to be wrong on three counts at once. Pinned against the
  * engine constants, so a future move of either one fails here.

@@ -94,6 +94,32 @@ export const HookFactory = {
                         // silently dropped the whole hook. Every other multiplier in the registry
                         // is non-zero, so this is a no-op for them.
                         if (modifierData.multiplier !== undefined) newDamage *= (1 + ((modifierData.multiplier - 1) * scaleFactor));
+                        /*
+                         * TICKET 150e — **A `bonus` HAS A UNIT, AND THE TRIGGER IS WHAT NAMES IT.**
+                         *
+                         * The same field means two different quantities depending on where it is
+                         * read, and nothing in the data says which:
+                         *
+                         *   - on `onPowerCalculated` a bonus is POWER. It goes in at step 1 of
+                         *     `calculateDamage`, beside `statusPower`, BEFORE the attack/defense
+                         *     ratio, the /45 pace divisor, STAB and type effectiveness — so every
+                         *     dial the game has can still reach it, and `powerscale` can price it.
+                         *     **This is the shape a PAYOFF uses.** Ticket 26's law.
+                         *   - on `onDamageCalculated` a bonus is FLAT HP, added at step 5 after all
+                         *     four of those. Nothing can reach it and the scorer has to convert it
+                         *     back through the HP table to see it at all. **Reserved for a PRICE** —
+                         *     recoil, a toll, a self-hit (ticket 26, "recoil is a price"): a cost
+                         *     the player agreed to is allowed to be fixed, because it is supposed
+                         *     to stop being frightening as the frame grows.
+                         *
+                         * Both firmware payoffs that broke this rule have been moved: TOXIN_FANG
+                         * (150c, `bonus: 10` HP → `bonus: 4` power, the same OS by the field) and
+                         * KINETIC_RAM (150d, `bonus: 2.5` HP → `bonus: 2.5` power as printed).
+                         * KINETIC_RAM is the reason the law is written down here rather than in a
+                         * ticket: its description said "power" and its data paid HP for two
+                         * tickets, and no test could see the disagreement because a `bonus` is a
+                         * `bonus`. `descriptionData.test.ts` can see it now.
+                         */
                         if (modifierData.bonus) newDamage += (modifierData.bonus * scaleFactor);
                         return Math.floor(newDamage);
                     }

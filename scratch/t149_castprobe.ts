@@ -87,7 +87,11 @@ const DECK_CARDS = (MingmingRegistry[SPECIES] as unknown as { decks: Record<stri
 const CARDS = new Set(arg('cards', DECK_CARDS.join(',')).split(',').filter(Boolean));
 
 // ---- OS hook wrapping ----------------------------------------------------------------------------
-const VALUE_PHASES = ['onDamageCalculated', 'onHealCalculated', 'onStatusDamageCalculated', 'onCostCalculated'] as const;
+// TICKET 150d: `onPowerCalculated` joins the modifier list. It is the same data shape read at a
+// different point in `calculateDamage`, so a probe that did not wrap it would report a moved
+// hook as ZERO PROCS — the exact reading 150c's re-measure would have taken for a broken hook.
+// NOTE THE UNIT: `modDelta` for this phase is POWER, not HP, and the two are not comparable.
+const VALUE_PHASES = ['onDamageCalculated', 'onPowerCalculated', 'onHealCalculated', 'onStatusDamageCalculated', 'onCostCalculated'] as const;
 const STATE_PHASES = ['onActionStart', 'onActionEnd', 'onCardDraw', 'onTurnStart', 'onTurnEnd', 'onStatusApplied',
     'onStatusRemoved', 'onPostDamage', 'onDiscarded', 'onDeckShuffled', 'onHeal', 'onHpThresholdCrossed', 'onUnitFainted'] as const;
 

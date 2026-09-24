@@ -1,6 +1,6 @@
 # Ticket 150 — Two OS bonuses ride the power, not the HP; and hel_v2's dead hook goes
 
-> **Status: OPEN — 150a/b/c SHIPPED 2026-09-22 (f8428b2, ba35b95, 782fea8). Left: 150d KINETIC_RAM → onPowerCalculated, arm B `bonus: 2.5` (RULED 2026-09-24), and 150e (the law comment in HookFactory + the descriptionData assertion). Close when 150d lands.**
+> **Status: CLOSED 2026-09-24 — every row shipped. 150a/b/c 2026-09-22 (`f8428b2`, `ba35b95`, `782fea8`); 150d + 150e 2026-09-24. KINETIC_RAM is on `onPowerCalculated` at arm B `bonus: 2.5` as printed (Henry, `ecb5008`), measured at **+27.9 field points** (`results/t150d/FINDINGS.md`); the unit law is written into `HookFactory` and pinned by three assertions in `descriptionData.test.ts`. No OS payoff in the registry adds flat HP after the divisor any more.**
 
 > **2026-09-22 — 150a, 150b and 150c SHIPPED. Henry ruled `bonus: 4`** after §3's `bonus: 3`
 > failed its own ±5 gate by −10.7 field points; 4 lands at +1.8, and it is §2's own un-STAB'd
@@ -170,8 +170,80 @@ hook 150c just moved. It reads the trigger now. §1.4 has TOXIN_FANG_OS at **22.
 game (it read 15.2% under the HP conversion), still in band; the census's 40% is the owning deck
 at 9.4 Poison stacks against the roster-general 3, which is 149c-6's ceiling column again.
 
-### 150d / 150e — not started
+## 7. Write-back (2026-09-24) — 150d and 150e
 
-150d is KINETIC_RAM on gullinbursti_v2, an **Earth** mingming. Henry's 2026-09-22 scope ruling puts
-Earth outside the EA cut (HANDOFF, "EA SCOPE"), so it waits. 150e's law-comment and
-`descriptionData` assertion belong with whichever of 150c/150d lands first.
+### 150d — shipped at arm B, and arm A proved the conversion table
+
+Full numbers in `results/t150d/FINDINGS.md`. 1,200 games per arm, all 30 opponents, the same
+harness 150c used.
+
+| `gullin_v2_ram` | field | vs baseline | turns | procs/game |
+|---|---|---|---|---|
+| **shipped** (`onDamageCalculated`, `bonus: 2.5` flat HP) | **49.00%** | — | 6.4 | 22.3 |
+| `onPowerCalculated`, `bonus: 1` — arm A, equivalence | 49.25% | **+0.2** | 6.4 | 22.6 |
+| `onPowerCalculated`, `bonus: 1.5` | 62.83% | +13.8 | 5.8 | 20.2 |
+| `onPowerCalculated`, `bonus: 2` | 72.67% | +23.7 | 5.3 | 18.3 |
+| **`onPowerCalculated`, `bonus: 2.5` — arm B, as printed (RULED, SHIPPED)** | **76.92%** | **+27.9** | 5.0 | 16.7 |
+
+**Arm A lands exactly where §2 said it would.** The conversion table gives KINETIC_RAM's 2.5 flat HP
+as *"~1 power per stack (0.8 STAB'd, 1.1 not)"*, and arm A measures +0.2 — equivalence inside the
+harness's noise. That matters because the same table got 150c wrong: not the table, the sentence
+under it, which took the STAB'd end where the field takes the un-STAB'd one. Here the two ends
+bracket 1 tightly enough that the choice could not go wrong. The method is sound; the reading of it
+is what needs care.
+
+**Arm B is a buff and §2 said that too** — *"~2.5× what it delivers today... it is a buff, and it
+gets an arm, not an assumption."* The arm was fielded and the assumption was not made: **+27.9
+points, 49.0% → 76.9%**, which puts gullinbursti_v2 at the top of the 1v1 field where 136 round one
+left her at ~40. Henry ruled it on the description's authority. Nothing is tuned in response — no
+numeric tuning before playtest (09-24), and she is post-EA regardless.
+
+**The dial saturates, which TOXIN_FANG's did not.** 1.0 → 1.5 → 2.0 → 2.5 pays 13.8, then 9.8, then
+4.3, and the two columns beside it say why: games shorten 6.4 → 5.0 turns, so the hook fires 22.6 →
+16.7 times. Past ~+2 the deck is killing before the extra power can be spent. TOXIN_FANG's dial was
+straight at ~11 points per unit across its whole range. A saturating dial says the deck is winning
+on tempo; a straight one says the hook is the deck.
+
+**§1.4 moves, and the move is the point.** `scoreOS('gullinbursti_v2')` reads **15.6% IN BAND**
+before and **58.5% FLAGGED** after — the same hook paying 2.5 per stack, with the trigger deciding
+whether the scorer sees power or has to convert flat HP back through the frame. No scorer code was
+needed (150c taught it to read the trigger), but this is the first firmware past the 50% flag since
+that band was set, and the report will say so until somebody rules. **The flag is a report, not a
+gate.**
+
+**One rounding note.** `HookFactory` floors once at the end of the hook, so on an odd Sharp pile the
+half point is dropped — 13 stacks pays +32 power, not +32.5. A third of a percent of a 30-power
+attack, and no dial reaches it; the reason a hand-computed expectation reads half a point high on
+half the procs.
+
+**The instrument needed one line.** `t149_castprobe.ts` wrapped four modifier phases and
+`onPowerCalculated` was not one, so a moved hook would have measured as **zero procs** — a
+broken-hook reading on a working hook, which is the exact class of failure this ticket exists to
+remove. Added, with the unit written beside it: `modDelta` on the power phase is POWER, and the HP
+column next to it is not comparable.
+
+### 150e — the law, and the test that was not looking at units
+
+The comment lives on the `bonus` line in `HookFactory.createHook`, where the field is actually read,
+rather than in a ticket nobody opens while editing a hook. It says the thing the data cannot:
+
+- **`onPowerCalculated` → POWER**, in at step 1 of `calculateDamage` beside `statusPower`, before
+  the attack/defense ratio, the /45 pace divisor, STAB and type effectiveness. Every dial the game
+  has can still reach it and `powerscale` can price it. **This is the shape a PAYOFF uses** (ticket
+  26).
+- **`onDamageCalculated` → FLAT HP**, in at step 5 after all four. **Reserved for a PRICE** — recoil,
+  a toll, a self-hit: a cost the player agreed to is allowed to be fixed, because it is supposed to
+  stop being frightening as the frame grows.
+
+`descriptionData.test.ts` gains a describe block with three assertions. The two claims are the law in
+both directions — a damage-side bonus must not print "power"; a power-side bonus must not print
+"damage" or "HP" — and the third is the guard that keeps them from passing on an empty walk: it names
+the two bonus hooks the registry holds (`gullin_v2_ram`, `jorm_v2_toxin_fang`), so a refactor that
+renames the field fails loudly instead of going quietly green.
+
+**Why this test and not the one already there.** The file's existing question is *"is every printed
+NUMBER in the data"*, and KINETIC_RAM passed it for two tickets while being wrong by ×2.5: its text
+said *"+2.5 **power** per stack"* and its hook paid 2.5 flat HP. Every number printed WAS in its own
+data. **The unit was the lie, and nothing was looking at units.** All three assertions were
+mutation-tested — ram back on the damage side, TOXIN_FANG printing "damage", the `bonus` field
+deleted — and each mutant is caught by exactly the assertion written for it.
