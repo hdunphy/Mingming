@@ -1,5 +1,7 @@
 # Ticket 163 — The upgrade pass: card `+` versions and OS patches
 
+> **RULED 2026-09-24 on 163e: five of six patches never taken because bestPatchFor ranks by touch count — rank by the 149c-scored delta (§3 as written), two kinds per gate offer, Amplifier stays the shop stock (163g). Shop patch 45 is a placeholder until re-read.**
+
 > **Status: CLOSED 2026-09-24 — every row shipped. 163a the `+` registry, 163b the three benches, 163c the six patches, 163d patches in a run, 163e the measurement (`results/t163e/FINDINGS.md`: 54% upgrade take-rate that moves deck power +0.06, the shop patch re-priced 50 → 45 on the ordering condition, and **five of the six patches are never taken in play**), 163f the `+` in the stall at 35/45/60/70. Two decisions are open for Henry and are on the write-back, not on this ticket's status. The line below is history.**
 
 **Type:** design → engine + data + UI. **Status:** **163a SHIPPED 2026-09-24 (`fa26724`), ruled closed (`577b577`); 163b–163e OPEN — Legion's next rows.** Asked by Henry 2026-09-23 after ruling

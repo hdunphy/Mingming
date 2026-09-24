@@ -1,5 +1,7 @@
 # Authored gym bosses: curated 3v3 teams with signature firmware per biome pair (ticket 28)
 
+> **RE-RULED 2026-09-24 (evening): the guest is the element the gym BEATS — Emberfall fenrir_v2 + sköll_v2 + huldra_v1; Tidewrack = authored TIDAL SURGE (jormungandr_v1 + kraken_v2 + sköll_v2); Rootfall unchanged. Gate: each gym loses to its named counter party more than to the other two. BOSS_COMPS deleted.**
+
 > **2026-09-24 — 28a IS DONE. One comp table: `leaderComp` is deleted and `AUTHORED_BOSSES` is the only one; the scout, the biome element plan and 157's walker all read it. The three trios are re-composed as Henry ruled, canaried first (`results/t28a-canary.txt`). **TWO CONFLICTS CAME OUT OF THE CANARY AND ARE HENRY'S TO RULE ON — see the write-back at the foot of this file.** The remaining 28 work is names, flavour, icons. History below.**
 
 - Type: wayfinder:task

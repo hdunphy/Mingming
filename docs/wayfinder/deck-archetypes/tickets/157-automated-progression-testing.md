@@ -1,5 +1,7 @@
 # Ticket 157 — Automate the progression test: a run played by the machine, read as a curve
 
+> **RULED 2026-09-24 on the first report (0/120 gym clears, fight one 77.5%): the enemy ladder mirrors the start-kit shape in biome 0 AND every start five carries exactly one payoff (157-r1); the 30×12 walk waits for a 5-seed fight-one read near 95. See HANDOFF 2026-09-24 evening block.**
+
 > **Status: CLOSED 2026-09-24 — `runWalker` is built and its first report is in (`results/t157/FINDINGS.md`): 0 of 120 runs cleared the gym, the deck-power curve is real (2.03 → 3.91 fight 1 → 8 and not survivorship), and the wall is the OPENING FIGHT at 77.5% against a ruled 95%. The instrument is the deliverable and it is done; the numbers are Henry's to rule on. A policy v1 reopens a row here, not the ticket.**
 
 **Type:** design session → instrument. **Status:** OPEN, asked by Henry 2026-09-20: *"how can we

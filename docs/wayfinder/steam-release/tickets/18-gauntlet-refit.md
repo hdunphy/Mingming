@@ -1,5 +1,7 @@
 # Gym gauntlet refit: three unhealed fights, boss draws one mingming per biome (ticket 18)
 
+> **RULED 2026-09-24 (evening): the gym clear pays 5 blueprints flat, not 4 + a coin flip.**
+
 > **2026-09-24 — 18a IS DONE. The gauntlet's three fights pay nothing; clearing the gym pays one authored blueprint award sized at exactly what those nine per-body rolls paid in expectation (4.5). Zero scrap. The gym-gate free upgrade and two patch offers (163b/d) are pre-fight spends and are untouched. Write-back at the foot of this file.**
 
 - Type: wayfinder:task
