@@ -168,11 +168,14 @@ assistant runs §3 on the EA twelve, Henry re-cuts a kit against the rule, the g
 first pass is the 151 Nature corner, because 141-GYM-CHECK already showed Fire×2 + Nature is the
 pair with no bridge.
 
-## 5. Open questions
+## 5. RULED by Henry, 2026-09-24
 
-1. Are currencies *statuses only* (cheap — no engine work), or does Energy count (a body that
-   makes Energy for the party is the most legible bridge there is)?
-2. Ally-target cards need a target picker in the UI (155 ground) — is that in scope, or do we
-   bridge through OS and enemy statuses only, as 78 assumed?
-3. Does the recruit screen show role + currency (78's "readout"), so a player can *see* a party
-   before they build one?
+1. **Currencies are statuses AND Energy.** (Tidal Battery, Overclock Core and the refund cards are Energy ramp for the party.)
+2. **Ally-target cards: already implemented** (160-e1).
+3. **The recruit screen shows currency and tempo — yes.** → **158-r1 (Legion):** move `cur`, `tempo` and `partners` from
+   `collection-v2/collection.json` into the registry (per OS: `currency: string[]`, `tempo: 'zoo'|'ramp'|'control'[]`,
+   `partners: { osId, why }[]`), so the walker (157), the recruit screen readout (78) and the browser read one source; the
+   collection browser's `registry_source.apply` then stops carrying them from the design file. Readout: on the recruit and
+   loadout screens, the OS row shows its currency chips and tempo, and a partner already in the party is marked.
+
+The rules themselves (R1–R7) stand as the design law; collection v2 is their first application.

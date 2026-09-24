@@ -275,6 +275,8 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-24 — closures and 158 rulings (Henry).** **145 CLOSED** ("close 145"). **153 CLOSED** — good for now; absorbed by 161/163/142. **158 ruled:** currencies are statuses AND Energy; ally targets already in; recruit screen shows currency + tempo → **158-r1 (Legion):** move `cur`/`tempo`/`partners` from `collection-v2/collection.json` into the registry (one source for the walker, the readout and the browser) and add the readout to the recruit/loadout screens. Slot 158-r1 before 157 so the walker reads the registry.
+
 **2026-09-24 — three more rulings (Henry).** **150d = arm B, `bonus: 2.5`** (as printed) — build it. **154a YES.** **157 §5 ruled:** baseline = run-start deck; never bench but recruit strategically from `collection-v2/collection.json`'s `cur`/`tempo`/`partners` and toward the gym's counter element (WWF gym → NNW party); starters = the current EA twelve; picks by 149c score with every offer and pick logged by card id. Legion order after 162e/163b–d: **150d → 154a → 157 walker**.
 
 **2026-09-24 — EMBER_FUSE RULED per hit (Henry); state of play.** 162e for Legion: hook from `onActionStart` to per-hit, sentence says "each hit", `emberFuse.test.ts` pinned to 3 procs from Pack Tactics / 1 from Brand. 163a is SHIPPED and closed; **163b (venue) → 163c (patches engine) → 163d (patches in the run) → 163e (measure)** are Legion's next rows, then 150a–c and 154a. 157 waits on Henry's §5 (or "defaults"). Map rows for 160/162/163 reconciled.
