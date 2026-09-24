@@ -275,6 +275,17 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-24 — THE DECK-ARCHETYPES MAP IS EMPTY.** The close-out queue is finished: **150, 154, 157, 158 and 163 are all CLOSED**, and with 163e the arc Henry set on 09-24 has no rows left. What remains on this map is **the ten post-EA species**, which wait until after Early Access by his 09-22 scope ruling, and the two design sessions under "Not yet specified" (the standardised balance report; playtest & ship criteria) that are his to call rather than blockers.
+
+**What is waiting on Henry, in one place:**
+
+1. **The opening fight is ~30 points under its ruled 95** on two independent instruments (157's walker 77.5%, `runGate`'s wild/biome-0 cell 67%), and **0 of 120 runs cleared a gym**. `jormungandr_v1` at 10% on fight one is probably its own question. Everything else on this list is smaller than this one.
+2. **Whether to queue the 30-seed × 12-starter walk** now or after that ruling — four to six hours, and worth spending on the game after the ruling rather than before it.
+3. **§1.4 reads gullinbursti_v2 at 58.5% FLAGGED** (was 15.6% IN BAND) — the same hook, correctly priced. A report line, not a gate.
+4. **Five of the six patches are never taken in play.** Roster fact, ranking bug, or offer shape?
+5. **`BOSS_COMPS` in `teamComps.ts` still names three unregistered `boss_relic_*` firmware** — the table's own header says it should go now that every gym is authored, and deleting a measurement suite is a decision rather than a tidy-up.
+6. **Two 28a conflicts** (steam-release): Tidewrack's ruled trio re-creates the two-engine fight 74 dismantled, and 68 ruling 3's odd-member clause now holds at one gym of three.
+
 **2026-09-24 — 163 IS CLOSED, and 163e's two numbers are both "not what you'd guess".** `npm run balance:walk -- --upgrades both` runs the pair (same seeds, same graphs, same offers, one spending policy apart); `--patch-price N` sweeps the shelf. Report `results/t163e/FINDINGS.md`.
 
 **(1) The upgrade arm is USED and changes almost nothing.** 54% take-rate — 58 upgrades at 108 benches, 1,810 scrap — and deck power moves **+0.06 at fight 4 and +0.02 at fight 8**; mean fights +0.17; biome-0 deaths 97 → 93. All inside the noise of 120 runs. **That is the arithmetic working rather than a disappointment**: an upgrade is +40% on ONE card in a deck of twelve to eighteen, and 163 §1's rule is that it never changes a card's shape. It becomes a large effect when runs get long enough to take five or six — which is 157's question, not this one's.
