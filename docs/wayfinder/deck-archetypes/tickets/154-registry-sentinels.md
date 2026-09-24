@@ -72,7 +72,7 @@ change would be a refactor smuggled under a gameplay commit.
 
 ## 5. Arms, cheapest first — Henry picks
 
-- **154a — throw in DEV, sentinel in PROD.** `import.meta.env.DEV` already gates the debug root
+- **154a — throw in DEV, sentinel in PROD. RULED YES by Henry 2026-09-24 — build it.** `import.meta.env.DEV` already gates the debug root
   (`App.tsx:26`), so the convention exists. A bad id stops the moment it is created, in the only
   environment where anyone is watching; a shipped build behaves exactly as it does now. **No call
   site changes.** This is the recommendation: it fixes the thing that actually went wrong (a bad id

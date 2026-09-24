@@ -73,7 +73,7 @@ welcome — but it is a buff, and it gets an arm, not an assumption.
   game. If it lands outside ±5, report — do not tune.
 - **150d — KINETIC_RAM → power, two arms.** `gullin_v2_ram`: `trigger: onPowerCalculated`, arm A
   `bonus: 1` (equivalence), arm B `bonus: 2.5` (as printed). Field both on gullinbursti_v2 1v1 (30
-  opponents × 40) and on the ticket-140 panel with her in `zoo`'s slot. **Henry picks** the arm from
+  opponents × 40) and on the ticket-140 panel with her in `zoo`'s slot. **Henry picked arm B, `bonus: 2.5` (2026-09-24).** The arms were to be fielded from
   the numbers; the description then says whichever number ships (*"+1 power"* or *"+2.5 power"*).
   Arm A is the default if he does not rule.
 - **150e — the law, written down.** `HookFactory.ts` comment on `bonus`: flat post-divisor HP is

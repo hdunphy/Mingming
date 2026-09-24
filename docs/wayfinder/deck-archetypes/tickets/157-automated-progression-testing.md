@@ -69,18 +69,16 @@ climbs but the machine still loses the gym, the fights are the problem (148/151)
 wins, and Henry doesn't, the *visibility* of the good pick is the problem (158/159). The instrument's
 value is telling those three apart before another six hours are spent.
 
-## 5. Session questions for Henry
+## 5. RULED by Henry, 2026-09-24
 
-1. Is the run-start deck the right *baseline*, or should the curve be measured against "deck at fight
-   1 with the seed kit's payoffs still in the reward pool" (my 09-20 lever)? Both are one flag.
-2. Should policy v0 bench like Henry did, or never bench? (Never-bench measures the cost of the
-   disadvantage; bench-like-Henry measures the cost of the fix. I would run both.)
-3. Which starters first — the six EA species, or the ones 151 is reworking?
-4. Is the 149c score an acceptable stand-in for "deck quality" at the pick, or does it need a
-   playtest-derived weight (e.g. cards a human would take)?
+1. **Baseline: as written** — the run-start deck ("let's try it like this for now").
+2. **Never bench**, but **recruit strategically**: the walker picks recruits for synergy and for the counter to the gym. The tags
+   are not in the registry — they live in `collection-v2/collection.json`: each `os[]` entry's `cur` / `tempo` (currency × tempo) and
+   `partners[]` (which OS feeds which). Policy v0 reads that file: prefer a recruit that is a listed partner of a body already in the
+   party, and prefer the element that counters the gym (`gyms.ts` counter cycle Fire > Nature > Water > Fire — a Water/Water/Fire gym
+   wants a Nature/Nature/Water party; the gym's `leaderComp` is known at run start). Log the recruit reasons.
+3. **Starters: the current EA twelve** (collection v2 / the EMBER_FUSE-era kits). 151 is superseded by 160/162.
+4. **Picks by 149c score**, and **log every offer and every pick by card id** (`PICK { offered: [ids], taken: id, score }`) so the
+   choices can be reviewed later; print the picked cards in the run read.
 
-## 6. Gate
-
-`npm run balance:walk -- --seeds 30 --starter fenrir_v1` prints the four tables above; the row
-export round-trips through `runLog`'s zod schema; `runRead.ts` reads it unchanged; `BALANCE_ONLY`
-semantics identical to `runGate`.
+Legion: build `runWalker` (§3) on those four; output in 156's row schema; `npm run balance:walk -- --seeds 30 --starter <id>`.
