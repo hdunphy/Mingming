@@ -300,8 +300,10 @@ function buildEnemy(
      * For an UN-AUTHORED gym's boss, `activeOS` is a `boss_relic_*` id and no species has a deck
      * keyed by one, so `getDeckForOS` resolves to `availableOS[0]`'s tuned list by its documented
      * fallback. That was load-bearing under ticket 18: it meant a shipped boss was reproducible in
-     * the balance harness as nothing more than `[species, boss_relic_x]`
-     * (`debug/balance/teamComps.ts`, `BOSS_COMPS`).
+     * the balance harness as nothing more than `[species, boss_relic_x]`. **All three gyms are
+     * authored as of ticket 28b, so this branch is now unreachable in a shipped run** and the table
+     * that depended on it (`BOSS_COMPS`) is deleted. The fallback stays because the branch is
+     * reachable the moment a fourth gym is added ahead of its authoring session.
      *
      * **Ticket 68's authored bosses need no fallback at all**, which is the quieter half of the
      * redesign: the member's `activeOS` IS one of its own `availableOS`, so this lookup returns the

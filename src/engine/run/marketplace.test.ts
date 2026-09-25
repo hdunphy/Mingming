@@ -72,7 +72,7 @@ import {
 import { STARTER_GENERICS, createRun } from './createRun';
 import { encounterSeed } from './encounter';
 import { nodeSeed } from './nodeSeed';
-import { offerGyms } from './gyms';
+import { LAUNCH_ELEMENTS, offerGyms } from './gyms';
 import { PARTY_SIZE } from '../party';
 import { isRewardable, rewardCardPool, scrapForWin, inV2RunPool } from '../RewardSystem';
 import { GENERIC_HIT, MingmingRegistry, getDeckForOS } from '../data/mingmingRegistry';
@@ -906,17 +906,42 @@ describe('142g — one blueprint on the shelf, from this route', () => {
          */
         expect(blueprintPool()).toEqual([...LAUNCH_SPECIES]);
 
+        /*
+         * ══ RE-STATED 2026-09-25, TICKET 28b. THE OLD VACUITY GUARD CANNOT FIRE ANY MORE, AND
+         * THE REASON IS A REAL CHANGE TO EVERY ROAD IN THE GAME. ══
+         *
+         * This used to find a species whose element the route never visits and prove the stall
+         * could still sell it. **28b left no such species on any route.** A road is
+         * `counter(gym) → gym → the gym's own biome`, and the last biome's elements are the
+         * leader comp's (`gymCompElementPlan`). 28b seats the guest from the element the gym
+         * BEATS, so that final biome carries `{gym, beaten}` — and in a three-element cycle
+         * `counter(gym)`, `gym` and `beaten` are all three elements. **Every route now shows the
+         * player every launch element.**
+         *
+         * That reverses a cost Henry took knowingly under 142 §7 (*"It's fine if there are no
+         * Water mingmings in there"*) — Rootfall used to run Fire → Nature → Nature+Water and
+         * never stand in a Water biome. It is a side effect of 28b, not something 28b asked for,
+         * so it is recorded here rather than celebrated: **it is worth a ruling, because "you
+         * cannot recruit that element on this road" was a routing decision the map was making.**
+         *
+         * The assertion that remains is the one that was always load-bearing: the pool is the
+         * WHOLE roster and is not a function of the run at all — `blueprintPool()` takes no run —
+         * and every one of the six is actually drawable across the seed space rather than merely
+         * allowed. A route filter re-introduced upstream would fail the second half even now.
+         */
         const routeElements = new Set(RUN.biomes.flatMap((b) => [...b.elements]));
-        const offRoute = blueprintPool()
-            .filter((id) => !routeElements.has(GetMingmingData(id).primaryElement));
-        expect(offRoute.length, 'this route should leave something off, or the case is vacuous')
-            .toBeGreaterThan(0);
+        expect([...routeElements].sort(), '28b: every road now covers all three elements')
+            .toEqual([...LAUNCH_ELEMENTS].sort());
 
-        // And an off-route species is actually reachable across the seed space, not merely allowed.
-        const drawn = new Set(MARKETS.flatMap((node) => [0, 1, 2, 3].map((r) => rollBlueprintOffer(
+        const drawn = new Set(MARKETS.flatMap((node) => [0, 1, 2, 3, 4, 5].map((r) => rollBlueprintOffer(
             { ...RUN, marketRefreshes: { [node.id]: r } }, node,
         )!.speciesId)));
-        expect(offRoute.some((id) => drawn.has(id))).toBe(true);
+        // The species this road meets LAST — the final biome's guest element — is the one a
+        // route-filtered pool would most plausibly withhold, so it is named rather than sampled.
+        const lastMet = blueprintPool().filter((id) =>
+            GetMingmingData(id).primaryElement === RUN.biomes[RUN.biomes.length - 1].elements.at(-1));
+        expect(lastMet.length, 'the final biome names an element, or this case is vacuous').toBeGreaterThan(0);
+        expect(lastMet.some((id) => drawn.has(id)), `drawn: ${[...drawn].join(', ')}`).toBe(true);
     });
     it('holds across visits and moves on a refresh, like the rest of the stall', () => {
         const first = rollBlueprintOffer(RUN, MARKET)!;

@@ -31,7 +31,7 @@ import { describe, expect, it } from 'vitest';
 import { generateRegionGraph, REGION_PARAMS } from './regionGraph';
 import { createRun } from './createRun';
 import { encounterSpeciesPool, scoutFirmwareFor, rollEncounter, gradeFor, enemyLoadoutFor, rivalElementPlan } from './encounter';
-import { GYM_REGISTRY, gymLeaderFirmware, offerGyms, pathElementsFor, type IGymOffer } from './gyms';
+import { COUNTERED_BY, GYM_REGISTRY, LAUNCH_ELEMENTS, gymLeaderFirmware, offerGyms, pathElementsFor, type IGymOffer } from './gyms';
 import { authoredBossFor } from './bosses';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 import { BLUEPRINT_DROP_RATE } from '../RewardSystem';
@@ -300,8 +300,10 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
     });
 
     it('fields two own-element bodies and one guest at every gym — 28a\'s composition rule', () => {
-        // Henry's ruling is "whichever trio synergises best", and the shape every candidate kept is
-        // 2 + 1. Asserted so a later re-composition has to decide to break it rather than drift.
+        // Henry's 28a ruling was "whichever trio synergises best", and the shape every candidate
+        // kept is 2 + 1. 28b re-ruled WHICH body fills the third slot and left the count alone, so
+        // this assertion survives both compositions unchanged — which is what makes it the stable
+        // one of the pair.
         for (const gym of Object.values(GYM_REGISTRY)) {
             const elements = gymLeaderFirmware(gym.id)
                 .map((os) => Object.values(MingmingRegistry).find((d) => d.availableOS.includes(os))?.primaryElement);
@@ -310,11 +312,51 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
         }
     });
 
-    it('fields no OS at more than one gym — a roster, not a pool', () => {
-        // 72's own note, now true of all three: "the same OS at two gyms makes the roster read as a
-        // pool". It was not true before 28a — `ratatoskr_v2` sat at Emberfall and `kraken_v2` and
-        // `skoll_v2` at Tidewrack while Rootfall and Emberfall each held one of their partners.
+    it('seats the guest from the element the gym BEATS — 28b\'s composition rule', () => {
+        /*
+         * TICKET 28b (Henry, 2026-09-25): *"the guest is the element the gym BEATS, never the
+         * player's counter."*
+         *
+         * 28a chose each third slot for synergy and that put a WATER body at Emberfall — the
+         * element that beats Fire — on a "counter the player's expected counter" heuristic. The
+         * replacement reads the same way from the player's chair: a gym does not field the answer
+         * to itself, so the counter the gate expects meets nothing already resisting it.
+         *
+         * `COUNTERED_BY` is the inverse table (*"what beats e"*), so the element a gym beats is the
+         * one whose counter IS the gym's element. Derived rather than transcribed, because the
+         * triangle is a property of the game and a second copy of it here would be a second place
+         * it has to change.
+         */
+        for (const gym of Object.values(GYM_REGISTRY)) {
+            const beaten = LAUNCH_ELEMENTS.find((e) => COUNTERED_BY[e] === gym.element);
+            const guest = gymLeaderFirmware(gym.id)
+                .map((os) => Object.values(MingmingRegistry).find((d) => d.availableOS.includes(os))?.primaryElement)
+                .filter((e) => e !== gym.element);
+            expect(guest, `${gym.id}`).toEqual([beaten]);
+        }
+    });
+
+    it('fields exactly ONE firmware twice — 28b\'s recorded conflict, not a drift', () => {
+        /*
+         * ══ THIS ASSERTION IS INVERTED ON PURPOSE, AND IT IS A FLAG. ══
+         *
+         * It used to read *"fields no OS at more than one gym — a roster, not a pool"*, which is
+         * ticket 72's own note and was true of all three gyms after 28a. **28b breaks it**: the
+         * element rule seats a Fire guest at Tidewrack, `skoll_v2` is the Fire firmware the rule
+         * allows, and Emberfall already fields `skoll_v2`.
+         *
+         * Ticket 74's docblock rules against this in as many words — *"the same OS at two gyms
+         * would make the roster read as a pool"* — and 28a settled Rootfall's third slot partly on
+         * it. Henry's 28b ruling names both trios explicitly, so the trios ship and the PRINCIPLE
+         * is what needs a ruling.
+         *
+         * Pinned as "exactly one duplicate, and it is this one" rather than deleted, so the test
+         * stays load-bearing: a SECOND firmware appearing twice is drift and still fails here. When
+         * Henry rules on the principle this goes back to asserting zero.
+         */
         const all = Object.keys(GYM_REGISTRY).flatMap((id) => [...gymLeaderFirmware(id)]);
-        expect(new Set(all).size, `${all.join(', ')}`).toBe(all.length);
+        const duplicated = [...new Set(all.filter((os, i) => all.indexOf(os) !== i))];
+        expect(duplicated, `${all.join(', ')}`).toEqual(['skoll_v2']);
+        expect(new Set(all).size, 'one duplicate and no more').toBe(all.length - 1);
     });
 });

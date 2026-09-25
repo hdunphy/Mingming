@@ -406,31 +406,29 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
                  */
                 expect(beats(shape.counter, GYM_REGISTRY[gymId].element)).toBe(true);
                 /*
-                 * ══ TICKET 28a BROKE RULING 3's ODD-MEMBER CLAUSE AT TWO OF THREE GYMS. ══
+                 * ══ TICKET 28b RESTORES RULING 3 AT ALL THREE GYMS — AND THE TWO RULES TURN OUT
+                 * TO BE THE SAME RULE STATED FROM OPPOSITE ENDS. ══
                  *
-                 * This used to assert `beats(odd, counter)` at every gym — ticket 68 ruling 3: *"the
-                 * third slot exists to counter the player's expected counter"*, so a prepared player
-                 * is answered rather than immune.
+                 * 28a composed the trios for synergy and broke this clause at two of three gyms:
+                 * Emberfall's guest was `kraken_v2` (Water — the player's counter element itself,
+                 * not the answer to it) and Tidewrack's was `ratatoskr_v1` (Nature, likewise).
                  *
-                 * Henry's 2026-09-24 ruling composed the three trios for **synergy** instead
-                 * (*"bosses, but whichever trio has the better synergies"*) and named the bodies, and
-                 * two of the three guests no longer eat the counter:
+                 * Henry's 28b ruling reads *"the guest is the element the gym BEATS, never the
+                 * player's counter."* Walk the triangle and that is ruling 3 exactly:
                  *
-                 *   - Emberfall (Fire): guest is kraken_v2, **Water** — which is the player's counter
-                 *     element itself, not the answer to it. Ruling 3 wanted Nature.
-                 *   - Tidewrack (Water): guest is ratatoskr_v1, **Nature** — the counter element
-                 *     again. Ruling 3 wanted Fire.
-                 *   - Rootfall (Nature): guest is jormungandr_v2, **Water**. Ruling 3 holds here.
+                 *     gym Fire   → counter Water  → guest Nature (Fire beats Nature) → Nature beats Water ✓
+                 *     gym Water  → counter Nature → guest Fire   (Water beats Fire)  → Fire beats Nature ✓
+                 *     gym Nature → counter Fire   → guest Water  (Nature beats Water)→ Water beats Fire  ✓
                  *
-                 * **Recorded rather than dropped, and NOT silently re-asserted the other way.** The
-                 * 2-1 lineup shape above still holds and is still what the gate measures; what has
-                 * gone is the guarantee that the odd member punishes preparation. Whether that is
-                 * intended — a synergy trio is a different kind of hard from a rock-paper-scissors
-                 * one — is Henry's call, and it is on the 28a write-up as a decision.
+                 * In a three-element cycle *"the element I beat"* and *"the element that beats the
+                 * element that beats me"* are the same element, so one heuristic is the other read
+                 * backwards. That is why this assertion goes back to being universal rather than to
+                 * carrying an exception list — and it is worth saying out loud, because 28a's
+                 * synergy heuristic was the only one of the three that could ever break it.
                  */
                 const ruling3 = beats(odd, shape.counter);
-                expect(ruling3, `${gymId}`).toBe(gymId === 'gym_rootfall');
-                if (ruling3) {
+                expect(ruling3, `${gymId}`).toBe(true);
+                {
                     expect(beats(shape.filler, odd), `${gymId}: my one answers the odd member`).toBe(true);
                     // Nothing the boss fields is FOOD for the filler's own element beyond that, and
                     // the filler is never itself food — it shares the leader's element, so their

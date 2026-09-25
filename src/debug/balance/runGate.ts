@@ -36,7 +36,7 @@
  * committed balance number in `docs/balance/` was produced under. A second loop here would be a
  * second set of stall semantics, and the first time the two disagreed the gate's numbers would stop
  * being comparable to the corpus they are supposed to sit beside. So this file builds setups and
- * `runBatch` plays them, exactly as `runDeckReport.ts` and `gauntlet-boss.balance.ts` do.
+ * `runBatch` plays them, exactly as `runDeckReport.ts` does.
  *
  * # PLAYER-FIRST, SINGLE ORIENTATION — AND WHY THIS DOES **NOT** USE `runPairedBatch`
  *
@@ -64,7 +64,7 @@
  * The 3v3 spread inside one cell is real and is mostly the enemy's deck: an `elite:biome2` sample
  * (three tuned per-OS decks, 27 cards) ran 70s a battle where a `wild:biome2` sample ran 31s.
  *
- * That 200x spread is not this file's doing — `gauntlet-boss.balance.ts` measured the same thing
+ * That 200x spread is not this file's doing — ticket 18's boss suite measured the same thing
  * ("a 3v3 battle in this harness costs ~300x a 1v1 one") and `TacticalAI`'s own `AI_CENSUS` note
  * explains it: the same-turn search enumerates casters x hand x targets, which is ~83 reducer
  * simulations per decision at 1v1 against ~16,677 at 3v3. **Six of the nine cells below are 3v3**,
@@ -1656,7 +1656,7 @@ export function measureBand(
  * **Both of those conditions are false, so this is an UPPER BOUND and is printed unbanded.** The
  * gauntlet carries HP between fights with no heal (`IGauntletProgress.persistedHp`), which is the
  * single largest thing this harness cannot model — `ComposedSetup` has no gauntlet HP carry, and
- * `gauntlet-boss.balance.ts` reached the same wall in the same words ("inventing one would make the
+ * Ticket 18's boss suite reached the same wall in the same words ("inventing one would make the
  * number mean something else again"). A party that wins fight 1 at 40 HP is not the party this gate
  * sends into fight 2. Every gauntlet number here is therefore measured from full HP and reads HIGH
  * against a played run; the per-fight rates are the honest part, the product is the optimistic

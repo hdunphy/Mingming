@@ -45,7 +45,7 @@
  * recording rather than papering over, because it is a fact about the engine and not about this
  * script.** Six of the nine cells are 3v3, a 3v3 battle costs 30-70 seconds, and nothing this file
  * controls changes that: `TacticalAI`'s same-turn search enumerates casters x hand x targets, so a
- * 3v3 decision is ~200x a 1v1 one (`runGate.ts`'s cost table, and `gauntlet-boss.balance.ts` reached
+ * 3v3 decision is ~200x a 1v1 one (`runGate.ts`'s cost table, and ticket 18's deleted boss suite reached
  * the same wall independently). The gate needs 3v3 because the run does — a trio at biome 2 and a
  * trio at the gym are what ticket 61 named as the representative decks.
  *
@@ -69,7 +69,7 @@
  *
  * # WHAT THE FIRST REAL MEASUREMENT SAID (2026-08-26, registry `1:1ad8616b`)
  *
- * Recorded here the way `gauntlet-boss.balance.ts` records its first smoke run: **not as a threshold
+ * Recorded here the way ticket 18's boss suite recorded its first smoke run: **not as a threshold
  * and not as a claim about what the game should be**, but so the next person to run this knows what
  * moved and what did not. Every number is a measurement, not a target. All three bands are far
  * outside their windows, and **none of the three misses is a sampling artefact** — the two cheapest

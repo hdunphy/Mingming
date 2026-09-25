@@ -101,11 +101,25 @@ export interface IAuthoredBoss {
  * kit. The intended counter for the gate's record is unchanged: control-leaning 2 Water + 1 Fire.
  */
 export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
+    /*
+     * ══ TICKET 28b (Henry, 2026-09-25) — **THE GUEST IS THE ELEMENT THE GYM BEATS.** ══
+     *
+     * 28a picked each third slot for synergy, and at Emberfall that chose `kraken_v2` — WATER, the
+     * element that beats Fire. The heuristic it was reaching for was "counter the player's expected
+     * counter", and the ruling replaces it with a simpler one that reads the same way from the
+     * player's chair: **a gym's guest is a body from the element the gym's own element defeats.**
+     *
+     * Fire beats Nature, so Emberfall's guest is Nature: `huldra_v1`. What that changes for the
+     * player is the shape of the exam — the trio no longer carries the answer to itself, and the
+     * Water counter the gate expects has nothing on the field already resisting it.
+     *
+     * Intended counter, for the gate's record: **Water**.
+     */
     gym_emberfall: {
         members: [
             { species: 'fenrir', os: 'fenrir_v2' },
             { species: 'skoll', os: 'skoll_v2' },
-            { species: 'kraken', os: 'kraken_v2' },
+            { species: 'huldra', os: 'huldra_v1' },
         ],
         driver: DRIVER_WAR_FOOTING,
     },
@@ -162,11 +176,36 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
      * 74's intended counter stands: **Nature**, the only launch element with Weakened, plus ticket
      * 69's toolbox.
      */
+    /*
+     * ══ TICKET 28b (Henry, 2026-09-25) — **BACK TO THE AUTHORED TIDAL SURGE TRIO.** ══
+     *
+     * `jormungandr_v1 + kraken_v2 + skoll_v2`, which is the composition the long docblock at the
+     * head of this entry describes and ticket 74 ruled. 28a's `kraken_v1 + ratatoskr_v1` is
+     * withdrawn on the same ruling that moved Emberfall: Water beats Fire, so the guest is Fire —
+     * `skoll_v2` — and `ratatoskr_v1` was Nature, the element that beats Water.
+     *
+     * **This drops the two-engine pair for the second time, and this time deliberately rather than
+     * as a side effect.** 74 removed `kraken_v1` because the trio was two card-count-and-draw
+     * engines plus a closer and research/73 measured that at 30.0% against a ~84.3% guide; 28a put
+     * it back on a synergy argument and the canary immediately read the boss at 33% → 100% against
+     * its own named counter party. The test that asserted the RETURN of that shape goes with it.
+     *
+     * **CONFLICT, SHIPPED AS RULED AND RECORDED RATHER THAN RESOLVED.** `skoll_v2` is now fielded
+     * at BOTH Emberfall and Tidewrack. Ticket 74's docblock above rules the opposite in as many
+     * words — *"Skoll fields v1 at Emberfall and v2 here on purpose; leaders build differently, and
+     * the same OS at two gyms would make the roster read as a pool"* — and 28a's Rootfall note
+     * settled its own third slot partly on that principle. The 28b ruling names both trios
+     * explicitly, so the trios are what ship; the principle is what needs a ruling. Fixing it would
+     * mean a different Fire body at one of the two, and there is no second Fire firmware the
+     * element rule allows here without re-opening the guest.
+     *
+     * Intended counter, for the gate's record: **Nature**.
+     */
     gym_tidewrack: {
         members: [
             { species: 'jormungandr', os: 'jormungandr_v1' },
-            { species: 'kraken', os: 'kraken_v1' },
-            { species: 'ratatoskr', os: 'ratatoskr_v1' },
+            { species: 'kraken', os: 'kraken_v2' },
+            { species: 'skoll', os: 'skoll_v2' },
         ],
         driver: DRIVER_TIDAL_SURGE,
     },
@@ -197,6 +236,13 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
      * at no gym, so no OS is fielded twice across the three.
      *
      * 72's intended counter stands: **Fire** by type, plus ticket 69's cleanse toolbox.
+     */
+    /*
+     * TICKET 28b leaves Rootfall exactly as 28a composed it, and that is the ruling agreeing with
+     * the table rather than the table escaping the ruling: Nature beats Water, and the guest is
+     * `jormungandr_v2` — Water. It was already the shape the new heuristic asks for.
+     *
+     * 72's intended counter stands: **Fire**.
      */
     gym_rootfall: {
         members: [
