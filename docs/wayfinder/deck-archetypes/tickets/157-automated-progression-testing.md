@@ -1,5 +1,7 @@
 # Ticket 157 — Automate the progression test: a run played by the machine, read as a curve
 
+> **157-r1 SHIPPED 2026-09-25 (`21ba532`). The ladder mirrors the start-kit shape at biome 0 and every start five carries one payoff. Both instruments say (a) is worth +8.7 to +11.5 points — on fights TWO onward. Fight one did not move (75.8% over 2,400 runs) and could not have: it is the scripted opening, which has mirrored the start kit since ticket 24. Two decisions are back with Henry — the opening fight cannot reach 95 while it is a mirror, and jormungandr_v1's 19% is a deck-composition question, not a power one. See §7 and `results/t157r1/FINDINGS.md`.**
+
 > **RULED 2026-09-24 on the first report (0/120 gym clears, fight one 77.5%): the enemy ladder mirrors the start-kit shape in biome 0 AND every start five carries exactly one payoff (157-r1); the 30×12 walk waits for a 5-seed fight-one read near 95. See HANDOFF 2026-09-24 evening block.**
 
 > **Status: CLOSED 2026-09-24 — `runWalker` is built and its first report is in (`results/t157/FINDINGS.md`): 0 of 120 runs cleared the gym, the deck-power curve is real (2.03 → 3.91 fight 1 → 8 and not survivorship), and the wall is the OPENING FIGHT at 77.5% against a ruled 95%. The instrument is the deliverable and it is done; the numbers are Henry's to rule on. A policy v1 reopens a row here, not the ticket.**
@@ -184,3 +186,81 @@ is built not to do. It is also most of the cost.
    number to rule on, not to tune around. `jormungandr_v1` at 10% is probably its own question.
 2. **Thirty seeds × twelve starters is the next run**, four to six hours. Worth queueing after (1)
    has a direction, so it measures the game after the ruling rather than before.
+
+---
+
+## 7. Write-back (2026-09-25) — 157-r1 shipped, and the fight-one read
+
+Commit `21ba532`. Full numbers in `results/t157r1/FINDINGS.md`; the short version, because the
+report is what Henry reads.
+
+### What landed
+
+**(a)** `enemyLoadoutFor(kind, tier, biomeIndex)`. A biome-0 wild holds `start-kit-plus-generics` —
+`startDeckFor`'s own composition, so the mirror is the SAME code the player's opening goes through
+rather than a second copy of it. Biome 1 onward is the full tuned kit, untouched. Elites and the
+gauntlet move at no depth. `biomeIndex` defaults to **1**, so a caller that has not been taught
+about this gets the old behaviour rather than a silently gentler fight.
+
+**The biome and the tier are two independent adjustments, and the first draft got that wrong.** It
+returned early at biome 0 and ate ticket 60's tier raise with it: a tier-3 run's first-biome wilds
+came out greedy and firmware-less, which is that rung quietly deleted for a third of the map. The
+biome decides what the deck HOLDS; the tier decides how well it is PLAYED.
+
+**(b)** All twelve kits audited. Ten already carried exactly one payoff. `skoll_v1` carried four
+(`flare_burst` ×2 @3.00, `brute_force` @3.10, `snap` @2.80) and is now `fury_strike ×2 ·
+flare_burst · howl · forage`. **`jormungandr_v2` carries two and cannot be fixed inside its own
+five**: TOXIN_FANG's deck holds only three non-payoff non-consume cards, so one payoff plus all of
+them is four and the fifth must be a payoff. Exempted in `startKits.test.ts` with the arithmetic
+pinned rather than with a waiver — fixing it needs a DECK change, which is Henry's.
+
+### The read
+
+| | | |
+|---|---|---|
+| fight one (the scripted opening), 2,400 runs | **75.8%** (74.1–77.5) | −19.2pt |
+| fight two (an ordinary biome-0 wild), 1,820 paired runs | 77.5% → **86.2%** | **+8.7pt from (a)** |
+| `run-gate --cells wild:biome0`, 400 battles | 67% → **78.5%** | **+11.5pt from (a)** |
+| `skoll_v1` fight one, old kit → new kit, 200 each | 80.0% → **61.0%** | **−19pt from (b)** |
+
+**Fight one did not move, and could not have.** It is the SCRIPTED opening (`isOpeningFight`), which
+has held `OPENING_FIGHT_LOADOUT` — already `start-kit-plus-generics` — since ticket 24. The two
+sides' openings were symmetric in the one fight the diagnosis was about. (a) fixed every *other*
+biome-0 wild, which is where both instruments show it paying.
+
+### The decision this produces
+
+**The floor is no longer a floor**: the designated gentlest fight is now ten points harder than the
+ordinary wild after it, because at fight one both sides hold eight cards from the same table and by
+fight two the player has picked and the enemy has not.
+
+**And 95% is not reachable while fight one is a mirror.** Same shape, same count, same IVs, same AI,
+same beam; the player's only edge is firmware, and that edge measures at +25.8 points over even.
+Either the opening enemy drops the three generics — note that is `start-kit`, the *sharper* list, so
+it is not simply "shorter" — or fight one is not graded against `RUN_GATE_TARGETS.wild`.
+
+### jormungandr_v1, read after the row as ruled
+
+**19.0% over 200 runs, and it is not a power problem.** v1's five scores 11.10 by 149c; v2's scores
+10.80 and reads **98%**. Three tenths apart in value, seventy-nine points apart in the fight.
+
+```
+v1  undertow@1.50 · undertow@1.50 · blind_spot@1.10 · serpents_coil@2.50 · riptide_run@4.50
+v2  corrosive_bolt@1.80 · corrosive_bolt@1.80 · venom_fang@3.00 · serpent_flurry@3.00 · tackle@1.20
+```
+
+`undertow` is a LOOPING FREE DRAW and `blind_spot` is a debuff: **three of v1's five cards do not
+advance the fight**, and its single payoff is one copy. It opens on two live cards against five,
+loses over 5.4 turns with 6% of its pool left, and is out-tempoed rather than burst down.
+
+The one-payoff rule constrains how many payoffs a five may carry and says nothing about how many of
+the remaining four may be draw or debuff. **v1 is legal under (b) and unplayable at fight one.**
+Deck composition, so Henry's.
+
+### The instrument
+
+`npm run balance:walk -- --seeds 200 --fight N` truncates the walk after N fights and prints the
+fight-N table against the gate's own target. It is a truncation, not a second harness: same
+`createRun`, same node, same `rollEncounter`, same `runOne`, pinned by a test that asserts a
+truncated walk's fight one is byte-identical to a full walk's on the same seed. 2,400 fight-one runs
+cost about a minute; the full walk that produced the first report cost hours for five seeds each.

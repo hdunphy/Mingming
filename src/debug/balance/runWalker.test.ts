@@ -20,7 +20,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
     scoreOf, deckPower, chooseStep, choosePick, chooseRecruit, chooseUpgrade, choosePatches,
-    walkRun, eaStarters, NO_FIRMWARE_OS,
+    walkRun, eaStarters, NO_FIRMWARE_OS, summariseFightOne,
 } from './runWalker';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { upgradePrice } from '../../engine/run/marketplace';
@@ -354,5 +354,67 @@ describe('163e — the patch policy', () => {
         const party = [member('mm1', 'kraken_v1'), member('mm2', 'fenrir_v1'), member('mm3', 'huldra_v1')];
         expect(choosePatches(party, {}, 'gate')).toHaveLength(3);
         expect(choosePatches(party, { mm2: ['relay'] }, 'gate')).toHaveLength(2);
+    });
+});
+
+describe('157-r1 — the truncated walk, which is the fight-one read', () => {
+    /*
+     * The one thing this flag can get wrong, and it would not look wrong: a truncation that changed
+     * the fight it stopped at. The read is being compared against a ruled target of 95, so a
+     * truncated walk that played a slightly different first fight from a full one would produce a
+     * number Henry rules on and nobody can reproduce from a real run.
+     *
+     * Asserted as byte-equality of the whole `FightRecord`, on the SAME seed, rather than on the
+     * win alone — a first fight that matched on the outcome and differed on the deck would be the
+     * same bug one step further from being caught.
+     */
+    it('plays the same fight one a full walk does, on the same seed', () => {
+        const seed = 't157r1:truncation';
+        const full = walkRun({ seed, starter: 'kraken_v1', gymIndex: 0 });
+        const cut = walkRun({ seed, starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 1 });
+
+        expect(cut.fights[0]).toEqual(full.fights[0]);
+        expect(full.fights.length).toBeGreaterThan(1);
+    });
+
+    it('stops AT the stop rather than one fight either side of it', () => {
+        const seed = 't157r1:truncation';
+        // Fight one is won on this seed (the case above proves the record is shared), so the walk
+        // stops because the budget ran out rather than because the run ended.
+        const cut = walkRun({ seed, starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 1 });
+        expect(cut.fights).toHaveLength(1);
+        expect(cut.fights[0].won).toBe(true);
+
+        const two = walkRun({ seed, starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 2 });
+        expect(two.fights).toHaveLength(2);
+        expect(two.fights[0]).toEqual(cut.fights[0]);
+    });
+
+    it('reports a truncated run as a DEFEAT, which is why only `byFightIndex` may be read off it', () => {
+        // Stated as a test rather than only in the docblock: `outcome` and `finalDeck` on a
+        // truncated walk are artefacts of the stop, and a later reader folding them into a win rate
+        // would report every starter at 0% and call it a finding.
+        const cut = walkRun({ seed: 't157r1:truncation', starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 1 });
+        expect(cut.outcome).toBe('defeat');
+    });
+});
+
+describe('157-r1 — summariseFightOne reads one fight and nothing else', () => {
+    it('counts only the fight at the index, conditional on having reached it', () => {
+        const results = [0, 1, 2].map((i) => walkRun({
+            seed: `t157r1:summary:${i}`, starter: 'kraken_v1', gymIndex: i % 3, stopAfterFights: 1,
+        }));
+        const row = summariseFightOne('kraken_v1', results);
+
+        expect(row.played).toBe(results.filter((r) => r.fights.length >= 1).length);
+        expect(row.wins).toBe(results.filter((r) => r.fights[0]?.won).length);
+        expect(row.rate).toBeCloseTo((100 * row.wins) / row.played, 6);
+    });
+
+    it('reports a starter nobody walked as 0 of 0 rather than as a loss', () => {
+        // The denominator is "reached it", so an index past every walk is an EMPTY row. A summary
+        // that returned 0% here would make "fight 12" look like a wall rather than like no data.
+        const row = summariseFightOne('kraken_v1', [], 12);
+        expect(row).toMatchObject({ played: 0, wins: 0, rate: 0, meanSurvivorHp: null });
     });
 });

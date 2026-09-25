@@ -7,8 +7,18 @@
  *
  *   npm run balance:walk -- --seeds 30 --starter fenrir_v1
  *   npm run balance:walk -- --seeds 10                 # every one of the EA twelve
+ *   npm run balance:walk -- --seeds 200 --fight 1      # 157-r1's fight-one read, and nothing else
+ *
+ * `--fight N` truncates every walk after N fights and prints `printFightOneReport` instead of the
+ * run report. It is the answer to *"report fight one only"*: a full walk spends almost all of its
+ * time on fights that read does not look at, which is what capped the first one at five seeds a
+ * starter — and at five seeds, 60% and 80% are the same measurement.
  */
-import { walkStarter, summarise, printWalkReport, eaStarters, type WalkSummary } from './runWalker';
+import {
+    walkStarter, summarise, printWalkReport, eaStarters, type WalkSummary,
+    walkStarterTruncated, summariseFightOne, printFightOneReport, type FightOneRow,
+} from './runWalker';
+import { RUN_GATE_TARGETS } from './runGate';
 
 function main(): void {
     const argv = process.argv.slice(2);
@@ -36,6 +46,27 @@ function main(): void {
         console.log(`\n########## ARM: ${title}${patchPrice === undefined ? '' : ` · patch ${patchPrice} scrap`} ##########`);
         printWalkReport(summaries);
     };
+
+    // TICKET 157-r1: the truncated read comes first and returns, because none of the run-report
+    // flags above mean anything to it — an upgrade arm on a walk that stops at fight one is a
+    // spending policy with nothing to spend on.
+    const fightIndex = get('--fight') === undefined ? undefined : Number(get('--fight'));
+    if (fightIndex !== undefined) {
+        const rows: FightOneRow[] = [];
+        for (const starter of starters) {
+            const started = Date.now();
+            rows.push(summariseFightOne(starter, walkStarterTruncated(starter, seeds, fightIndex, label), fightIndex));
+            console.error(`  [fight ${fightIndex}] ${starter}: ${seeds} runs in ${((Date.now() - started) / 1000).toFixed(0)} s`);
+        }
+        // The target is READ FROM THE GATE rather than written here. 95 is `RUN_GATE_TARGETS.wild`'s
+        // number and Henry ruled on that one; a copy in this file is a second opinion waiting to
+        // drift away from the band it is supposed to be reporting against.
+        // ×100: the gate stores its targets as FRACTIONS (`wild: 0.95`) and prints them scaled at
+        // the edge. Caught by the first smoke run, which cheerfully reported every starter as
+        // beating a target of 0.95%.
+        printFightOneReport(rows, 100 * RUN_GATE_TARGETS.wild, fightIndex);
+        return;
+    }
 
     if (arm === 'both') { run(false, 'no upgrades'); run(true, 'upgrades'); }
     else run(arm === 'on', arm === 'on' ? 'upgrades' : 'no upgrades');

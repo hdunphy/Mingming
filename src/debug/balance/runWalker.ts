@@ -408,6 +408,24 @@ export interface WalkInput {
      * sweep (after 157's opening-fight ruling) needs no edit to the shipped constant.
      */
     readonly patchPrice?: number;
+    /**
+     * TICKET 157-r1 — **stop the walk after N fights**, so fight one can be measured on its own.
+     *
+     * Henry's ruling asks for a fight-one read at the target of 95, and a full walk is the wrong
+     * instrument for it: a 5-seed walk of the twelve costs about ten minutes and spends almost all
+     * of it on fights the read does not look at, which caps the sample at the point where 60% and
+     * 80% are the same measurement. Stopping after fight one costs a single 1v1 per seed, so the
+     * same ten minutes buys hundreds of seeds per starter instead of five.
+     *
+     * It is a TRUNCATION, not a different harness. Everything up to the stop is the walk exactly as
+     * it runs: the same `createRun`, the same node, the same `rollEncounter`, the same `runOne`.
+     * That is the whole point of putting it here rather than writing a second script that builds
+     * its own fight and quietly disagrees with this one about the beam or the AI tier.
+     *
+     * A truncated run's `outcome` is `defeat` and its `finalDeck` is a first-fight deck; neither
+     * means anything and neither should be read. `summariseFightOne` reads `byFightIndex` alone.
+     */
+    readonly stopAfterFights?: number;
 }
 
 export interface FightRecord {
@@ -830,6 +848,10 @@ export function walkRun(input: WalkInput): WalkResult {
             store.dispatch(resolveEncounter());
             if (result.winner !== 'PLAYER') break;
             takeRewards(node, corpses(encounter, result));
+            // 157-r1's truncation. After the rewards, so a stop at N still measures the Nth fight
+            // in full — the reward roll is part of what that fight WAS, and dropping it would make
+            // the truncated walk disagree with the full one about the run it just played.
+            if (input.stopAfterFights !== undefined && fights.length >= input.stopAfterFights) break;
         } else if (isMarketNode(node.kind)) {
             shop(node);
             upgradeBench(node, false);
@@ -965,6 +987,92 @@ export function walkStarter(starter: string, seeds: number, label = 'walk', upgr
         out.push(walkRun({ seed: `${label}:${starter}:${i}`, starter, gymIndex: i % 3, upgrades, patchPrice }));
     }
     return out;
+}
+
+/**
+ * Walk one starter, stopping after `fights` fights — 157-r1's cheap read.
+ *
+ * Seeded on a DIFFERENT prefix from `walkStarter`'s (`:f1:` rather than `:`), deliberately. A
+ * truncated walk and a full one are two measurements of different things and neither is a sample of
+ * the other, so sharing seeds between them would invite exactly the comparison that is not valid:
+ * "the same seed won here and lost there" across two run lengths is a statement about the second
+ * fight, not about the first.
+ */
+export function walkStarterTruncated(
+    starter: string, seeds: number, fights: number, label = 'walk',
+): WalkResult[] {
+    const out: WalkResult[] = [];
+    for (let i = 0; i < seeds; i += 1) {
+        out.push(walkRun({ seed: `${label}:f1:${starter}:${i}`, starter, gymIndex: i % 3, stopAfterFights: fights }));
+    }
+    return out;
+}
+
+/** One starter's fight-`index` record: wins, played, and the enemy it was actually shown. */
+export interface FightOneRow {
+    readonly starter: string;
+    readonly wins: number;
+    readonly played: number;
+    readonly rate: number;
+    /** Mean turns, and how often the fight ran out the clock rather than ending. */
+    readonly meanTurns: number;
+    readonly truncated: number;
+    /** Mean HP fraction of the player's survivors — how close the wins were. */
+    readonly meanSurvivorHp: number | null;
+}
+
+/** Fold truncated walks into 157-r1's one table. Reads `fights[index - 1]` and nothing else. */
+export function summariseFightOne(
+    starter: string, results: ReadonlyArray<WalkResult>, index = 1,
+): FightOneRow {
+    const rows = results.map((r) => r.fights[index - 1]).filter((f): f is FightRecord => f != null);
+    const wins = rows.filter((f) => f.won).length;
+    const hp = rows.flatMap((f) => f.survivors.map((s) => s.hpFraction));
+    return {
+        starter,
+        wins,
+        played: rows.length,
+        rate: rows.length === 0 ? 0 : (100 * wins) / rows.length,
+        meanTurns: rows.length === 0 ? 0 : rows.reduce((n, f) => n + f.turns, 0) / rows.length,
+        truncated: rows.filter((f) => f.truncated).length,
+        meanSurvivorHp: mean(hp),
+    };
+}
+
+/**
+ * 157-r1's report: fight one against the ruled target, and nothing else.
+ *
+ * Deliberately not folded into `printWalkReport`. That report answers §3's question ("what does a
+ * whole run look like") and this one answers Henry's ("is fight one near 95 yet"); a table that
+ * tried to do both would print ten columns of run statistics that a truncated walk cannot fill.
+ */
+export function printFightOneReport(rows: ReadonlyArray<FightOneRow>, target: number, index = 1): void {
+    console.log(`\n=== 157-r1 — FIGHT ${index}, against the ruled target of ${target}% ===\n`);
+    console.log('starter              n    win%   vs target    mean turns   survivor HP');
+    for (const r of rows) {
+        const delta = r.rate - target;
+        console.log(
+            `${r.starter.padEnd(17)} ${String(r.played).padStart(5)}  ${r.rate.toFixed(1).padStart(5)}%`
+            + `   ${(delta >= 0 ? '+' : '') + delta.toFixed(1)}pt`.padEnd(13)
+            + `${r.meanTurns.toFixed(1).padStart(8)}      `
+            + `${r.meanSurvivorHp === null ? '   —' : `${(100 * r.meanSurvivorHp).toFixed(0)}%`.padStart(5)}`
+            + `${r.truncated > 0 ? `   (${r.truncated} hit the turn cap)` : ''}`,
+        );
+    }
+    const played = rows.reduce((n, r) => n + r.played, 0);
+    const wins = rows.reduce((n, r) => n + r.wins, 0);
+    const pooled = played === 0 ? 0 : (100 * wins) / played;
+    // The Wald interval is enough to say whether a move is real at these sample sizes; the gate's
+    // own cells report an interval too, so a move between the two instruments is legible.
+    const se = played === 0 ? 0 : Math.sqrt((pooled / 100) * (1 - pooled / 100) / played) * 100;
+    console.log(
+        `\nPOOLED: ${wins}/${played} = ${pooled.toFixed(1)}%`
+        + `  (95% CI ${(pooled - 1.96 * se).toFixed(1)}–${(pooled + 1.96 * se).toFixed(1)})`
+        + `  ·  target ${target}%  ·  ${(pooled - target >= 0 ? '+' : '') + (pooled - target).toFixed(1)}pt`,
+    );
+    const under = rows.filter((r) => r.rate < target).length;
+    console.log(`${under} of ${rows.length} starters under target; worst ${
+        [...rows].sort((a, b) => a.rate - b.rate).slice(0, 3).map((r) => `${r.starter} ${r.rate.toFixed(0)}%`).join(', ')}`);
 }
 
 /** The EA twelve, in registry order — §5.3's starter list, derived rather than transcribed. */
