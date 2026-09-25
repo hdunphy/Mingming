@@ -1,5 +1,7 @@
 # Post-launch plan: patch cadence, opt-in telemetry, the PvP roadmap post (ticket 53)
 
+> **2026-09-25 — 05 re-ruled to a small 1.0: the post-launch plan is the species-update calendar (ten post-EA species on the archived v1 pool, each a v2-grammar pass, shipped as FREE updates — each earns a Steam update round), with DLC reserved for a bigger unit (a new element pair + biome).**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

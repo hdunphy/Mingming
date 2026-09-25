@@ -1,5 +1,7 @@
 # Release shape: Early Access or 1.0, and the entry bar in numbers (ticket 05)
 
+> **RE-RULED 2026-09-25 (Henry): the first Steam release is a SMALL 1.0, not Early Access — six species / twelve kits (the EA scope of 09-22 becomes the launch scope), the ten remaining species as post-launch free updates (DLC reserved for something bigger, e.g. a new element pair with its own biome). Reasons on file: feedback already flows through weekly playtests + 25/50; the EA launch is the launch Steam grades, and it would grade the least finished build; an EA banner promises a cadence a solo dev with a newborn cannot; six bodies × twelve OSes × the party mechanic is not small for the genre. Feel-freshness (events, tiers, gyms playing differently) is the launch bar, not roster count. Re-cuts 27 (events/modifier counts only), 46 (price band stays; drop the "→ $9.99 at 1.0" step), 53 (post-launch = the species-update calendar). Phase names stand; the launch bar is Phase 2 done.**
+
 - Type: wayfinder:grilling
 - Status: closed
 - Assignee: wayfinder (Henry grilling session, 2026-08-21)
