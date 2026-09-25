@@ -190,14 +190,14 @@ export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
      * it back on a synergy argument and the canary immediately read the boss at 33% → 100% against
      * its own named counter party. The test that asserted the RETURN of that shape goes with it.
      *
-     * **CONFLICT, SHIPPED AS RULED AND RECORDED RATHER THAN RESOLVED.** `skoll_v2` is now fielded
-     * at BOTH Emberfall and Tidewrack. Ticket 74's docblock above rules the opposite in as many
-     * words — *"Skoll fields v1 at Emberfall and v2 here on purpose; leaders build differently, and
-     * the same OS at two gyms would make the roster read as a pool"* — and 28a's Rootfall note
-     * settled its own third slot partly on that principle. The 28b ruling names both trios
-     * explicitly, so the trios are what ship; the principle is what needs a ruling. Fixing it would
-     * mean a different Fire body at one of the two, and there is no second Fire firmware the
-     * element rule allows here without re-opening the guest.
+     * **`skoll_v2` IS FIELDED AT TWO GYMS, AND HENRY RULED THAT ALLOWED (2026-09-25):** *"Skoll can
+     * be at two gyms."* Ticket 74's docblock above says the opposite in as many words — *"Skoll
+     * fields v1 at Emberfall and v2 here on purpose; leaders build differently, and the same OS at
+     * two gyms would make the roster read as a pool"* — and 28a settled Rootfall's third slot
+     * partly on that principle. **74's line is superseded for this case.** There is no second Fire
+     * firmware the element rule allows at Tidewrack, and the element rule is the one that decides
+     * the guest. `pathAndScout.test.ts` pins it as exactly one duplicate, named, so the ruling
+     * cannot quietly widen into a roster that repeats itself.
      *
      * Intended counter, for the gate's record: **Nature**.
      */

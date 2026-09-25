@@ -918,11 +918,18 @@ describe('142g — one blueprint on the shelf, from this route', () => {
          * `counter(gym)`, `gym` and `beaten` are all three elements. **Every route now shows the
          * player every launch element.**
          *
-         * That reverses a cost Henry took knowingly under 142 §7 (*"It's fine if there are no
-         * Water mingmings in there"*) — Rootfall used to run Fire → Nature → Nature+Water and
-         * never stand in a Water biome. It is a side effect of 28b, not something 28b asked for,
-         * so it is recorded here rather than celebrated: **it is worth a ruling, because "you
-         * cannot recruit that element on this road" was a routing decision the map was making.**
+         * **RULED 2026-09-25, and it is the road Henry wanted all along.** He described the Fire
+         * gym's road as *"Water biome → Fire Biome → Fire Fire Nature Biome that ends with Boss of
+         * FFN"*, and that is exactly what ships: Emberfall runs The Saltmarch (Water) → Emberglass
+         * Flats (Fire) → Cinderreach Approach (Fire+Nature), against fenrir_v2 + skoll_v2 +
+         * huldra_v1. "All three elements on every road" is that sentence restated — `counter(gym)`,
+         * then the gym, then the gym's own comp — not a defect, and the earlier note here calling
+         * it one was reading the design working as a problem.
+         *
+         * It does relax a cost taken under 142 §7 (*"It's fine if there are no Water mingmings in
+         * there"*): Rootfall used to run Fire → Nature → Nature+Water and never stand in a Water
+         * biome, and now its third biome carries Water because its guest does. That is the guest
+         * rule paying for itself, and it is kept.
          *
          * The assertion that remains is the one that was always load-bearing: the pool is the
          * WHOLE roster and is not a function of the run at all — `blueprintPool()` takes no run —

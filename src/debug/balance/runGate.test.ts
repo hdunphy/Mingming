@@ -215,7 +215,9 @@ describe('run gate — the fight it builds is the fight the run rolls', () => {
 
 describe('run gate — the banding', () => {
     it('holds ticket 61\'s three ruled targets', () => {
-        expect(RUN_GATE_TARGETS).toEqual({ wild: 0.95, elite: 0.75, gauntlet: 0.60 });
+        // Henry, 2026-09-25: *"90% should be the threshold."* Was 0.95 — see the block on the
+        // constant for why 157's arc moved it rather than moving the game.
+        expect(RUN_GATE_TARGETS).toEqual({ wild: 0.90, elite: 0.75, gauntlet: 0.60 });
     });
 
     it('passes exactly on the edge of the +-5 window and fails just outside it', () => {

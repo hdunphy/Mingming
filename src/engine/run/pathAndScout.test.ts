@@ -336,23 +336,24 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
         }
     });
 
-    it('fields exactly ONE firmware twice — 28b\'s recorded conflict, not a drift', () => {
+    it('fields exactly ONE firmware twice, and it is skoll_v2 — RULED, not a drift', () => {
         /*
-         * ══ THIS ASSERTION IS INVERTED ON PURPOSE, AND IT IS A FLAG. ══
+         * ══ THE ONE DUPLICATE IS ALLOWED, AND IT IS RULED RATHER THAN TOLERATED. ══
          *
-         * It used to read *"fields no OS at more than one gym — a roster, not a pool"*, which is
-         * ticket 72's own note and was true of all three gyms after 28a. **28b breaks it**: the
-         * element rule seats a Fire guest at Tidewrack, `skoll_v2` is the Fire firmware the rule
-         * allows, and Emberfall already fields `skoll_v2`.
+         * This used to read *"fields no OS at more than one gym — a roster, not a pool"*, which is
+         * ticket 72's own note and was true of all three gyms after 28a. 28b broke it: the element
+         * rule seats a Fire guest at Tidewrack, and `skoll_v2` is the Fire firmware it allows while
+         * Emberfall already fields it.
          *
-         * Ticket 74's docblock rules against this in as many words — *"the same OS at two gyms
-         * would make the roster read as a pool"* — and 28a settled Rootfall's third slot partly on
-         * it. Henry's 28b ruling names both trios explicitly, so the trios ship and the PRINCIPLE
-         * is what needs a ruling.
+         * Ticket 74's docblock had ruled the opposite — *"the same OS at two gyms would make the
+         * roster read as a pool"* — so this shipped as a recorded conflict for a day.
+         * **Henry settled it on 2026-09-25: *"Skoll can be at two gyms."*** 74's line is superseded
+         * for this case; there is no second Fire firmware the element rule allows at Tidewrack, and
+         * the element rule is the one that matters.
          *
-         * Pinned as "exactly one duplicate, and it is this one" rather than deleted, so the test
-         * stays load-bearing: a SECOND firmware appearing twice is drift and still fails here. When
-         * Henry rules on the principle this goes back to asserting zero.
+         * Still pinned as "exactly one duplicate, and it is this one" rather than deleted, because
+         * the ruling is about `skoll_v2` specifically and not a licence for the roster to collapse:
+         * a SECOND firmware appearing twice is drift and still fails here.
          */
         const all = Object.keys(GYM_REGISTRY).flatMap((id) => [...gymLeaderFirmware(id)]);
         const duplicated = [...new Set(all.filter((os, i) => all.indexOf(os) !== i))];

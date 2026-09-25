@@ -282,6 +282,28 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-25 (evening) — HENRY'S RULINGS ON THE 157 ARC. FOUR THINGS SETTLED, AND THE ARC IS CLOSED UNTIL HE HAS PLAYED IT.**
+
+**1. THE WILD BAND IS 90, NOT 95.** *"90% should be the threshold."* `RUN_GATE_TARGETS.wild` 0.95 → 0.90. **Fight one's 93.0% (91.9–94.0) is now INSIDE the window**, and the two points that were left were not reachable by tuning: at fight one the two sides hold the same shape, count, IVs and AI, so the player's only edge is its firmware — worth +25.8 over even, and chasing 95 meant making the opener asymmetric by more than *"the enemy cannot fire its engine"* already does. The number moved to where the game is, rather than the game to the number. The other two bands are untouched — nothing has measured them since they were ruled. `runRunWalker` needed no edit: it reads the target from the gate, which is exactly why that indirection was built.
+
+**2. `skoll_v2` AT TWO GYMS IS ALLOWED.** *"Skoll can be at two gyms."* Ticket 74's *"the same OS at two gyms would make the roster read as a pool"* is **superseded for this case** — there is no second Fire firmware the element rule allows at Tidewrack, and the element rule is the one that decides the guest. `pathAndScout.test.ts` still pins it as exactly ONE duplicate, named, so the ruling cannot quietly widen into a roster that repeats itself.
+
+**3. THE "ALL THREE ELEMENTS" FLAG WAS ME READING THE DESIGN WORKING AS A PROBLEM — RETRACTED.** Henry: *"It should be Fire Gym = Water biome → Fire Biome → Fire Fire Nature Biome that ends with Boss of FFN."* That is what ships, verified:
+
+| gym | road | boss |
+|---|---|---|
+| **Emberfall** (Fire) | The Saltmarch (Water) → Emberglass Flats (Fire) → Cinderreach Approach (Fire+Nature) | fenrir_v2 + skoll_v2 + huldra_v1 = **FFN** |
+| Tidewrack (Water) | Rootmire (Nature) → The Drowned Shelf (Water) → Brinehollow Approach (Water+Fire) | jormungandr_v1 + kraken_v2 + skoll_v2 = WWF |
+| Rootfall (Nature) | The Slagfields (Fire) → The Thornwild (Nature) → Verdant Sprawl Approach (Nature+Water) | huldra_v2 + ratatoskr_v2 + jormungandr_v2 = NNW |
+
+*"Every road covers all three elements"* is that table restated — `counter(gym)`, then the gym, then the gym's own comp. It relaxes a cost taken under 142 §7 (*"it's fine if there are no Water mingmings in there"*), and that is the guest rule paying for itself. **Kept, and the note in `marketplace.test.ts` that called it a defect is corrected.**
+
+**4. NO MORE TUNING BEFORE A PLAYTEST.** *"I want to playtest before any more tweaking."* **The 30×12 walk is left un-run.** Relay and Repeater's scorer blindness (163g) is left as recorded — Henry playtests the patches. `gullinbursti_v2` stays on the post-EA list.
+
+**So: nothing on this map is waiting on an agent. It is waiting on a playtest.**
+
+---
+
 **2026-09-25 — 157-r2 + 157-r3 ARE IN, AND FIGHT ONE WENT 75.8% → 93.0%.** The opener now holds **the start kit minus its one payoff, plus generics** — *"the player keeps the one payoff ruled 09-24; the enemy shows the engine that cannot fire."* Rungs: opener = kit − payoff · biome-0 wilds = the start-kit shape · biome 1+ = the full tuned kit. Same instrument, 200 runs per starter, 2,400 total: **75.8% (74.1–77.5) → 93.0% (91.9–94.0), +17.2pt.** Five starters at 100%, huldra_v1 99, fenrir_v1 94, skoll_v1 93.5, ratatoskr_v1 91.5, huldra_v2 90.5, ratatoskr_v2 83.5, **jormungandr_v1 63.5**.
 
 **157-r3 is worth +44.5 points on its own** — jormungandr_v1 19.0% → 63.5%, the largest single move in this arc — and it is still the outlier by twenty points. One `undertow` became `surge_protection` (a 25-power hit, so the kit gained a card that acts), and `surge_protection` is re-tagged **glue** rather than scalar: 25 flat power with a refund rider banks nothing and cashes nothing, which is what keeps the one-payoff rule counting `serpents_coil` alone.

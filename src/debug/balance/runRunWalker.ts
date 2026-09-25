@@ -58,12 +58,12 @@ function main(): void {
             rows.push(summariseFightOne(starter, walkStarterTruncated(starter, seeds, fightIndex, label), fightIndex));
             console.error(`  [fight ${fightIndex}] ${starter}: ${seeds} runs in ${((Date.now() - started) / 1000).toFixed(0)} s`);
         }
-        // The target is READ FROM THE GATE rather than written here. 95 is `RUN_GATE_TARGETS.wild`'s
-        // number and Henry ruled on that one; a copy in this file is a second opinion waiting to
-        // drift away from the band it is supposed to be reporting against.
-        // ×100: the gate stores its targets as FRACTIONS (`wild: 0.95`) and prints them scaled at
+        // The target is READ FROM THE GATE rather than written here — which is exactly why this
+        // line needed no edit when Henry moved the wild band from 95 to 90 on 2026-09-25. A copy
+        // in this file would have been a second opinion, still printing the old number.
+        // ×100: the gate stores its targets as FRACTIONS (`wild: 0.90`) and prints them scaled at
         // the edge. Caught by the first smoke run, which cheerfully reported every starter as
-        // beating a target of 0.95%.
+        // beating a target of 0.90%.
         printFightOneReport(rows, 100 * RUN_GATE_TARGETS.wild, fightIndex);
         return;
     }

@@ -133,9 +133,26 @@ import { speciesOwningFirmware } from '../../engine/run/gyms';
 
 export type BandId = 'wild' | 'elite' | 'gauntlet';
 
-/** Ticket 61's three ruled tier-1 win rates, as fractions. The whole point of the file. */
+/**
+ * Ticket 61's three ruled tier-1 win rates, as fractions. The whole point of the file.
+ *
+ * ══ THE WILD BAND IS 0.90, RULED BY HENRY 2026-09-25: *"90% should be the threshold."* ══
+ *
+ * It was 0.95, and 157's arc is what moved it. Fight one was measured at 75.8% over 2,400 runs,
+ * 157-r2 took it to **93.0%** (91.9–94.0) by dealing the opening enemy the start kit minus its
+ * payoff, and the remaining two points were not reachable by tuning: at fight one the two sides
+ * hold the same shape, the same count, the same IVs and the same AI, so the player's only edge is
+ * its firmware — worth +25.8 points over even. Chasing 95 meant making the opener asymmetric in
+ * the player's favour by more than "the enemy cannot fire its engine" already does.
+ *
+ * So the number moved to where the game is, rather than the game to the number. **93.0% now sits
+ * inside the ±5 window** and the whole wild band (80.6% pooled across all three biomes, measured
+ * the same day) has a target it can be read against honestly.
+ *
+ * The other two are untouched: nothing has measured them since they were ruled.
+ */
 export const RUN_GATE_TARGETS: Readonly<Record<BandId, number>> = {
-    wild: 0.95,
+    wild: 0.90,
     elite: 0.75,
     gauntlet: 0.60,
 };
