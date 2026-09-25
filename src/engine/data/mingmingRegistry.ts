@@ -577,6 +577,26 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         startKits: {
             // THE DECK THAT PROVED THE RULE. Round 5: "ratatoskr's startKit carried none of his
             // engine (seed_bomb/echo were untagged), making him pure feed." Both are tagged now.
+            /*
+             * TRIED AND REVERTED, 2026-09-25 — `tend` → `nettle_sting`, measured and put back.
+             *
+             * The fight-one read shows GOSSIP_NODE's opener is the slowest on the table: **8.9 mean
+             * turns and 15 of 200 first fights hit the turn cap**, against 2.7–4.1 elsewhere. It
+             * heals 2.5% of max HP on every 0-cost program and seven of the eight opening cards are
+             * 0-cost, so it out-sustains the fight and cannot close it.
+             *
+             * `nettle_sting` (1e Nature, 22 power + 1 Poison, and the only 1e Nature poison card
+             * whose rider is unconditional) was swapped in for `tend` to buy a clock. **It cost six
+             * points and bought nothing: 91.5% → 85.5%, with the turn count and the cap count
+             * IDENTICAL — 8.9 and 15 both arms.** End HP went 72% → 56%, which is the whole story:
+             * Rat was winning those fights on sustain at 72% of its pool, not losing them for want
+             * of damage. `tend` was load-bearing, and a 1e card earns no GOSSIP_NODE proc besides.
+             *
+             * **So the stall is not a damage problem and a kit swap cannot reach it.** Closing this
+             * opener faster needs a real closer in GOSSIP_NODE's own deck, or `seed_bomb` castable
+             * earlier than 2 energy — a deck pass, and Henry's. Recorded here so the swap is not
+             * proposed a second time.
+             */
             "ratatoskr_v1": ["acorn_toss", "acorn_toss", "forage", "seed_bomb", "tend"],
             "ratatoskr_v2": ["acorn_toss", "acorn_toss", "heckle", "nagging_bite", "pollen_cloud"]
         },

@@ -619,7 +619,7 @@
       "shape": "enabler",
       "cur": "Poison",
       "status": "keep",
-      "why": "Huldra v2 only."
+      "why": "Huldra v2 only. TRIED AND REVERTED 2026-09-25: swapped into Ratatoskr v1 for tend as a 1e Nature poison card, measured at 200 seeds, and it cost v1 six points of fight one (91.5 -> 85.5) while the 8.9-turn stall did not move at all - same turns, same 15 of 200 at the turn cap. Rat was winning those fights on GOSSIP_NODE sustain at 72% end HP, not losing them for want of damage; tend was load-bearing and a 1e card earns no proc. Recorded so the swap is not proposed a second time."
     },
     {
       "id": "overclock_core",
@@ -991,10 +991,10 @@
       "cat": "Attack",
       "tgt": "Single",
       "text": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
-      "shape": "scalar",
+      "shape": "glue",
       "cur": "Energy",
       "status": "revise",
-      "why": "Henry 09-23: a 25p 1e, not a 2e."
+      "why": "Henry 09-23: a 25p 1e, not a 2e. 157-r3 re-tags it GLUE, not scalar: 25 power is a flat hit and the refund is a rider on it, so it banks nothing and cashes nothing. The tag matters because the one-payoff rule counts scalars - with this as a scalar, jormungandr_v1 would open on two payoffs."
     },
     {
       "id": "tackle",
@@ -1400,7 +1400,7 @@
         [
           "brute_force",
           1,
-          "?",
+          "A",
           0
         ],
         [

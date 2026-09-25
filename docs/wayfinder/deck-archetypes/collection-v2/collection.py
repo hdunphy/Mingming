@@ -121,7 +121,7 @@ dict(id='bark_lash', name='Bark Lash', cost=0, el='Nature', cat='Attack', tgt='S
 dict(id='bark_smash', name='Bark Smash', cost=2, el='Nature', cat='Attack', tgt='Single', text='Consume your Bark Shield: 6 power per point consumed.', shape='consume', cur='Bark', status='new', why="Henry's 'bark smash'."),
 dict(id='thornguard', name='Thornguard', cost=1, el='Nature', cat='Attack', tgt='Single', text='20 power. Apply 3 Poison if you are shielded.', shape='converter', cur='Poison', status='keep'),
 dict(id='blightbloom', name='Blightbloom', cost=2, el='Nature', cat='Attack', tgt='Single', text='30 power. Apply 5 Poison.', shape='enabler', cur='Poison', status='keep'),
-dict(id='nettle_sting', name='Nettle Sting', cost=1, el='Nature', cat='Attack', tgt='Single', text='22 power. Apply 1 Poison.', shape='enabler', cur='Poison', status='keep', why='Huldra v2 only.'),
+dict(id='nettle_sting', name='Nettle Sting', cost=1, el='Nature', cat='Attack', tgt='Single', text='22 power. Apply 1 Poison.', shape='enabler', cur='Poison', status='keep', why='Huldra v2 only. TRIED AND REVERTED 2026-09-25: swapped into Ratatoskr v1 for tend as a 1e Nature poison card, measured at 200 seeds, and it cost v1 six points of fight one (91.5 -> 85.5) while the 8.9-turn stall did not move at all - same turns, same 15 of 200 at the turn cap. Rat was winning those fights on GOSSIP_NODE sustain at 72% end HP, not losing them for want of damage; tend was load-bearing and a 1e card earns no proc. Recorded so the swap is not proposed a second time.'),
 ]
 
 # ---------------- the twelve ----------------
