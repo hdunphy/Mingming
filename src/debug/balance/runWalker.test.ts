@@ -245,15 +245,27 @@ describe('157 — the recruit policy (§5.2, on 158-r1\'s registry grammar)', ()
 describe('157 — a whole walk', () => {
     it('plays a run end to end and writes 156\'s rows', () => {
         /*
-         * ONE walk in the gate, on a seed chosen because it ends QUICKLY.
+         * ONE walk in the gate, BOUNDED — and the bound replaced a seed, for a reason worth keeping.
          *
          * A walk plays real battles at the encounter's own beam, so a long one costs half a minute
-         * and a suite of them costs more than the whole gate. The expensive claims — determinism
-         * across seeds, the summary table, the twelve starters — live in `runWalker.balance.ts`,
-         * which is the suite that already pays for battles. What is left here is the claim the gate
-         * genuinely needs: the walker still walks, and it still writes 156's schema.
+         * and a suite of them costs more than the whole gate. This line used to read *"a seed chosen
+         * because it ends QUICKLY"*, and that was true when it was written.
+         *
+         * **TICKET 40 CAUGHT IT NO LONGER BEING TRUE.** 157-r2 softened the opening fight — the
+         * enemy now holds its start kit minus its payoff — so runs survive further, and this walk
+         * quietly grew from a couple of seconds to **40**, which was most of the gap between a
+         * 127-second suite and a 243-second one. Nothing failed; the premise just decayed.
+         *
+         * A seed chosen for speed is a premise that any balance change can retire without saying
+         * so. `stopAfterFights` (157-r1's own flag) makes the cost STRUCTURAL instead: three fights
+         * is three fights whatever the ladder does next. Every assertion below survives the bound —
+         * `walkRun` dispatches `endRun` and records `RUN_ENDED` on the truncated path too, so the
+         * log is still a complete, well-formed log of the run that was played.
+         *
+         * The expensive claims — determinism across seeds, the summary table, the twelve starters —
+         * live in `runWalker.balance.ts`, the suite that already pays for battles.
          */
-        const result = walkRun({ seed: 'wb-0', starter: 'fenrir_v1', gymIndex: 0 });
+        const result = walkRun({ seed: 'wb-0', starter: 'fenrir_v1', gymIndex: 0, stopAfterFights: 3 });
         expect(result.fights.length).toBeGreaterThan(0);
         expect(['victory', 'defeat']).toContain(result.outcome);
 
@@ -417,5 +429,95 @@ describe('157-r1 — summariseFightOne reads one fight and nothing else', () => 
         // that returned 0% here would make "fight 12" look like a wall rather than like no data.
         const row = summariseFightOne('kraken_v1', [], 12);
         expect(row).toMatchObject({ played: 0, wins: 0, rate: 0, meanSurvivorHp: null });
+    });
+});
+
+describe('40 — a WHOLE run is deterministic in its seed, end to end', () => {
+    /*
+     * ══ THE GAP THE PER-PIECE DETERMINISM TESTS LEAVE. ══
+     *
+     * Seven files already pin determinism one subsystem at a time: `createRun`, `generateRegionGraph`,
+     * `offerGyms`, `rollGauntletFight`, `rollEncounter`'s seed, the marketplace's restock and the
+     * workshop's roll. Each asserts that ONE call is a pure function of its inputs.
+     *
+     * None asserts the thing a player actually depends on — that **the same seed plays the same
+     * run** — and that can be false while every piece is individually pure, by the two mechanisms
+     * this repo has already been bitten by once each:
+     *
+     *  - a shared `SeedStream` consumed a different number of times down one branch, so a later
+     *    draw lands at a different position (the reason `rollEncounter` forks its two streams, and
+     *    the header there records what went wrong when it did not);
+     *  - a policy or reducer reading something outside the seed — a clock, a `Math.random`, a `Set`
+     *    iteration order — which no single-call test can see, because one call is consistent with
+     *    itself.
+     *
+     * `walkRun` closes it: it plays the run through the real store, the real reducers, the real
+     * rolls and the real battles, and its records are a fingerprint of every decision on the way.
+     *
+     * # THE COST, MEASURED RATHER THAN GUESSED, AND THE TRADE IT FORCES
+     *
+     * This runs on every push, so it had to be cheap, and three attempts were not: three walks of
+     * `kraken_v2` cost **93 seconds**; bounding them to four fights apiece still cost 36; and
+     * `skoll_v2` bounded to TWO fights still cost 37, because the cost is how long a starter's
+     * individual fights take rather than how many it plays.
+     *
+     * Measuring every (starter, gym) pair gives the real trade, and it is unavoidable: **a run that
+     * goes deep is slow and a run that is fast is shallow.** The walks that finish in under a
+     * second are the ones that die at fight one or two. There is no cheap deep run.
+     *
+     * So this takes the cheap one — a COMPLETE run that ends in defeat at fight two, in ~100ms —
+     * and says plainly what it therefore cannot speak for: **it never reaches the gauntlet.**
+     * `gauntlet.test.ts` has that determinism case, and the deep-run version of this one costs 90
+     * seconds, which is not a price a push gate should pay for an assertion that is already
+     * cumulative. Both failure mechanisms above diverge at the first draw that moves, not the last.
+     *
+     * A run ending in defeat is not a weaker test than one ending in victory — it is how most runs
+     * end, and `outcome`, `finalDeck` and `scrapAtEnd` are all real here because the walk was never
+     * truncated.
+     */
+    const input = { seed: 't40:determinism', starter: 'kraken_v1', gymIndex: 2 } as const;
+    const a = walkRun(input);
+    const b = walkRun(input);
+    const other = walkRun({ ...input, seed: 't40:determinism:other' });
+
+    it('plays the same fights, in the same order, with the same decks and outcomes', () => {
+        // The fight record carries node id, kind, biome, deck size, deck power, the result, the
+        // turn count and who was left standing — so equality here is equality of every battle the
+        // run played, not just of who won it.
+        expect(b.fights).toEqual(a.fights);
+        expect(a.fights.length).toBeGreaterThan(1);
+    });
+
+    it('takes the same picks, buys, recruits and route — the decisions, not just the battles', () => {
+        /*
+         * GUARDED AGAINST VACUITY FIRST. Most of these traces are short on a two-fight run, and
+         * `toEqual` on two empty arrays passes while asserting nothing — so the route and the picks
+         * are required to be non-empty before they are compared. If a future change makes this seed
+         * die on fight one, this fails loudly rather than quietly becoming a no-op.
+         */
+        expect(a.steps.length, 'the walk must actually move for the route to mean anything').toBeGreaterThan(0);
+        expect(a.picks.length, 'the walk must actually be offered a card').toBeGreaterThan(0);
+
+        // Asserted separately from the fights so a failure says WHICH half drifted: a run that
+        // fought identically but shopped differently is a different bug from the reverse.
+        expect(b.steps).toEqual(a.steps);
+        expect(b.picks).toEqual(a.picks);
+        expect(b.bought).toEqual(a.bought);
+        expect(b.recruits).toEqual(a.recruits);
+        expect(b.patches).toEqual(a.patches);
+    });
+
+    it('ends the same way, holding the same deck and the same scrap', () => {
+        // The end state is its own case because it is the one a SAVE round-trips (ticket 23): a run
+        // resumed from its seed must not mint a different deck than the one the player was shown.
+        expect(b.outcome).toBe(a.outcome);
+        expect(b.finalDeck).toEqual(a.finalDeck);
+        expect(b.scrapAtEnd).toBe(a.scrapAtEnd);
+    });
+
+    it('is a function of the SEED — a different one plays a different run', () => {
+        // Guards the guard. Two walks that agreed because the walker ignored its seed entirely
+        // would pass every case above, and that is exactly the bug they exist to catch.
+        expect(other.fights).not.toEqual(a.fights);
     });
 });

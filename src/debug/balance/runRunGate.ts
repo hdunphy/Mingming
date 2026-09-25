@@ -12,6 +12,7 @@
  *     npm run balance:run-gate -- --bands gauntlet --iterations 24
  *     npm run balance:run-gate -- --cells wild:biome0 --iterations 400   # the cheap cells, to real precision
  *     npm run balance:run-gate -- --strict                      # exit 1 if any band is outside ±5
+ *     npm run balance:run-gate -- --gate-structural             # exit 1 on FTK or a stall (ticket 40's push gate)
  *     npm run balance:run-gate -- --list                        # every cell id, and nothing else
  *
  * `--cells` exists because **the nine cells differ in cost by a factor of two hundred** (see
@@ -181,6 +182,12 @@ interface Args {
     iterations: number;
     maxTurns: number;
     strict: boolean;
+    /**
+     * TICKET 40: exit 1 on FTK or a stall in any cell run — ticket 18's two standing gates, and
+     * NOT the bands. Separate from `--strict` because the bands are ruled noise on v2 and this is
+     * not; see the block at the foot of `main`.
+     */
+    gateStructural: boolean;
     /** Print the sampled lineups and enemy rosters per cell. Off by default — it is a wall of text. */
     verbose: boolean;
     /** Print the cell ids and exit. */
@@ -379,6 +386,7 @@ function parseArgs(argv: string[]): Args {
             driver: (get('--boss-driver') ?? get('--boss-relics')) === 'off' ? 'off' : undefined,
         },
         strict: argv.includes('--strict'),
+        gateStructural: argv.includes('--gate-structural'),
         verbose: argv.includes('--verbose'),
         list: argv.includes('--list'),
     };
@@ -714,6 +722,38 @@ async function main(): Promise<void> {
             `[balance:run-gate] --strict: ${failures.length} band(s) outside ±${(RUN_GATE_TOLERANCE * 100).toFixed(0)} points.`,
         );
         process.exitCode = 1;
+    }
+
+    /*
+     * ══ TICKET 40's PUSH GATE — **FTK AND STALLS, NEVER THE BANDS.** ══
+     *
+     * `--gate-structural` is what CI runs, and it is deliberately a DIFFERENT gate from `--strict`.
+     *
+     * The bands cannot be a push gate and that is a ruling, not a limitation: the 2026-09-24 note on
+     * ticket 40 records *"the run gate's bands are ruled NOISE on v2 until 157's walker"*, and 157's
+     * own read has since shown why — fight one moved 17 points on one deck rule. A CI job that went
+     * red on a win rate would be failing builds over a number nobody is tuning to yet.
+     *
+     * **FTK and stalls are different in kind.** They are structural claims about the fight rather
+     * than measurements of it — *"no side kills on turn one before the other has acted"* and *"no
+     * fight runs past the turn cap"* — and both are ticket 18's own standing gates, unchanged by
+     * any amount of balance drift. A regression in either is a bug in the engine or a deck that has
+     * become unplayable, not a tuning question, so it SHOULD stop a push.
+     *
+     * Scoped to whichever cells were run. CI runs the two 1v1 cells; see `npm run canary:short` for
+     * why it cannot run the 3v3 ones.
+     */
+    if (args.gateStructural) {
+        const offenders = results.flatMap((band) => band.cells
+            .filter((cell) => cell.ftkCount > 0 || cell.truncatedCount > 0)
+            .map((cell) => `${cell.id}: ftk=${cell.ftkCount} stalled=${cell.truncatedCount}`));
+        if (offenders.length > 0) {
+            console.error('[balance:run-gate] --gate-structural FAILED — ticket 18\'s standing gates:');
+            for (const line of offenders) console.error(`[balance:run-gate]   ${line}`);
+            process.exitCode = 1;
+        } else {
+            say('  --gate-structural: FTK 0 and no stalls in every cell run. PASS.');
+        }
     }
 }
 
