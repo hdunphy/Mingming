@@ -265,6 +265,13 @@ the ticket-08 test caught it.
 valkyrie and audhumbla (Light), hel and nidhoggr (Dark). `control` is the harness frame and is not
 a shipped mingming.
 
+### The post-EA findings list — measured, written down, not worked on
+
+| finding | where | note |
+|---|---|---|
+| **`gullinbursti_v2` 58.5% FLAGGED** | ticket 150d, `results/t150d/FINDINGS.md` | **Henry, 2026-09-24: parked post-EA. *"2.5 reads high on this body."*** Arm B shipped KINETIC_RAM at `bonus: 2.5` as printed and it is +27.9 field points (49.0% → 76.9%); §1.4 moves 15.6% IN BAND → 58.5% FLAGGED on the same hook paying the same 2.5, because the TRIGGER decides whether the scorer sees power or has to convert HP back through the frame. **The flag is a report, not a gate.** Nothing is tuned in response — no numeric tuning before playtest, and she is post-EA. |
+| three of ticket 149c's four scorer findings | `research/scorer-pricing.md` §7 | Left on exactly this reasoning. |
+
 This is a rule about **what to spend a session on**, not about what to record. A finding on a
 post-EA mingming still gets measured and written down — Henry's *"but good to note"* — it just does
 not become work. Three of ticket 149c's four findings landed post-EA and were left on exactly this

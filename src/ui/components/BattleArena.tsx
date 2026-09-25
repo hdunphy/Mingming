@@ -1038,9 +1038,10 @@ const BattleArena: React.FC = () => {
              * > blueprints do (the ranch), scrap does not (assembly costs none, the run is over)."*
              *
              * The three gauntlet fights now pay nothing (`rollDropTable` returns an empty bundle for
-             * `nodeKind: 'gym'`), and this is the award that replaces them — sized at exactly what
-             * those nine per-body rolls paid in expectation. See `gymClearBlueprints` for the
-             * arithmetic and for why it is four-plus-a-coin-flip rather than a round number.
+             * `nodeKind: 'gym'`), and this is the award that replaces them. **Ticket 18b made it
+             * FIVE, FLAT** — 18a's four-plus-a-coin-flip matched the old nine-roll expectation of
+             * 4.5 exactly, and Henry took the +0.5 to make the award deterministic. It takes no
+             * seed now, which is why this call no longer passes one.
              *
              * Banked here, beside `markGymCleared`, and for the same reason ticket 12 banks every
              * other blueprint on drop rather than on claim: **a player who beats the leader and then
@@ -1048,7 +1049,6 @@ const BattleArena: React.FC = () => {
              * honest exactly as the per-fight path does.
              */
             for (const speciesId of gymClearBlueprints(
-                battleState?.seed ?? run.seed,
                 (authoredBossFor(run.gymId)?.members ?? []).map((m) => m.species),
             )) {
                 dispatch(addBlueprint(speciesId));

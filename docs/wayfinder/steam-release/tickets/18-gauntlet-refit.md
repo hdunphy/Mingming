@@ -199,3 +199,30 @@ codex and the run gate as *"what a gym node is worth"*, and a zero there would s
 nothing, which is the opposite of this ruling. `gym` came out of the two per-kind rate loops in
 `blueprintPayout.test.ts` and `RewardSystem.test.ts`, each with a comment saying where the number
 means something now.
+
+---
+
+## 18b — done (2026-09-25)
+
+**`GYM_CLEAR_BLUEPRINTS = 5`. The coin flip is gone.**
+
+18a shipped four guaranteed plus a fifth on a coin flip, and the arithmetic was exact:
+`BLUEPRINT_DROP_RATE.gym` is 0.50 per BODY, the gauntlet is three bodies over three fights, so the
+nine-roll table it replaced paid **4.5** in expectation. That shape was chosen so a delivery change
+could not smuggle a balance change inside it, and it was written up as a question rather than an
+answer: *"5 flat is the alternative, it is +0.5 a run, and it would make the whole award
+deterministic."*
+
+Henry took the alternative. **+0.5 a run, ruled as a raise rather than a rounding**, and it buys what
+18a was reaching for and stopped one step short of: the run's last screen tells you what you won
+before it rolls anything, because it rolls nothing.
+
+The flip is DELETED rather than pinned at 1.0 — a probability set to certainty is a knob somebody
+later reads as tunable, and the ruling is that there is no knob here. `gymClearBlueprints` no longer
+takes a seed at all, so the call site cannot pass one by habit.
+
+Five across three bodies pays the leader and the second body twice. That falls out of the modulo
+rather than being chosen (line-up order is the rule, five is the count) and is pinned as such. The
+test asserts the RAISE — `GYM_CLEAR_BLUEPRINTS − 3 × GAUNTLET_FIGHTS × BLUEPRINT_DROP_RATE.gym === 0.5`
+— rather than a bare 5, so it fails if either table moves and the award is quietly no longer +0.5 on
+what the gym used to pay.

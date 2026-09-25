@@ -237,3 +237,94 @@ It is the single declared exception to `isRewardable`'s refusal of `+` cards, an
 *"no card outside the EA pool reaches the stall"* — **failed when it landed**, which is exactly what
 should happen when a new door opens onto a shelf a previous ticket closed. The exception is excluded
 there by NAME rather than by widening the pool gate.
+
+---
+
+## 163g — done (2026-09-25)
+
+**The ranking is the 149c-scored delta now, and the old one ranked by construction.**
+
+`patchTouchCount` counted how many of a firmware's hooks a rider changes at all. 163e measured what
+that produced — **`amplifier ×27`, every patch the walker fitted in sixty runs** — and the reason is
+structural rather than a tuning accident: Amplifier touches an `amount` field, nearly every hook has
+one, and ties broke on declaration order with a strict `>`, so Amplifier won before any question of
+worth arose. **A ranking whose answer is the same on all twelve is not a ranking.**
+
+`bestPatchFor` now ranks on `patchScoreDelta` — the host's hook value after the transform minus
+before it, both sides priced by the same function at the same measured rates, in percent of a health
+pool per game. The delta's own rounding unit is a hundredth, and the touch count is folded in at
+1/100 as the tie-break, so it can never outrank a real difference but still separates riders the
+scorer prices identically.
+
+### What it changed, measured (`scratch/t163g_patchranks.ts`)
+
+| | best on |
+|---|---|
+| amplifier | **8 of 12** (was 12 of 12 by construction) |
+| splitter | **4 of 12** |
+| repeater / relay / overclock / failsafe | 0 of 12 |
+
+`fenrir_v1` is the clean disagreement and is pinned as a test: amplifier and splitter touch the same
+TWO hooks, so the counts tie and declaration order handed it to amplifier; the deltas are 16.20 and
+20.30, and splitter wins.
+
+### THE FINDING, AND IT IS ABOUT THE SCORER RATHER THAN ABOUT THE PATCHES
+
+**Three of the six riders find something to change and score exactly 0 doing it, on every body.**
+
+| rider | field | touches | moves the score |
+|---|---|---|---|
+| amplifier | amount | 11/12 | 9/12 |
+| splitter | target | 4/12 | **4/12** |
+| relay | actor | 4/12 | **0/12** |
+| repeater | triggers | 1/12 | **0/12** |
+| failsafe | drawback | 1/12 | **0/12** |
+| overclock | stacks | 0/12 | 0/12 |
+
+Each zero has a mechanism, and none of them is "the rider is bad":
+
+- **RELAY changes `actor`.** The per-proc payoff is computed from the hook's ACTIONS, and the scorer
+  does not read who is acting. Splitter, which changes `target`, moves the score on the same kind of
+  hook, because the scope multipliers DO read the target. So §3's own worked example — *"a Relay on
+  a self-only OS scores high and on an ally-reading OS scores zero"* — **is a sentence this scorer
+  cannot say.** It scores zero either way.
+- **REPEATER changes `triggers`,** i.e. how often the hook fires. The rate in the delta comes from
+  `OS_PROC_RATE`, which is MEASURED by census and keyed by hook id, so the delta holds it fixed by
+  construction. Repeater's whole value is invisible to this instrument.
+- **FAILSAFE** is 163c's recorded inertness, unchanged and not touched here per the ruling.
+- **OVERCLOCK** changes what a scaler counts rather than any hook, which the file has always said.
+
+`patchTouchCount` therefore stays and is not vestigial: *"found nothing"* and *"changed something the
+scorer prices at zero"* are different answers, and only the count tells them apart.
+
+**Decision for Henry: two of the six are unrankable by the metric §3 names, for reasons in the
+scorer.** Pricing Relay needs the per-proc score to read the actor; pricing Repeater needs a rate
+the census cannot supply for a hook that does not ship. Neither is a patch problem and neither is
+fixed here.
+
+### The gate's two offers
+
+Two different KINDS, as ruled, on all twelve — `PatchDefinition.field` is already 163 §4's kind,
+carried as data for exactly this. The second offer is the best patch whose field differs from the
+first's, with the next-best of any kind as a fallback that is currently unreachable (six patches,
+six distinct fields) and is written anyway, because *"currently"* is a fact about the table rather
+than about the rule. One offer is not a choice, so the pair is never trimmed to one.
+
+Amplifier stays the shop's stock. The shelf is deliberately NOT the ranking: the shop is where a
+player buys the safe one and the gate is where they are offered the good one.
+
+### A real import cycle came out of it
+
+Ranking needs `debug/balance/powerscale`, and `powerscale → core/Hooks → core/entityHooks →
+patchRegistry` closes a loop. ESM tolerated it and handed `powerscale` a half-initialised module, so
+`STATUS_MODEL` read `undefined` at module scope and the file threw on load. **It failed loudly,
+which was luck** — a cycle resolving to `undefined` inside a function would have shipped.
+
+The split follows the dependency rather than tidiness: **`patchRegistry.ts` is the half `entityHooks`
+needs** (the six transforms, `getPatch`, the slot count, `patchTouchCount`) and imports nothing that
+reaches back; **`patchRanking.ts` is the half nothing in the hook path needs**, so it can see the
+scorer. Anything that APPLIES a patch imports the first; anything that CHOOSES one imports the
+second. `scoreOS` is now a one-line wrapper over a new `scoreHookList`, pinned by a test asserting
+the two agree on all twelve, because the whole delta rests on both sides going through one function.
+
+**The shop price stays at 45** pending the take-rate re-read.

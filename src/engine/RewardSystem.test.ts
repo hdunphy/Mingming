@@ -28,7 +28,6 @@ import {
     blueprintRateFor,
     gymClearBlueprints,
     GYM_CLEAR_BLUEPRINTS,
-    GYM_CLEAR_BONUS_CHANCE,
 } from './RewardSystem';
 import { GAUNTLET_FIGHTS } from './run/gauntlet';
 import { GetProgramData, ProgramRegistry } from './data/programRegistry';
@@ -807,39 +806,45 @@ describe('18a — the gauntlet pays nothing, and the clear pays blueprints', () 
         expect(bundle.blueprints).toEqual([]);
     });
 
-    it('pays FOUR blueprints on a clear, one per body in line-up order', () => {
-        const award = gymClearBlueprints('a-seed-that-loses-the-flip', boss);
-        expect(award.length).toBeGreaterThanOrEqual(GYM_CLEAR_BLUEPRINTS);
+    it('pays FIVE blueprints on a clear, one per body in line-up order', () => {
+        // TICKET 18b (Henry, 2026-09-25): *"the gym clear pays 5 blueprints flat. No coin flip."*
+        const award = gymClearBlueprints(boss);
+        expect(award).toHaveLength(GYM_CLEAR_BLUEPRINTS);
         expect(award.slice(0, 3)).toEqual(boss);
+        // Five across three bodies pays the leader and the second body twice. That falls out of the
+        // modulo rather than being chosen — line-up order is the rule and five is the count — so it
+        // is pinned here, where a reader can see it is arithmetic and not a preference.
         expect(award[3]).toBe(boss[0]);
+        expect(award[4]).toBe(boss[1]);
     });
 
-    it('has an expectation of exactly 4.5 — the number it replaces', () => {
+    it('is FLAT — the same size on every seed, with no roll left to take', () => {
         /*
-         * The arithmetic, asserted rather than asserted-in-a-comment: `BLUEPRINT_DROP_RATE.gym` is
-         * per BODY, the gauntlet is three bodies over three fights, so today's expectation is
-         * 9 x 0.50 = 4.5. Four guaranteed plus a coin flip is the only integer-plus-roll shape that
-         * matches it, which is why the award is not a round number.
+         * 18a's award was four guaranteed plus a fifth on a coin flip, and the arithmetic behind it
+         * was exact: `BLUEPRINT_DROP_RATE.gym` is per BODY, the gauntlet is three bodies over three
+         * fights, so the nine-roll table it replaced paid `9 × 0.50 = 4.5` in expectation. 18b takes
+         * the +0.5 and deletes the flip.
+         *
+         * Asserted as the RAISE rather than as a bare 5, because that is the decision: the old
+         * expectation is computed from the tables it came from, so this line fails if either of
+         * them moves and the award is quietly no longer +0.5 on what the gym used to pay.
          */
-        const today = 3 * GAUNTLET_FIGHTS * BLUEPRINT_DROP_RATE.gym;
-        expect(today).toBe(4.5);
-        expect(GYM_CLEAR_BLUEPRINTS + GYM_CLEAR_BONUS_CHANCE).toBe(today);
+        const beforeGauntletRefit = 3 * GAUNTLET_FIGHTS * BLUEPRINT_DROP_RATE.gym;
+        expect(beforeGauntletRefit).toBe(4.5);
+        expect(GYM_CLEAR_BLUEPRINTS - beforeGauntletRefit).toBe(0.5);
 
-        // And measured, over enough seeds that the flip shows: the mean lands on 4.5.
-        const sizes = Array.from({ length: 400 }, (_, i) => gymClearBlueprints(`flip-${i}`, boss).length);
-        const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
-        expect(mean).toBeGreaterThan(4.3);
-        expect(mean).toBeLessThan(4.7);
-        expect(new Set(sizes)).toEqual(new Set([4, 5]));
+        // And no seed anywhere can change the size — the function does not take one any more.
+        const sizes = new Set(Array.from({ length: 400 }, () => gymClearBlueprints(boss).length));
+        expect(sizes).toEqual(new Set([GYM_CLEAR_BLUEPRINTS]));
     });
 
-    it('is deterministic in the seed, so a clear replayed after a crash pays the same award', () => {
-        expect(gymClearBlueprints('same', boss)).toEqual(gymClearBlueprints('same', boss));
+    it('is deterministic, so a clear replayed after a crash pays the same award', () => {
+        expect(gymClearBlueprints(boss)).toEqual(gymClearBlueprints(boss));
     });
 
     it('pays nothing when there is no authored boss to pay for', () => {
         // Ticket 18's formula-boss case. An empty award is honest; an award of four copies of
         // `undefined` would reach `addBlueprint` and sit in the ranch as a species nobody has.
-        expect(gymClearBlueprints('seed', [])).toEqual([]);
+        expect(gymClearBlueprints([])).toEqual([]);
     });
 });

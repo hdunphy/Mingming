@@ -763,37 +763,36 @@ export interface IRewardRollInput {
  * clearing it pays one authored award. The gate's free upgrade and its two patch offers (163b/d)
  * are PRE-fight spends and are untouched by this.
  *
- * # THE SIZE IS TODAY'S SIZE, EXACTLY, AND THAT IS WHY IT IS NOT AN INTEGER
+ * # TICKET 18b (Henry, 2026-09-25) — **FIVE, FLAT. NO COIN FLIP.**
  *
- * `BLUEPRINT_DROP_RATE.gym` is 0.50 PER BODY, and the gauntlet is three bodies over three fights:
- * nine rolls at a half, an expectation of **4.5 blueprints**. Henry sized the award at *"today's
- * total (≈4.5)"*, and 4.5 is not a number of blueprints anybody can be handed.
+ * 18a shipped four guaranteed plus a fifth on a coin flip, because `BLUEPRINT_DROP_RATE.gym` is
+ * 0.50 per body across three bodies and three fights — nine rolls at a half, an expectation of
+ * **4.5**, which is not a number of blueprints anybody can be handed. That shape was chosen to
+ * keep the delivery change from smuggling a balance change inside it, and it was recorded as a
+ * question rather than an answer: *"5 flat is the alternative, it is +0.5 a run, and it would make
+ * the whole award deterministic."*
  *
- * **Four guaranteed, plus a fifth on a coin flip.** That is the only shape whose expectation is
- * exactly the 4.5 that ships today, so the change is a change of SHAPE — one award that persists,
- * instead of nine rolls that mostly do not — and not a quiet re-tune of the payout. Rounding to 4
- * would have cut the gym's pay by 11%, and to 5 raised it by 11%; either would have been a balance
- * decision smuggled inside a delivery change.
+ * Henry took the alternative. **The award is 5 blueprints, every clear.** It is +0.5 a run against
+ * what shipped yesterday and +0.5 against the nine-roll table before it — a deliberate raise, not
+ * a rounding — and it buys the thing 18a was reaching for and stopped one step short of: the run's
+ * last screen tells you what you won before it rolls anything, because it rolls nothing.
  *
- * Recorded for Henry in case he wants the authored number to be truly authored: **5 flat** is the
- * alternative, it is +0.5 a run, and it would make the whole award deterministic.
+ * The coin flip is deleted rather than set to 1.0. A probability pinned at certainty is a knob
+ * somebody will later read as tunable, and the ruling is that there is no knob here.
  *
  * # WHICH SPECIES
  *
  * The boss trio's, one per body, in line-up order — which is the same rule the per-enemy drop used
  * (*"the species is the one you just defeated"*), applied to the fight that was actually the exam.
- * The fifth, when it lands, repeats the leader.
+ * Five across three bodies means the leader and the second body are each paid twice, which falls
+ * out of the modulo rather than being chosen: line-up order is the rule, and five is the count.
  */
-export const GYM_CLEAR_BLUEPRINTS = 4;
-export const GYM_CLEAR_BONUS_CHANCE = 0.5;
+export const GYM_CLEAR_BLUEPRINTS = 5;
 
-export function gymClearBlueprints(seed: PrngSeed, bossSpecies: ReadonlyArray<string>): string[] {
+export function gymClearBlueprints(bossSpecies: ReadonlyArray<string>): string[] {
     if (bossSpecies.length === 0) return [];
     const out: string[] = [];
     for (let i = 0; i < GYM_CLEAR_BLUEPRINTS; i += 1) out.push(bossSpecies[i % bossSpecies.length]);
-    // The coin flip that makes the expectation exactly 4.5. Seeded off the fight like everything
-    // else here, so a gym clear replayed from a crash pays the same award.
-    if (new PRNG(seed).next().value < GYM_CLEAR_BONUS_CHANCE) out.push(bossSpecies[0]);
     return out;
 }
 
