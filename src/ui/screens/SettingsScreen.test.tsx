@@ -86,11 +86,19 @@ describe('SettingsScreen', () => {
     });
 
     it('names what it does not do yet instead of showing dead controls', () => {
-        // Fullscreen/resolution (37), the colourblind palette (38) and remapping are all listed as
-        // absent. A disabled control the player cannot use is indistinguishable from a bug.
+        /*
+         * The colourblind palette (38) and remapping are still listed as absent. A disabled control
+         * the player cannot use is indistinguishable from a bug, so the screen names them in prose.
+         *
+         * **FULLSCREEN LEFT THIS LIST IN TICKET 37** and the row that replaced it is what this
+         * assertion now pins: windowing is still deferred, but fullscreen is a real control in the
+         * Display group. Asserted as the absence of the old phrasing as well as the presence of the
+         * new one, because a half-applied revert would otherwise leave the screen claiming both.
+         */
         const markup = render();
         expect(markup).toContain('Not here yet');
-        expect(markup).toMatch(/Fullscreen and resolution/);
+        expect(markup).not.toMatch(/Fullscreen and resolution/);
+        expect(markup).toMatch(/Resolution and windowing/);
         expect(markup).toMatch(/Colourblind-safe/);
         expect(markup).toMatch(/Key remapping/);
     });

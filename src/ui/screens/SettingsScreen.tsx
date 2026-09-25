@@ -26,6 +26,7 @@ import {
 } from '../settings/exportRunLog';
 import { FIGHT_LOG_CAP } from '../../engine/run/fightLog';
 import { playSfx } from '../audio/AudioEngine';
+import { useFullscreen } from '../hooks/useFullscreen';
 import './SettingsScreen.css';
 
 /**
@@ -122,6 +123,8 @@ export default function SettingsScreen(): ReactNode {
      */
     const [logsDir] = useState(() => runLogDirectory());
     const [exported, setExported] = useState<string | null>(null);
+    // TICKET 37: the Display group below renders only when the host offers the Fullscreen API.
+    const fullscreen = useFullscreen();
 
     const update = (next: ISettings): void => {
         setSettings(next);
@@ -188,6 +191,44 @@ export default function SettingsScreen(): ReactNode {
                                beats still play, and you still hear a win.`}
                     </p>
                 </section>
+
+                {/*
+                  * TICKET 37 — DISPLAY. One control, and the control is conditional.
+                  *
+                  * `supported` is false where the Fullscreen API is absent or disallowed (an
+                  * embedded webview, an older WebKit), and the row is then not rendered at all
+                  * rather than rendered disabled. A dead toggle in a settings screen reads as a
+                  * bug in the game; an absent one reads as a feature the host does not offer,
+                  * which is the true statement.
+                  *
+                  * The label is driven by `isFullscreen`, which this hook re-reads from the
+                  * document on every `fullscreenchange` — so leaving fullscreen with Escape or F11,
+                  * without touching this button, still updates it.
+                  */}
+                {fullscreen.supported ? (
+                    <section className="settings-group">
+                        <h3>Display</h3>
+                        <div className="settings-row">
+                            <span className="settings-label">Fullscreen</span>
+                            <button
+                                type="button"
+                                className="settings-button"
+                                aria-pressed={fullscreen.isFullscreen}
+                                onClick={() => {
+                                    playSfx('uiClick');
+                                    fullscreen.toggle();
+                                }}
+                            >
+                                {fullscreen.isFullscreen ? 'Leave fullscreen' : 'Go fullscreen'}
+                            </button>
+                        </div>
+                        <p className="settings-note">
+                            F11 does the same thing, in the desktop build and in a browser. The game
+                            lays out fluidly, so fullscreen gives you more of the map rather than a
+                            bigger picture of the same amount.
+                        </p>
+                    </section>
+                ) : null}
 
                 <section className="settings-group">
                     <h3>Motion</h3>
@@ -582,9 +623,10 @@ export default function SettingsScreen(): ReactNode {
                     <h3>Not here yet</h3>
                     <ul className="settings-pending">
                         <li>
-                            <strong>Fullscreen and resolution</strong> — F11 toggles fullscreen in the
-                            desktop build and quitting lives above; the rest of windowing is still your
-                            browser's or the OS's until that lands.
+                            <strong>Resolution and windowing</strong> — fullscreen is a control now
+                            (Display, above). Choosing a RESOLUTION is still your browser's or the
+                            OS's: the game has no fixed one to choose, because it lays out fluidly
+                            and was measured to hold from 1280×720 to 3440×1440 (ticket 37).
                         </li>
                         <li>
                             <strong>Colourblind-safe element colours</strong> — the eight element colours
