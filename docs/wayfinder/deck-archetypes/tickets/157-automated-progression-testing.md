@@ -1,5 +1,7 @@
 # Ticket 157 — Automate the progression test: a run played by the machine, read as a curve
 
+> **RULED 2026-09-25 (157-r2/r3): the scripted opener holds the start kit MINUS its payoff (the player keeps theirs); fight one stays graded at 95; jormungandr_v1's five swaps one undertow for surge_protection (re-tagged glue). See HANDOFF 2026-09-25.**
+
 > **157-r1 SHIPPED 2026-09-25 (`21ba532`). The ladder mirrors the start-kit shape at biome 0 and every start five carries one payoff. Both instruments say (a) is worth +8.7 to +11.5 points — on fights TWO onward. Fight one did not move (75.8% over 2,400 runs) and could not have: it is the scripted opening, which has mirrored the start kit since ticket 24. Two decisions are back with Henry — the opening fight cannot reach 95 while it is a mirror, and jormungandr_v1's 19% is a deck-composition question, not a power one. See §7 and `results/t157r1/FINDINGS.md`.**
 
 > **RULED 2026-09-24 on the first report (0/120 gym clears, fight one 77.5%): the enemy ladder mirrors the start-kit shape in biome 0 AND every start five carries exactly one payoff (157-r1); the 30×12 walk waits for a 5-seed fight-one read near 95. See HANDOFF 2026-09-24 evening block.**
