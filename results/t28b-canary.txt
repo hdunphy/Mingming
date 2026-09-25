@@ -1,0 +1,12 @@
+28b canary — 3 iterations per (gym × party × arm), boss fight only, beam 0
+BOSS win% — so the GATE is that the named counter column is the LOWEST of the three.
+
+########## ARM: AFTER ##########
+gym            trio                                      Water   Nature    Fire   | named counter  | gate
+gym_emberfall  fenrir_v2 + skoll_v2 + huldra_v1              0%    100%    100%   | Water      0%  | PASS
+                                                         turns 2.8  FTK 0  truncated 0  (n=3 per cell)
+gym_tidewrack  jormungandr_v1 + kraken_v2 + skoll_v2        67%     67%    100%   | Nature    67%  | FAIL
+                                                         turns 3.7  FTK 0  truncated 0  (n=3 per cell)
+gym_rootfall   huldra_v2 + ratatoskr_v2 + jormungandr_v2   100%    100%     67%   | Fire      67%  | PASS
+                                                         turns 3.0  FTK 0  truncated 0  (n=3 per cell)
+
