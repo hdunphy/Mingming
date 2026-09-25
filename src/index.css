@@ -36,6 +36,41 @@ body {
   overflow: hidden;
 }
 
+/*
+ * TICKET 38 — the standard visually-hidden utility. Present in the accessibility tree and in the
+ * document's heading outline, painted nowhere. Used for the battle screen's `h1`, which a sighted
+ * player does not need (the top strip already says where they are) and a screen-reader user does.
+ *
+ * The clip-rect idiom rather than `display:none` or `visibility:hidden`, because both of those
+ * remove the element from the accessibility tree as well — which would leave the heading as absent
+ * as it was before.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * TICKET 38 — the landmark every screen lands in. Each of `App`'s four branches wraps its screen
+ * in `<main className="app-main">`, so a screen reader has one landmark to jump to whichever
+ * screen is up; before this only the ranch shell had one, and it carried these rules inline.
+ * Purely structural: it fills the frame exactly as that inline style did, so nothing moved.
+ */
+.app-main {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Battle Layout */
 .battle-screen {
   /* ── TICKET 155c — NO TEXT SELECTION IN A FIGHT.
@@ -728,7 +763,16 @@ body {
   gap: 10px;
   font-size: 0.62rem;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.45);
+  /*
+   * TICKET 38 — 0.45 → 0.52, the same nudge and the same reason as `.pile-label`. This is the
+   * caster banner under the hand ("NO CASTER — PRESS W / E / R"), which axe measured at **4.48
+   * against a required 4.5** on `#0a0a0f`.
+   *
+   * `rgba(255, 255, 255, 0.45)` was the house value for quiet small text and it sat two hundredths
+   * under the line everywhere it was used on the battle's near-black. Both users are fixed; the
+   * only 0.45 left in the sheet is a box-SHADOW, where contrast rules do not apply.
+   */
+  color: rgba(255, 255, 255, 0.52);
   padding: 2px 0 6px;
   min-height: 14px;
 }
@@ -1560,7 +1604,16 @@ body {
 .pile-label {
   font-size: 0.58rem;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.45);
+  /*
+   * TICKET 38 — 0.45 → 0.52. axe measured the rendered ink at `#78787b` on `#0a0a0f` for a ratio of
+   * **4.48 against a required 4.5** — failing by two hundredths, which is the kind of miss no
+   * eyeball finds and no reviewer argues with. These are the DRAW / DISCARD / MACROS labels at
+   * 9.28px, so the small text is exactly where the margin had gone.
+   *
+   * It surfaced only after the macro slot's `opacity` came off in this same row: axe reports one
+   * contrast violation per distinct colour pair, and the louder failure was masking this one.
+   */
+  color: rgba(255, 255, 255, 0.52);
   font-weight: 700;
   text-transform: uppercase;
 }

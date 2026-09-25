@@ -112,6 +112,24 @@ export function click(target: Element): Promise<void> {
     return fire(target, 'click');
 }
 
+/**
+ * Press a key ON an element — ticket 38's harness, and the one a mouse test cannot stand in for.
+ *
+ * A keyboard-only run in Chromium found the game's FIRST interaction reachable and inert: the
+ * starter card is a `div` with an `onClick`, framer-motion's `whileTap` gave it a tabindex, and
+ * Enter did nothing. Every existing test here dispatches `click`, which a `div` answers to
+ * perfectly well — so the whole suite was green while the game could not be started from a
+ * keyboard.
+ *
+ * `KeyboardEvent` rather than `click`, therefore: the point is to exercise the handler a pointer
+ * never reaches.
+ */
+export async function pressKey(target: Element, key: string): Promise<void> {
+    await act(async () => {
+        target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    });
+}
+
 /** The button (or `selector`) whose text contains `text`; throws with what WAS on screen if none. */
 export function findText(host: ParentNode, text: string, selector = 'button'): HTMLElement {
     const found = [...host.querySelectorAll<HTMLElement>(selector)].find((el) => el.textContent?.includes(text));

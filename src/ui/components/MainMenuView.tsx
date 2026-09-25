@@ -44,6 +44,34 @@ const StarterCard: React.FC<{
                 boxShadow: `0 10px 30px rgba(0,0,0,0.5), 0 0 20px ${glowColor}`
             }}
             onClick={onSelect}
+            /*
+             * ══ TICKET 38 — THE FIRST CLICK IN THE GAME WAS NOT A KEYPRESS. ══
+             *
+             * A keyboard-only run measured in Chromium got no further than this card. The Tab ring
+             * REACHED it — framer-motion's `whileTap` adds a `tabindex` of its own — and Enter did
+             * nothing, because a `div` with an `onClick` has no keyboard semantics. That is the
+             * worst of the three possible states: not reachable is at least honest, whereas
+             * reachable-but-inert puts a focus ring on something that refuses to answer.
+             *
+             * **axe could not have caught this.** It checks an element's properties, and the
+             * element had a tabindex; whether Enter actually does anything is behaviour, which is
+             * why the Done-when asks for a keyboard RUN and not only a scan.
+             *
+             * Not converted to a `<button>`: the card is 280px of layout with an `h2` inside it,
+             * and a button would bring a user-agent stylesheet and nested-heading semantics with
+             * it. `role="button"` plus a key handler is the same contract without that.
+             */
+            role="button"
+            tabIndex={0}
+            aria-label={`Choose ${name}, the ${element} starter`}
+            onKeyDown={(event) => {
+                // Enter AND Space, because that is what a real button answers to and a player who
+                // has tabbed to a card will try whichever one they habitually use.
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect();
+                }
+            }}
         >
             <div style={{ fontSize: '1.2rem', color: titleColor, fontWeight: 'bold', marginBottom: '10px' }}>
                 {element.toUpperCase()} UNIT

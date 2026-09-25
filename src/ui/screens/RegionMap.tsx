@@ -274,7 +274,30 @@ export default function RegionMap({
                 ))}
             </div>
 
-            <div className="rm-canvas">
+            {/*
+              * TICKET 38 — THE PANNABLE CANVAS HAS TO BE FOCUSABLE, OR THE PAN IS MOUSE-ONLY.
+              *
+              * axe: `scrollable-region-focusable`, SERIOUS, and it is the direct cost of the
+              * decision ticket 37 confirmed — a 15-column region is genuinely wider than a
+              * 1280×800 frame, so the map PANS rather than shrinking its nodes below a readable
+              * size. `scrollLeft` moves 210px at Deck resolution, and before this a keyboard-only
+              * player had no way to move it: the div took no focus, so the arrow keys never
+              * reached it.
+              *
+              * `tabIndex={0}` plus a name and a role is the whole fix — a focused scroll container
+              * is arrow-scrollable by the browser, so no key handler is needed and none is added.
+              * `group` rather than `region`, because `region` would ask for a landmark this is not.
+              *
+              * The SVG inside stays `aria-hidden`: it is the picture, and the nodes it draws are
+              * already real buttons elsewhere in this screen. The travel list is the accessible
+              * path to a node; this is the accessible path to SEEING the rest of the map.
+              */}
+            <div
+                className="rm-canvas"
+                tabIndex={0}
+                role="group"
+                aria-label="Region map — scroll or use the arrow keys to pan across the biomes"
+            >
                 <svg
                     viewBox={`0 0 ${width} ${height}`}
                     width={width}

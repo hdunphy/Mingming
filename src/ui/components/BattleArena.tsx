@@ -1165,6 +1165,19 @@ const BattleArena: React.FC = () => {
             }}
         >
             {/*
+              * TICKET 38 — the battle screen names itself, for a reader that cannot see it.
+              *
+              * axe: `page-has-heading-one`, the last violation standing on this screen. Every other
+              * screen gets its heading from the panel it opens with; a fight opens straight onto the
+              * board, so there was no `h1` anywhere in the document while the player was in one —
+              * and "what screen am I on" is the first question a screen reader asks.
+              *
+              * Visually hidden rather than drawn: the strip below already tells a sighted player
+              * where they are, in the game's own language, and a heading painted on top of the
+              * board would be the accessibility fix making the screen worse for everyone else.
+              */}
+            <h1 className="sr-only">Battle</h1>
+            {/*
               * TICKET 145c — one strip owns the top 44px now.
               *
               * What used to be here: a floating `AudioControls`, ticket 18's gauntlet banner fixed

@@ -60,8 +60,22 @@
 }
 
 .macro-slot.empty {
+    /*
+     * TICKET 38 — THE OPACITY WENT, AND THE COLOURS SAY "EMPTY" INSTEAD.
+     *
+     * `opacity: 0.5` on the whole slot is why the first contrast fix here did nothing: axe measured
+     * the RENDERED colour at `#575552` when the sheet says `#a8a29a`, because a half-opaque element
+     * composites against the panel before anything reads it. Chasing that with a lighter ink cannot
+     * work — halving the contrast needs roughly four times the luminance, and the text was already
+     * past mid-grey.
+     *
+     * So the quietness is expressed in the colours themselves, which is also the more honest place
+     * for it: an empty slot should read as empty because of what it looks like, not because the
+     * whole element has been faded out along with its own border and its 9px label.
+     */
     border-style: dashed;
-    opacity: 0.5;
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.02);
     cursor: default;
 }
 
@@ -91,5 +105,15 @@
 }
 
 .macro-slot-empty {
-    color: #8a837b;
+    /*
+     * TICKET 38 — from `#8a837b`, which axe measured as a SERIOUS failure six times over (one per
+     * empty slot, per rack): the least important text on the screen, failing the most often, at
+     * 9.28px. It read as a rendering glitch rather than as a label.
+     *
+     * `#8d8880` against the rack's `#0b0b0f` clears 4.5:1 with the slot's `opacity` gone (see
+     * above — that opacity was the actual cause, and no ink could have out-run it). Still visibly
+     * quieter than `.macro-slot-line`'s cyan: an empty slot should recede, it just has to be
+     * legible while it does.
+     */
+    color: #8d8880;
 }

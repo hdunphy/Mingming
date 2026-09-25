@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest';
 
 import { addBlueprint, addToRoster } from './ui/store/gameSlice';
 import { createRanchMember } from './engine/gameTypes';
-import { click, makeStore, mountApp } from './testing/interaction';
+import { click, makeStore, mountApp, pressKey } from './testing/interaction';
 
 /** The starter cards are `motion.div`s, not buttons, so they are found by their copy. */
 function starterCard(host: HTMLElement, name: string): HTMLElement {
@@ -74,5 +74,51 @@ describe('the starter picker', () => {
         // reads both halves rather than remembering a "has onboarded" flag that a wipe could miss.
         const host = await mountApp(makeStore());
         expect(host.textContent).toContain('CHOOSE YOUR STARTER PROGRAM');
+    });
+});
+
+describe('38 — the first interaction in the game answers a KEYBOARD', () => {
+    /*
+     * ══ THE BUG THIS FILE COULD NOT SEE, AND WHY. ══
+     *
+     * A keyboard-only run measured in Chromium got no further than this screen. The starter card is
+     * a `motion.div` with an `onClick`; framer-motion's `whileTap` gives it a tabindex of its own,
+     * so the Tab ring REACHED it — and Enter did nothing, because a `div` with a click handler has
+     * no keyboard semantics.
+     *
+     * That is the worst of the three states. Not focusable is at least honest; reachable-but-inert
+     * puts a focus ring on something that refuses to answer, on the first screen of the game.
+     *
+     * **Every case above dispatches `click`, which a `div` answers to perfectly well** — so this
+     * whole file was green while the game could not be started without a mouse. And **axe could not
+     * have caught it either**: it reads an element's properties, and the element had a tabindex.
+     * Whether Enter does anything is behaviour, which is why ticket 38's done-when asks for a
+     * keyboard RUN and not only a scan.
+     */
+    it('starts the game on Enter, not only on a click', async () => {
+        const store = makeStore();
+        const host = await mountApp(store);
+        await pressKey(starterCard(host, 'KRAKEN'), 'Enter');
+        expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
+    });
+
+    it('starts the game on Space too, because that is what a button answers to', async () => {
+        // A player who has tabbed to a card will try whichever of the two they habitually use, and
+        // a real `<button>` takes both. Half a fix here would be a coin flip for the player.
+        const store = makeStore();
+        const host = await mountApp(store);
+        await pressKey(starterCard(host, 'FENRIR'), ' ');
+        expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
+    });
+
+    it('announces itself as a button, so the focus ring is a promise it can keep', async () => {
+        // `role` and `tabIndex` are what make the Tab stop legible; the handler above is what makes
+        // it true. Both are asserted, because either alone is the broken state.
+        const store = makeStore();
+        const host = await mountApp(store);
+        const card = starterCard(host, 'RATATOSKR');
+        expect(card.getAttribute('role')).toBe('button');
+        expect(card.getAttribute('tabindex')).toBe('0');
+        expect(card.getAttribute('aria-label')).toMatch(/Ratatoskr/i);
     });
 });
