@@ -30,6 +30,10 @@ import { describeLegalTargets } from '../utils/targeting';
 import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
 import HandCardFace from './HandCardFace';
+import { describeConditional, readCardConditionals } from '../utils/cardConditionals';
+import { litClauses } from '../utils/conditionalClauses';
+import { KEYWORD_INFO, appliedStacks, getAppliedStatuses, getCardKeywords } from './cardKeywords';
+import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { getElementAccent } from '../utils/contrastText';
 import { colorFor } from '../screens/runShell';
 import { playSfx } from '../audio/AudioEngine';
@@ -398,6 +402,21 @@ const CardHand: React.FC<{
                         const isStabMatch = !!preview?.stab;
                         const stabAccent = isStabMatch ? getElementAccent(data.element) : null;
 
+                        /*
+                         * THE CARD'S "IF", ANSWERED — Henry, 2026-09-25: *"We also need an
+                         * indicator if a conditional is true. Like 'if dazed draw one card'."*
+                         *
+                         * Read for the same (caster, target) pair the numbers above are quoted
+                         * for, so a card that says `96 DMG vs SKOLL` lights its rider against
+                         * SKOLL and nobody else. `lit` is the clause of the description to paint
+                         * green; `conditionalMet` is the same answer per action for the tooltip.
+                         */
+                        const conditionals = readCardConditionals(battleState, source, previewTarget, data);
+                        const lit = litClauses(data, conditionals);
+                        const conditionalMet = new Map(conditionals.map((r) => [r.actionIndex, r]));
+                        const cardKeywords = getCardKeywords(data);
+                        const appliedStatuses = getAppliedStatuses(data);
+
                         return (
                             <motion.div
                                 key={card.id}
@@ -423,12 +442,12 @@ const CardHand: React.FC<{
                                 exit={animate ? { opacity: 0, scale: 0.8 } : { opacity: 0 }}
                                 transition={animate ? { duration: 0.2 } : { duration: 0 }}
                                 /*
-                                 * `face-open` paints the description row — see `.hand-card
-                                 * .rs-desc` in index.css. Hidden in the fan because the next card
-                                 * covers the right half of this one at a wide hand, and shown the
-                                 * moment this card is lifted clear, by hover OR by 1-9.
+                                 * `face-open` is GONE (Henry, 2026-09-25: *"I don't like that the
+                                 * descriptions are hidden while in hand"*). It hid the description
+                                 * until a card was lifted, which was his own 09-20 call for wide
+                                 * hands; he has reversed it, so the description always shows.
                                  */
-                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isSelected || isHovered ? 'face-open' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
+                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
                                 /*
                                  * TICKET 155, DEEP DIVE 8 — a card is a control.
                                  *
@@ -555,6 +574,7 @@ const CardHand: React.FC<{
                                     preview={preview}
                                     replayTargetName={replayTargetName}
                                     showReplay={!!data.actions?.some((a) => a.type === 'PLAY_LAST_CARD')}
+                                    lit={lit}
                                 />
 
                                 {/*
@@ -585,10 +605,62 @@ const CardHand: React.FC<{
                                             )}
                                             <div className="tooltip-section">
                                                 <div className="tooltip-label">Effects</div>
-                                                {data.actions.map((action, i) => (
-                                                    <div key={i} className="tooltip-action">{formatAction(action, data.allyTarget)}</div>
-                                                ))}
+                                                {data.actions.map((action, i) => {
+                                                    /*
+                                                     * A conditional effect says its condition and
+                                                     * whether it holds — the same answer that lights
+                                                     * the clause on the face. `null` (no caster, or
+                                                     * nobody to aim at) prints the condition with no
+                                                     * verdict, because unknown is not "not met".
+                                                     */
+                                                    const reading = conditionalMet.get(i);
+                                                    const cls = reading?.met === true ? 'tooltip-action is-met'
+                                                        : reading?.met === false ? 'tooltip-action is-unmet'
+                                                        : 'tooltip-action';
+                                                    return (
+                                                        <div key={i} className={cls}>
+                                                            {formatAction(action, data.allyTarget)}
+                                                            {reading && (
+                                                                <span className="tooltip-cond">
+                                                                    {' '}{reading.constraints.map(describeConditional).join(' and ')}
+                                                                    {reading.met === true && ' ✓'}
+                                                                    {reading.met === false && ' (not met)'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
+                                            {/*
+                                              * THE CHIPS' NEW HOME — Henry, 2026-09-25: *"The
+                                              * statuses that show on the bottom should just be in
+                                              * the tooltip."* The face lost the row; the tooltip
+                                              * gains the label (with its stacks) and the glossary
+                                              * line the chip used to hide behind a second hover.
+                                              */}
+                                            {(cardKeywords.length > 0 || appliedStatuses.length > 0) && (
+                                                <div className="tooltip-section">
+                                                    <div className="tooltip-label">Statuses &amp; keywords</div>
+                                                    {cardKeywords.map((k) => (
+                                                        <div key={k} className="tooltip-glossary">
+                                                            <span className="tooltip-glossary-name" style={{ color: KEYWORD_INFO[k].color }}>{KEYWORD_INFO[k].label}</span>
+                                                            {' '}{KEYWORD_INFO[k].description}
+                                                        </div>
+                                                    ))}
+                                                    {appliedStatuses.map((st) => {
+                                                        const stacks = appliedStacks(data, st);
+                                                        const g = statusGlossary[st];
+                                                        return (
+                                                            <div key={st} className="tooltip-glossary">
+                                                                <span className="tooltip-glossary-name" style={{ color: STATUS_COLORS[st] }}>
+                                                                    {`${g.icon ?? ''} ${stacks > 1 ? `${stacks} ` : ''}${g.name}`.trim()}
+                                                                </span>
+                                                                {' '}{g.description}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                             <div className="tooltip-section">
                                                 <div className="tooltip-label">Targets</div>
                                                 <div className="tooltip-action">{describeLegalTargets(data)}</div>

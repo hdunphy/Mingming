@@ -4,7 +4,7 @@ import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import type { ProgramData, StatusType } from '../../engine/types';
 // Ticket 55: the keyword table and its two derivations moved to `cardKeywords.ts`, so this file
 // exports only components.
-import { KEYWORD_INFO, getAppliedStatuses, getCardKeywords } from './cardKeywords';
+import { KEYWORD_INFO, appliedStacks, getAppliedStatuses, getCardKeywords } from './cardKeywords';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 
 /** Small neon chip with a portal tooltip (never clipped by parent overflow). */
@@ -80,9 +80,7 @@ const Chip: React.FC<{ label: string; color: string; title: string; description:
  * the cards where the count matters most.
  */
 function chipLabel(data: ProgramData, status: StatusType): string {
-    const stacks = (data.actions ?? [])
-        .filter((a) => a.type === 'STATUS' && a.status === status)
-        .reduce((total, a) => total + (a.stacks ?? 1), 0);
+    const stacks = appliedStacks(data, status);
 
     const name = `${statusGlossary[status].icon ?? ''} ${statusGlossary[status].name}`.trim().toUpperCase();
     return stacks > 1 ? `${stacks} ${name}` : name;

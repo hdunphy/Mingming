@@ -45,7 +45,7 @@ import type { ProgramData } from '../../engine/types';
 import { CardFace } from '../screens/CardChassis';
 import { bannerFor } from '../screens/runShell';
 import { shortTargetLabel } from '../utils/targeting';
-import CardKeywordChips from './CardKeywordChips';
+import type { TextRange } from '../utils/conditionalClauses';
 import { formatMultiplier } from './elementMatchups';
 
 /*
@@ -95,6 +95,8 @@ export interface HandCardFaceProps {
     /** Reprogram's live answer — the card it would replay, named. */
     readonly replayTargetName?: string | null;
     readonly showReplay?: boolean;
+    /** Description ranges whose condition is TRUE for this caster and target — painted green. */
+    readonly lit?: ReadonlyArray<TextRange>;
 }
 
 const HandCardFace: React.FC<HandCardFaceProps> = ({
@@ -107,6 +109,7 @@ const HandCardFace: React.FC<HandCardFaceProps> = ({
     preview,
     replayTargetName,
     showReplay = false,
+    lit,
 }) => {
     /*
      * THE CARD WE WERE HANDED, NOT A REGISTRY LOOKUP. `cardFace(id)` re-reads ProgramRegistry and
@@ -198,8 +201,15 @@ const HandCardFace: React.FC<HandCardFaceProps> = ({
             }}
             target={shortTargetLabel(data)}
             readout={readout}
-            keywords={<CardKeywordChips data={data} />}
+            /*
+             * NO KEYWORD CHIPS IN THE HAND — Henry, 2026-09-25: *"The statuses that show on the
+             * bottom should just be in the tooltip."* The chip row was one more fixed row taken
+             * out of the description, which is the row the player actually reads; the statuses
+             * and keywords it carried now open with the hover tooltip in `CardHand`, each with
+             * its glossary line. The shop, editor and codex keep their chips — this is the fight.
+             */
             extras={extras}
+            lit={lit}
         />
     );
 };

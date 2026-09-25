@@ -344,24 +344,42 @@ describe('155 §3.10 — the markup carries what the player needs', () => {
         }
     });
 
-    it('keeps the description row out of the fan until the card is lifted', () => {
+    it('always shows the description, and prints no status chip row on the hand card', () => {
         /*
-         * Henry, 2026-09-20, off the 155 write-back's eleven-card shot: *"we can hide the card
-         * descriptions, when you hover you see the whole card so thats fine."* At a wide hand each
-         * card's right side is under the next one, and the description is the only row that needs
-         * the full width — so it was the only row reading as half a sentence.
-         *
-         * `face-open` is the class that paints it, and this is the KEYBOARD half of it: selecting
-         * with 1-9 puts no pointer on the card, so `selected` has to open the face on its own or a
-         * keyboard player never sees a description at all. Hover is the other half and cannot be
-         * reached through `renderToStaticMarkup`.
+         * Henry, 2026-09-25, reversing his own 09-20 call: *"I don't like that the descriptions are
+         * hidden while in hand. The statuses that show on the bottom should just be in the
+         * tooltip."* So nothing hides the description any more (`face-open` is gone), and the
+         * `.rs-chips` row the chips drew is not on a hand card at all — the tooltip carries them.
          */
-        expect(render({ source: 'blaze' })).not.toContain('face-open');
+        const burn = render({ source: 'blaze' }, {
+            playerDeck: {
+                ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
+                hand: [{ id: 'c1', dataId: 'ignite', currentCost: 1, isPlayable: true }],
+            },
+        } as Partial<IBattleState>);
+        expect(burn).toContain('rs-desc');
+        expect(burn).not.toContain('face-open');
+        expect(burn).not.toContain('rs-chips');
+    });
 
-        const selected = render({ source: 'blaze', card: 'c1' });
-        expect(selected).toContain('face-open');
-        // Exactly the one card, not the whole fan.
-        expect(selected.match(/face-open/g)).toHaveLength(1);
+    it('paints a TRUE conditional green, for the target the hand is reading against', () => {
+        /*
+         * Henry, 2026-09-25: *"We also need an indicator if a conditional is true. Like 'if dazed
+         * draw one card'. It should highlight green."* `pressure_point` against a Dazed enemy lights
+         * its draw clause and only that clause; against a clean one, nothing lights.
+         */
+        const hand = { ownerId: 'PLAYER', deck: [], drawpile: [], discard: [], exhaust: [],
+            hand: [{ id: 'c1', dataId: 'pressure_point', currentCost: 1, isPlayable: true }] };
+        const dazed = unit('sprout', { primaryElement: 'Nature' as Element, maxHp: 400, currentHp: 400,
+            statusEffects: [{ id: 'dz', type: 'Dazed', stacks: 1 }] });
+
+        const lit = render({ source: 'blaze', target: 'sprout' },
+            { playerDeck: hand, enemyParty: [dazed, ENEMIES[1], ENEMIES[2]] } as Partial<IBattleState>);
+        expect(lit).toContain('<span class="rs-lit">If the target is Dazed, draw 1.</span>');
+        expect(lit.match(/rs-lit/g)).toHaveLength(1);
+
+        const unlit = render({ source: 'blaze', target: 'sprout' }, { playerDeck: hand } as Partial<IBattleState>);
+        expect(unlit).not.toContain('rs-lit');
     });
 
     it('does not open a requirements section with nothing in it', () => {

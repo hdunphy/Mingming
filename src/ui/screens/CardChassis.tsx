@@ -38,6 +38,8 @@ import type { ReactElement, ReactNode } from 'react';
 
 import { describeUpgrade } from './runShell';
 import type { Banner } from './runShell';
+import { paintSegments } from './litSegments';
+import type { TextRange } from '../utils/conditionalClauses';
 
 /**
  * The type mark, top-right. Replaces the coloured text banner the tiles used to carry.
@@ -165,7 +167,7 @@ export function EnergyPips({ cost }: { readonly cost: number }): ReactElement {
  * NO STAB TEXT. Ticket 66 ruled it out and `HandCardFace` had grown a `×1.5` pip anyway; the `--el`
  * glow is the cue, and 155e says so in as many words.
  */
-export function CardFace({ face, count, tags, target, readout, keywords, extras }: {
+export function CardFace({ face, count, tags, target, readout, keywords, extras, lit }: {
     readonly face: {
         readonly name: string;
         readonly description: string;
@@ -190,7 +192,17 @@ export function CardFace({ face, count, tags, target, readout, keywords, extras 
     readonly keywords?: ReactNode;
     /** Cost-was, cannot-pay, replay — things that hang off the pips rather than taking a row. */
     readonly extras?: ReactNode;
+    /**
+     * Ranges of the description to paint as TRUE RIGHT NOW — the fight's conditional read
+     * (Henry, 2026-09-25: *"if dazed draw one card ... should highlight green"*). Only the hand
+     * passes it; every other caller renders exactly what it rendered before.
+     */
+    readonly lit?: ReadonlyArray<TextRange>;
 }): ReactElement {
+    const segments = face.dataId === undefined
+        ? [{ text: face.description, changed: false }]
+        : describeUpgrade(face.dataId);
+    const painted = paintSegments(segments, lit ?? []);
     return (
         <>
             <EnergyPips cost={face.cost} />
@@ -202,20 +214,20 @@ export function CardFace({ face, count, tags, target, readout, keywords, extras 
                 {target && <span className="rs-tgt">{target}</span>}
             </span>
             <span className="rs-desc">
-                {face.dataId === undefined
-                    ? face.description
-                    : describeUpgrade(face.dataId).map((seg, i) => (
-                        /*
-                         * Unchanged text is the RAW STRING, not a wrapped span. A card with no
-                         * upgrade comes back as one unchanged segment, so this renders byte-for-byte
-                         * what `{face.description}` rendered before 163b — which is what keeps a
-                         * highlight for ninety-eight cards from being a DOM change for all 268.
-                         *
-                         * Index keys: the segments are a pure function of one immutable string, so
-                         * the list cannot reorder and there is no identity to preserve across it.
-                         */
-                        seg.changed ? <span key={i} className="rs-upn">{seg.text}</span> : seg.text
-                    ))}
+                {painted.map((seg, i) => {
+                    /*
+                     * Unchanged, unlit text is the RAW STRING, not a wrapped span. A card with no
+                     * upgrade and nothing lit comes back as one plain segment, so this renders
+                     * byte-for-byte what `{face.description}` rendered before 163b — which is what
+                     * keeps a highlight for ninety-eight cards from being a DOM change for all 268.
+                     *
+                     * Index keys: the segments are a pure function of one immutable string and the
+                     * lit ranges, so the list cannot reorder and there is no identity to preserve.
+                     */
+                    if (!seg.changed && !seg.lit) return seg.text;
+                    const cls = [seg.changed ? 'rs-upn' : '', seg.lit ? 'rs-lit' : ''].filter(Boolean).join(' ');
+                    return <span key={i} className={cls}>{seg.text}</span>;
+                })}
             </span>
             {keywords}
             <span className="rs-tags">
