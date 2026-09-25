@@ -24,6 +24,8 @@
 import { describe, it, expect } from 'vitest';
 
 import { PATCHES, PATCH_IDS, PATCH_SLOTS, patchTouchCount, type PatchId } from './data/patchRegistry';
+import { bestPatchFor, gatePatchChoices, patchScoreDeltaFor, SHOP_STOCK_PATCH } from './data/patchRanking';
+import { scoreOS, scoreHookList } from '../debug/balance/powerscale';
 import { rawFirmwareHooks, getOSBehavior } from './data/firmwareRegistry';
 import { HookLibrarySchema } from './data/HookSchema';
 import { HookFactory } from './core/HookFactory';
@@ -182,5 +184,131 @@ describe('163c — a patch belongs to a BODY, not to a firmware', () => {
         });
         expect(() => getBestAction(state)).not.toThrow();
         expect(getBestAction(state)).toBeDefined();
+    });
+});
+
+// =================================================================================================
+// TICKET 163g — the ranking, and what it can and cannot see
+// =================================================================================================
+
+describe('163g — "best" is the SCORED DELTA, not the touch count', () => {
+    const osIds = LAUNCH_SPECIES.flatMap((s) => MingmingRegistry[s]?.availableOS ?? []);
+
+    it('picks the rider worth more on a body where the two measures DISAGREE', () => {
+        /*
+         * `fenrir_v1` is the case the ruling was about, and it is worth writing out because it
+         * shows the old metric failing in the exact way 163e measured.
+         *
+         *   amplifier   touches 2 hooks, delta 16.20
+         *   splitter    touches 2 hooks, delta 20.30
+         *
+         * The counts TIE, and `patchTouchCount`'s ranking broke ties on declaration order with a
+         * strict `>` — so amplifier won, first in the table, every time. That is the shape of
+         * 163e's `amplifier ×27`: not a preference, an ordering artefact. The delta separates them
+         * by four points of a health pool per game, and splitter wins.
+         */
+        const hooks = rawFirmwareHooks('fenrir_v1');
+        expect(patchTouchCount(PATCHES.amplifier, hooks)).toBe(patchTouchCount(PATCHES.splitter, hooks));
+        expect(patchScoreDeltaFor(PATCHES.splitter, hooks))
+            .toBeGreaterThan(patchScoreDeltaFor(PATCHES.amplifier, hooks));
+        expect(bestPatchFor(hooks).id).toBe('splitter');
+    });
+
+    it('no longer answers "amplifier" on every body — the thing 163e measured', () => {
+        // The claim is that the ranking DISCRIMINATES, asserted as a property rather than as a
+        // transcribed 12-row table: a table would have to be re-typed on every retune, and the
+        // failure it exists to catch is "one patch wins everywhere", which is a count.
+        const winners = new Set(osIds.map((osId) => bestPatchFor(rawFirmwareHooks(osId)).id));
+        expect(winners.size, `winners: ${[...winners].join(', ')}`).toBeGreaterThan(1);
+    });
+
+    it('scores a patch that finds nothing at exactly 0, and says so in the units', () => {
+        // OVERCLOCK changes no hook by construction — it changes what a scaler counts — so both
+        // measures read zero and they agree for once. A non-zero here would mean the delta was
+        // reading noise.
+        for (const osId of osIds) {
+            const hooks = rawFirmwareHooks(osId);
+            expect(patchTouchCount(PATCHES.overclock, hooks), osId).toBe(0);
+            expect(patchScoreDeltaFor(PATCHES.overclock, hooks), osId).toBe(0);
+        }
+    });
+
+    it('keeps patchTouchCount, because a 0 delta does not say WHICH kind of nothing', () => {
+        /*
+         * ══ THE FINDING THIS TEST EXISTS TO RECORD, AND IT IS ABOUT THE SCORER. ══
+         *
+         * RELAY changes a hook's `actor`. On four of the twelve it finds something to change — the
+         * touch count says so — and the scored delta is **exactly 0 on all four**, because the
+         * per-proc payoff is computed from the hook's ACTIONS and the scorer does not read who is
+         * acting. SPLITTER, which changes `target`, moves the score on the same kind of hook,
+         * because scope multipliers DO read the target.
+         *
+         * So 163 §3's own worked example — *"a Relay on a self-only OS scores high and on an
+         * ally-reading OS scores zero"* — is a sentence the scorer as built cannot say. It scores
+         * zero either way. That is a fact about `powerscale`, not about Relay, and it is recorded
+         * here rather than worked around: the ruling was to rank by the delta, and this is what
+         * ranking by the delta shows.
+         *
+         * `patchTouchCount` therefore stays and is not vestigial. "Found nothing" and "changed
+         * something the scorer prices at zero" are different answers, the offer screen needs to
+         * tell them apart, and only the count can.
+         */
+        const found = osIds.filter((osId) => patchTouchCount(PATCHES.relay, rawFirmwareHooks(osId)) > 0);
+        expect(found.length, 'relay should reach SOME firmware, or this case is vacuous')
+            .toBeGreaterThan(0);
+        for (const osId of found) {
+            expect(patchScoreDeltaFor(PATCHES.relay, rawFirmwareHooks(osId)), `relay on ${osId}`).toBe(0);
+        }
+    });
+});
+
+describe('163g — the gate offers two different KINDS', () => {
+    const osIds = LAUNCH_SPECIES.flatMap((s) => MingmingRegistry[s]?.availableOS ?? []);
+
+    it('never offers two riders about the same field, on any of the twelve', () => {
+        // Henry, 2026-09-25: *"the gate's two offers must be two different KINDS."* Ranked on value
+        // alone the top two are often two ways of doing the same thing — a firmware that rewards
+        // one `amount` patch rewards the other — and then the choice is a choice in form only.
+        for (const osId of osIds) {
+            const offers = gatePatchChoices(rawFirmwareHooks(osId), []);
+            expect(offers, osId).toHaveLength(2);
+            const kinds = offers.map((id) => PATCHES[id].field);
+            expect(kinds[0], `${osId}: ${offers.join(' + ')}`).not.toBe(kinds[1]);
+        }
+    });
+
+    it('leads with the body\'s best, so the pair always contains the one that fits', () => {
+        for (const osId of osIds) {
+            const hooks = rawFirmwareHooks(osId);
+            expect(gatePatchChoices(hooks, [])[0], osId).toBe(bestPatchFor(hooks).id);
+        }
+    });
+
+    it('still respects what the body already holds', () => {
+        const hooks = rawFirmwareHooks('fenrir_v1');
+        const first = gatePatchChoices(hooks, [])[0];
+        expect(gatePatchChoices(hooks, [first])).not.toContain(first);
+        expect(gatePatchChoices(hooks, [first])).toHaveLength(2);
+    });
+
+    it('keeps AMPLIFIER as the shop\'s stock whatever the ranking says', () => {
+        // §3: *"the boring one every OS can take and the workshop's default stock"*, and Henry
+        // re-confirmed it with 163g. The shelf is deliberately NOT the ranking — the shop is where
+        // a player buys the safe one, and the gate is where they are offered the good one.
+        expect(SHOP_STOCK_PATCH).toBe('amplifier');
+    });
+});
+
+describe('163g — the scorer refactor moved nothing', () => {
+    it('scores a firmware identically through scoreOS and scoreHookList', () => {
+        // `scoreOS` is now a one-line wrapper over `scoreHookList`, which is what lets a PATCHED
+        // hook list be priced at all. Pinned because the whole delta rests on both sides going
+        // through the same function, and a divergence would make every number above meaningless.
+        for (const osId of LAUNCH_SPECIES.flatMap((s) => MingmingRegistry[s]?.availableOS ?? [])) {
+            const viaId = scoreOS(osId);
+            const viaList = scoreHookList(osId, rawFirmwareHooks(osId) as never, viaId.name);
+            expect(viaList.pctOfPoolPerGame, osId).toBe(viaId.pctOfPoolPerGame);
+            expect(viaList.contributions, osId).toEqual(viaId.contributions);
+        }
     });
 });

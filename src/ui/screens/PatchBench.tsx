@@ -20,7 +20,8 @@ import { useDispatch } from 'react-redux';
 
 import { Icon } from '../theme/Icon';
 import { fitPatch } from '../store/runSlice';
-import { getPatch, gatePatchChoices, PATCH_SLOTS, SHOP_STOCK_PATCH } from '../../engine/data/patchRegistry';
+import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
+import { gatePatchChoices, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
 import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 

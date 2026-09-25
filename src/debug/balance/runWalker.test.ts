@@ -24,7 +24,8 @@ import {
 } from './runWalker';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { upgradePrice } from '../../engine/run/marketplace';
-import { PATCH_SLOTS, SHOP_STOCK_PATCH, bestPatchFor } from '../../engine/data/patchRegistry';
+import { PATCH_SLOTS } from '../../engine/data/patchRegistry';
+import { SHOP_STOCK_PATCH, bestPatchFor } from '../../engine/data/patchRanking';
 import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { NO_FIRMWARE_OS as GATE_NO_FIRMWARE_OS, sampleFight, CELLS } from './runGate';
 import { runOne } from './runBatch';

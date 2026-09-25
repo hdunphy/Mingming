@@ -291,54 +291,20 @@ export function patchTouchCount(patch: PatchDefinition, hooks: ReadonlyArray<Any
     return hooks.reduce((n: number, hook: AnyHook) => n + (patch.apply(hook) === hook ? 0 : 1), 0);
 }
 
-/**
- * TICKET 163d — **the patch this body would get the most out of.** 161 §2's seeding rule, applied
- * to patches: *"the host body's best patch in that run's pool."*
+/*
+ * ══ THE RANKING LIVES IN `patchRanking.ts`, AND THE SPLIT IS A CYCLE, NOT A TIDY-UP. ══
  *
- * "Best" is `patchTouchCount` — how many of the firmware's hooks the rider actually changes. That
- * is a crude instrument and it is the RIGHT one here, because the alternative is a table of twelve
- * opinions, which is the authored thing this whole row exists to avoid. It answers the question a
- * seeding rule is really asking: *which of these six is not wasted on this body?*
+ * `bestPatchFor` and `gatePatchChoices` moved out under ticket 163g. They rank by the 149c-scored
+ * delta, which means importing `debug/balance/powerscale` — and that closes a loop:
  *
- * OVERCLOCK CAN NEVER WIN IT, and that is worth saying rather than hiding. Its touch count is zero
- * by construction — it changes no hook, it changes what a scaler counts — so a measure built on
- * hooks cannot see it. It reaches the player through the doors that do not rank: the gate's choice
- * of two and the shop. Pricing it properly needs to know what the body's DECK does, which is a
- * question this file has no business answering.
+ *     patchRegistry → powerscale → core/Hooks → core/entityHooks → patchRegistry
  *
- * Ties break on declaration order, so the answer is stable for a given firmware and a re-roll is a
- * re-roll rather than a coin flip.
+ * ESM tolerates the loop and then hands the second module a half-initialised first one, so
+ * `STATUS_MODEL` read as `undefined` at module scope and `powerscale` threw on load. It failed
+ * loudly, which was luck: a cycle that resolves to `undefined` inside a function would have shipped.
+ *
+ * **This file is the half `entityHooks` needs** — the six transforms, `getPatch`, the slot count
+ * and `patchTouchCount` — and it imports nothing that can reach back. The ranking is the half
+ * nothing in the hook path needs, so it can see the scorer. Anything that ranks imports
+ * `patchRanking`; anything that APPLIES imports this.
  */
-export function bestPatchFor(hooks: ReadonlyArray<AnyHook>): PatchDefinition {
-    let best = PATCHES.amplifier;
-    let bestCount = patchTouchCount(best, hooks);
-    for (const id of PATCH_IDS) {
-        const count = patchTouchCount(PATCHES[id], hooks);
-        if (count > bestCount) {
-            best = PATCHES[id];
-            bestCount = count;
-        }
-    }
-    return best;
-}
-
-/**
- * The patch the shop always stocks — §3: *"AMPLIFIER is the boring one every OS can take and is
- * the workshop's default stock."*
- *
- * Named rather than spelled at the call site so the shop and the ticket say the same word.
- */
-export const SHOP_STOCK_PATCH: PatchId = 'amplifier';
-
-/**
- * The gate's CHOICE OF TWO (163 §3's "where"), for one body.
- *
- * The body's best first, then the best of the rest — so the choice is always a real one (two
- * different riders) and always includes the one that fits. A pair drawn at random would routinely
- * offer two patches that do nothing to this firmware, which is a choice in form only.
- */
-export function gatePatchChoices(hooks: ReadonlyArray<AnyHook>, held: ReadonlyArray<string>): PatchId[] {
-    const available = PATCH_IDS.filter((id) => !held.includes(id));
-    const ranked = [...available].sort((a, b) => patchTouchCount(PATCHES[b], hooks) - patchTouchCount(PATCHES[a], hooks));
-    return ranked.slice(0, 2);
-}

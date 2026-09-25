@@ -1803,9 +1803,24 @@ function pctOfPool(score: number): number {
 export function scoreOS(osId: string): OsScore {
     const entry = (HOOK_LIBRARY as Record<string, unknown>)[osId] as
         { id?: string; name?: string; hooks?: HookRecord[] } | undefined;
-    const name = entry?.name ?? osId;
-    const hooks = entry?.hooks ?? [];
+    return scoreHookList(osId, entry?.hooks ?? [], entry?.name ?? osId);
+}
 
+/**
+ * The body of `scoreOS`, taken a HOOK LIST rather than a firmware id — ticket 163g.
+ *
+ * Split out so the same pricing can be asked of hooks that are not in `hooks.json`: specifically
+ * a PATCHED firmware, which exists only as a transform's output. `scoreOS(osId)` is exactly
+ * `scoreHookList(osId, HOOK_LIBRARY[osId].hooks)`, so nothing about the shipped report moves.
+ *
+ * `osId` is still required and still matters — the proc rates in `OS_PROC_RATE` are keyed by HOOK
+ * id, and a patched hook keeps its id, which is what lets a patched firmware be priced at the
+ * measured rate of the firmware it patches. That is an assumption and it is worth stating: **a
+ * patch is assumed not to change how often the hook fires.** For five of the six that is true by
+ * construction (they change amounts, actors and targets). For REPEATER it is the thing in
+ * question, and the delta will under-read it.
+ */
+export function scoreHookList(osId: string, hooks: ReadonlyArray<HookRecord>, name = osId): OsScore {
     const contributions: OsHookContribution[] = [];
     const unmeasured: string[] = [];
     const unpriced: string[] = [];
@@ -1942,4 +1957,39 @@ export function scoreAllOS(): OsScore[] {
     return osRoster()
         .map(scoreOS)
         .sort((a, b) => b.pctOfPoolPerGame - a.pctOfPoolPerGame || (a.id < b.id ? -1 : 1));
+}
+
+// =================================================================================================
+// TICKET 163g — WHAT A PATCH IS WORTH TO A BODY
+// =================================================================================================
+
+/**
+ * The 149c-scored value a patch ADDS to one firmware: the host's hook value after, minus before.
+ *
+ * **This replaces `patchTouchCount` as the ranking, and the reason is that the touch count ranked
+ * by construction rather than by value.** 163 §3 asks for the scored delta in as many words; the
+ * count shipped in 163d as an explicit stand-in, and 163e then measured what it produced —
+ * `amplifier ×27`, every patch the walker ever fitted. Amplifier touches an `amount` field and
+ * almost every hook has one, so it wins a count on every body before any question of worth.
+ *
+ * Both sides are priced by the SAME function at the SAME rates, so everything the scorer cannot
+ * see cancels: an unmeasured hook contributes 0 to both terms and a manual-review action is
+ * mispriced identically in both. What survives is the part the patch changed, which is the only
+ * quantity this number claims to be.
+ *
+ * **A delta of 0 is a real answer and means the rider is inert on this body** — either it found
+ * nothing to transform, or it changed something the scorer prices at zero. Distinguishing those
+ * two is `patchTouchCount`'s remaining job, and it is why that function stays.
+ *
+ * Units are `OsScore.pctOfPoolPerGame` — percent of a health pool per game — so a delta is
+ * directly comparable with the 15/40/50 band this file already grades firmware against.
+ */
+export function patchScoreDelta(
+    hooks: ReadonlyArray<HookRecord>,
+    apply: (hook: HookRecord) => HookRecord,
+    osId = 'patched',
+): number {
+    const before = scoreHookList(osId, hooks).pctOfPoolPerGame;
+    const after = scoreHookList(osId, hooks.map(apply)).pctOfPoolPerGame;
+    return Math.round((after - before) * 100) / 100;
 }
