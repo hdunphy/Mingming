@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, GENERIC_HIT, getDeckForOS } from './mingmingRegistry';
+import { MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, GENERIC_HIT, START_KIT_PAYOFF, getDeckForOS } from './mingmingRegistry';
 import { GetProgramData, ProgramRegistry } from './programRegistry';
 import { START_KIT_SIZE } from '../run/createRun';
 import fs from 'node:fs';
@@ -255,6 +255,48 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
             .map(([os, n]) => `${os}: ${n} payoffs`);
         expect(offenders, 'a kit is an engine that starts WEAK, not one that starts assembled').toEqual([]);
         expect(Object.keys(counted)).toHaveLength(12);
+    });
+
+    it('157-r2: START_KIT_PAYOFF names a card that IS in the kit and IS a payoff', () => {
+        /*
+         * ══ THE GUARD ON THE ONE PIECE OF DESIGN DATA THE ENGINE CARRIES A COPY OF. ══
+         *
+         * The shape tag lives in `collection-v2/collection.json` and the engine has no field for
+         * it. 157-r2's opening-fight rung — *"the start kit minus its payoff"* — needs to know WHICH
+         * card that is at runtime, so `mingmingRegistry.START_KIT_PAYOFF` carries the twelve facts
+         * rather than the engine importing ninety-eight cards of design data.
+         *
+         * A second copy is only safe if something checks it, and this is that something. Both halves
+         * can fail independently and both are silent failures in the game:
+         *
+         *  - **Not in the kit** → `indexOf` returns −1, the swap is a no-op, and the opening fight
+         *    is a MIRROR again — which is the exact bug 157-r2 exists to fix, restored invisibly.
+         *  - **Not a payoff** → the opener drops an enabler and keeps the card that cashes, which is
+         *    the ruling inverted: *"the enemy shows the engine that cannot fire."*
+         */
+        const entries = Object.entries(START_KIT_PAYOFF);
+        expect(entries, 'one per EA firmware').toHaveLength(12);
+
+        for (const [osId, payoff] of entries) {
+            const species = LAUNCH_SPECIES.find((s) => MingmingRegistry[s].availableOS?.includes(osId));
+            expect(species, `${osId} is not an EA firmware`).toBeDefined();
+            const kit = MingmingRegistry[species!].startKits?.[osId] ?? [];
+            expect(kit, `${osId}: ${payoff} is not in the kit — the swap would be a no-op`).toContain(payoff);
+            expect(isPayoff(payoff), `${osId}: ${payoff} is tagged '${shapeOf.get(payoff)}', not a payoff`).toBe(true);
+        }
+    });
+
+    it('157-r2: names the ONLY payoff in every kit but the recorded exception', () => {
+        // Stronger than "is a payoff": for eleven of the twelve, the named card is the kit's one
+        // payoff, so removing it leaves a five with none. `jormungandr_v2` holds two by 157-r1(b)'s
+        // recorded deck problem, so the opener drops one and keeps the other — the exception
+        // travelling rather than being hidden.
+        for (const [osId, payoff] of Object.entries(START_KIT_PAYOFF)) {
+            const species = LAUNCH_SPECIES.find((s) => MingmingRegistry[s].availableOS?.includes(osId))!;
+            const kit = MingmingRegistry[species].startKits?.[osId] ?? [];
+            const remaining = kit.filter((_, i) => i !== kit.indexOf(payoff)).filter(isPayoff);
+            expect(remaining, `${osId}`).toEqual(osId === DECK_TOO_THIN ? [expect.any(String)] : []);
+        }
     });
 
     it('names the exception with its arithmetic, so it cannot quietly become the rule', () => {

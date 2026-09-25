@@ -43,7 +43,7 @@ import { getInflatedProgramRegistry } from '../data/programRegistry';
 import { GYM_REGISTRY, gymCompElementPlan, type IGymOffer } from './gyms';
 import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { createBattleState } from '../data/battleFactories';
-import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
+import { GENERIC_HIT, GetMingmingData, START_KIT_PAYOFF, getDeckForOS } from '../data/mingmingRegistry';
 import { GetProgramData } from '../data/programRegistry';
 import type { IBiome, IRanchMember, IRanchState, IRegionNode, IRunState, NodeKind } from '../runTypes';
 import type { IBattleEntity, IMingmingState } from '../types';
@@ -757,23 +757,40 @@ describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u
         ).toHaveLength(2);
     });
 
-    it('hands the opening enemy the player’s own opening composition, block by block', () => {
+    it('hands the opening enemy the player’s composition MINUS its payoff, block by block', () => {
         /*
-         * This assertion used to belong to biome 0 — ticket 08's gentlest row said *"the same six
-         * cards the player is holding"* and every biome-0 wild obeyed it. The ladder deleted that
-         * row, and the claim moved WITH the loadout rather than being deleted with the table: the
-         * scripted opening fight is the one place in the game that still fields it, and ticket 24's
-         * ruling is where the sentence came from in the first place.
+         * ══ THIS ASSERTION HAS MOVED TWICE AND INVERTED ONCE. ══
          *
-         * The symmetry is the whole claim of this loadout, so the check is block by block rather
-         * than by total: *"the same cards you opened with"* is only true if the FILLER rule is the
-         * same one, and an enemy side handing every body three generics would be quietly holding a
-         * bigger deck than the player it is meant to mirror. The opening fight is pinned to one
-         * body, so that reduces here to the starter's single helping — but the arithmetic is written
-         * out anyway, because `enemyPartySize`'s pin is a separate ruling that could move.
+         * It began as ticket 08's gentlest row — *"the same six cards the player is holding"* — and
+         * belonged to biome 0. Ticket 60 deleted that row and the claim moved WITH the loadout: the
+         * scripted opening fight was the one place still fielding it, which is where ticket 24's
+         * sentence came from anyway.
          *
-         * The firmware the kit was chosen FROM is not readable off the entity (that is the point of
-         * `os: false`), so the check is that the five ARE one of the species' tagged kits.
+         * **157-r2 inverts it.** 157-r1's read is why: fight one measured 75.8% over 2,400 runs
+         * against a ruled 95, and it had not moved and could not, because both sides were already
+         * holding the same shape. A mirror cannot reach 95 — at fight one the two sides have the
+         * same count, the same IVs, the same AI and the same beam, so the player's only edge is its
+         * firmware, worth +25.8 points over even. Symmetry was the bug, not the goal.
+         *
+         * So the opener is the player's composition **minus its one payoff**, Henry 2026-09-25:
+         * *"the player keeps the one payoff ruled 09-24; the enemy shows the engine that cannot
+         * fire."*
+         *
+         * **Asserted as a SUBSTITUTION, which is the part that could silently be wrong.** The rung
+         * is gentler only because the count is unchanged — the payoff is swapped for a generic, not
+         * removed. An implementation that dropped the card would leave a four-card block that
+         * concentrates the remaining engine and draws it more often, i.e. a SHARPER deck, which is
+         * exactly the alternative Henry refused. So the block width is still checked first, and the
+         * kit is matched against the tagged five with the payoff swapped rather than against a
+         * shortened list.
+         *
+         * The filler rule is still checked block by block, for the original reason: an enemy side
+         * handing every body three generics would quietly hold a bigger deck than the player it
+         * mirrors. The opening fight is pinned to one body so that reduces to the starter's single
+         * helping, but the arithmetic is written out because `enemyPartySize`'s pin could move.
+         *
+         * The firmware the kit came from is not readable off the entity (that is the point of
+         * `os: false`), so the check is that the five ARE one of the species' tagged kits, patched.
          */
         const blockWidth = (index: number) => START_KIT_SIZE + (index === 0 ? STARTER_GENERICS : 0);
 
@@ -782,19 +799,35 @@ describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u
             run, node: node({ id: 'b0l1n2', kind: 'wild', layer: 1, visited: 1 }), party,
         });
 
+        /** One firmware's tagged five with its payoff replaced by a generic — the rung, spelled out. */
+        const kitMinusPayoff = (definitionId: string, os: string): string[] => {
+            const kit = startKitIdsFor({ ...KRAKEN, definitionId, activeOS: os }, START_KIT_SIZE);
+            const at = kit.indexOf(START_KIT_PAYOFF[os] ?? '');
+            return at < 0 ? kit : kit.map((id, index) => (index === at ? GENERIC_HIT : id));
+        };
+
         let offset = 0;
         enemyParty.forEach((enemy, index) => {
             const block = enemyDeckIds.slice(offset, offset + blockWidth(index));
             offset += blockWidth(index);
 
+            // The count is untouched — this is the half that makes the rung gentler rather than sharper.
+            expect(block, `${enemy.definitionId}: the payoff is SWAPPED, not dropped`)
+                .toHaveLength(blockWidth(index));
             expect(block.slice(START_KIT_SIZE)).toEqual(
                 Array.from({ length: index === 0 ? STARTER_GENERICS : 0 }, () => GENERIC_HIT),
             );
 
-            const kits = GetMingmingData(enemy.definitionId).availableOS.map((os) =>
-                startKitIdsFor({ ...KRAKEN, definitionId: enemy.definitionId, activeOS: os }, START_KIT_SIZE),
-            );
-            expect(kits.map((kit) => kit.join(','))).toContain(block.slice(0, START_KIT_SIZE).join(','));
+            const five = block.slice(0, START_KIT_SIZE);
+            const candidates = GetMingmingData(enemy.definitionId).availableOS.map((os) => kitMinusPayoff(enemy.definitionId, os));
+            expect(candidates.map((kit) => kit.join(',')), `${enemy.definitionId}`).toContain(five.join(','));
+
+            // ...and it really is one card short of the kit the PLAYER would be dealt. Stated as its
+            // own assertion because "minus the payoff" is false if the table ever names a card the
+            // kit does not hold — the swap would then be a no-op and this fight a mirror again.
+            const played = GetMingmingData(enemy.definitionId).availableOS
+                .map((os) => startKitIdsFor({ ...KRAKEN, definitionId: enemy.definitionId, activeOS: os }, START_KIT_SIZE));
+            expect(played.map((kit) => kit.join(','))).not.toContain(five.join(','));
             expect(enemy.activeOS).toBeUndefined();
         });
         expect(offset).toBe(enemyDeckIds.length);

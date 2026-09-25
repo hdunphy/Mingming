@@ -39,7 +39,7 @@
 import { SeedStream } from '../core/SeedStream';
 import { GAME_BEAM_WIDTH, type AiTier } from '../ai/TacticalAI';
 import { getSectorSpecies } from '../data/EncounterGenerator';
-import { GetMingmingData, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
+import { GENERIC_HIT, GetMingmingData, PLAYABLE_SPECIES, START_KIT_PAYOFF, getDeckForOS } from '../data/mingmingRegistry';
 import { GetProgramData } from '../data/programRegistry';
 import { initializeBattleEntity, numericBaseCost } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
@@ -141,6 +141,12 @@ export function enemyPartySize(kind: NodeKind, playerPartySize: number): number 
  * depth order.
  */
 export type EnemyDeckRule =
+    /**
+     * TICKET 157-r2 — the opening fight's rung: the start kit **minus its one payoff**, with a
+     * generic in the vacated slot, plus the run's generics on the first body. Same card count as
+     * the player's opener; one fewer card that can cash the engine.
+     */
+    | 'start-kit-minus-payoff'
     /** The same the player starts with: 4 `startKit` cards, plus the run's 2 generics on the first. */
     | 'start-kit-plus-generics'
     /** The 5 `startKit` cards alone — a sharper list than the player's, and shorter. */
@@ -360,7 +366,7 @@ export function enemyLoadoutFor(kind: NodeKind, tier: number, biomeIndex = 1): I
  * brand-new player's first fight harder.
  */
 export const OPENING_FIGHT_LOADOUT: IEnemyLoadout = {
-    deck: 'start-kit-plus-generics',
+    deck: 'start-kit-minus-payoff',
     os: false,
     ai: 'greedy',
     iv: WILD_IV,
@@ -635,6 +641,36 @@ function enemyDeckFor(
     isFirstEnemy: boolean,
 ): string[] {
     switch (loadout.deck) {
+        case 'start-kit-minus-payoff': {
+            /*
+             * ══ TICKET 157-r2 (Henry, 2026-09-25) — **THE ENGINE THAT CANNOT FIRE.** ══
+             *
+             * 157-r1's read showed fight one at 75.8% over 2,400 runs against a ruled 95, and that
+             * it had NOT moved and could not: the scripted opener already held
+             * `start-kit-plus-generics`, so both sides opened on the same shape. A mirror cannot
+             * reach 95 — the player's only edge is its firmware, worth +25.8 points over even.
+             *
+             * The alternative I proposed — drop the opener's three generics — was refused, and
+             * correctly: a five-card kit is the SHARPER deck, not the gentler one. The rung Henry
+             * ruled instead takes the payoff out and leaves the count alone. *"The player keeps the
+             * one payoff ruled 09-24; the enemy shows the engine that cannot fire."*
+             *
+             * **Built by SUBSTITUTION, not subtraction**, which is the whole of why it is gentler
+             * rather than sharper: the payoff is swapped for a `GENERIC_HIT`, so the deck is the
+             * same eight cards and the same draw odds, with one card that cashes replaced by one
+             * that does not. Removing it outright would have concentrated the remaining four.
+             *
+             * `START_KIT_PAYOFF` names the card, checked against the design file's shape tag in
+             * `startKits.test.ts`. A firmware with no entry (every post-EA species) drops nothing
+             * and falls through to the plain start-kit shape — an untagged kit is one nobody has
+             * classified, not one classified as having no engine.
+             */
+            const ids = startDeckFor(state, stream, isFirstEnemy).map((card) => card.dataId);
+            const payoff = START_KIT_PAYOFF[state.activeOS ?? ''];
+            const at = payoff === undefined ? -1 : ids.indexOf(payoff);
+            if (at < 0) return ids;
+            return ids.map((id, index) => (index === at ? GENERIC_HIT : id));
+        }
         case 'start-kit-plus-generics':
             // `true`: an enemy party's first member carries the generics, exactly as the
             // player's does. The symmetry is the whole claim of this loadout — "the same cards you

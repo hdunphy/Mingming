@@ -345,7 +345,23 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 keeps the amplifier pair whole (`corrosive_bolt` x2, `venom_fang` x2) and one
         // payoff; `contagion` doubles a pile that does not exist yet at run start.
         startKits: {
-            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "serpents_coil", "riptide_run"],
+            /*
+             * TICKET 157-r3 (Henry, 2026-09-25) — one `undertow` becomes `surge_protection`.
+             *
+             * OUROBOROS_LOOP read **19.0% at fight one over 200 runs**, the worst of the twelve by
+             * fifty points, and it was NOT a power problem: this five scored 11.10 by 149c against
+             * `jormungandr_v2`'s 10.80, and that kit reads 98%. What separated them was what the
+             * cards DO — `undertow` is a looping free draw and `blind_spot` is a debuff, so THREE of
+             * the five did not advance the fight and the one payoff was a single copy. It opened on
+             * two live cards against an enemy's five and lost over 5.4 turns with 6% of its pool
+             * left: out-tempoed while it drew, not burst down.
+             *
+             * `surge_protection` is a 25-power hit, so the swap buys a card that acts. It is re-tagged
+             * **glue** rather than scalar in `collection-v2/collection.json` with it — 25 flat power
+             * with a refund rider banks nothing and cashes nothing — which is what keeps 157-r1(b)'s
+             * one-payoff rule counting `serpents_coil` alone.
+             */
+            "jormungandr_v1": ["undertow", "blind_spot", "serpents_coil", "riptide_run", "surge_protection"],
             "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "tackle"]
         },
         moves: [
@@ -1150,6 +1166,55 @@ export const LAUNCH_SPECIES: ReadonlyArray<string> = ['fenrir', 'skoll', 'kraken
  * `programAliases`, so the snapshots the note above protects are untouched.
  */
 export const GENERIC_HIT = 'tackle';
+
+/**
+ * ══ TICKET 157-r2 — **THE ONE PAYOFF IN EACH OPENING FIVE, BY NAME.** ══
+ *
+ * 157-r1(b) ruled that every start kit carries exactly one payoff (a scalar or the consume) and
+ * `startKits.test.ts` enforces it. This names WHICH card that is, per firmware, because the enemy
+ * ladder now needs it at RUNTIME: the scripted opening fight fields *"the start kit minus its
+ * payoff, plus generics"* — the engine the player can see and the enemy cannot fire.
+ *
+ * # WHY A TABLE RATHER THAN A LOOKUP
+ *
+ * The shape tag (`enabler` / `consume` / `scalar` / `glue` / `converter` / `hate`) lives in
+ * `collection-v2/collection.json` and the engine has no field for it. It is 98 cards of design
+ * data, and the ladder needs **twelve facts** out of it — one per EA firmware — so this carries the
+ * twelve rather than importing the ninety-eight. That is the same trade 158-r1 made in the other
+ * direction: it moved `cur`/`tempo`/`partners` into the registry because three subsystems needed
+ * them, and this moves one derived fact because one does.
+ *
+ * **It is checked, not trusted.** `startKits.test.ts` asserts every entry here is (1) in that
+ * firmware's kit and (2) tagged `scalar` or `consume` in the design file, so the two sources cannot
+ * drift apart silently. Unlike `KIT_GLUE` in that file — a deliberate second copy of a column —
+ * this one is read by the game, so it is data with a guard rather than a transcription.
+ *
+ * # THE TWO ENTRIES THAT NEED A SENTENCE
+ *
+ * `jormungandr_v2` is 157-r1(b)'s recorded exception: TOXIN_FANG's deck cannot supply a legal five,
+ * so its kit holds TWO payoffs. This names one of them, and the opening fight therefore drops one
+ * and keeps the other. That is the exception travelling rather than being hidden — the fix is a
+ * DECK change, and it is Henry's.
+ *
+ * A firmware absent from this table (every post-EA species) drops nothing, and the opener falls back
+ * to the plain start-kit shape. That is the honest default: an untagged kit is one nobody has
+ * classified, not one classified as having no engine.
+ */
+export const START_KIT_PAYOFF: Readonly<Record<string, string>> = {
+    fenrir_v1: 'ragnarok_edge',
+    fenrir_v2: 'cinder_lance',
+    skoll_v1: 'flare_burst',
+    skoll_v2: 'flashover',
+    kraken_v1: 'ink_stream',
+    kraken_v2: 'boiling_surge',
+    jormungandr_v1: 'serpents_coil',
+    // 157-r1(b)'s exception: this kit holds `venom_fang` AND `serpent_flurry`. See the block above.
+    jormungandr_v2: 'serpent_flurry',
+    ratatoskr_v1: 'seed_bomb',
+    ratatoskr_v2: 'nagging_bite',
+    huldra_v1: 'sap_strength',
+    huldra_v2: 'bark_lash',
+};
 
 /**
  * Ticket 13: per-OS starting decks. Resolves a species' deck for a firmware id,

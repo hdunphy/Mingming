@@ -712,10 +712,10 @@
       "cat": "Attack",
       "tgt": "Single",
       "text": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
-      "shape": "scalar",
+      "shape": "glue",
       "cur": "Energy",
       "status": "revise",
-      "why": "Henry 09-23: a 25p 1e, not a 2e."
+      "why": "Henry 09-23: a 25p 1e, not a 2e. 157-r3 re-tags it GLUE, not scalar: 25 power is a flat hit and the refund is a rider on it, so it banks nothing and cashes nothing. The tag matters because the one-payoff rule counts scalars - with this as a scalar, jormungandr_v1 would open on two payoffs."
     },
     {
       "id": "riptide_run",
@@ -1238,9 +1238,7 @@
       "id": "fenrir_v1",
       "os": "UNBOUND_KERNEL",
       "text": "Attack programs apply 2 Strength and deal 2% max-HP recoil. Allies’ attacks apply 1 Strength to Fenrir. Fire attacks deal more the more HP Fenrir is missing.",
-      "cur": "Strength · HP",
       "ally": "reads allies’ attacks",
-      "tempo": "ramp (Str consume) · ramp (HP as fuel)",
       "laneA": [
         "Str consume",
         "Stack Strength across bodies, spend it all at once."
@@ -1295,20 +1293,6 @@
         "core_overclock",
         "howl"
       ],
-      "partners": [
-        [
-          "Sköll v1",
-          "Howl / TREACHERY put Strength on Fenrir for free"
-        ],
-        [
-          "Huldra v1",
-          "Weakens the attackers so the recoil deck survives"
-        ],
-        [
-          "Rat v1",
-          "GOSSIP heals the HP Fenrir spends"
-        ]
-      ],
       "builds": [
         [
           "Str consume",
@@ -1330,9 +1314,7 @@
       "id": "fenrir_v2",
       "os": "CINDER_WALL",
       "text": "Whenever an ally applies Burn to any unit — including themselves — Fenrir gains 1 Sharp.",
-      "cur": "Burn → Sharp",
       "ally": "reads any ally’s Burn",
-      "tempo": "ramp (Burn → Sharp → consume) · control (side Burn)",
       "laneA": [
         "Cinder ramp",
         "Cheap Burns become Sharp; Sharp becomes a lance or a consume."
@@ -1393,20 +1375,6 @@
         "ash_communion",
         "heat_wave"
       ],
-      "partners": [
-        [
-          "Kraken v2",
-          "Scald / Boiling Surge are Burn — steam feeds CINDER_WALL"
-        ],
-        [
-          "Sköll v2",
-          "Every Brand and Ember Jab is a Sharp for Fenrir"
-        ],
-        [
-          "Huldra v1",
-          "Bolster’s Sharp lands on Fenrir; Cinder Lance reads it"
-        ]
-      ],
       "builds": [
         [
           "Cinder ramp",
@@ -1428,9 +1396,7 @@
       "id": "skoll_v1",
       "os": "TREACHERY_KERNEL",
       "text": "Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 Strength.",
-      "cur": "Strength",
       "ally": "fed by allies being hit; Howl gives Str back",
-      "tempo": "zoo (Str multi-hit) · control (deny + battery)",
       "laneA": [
         "Flurry",
         "Strength is added per hit — many small hits, each one bigger."
@@ -1444,60 +1410,46 @@
           "fury_strike",
           2,
           "A",
-          1
+          2
         ],
         [
           "flare_burst",
           2,
           "A",
-          2
+          1
         ],
         [
-          "snarl",
+          "brute_force",
           1,
-          "B",
-          1
+          "A",
+          0
         ],
         [
           "snap",
           1,
           "B",
-          1
+          0
         ],
         [
           "howl",
           1,
           "B",
-          0
+          1
         ],
         [
           "forage",
           1,
           "G",
-          0
+          1
         ]
       ],
       "pool": [
         "pack_tactics",
-        "brute_force",
+        "snarl",
         "battle_rhythm",
         "reactive_plating",
         "core_overclock",
         "crimson_draw"
-      ],
-      "partners": [
-        [
-          "Fenrir v1",
-          "Howl + UNBOUND_KERNEL: Fenrir’s consume eats Sköll’s Strength"
-        ],
-        [
-          "Huldra v1",
-          "Bolster keeps allies alive to be hit; ALLURE turns the buff into Weakened"
-        ],
-        [
-          "Huldra v2",
-          "Bark on allies = chip damage that still procs TREACHERY without killing"
-        ]
       ],
       "builds": [
         [
@@ -1506,11 +1458,11 @@
         ],
         [
           "Pack leader",
-          "snarl snarl snap snap howl howl fury_strike forage"
+          "snarl snarl snap snap howl howl brute_force forage"
         ],
         [
           "With Fenrir v1",
-          "fury_strike flare_burst flare_burst howl howl snarl snap forage"
+          "fury_strike flare_burst flare_burst brute_force howl howl snap forage"
         ]
       ]
     },
@@ -1519,10 +1471,8 @@
       "el": "Fire",
       "id": "skoll_v2",
       "os": "EMBER_FUSE (new)",
-      "text": "Sköll’s attacks on a Burning target apply 1 more Burn. (Burn is permanent, caps at 4, and detonates past the cap.)",
-      "cur": "Burn (detonation)",
+      "text": "Each of Sköll’s hits on a Burning target applies 1 more Burn — so a three-hit card pays three times. (Burn is permanent, caps at 4, and detonates past the cap.)",
       "ally": "every ally’s Burn is a fuse Sköll can light",
-      "tempo": "ramp (push piles past 4) · zoo (cheap Burn riders)",
       "laneA": [
         "Detonator",
         "Get a pile to 3–4, then Heat Wave or one more hit sets it off."
@@ -1583,20 +1533,6 @@
         "ash_communion",
         "cinder_armor"
       ],
-      "partners": [
-        [
-          "Fenrir v2",
-          "Every Burn Sköll adds is Sharp for Fenrir"
-        ],
-        [
-          "Kraken v2",
-          "Steam Burns pre-load the pile Sköll detonates"
-        ],
-        [
-          "Jorm v2",
-          "Two clocks: Poison and Burn ignore Sharp walls"
-        ]
-      ],
       "builds": [
         [
           "Detonator",
@@ -1618,9 +1554,7 @@
       "id": "ratatoskr_v1",
       "os": "GOSSIP_NODE",
       "text": "Whenever an ally plays a 0-cost program, that ally heals 2.5% of their max HP.",
-      "cur": "cards (0e casts)",
       "ally": "heals whichever ally casts 0e",
-      "tempo": "zoo (cards-played scalar) · keeper (heal + draw)",
       "laneA": [
         "Chatter",
         "Cast many 0e cards, cash them with Seed Bomb."
@@ -1675,20 +1609,6 @@
         "verdant_ward",
         "deep_scan"
       ],
-      "partners": [
-        [
-          "Rat v2",
-          "Two 0e engines share one pile; INSTIGATOR Dazes what GOSSIP heals through"
-        ],
-        [
-          "Jorm v1",
-          "Undertow is a 0e cast AND a Water card for OUROBOROS"
-        ],
-        [
-          "Fenrir v1",
-          "GOSSIP refunds the HP the berserker spends"
-        ]
-      ],
       "builds": [
         [
           "Chatter",
@@ -1710,9 +1630,7 @@
       "id": "ratatoskr_v2",
       "os": "INSTIGATOR",
       "text": "Whenever an ally plays a 0-cost card at an enemy, apply 1 Dazed to the target.",
-      "cur": "cards (0e) → Dazed",
       "ally": "Dazes the target of any ally’s 0e card",
-      "tempo": "zoo (binary Dazed riders) · control (Weakened riders)",
       "laneA": [
         "Heckler",
         "Is it Dazed? Then every bite is a big bite."
@@ -1767,20 +1685,6 @@
         "crippling_vine",
         "snarl"
       ],
-      "partners": [
-        [
-          "Kraken v1",
-          "Rat makes Dazed by the cast; Crushing Depths consumes it per stack"
-        ],
-        [
-          "Jorm v2",
-          "Dazed on the target is +power on each of Serpent Flurry’s three hits"
-        ],
-        [
-          "Huldra v1",
-          "Rat’s Weakened feeds Sap Strength and Hexbloom"
-        ]
-      ],
       "builds": [
         [
           "Heckler",
@@ -1802,9 +1706,7 @@
       "id": "jormungandr_v1",
       "os": "OUROBOROS_LOOP",
       "text": "Each turn, the 5th Water card your side plays draws 1 card.",
-      "cur": "cards (played)",
       "ally": "counts the whole side’s Water cards",
-      "tempo": "zoo (cards-played scalar) · ramp (refunds)",
       "laneA": [
         "Coil",
         "Cheap Water cards, then Serpent’s Coil counts them."
@@ -1818,7 +1720,7 @@
           "undertow",
           2,
           "A",
-          2
+          1
         ],
         [
           "blind_spot",
@@ -1836,7 +1738,7 @@
           "surge_protection",
           1,
           "B",
-          0
+          1
         ],
         [
           "riptide_run",
@@ -1859,20 +1761,6 @@
         "tide_pool",
         "tidal_battery"
       ],
-      "partners": [
-        [
-          "Kraken v1",
-          "Both engines eat Undertow; ABYSSAL_INK turns Jorm’s draws into Dazed"
-        ],
-        [
-          "Rat v1",
-          "0e Water cards proc GOSSIP too"
-        ],
-        [
-          "Kraken v2",
-          "Jorm’s refunds pay for Kraken’s 3e turn"
-        ]
-      ],
       "builds": [
         [
           "Coil",
@@ -1894,9 +1782,7 @@
       "id": "jormungandr_v2",
       "os": "TOXIN_FANG",
       "text": "Jörmungandr’s attacks deal +10 damage per Poison stack on the target.",
-      "cur": "Poison",
       "ally": "reads the TARGET — anyone’s Poison",
-      "tempo": "zoo (Poison riders × multi-hit) · ramp (double, then trigger)",
       "laneA": [
         "Fangs",
         "Poison the target, then hit it three times."
@@ -1951,20 +1837,6 @@
         "nettle_sting",
         "riptide"
       ],
-      "partners": [
-        [
-          "Huldra v2",
-          "Thornguard’s conditional Poison is TOXIN_FANG fuel"
-        ],
-        [
-          "Huldra v1",
-          "Hexbloom converts Weakened into a pile Jorm reads"
-        ],
-        [
-          "Rat v2",
-          "Dazed on the target adds to every one of the flurry’s hits"
-        ]
-      ],
       "builds": [
         [
           "Fangs",
@@ -1986,9 +1858,7 @@
       "id": "kraken_v1",
       "os": "ABYSSAL_INK_SYS",
       "text": "Whenever Kraken’s side draws a card outside the draw phase, apply 2 Dazed to a random enemy.",
-      "cur": "cards (drawn) → Dazed",
       "ally": "any ally’s draw Dazes for free",
-      "tempo": "zoo (draw scalar) · control (Dazed consume)",
       "laneA": [
         "Ink",
         "Draw off-phase, Ink Stream counts the draws."
@@ -2043,20 +1913,6 @@
         "deep_scan",
         "static_ward"
       ],
-      "partners": [
-        [
-          "Jorm v1",
-          "Undertow serves both OSes"
-        ],
-        [
-          "Rat v2",
-          "Two Dazed engines, one Crushing Depths"
-        ],
-        [
-          "Sköll v1",
-          "Dazed on the target is per-hit power for Flare Burst"
-        ]
-      ],
       "builds": [
         [
           "Ink",
@@ -2078,9 +1934,7 @@
       "id": "kraken_v2",
       "os": "TIDAL_CRUSH_OS",
       "text": "Water cards that cost 2 or more Energy deal 30% more damage.",
-      "cur": "Energy",
       "ally": "Tidal Battery (run card) ramps the side",
-      "tempo": "ramp (Energized → 3e) · control (steam Burn)",
       "laneA": [
         "Deep charge",
         "Bank Energy for two turns, then Hydro Blast."
@@ -2135,20 +1989,6 @@
         "ink_cloud",
         "heat_wave"
       ],
-      "partners": [
-        [
-          "Fenrir v2",
-          "Every steam Burn is a Sharp for Fenrir"
-        ],
-        [
-          "Sköll v2",
-          "Steam pre-loads the piles Sköll detonates"
-        ],
-        [
-          "Jorm v1",
-          "Refunds pay for the 3e turn"
-        ]
-      ],
       "builds": [
         [
           "Deep charge",
@@ -2170,9 +2010,7 @@
       "id": "huldra_v1",
       "os": "ALLURE_PROXY",
       "text": "Whenever an ally applies a buff to an ally, Huldra mirrors it: 1 Weakened on a random enemy.",
-      "cur": "Sharp/Regen (given) → Weakened",
       "ally": "buffs allies; every buff Weakens an enemy",
-      "tempo": "control (Weakened scalar/consume) · keeper (ally buffs)",
       "laneA": [
         "Thorns",
         "Weaken them, then read the Weakened."
@@ -2233,20 +2071,6 @@
         "static_ward",
         "pollen_cloud"
       ],
-      "partners": [
-        [
-          "Fenrir v1 / Sköll v1",
-          "Weakened cancels enemy Strength stack for stack; Bolster’s Sharp lands where Cinder Lance reads it"
-        ],
-        [
-          "Jorm v2",
-          "Hexbloom’s Poison is TOXIN_FANG fuel"
-        ],
-        [
-          "Rat v2",
-          "Rat’s Weakened riders feed Sap Strength"
-        ]
-      ],
       "builds": [
         [
           "Thorns",
@@ -2268,9 +2092,7 @@
       "id": "huldra_v2",
       "os": "BARK_SHIELD_OS",
       "text": "At the end of Huldra’s first turn she raises a massive Bark Shield, and a smaller one around each ally.",
-      "cur": "Bark",
       "ally": "shields every ally",
-      "tempo": "ramp (Bark scalar/consume) · control (Bark → Poison, shield allies)",
       "laneA": [
         "Bark smash",
         "Build the shield, then swing it."
@@ -2324,20 +2146,6 @@
         "verdant_ward",
         "mend",
         "iron_bark"
-      ],
-      "partners": [
-        [
-          "Jorm v2",
-          "Thornguard’s Poison is TOXIN_FANG fuel"
-        ],
-        [
-          "Sköll v1",
-          "Bark on allies keeps TREACHERY’s chip damage survivable"
-        ],
-        [
-          "Rat v1",
-          "A shielded zoo heals AND poisons"
-        ]
       ],
       "builds": [
         [
