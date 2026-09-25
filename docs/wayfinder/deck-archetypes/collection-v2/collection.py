@@ -148,7 +148,9 @@ dict(sp='Fenrir', el='Fire', id='fenrir_v2', os='CINDER_WALL', text='Whenever an
 dict(sp='Sköll', el='Fire', id='skoll_v1', os='TREACHERY_KERNEL', text='Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 Strength.',
      ally='fed by allies being hit; Howl gives Str back',
      laneA=('Flurry', 'Strength is added per hit — many small hits, each one bigger.'), laneB=('Pack leader', 'Keep the chip damage small, hand the Strength around.'),
-     kit=[('fury_strike',2,'A',1),('flare_burst',2,'A',2),('brute_force',1,'A',1),('snap',1,'B',1),('howl',1,'B',0),('forage',1,'G',0)],
+     # TICKET 157-r1(b) (Henry, 2026-09-24): ONE payoff in the opening five. This kit had FOUR
+     # (flare_burst x2, brute_force, snap). The startCopies column moves; the DECK is unchanged.
+     kit=[('fury_strike',2,'A',2),('flare_burst',2,'A',1),('brute_force',1,'A',0),('snap',1,'B',0),('howl',1,'B',1),('forage',1,'G',1)],
      pool=['pack_tactics','snarl','battle_rhythm','reactive_plating','core_overclock','crimson_draw'],
      builds=[('Flurry','fury_strike fury_strike flare_burst flare_burst pack_tactics brute_force battle_rhythm forage'),('Pack leader','snarl snarl snap snap howl howl brute_force forage'),('With Fenrir v1','fury_strike flare_burst flare_burst brute_force howl howl snap forage')]),
 dict(sp='Sköll', el='Fire', id='skoll_v2', os='EMBER_FUSE (new)', text='Each of Sköll’s hits on a Burning target applies 1 more Burn — so a three-hit card pays three times. (Burn is permanent, caps at 4, and detonates past the cap.)',

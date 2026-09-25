@@ -263,7 +263,30 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v1 keeps one `sun_devourer` as the consume payoff; v2 keeps `strength_burst` to light
         // the core and `glass_cannon` to cash it, leaving `all_in`'s self-Burn risk to be drafted.
         startKits: {
-            "skoll_v1": ["fury_strike", "flare_burst", "flare_burst", "brute_force", "snap"],
+            /*
+             * ── TICKET 157-r1(b), RULED BY HENRY 2026-09-24 — **ONE PAYOFF IN THE OPENING FIVE.** ──
+             *
+             * > *"Every player start five must carry exactly ONE payoff card (a scalar or the
+             * > consume) — the engine should be weak, not absent."*
+             *
+             * The audit of all twelve found ten kits already at exactly one. This one had **FOUR**
+             * — `flare_burst` twice, `brute_force` and `snap` — which is the opposite of a weak
+             * engine and is a large part of why skoll_v1 opens at 80-90% while the field mean is
+             * 77.5%.
+             *
+             * The one kept is `flare_burst`, and the choice is a rule rather than a taste: of the
+             * payoffs that read the OS's OWN currency, take the lowest-scoring. TREACHERY_KERNEL
+             * banks Strength and adds it PER HIT, so the multi-hit (15 power twice, 149c 3.00) is
+             * the engine; `brute_force` (3.10) reads Strength too but scores higher, and `snap`
+             * (2.80) reads WEAKENED — huldra's currency, not Sköll's — so it is not this engine at
+             * any score.
+             *
+             * The four freed slots go to the deck's own enablers and glue, which is all that is
+             * left in it: `fury_strike` x2 (the 1e attack that FEEDS the OS — the note below has
+             * said so since ticket 09), `howl`, `forage`. Still a sub-multiset of the deck, still
+             * carrying the kit's glue, still holding no consume.
+             */
+            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "howl", "forage"],
             "skoll_v2": ["ember_jab", "ember_jab", "brand", "ignite", "flashover"]
         },
         moves: [

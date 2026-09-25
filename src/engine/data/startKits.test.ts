@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, GENERIC_HIT, getDeckForOS } from './mingmingRegistry';
 import { GetProgramData, ProgramRegistry } from './programRegistry';
 import { START_KIT_SIZE } from '../run/createRun';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * THE GLUE each collection-v2 kit carries — ticket 162a, replacing ticket 61's payoff table.
@@ -183,5 +185,87 @@ describe('start kits', () => {
                 `'${id}' is tagged but is not a launch species - widen LAUNCH_SPECIES or drop the tags`,
             ).toBeUndefined();
         }
+    });
+});
+
+/**
+ * ══ TICKET 157-r1(b), RULED BY HENRY 2026-09-24 — **ONE PAYOFF IN THE OPENING FIVE.** ══
+ *
+ * > *"Every player start five must carry exactly ONE payoff card (a scalar or the consume) — the
+ * > engine should be weak, not absent."*
+ *
+ * The rule exists because 157's walker measured fight one at **77.5% against the ruled 95**, and
+ * the diagnosis was that the two sides' openings were asymmetric. 157-r1(a) fixes the ENEMY half
+ * (a biome-0 wild now mirrors the start-kit shape); this is the player half, and it cuts both ways
+ * — a kit with no payoff has no engine to assemble, and a kit with four has no assembling to do.
+ *
+ * # WHAT COUNTS AS A PAYOFF, AND WHY IT IS READ FROM THE DESIGN FILE
+ *
+ * 158 §2's card grammar: `enabler` · `consume` · `scalar` · `glue` (plus `converter` and `hate`).
+ * A payoff is a **scalar or a consume** — the card that cashes a currency rather than banking one.
+ * The engine has no field for "what job does this card do", which is exactly why
+ * `collection-v2/collection.json` is still that tag's home (`registry_source.py` says so), so this
+ * reads the design file. A card the design file does not tag counts as not-a-payoff, which is the
+ * honest default: an untagged card is one nobody has classified, not one classified as an engine.
+ *
+ * # THE ONE EXCEPTION IS A DECK PROBLEM, NOT A KIT PROBLEM
+ *
+ * `jormungandr_v2` cannot satisfy this rule from its own deck. TOXIN_FANG's nine cards are
+ * `corrosive_bolt` x2, `tackle`, `venom_fang`, `serpent_flurry` x2, `serpents_coil`, `toxic_surge`
+ * — **three** non-payoff cards and five payoffs, one of which is the consume 161 keeps out of every
+ * opening hand. A kit is a sub-multiset of the deck, so one payoff plus every non-payoff it has is
+ * FOUR cards; the fifth has nowhere to come from but another payoff.
+ *
+ * Fixing it means adding an enabler to the DECK, which is a design change and Henry's to make — so
+ * it is named here with the arithmetic rather than papered over with a widened rule. Every other
+ * kit passes.
+ */
+describe('157-r1 — the opening five carries exactly one payoff', () => {
+    const design = JSON.parse(
+        fs.readFileSync(path.join('docs', 'wayfinder', 'deck-archetypes', 'collection-v2', 'collection.json'), 'utf8'),
+    ) as { cards: Array<{ id: string; shape?: string }> };
+    const shapeOf = new Map(design.cards.map((c) => [c.id, c.shape ?? '']));
+    const isPayoff = (dataId: string): boolean => {
+        const shape = shapeOf.get(dataId) ?? '';
+        return shape === 'scalar' || shape === 'consume';
+    };
+
+    /** The one kit whose DECK cannot supply a legal five. See the block above for the arithmetic. */
+    const DECK_TOO_THIN = 'jormungandr_v2';
+
+    it('reads a shape for every card the twelve kits hold — the rule is only as good as the tags', () => {
+        // Guards the guard. An untagged card counts as not-a-payoff, so a design file that stopped
+        // carrying `shape` would make every kit pass with zero payoffs and nothing would say so.
+        const tagged = LAUNCH_SPECIES.flatMap((species) =>
+            (MingmingRegistry[species].availableOS ?? []).flatMap((os) =>
+                (MingmingRegistry[species].startKits?.[os] ?? []).map((id) => shapeOf.get(id) ?? '')));
+        expect(tagged.length).toBe(LAUNCH_SPECIES.length * 2 * START_KIT_SIZE);
+        expect(tagged.filter((shape) => shape === '')).toEqual([]);
+    });
+
+    it('holds exactly one payoff in every kit but the one whose deck cannot', () => {
+        const counted: Record<string, number> = {};
+        for (const species of LAUNCH_SPECIES) {
+            for (const os of MingmingRegistry[species].availableOS ?? []) {
+                counted[os] = (MingmingRegistry[species].startKits?.[os] ?? []).filter(isPayoff).length;
+            }
+        }
+        const offenders = Object.entries(counted)
+            .filter(([os, n]) => n !== 1 && os !== DECK_TOO_THIN)
+            .map(([os, n]) => `${os}: ${n} payoffs`);
+        expect(offenders, 'a kit is an engine that starts WEAK, not one that starts assembled').toEqual([]);
+        expect(Object.keys(counted)).toHaveLength(12);
+    });
+
+    it('names the exception with its arithmetic, so it cannot quietly become the rule', () => {
+        /*
+         * If somebody adds an enabler to TOXIN_FANG's deck, this fails and the exception should be
+         * deleted — which is the intended outcome, not a nuisance. If somebody instead thins
+         * another deck the same way, the case above catches it.
+         */
+        const deck = getDeckForOS('jormungandr', DECK_TOO_THIN);
+        const spare = deck.filter((id) => !isPayoff(id) && !isConsume(id));
+        expect(spare.length, 'the deck now has enough enablers — drop the exception').toBeLessThan(START_KIT_SIZE - 1);
+        expect((MingmingRegistry.jormungandr.startKits?.[DECK_TOO_THIN] ?? []).filter(isPayoff).length).toBe(2);
     });
 });

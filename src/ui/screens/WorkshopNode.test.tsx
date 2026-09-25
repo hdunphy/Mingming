@@ -73,6 +73,9 @@ const escapeHtml = (text: string): string =>
     text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 
+/** For the one assertion that has to be a pattern rather than a substring: card names carry `+`. */
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const KRAKEN: IMingmingState = {
     id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1',
     blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10,
@@ -320,14 +323,17 @@ describe('WorkshopNode — the assembly stage', () => {
     it('lists the whole 5-card engine, payoff first, duplicates collapsed to ×N', () => {
         /*
          * Ticket 65: *"choosing the firmware IS choosing the five cards, and a picker that named only
-         * the OS would be asking the player to choose blind."* Skoll's v1 engine is a payoff plus a
-         * doubled enabler, which is the shape that catches both failures at once — a screen that
-         * dropped the duplicate would print four cards for a five-card price, and one that listed
-         * five rows would say the player is buying five different cards.
+         * the OS would be asking the player to choose blind."* Skoll's v1 engine carries a DOUBLED
+         * card, which is the shape that catches both failures at once — a screen that dropped the
+         * duplicate would print four rows for a five-card price, and one that listed five rows would
+         * say the player is buying five different cards.
          *
          * Asserted against `engineIdsForSpecies` rather than against card names, because the point is
          * that the stage prints the engine the run will actually mint: retagging Skoll's `startKits`
-         * must move this expectation, not break it.
+         * must move this expectation, not break it. Ticket 157-r1(b) did exactly that — the doubled
+         * card used to be an enabler and is now the payoff itself (`fury_strike` ×2) — which is why
+         * the ×N check below tolerates the tag chip sitting between the name and the count instead
+         * of demanding they be adjacent. That adjacency was an accident of WHICH card was doubled.
          */
         const ids = engineIdsForSpecies('skoll', 'skoll_v1');
         expect(ids.length).toBe(RECRUIT_KIT_SIZE);
@@ -338,8 +344,14 @@ describe('WorkshopNode — the assembly stage', () => {
         for (const { name, n } of expectedEngineRows(ids)) {
             expect(markup).toContain(`<span class="rs-rnm">${escapeHtml(name)}</span>`);
             if (n > 1) {
-                expect(markup).toContain(
-                    `<span class="rs-rnm">${escapeHtml(name)}</span><span class="rs-x">×${n}</span>`,
+                // name → [optional tag chip] → count. The tag is optional and the count is not,
+                // which is the row's actual grammar; nothing else may come between them.
+                expect(markup).toMatch(
+                    new RegExp(
+                        `<span class="rs-rnm">${escapeRegExp(escapeHtml(name))}</span>` +
+                            `(?:<span class="rs-t">[^<]*</span>)?` +
+                            `<span class="rs-x">×${n}</span>`,
+                    ),
                 );
             }
         }

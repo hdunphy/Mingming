@@ -303,13 +303,50 @@ export function gradeFor(kind: NodeKind): EnemyGrade {
  * Tiers are cumulative and clamped: tier 3 and above is the top rung, because there is no fourth
  * grade and inventing one here would be a scaling knob wearing a ladder's clothes.
  */
-export function enemyLoadoutFor(kind: NodeKind, tier: number): IEnemyLoadout {
+export function enemyLoadoutFor(kind: NodeKind, tier: number, biomeIndex = 1): IEnemyLoadout {
     const grade = gradeFor(kind);
     const base = ENEMY_LADDER[grade];
     if (grade !== 'wild') return base;
-    if (tier >= 3) return { ...base, os: true, ai: 'lite' };
-    if (tier >= 2) return { ...base, os: true };
-    return base;
+
+    /*
+     * ══ TICKET 157-r1(a), RULED BY HENRY 2026-09-24 — **THE OPENINGS HAVE TO MATCH.** ══
+     *
+     * 157's walker measured fight one at **77.5% against the ruled 95**, eight of twelve starters
+     * under target, `jormungandr_v1` at 10%, and `runGate`'s own wild/biome-0 cell agreed at 67%.
+     * The diagnosis Henry accepted is that the two sides' OPENINGS were asymmetric, and neither
+     * half was a bug on its own:
+     *
+     *   - ticket 161 deliberately THINNED the player's opening five — the engine is meant to start
+     *     weak and be assembled;
+     *   - this ladder deals every wild the FULL tuned kit from fight one, because when it was
+     *     written the player also opened on a tuned deck.
+     *
+     * So a brand-new party walked into a nine-card tuned deck holding five kit cards and three
+     * tackles. Neither ticket is wrong; the pair is.
+     *
+     * **Biome 0 mirrors the SHAPE the player is dealt** — `start-kit-plus-generics`, which is
+     * `startDeckFor`'s own composition rather than a second copy of it. Biome 1 onward is the full
+     * kit, unchanged, which is where the drift the run is FOR starts to pay: by then the player has
+     * taken picks, bought, upgraded and recruited, and the tuned deck is the right thing to meet.
+     *
+     * **`biomeIndex` defaults to 1, not 0**, and that is deliberate: a caller that has not been
+     * taught about this gets the OLD behaviour (the full kit) rather than a silently gentler fight.
+     * The one caller that matters — `rollEncounter` — passes the node's own index.
+     *
+     * Elites and the gauntlet are untouched at every depth. An elite is the rung where "the same
+     * cards, played better" begins, and a first-biome elite is a fight the player chose to take.
+     */
+    /*
+     * The biome touches the DECK and nothing else; the tier touches how it is PLAYED and nothing
+     * else. Written as two independent adjustments rather than as one ordered chain of returns,
+     * because the first draft of this returned early at biome 0 and silently ate the tier raise —
+     * a tier-3 run's first-biome wilds came out greedy and firmware-less, which is ticket 60's
+     * rung quietly deleted for a third of the map.
+     */
+    const deck: EnemyDeckRule = biomeIndex <= 0 ? 'start-kit-plus-generics' : base.deck;
+    if (tier >= 3) return { ...base, deck, os: true, ai: 'lite' };
+    if (tier >= 2) return { ...base, deck, os: true };
+    return { ...base, deck };
 }
 
 /**
@@ -846,7 +883,8 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
     // 2026-08-23) — pinned to its own gentle loadout and to a single body. See `isOpeningFight` for
     // why this is a floor on the fight rather than a rewrite of it.
     const opening = isOpeningFight(run);
-    const loadout = opening ? OPENING_FIGHT_LOADOUT : enemyLoadoutFor(node.kind, run.tier);
+    // TICKET 157-r1(a): the node's biome decides whether a wild mirrors the player's opening shape.
+    const loadout = opening ? OPENING_FIGHT_LOADOUT : enemyLoadoutFor(node.kind, run.tier, node.biomeIndex);
     const pool = encounterSpeciesPool(run, node);
     // Ticket 142b: the scout is TWO bodies of the leader's comp, whatever the player brought — a
     // preview that mirrored your party size would show a different fight to a solo run than to a

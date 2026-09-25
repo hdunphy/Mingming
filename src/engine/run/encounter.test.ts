@@ -318,7 +318,7 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
         });
     };
 
-    it('every rung fields the FULL tuned deck — depth stopped being the axis (ticket 60)', () => {
+    it('fields the FULL tuned deck from biome 1 on, and the start-kit SHAPE at biome 0', () => {
         /*
          * The claim ticket 60 replaced ticket 08's table with, and it is a strong one: **the enemy
          * in front of you is holding the list the balance corpus is calibrated on, in every fight of
@@ -336,10 +336,51 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
          * cantrips removed" rather than by relaxing the comparison, because the strength of this
          * test is that it compares card for card and in order.
          */
-        for (const biomeIndex of [0, 1, 2]) {
+        for (const biomeIndex of [1, 2]) {
             const wild = rollEncounter({ run, node: node({ biomeIndex }), party });
             expect(wild.enemyDeckIds).toEqual(withoutDuplicateCantrips(tunedDeckFor(wild.enemyParty)));
         }
+
+        /*
+         * ══ TICKET 157-r1(a) PUT ONE ROW BACK, AND BIOME 0 IS THE ONLY ONE. ══
+         *
+         * 60 was right to delete the old table and this is not a restoration of it: the old one
+         * indexed FOUR rows on biome and produced a curve whose middle was its hardest point
+         * (26.7% at biome 1, against 67.1% at biome 0 and 50.0% at biome 2), because `start-kit`
+         * alone is a SHARPER list than the tuned one, not a weaker one.
+         *
+         * What 157 measured is different and is about the other side of the table: **the player's
+         * opening five was thinned by ticket 161 and this ladder was not**, so fight one read
+         * 77.5% against the ruled 95 (and `runGate`'s own wild/biome-0 cell agreed at 67%). Biome 0
+         * now deals the enemy `start-kit-plus-generics` — not the sharper `start-kit`, the SAME
+         * composition `createRun` deals the player, through `startDeckFor` itself.
+         *
+         * Biome 1 onward is untouched, which is what keeps this one row rather than a table: by
+         * then the player has picked, bought, upgraded and recruited, and the tuned deck is the
+         * right thing to meet.
+         */
+        const opening = rollEncounter({ run, node: node({ biomeIndex: 0 }), party });
+        expect(opening.enemyDeckIds).not.toEqual(withoutDuplicateCantrips(tunedDeckFor(opening.enemyParty)));
+        expect(opening.enemyDeckIds.length).toBeLessThan(tunedDeckFor(opening.enemyParty).length);
+
+        /*
+         * Asserted as the COMPOSITION rather than as a subset, because "the same shape the player is
+         * dealt" is a claim about what is in the list *and* about the filler rule: the kit cards come
+         * from the species, and `STARTER_GENERICS` tackles ride on the FIRST member only — exactly
+         * what `createRun` hands the player. A subset check would pass a deck that had quietly
+         * stopped dealing the generics, and the generics are half of why the opening five is soft.
+         *
+         * The generic is deliberately NOT in the tuned deck (it is a None-element filler card), which
+         * is why the membership loop this replaced was wrong to demand every card be in it.
+         */
+        const kitPlusGenerics = opening.enemyParty.flatMap((enemy, index) => [
+            ...startKitIdsFor(enemy, START_KIT_SIZE),
+            ...(index === 0 ? Array.from({ length: STARTER_GENERICS }, () => GENERIC_HIT) : []),
+        ]);
+        expect(opening.enemyDeckIds).toEqual(kitPlusGenerics);
+
+        // An ELITE is untouched at every depth, biome 0 included: it is the rung where "the same
+        // cards, played better" begins, and a first-biome elite is a fight the player chose.
         const elite = rollEncounter({ run, node: node({ kind: 'elite', biomeIndex: 0 }), party });
         expect(elite.enemyDeckIds).toEqual(tunedDeckFor(elite.enemyParty));
     });
@@ -471,7 +512,7 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
 // ---------------------------------------------------------------------------------------------
 
 describe('ticket 21: depth changes the deck and the firmware, never a number', () => {
-    it('builds the identical FIGHT at biome 0 and biome 2 — depth is no longer an axis at all', () => {
+    it('builds the identical fight at biome 1 and biome 2 — depth is an axis ONCE, at biome 0', () => {
         /*
          * Ticket 21's law used to be "same individuals, different deck and firmware". Ticket 60's
          * ladder makes it stronger: depth changes NOTHING about a wild. Same species, same IVs, same
@@ -485,7 +526,7 @@ describe('ticket 21: depth changes the deck and the firmware, never a number', (
         const run = makeRun(['Fire', 'Fire', 'Fire']);
         const party = [KRAKEN, FENRIR];
 
-        const shallow = rollEncounter({ run, node: node({ biomeIndex: 0 }), party });
+        const shallow = rollEncounter({ run, node: node({ biomeIndex: 1 }), party });
         const deep = rollEncounter({ run, node: node({ biomeIndex: 2 }), party });
 
         expect(deep.enemyParty.map(identityOf)).toEqual(shallow.enemyParty.map(identityOf));
@@ -493,6 +534,17 @@ describe('ticket 21: depth changes the deck and the firmware, never a number', (
         expect(deep.enemyAiTier).toBe(shallow.enemyAiTier);
         expect(shallow.enemyParty.every((e) => e.activeOS === undefined)).toBe(true);
         expect(deep.enemyParty.every((e) => e.activeOS === undefined)).toBe(true);
+
+        /*
+         * TICKET 157-r1(a): biome 0 is now the one exception, and it moves the DECK and nothing
+         * else. Same individuals, same IVs, same absent firmware, same greedy AI — the only thing
+         * depth touches is the list, which is the shape ticket 21's law was originally written as.
+         */
+        const opening = rollEncounter({ run, node: node({ biomeIndex: 0 }), party });
+        expect(opening.enemyParty.map(identityOf)).toEqual(shallow.enemyParty.map(identityOf));
+        expect(opening.enemyAiTier).toBe(shallow.enemyAiTier);
+        expect(opening.enemyParty.every((e) => e.activeOS === undefined)).toBe(true);
+        expect(opening.enemyDeckIds).not.toEqual(shallow.enemyDeckIds);
     });
 
     it('rolls a wild’s IVs from the same band at every depth, and that band is 0-20', () => {
@@ -748,36 +800,52 @@ describe('ticket 24: every run\u2019s OPENING fight is a floor (Slay the Spire\u
         expect(offset).toBe(enemyDeckIds.length);
     });
 
-    it('softens the DECK of an ordinary biome-0 wild without touching who you fight', () => {
+    it('holds the floor against the TIER, and never re-rolls who you fight', () => {
         /*
-         * This assertion INVERTED with ticket 60's ladder, and the inversion is the point.
+         * This assertion has inverted twice, and the second inversion is ticket 157-r1(a).
          *
-         * It used to read *"leaves an ordinary biome-0 wild exactly as it was"* — byte-identical,
-         * deck included — and that was true because `KIT_FRACTION_BY_BIOME[0]` and the opening
-         * fight's floor happened to be the same row. So the floor only ever bit on an elite or an
-         * ambush that the generator dropped into layer 1.
+         * It first read *"leaves an ordinary biome-0 wild exactly as it was"* — byte-identical, deck
+         * included — because ticket 08's gentlest row and the opening fight's floor happened to be
+         * the same row, so the floor only bit on an elite or an ambush the generator dropped into
+         * layer 1. Ticket 60 deleted the table, every wild took the full tuned deck, and the floor
+         * started biting on every first fight; this test then asserted the DECK was softer.
          *
-         * The table is gone: an ordinary biome-0 wild now holds the full tuned deck like every other
-         * wild, so the floor bites on EVERY first fight. That is a real difficulty change and it is
-         * the one ticket 24 asked for — *"the enemy deck is pinned to the same six cards the player
-         * is holding"* — applied at last to the fight it was written about.
+         * 157-r1(a) put the biome-0 row back on the ladder itself, so an ordinary biome-0 wild and
+         * the scripted opening now hold the same composition and the deck is no longer what
+         * separates them. That is not the floor failing — it is the floor's rule becoming the
+         * ladder's rule, which is the better place for it.
          *
-         * What must NOT change is who you meet: the floor is a floor on the loadout, not a second
-         * roll. Same species, same IVs, same seed.
+         * **So the floor is asserted where it still bites: against the TIER.** A tier-3 run's wilds
+         * run firmware and a lite lookahead (`enemyLoadoutFor`), and the first fight of that run
+         * does not. That is ticket 24's ruling in the only form it can still be false in: a player
+         * on their fourth run opens on the same gentle rung a player on their first does.
+         *
+         * And what must NOT change at any tier is who you meet. The floor is a floor on the
+         * LOADOUT, not a second roll: same species, same IVs, same seed.
          */
         const plain = node({ id: 'b0l1n2', kind: 'wild', layer: 1, visited: 1 });
-        const softened = rollEncounter({ run: onboardingRun(['Fire', 'Water', 'Nature']), node: plain, party });
-        const ordinary = rollEncounter({ run: makeRun(['Fire', 'Water', 'Nature'], 'onboarding-seed'), node: plain, party });
+        const tier3 = (fightsResolved: number): IRunState =>
+            ({ ...makeRun(['Fire', 'Water', 'Nature'], 'onboarding-seed'), tier: 3, fightsResolved });
 
-        expect(softened.enemyParty.map(identityOf)).toEqual(ordinary.enemyParty.map(identityOf));
-        expect(softened.seed).toBe(ordinary.seed);
+        const opening = rollEncounter({ run: tier3(0), node: plain, party });
+        const ordinary = rollEncounter({ run: tier3(1), node: plain, party });
 
-        // ...and the deck IS softened, strictly: the player's opening composition against the tuned
-        // list. `toBeLessThan` rather than an exact count, because the two are different SHAPES and
-        // pinning the tuned list's length here would make this test a hostage to a deck edit.
-        expect(softened.enemyDeckIds).toHaveLength(START_KIT_SIZE + STARTER_GENERICS);
-        expect(softened.enemyDeckIds.length).toBeLessThan(ordinary.enemyDeckIds.length);
-        expect(softened.enemyAiTier).toBe('greedy');
+        // Who you fight is identical across the floor — that is the half of ticket 24 that has
+        // never moved, and the half a "make the first fight easier" patch is most likely to break.
+        expect(opening.enemyParty.map(identityOf)).toEqual(ordinary.enemyParty.map(identityOf));
+        expect(opening.seed).toBe(ordinary.seed);
+
+        // ...and the floor holds the rung down. Tier 3 raises an ordinary wild to firmware + a lite
+        // lookahead; the opening fight keeps neither.
+        expect(opening.enemyAiTier).toBe('greedy');
+        for (const enemy of opening.enemyParty) expect(enemy.activeOS).toBeUndefined();
+        expect(ordinary.enemyAiTier).toBe('lite');
+        expect(ordinary.enemyParty.some((enemy) => enemy.activeOS !== undefined)).toBe(true);
+
+        // The deck is the SAME at tier 1 and tier 3 on both sides of the floor — 157-r1(a) made
+        // biome 0 the ladder's own gentlest row, and the tier does not touch the list.
+        expect(opening.enemyDeckIds).toHaveLength(START_KIT_SIZE + STARTER_GENERICS);
+        expect(ordinary.enemyDeckIds).toHaveLength(START_KIT_SIZE + STARTER_GENERICS);
     });
 
     it('never touches the species pool, so the map keeps its promise', () => {

@@ -1389,37 +1389,37 @@
           "fury_strike",
           2,
           "A",
-          1
+          2
         ],
         [
           "flare_burst",
           2,
           "A",
-          2
+          1
         ],
         [
           "brute_force",
           1,
           "?",
-          1
+          0
         ],
         [
           "snap",
           1,
           "B",
-          1
+          0
         ],
         [
           "howl",
           1,
           "B",
-          0
+          1
         ],
         [
           "forage",
           1,
           "G",
-          0
+          1
         ]
       ],
       "pool": [
