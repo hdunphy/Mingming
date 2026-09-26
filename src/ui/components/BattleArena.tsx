@@ -59,7 +59,8 @@ import { playSfx } from '../audio/AudioEngine';
 import { useImpactFeedback } from '../vfx/useImpactFeedback';
 import { useCastSequence } from '../vfx/useCastSequence';
 import { useViewportSize } from '../hooks/useStageAnchors';
-import { consoleHeightAt } from './stageGeometry';
+import { consoleHeightAt, stageScale } from './stageGeometry';
+import { useCardDrag } from '../hooks/useCardDrag';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -182,10 +183,6 @@ const BattleArena: React.FC = () => {
     const seenTips = useSelector((state: RootState) => state.game.seenTips);
 
     const [showTurnBanner, setShowTurnBanner] = useState(false);
-    const [dragPoint, setDragPoint] = useState<{ x: number, y: number } | null>(null);
-    const [originPoint, setOriginPoint] = useState<{ x: number, y: number } | null>(null);
-    const [isTargeting, setIsTargeting] = useState(false);
-    const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null);
     // Ticket 145c: the bar carries the latest line and the chevron; the panel is `CombatLog`.
     const [logOpen, setLogOpen] = useState(false);
 
@@ -227,6 +224,18 @@ const BattleArena: React.FC = () => {
 
     // 155b: the console's height, published as a custom property — see the note on the root below.
     const viewport = useViewportSize();
+    const scale = stageScale(viewport.width, viewport.height);
+    const {
+        isTargeting,
+        dragPoint,
+        originPoint,
+        hoveredEntityId,
+        setHoveredEntityId,
+        isDragActive,
+        startDrag,
+        onPointerMove,
+        endDrag,
+    } = useCardDrag({ scale, selectedCardId });
 
     const prevSideRef = useRef(battleState?.activeSide);
     // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect
@@ -370,9 +379,7 @@ const BattleArena: React.FC = () => {
 
                 dispatch(playProgram({ sourceId: caster.id, targetId: target.id, programId: card.id }));
                 dispatch(selectCard(null));
-                setDragPoint(null);
-                setOriginPoint(null);
-                setIsTargeting(false);
+                endDrag(true);
             }
 
             // Space: End Turn
@@ -403,9 +410,7 @@ const BattleArena: React.FC = () => {
                 dispatch(selectCard(null));
                 dispatch(selectSource(null));
                 dispatch(selectTarget(null));
-                setDragPoint(null);
-                setOriginPoint(null);
-                setIsTargeting(false);
+                endDrag(false);
             }
         };
 
@@ -429,7 +434,7 @@ const BattleArena: React.FC = () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId]);
+    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag]);
 
     useEffect(() => {
         if (battleState?.activeSide !== prevSideRef.current) {
@@ -619,9 +624,7 @@ const BattleArena: React.FC = () => {
 
         // Persist source selection, clear card/drag state
         dispatch(selectCard(null));
-        setDragPoint(null);
-        setOriginPoint(null);
-        setIsTargeting(false);
+        endDrag(true);
     };
 
     /*
@@ -1084,6 +1087,9 @@ const BattleArena: React.FC = () => {
     /** Drop a dragged/selected card on this unit (sidebar card or stage spotlight). */
     const handleEntityPointerUp = (entity: IBattleEntity, isEnemy: boolean) => {
         if (!selectedCardId || entity.currentHp <= 0) return;
+        // Ticket 165b: only drop when a drag gesture is in progress; plain unit click must not drop.
+        if (!isDragActive()) return;
+
         const cardData = getSelectedCardData();
         if (!cardData) return;
 
@@ -1091,7 +1097,9 @@ const BattleArena: React.FC = () => {
             // For Self cards, always target the source
             const effectiveTargetId = cardData.target === 'Self' ? (selectedSourceId || entity.id) : entity.id;
             handlePlay(selectedCardId, effectiveTargetId);
-            dispatch(selectCard(null));
+        } else {
+            // Releasing a drag anywhere other than a successful play deselects the card (ticket 165b)
+            endDrag(false);
         }
     };
 
@@ -1100,7 +1108,13 @@ const BattleArena: React.FC = () => {
         if (entity.currentHp <= 0) return;
         const isTargeted = selectedTargetId === entity.id;
 
-        // If we have a card selected, check if this is a valid target
+        // Friendly = source (caster). Clicking an ally selects or switches the active caster (ticket 165b)
+        if (!isEnemy) {
+            dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
+            return;
+        }
+
+        // If we have a card selected, check if this enemy is a valid target
         if (selectedCardId) {
             const cardData = getSelectedCardData();
             if (cardData && isValidCardTarget(cardData, isEnemy)) {
@@ -1109,12 +1123,8 @@ const BattleArena: React.FC = () => {
             }
         }
 
-        // Default behavior: enemy = target, friendly = source
-        if (isEnemy) {
-            dispatch(selectTarget(isTargeted ? null : entity.id));
-        } else {
-            dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
-        }
+        // Default behavior: enemy = target
+        dispatch(selectTarget(isTargeted ? null : entity.id));
     };
 
 /*
@@ -1144,24 +1154,10 @@ const BattleArena: React.FC = () => {
              */
             style={{ ['--console-h' as string]: `${consoleHeightAt(viewport.width, viewport.height)}px` }}
             onPointerMove={(e) => {
-                if (isTargeting && selectedCardId) {
-                    setDragPoint({ x: e.clientX, y: e.clientY });
-                }
+                onPointerMove(e);
             }}
             onPointerUp={() => {
-                setIsTargeting(false);
-                setDragPoint(null);
-                setOriginPoint(null);
-                /*
-                 * TICKET 155, DEEP DIVE 7 — and it is a leak, not dead code.
-                 *
-                 * `CardHand` takes an `onTargetingEnd` prop that it never destructures, so the
-                 * handler below it — the one that clears this — has never run. Every other piece
-                 * of drag state was reset here and `hoveredEntityId` was not, so the last unit the
-                 * pointer crossed stayed "hovered" after the drop: its preview kept rendering, and
-                 * `BattleStage` kept simulating a cast at it on every frame the hand re-rendered.
-                 */
-                setHoveredEntityId(null);
+                endDrag(false);
             }}
         >
             {/*
@@ -1273,8 +1269,7 @@ const BattleArena: React.FC = () => {
             <div
                 className="console-area"
                 onPointerUp={() => {
-                    setDragPoint(null);
-                    setOriginPoint(null);
+                    endDrag(false);
                 }}
             >
               {/*
@@ -1304,9 +1299,8 @@ const BattleArena: React.FC = () => {
                 )}
                 <CardHand
                     hoveredEntityId={hoveredEntityId}
-                    onTargetingStart={(point) => {
-                        setOriginPoint(point);
-                        setIsTargeting(true);
+                    onTargetingStart={(point, pointer) => {
+                        startDrag(point, pointer);
                     }}
                 />
               </div>

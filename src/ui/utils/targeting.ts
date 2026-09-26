@@ -51,6 +51,7 @@ export function isValidCardTarget(data: ProgramData, isEnemy: boolean): boolean 
     return (
         (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
         (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
+        // Henry, 2026-09-26 (Ticket 165b): "Yes you can attack on your own mingmings. Sometimes its beneficial."
         (!isEnemy && data.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'))
     );
 }

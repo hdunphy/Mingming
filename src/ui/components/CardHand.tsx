@@ -183,7 +183,7 @@ const formatConstraint = (
 
 const CardHand: React.FC<{
     hoveredEntityId?: string | null;
-    onTargetingStart?: (point: { x: number, y: number }) => void;
+    onTargetingStart?: (point: { x: number, y: number }, pointer?: { clientX: number, clientY: number }) => void;
     /*
      * `onTargetingEnd` was here and is gone (155, deep dive 7). It was declared, passed by
      * `BattleArena`, and never destructured — so it never fired. The drop is an `onPointerUp` on
@@ -520,6 +520,9 @@ const CardHand: React.FC<{
                                     onTargetingStart?.({
                                         x: rect.left + rect.width / 2,
                                         y: rect.top + rect.height / 2
+                                    }, {
+                                        clientX: e.clientX,
+                                        clientY: e.clientY
                                     });
                                 }}
                                 onMouseEnter={() => setHoveredCardId(card.id)}
