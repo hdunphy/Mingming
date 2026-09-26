@@ -77,6 +77,15 @@ export const effectHandlers: { [K in keyof EffectPayloads]: EffectHandler<K> } =
     'CLEANSE': handleCleanse
 };
 
+/**
+ * Ticket 48 / 164b: Asleep loses ONE STACK per incoming attack (cause === 'attack' explicitly).
+ * The other half of ticket 48: "statuses do not wake him". Status detonations (TriggerStatusExecutor),
+ * DoT ticks, tolls, and recoil never chip or wake a sleeping unit.
+ */
+function chipsSleep(cause?: DamageCause): boolean {
+    return cause === 'attack';
+}
+
 function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): IBattleState {
     const { sourceId, targetId, power, element, damageOverride, cause } = payload;
 
@@ -149,24 +158,24 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
         absorbed: damage - finalDamage,
         applied: target.currentHp - newCurrentHp,
         element,
+        cause,
     };
 
-    // Ticket 48: Asleep loses ONE STACK per incoming attack instead of ending on the first point
+    // Ticket 48 / 164b: Asleep loses ONE STACK per incoming attack instead of ending on the first point
     // of damage. It is applied at ASLEEP_INITIAL_STACKS (3), so it takes three attacks to break -
     // plus the natural 1/turn decay in `StatusBehaviors.ts`, which is unchanged. Both clocks run.
     //
-    // Three deliberate departures from the old rule:
-    //  - No `finalDamage > 0` requirement. A fully absorbed hit still counts, which is what stops
-    //    `glacier_wall` from keeping Draugr asleep forever - a live anti-synergy before this.
-    //  - `sourceId === 'SYSTEM'` is skipped. That literal is how `resolutionEngine` dispatches
-    //    status and hook HP mutations through this handler, and skipping it is what enforces
-    //    "statuses do not wake him". End-of-turn DoT ticks bypass `handleAttack` entirely, but
-    //    TRIGGER_STATUS and Burn overflow do not - without this guard a poison detonate would
-    //    wake him.
+    // Ticket 164b fix:
+    //  - Keyed on cause === 'attack' explicitly (chipsSleep): statuses, DoT, recoil and tolls do not chip.
+    //  - Henry ruling: multi-hit attacks chip once per card play, checked against damageLedger.
+    //  - No `finalDamage > 0` requirement: a fully absorbed hit still counts (glacier_wall synergy).
     //  - `onStatusRemoved` fires only when the last stack goes, not on every chip.
     let wakesUp = false;
     let sleepChipped = false;
-    if (sourceId !== 'SYSTEM') {
+    const alreadyAttackedThisPlay = (state.damageLedger ?? []).some(
+        d => d.targetId === targetId && d.cause === 'attack'
+    );
+    if (chipsSleep(cause) && !alreadyAttackedThisPlay) {
         const sleeping = target.statusEffects.find(s => s.type === 'Asleep');
         if (sleeping) {
             sleepChipped = true;

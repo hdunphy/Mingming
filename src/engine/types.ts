@@ -885,4 +885,5 @@ export interface IDamageRecord {
   /** What HP actually lost, after shields and after the floor at 0. */
   readonly applied: number;
   readonly element: Element;
+  readonly cause?: string;
 }

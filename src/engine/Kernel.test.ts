@@ -221,7 +221,7 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         // Hit p1 with Damage
         const handler = effectHandlers['ATTACK'];
         const damageState = handler(sleepState, {
-            sourceId: 'e1', targetId: 'p1', power: 10, element: 'None'
+            sourceId: 'e1', targetId: 'p1', power: 10, element: 'None', cause: 'attack'
         });
 
         const p1Effects = damageState.playerParty[0].statusEffects;
