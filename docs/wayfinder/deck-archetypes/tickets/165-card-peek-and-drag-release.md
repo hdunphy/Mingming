@@ -1,6 +1,6 @@
 # Ticket 165 — Hover shows the full card at the upgrade and sell lists; releasing a drag lets go of the card
 
-**Type:** UI. **Status:** OPEN. Asked by Henry on 2026-09-26, with a screenshot of the marketplace's UPGRADE and SELL panels: *"write up a ticket for these fixes, don't implement yet"*. There are two rows. Each is one commit, with a failing test first.
+**Type:** UI. **Status:** OPEN — **165b's two decisions RULED by Henry 2026-09-26 (see 165b); ready to build.** Asked by Henry on 2026-09-26, with a screenshot of the marketplace's UPGRADE and SELL panels: *"write up a ticket for these fixes, don't implement yet"*. There are two rows. Each is one commit, with a failing test first.
 
 ---
 
@@ -79,17 +79,18 @@ The first three fail on the parent.
   - A successful drop already deselects, because `handleEntityPointerUp` calls `selectCard(null)`. Keep that.
 - **A unit's `onPointerUp` only drops when a drag is in progress.** A plain click on a unit goes to `handleEntityClick`, which is its job. Switching the active mingming with a card selected then just switches the caster.
 
-**Decisions for Henry before this is built:**
+**RULED by Henry, 2026-09-26:**
 
-1. **Should a plain click on a card still select it?** That is the click-card-then-click-target way of playing. Recommended: **yes**, and only a real drag's release deselects. The keyboard (Enter/Space on a card) and the macro flow both rely on click-select. If he'd rather drop click-select entirely, releasing any pointerdown would deselect, and this row becomes much smaller.
-2. **Should an attack with a status rider be aimable at your own mingming?** The ally carve-out (point 5 above) makes Ember Jab, Ignite-shaped cards and every "N power, apply X" card legal on allies. Recommended: the carve-out applies only to cards with **no** ATTACK action, so a HEAL or a STATUS-only card can still go on an ally but an attack can't. **This is a targeting rule, not a UI tweak.** Before changing it, check for any card that is *meant* to hit an ally, for example a self-sacrifice or friendly-fire card, and list them. If he rules no change, 165b still fixes his report, because a click will no longer be a drop.
+1. **Click-to-select stays; releasing a DRAG deselects.** *"Yes on drag and release deselects."* A plain click on a card still selects it (click the card, then click a target), and so do the keyboard and the macro flow. Only the release of a real drag (the pointer moved past the threshold) lets go of the card when it did not play.
+2. **Attacks stay aimable at your own mingming. Do NOT touch `isValidCardTarget`.** *"Yes you can attack on your own mingmings. Sometimes its beneficial."* The ally carve-out (point 5 above) is deliberate, and Ember Jab on an ally is a legal play. So the whole fix is the two gesture changes above: a released drag deselects, and a plain click on a unit never plays the card. Add a one-line comment above the carve-out in `targeting.ts` quoting this ruling, so the next reviewer does not "fix" it.
 
 **Tests.** Jsdom, through `BattleArena` with a real battle state; see `BattleStage.test.tsx` for the setup.
 
 1. Pointerdown on a card, move past the threshold, release over empty stage: `selectedCardId` is null. This fails on the parent.
 2. Drag and release on a valid enemy: the card is played and deselected (unchanged).
 3. Click a card, then **click** an ally: no card is played, and the ally becomes the active caster. This fails on the parent.
-4. Click a card, then click an enemy: the target is selected. This is the unchanged click-select flow, if decision 1 is "yes".
+4. Click a card, then click an enemy: the target is selected. This is the unchanged click-select flow (ruled 1).
+5. Drag Ember Jab onto your own mingming and release: it plays there (ruled 2 — attacks on allies stay legal).
 
 ---
 
@@ -100,4 +101,4 @@ The first three fail on the parent.
 - **Gate:** `npm run gate` must be green for each row.
 - **Screenshots:** check each row by eye in headless Chromium. A vite dev server on a small harness page works; see 145's write-back. Attach the before/after screenshots to the report.
 - **Line endings:** CRLF in `docs/wayfinder`; LF for tests, `src/debug` and JSON. Otherwise keep each file's existing endings.
-- **Report** in plain English, ending with the decisions Henry needs to make.
+- **Report** in plain English, ending with the decisions Henry needs to make (none are open for 165b; 165a has none).
