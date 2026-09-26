@@ -1641,6 +1641,37 @@ body {
   gap: 6px;
 }
 
+/* ── 2026-09-25 — THE DISCARD OPENS ONTO ITS CARDS (`DiscardPileViewer`).
+   The toggle is the card back itself, unstyled, so the pile looks exactly as it did; the list sits
+   ABOVE the pile, right-aligned to it, because below it is the End Turn button. */
+.dpv { position: relative; }
+.dpv-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.dpv-toggle:focus-visible { outline: 2px solid #ffcc00; outline-offset: 4px; border-radius: 6px; }
+.dpv-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  width: 290px;
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 60;
+  text-align: left;
+}
+.dpv-list h2 { margin: 0 0 6px; font-size: 0.72rem; letter-spacing: 0.12em; }
+.dpv-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.dpv-row { cursor: default; }
+.dpv-latest { outline: 1px solid rgba(255, 204, 0, 0.55); }
+.dpv-text { display: flex; flex-direction: column; min-width: 0; font-size: 0.72rem; }
+.dpv-tag { font-size: 0.6rem; color: #ffcc00; text-transform: uppercase; letter-spacing: 0.08em; }
+.dpv-desc { opacity: 0.8; }
+.dpv-empty { margin: 0; font-size: 0.72rem; opacity: 0.75; }
+
 /* === Navigation Bar === */
 .main-nav {
   display: flex;

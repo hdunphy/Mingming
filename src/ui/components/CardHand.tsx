@@ -30,6 +30,7 @@ import { describeLegalTargets } from '../utils/targeting';
 import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
 import HandCardFace from './HandCardFace';
+import DiscardPileViewer from './DiscardPileViewer';
 import { describeConditional, readCardConditionals } from '../utils/cardConditionals';
 import { litClauses } from '../utils/conditionalClauses';
 import { KEYWORD_INFO, appliedStacks, getAppliedStatuses, getCardKeywords } from './cardKeywords';
@@ -300,10 +301,13 @@ const CardHand: React.FC<{
               * distinction is honest: the draw pile is what you will get and the discard is what
               * is spent, so only one of the two is worth reading a depth off.
               */}
-            <span className="pile-stack">
-                <span className="pile-card" aria-hidden="true" />
-                <span className="pile-count">{discardPileCount}</span>
-            </span>
+            {/* 2026-09-25: the pile opens onto its cards - "what did the last card do". */}
+            <DiscardPileViewer discard={battleState?.playerDeck.discard ?? []}>
+                <span className="pile-stack">
+                    <span className="pile-card" aria-hidden="true" />
+                    <span className="pile-count">{discardPileCount}</span>
+                </span>
+            </DiscardPileViewer>
             {/*
               * END TURN sits DIRECTLY UNDER THE DISCARD (§2c): the button and the pile it feeds
               * are one column rather than two things at opposite ends of the console.
