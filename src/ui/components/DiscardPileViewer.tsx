@@ -87,7 +87,7 @@ const DiscardPileViewer: React.FC<Props> = ({ discard, children }) => {
                                     <span className="rs-g">{row.cost}</span>
                                     <ElementMark element={row.element} compact />
                                     <span className="dpv-text">
-                                        <b>{row.name}</b>
+                                        <b className="dpv-name">{row.name}</b>
                                         {index === 0 && <span className="dpv-tag">last in</span>}
                                         <span className="dpv-desc">{row.description}</span>
                                     </span>

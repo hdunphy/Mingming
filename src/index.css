@@ -1654,6 +1654,7 @@ body {
 }
 .dpv-toggle:focus-visible { outline: 2px solid #ffcc00; outline-offset: 4px; border-radius: 6px; }
 .dpv-list {
+  text-align: left;
   position: absolute;
   right: 0;
   bottom: calc(100% + 10px);
@@ -1665,11 +1666,39 @@ body {
 }
 .dpv-list h2 { margin: 0 0 6px; font-size: 0.72rem; letter-spacing: 0.12em; }
 .dpv-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.dpv-row { cursor: default; }
+/* The row borrows `.rs-row`'s look (element stripe, cost disc, element code) but NOT its fixed
+   27px height: `.rs-row` is a one-line deck row, and this one carries the card's text under its
+   name. Left at 27px the text spilled out of every row and over the next one (Henry's 09-26
+   screenshot). So the height grows with the text and everything hangs from the top.
+   Two classes deep on purpose: `runShell.css` loads AFTER this sheet, so a lone `.dpv-row` loses
+   to `.rs-row` on order at equal specificity - which is exactly how the first version shipped. */
+.dpv-rows .dpv-row {
+  cursor: default;
+  height: auto;
+  min-height: 27px;
+  align-items: flex-start;
+  padding: 5px 7px;
+  text-align: left;
+}
+.dpv-rows .dpv-row .rs-g,
+.dpv-rows .dpv-row .rs-elc { margin-top: 1px; }
+/* FIR and NEU are different widths; a fixed slot lines every card's text up in one column. */
+.dpv-rows .dpv-row .rs-elc { min-width: 24px; }
 .dpv-latest { outline: 1px solid rgba(255, 204, 0, 0.55); }
-.dpv-text { display: flex; flex-direction: column; min-width: 0; font-size: 0.72rem; }
+.dpv-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  text-align: left;
+}
+.dpv-name { font-weight: 700; }
 .dpv-tag { font-size: 0.6rem; color: #ffcc00; text-transform: uppercase; letter-spacing: 0.08em; }
-.dpv-desc { opacity: 0.8; }
+.dpv-desc { opacity: 0.8; white-space: normal; overflow-wrap: anywhere; }
 .dpv-empty { margin: 0; font-size: 0.72rem; opacity: 0.75; }
 
 /* === Navigation Bar === */
