@@ -569,11 +569,19 @@ export function executeDraw(state: IBattleState, side: 'PLAYER' | 'ENEMY', count
         // The loop question was reviewed before wiring it: a reshuffle can only happen inside a
         // draw, the hook does not draw, and nothing in the registry generates cards into a
         // drawpile, so this cannot re-enter itself.
-        const shuffler = (side === 'PLAYER' ? newState.playerParty : newState.enemyParty)[0];
-        if (shuffler) {
+        //
+        // Ticket 164d: The deck is shared, so a reshuffle happens to the whole side.
+        // Dispatch onDeckShuffled once per LIVING member of the shuffling side, each as
+        // its own source and target.
+        const partyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+        const members = newState[partyKey];
+        for (const member of members) {
+            if (member.currentHp <= 0) continue;
+            const liveMember = newState[partyKey].find(e => e.id === member.id);
+            if (!liveMember || liveMember.currentHp <= 0) continue;
             const { state: afterShuffleHooks } = executeResolutionStack('onDeckShuffled', {
-                source: shuffler,
-                target: shuffler,
+                source: liveMember,
+                target: liveMember,
                 state: newState,
                 triggerDepth: 0,
             } as never);
