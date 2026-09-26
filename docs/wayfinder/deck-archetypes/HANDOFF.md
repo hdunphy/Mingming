@@ -282,6 +282,22 @@ blocker, and a re-baseline that moves a jormungandr cell is.
 
 ## Open items, in the order they should be taken
 
+**2026-09-25 (night) — THE ROOTFALL / fenrir_v2 PLAYTEST, AND HENRY'S FIVE RULINGS ON IT.** Notes, save, logs and the review: [`playtest-results/2026-25-09/rootfall-fenrir_v2/`](../../../playtest-results/2026-25-09/rootfall-fenrir_v2/review.md). Numbers: `results/t0925_playtest/`. He died in fight two of biome 0; the session's question (does the counter route work at Rootfall) was never reached.
+
+**1. THE ENEMY'S FIRST TURN WAS TWO HANDS — FIXED (`d30106e`), AND IT MOVES EVERY BASELINE ONCE, ON PURPOSE.** *Ruled: "Yes."* `createBattleState` (and `buildScenarioState`, its sim twin) dealt the enemy a hand at creation that it kept through the player's turn 1, and `processPreTurn` drew a second on top: eight cards against four, every fight, because the player always moves first. Walker, 200 seeds × 12: fight one 93.3 → **96.8**, fight two 77.9 → **85.6**, fight three 67.2 → **75.9**; fenrir_v2's fight two 84 → 97. **Owed: the 1v1 roster grid and the comp grid re-baselined on `d30106e`** — every grid before it had the second seat holding a double first hand, and the census's first-mover edge should be re-read on it.
+
+**2. "BIOME 0 SHOULD BE A CAKE WALK" = AT LEAST 85% AT EACH NODE, NOT CUMULATIVELY.** *Henry: "Probably at least an 85% chance at each node. Not cumulatively."* Read after the fix (100 seeds × 12, walker's own route): **biome-0 wilds 91.2% — pass. Rivals 82.7% — just under. Elites 52.7% — far under**, and the walker walks into a lot of them (966 biome-0 elite fights in 1,200 runs); fight 4 pools at 60.5% for that reason, and only 441 of 1,200 runs reach biome 1. `RUN_GATE_TARGETS.wild` is still the 0.90 ruled this morning and is NOT changed here. **Open for Henry: does the 85 floor replace the 90 band, and does it cover elites and rivals or wilds only?**
+
+**3. SOUNDS ARE SPACED, NOT STACKED (`2fd4025`).** *Ruled: "space the sounds."* 80 ms apart in arrival order, bounded at six slots; series, ducking and interface cues keep their own timing.
+
+**4. YOUR OWN PLAYED CARD LEAVES AFTER 1.5 s (`a1c78e2`).** *Ruled: "sure 1.5s."* The enemy's hold is untouched (ticket 127).
+
+**5. WALKING BACK INTO A NODE STILL FIGHTS.** *Ruled: "yes."* Ticket 07 stands. The start node is now drawn as a flag labelled **Start** and says re-entry is a Wild fight (`fefa717`), with an icon key on the map.
+
+Also from the notes, needing no ruling: the discard pile opens onto its cards, newest first (`f4cc844`); the run log closes a won fight on the turn that decides it, so the reward rows no longer precede the killing turn (`d096c47`).
+
+---
+
 **2026-09-25 (evening) — HENRY'S RULINGS ON THE 157 ARC. FOUR THINGS SETTLED, AND THE ARC IS CLOSED UNTIL HE HAS PLAYED IT.**
 
 **1. THE WILD BAND IS 90, NOT 95.** *"90% should be the threshold."* `RUN_GATE_TARGETS.wild` 0.95 → 0.90. **Fight one's 93.0% (91.9–94.0) is now INSIDE the window**, and the two points that were left were not reachable by tuning: at fight one the two sides hold the same shape, count, IVs and AI, so the player's only edge is its firmware — worth +25.8 over even, and chasing 95 meant making the opener asymmetric by more than *"the enemy cannot fire its engine"* already does. The number moved to where the game is, rather than the game to the number. The other two bands are untouched — nothing has measured them since they were ruled. `runRunWalker` needed no edit: it reads the target from the gate, which is exactly why that indirection was built.

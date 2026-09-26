@@ -1,0 +1,31 @@
+Enemy first-hand measurement, 2026-09-25 (Claude). Walker fight-N truncated read (walkStarterTruncated), 200 seeds x 12 EA starters, fights 1-3.
+LIVE = game as shipped. FIX = the enemy is not dealt an opening hand at battle creation (battleFactories.ts + buildScenarioState.ts); it draws its normal 4 at its first turn start. Nothing else changed.
+'enemy hand t1/t2' = mean enemy hand size after its turn-start draw (includes AI look-ahead sims, so a little above 4/8).
+
+LIVE fenrir_v1       f1 190/200= 95.0%  f2 138/190= 72.6%  f3 100/138= 72.5%   enemy hand t1 9.01 t2 4.71
+LIVE fenrir_v2       f1 200/200=100.0%  f2 168/200= 84.0%  f3 118/168= 70.2%   enemy hand t1 9.04 t2 4.77
+LIVE skoll_v1        f1 183/200= 91.5%  f2 114/183= 62.3%  f3  72/114= 63.2%   enemy hand t1 8.69 t2 4.41
+LIVE skoll_v2        f1 200/200=100.0%  f2 177/200= 88.5%  f3 141/177= 79.7%   enemy hand t1 10.01 t2 4.52
+LIVE kraken_v1       f1 200/200=100.0%  f2 185/200= 92.5%  f3 147/185= 79.5%   enemy hand t1 9.18 t2 4.76
+LIVE kraken_v2       f1 200/200=100.0%  f2 172/200= 86.0%  f3 114/172= 66.3%   enemy hand t1 9.44 t2 4.85
+LIVE jormungandr_v1  f1 132/200= 66.0%  f2  50/132= 37.9%  f3  27/ 50= 54.0%   enemy hand t1 8.34 t2 4.25
+LIVE jormungandr_v2  f1 200/200=100.0%  f2 192/200= 96.0%  f3 124/192= 64.6%   enemy hand t1 9.54 t2 5.04
+LIVE ratatoskr_v1    f1 177/200= 88.5%  f2 132/177= 74.6%  f3  76/132= 57.6%   enemy hand t1 8.82 t2 4.39
+LIVE ratatoskr_v2    f1 174/200= 87.0%  f2 130/174= 74.7%  f3  83/130= 63.8%   enemy hand t1 8.77 t2 4.63
+LIVE huldra_v1       f1 199/200= 99.5%  f2 142/199= 71.4%  f3  83/142= 58.5%   enemy hand t1 8.99 t2 4.80
+LIVE huldra_v2       f1 185/200= 92.5%  f2 145/185= 78.4%  f3  88/145= 60.7%   enemy hand t1 8.71 t2 4.60
+LIVE POOLED f1 2240/2400=93.3%  f2 1745/2240=77.9%  f3 1173/1745=67.2%
+
+FIX  fenrir_v1       f1 196/200= 98.0%  f2 161/196= 82.1%  f3 128/161= 79.5%   enemy hand t1 4.62 t2 4.65
+FIX  fenrir_v2       f1 200/200=100.0%  f2 194/200= 97.0%  f3 160/194= 82.5%   enemy hand t1 4.83 t2 4.81
+FIX  skoll_v1        f1 192/200= 96.0%  f2 129/192= 67.2%  f3  89/129= 69.0%   enemy hand t1 4.62 t2 4.37
+FIX  skoll_v2        f1 200/200=100.0%  f2 198/200= 99.0%  f3 180/198= 90.9%   enemy hand t1 5.34 t2 4.49
+FIX  kraken_v1       f1 200/200=100.0%  f2 197/200= 98.5%  f3 174/197= 88.3%   enemy hand t1 4.83 t2 4.73
+FIX  kraken_v2       f1 200/200=100.0%  f2 188/200= 94.0%  f3 151/188= 80.3%   enemy hand t1 4.98 t2 4.86
+FIX  jormungandr_v1  f1 156/200= 78.0%  f2  85/156= 54.5%  f3  55/ 85= 64.7%   enemy hand t1 4.46 t2 4.33
+FIX  jormungandr_v2  f1 200/200=100.0%  f2 197/200= 98.5%  f3 144/197= 73.1%   enemy hand t1 5.00 t2 4.99
+FIX  ratatoskr_v1    f1 179/200= 89.5%  f2 145/179= 81.0%  f3  99/145= 68.3%   enemy hand t1 4.59 t2 4.36
+FIX  ratatoskr_v2    f1 200/200=100.0%  f2 163/200= 81.5%  f3 116/163= 71.2%   enemy hand t1 4.66 t2 4.66
+FIX  huldra_v1       f1 200/200=100.0%  f2 167/200= 83.5%  f3 104/167= 62.3%   enemy hand t1 4.75 t2 4.81
+FIX  huldra_v2       f1 199/200= 99.5%  f2 163/199= 81.9%  f3 109/163= 66.9%   enemy hand t1 4.58 t2 4.55
+FIX  POOLED f1 2322/2400=96.8%  f2 1987/2322=85.6%  f3 1509/1987=75.9%
