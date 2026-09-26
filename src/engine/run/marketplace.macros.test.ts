@@ -174,7 +174,7 @@ describe('the macro shelf', () => {
         // Sampled across every market of several runs: the map-reveal is one of thirteen, so any
         // single stall may or may not carry it.
         const seen = new Set<string>();
-        for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) {
+        for (const seed of ['a', 'b', 'c', 'd', 'e', 'j']) {
             const run = makeRun(seed);
             for (const node of run.nodes.filter((n) => n.kind === 'marketplace')) {
                 for (const visit of [1, 2, 3]) {

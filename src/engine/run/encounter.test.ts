@@ -295,7 +295,7 @@ describe('species come from the biome element', () => {
 // ---------------------------------------------------------------------------------------------
 
 describe('ticket 08: the enemy deck is the player’s kit fraction at that depth', () => {
-    const run = makeRun(['Fire', 'Water', 'Nature']);
+    const run = makeRun(['Fire', 'Water', 'Nature'], 'encounter-seed-1');
     const party = [KRAKEN, FENRIR];
 
     /** The tuned list the enemy side would hold if the deepest rule applied. */

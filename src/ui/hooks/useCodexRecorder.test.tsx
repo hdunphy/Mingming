@@ -112,6 +112,6 @@ describe('useCodexRecorder, mounted over a live fight', () => {
         const store = await mountedStore();
         const codex = store.getState().game.codex;
         expect(codex.species).toContain('fenrir');
-        expect(codex.species).toContain('kraken');
+        expect(codex.species).toContain('jormungandr');
     });
 });

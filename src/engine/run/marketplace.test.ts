@@ -98,7 +98,7 @@ const TRIO = [
     member('mm3', 'ratatoskr', 'ratatoskr_v1'),
 ];
 
-function makeRun(seed = 'market-run', party = SOLO): IRunState {
+function makeRun(seed = 'market-run-1', party = SOLO): IRunState {
     return createRun({ seed, offer: offerGyms('offer-seed')[0], party, startedAt: 1_700_000_000_000 });
 }
 

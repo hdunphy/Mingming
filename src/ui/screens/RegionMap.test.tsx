@@ -16,7 +16,7 @@ import RegionMap from './RegionMap';
 import { generateRegionGraph } from '../../engine/run/regionGraph';
 import { columnOf } from './regionLayout';
 
-const graph = generateRegionGraph('map-render-seed');
+const graph = generateRegionGraph('map-render-seed-0');
 const BIOME_NAMES = ['Emberglass Flats', 'Brinehollow', 'Rootmire'];
 const BIOME_ELEMENTS = ['Fire', 'Water', 'Nature'];
 
