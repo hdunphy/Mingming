@@ -1293,23 +1293,24 @@ function processPostTurn(state: IBattleState): IBattleState {
     return nextState;
 }
 
-function processPreTurn(state: IBattleState): IBattleState {
+/**
+ * Ticket 164c: One path for every turn start across both sides and turn 1.
+ * Covers TURN_START emit, energy refill + Energized, OWNER_TURN_START status tick,
+ * onTurnStart hooks, and the refill draw over living units.
+ */
+export function beginTurn(state: IBattleState, side: 'PLAYER' | 'ENEMY', turnNumber: number): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    // 1. Toggle Active Side
-    const nextSide = state.activeSide === 'PLAYER' ? 'ENEMY' as const : 'PLAYER' as const;
-    const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn;
-
-    const activePartyKey = nextSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
-    const activeDeckKey = nextSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+    const activePartyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const activeDeckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
 
     const activeParty = state[activePartyKey];
 
     // Emit TURN_START
     globalBattleEventBus.emit({
         type: 'TURN_START',
-        turnNumber: nextTurn,
-        activeSide: nextSide,
+        turnNumber,
+        activeSide: side,
         timestamp: Date.now()
     });
 
@@ -1332,9 +1333,13 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     let nextState: IBattleState = {
         ...state,
-        turn: nextTurn,
-        activeSide: nextSide,
-        [activePartyKey]: refreshedParty
+        turn: turnNumber,
+        activeSide: side,
+        [activePartyKey]: refreshedParty,
+        cardsDrawnThisTurn: 0,
+        nonNaturalCardsDrawnThisTurn: 0,
+        cardsPlayedThisTurn: 0,
+        cardsDiscardedThisTurn: 0,
     };
 
     // TICKET 126: Burn, Poison and Regen tick HERE - at the start of their owner's turn.
@@ -1366,27 +1371,21 @@ function processPreTurn(state: IBattleState): IBattleState {
     }
 
     // 3. Draw cards for the active side.
-    nextState = executeDraw(nextState, nextSide, 0, true);
+    nextState = executeDraw(nextState, side, 0, true);
 
     // Refill the active side's hand. The player always uses cards; the enemy
     // only does in enemyMode 'CARDS'. MOVES enemies must NOT draw - their deck
     // is empty by construction, and calling executeDraw with a real count would
     // advance the RNG seed and change every existing MOVES battle and every
     // recorded scenario.
-    //
-    // This was previously gated on `nextSide === 'PLAYER'`, so a CARDS enemy
-    // drew its opening hand at battle creation and then never drew again: once
-    // it had played through those cards it had nothing left, getBestAction
-    // found no plays, and the enemy silently passed every turn for the rest of
-    // the battle.
-    const activeSideUsesCards = nextSide === 'PLAYER' || (nextState.enemyMode ?? 'MOVES') === 'CARDS';
+    const activeSideUsesCards = side === 'PLAYER' || (nextState.enemyMode ?? 'MOVES') === 'CARDS';
     if (activeSideUsesCards) {
         const aliveUnits = nextState[activePartyKey].filter((e: IBattleEntity) => e.currentHp > 0);
         const totalCardDraw = aliveUnits.length === 0
             ? 0
             : aliveUnits.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveUnits.length + 1;
         const cardsToDraw = Math.max(0, Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState[activeDeckKey].hand.length));
-        nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
+        nextState = executeDraw(nextState, side, cardsToDraw, true);
     }
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
@@ -1395,28 +1394,34 @@ function processPreTurn(state: IBattleState): IBattleState {
     // player can see them) — but only for move-user enemies. Card-user battles
     // (enemyMode === 'CARDS', opt-in at battle creation) never generate intents.
     const finalEnemyParty = (nextState.enemyMode ?? 'MOVES') === 'MOVES'
-        ? generateIntents(nextState.enemyParty, nextState.seed, nextTurn)
+        ? generateIntents(nextState.enemyParty, nextState.seed, turnNumber)
         : nextState.enemyParty;
     const finalPlayerParty = nextState.playerParty;
 
     let newState: IBattleState = {
         ...nextState,
-        turn: nextTurn,
+        turn: turnNumber,
         phase: 'ACTION',
-        activeSide: nextSide,
+        activeSide: side,
         playerParty: finalPlayerParty,
         enemyParty: finalEnemyParty,
-        cardsPlayedThisTurn: 0,
-        cardsDiscardedThisTurn: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         }
     };
 
-    newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
+    newState = addLog(newState, `⚔️ Turn ${turnNumber} — ${side}'s turn begins`);
 
     return newState;
+}
+
+function processPreTurn(state: IBattleState): IBattleState {
+    // 1. Toggle Active Side
+    const nextSide = state.activeSide === 'PLAYER' ? 'ENEMY' as const : 'PLAYER' as const;
+    const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn;
+
+    return beginTurn(state, nextSide, nextTurn);
 }
 // --- General-purpose State Actions ---
 // SET_VITALS / REMOVE_STATUS / ADD_CARD_TO_HAND / SET_INTENT / KILL_ENTITY.

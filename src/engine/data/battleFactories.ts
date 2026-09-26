@@ -3,9 +3,8 @@ import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
 import { applyDrivers } from './driverRegistry';
-import { drawCards } from '../deckLogic';
-import { generateIntents } from '../core/IntentUtils';
 import { SeedStream, rollSeed } from '../core/SeedStream';
+import { beginTurn } from '../battleReducer';
 
 /**
  * Ticket 21: the `level` and `experience` parameters are gone. Every entity is built at
@@ -356,8 +355,7 @@ export function createBattleState(
     const eDeckCardsRaw = instantiateDeck(enemyDeckIds, rng);
     const eDeckCards = rng.shuffle(eDeckCardsRaw);
 
-    const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
-
+    // Ticket 164c: opening hand is drawn by beginTurn, not by hand here.
     const pInitialDeck: IDeckState = {
         ownerId: 'PLAYER',
         deck: [],
@@ -366,8 +364,6 @@ export function createBattleState(
         discard: [],
         exhaust: []
     };
-    const { state: pDeckState, nextSeed: seedAfterPlayerDraw } = drawCards(pInitialDeck, playerCardDraw, rng.seed);
-    rng.adopt(seedAfterPlayerDraw);
 
     // A battle with no enemies is unwinnable-by-definition and renders a ghost
     // arena (empty enemy column, instant hollow victory). Fail loudly instead.
@@ -375,27 +371,6 @@ export function createBattleState(
         throw new Error(`[createBattleState] No enemies generated (encounter: ${setup.encounter ? setup.encounter.enemyParty.length : 'none'}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
     }
 
-    /*
-     * ══ THE ENEMY IS NOT DEALT AN OPENING HAND (Henry, 2026-09-25, off the Rootfall playtest) ══
-     *
-     * It used to be: both sides drew their `cardDraw` here. The player's opening hand is spent on
-     * turn 1 and discarded at its end; the enemy's sat untouched through the player's turn, and
-     * `processPreTurn` then drew a SECOND hand on top of it at the enemy's first turn start. Every
-     * enemy's first turn was eight cards against the player's four - measured on all three enemy
-     * first turns in the 09-25 playtest, and in the walker (enemy hand at turn 1: 8.0 vs 4.0).
-     * The player always moves first, so in a run the enemy ALWAYS had it.
-     *
-     * The refill at the start of the enemy's turn is the one place its hand comes from now. That
-     * is also what the enemy-hand panel (159b) already assumed - "during the player's turn it
-     * holds nothing" - so turn 1's preview stops showing half a hand.
-     *
-     * Ruled as a fix that MOVES THE NUMBERS ONCE, ON PURPOSE: fight one 93.3% -> 96.8%, fight two
-     * 77.9% -> 85.6% (walker, 200 seeds x 12 starters). Every grid baseline measured before this
-     * commit had the second seat holding a double first hand.
-     *
-     * `drawCards` only consumes the PRNG on a reshuffle, and an opening draw never reshuffles, so
-     * dropping the call leaves the seed stream - and every drawpile order - exactly as it was.
-     */
     const eDeckState: IDeckState = {
         ownerId: 'ENEMY',
         deck: [],
@@ -406,12 +381,7 @@ export function createBattleState(
         exhaust: []
     };
 
-    // Intents are only telegraphed for move users.
-    const finalEnemyParty = enemyMode === 'MOVES'
-        ? generateIntents(enemyParty, rng.seed, 1)
-        : enemyParty;
-
-    return {
+    const rawState: IBattleState = {
         // sessionId lives inside IBattleState, so a wall-clock value would
         // break every replay diff on its own. Derive it from the seed instead.
         sessionId: 'battle_' + battleSeed,
@@ -423,8 +393,8 @@ export function createBattleState(
         osLogs: [],
         procs: [],
         playerParty: playerParty,
-        enemyParty: finalEnemyParty,
-        playerDeck: pDeckState,
+        enemyParty: enemyParty,
+        playerDeck: pInitialDeck,
         enemyDeck: eDeckState,
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
@@ -445,4 +415,6 @@ export function createBattleState(
         // AI_GREEDY / AI_LITE environment the balance corpus runs under.
         enemyAiTier: options?.enemyAiTier
     };
+
+    return beginTurn(rawState, 'PLAYER', 1);
 }

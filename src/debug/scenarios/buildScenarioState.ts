@@ -53,10 +53,9 @@ import { initializeBattleEntity } from '../../engine/types';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { applyDrivers } from '../../engine/data/driverRegistry';
 import { instantiateDeck } from '../../engine/data/battleFactories';
-import { drawCards } from '../../engine/deckLogic';
-import { generateIntents } from '../../engine/core/IntentUtils';
 import { SeedStream } from '../../engine/core/SeedStream';
 import { normalizeBattleState } from './normalizeBattleState';
+import { beginTurn } from '../../engine/battleReducer';
 import type { ComposedSetup, EnemySetup, PartyMemberSetup } from './scenarioSchema';
 
 /** Id prefix for scenario-built combat units - matches `createMockEntity`'s. */
@@ -177,9 +176,6 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
     const pDeckCards: ProgramEntity[] = rng.shuffle(instantiateDeck([...setup.player.deck], rng));
     const eDeckCards: ProgramEntity[] = rng.shuffle(instantiateDeck(enemyDeckIds, rng));
 
-    const playerCardDraw =
-        playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
-
     const pInitialDeck: IDeckState = {
         ownerId: 'PLAYER',
         deck: [],
@@ -188,16 +184,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         discard: [],
         exhaust: [],
     };
-    const { state: pDeckState, nextSeed: seedAfterPlayerDraw } = drawCards(
-        pInitialDeck,
-        playerCardDraw,
-        rng.seed,
-    );
-    rng.adopt(seedAfterPlayerDraw);
 
-    // The enemy is NOT dealt an opening hand - it draws at the start of its own first turn, like
-    // every turn after. Mirrors `createBattleState` (see the note there, 2026-09-25): a sim that
-    // kept the old deal would measure a game the player no longer plays.
     const eDeckState: IDeckState = {
         ownerId: 'ENEMY',
         deck: [],
@@ -207,11 +194,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         exhaust: [],
     };
 
-    // Intents are only telegraphed for move users.
-    const finalEnemyParty =
-        enemyMode === 'MOVES' ? generateIntents(enemyParty, rng.seed, 1) : enemyParty;
-
-    return normalizeBattleState({
+    const rawState: IBattleState = {
         // Derived from the seed, never wall-clock: sessionId is a compared field, so a
         // timestamp here would break every replay diff on its own (ticket 02, section 3).
         sessionId: 'battle_' + battleSeed,
@@ -222,9 +205,9 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         activeDrivers: setup.player.drivers,
 
         playerParty,
-        enemyParty: finalEnemyParty,
+        enemyParty,
 
-        playerDeck: pDeckState,
+        playerDeck: pInitialDeck,
         enemyDeck: eDeckState,
 
         logs: [],
@@ -236,5 +219,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         lastProgramPlayed: null,
         counters: {},
         enemyMode,
-    });
+    };
+
+    return normalizeBattleState(beginTurn(rawState, 'PLAYER', 1));
 }
