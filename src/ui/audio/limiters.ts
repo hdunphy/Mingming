@@ -82,10 +82,17 @@ export class SfxSpacer {
         private readonly maxLagMs: number = SFX_SPACING_MAX_LAG_MS,
     ) {}
 
-    /** The delay in ms before this cue should sound, or null if it would land too late to mean anything. */
-    delayFor(now: number): number | null {
+    /**
+     * The delay in ms before this cue should sound, or null if it would land too late to mean
+     * anything. A `required` cue (a kill, a big hit) is never dropped: past the lag bound it plays
+     * AT the bound, and does not push the queue further out.
+     */
+    delayFor(now: number, required = false): number | null {
         const delay = Math.max(0, this.nextFree - now);
-        if (delay > this.maxLagMs) return null;
+        if (delay > this.maxLagMs) {
+            if (!required) return null;
+            return this.maxLagMs;
+        }
         this.nextFree = now + delay + this.spacingMs;
         return delay;
     }

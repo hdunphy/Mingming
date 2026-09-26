@@ -151,4 +151,18 @@ describe('2026-09-25 — different cues arriving together are SPACED, not stacke
         // And once the crowd has cleared, sound resumes on time.
         expect(spacer.delayFor(1000 + 560 + SFX_SPACING_MS)).toBe(0);
     });
+
+    it('a big moment waits its turn behind the hit it punctuates, and is never dropped', () => {
+        // 09-26 review: exempting `kill` from the spacer made it sound BEFORE the impact.
+        const spacer = new SfxSpacer();
+        const whoosh = spacer.delayFor(1000);
+        const impact = spacer.delayFor(1000);
+        const kill = spacer.delayFor(1000, true);
+        expect([whoosh, impact, kill]).toEqual([0, 80, 160]);
+        // Past the lag bound an ordinary cue is dropped, a required one plays at the bound.
+        const crowded = new SfxSpacer();
+        for (let i = 0; i < 7; i += 1) crowded.delayFor(1000);
+        expect(crowded.delayFor(1000)).toBeNull();
+        expect(crowded.delayFor(1000, true)).toBe(SFX_SPACING_MAX_LAG_MS);
+    });
 });

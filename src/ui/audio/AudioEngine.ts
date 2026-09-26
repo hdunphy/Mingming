@@ -444,13 +444,16 @@ export function playSfx(name: SfxName, opts: SfxOptions = {}): void {
         if (step === 0 && !rateLimiter.shouldPlay(name, now)) return;
 
         /*
-         * SPACED, NOT STACKED — Henry, 2026-09-25 (see `SfxSpacer`). Three kinds keep their own
-         * timing: a stated series already carries a stagger of its own (146c's 40 ms per target),
-         * a ducking cue IS the big moment and must land on it, and an interface cue answers a
-         * click. Everything else takes the next free slot.
+         * SPACED, NOT STACKED — Henry, 2026-09-25 (see `SfxSpacer`). EVERY combat cue takes the
+         * next free slot, in arrival order, so the phrase is always card -> hit -> consequence.
+         *
+         * The first version exempted ducking cues and stated series, and the 09-26 review caught
+         * what that did: a lethal card's `hitBig` and `kill` jumped the queue to 0 ms, so they
+         * sounded BEFORE the impact they punctuate and ducked it; a Side card's 2nd and 3rd
+         * impacts (step > 0) sounded before the 1st. Only interface cues stay immediate - a click
+         * answers a click. A ducking cue is `required`: it is never dropped for lag.
          */
-        const unspaced = step > 0 || DUCKING_CUES.has(name) || NON_COMBAT_CUES.has(name);
-        const delay = unspaced ? 0 : spacer.delayFor(now);
+        const delay = NON_COMBAT_CUES.has(name) ? 0 : spacer.delayFor(now, DUCKING_CUES.has(name));
         if (delay === null) return;
         if (delay > 0) {
             setTimeout(() => voiceOut(name, opts, step, now + delay), delay);
@@ -465,6 +468,12 @@ export function playSfx(name: SfxName, opts: SfxOptions = {}): void {
 /** Put one cue on the speakers now. Split out of `playSfx` so the spacer can call it late. */
 function voiceOut(name: SfxName, opts: SfxOptions, step: number, now: number): void {
     try {
+        // Re-checked HERE, not only when the cue was asked for: a spaced cue can land up to
+        // `SFX_SPACING_MAX_LAG_MS` later, and the player may have muted or switched combat
+        // sounds off in between.
+        const s = getSettings();
+        if (s.muted || s.volume <= 0) return;
+        if (!combatSounds && !NON_COMBAT_CUES.has(name)) return;
         const context = ensureContext();
         if (!context || context.state !== 'running' || !masterGain) return;
 

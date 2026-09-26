@@ -28,14 +28,26 @@ const DiscardPileViewer: React.FC<Props> = ({ discard, children }) => {
 
     useEffect(() => {
         if (!open) return undefined;
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+        /*
+         * CAPTURE PHASE, and the Escape is CONSUMED. The battle's own key handler also listens on
+         * `window` and reads Escape with nothing selected as "open Settings" - so an Escape that
+         * closed this list used to open Settings behind it (caught by the 09-26 review). A
+         * window-capture listener runs before any bubbling one, and stopping it there means the
+         * battle never sees the key that was ours.
+         */
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            e.preventDefault();
+            setOpen(false);
+        };
         const onPointer = (e: PointerEvent) => {
             if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
         };
-        window.addEventListener('keydown', onKey);
+        window.addEventListener('keydown', onKey, true);
         window.addEventListener('pointerdown', onPointer);
         return () => {
-            window.removeEventListener('keydown', onKey);
+            window.removeEventListener('keydown', onKey, true);
             window.removeEventListener('pointerdown', onPointer);
         };
     }, [open]);
@@ -48,7 +60,14 @@ const DiscardPileViewer: React.FC<Props> = ({ discard, children }) => {
                 aria-expanded={open}
                 aria-controls="discard-pile-list"
                 title="See the discard pile"
-                onClick={() => { playSfx('uiClick'); setOpen(!open); }}
+                onClick={(e) => {
+                    playSfx('uiClick');
+                    setOpen(!open);
+                    // A MOUSE click must not leave the pile holding focus: Enter is the battle's
+                    // cast key, and a focused button would also "click" on it and reopen the list.
+                    // `detail` is 0 for a keyboard activation, which keeps its focus where it is.
+                    if (e.detail > 0) e.currentTarget.blur();
+                }}
             >
                 {children}
             </button>
