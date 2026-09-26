@@ -136,7 +136,21 @@ export type BandId = 'wild' | 'elite' | 'gauntlet';
 /**
  * Ticket 61's three ruled tier-1 win rates, as fractions. The whole point of the file.
  *
- * ══ THE WILD BAND IS 0.90, RULED BY HENRY 2026-09-25: *"90% should be the threshold."* ══
+ * ══ THE WILD BAND IS 0.85, AND IT IS A FLOOR — RULED BY HENRY 2026-09-25 (night), after the
+ * Rootfall playtest. ══
+ *
+ * *"at least an 85% chance at each node. Not cumulatively"*, then, asked whether 85 replaces the 90
+ * set that morning: *"Yes"*, and whether it covers elites and rivals: *"Only wilds"*. So:
+ *
+ *   - the target is 0.85;
+ *   - it is graded as AT LEAST (`FLOOR_BANDS`): a wild at 97% is the cake walk he asked for, not a
+ *     miss by 7 points. The ±5 window still applies to the elite and the gauntlet;
+ *   - it covers `kind === 'wild'` only, which is what this band already counts (see the note on
+ *     `sampleFight`'s cells: alpha, ambush and rival are not in it).
+ *
+ * Measured the same night, after the enemy first-hand fix: biome-0 wilds 91.2%, fight one 96.8%.
+ *
+ * ── The history, kept: 0.95 → 0.90 earlier on 2026-09-25 (*"90% should be the threshold."*) ──
  *
  * It was 0.95, and 157's arc is what moved it. Fight one was measured at 75.8% over 2,400 runs,
  * 157-r2 took it to **93.0%** (91.9–94.0) by dealing the opening enemy the start kit minus its
@@ -152,7 +166,7 @@ export type BandId = 'wild' | 'elite' | 'gauntlet';
  * The other two are untouched: nothing has measured them since they were ruled.
  */
 export const RUN_GATE_TARGETS: Readonly<Record<BandId, number>> = {
-    wild: 0.90,
+    wild: 0.85,
     elite: 0.75,
     gauntlet: 0.60,
 };
@@ -165,9 +179,18 @@ export const RUN_GATE_TOLERANCE = 0.05;
  * exit code is 0. Kept here rather than in the script so the two halves cannot disagree about what
  * "outside its window" means.
  */
-export function bandVerdict(measured: number, target: number): boolean {
+export function bandVerdict(measured: number, target: number, band?: BandId): boolean {
+    if (band !== undefined && FLOOR_BANDS.has(band)) return measured >= target - 1e-9;
     return Math.abs(measured - target) <= RUN_GATE_TOLERANCE + 1e-9;
 }
+
+/**
+ * Bands graded as AT LEAST their target rather than within ±5 of it. Only the wild, ruled
+ * 2026-09-25: *"at least an 85% chance at each node"*. The elite and the gauntlet are an exam and a
+ * boss, and a boss the player beats every time is a miss in the other direction, so they keep the
+ * window.
+ */
+export const FLOOR_BANDS: ReadonlySet<BandId> = new Set<BandId>(['wild']);
 
 // ---------------------------------------------------------------------------------------------
 // The one lossy edge in the translation, and why it is not lossy in play
@@ -1619,7 +1642,7 @@ export function measureBand(
         high,
         wins,
         battles,
-        inBand: bandVerdict(rate, RUN_GATE_TARGETS[band]),
+        inBand: bandVerdict(rate, RUN_GATE_TARGETS[band], band),
         elapsedMs: Date.now() - started,
         cells: measured,
     };
@@ -1663,7 +1686,7 @@ export function measureBand(
     if (!complete) return result;
 
     const compound = gauntletCompound(result);
-    return { ...result, compound, inBand: bandVerdict(compound, RUN_GATE_TARGETS[band]) };
+    return { ...result, compound, inBand: bandVerdict(compound, RUN_GATE_TARGETS[band], band) };
 }
 
 /**

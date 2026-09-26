@@ -123,6 +123,7 @@ import { DRIVER_IDS } from '../../engine/data/driverRegistry';
 import {
     CELLS,
     RUN_GATE_TARGETS,
+    FLOOR_BANDS,
     RUN_GATE_TOLERANCE,
     TUNED_OS_IDS,
     gauntletCompound,
@@ -488,7 +489,8 @@ const underSampled = (band: BandMeasurement): boolean =>
  */
 function bandLines(band: BandMeasurement): string[] {
     const target = RUN_GATE_TARGETS[band.band];
-    const window = `${pct(target - RUN_GATE_TOLERANCE)}-${pct(target + RUN_GATE_TOLERANCE)}`;
+    const floor = FLOOR_BANDS.has(band.band);
+    const window = floor ? `at least ${pct(target)}` : `${pct(target - RUN_GATE_TOLERANCE)}-${pct(target + RUN_GATE_TOLERANCE)}`;
     /*
      * THE GRADED NUMBER, and it is not always the pooled one.
      *
@@ -524,9 +526,11 @@ function bandLines(band: BandMeasurement): string[] {
         `${band.compound === undefined ? 'measured' : 'compound'} ${pct(graded)} ` +
         `(${band.wins}/${band.battles}, ${signed})   ` +
         `95% CI ${pct(band.low)}-${pct(band.high)}`,
-        `    ${band.inBand ? 'PASS' : 'FAIL'} — ${band.inBand
-            ? 'inside the ±5 window'
-            : `outside the ±5 window by ${((Math.abs(delta) - RUN_GATE_TOLERANCE) * 100).toFixed(1)}pt`}` +
+        `    ${band.inBand ? 'PASS' : 'FAIL'} — ${floor
+            ? (band.inBand ? 'at or above the floor' : `under the floor by ${(Math.abs(delta) * 100).toFixed(1)}pt`)
+            : band.inBand
+                ? 'inside the ±5 window'
+                : `outside the ±5 window by ${((Math.abs(delta) - RUN_GATE_TOLERANCE) * 100).toFixed(1)}pt`}` +
         `   [${secs(band.elapsedMs)}]${caveat}`,
         ...band.cells.map(cellLine),
     ];

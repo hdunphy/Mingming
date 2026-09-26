@@ -14,6 +14,7 @@ import {
     describeBossOverride,
     NO_FIRMWARE_OS,
     RUN_GATE_TARGETS,
+    FLOOR_BANDS,
     TUNED_OS_IDS,
     bandVerdict,
     lineupFor,
@@ -215,9 +216,20 @@ describe('run gate — the fight it builds is the fight the run rolls', () => {
 
 describe('run gate — the banding', () => {
     it('holds ticket 61\'s three ruled targets', () => {
-        // Henry, 2026-09-25: *"90% should be the threshold."* Was 0.95 — see the block on the
-        // constant for why 157's arc moved it rather than moving the game.
-        expect(RUN_GATE_TARGETS).toEqual({ wild: 0.90, elite: 0.75, gauntlet: 0.60 });
+        // Henry, 2026-09-25 (night): "at least an 85% chance at each node", wilds only. Was 0.90
+        // that morning and 0.95 before it — see the block on the constant.
+        expect(RUN_GATE_TARGETS).toEqual({ wild: 0.85, elite: 0.75, gauntlet: 0.60 });
+    });
+
+    it('grades the wild band as a FLOOR - at least 85, with no ceiling', () => {
+        expect(FLOOR_BANDS.has('wild')).toBe(true);
+        expect(bandVerdict(0.85, 0.85, 'wild')).toBe(true);
+        expect(bandVerdict(1.00, 0.85, 'wild')).toBe(true);    // a cake walk is not a miss
+        expect(bandVerdict(0.849, 0.85, 'wild')).toBe(false);
+        // The elite and the gauntlet keep the ±5 window in both directions.
+        expect(FLOOR_BANDS.has('elite')).toBe(false);
+        expect(bandVerdict(0.81, 0.75, 'elite')).toBe(false);
+        expect(bandVerdict(0.54, 0.60, 'gauntlet')).toBe(false);
     });
 
     it('passes exactly on the edge of the +-5 window and fails just outside it', () => {
