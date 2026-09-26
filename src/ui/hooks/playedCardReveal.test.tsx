@@ -18,12 +18,12 @@
  * before it rendered. A damage event must not eat the announcement.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 
-import { useBattleVfx, type BattleVfx } from './useBattleVfx';
+import { PLAYER_CARD_HOLD_MS, useBattleVfx, type BattleVfx } from './useBattleVfx';
 import { globalBattleEventBus } from '../../engine/events';
 import { createSparseBattleState, createSparseEntity } from '../../debug/scenarios/scenarioTestSupport';
 import type { IBattleState } from '../../engine/types';
@@ -136,5 +136,38 @@ describe('ticket 127 - the played card is announced', () => {
             } as never);
         });
         expect(latest().playedCard).toBeNull();
+    });
+});
+
+describe("2026-09-25 - the player's own card leaves after 1.5 s; the enemy's waits", () => {
+    afterEach(() => { vi.useRealTimers(); });
+
+    it("clears the player's reveal after PLAYER_CARD_HOLD_MS", async () => {
+        vi.useFakeTimers();
+        await emitPlay('p1', 'e1', 'ice_spear');
+        expect(PLAYER_CARD_HOLD_MS).toBe(1500);
+        await act(async () => { vi.advanceTimersByTime(PLAYER_CARD_HOLD_MS - 1); });
+        expect(latest().playedCard?.dataId).toBe('ice_spear');
+        await act(async () => { vi.advanceTimersByTime(1); });
+        expect(latest().playedCard).toBeNull();
+    });
+
+    it("an older card's timer does not take down a newer card", async () => {
+        vi.useFakeTimers();
+        await emitPlay('p1', 'e1', 'ice_spear');
+        await act(async () => { vi.advanceTimersByTime(1000); });
+        await emitPlay('p1', 'e1', 'ice_spear');
+        const second = latest().playedCard!.key;
+        await act(async () => { vi.advanceTimersByTime(600); });   // the first card's 1.5 s is up
+        expect(latest().playedCard?.key).toBe(second);
+        await act(async () => { vi.advanceTimersByTime(900); });   // and now the second's
+        expect(latest().playedCard).toBeNull();
+    });
+
+    it("leaves the ENEMY's reveal up - the AI loop's hold owns it (ticket 127)", async () => {
+        vi.useFakeTimers();
+        await emitPlay();
+        await act(async () => { vi.advanceTimersByTime(10_000); });
+        expect(latest().playedCard?.fromPlayer).toBe(false);
     });
 });

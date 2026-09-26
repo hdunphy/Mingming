@@ -92,10 +92,25 @@ export interface PlayedCardAnnouncement {
  * a stranger's card is legible, so it is set for the fast case and the slow case keeps paying its
  * own way.
  *
- * It is a hold, not an animation length: the reveal itself never expires on a timer (see the
- * `PROGRAM_PLAYED` case below) — the next play or the turn flip is what takes it down.
+ * It is a hold, not an animation length: the ENEMY's reveal never expires on a timer (see the
+ * `PROGRAM_PLAYED` case below) — the next play or the turn flip is what takes it down. The player's
+ * own card is the exception, below.
  */
 export const PLAYED_CARD_REVEAL_MS = 1200;
+
+/**
+ * ── THE PLAYER'S OWN CARD LEAVES AFTER 1.5 s — Henry, 2026-09-25, off the Rootfall playtest ──
+ *
+ * *"card's that were just played stay stuck in the center and also cover the combat log. It should
+ * disappear after a few seconds."* The no-timer rule below was written for the ENEMY's cards: a
+ * timer there would race the AI loop's own hold. The player's side has no loop — on your own turn
+ * the next "something else" is often you pressing End Turn, so your last card sat over the log
+ * for as long as you were thinking. Ruled 1.5 s.
+ *
+ * Only the player's reveal times out. The enemy's still leaves when the next play or the turn flip
+ * replaces it, exactly as ticket 127 set it.
+ */
+export const PLAYER_CARD_HOLD_MS = 1500;
 
 export interface BattleVfx {
     unitFx: Record<string, UnitFx>;
@@ -525,25 +540,35 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     playSfx('cardFly', { pitch: fromPlayer ? 1 : semitones(-3) });
                     playSfx(castCue(GetProgramData(event.programId)?.element));
                     triggerLunge(event.sourceId);
-                    // The reveal is NOT auto-expired on a timer. A timer would race the enemy
+                    // The ENEMY's reveal is NOT auto-expired on a timer. A timer would race the enemy
                     // loop's own hold, and the next play (or the turn ending) is the honest thing
                     // that should replace it - a card stays up until something else happens, which
-                    // is what makes it readable when the AI is thinking on the same thread.
+                    // is what makes it readable when the AI is thinking on the same thread. The
+                    // PLAYER's reveal does time out (PLAYER_CARD_HOLD_MS, 2026-09-25).
                     const source = findEntity(event.sourceId);
                     const target = findEntity(event.targetId);
                     const s = stateRef.current;
+                    const key = revealKeyRef.current++;
+                    const revealFromPlayer = s?.playerParty.some(e => e.id === event.sourceId) ?? false;
                     setVfx(prev => ({
                         ...prev,
                         playedCard: {
-                            key: revealKeyRef.current++,
+                            key,
                             dataId: event.programId,
                             sourceId: event.sourceId,
                             targetId: event.targetId,
-                            fromPlayer: s?.playerParty.some(e => e.id === event.sourceId) ?? false,
+                            fromPlayer: revealFromPlayer,
                             sourceName: source?.name ?? '',
                             targetName: target?.name ?? '',
                         },
                     }));
+                    // Your own card flies to the discard after PLAYER_CARD_HOLD_MS - unless a newer
+                    // play has already replaced it, which the key check makes a no-op.
+                    if (revealFromPlayer) {
+                        pendingTimeoutsRef.current.push(setTimeout(() => {
+                            setVfx(prev => (prev.playedCard?.key === key ? { ...prev, playedCard: null } : prev));
+                        }, PLAYER_CARD_HOLD_MS));
+                    }
                     return;
                 }
                 case 'CARD_DRAWN': {
