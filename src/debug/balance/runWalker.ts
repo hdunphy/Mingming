@@ -468,13 +468,17 @@ export interface WalkResult {
     readonly log: IRunLog;
 }
 
-const asSetupMember = (member: IMingmingState) => ({
-    definitionId: member.definitionId,
-    activeOS: member.activeOS,
-    attackIV: member.attackIV,
-    defenseIV: member.defenseIV,
-    hpIV: member.hpIV,
-});
+const asSetupMember = (member: IMingmingState, patches?: Readonly<Record<string, ReadonlyArray<string>>>) => {
+    const fitted = patches?.[member.id];
+    return {
+        definitionId: member.definitionId,
+        activeOS: member.activeOS,
+        attackIV: member.attackIV,
+        defenseIV: member.defenseIV,
+        hpIV: member.hpIV,
+        ...(fitted && fitted.length > 0 ? { patches: [...fitted] } : {}),
+    };
+};
 
 /**
  * The `IRunEncounter` → `ComposedSetup` translation, deliberately identical to `runGate.ts`'s.
@@ -485,7 +489,7 @@ const asSetupMember = (member: IMingmingState) => ({
  * the run's shared pile exactly; splitting it per member would invent an ownership the run does not
  * have. `runWalker.test.ts` asserts this against a gate-built setup rather than trusting the copy.
  */
-function setupFor(
+export function setupFor(
     seed: string,
     party: ReadonlyArray<IMingmingState>,
     deck: ReadonlyArray<string>,
@@ -493,6 +497,7 @@ function setupFor(
     enemyDeckIds: ReadonlyArray<string>,
     enemyDrivers: ReadonlyArray<string>,
     playerDrivers: ReadonlyArray<string>,
+    patches?: Readonly<Record<string, ReadonlyArray<string>>>,
 ): ComposedSetup {
     const enemies: EnemySetup[] = enemyParty.map((enemy, index) => ({
         definitionId: enemy.definitionId,
@@ -505,7 +510,7 @@ function setupFor(
     return {
         seed,
         enemyMode: RUN_ENEMY_MODE,
-        player: { party: party.map(asSetupMember), deck: [...deck], drivers: [...playerDrivers] },
+        player: { party: party.map((m) => asSetupMember(m, patches)), deck: [...deck], drivers: [...playerDrivers] },
         enemies,
         ...(enemyDrivers.length > 0 ? { enemyDrivers: [...enemyDrivers] } : {}),
         statJitter: BALANCE_STAT_JITTER,
@@ -584,6 +589,7 @@ export function walkRun(input: WalkInput): WalkResult {
         const setup = setupFor(
             encounter.seed, members, deckIds(), encounter.enemyParty, encounter.enemyDeckIds,
             encounter.enemyDrivers ?? [], runNow().drivers ?? [],
+            runNow().patches,
         );
         record({
             kind: 'FIGHT_DECK',

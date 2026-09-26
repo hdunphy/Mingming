@@ -119,6 +119,7 @@ const BattleEntitySchema = z.object({
     nextProgramModifier: NextProgramModifierSchema.optional(),
     playsThisTurn: z.number().optional(),
     moves: z.array(MoveSchema).optional(),
+    patches: z.array(z.string()).optional(),
 });
 
 /**
@@ -237,6 +238,7 @@ const PartyMemberSetupSchema = z.object({
     currentHp: z.number().int().min(0).optional(),
     statusEffects: z.array(StatusEffectInstanceSchema).optional(),
     moves: z.array(MoveSchema).optional(),
+    patches: z.array(z.string()).optional(),
 });
 
 const EnemySetupSchema = PartyMemberSetupSchema.extend({
@@ -368,6 +370,7 @@ export interface PartyMemberSetup {
     currentHp?: number;
     statusEffects?: StatusEffectInstance[];
     moves?: IMove[];
+    patches?: string[];
 }
 
 export interface EnemySetup extends PartyMemberSetup {

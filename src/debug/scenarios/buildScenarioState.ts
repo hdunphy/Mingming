@@ -114,6 +114,10 @@ function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBa
         entity = { ...entity, moves: setup.moves };
     }
 
+    if (setup.patches !== undefined && setup.patches.length > 0) {
+        entity = { ...entity, patches: [...setup.patches] };
+    }
+
     return entity;
 }
 
