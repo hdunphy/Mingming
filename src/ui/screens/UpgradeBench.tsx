@@ -23,6 +23,8 @@ import { useDispatch } from 'react-redux';
 
 import { ElementMark } from './CardChassis';
 import { cardFace, colorFor, groupByData } from './runShell';
+import { CardPeek } from './CardPeek';
+import { useCardPeek } from '../hooks/useCardPeek';
 import { Icon } from '../theme/Icon';
 import { upgradeDeckCard } from '../store/runSlice';
 import { upgradeIdFor } from '../../engine/data/plusRegistry';
@@ -45,6 +47,7 @@ export interface UpgradeBenchProps {
 
 export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps): ReactNode {
     const dispatch = useDispatch();
+    const { peek, peekHandlers } = useCardPeek();
 
     /*
      * ONE ROW PER UNIQUE CARD — Henry's duplicate amendment, *"one tile per unique card,
@@ -76,38 +79,45 @@ export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps
                     const short = price - run.scrap;
                     const blocked = spent || short > 0;
                     return (
-                        <button
+                        <div
                             key={stack.dataId}
-                            type="button"
-                            className="rs-row"
-                            style={{ ['--el' as string]: colorFor(face.element) }}
-                            disabled={blocked}
-                            onClick={() => dispatch(upgradeDeckCard({
-                                instanceId: stack.instances[0].instanceId,
-                                benchKey,
-                                free,
-                            }))}
-                            /*
-                              * NO CARD DESCRIPTION, not even in a `title`. The workshop bay's
-                              * standing law is that *"a bay lists engines by NAME and COST — that
-                              * is what an engine row is"*, and this component renders there. A row
-                              * that carried the text at the stall and not at the bay would be two
-                              * benches wearing one name.
-                              *
-                              * It costs less than it looks. The row already says `Venom Fang →
-                              * Venom Fang+`, and the full upgraded face — with the moved numbers
-                              * picked out in the element colour — is one click away in the loadout
-                              * editor, which every venue here already has a door to.
-                              */
+                            className="rs-wrap"
+                            tabIndex={blocked ? 0 : undefined}
+                            {...peekHandlers({ face: plus, count: stack.instances.length })}
                         >
-                            <span className="rs-g">{face.cost}</span>
-                            <ElementMark element={face.element} compact />
-                            <span className="rs-rnm">{face.name} → <b>{plus.name}</b></span>
-                            {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
-                            <span className="rs-sellp">
-                                {price === 0 ? 'FREE' : <>−{price} <Icon name="scrap" size={11} /></>}
-                            </span>
-                        </button>
+                            <button
+                                type="button"
+                                className="rs-row"
+                                style={{ ['--el' as string]: colorFor(face.element) }}
+                                disabled={blocked}
+                                onClick={() => dispatch(upgradeDeckCard({
+                                    instanceId: stack.instances[0].instanceId,
+                                    benchKey,
+                                    free,
+                                }))}
+                                /*
+                                 * TICKET 165a — THE HOVER PEEK.
+                                 *
+                                 * Henry, 2026-09-26: *"From the screenshot I need to be able to see
+                                 * the full card on hover. For the upgrades it should show what my
+                                 * upgraded card looks like."*
+                                 *
+                                 * Supersedes the previous workshop bay rule ("NO CARD DESCRIPTION, not
+                                 * even in a title"). The row itself still obeys the one-line row law
+                                 * (name and cost only), but hovering or focusing any row — even a
+                                 * greyed-out one — reveals the full upgraded card (+ face with changed
+                                 * numbers highlighted) beside the list via `<CardPeek>`.
+                                 */
+                            >
+                                <span className="rs-g">{face.cost}</span>
+                                <ElementMark element={face.element} compact />
+                                <span className="rs-rnm">{face.name} → <b>{plus.name}</b></span>
+                                {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
+                                <span className="rs-sellp">
+                                    {price === 0 ? 'FREE' : <>−{price} <Icon name="scrap" size={11} /></>}
+                                </span>
+                            </button>
+                        </div>
                     );
                 })}
                 {rows.length === 0 && (
@@ -116,6 +126,7 @@ export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps
                     </span>
                 )}
             </div>
+            <CardPeek peek={peek} className="upg-peek" />
             <p className="rs-hint mk-foot">
                 {spent
                     ? 'Already used this visit — come back after a fight, or find another bench.'

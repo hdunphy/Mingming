@@ -334,6 +334,33 @@
 .rs-row.static { cursor: default; }
 .rs-row.on { border-color: #3d9be0; box-shadow: 0 0 0 1px #3d9be0; }
 
+/* Ticket 165a: Row wrapper and card peek */
+.rs-wrap {
+    display: flex;
+    width: 100%;
+    flex: none;
+    outline: none;
+}
+
+.rs-wrap:focus-visible .rs-row {
+    border-color: #3d9be0;
+    box-shadow: 0 0 0 1px #3d9be0;
+}
+
+.card-peek {
+    position: static;
+    margin: 10px auto 0;
+    flex: 0 0 auto;
+    pointer-events: none;
+    box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
+    animation: card-peek-in 0.12s ease-out;
+}
+
+@keyframes card-peek-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: none; }
+}
+
 .rs-g {
     width: 17px; height: 17px; border-radius: 50%;
     background: var(--el); color: #0c0e12;

@@ -83,6 +83,8 @@ import { Icon } from '../theme/Icon';
 import { UpgradeBench } from './UpgradeBench';
 import { PatchBench } from './PatchBench';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
+import { CardPeek } from './CardPeek';
+import { useCardPeek } from '../hooks/useCardPeek';
 
 /**
  * Ticket 19's deck-band constants, re-exported because this module's readers and tests import them
@@ -129,6 +131,7 @@ export default function MarketplaceNode({
     run, node, party, biomeName, ranch, onEditLoadout, onLeave,
 }: MarketplaceNodeProps): ReactNode {
     const dispatch = useDispatch();
+    const { peek, peekHandlers } = useCardPeek();
 
     // Rolled from (run seed, node id, REFRESH count) — never held in component state, so a remount,
     // an app close or a resume shows the same stock. Ticket 142 §7 took the visit count out of that
@@ -485,26 +488,34 @@ export default function MarketplaceNode({
                             const face = cardFace(stack.instances[0].dataId);
                             const blocked = stack.inDeck && atFloor;
                             return (
-                                <button
+                                <div
                                     key={stack.key}
-                                    type="button"
-                                    className="rs-row"
-                                    style={{ ['--el' as string]: colorFor(face.element) }}
-                                    disabled={blocked}
-                                    onClick={() => sell(stack)}
+                                    className="rs-wrap"
+                                    tabIndex={blocked ? 0 : undefined}
+                                    {...peekHandlers({ face, count: stack.instances.length })}
                                 >
-                                    <span className="rs-g">{face.cost}</span>
-                                    <ElementMark element={face.element} compact />
-                                    <span className="rs-rnm">{face.name}</span>
-                                    {stack.instances[0].dataId === GENERIC_HIT && <span className="rs-t">generic</span>}
-                                    <span className="rs-t">{stack.inDeck ? 'deck' : 'collection'}</span>
-                                    {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
-                                    <span className="rs-sellp">+{stack.price} <Icon name="scrap" size={11} /></span>
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="rs-row"
+                                        style={{ ['--el' as string]: colorFor(face.element) }}
+                                        disabled={blocked}
+                                        onClick={() => sell(stack)}
+                                    >
+                                        <span className="rs-g">{face.cost}</span>
+                                        <ElementMark element={face.element} compact />
+                                        <span className="rs-rnm">{face.name}</span>
+                                        {stack.instances[0].dataId === GENERIC_HIT && <span className="rs-t">generic</span>}
+                                        <span className="rs-t">{stack.inDeck ? 'deck' : 'collection'}</span>
+                                        {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
+                                        <span className="rs-sellp">+{stack.price} <Icon name="scrap" size={11} /></span>
+                                    </button>
+                                </div>
                             );
                         })}
                         {sellable.length === 0 && <span className="mk-empty">Nothing to sell.</span>}
                     </div>
+
+                    <CardPeek peek={peek} className="sell-peek" />
 
                     <p className="rs-hint mk-foot">
                         {atFloor
