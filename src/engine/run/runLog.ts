@@ -237,6 +237,10 @@ export type IRunEvent = IRunEventBase & (
     | { readonly kind: 'MACRO_BOUGHT'; readonly macroId: string; readonly price: number }
     | { readonly kind: 'MACRO_FIRED'; readonly macroId: string }
     | { readonly kind: 'REROLLED'; readonly price: number }
+    /**
+     * `biomeReached` is the 0-BASED biome index. `runTelemetry`'s field of the same name is 1-based
+     * ("biome 1 of 3") — both are stored, so neither is renumbered; readers add 1 to this one.
+     */
     | { readonly kind: 'RUN_ENDED'; readonly outcome: RunOutcome; readonly biomeReached: number }
 );
 

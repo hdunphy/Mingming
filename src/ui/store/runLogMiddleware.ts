@@ -46,7 +46,7 @@ import {
     type IRunLog,
     type RunEventInput,
 } from '../../engine/run/runLog';
-import { isPlayerVictory } from '../../engine/battleOutcome';
+import { battleOutcome, isPlayerVictory } from '../../engine/battleOutcome';
 import { fightLogIdFor, writeFightLog } from '../../engine/run/fightLog';
 import { loadSettings } from '../settings/settings';
 import { isSimulating } from '../../engine/core/simulationDepth';
@@ -528,9 +528,21 @@ export function createRunLogMiddleware(
                     biome: node?.biomeIndex ?? 0,
                 });
             }
+            /*
+             * THE FIGHT CLOSES WHEN IT IS DECIDED, not when the arena clears — 2026-09-25.
+             *
+             * The arena clears the board only after the reward screen, so a won fight used to log
+             * its SCRAP and CARD_PICKED rows BEFORE its own killing turn and FIGHT_ENDED — and
+             * those closing rows were then stamped with the NEXT fight's index, because the run had
+             * already counted the win. Seen in the 09-25 Rootfall export (seq 11-15). Closing on
+             * the dispatch that decides the board puts the rows in the order they happened.
+             */
+            if (battleAfter && fightOpen && battleOutcome(battleAfter) !== null) {
+                closeFight(runAfter, battleAfter);
+            }
             if (battleBefore && !battleAfter) {
-                // The ordinary close: the arena cleared the board. On a defeat the run ended one
-                // dispatch ago and already closed it, and `closeFight` no-ops.
+                // The fallback close: the arena cleared a board that never read as decided (a
+                // debug clear, a quit). Every ordinary fight closed above, and `closeFight` no-ops.
                 closeFight(runAfter, battleBefore);
             }
 

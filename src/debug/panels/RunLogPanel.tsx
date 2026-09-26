@@ -148,7 +148,8 @@ export default function RunLogPanel() {
                         // transcript, because it answers the questions confidently and wrongly.
                         <strong style={{ color: '#ffcc66' }}> · {log.droppedEvents} DROPPED (capped)</strong>
                     )}
-                    {ended?.kind === 'RUN_ENDED' && ` · ${ended.outcome} at biome ${ended.biomeReached}`}
+                    {/* The run log counts biomes from 0; the run summary and the telemetry say "biome 1 of 3". Printed the player's way. */}
+                    {ended?.kind === 'RUN_ENDED' && ` · ${ended.outcome} at biome ${ended.biomeReached + 1}`}
                 </span>
             </div>
 

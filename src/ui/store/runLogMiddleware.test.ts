@@ -433,6 +433,28 @@ describe('the run log middleware, over a whole run', () => {
         expect(ended.won).toBe(false);
     });
 
+    it('closes a WON fight on the dispatch that decides it, before its reward rows (2026-09-25)', () => {
+        // The 09-25 Rootfall export logged fight one's scrap and card pick, THEN its killing turn and
+        // FIGHT_ENDED, because the fight closed only when the arena cleared after the reward screen.
+        const store = makeStore();
+        store.dispatch(startRun(makeRun()));
+        store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+
+        const board = store.getState().battle.battle!;
+        store.dispatch(setBattleState({
+            ...board,
+            enemyParty: board.enemyParty.map((unit) => ({ ...unit, currentHp: 0 })),
+        }));
+        // The reward screen, while the decided board is still up.
+        store.dispatch(addRunScrap(10));
+        store.dispatch(setBattleState(null));
+
+        const order = kinds().filter((kind) => ['FIGHT_ENDED', 'SCRAP'].includes(kind));
+        expect(order).toEqual(['FIGHT_ENDED', 'SCRAP']);
+        expect(rowsOf('FIGHT_ENDED')).toHaveLength(1);
+        expect((rowsOf('FIGHT_ENDED')[0] as IRunEvent & { won: boolean }).won).toBe(true);
+    });
+
     it('survives a reload — it RESUMES the transcript rather than starting a second one', async () => {
         /*
          * `setRun` fires on every boot with a run in progress. Starting fresh there would split one
