@@ -89,6 +89,32 @@ export const NODE_LABEL: Record<NodeKind, string> = {
  */
 export { FIGHT_KINDS } from '../../engine/run/encounter';
 
+/**
+ * ── THE START NODE — Henry, 2026-09-25, off the Rootfall playtest ──────────────────────────────
+ *
+ * *"I think you skip the first fight? I start on node one, but never encounter a fight."* The node
+ * the run opens on is a `wild` underneath (`NODE_KINDS` has no entry kind, and `regionGraph` marks it
+ * `visited: 1` so it does not fire before the run has begun), so the map drew it with the wild's
+ * blade: a fight that never happened. It is drawn as a flag now and labelled Start.
+ *
+ * Its KIND is untouched. Walking back into it is a wild fight like any other re-entry — ticket 07's
+ * "entering a node triggers it again, always", which Henry re-ruled the same day — and the label
+ * says so, rather than a flag quietly turning into an ambush of your own making.
+ */
+export function isRunStart(node: IRegionNode): boolean {
+    return node.biomeIndex === 0 && node.layer === 0;
+}
+
+/** The icon a node is drawn with: its kind's, except the run's start. */
+export function nodeIconFor(node: IRegionNode): IconName {
+    return isRunStart(node) ? 'start' : NODE_ICON[node.kind];
+}
+
+/** The word a node is called by: its kind's, except the run's start. */
+export function nodeLabelFor(node: IRegionNode): string {
+    return isRunStart(node) ? 'Start' : NODE_LABEL[node.kind];
+}
+
 // ---------------------------------------------------------------------------------------------
 // Layout
 // ---------------------------------------------------------------------------------------------

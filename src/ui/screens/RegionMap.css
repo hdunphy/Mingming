@@ -179,6 +179,21 @@
 }
 
 .rm-legend-fog { opacity: 0.7; }
+
+/* 2026-09-25: the icon key. Full opacity - it is the one line a new player reads first. */
+.rm-legend-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.7rem;
+    width: 100%;
+    opacity: 1;
+}
+.rm-legend-key-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
 .rm-legend-rival { opacity: 0.7; }
 
 .rm-travel-head {

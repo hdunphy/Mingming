@@ -21,6 +21,8 @@ export type IconName =
     | 'ranch' | 'debug' | 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex'
     // The eight region-node kinds (`engine/runTypes.NodeKind`).
     | 'wild' | 'rival' | 'elite' | 'alpha' | 'ambush' | 'marketplace' | 'workshop' | 'event' | 'gym'
+    // Not a node kind: the node the run starts on (a `wild` underneath - see `regionLayout.isRunStart`).
+    | 'start'
     // Chrome.
     | 'sound-on' | 'sound-off' | 'search' | 'settings' | 'warning' | 'check' | 'skull' | 'trophy'
     | 'door' | 'swap' | 'scrap' | 'blueprint'
@@ -66,6 +68,9 @@ export const PATHS: Readonly<Record<IconName, ReadonlyArray<string>>> = {
     workshop: ['M15.4 3.5a5 5 0 0 0-4.6 7l-6.6 6.6a1.8 1.8 0 0 0 2.6 2.6l6.6-6.6a5 5 0 0 0 5.9-6.6l-3 3-2.4-2.4z'],
     event: ['M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17', 'M9.4 9.4a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.3-2.6 4', 'M12 17.2h.01'],
     // Four columns and a pediment. The one building on the map, and the run's destination.
+    // A planted flag: where you set out from. Henry, 2026-09-25 - the start node used to wear the
+    // wild's blade, and read as a fight the run had skipped.
+    start: ['M6.5 20.5V3.5', 'M6.5 4.5h11l-2.6 4 2.6 4h-11'],
     gym: ['M3 8.5 12 3.5l9 5', 'M4.5 8.5v9', 'M9 8.5v9', 'M15 8.5v9', 'M19.5 8.5v9', 'M3 20.5h18', 'M3 17.5h18'],
 
     // --- chrome ---------------------------------------------------------------------------

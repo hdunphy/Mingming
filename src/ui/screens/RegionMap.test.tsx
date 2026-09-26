@@ -231,3 +231,23 @@ describe('RegionMap', () => {
         expect(markup).toContain('Nowhere to go from here');
     });
 });
+
+describe('2026-09-25 playtest — the start node, and a key for the icons', () => {
+    it('calls the node the run starts on Start, and says walking back in is a fight', () => {
+        // Henry: "I start on node one, but never encounter a fight." It wore the wild's blade.
+        const markup = render(graph.entryNodeId);
+        expect(markup).toContain('You are here: <strong>Start, Fire, walking back in is a Wild fight');
+    });
+
+    it('lists a key entry for every kind on show, and none for a fogged one', () => {
+        const markup = render(graph.entryNodeId);
+        expect(markup).toContain('rm-legend-key');
+        const key = markup.slice(markup.indexOf('rm-legend-key'), markup.indexOf('You are here'));
+        expect(key).toContain('Start');
+        // One layer of visibility from the start: the layer-1 nodes are revealed, and biome 0's
+        // layer 1 is always a fight (ticket 24), so Wild is in the key.
+        expect(key).toContain('Wild');
+        // The gym is several biomes away and fogged — the key must not explain it yet.
+        expect(key).not.toContain('Gym');
+    });
+});

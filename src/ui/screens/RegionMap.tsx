@@ -40,11 +40,14 @@ import type { IRegionNode } from '../../engine/runTypes';
 import { describeDriver } from '../../engine/data/driverRegistry';
 import {
     FIGHT_KINDS,
-    NODE_ICON,
     NODE_LABEL,
+    isRunStart,
     layoutRegion,
+    nodeIconFor,
+    nodeLabelFor,
     type LaidOutNode,
 } from './regionLayout';
+import type { IconName } from '../theme/icons';
 import './RegionMap.css';
 import { Icon } from '../theme/Icon';
 import { iconPaths } from '../theme/icons';
@@ -211,6 +214,17 @@ export default function RegionMap({
         biomeIndex < currentBiome ? 'WALKED' : biomeIndex === currentBiome ? 'CURRENT' : 'AHEAD';
 
     const reachable = layout.nodes.filter((n) => n.reachable);
+
+    /** The map key: one entry per icon on show, revealed nodes only, in layout order. */
+    const legendKey: ReadonlyArray<{ icon: IconName; label: string }> = (() => {
+        const seen = new Map<string, { icon: IconName; label: string }>();
+        for (const laid of layout.nodes) {
+            if (!laid.revealed) continue;
+            const label = nodeLabelFor(laid.node);
+            if (!seen.has(label)) seen.set(label, { icon: nodeIconFor(laid.node), label });
+        }
+        return [...seen.values()];
+    })();
     const current = layout.byId.get(currentNodeId);
 
     /**
@@ -233,7 +247,7 @@ export default function RegionMap({
         // so it has to be said rather than inferred from the icon. Before this, no UI file read the
         // flag at all and the one fight that previews the gauntlet was indistinguishable from an elite.
         const kind = laid.revealed
-            ? (laid.node.scout ? `Scout ${NODE_LABEL[laid.node.kind].toLowerCase()}` : NODE_LABEL[laid.node.kind])
+            ? (laid.node.scout ? `Scout ${NODE_LABEL[laid.node.kind].toLowerCase()}` : nodeLabelFor(laid.node))
             : 'Unknown';
         const parts = [kind];
         // BOTH elements on a rival, off-biome first (Henry's ruling): the pair IS the information —
@@ -249,6 +263,8 @@ export default function RegionMap({
          * reading is that it is harder than the elite — so it says so, and calls the Driver its
          * bonus rather than its exam.
          */
+        // 2026-09-25: the start is a wild underneath, and walking back into it fights like any re-entry.
+        if (isRunStart(laid.node)) parts.push('walking back in is a Wild fight');
         if (laid.revealed && laid.node.kind === 'ambush') parts.push('HIGH RISK — they outnumber you');
         if (laid.revealed && laid.node.driverStake) {
             parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${describeDriver(laid.node.driverStake).name}`);
@@ -412,7 +428,7 @@ export default function RegionMap({
                                         strokeLinecap="round" strokeLinejoin="round"
                                         style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
                                     >
-                                        {iconPaths(NODE_ICON[laid.node.kind]).map((d) => <path key={d} d={d} />)}
+                                        {iconPaths(nodeIconFor(laid.node)).map((d) => <path key={d} d={d} />)}
                                     </svg>
                                 ) : (
                                     <text x={x} y={y + 7} textAnchor="middle" className="rm-node-icon">·</text>
@@ -481,6 +497,23 @@ export default function RegionMap({
             </div>
 
             <div className="rm-legend">
+                {/*
+                  * THE ICON KEY — Henry, 2026-09-25: *"The node icons need a legend. It is unclear
+                  * what they mean."* The icons were explained only by the `map:types` tip, which is
+                  * once-ever, so from the second run on nothing on screen said what a node was.
+                  * Built from the nodes the player can actually SEE on this map (fogged ones show
+                  * their shape, not their kind), in the order they first appear, so the key never
+                  * explains a kind this run does not have.
+                  */}
+                {legendKey.length > 0 && (
+                    <span className="rm-legend-key" aria-label="Map key">
+                        {legendKey.map(({ icon, label }) => (
+                            <span key={label} className="rm-legend-key-item">
+                                <Icon name={icon} size={13} /> {label}
+                            </span>
+                        ))}
+                    </span>
+                )}
                 <span>You are here: <strong>{current ? describe(current) : '—'}</strong></span>
                 {/*
                   * Ticket 142c: stated on the map rather than left to the tip, because the tip is
@@ -521,7 +554,7 @@ export default function RegionMap({
                         <li key={laid.node.id}>
                             <button type="button" className="rm-travel-button" onClick={() => onTravel(laid.node)}>
                                 <span aria-hidden="true" className="rm-travel-icon">
-                                    {laid.revealed ? <Icon name={NODE_ICON[laid.node.kind]} size={15} /> : '·'}
+                                    {laid.revealed ? <Icon name={nodeIconFor(laid.node)} size={15} /> : '·'}
                                 </span>
                                 {describe(laid)}
                             </button>
