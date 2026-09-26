@@ -249,7 +249,7 @@ describe('buildScenarioState - decks, drivers and enemyMode', () => {
         expect(state.enemyParty[0].currentIntent).not.toBeNull();
     });
 
-    it('CARDS mode deals the enemy a hand from the per-enemy decks', () => {
+    it('CARDS mode builds the enemy a drawpile from the per-enemy decks, and deals it no opening hand', () => {
         const setup = makeSetup({ enemyMode: 'CARDS' });
         setup.enemies = [
             {
@@ -273,7 +273,10 @@ describe('buildScenarioState - decks, drivers and enemyMode', () => {
         expect(state.enemyMode).toBe('CARDS');
         const total = state.enemyDeck.hand.length + state.enemyDeck.drawpile.length;
         expect(total).toBe(3);
-        expect(state.enemyDeck.hand.length).toBeGreaterThan(0);
+        // 2026-09-25: the enemy draws at the start of its own first turn, like every turn after.
+        // An opening deal here stacked a second hand on top of it (see `createBattleState`).
+        expect(state.enemyDeck.hand).toEqual([]);
+        expect(state.enemyDeck.drawpile).toHaveLength(3);
         // No intents in CARDS mode - the normalizer's fill class leaves them null.
         expect(state.enemyParty[0].currentIntent).toBeNull();
     });

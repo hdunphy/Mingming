@@ -179,8 +179,6 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
 
     const playerCardDraw =
         playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
-    const enemyCardDraw =
-        enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
 
     const pInitialDeck: IDeckState = {
         ownerId: 'PLAYER',
@@ -197,8 +195,10 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
     );
     rng.adopt(seedAfterPlayerDraw);
 
-    // Move users get no drawpile or hand at all; card users get a dealt hand.
-    const eInitialDeck: IDeckState = {
+    // The enemy is NOT dealt an opening hand - it draws at the start of its own first turn, like
+    // every turn after. Mirrors `createBattleState` (see the note there, 2026-09-25): a sim that
+    // kept the old deal would measure a game the player no longer plays.
+    const eDeckState: IDeckState = {
         ownerId: 'ENEMY',
         deck: [],
         drawpile: enemyMode === 'CARDS' ? eDeckCards : [],
@@ -206,11 +206,6 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         discard: [],
         exhaust: [],
     };
-    const { state: eDeckState, nextSeed: seedAfterEnemyDraw } =
-        enemyMode === 'CARDS'
-            ? drawCards(eInitialDeck, enemyCardDraw, rng.seed)
-            : { state: eInitialDeck, nextSeed: rng.seed };
-    rng.adopt(seedAfterEnemyDraw);
 
     // Intents are only telegraphed for move users.
     const finalEnemyParty =
