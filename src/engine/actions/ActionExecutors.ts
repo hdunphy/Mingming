@@ -10,6 +10,7 @@ import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
 import { NEGATIVE_STATUSES } from '../core/ConditionValidator';
+import { actionConditionsMet } from './actionConditions';
 import { isSimulating } from '../core/simulationDepth';
 
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -1036,6 +1037,10 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
 
         if (lastProgramData.actions) {
             finalState = addLog(finalState, `  🔁 Reprogramming: ${lastProgramData.name}`);
+            const casterPartyKey = finalState.playerParty.some(e => e.id === sourceId) ? 'playerParty' : 'enemyParty';
+            const preCastCaster = finalState[casterPartyKey].find(e => e.id === sourceId);
+            if (!preCastCaster) return finalState;
+
             for (const action of lastProgramData.actions) {
                 // Prevent infinite recursion: do not re-execute PlayLastCard actions
                 if (action.type === 'PLAY_LAST_CARD') {
@@ -1055,6 +1060,12 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
                         const target = finalState.playerParty.find(e => e.id === tId)
                             ?? finalState.enemyParty.find(e => e.id === tId);
                         if (!target || target.currentHp <= 0) continue;
+
+                        const liveCaster = finalState[casterPartyKey].find(e => e.id === sourceId) ?? preCastCaster;
+                        if (!actionConditionsMet(finalState, action, targetId, target, preCastCaster, liveCaster)) {
+                            continue;
+                        }
+
                         finalState = executor.execute(finalState, sourceId, tId, action, lastProgramData, _context);
                     }
                 }
@@ -1104,6 +1115,9 @@ export function resolveProgramFree(
     }
 
     const growth = programData.growPerPlay ? (finalState.counters?.[`card_growth:${instanceId}`] || 0) : 0;
+    const casterPartyKey = isPlayerSource ? 'playerParty' : 'enemyParty';
+    const preCastCaster = finalState[casterPartyKey].find(e => e.id === sourceId);
+    if (!preCastCaster) return finalState;
 
     for (const action of programData.actions ?? []) {
         // No recursion: a free cast may not itself echo, or VALHALLA + Reprogram loops.
@@ -1127,6 +1141,12 @@ export function resolveProgramFree(
         for (const tId of actionTargetIds(finalState, programData, resolved, sourceId, defaultTargetId)) {
             const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
             if (!target || target.currentHp <= 0) continue;
+
+            const liveCaster = finalState[casterPartyKey].find(e => e.id === sourceId) ?? preCastCaster;
+            if (!actionConditionsMet(finalState, resolved, defaultTargetId, target, preCastCaster, liveCaster)) {
+                continue;
+            }
+
             finalState = executor.execute(finalState, sourceId, tId, resolved, programData, { ...context, state: finalState });
         }
     }
