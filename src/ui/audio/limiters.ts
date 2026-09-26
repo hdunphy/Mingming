@@ -45,6 +45,56 @@ export class SfxRateLimiter {
     }
 }
 
+/**
+ * ── SPACING — Henry, 2026-09-25, off the Rootfall playtest ────────────────────────────────────
+ *
+ * *"fenrir_v2 using burn cards and like 5 noises play at once ... its jarring."* He was counting
+ * right. One Ember Jab from fenrir_v2 fires six DIFFERENT cues in the same frame — the card's
+ * whoosh, the Fire cast, the hit, Burn landing, Sharp landing on himself and his firmware's proc —
+ * and Ignite adds a draw tick. The coalescer above only merges IDENTICAL names, so none of those
+ * six ever met it. Asked to choose between one headline sound, muting self-buffs, or spacing,
+ * Henry ruled **space the sounds**.
+ *
+ * So different cues that arrive together are laid out one `SFX_SPACING_MS` apart, in the order
+ * they arrived — the card, then what it did. Six cues become a 400 ms phrase instead of a chord.
+ */
+export const SFX_SPACING_MS = 80;
+
+/**
+ * How far behind "now" the spacer may run before it starts dropping cues.
+ *
+ * Six slots — one card's worth. Without a bound, a player clicking cards faster than 480 ms apart
+ * would push every sound further behind the thing that caused it, until the audio narrated plays
+ * the board had finished a second ago. A late sound is a wrong sound, so past this the cue is
+ * dropped rather than queued.
+ */
+export const SFX_SPACING_MAX_LAG_MS = SFX_SPACING_MS * 6;
+
+/**
+ * Hands each cue its delay. Pure: `now` is passed in, nothing is scheduled here.
+ */
+export class SfxSpacer {
+    /** The earliest moment the NEXT cue may start. */
+    private nextFree = Number.NEGATIVE_INFINITY;
+
+    constructor(
+        private readonly spacingMs: number = SFX_SPACING_MS,
+        private readonly maxLagMs: number = SFX_SPACING_MAX_LAG_MS,
+    ) {}
+
+    /** The delay in ms before this cue should sound, or null if it would land too late to mean anything. */
+    delayFor(now: number): number | null {
+        const delay = Math.max(0, this.nextFree - now);
+        if (delay > this.maxLagMs) return null;
+        this.nextFree = now + delay + this.spacingMs;
+        return delay;
+    }
+
+    reset(): void {
+        this.nextFree = Number.NEGATIVE_INFINITY;
+    }
+}
+
 export interface PooledVoice {
     /** ms timestamp the voice started (monotonic-ish; only ordering matters). */
     readonly startedAt: number;

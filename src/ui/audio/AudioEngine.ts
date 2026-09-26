@@ -34,6 +34,7 @@ import {
     MULTI_HIT_SEMITONES,
     semitones,
     SfxRateLimiter,
+    SfxSpacer,
     VoicePool,
 } from './limiters';
 import { primeSampleBank, sampleBuffer } from './sampleBank';
@@ -126,6 +127,7 @@ let noiseBuffer: AudioBuffer | null = null;
 let noiseBufferCtx: AudioContext | null = null;
 
 const rateLimiter = new SfxRateLimiter();
+const spacer = new SfxSpacer();
 const voicePool = new VoicePool();
 
 function getSettings(): AudioSettings {
@@ -440,6 +442,31 @@ export function playSfx(name: SfxName, opts: SfxOptions = {}): void {
          */
         const step = Math.max(0, Math.floor(opts.step ?? 0));
         if (step === 0 && !rateLimiter.shouldPlay(name, now)) return;
+
+        /*
+         * SPACED, NOT STACKED — Henry, 2026-09-25 (see `SfxSpacer`). Three kinds keep their own
+         * timing: a stated series already carries a stagger of its own (146c's 40 ms per target),
+         * a ducking cue IS the big moment and must land on it, and an interface cue answers a
+         * click. Everything else takes the next free slot.
+         */
+        const unspaced = step > 0 || DUCKING_CUES.has(name) || NON_COMBAT_CUES.has(name);
+        const delay = unspaced ? 0 : spacer.delayFor(now);
+        if (delay === null) return;
+        if (delay > 0) {
+            setTimeout(() => voiceOut(name, opts, step, now + delay), delay);
+            return;
+        }
+        voiceOut(name, opts, step, now);
+    } catch {
+        // Audio must never break the game.
+    }
+}
+
+/** Put one cue on the speakers now. Split out of `playSfx` so the spacer can call it late. */
+function voiceOut(name: SfxName, opts: SfxOptions, step: number, now: number): void {
+    try {
+        const context = ensureContext();
+        if (!context || context.state !== 'running' || !masterGain) return;
 
         const bus = context.createGain();
         /*

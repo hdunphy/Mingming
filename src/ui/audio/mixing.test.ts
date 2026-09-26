@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import {
     DUCK_DB, DUCK_MS, DUCKING_CUES, gainForDb, MULTI_HIT_SEMITONES, NON_COMBAT_CUES,
     pitchForCardsPlayed, pitchForDamage, pitchForStacks, semitones, SFX_COALESCE_WINDOW_MS,
-    SfxRateLimiter,
+    SFX_SPACING_MAX_LAG_MS, SFX_SPACING_MS, SfxRateLimiter, SfxSpacer,
 } from './limiters';
 import { SAMPLE_CUES } from './sfxSamples';
 
@@ -121,5 +121,34 @@ describe('147b — the multi-hit step', () => {
         expect(MULTI_HIT_SEMITONES).toBe(2);
         // Three targets span a major third and a half — countable, not a melody.
         expect(semitones(2 * MULTI_HIT_SEMITONES)).toBeLessThan(semitones(5));
+    });
+});
+
+describe('2026-09-25 — different cues arriving together are SPACED, not stacked', () => {
+    it("lays one Ember Jab's six cues out 80 ms apart, in arrival order", () => {
+        const spacer = new SfxSpacer();
+        // cardFly, castFire, hit, Burn, Sharp, the OS proc — all in the same frame.
+        const delays = [0, 0, 0, 0, 0, 0].map((dt) => spacer.delayFor(1000 + dt));
+        expect(SFX_SPACING_MS).toBe(80);
+        expect(delays).toEqual([0, 80, 160, 240, 320, 400]);
+    });
+
+    it('a cue after a quiet gap plays at once — spacing only applies to a crowd', () => {
+        const spacer = new SfxSpacer();
+        expect(spacer.delayFor(1000)).toBe(0);
+        expect(spacer.delayFor(1000 + SFX_SPACING_MS)).toBe(0);
+        expect(spacer.delayFor(5000)).toBe(0);
+    });
+
+    it('a cue that would land more than six slots late is dropped, not queued', () => {
+        const spacer = new SfxSpacer();
+        const delays: Array<number | null> = [];
+        for (let i = 0; i < 9; i += 1) delays.push(spacer.delayFor(1000));
+        expect(delays.slice(0, 7)).toEqual([0, 80, 160, 240, 320, 400, 480]);
+        expect(SFX_SPACING_MAX_LAG_MS).toBe(480);
+        expect(delays[7]).toBeNull();
+        expect(delays[8]).toBeNull();
+        // And once the crowd has cleared, sound resumes on time.
+        expect(spacer.delayFor(1000 + 560 + SFX_SPACING_MS)).toBe(0);
     });
 });
