@@ -56,7 +56,7 @@ const TERMINAL_SCORE = 10000 * NUMBER_SCALE;
 const TURN_DAMAGE_FRACTION = 0.20;
 
 /** Statuses that scale future turns are valued over the average remaining battle length. */
-const STATUS_HORIZON_TURNS = 2.5;
+export const STATUS_HORIZON_TURNS = 2.5;
 
 /** 1 energy ~ 1/4 of a turn's throughput (4-energy turns at the balance frame). */
 const ENERGY_TURN_FRACTION = 0.25;
@@ -106,25 +106,28 @@ const STATUS_PCT_PER_STACK = 0.02;
 const STATUS_PCT_CAP = 0.25;
 const cappedPct = (stacks: number): number => Math.min(STATUS_PCT_CAP, stacks * STATUS_PCT_PER_STACK);
 
-/** Total future Burn damage as a fraction of maxHp: tier table walked S -> 1 (Burn decays 1/turn). */
+/**
+ * Total future Burn damage as a fraction of maxHp across STATUS_HORIZON_TURNS.
+ * Ticket 164a: simulates horizon tick-by-tick following BURN_CONFIG.decayPerTurn.
+ * With decayPerTurn = 0 (permanent Burn since ticket 93), this reduces to tier[S] × STATUS_HORIZON_TURNS.
+ */
 function burnTotalPercent(stacks: number): number {
-    // Ticket 62: read the LIVE Burn tier table, not the static gameConfig one. Identical as
-    // committed (BURN_CONFIG.tiers is that array), but a grid arm that changes the cap changes
-    // the climb - and an eval that valued Burn off a stale table would judge every arm against
-    // the wrong shape, which is the failure family ticket 40's Poison cap already cost us.
     const tiers = BURN_CONFIG.tiers;
+    const decay = BURN_CONFIG.decayPerTurn;
+    const tierPct = (s: number): number => {
+        if (s <= 0) return 0;
+        return (tiers[Math.min(s, tiers.length) - 1] ?? tiers[tiers.length - 1]).damagePercent;
+    };
+
     let total = 0;
-    for (let s = stacks; s >= 1; s--) {
-        const tier = tiers[s - 1] ?? tiers[tiers.length - 1];
-        total += tier.damagePercent;
+    const horizon = STATUS_HORIZON_TURNS;
+    for (let t = 0; t < horizon; t++) {
+        const weight = Math.min(1, horizon - t);
+        const s = Math.max(0, stacks - t * decay);
+        total += tierPct(s) * weight;
     }
-    // Ticket 44: the same shape ticket 40 found in Poison. The decay sum is the right TOTAL, but
-    // only if the battle lasts `stacks` more turns, and it does not - battles run 5-6. Burn's
-    // top tier is 8%/turn, so the sum runs away fast: 10 stacks reads as 69% of a health bar,
-    // which the holder will be dead long before collecting. Capped at the per-turn rate over the
-    // same horizon every other future-scaling status uses. Below ~3 stacks the sum still binds,
-    // because Burn genuinely does decay away inside the horizon.
-    const perTurn = (tiers[Math.min(stacks, tiers.length) - 1] ?? tiers[tiers.length - 1]).damagePercent;
+
+    const perTurn = tierPct(stacks);
     return Math.min(total, perTurn * STATUS_HORIZON_TURNS);
 }
 

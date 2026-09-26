@@ -20,12 +20,13 @@
  * constant these tests take on trust, because it is a unit rather than a mechanic.
  */
 import { describe, it, expect } from 'vitest';
-import { statusValue } from './TacticalAI';
+import { statusValue, STATUS_HORIZON_TURNS } from './TacticalAI';
 import {
     getStatusBehavior,
     POISON_PERCENT_PER_STACK,
     REGEN_PERCENT_PER_TURN,
     BARKSHIELD_DECAY_RETAINED,
+    BURN_CONFIG,
 } from '../StatusBehaviors';
 import type { IBattleEntity, StatusEffectInstance } from '../types';
 
@@ -123,5 +124,36 @@ describe('ticket 137 — Poison and BarkShield use the engine numbers too', () =
         const pool = HUGE_HP * (stacks / 100);
         expect(statusValue('BarkShield', stacks, frame()))
             .toBeCloseTo(HP_POINTS * pool * BARKSHIELD_DECAY_RETAINED, 6);
+    });
+});
+
+describe('ticket 164a — Burn: the eval prices what the engine burns', () => {
+    it('prices Burn at per-turn tick × STATUS_HORIZON_TURNS for 1–4 stacks', () => {
+        const behavior = getStatusBehavior('Burn');
+        for (const stacks of [1, 2, 3, 4]) {
+            const engineDamage = required(
+                behavior.endTurn(instance('Burn', stacks), frame()).damage,
+                `Burn.endTurn(${stacks}).damage`
+            );
+            expect(statusValue('Burn', stacks, frame()), `${stacks} stacks`)
+                .toBeCloseTo(-HP_POINTS * engineDamage * STATUS_HORIZON_TURNS, 6);
+        }
+    });
+
+    it('with decayPerTurn = 1, follows the decaying walk across the horizon', () => {
+        const originalDecay = BURN_CONFIG.decayPerTurn;
+        try {
+            (BURN_CONFIG as { decayPerTurn: number }).decayPerTurn = 1;
+            expect(statusValue('Burn', 1, frame()))
+                .toBeCloseTo(-HP_POINTS * HUGE_HP * 0.015, 6);
+            expect(statusValue('Burn', 2, frame()))
+                .toBeCloseTo(-HP_POINTS * HUGE_HP * 0.045, 6);
+            expect(statusValue('Burn', 3, frame()))
+                .toBeCloseTo(-HP_POINTS * HUGE_HP * (0.05 + 0.03 + 0.015 * 0.5), 6);
+            expect(statusValue('Burn', 4, frame()))
+                .toBeCloseTo(-HP_POINTS * HUGE_HP * (0.08 + 0.05 + 0.03 * 0.5), 6);
+        } finally {
+            (BURN_CONFIG as { decayPerTurn: number }).decayPerTurn = originalDecay;
+        }
     });
 });
