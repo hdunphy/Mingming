@@ -52,14 +52,17 @@ import { configureStore } from '@reduxjs/toolkit';
 import runReducer, {
     startRun, enterNode, resolveEncounter, endRun, addRunScrap, addRunCards, addRunCollection,
     buyMarketCard, recruitIntoParty, beginGauntlet, advanceGauntlet, finishGauntlet,
-    recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard,
+    recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint,
 } from '../../ui/store/runSlice';
 import { createRun, recruitDeckFor } from '../../engine/run/createRun';
-import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompElementPlan } from '../../engine/run/gyms';
+import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompElementPlan, type IGym } from '../../engine/run/gyms';
 import { rollEncounter, isFightNode, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { rollDropTable } from '../../engine/RewardSystem';
-import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice } from '../../engine/run/marketplace';
+import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold } from '../../engine/run/marketplace';
+import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
+import { BlueprintLedger } from './BlueprintLedger';
+export { BlueprintLedger } from './BlueprintLedger';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { gatePatchChoices, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
@@ -162,7 +165,11 @@ export interface StepReason {
  * shop" a coin flip, and the shop is one of the three levers 153 is about. The tie-break is named
  * here rather than buried because it is the part a reader should disagree with first.
  */
-export function chooseStep(run: IRunState, gymNodeId: string, blueprints: number): StepReason | null {
+export function chooseStep(
+    run: IRunState,
+    gymNodeId: string,
+    hasRecruitableBlueprint: boolean | number,
+): StepReason | null {
     const byId = new Map(run.nodes.map((node) => [node.id, node]));
     const current = byId.get(run.currentNodeId);
     if (!current || current.id === gymNodeId) return null;
@@ -191,8 +198,11 @@ export function chooseStep(run: IRunState, gymNodeId: string, blueprints: number
         .filter((node) => (dist.get(node.id) ?? Infinity) === here - 1);
     if (onPath.length === 0) return null;
 
+    const canRecruit = typeof hasRecruitableBlueprint === 'boolean'
+        ? hasRecruitableBlueprint
+        : hasRecruitableBlueprint > 0;
     const rank = (node: IRegionNode): number => {
-        if (node.kind === 'workshop' && blueprints > 0) return 0;
+        if (node.kind === 'workshop' && canRecruit) return 0;
         if (isMarketNode(node.kind)) return 1;
         if (isFightNode(node.kind)) return 2;
         return 3;
@@ -518,13 +528,74 @@ export function setupFor(
 }
 
 /** A roster member built at the corpus IVs, so the walk measures decks rather than stat rolls. */
-function memberFor(id: string, osId: string): IMingmingState {
+export function memberFor(id: string, osId: string): IMingmingState {
     const species = speciesOwningFirmware(osId);
     if (!species) throw new Error(`runWalker: no species owns firmware ${osId}`);
     return {
         id, definitionId: species, activeOS: osId, blueprintsCollected: 0,
         attackIV: BALANCE_IV, defenseIV: BALANCE_IV, hpIV: BALANCE_IV,
     };
+}
+
+export function buyMarketBlueprintIfOffered(
+    store: { dispatch: (action: unknown) => void; getState: () => { run: { run: IRunState | null } } },
+    node: IRegionNode,
+    ledger: BlueprintLedger,
+    record?: (event: Parameters<typeof appendRunEvent>[1]) => void,
+): boolean {
+    const run = store.getState().run.run;
+    if (!run || isBlueprintSlotSold(run, node)) return false;
+    const bp = rollBlueprintOffer(run, node);
+    if (!bp || run.scrap < bp.price) return false;
+    const beforeCount = (run.boughtBlueprints ?? []).length;
+    store.dispatch(buyMarketBlueprint({ nodeId: node.id, price: bp.price }));
+    const after = store.getState().run.run;
+    if ((after?.boughtBlueprints ?? []).length > beforeCount) {
+        ledger.add(bp.speciesId);
+        record?.({ kind: 'SCRAP', delta: -bp.price, reason: 'blueprint' });
+        return true;
+    }
+    return false;
+}
+
+export function executeWorkshopRecruit(
+    store: { dispatch: (action: unknown) => void; getState: () => { run: { run: IRunState | null } } },
+    node: IRegionNode,
+    partyMembers: ReadonlyArray<IMingmingState>,
+    roster: IMingmingState[],
+    ledger: BlueprintLedger,
+    gym: IGym,
+    record?: (event: Parameters<typeof appendRunEvent>[1]) => void,
+): RecruitChoice | null {
+    const run = store.getState().run.run;
+    if (!run || run.partyIds.length >= 3 || run.scrap < WORKSHOP_ASSEMBLY_SCRAP) return null;
+    const held = new Set(partyMembers.map((m) => m.definitionId));
+    const recruitable = new Set(ledger.recruitable(held));
+    const candidates = LAUNCH_SPECIES.filter((s) => recruitable.has(s));
+    if (candidates.length === 0) return null;
+    const partyOS = partyMembers.map((m) => m.activeOS!).filter(Boolean);
+    const gymPlan = gymCompElementPlan(gym);
+    const target = gymPlan[0] ?? gym.element;
+    const ranked = candidates
+        .map((speciesId) => chooseRecruit(speciesId, partyOS, target))
+        .filter((c): c is RecruitChoice => c !== null)
+        .map((c) => ({
+            choice: c,
+            rank: (grammarFor(c.osId)?.partners ?? []).some((p) => partyOS.includes(p.osId)) ? 0
+                : MingmingRegistry[c.speciesId].primaryElement === COUNTERED_BY[target] ? 1 : 2,
+        }))
+        .sort((a, b) => a.rank - b.rank || a.choice.osId.localeCompare(b.choice.osId));
+    if (ranked.length === 0) return null;
+
+    const choice = ranked[0].choice;
+    const member = memberFor(`mm${roster.length + 1}`, choice.osId);
+    roster.push(member);
+    const stream = new SeedStream(new SeedStream(`${run.seed}:${node.id}:recruit`).fork('recruit-deck'));
+    const cards = recruitDeckFor(member, stream);
+    store.dispatch(recruitIntoParty({ memberId: member.id, cards, price: WORKSHOP_ASSEMBLY_SCRAP }));
+    ledger.spend(choice.speciesId);
+    record?.({ kind: 'RECRUITED', definitionId: member.definitionId, cards: cards.map((c) => c.dataId) });
+    return choice;
 }
 
 /**
@@ -572,7 +643,7 @@ export function walkRun(input: WalkInput): WalkResult {
     let benchesMissed = 0;
     /** 163e: how often a body stood in front of the shop's patch shelf — the take-rate denominator. */
     let patchShelvesSeen = 0;
-    let blueprints = 0;
+    const blueprintLedger = new BlueprintLedger();
     let outcome: 'victory' | 'defeat' = 'defeat';
 
     const partyMembers = (): IMingmingState[] =>
@@ -673,7 +744,9 @@ export function walkRun(input: WalkInput): WalkResult {
             store.dispatch(addRunScrap(bundle.scraps));
             record({ kind: 'SCRAP', delta: bundle.scraps, reason: 'fight' }, fights.length);
         }
-        blueprints += bundle.blueprints.length;
+        for (const species of bundle.blueprints) {
+            blueprintLedger.add(species);
+        }
         store.dispatch(recordFightBlueprintOutcome({ dropped: bundle.blueprints.length > 0 }));
         if (bundle.driver) store.dispatch(addDriver(bundle.driver));
         // §3 has no patch policy, and 163's ruling is that an elite offers one per body. Taking the
@@ -725,12 +798,7 @@ export function walkRun(input: WalkInput): WalkResult {
         }
 
         // A blueprint on the shelf is a body, which the recruit policy values above any card.
-        const bp = rollBlueprintOffer(run, node);
-        if (bp && runNow().scrap >= bp.price) {
-            store.dispatch(addRunScrap(-bp.price));
-            blueprints += 1;
-            record({ kind: 'SCRAP', delta: -bp.price, reason: 'blueprint' }, fights.length);
-        }
+        buyMarketBlueprintIfOffered(store, node, blueprintLedger, (evt) => record(evt, fights.length));
 
         // TICKET 163e: the shop's Amplifier at `SHOP_PATCH_PRICE`. Bought AFTER the card and the
         // blueprint, which is the order the policy already ranks them in — a patch is the newest
@@ -781,36 +849,10 @@ export function walkRun(input: WalkInput): WalkResult {
 
     /** §5.2's strategic recruit, at a workshop, while a blueprint is held and the party has room. */
     const workshop = (node: IRegionNode): void => {
-        const run = runNow();
-        if (blueprints < 1 || run.partyIds.length >= 3) return;
-        const held = new Set(partyMembers().map((m) => m.definitionId));
-        const candidates = LAUNCH_SPECIES.filter((s) => !held.has(s));
-        const partyOS = partyMembers().map((m) => m.activeOS!).filter(Boolean);
-
-        // TICKET 28a: the element the gym's authored comp actually fields most, from the one table.
-        // `gymCompElementPlan` sorts gym-element-first, so its head is that element.
-        const gymPlan = gymCompElementPlan(gym);
-        const target = gymPlan[0] ?? gym.element;
-        const ranked = candidates
-            .map((speciesId) => chooseRecruit(speciesId, partyOS, target))
-            .filter((c): c is RecruitChoice => c !== null)
-            .map((c) => ({
-                choice: c,
-                rank: (grammarFor(c.osId)?.partners ?? []).some((p) => partyOS.includes(p.osId)) ? 0
-                    : MingmingRegistry[c.speciesId].primaryElement === COUNTERED_BY[target] ? 1 : 2,
-            }))
-            .sort((a, b) => a.rank - b.rank || a.choice.osId.localeCompare(b.choice.osId));
-        if (ranked.length === 0) return;
-
-        const choice = ranked[0].choice;
-        const member = memberFor(`mm${roster.length + 1}`, choice.osId);
-        roster.push(member);
-        const stream = new SeedStream(new SeedStream(`${run.seed}:${node.id}:recruit`).fork('recruit-deck'));
-        const cards = recruitDeckFor(member, stream);
-        store.dispatch(recruitIntoParty({ memberId: member.id, cards, price: 0 }));
-        blueprints -= 1;
-        recruits.push(choice);
-        record({ kind: 'RECRUITED', definitionId: member.definitionId, cards: cards.map((c) => c.dataId) }, fights.length);
+        const choice = executeWorkshopRecruit(
+            store, node, partyMembers(), roster, blueprintLedger, gym, (evt) => record(evt, fights.length),
+        );
+        if (choice) recruits.push(choice);
     };
 
     // ---- the loop -------------------------------------------------------------------------
@@ -867,7 +909,9 @@ export function walkRun(input: WalkInput): WalkResult {
             upgradeBench(node, false);
         }
 
-        const next = chooseStep(runNow(), gymNodeId, blueprints);
+        const held = new Set(partyMembers().map((m) => m.definitionId));
+        const hasRecruitable = runNow().partyIds.length < 3 && blueprintLedger.recruitable(held).length > 0;
+        const next = chooseStep(runNow(), gymNodeId, hasRecruitable);
         if (!next) break;
         steps.push(next);
         store.dispatch(enterNode(next.nodeId));
