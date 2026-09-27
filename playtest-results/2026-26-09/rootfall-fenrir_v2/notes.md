@@ -1,0 +1,4 @@
+- WIth fenrir_v2, skoll_v2, huldra_v2 the animations are starting to slow down because there are so many status effects happening. Two cards to apply burn caused me to get 20 sharp across my team and the enemies have 20 weakened. So we need those to resolve faster. Maybe one animation per status effect and throw a x2 or x8 multiplier for the number of stacks. Or just do a single animatiion and leave it at that. Also don't stagger between mingmings.
+- In the gauntlet and it is water, water, fire. Pretty sure I'm supposed to be at rootfall with NNW teams. I guess this was for fight 1? Still it should be mostly nature and mix in some water or fire, not WWF
+- THe enemy turn is extremely laggy. It studders during animations
+- You should win macros between the gauntlet fights

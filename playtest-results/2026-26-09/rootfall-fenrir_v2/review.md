@@ -38,10 +38,20 @@ The only threat in the run came in fights 1–6, while the party had one or two 
 ## Questions only Henry can answer (the §4 prompts)
 
 1. **Fight one:** did the opening five feel like a weak engine with one payoff, and did the first pick (Flashover) complete something?
+    Yes it worked well I think
 2. **The party:** name one moment the three bodies did something together that one could not have done alone.
+    The synergy between the add statuses allowed me to get 20 sharp on the first turn very easily then using my scaling sharp attacks to wipe teams.
 3. **The OS:** for each body, could you tell what its OS did from the tell alone?
+    Not really. It took me a while to pick up  on those.
 4. **Picks:** was there a reward screen where you wanted two things? Did an upgrade or a patch ever beat a card?
+    Upgrades feel critical, I almost always tried to upgrade. The shop often didn't have the cards I wanted once I had a good deck. I didn't get any macros but probably should have.
 5. **The scout:** did the preview change who you recruited or which way you went?
+    No, I didn't really use the scout. Or don't understand if I was.
 6. **The gym:** did it feel like the run's argument being settled, or like a wall?
+    The argument except for the first WWF fight which felt out of place for this biome. 
 7. **The worst minute:** where, if anywhere, did you feel done with the run before it ended?
+    No it was actually very fun. 
 8. **Play again, 1–5,** and the one thing that would raise it by one.
+    4, it was a little too easy at the end. The OS patches feel very over powered. You should probably only have 1 or two by the end, I think I saw 4-5.
+
+One note: This came before the 164 ticket. The playtime  was long because I would leave during the session and come back. It wasn't one sitting.
