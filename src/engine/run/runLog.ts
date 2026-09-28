@@ -235,6 +235,7 @@ export type IRunEvent = IRunEventBase & (
      */
     | { readonly kind: 'PATCH_TAKEN'; readonly memberId: string; readonly patchId: string }
     | { readonly kind: 'MACRO_BOUGHT'; readonly macroId: string; readonly price: number }
+    | { readonly kind: 'MACRO_WON'; readonly macroId: string; readonly replaced: string | null }
     | { readonly kind: 'MACRO_FIRED'; readonly macroId: string }
     | { readonly kind: 'REROLLED'; readonly price: number }
     /**

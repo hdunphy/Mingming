@@ -81,6 +81,8 @@ export interface IRewardBundle {
      * says of itself for the same reason.
      */
     readonly patchChoices?: ReadonlyArray<{ readonly memberId: string; readonly patchId: string }>;
+    /** TICKET 166d — up to three macro ids; the player may take one. Absent when the fight pays none. */
+    readonly macroChoices?: ReadonlyArray<string>;
     /**
      * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented before the normal
      * report. **Nothing sets this since ticket 12** — the gauntlet and its draft belong to ticket

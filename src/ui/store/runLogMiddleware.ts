@@ -635,6 +635,13 @@ export function createRunLogMiddleware(
                     });
                     break;
                 }
+                case 'run/takeRewardMacro': {
+                    const macroId = String(payload?.macroId ?? '');
+                    const hadFreeSlot = (runBefore?.macros ?? []).some((slot) => slot === null);
+                    const replaced = hadFreeSlot ? null : (runBefore?.macros[Number(payload?.replaceSlot)] ?? null);
+                    if (runAfter?.macros.includes(macroId)) record(runAfter, { kind: 'MACRO_WON', macroId, replaced });
+                    break;
+                }
                 case 'run/consumeMacro': {
                     const slot = Number(payload ?? -1);
                     record(runAfter, { kind: 'MACRO_FIRED', macroId: runBefore?.macros[slot] ?? 'unknown' });

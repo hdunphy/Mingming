@@ -43,6 +43,7 @@ import {
     fitPatch,
     advanceGauntlet,
     consumeMacro,
+    takeRewardMacro,
     endRun,
     finishGauntlet,
     recordBankedBlueprint,
@@ -50,6 +51,7 @@ import {
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
+import { fightBonusFor } from '../../engine/run/fightBonus';
 import { logRunEvent } from '../store/runLogMiddleware';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
@@ -666,7 +668,8 @@ const BattleArena: React.FC = () => {
      * scenario, which has no node at all; `'wild'` is the baseline both tables are quoted against,
      * so a scenario pays what an ordinary fight pays rather than nothing.
      */
-    const nodeKind: NodeKind = run?.nodes.find(n => n.id === run.currentNodeId)?.kind ?? 'wild';
+    const currentNode = run?.nodes.find(n => n.id === run.currentNodeId);
+    const nodeKind: NodeKind = currentNode?.kind ?? 'wild';
     /**
      * TICKET 17: the Driver this node pays, stamped on it at run creation (`driverStakes.ts`) and
      * shown on the map before the player walked here. Read off the node rather than re-rolled, so
@@ -674,7 +677,14 @@ const BattleArena: React.FC = () => {
      * pay one and for every debug scenario.
      */
     const driverStake: string | undefined = paysDriver(nodeKind)
-        ? run?.nodes.find(n => n.id === run.currentNodeId)?.driverStake
+        ? currentNode?.driverStake
+        : undefined;
+
+    /**
+     * TICKET 166d: the extra prize from fightBonusFor (macros for gauntlet fights 1 and 2).
+     */
+    const bonus = run && currentNode
+        ? fightBonusFor({ nodeKind, biomeIndex: currentNode.biomeIndex, biomeCount: run.biomes.length, gauntlet: run.gauntlet })
         : undefined;
 
     /**
@@ -784,6 +794,7 @@ const BattleArena: React.FC = () => {
                  */
                 dryFights,
                 firstRun,
+                bonus,
             });
             const bundle = driverStake ? { ...rolled, driver: driverStake } : rolled;
 
@@ -795,7 +806,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, driverStake, dryFights, firstRun]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, driverStake, dryFights, firstRun, bonus]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -938,6 +949,7 @@ const BattleArena: React.FC = () => {
         chosenCards: IOwnedProgram[],
         storedInstanceIds: ReadonlyArray<string> = [],
         chosenPatch?: { readonly memberId: string; readonly patchId: string },
+        chosenMacro?: { readonly macroId: string; readonly replaceSlot?: number },
     ) => {
         if (rewardBundle) {
             // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints — and ticket 12
@@ -956,6 +968,10 @@ const BattleArena: React.FC = () => {
              */
             if (chosenPatch) {
                 dispatch(fitPatch({ memberId: chosenPatch.memberId, patchId: chosenPatch.patchId }));
+            }
+            // TICKET 166d: take a macro won from gauntlet fights 1 and 2.
+            if (chosenMacro) {
+                dispatch(takeRewardMacro(chosenMacro));
             }
             if (chosenCards.length > 0) {
                 /*
@@ -1219,6 +1235,7 @@ const BattleArena: React.FC = () => {
                         key="battle-report"
                         bundle={rewardBundle}
                         winners={battleState.playerParty}
+                        macroRack={run?.macros ?? [null, null, null]}
                         onContinue={handleContinue}
                     />
                 )}

@@ -30,6 +30,7 @@ import runReducer, {
     sellRunCard,
     setRun,
     startRun,
+    takeRewardMacro,
 } from './runSlice';
 import uiReducer from './uiSlice';
 import { createRunLogMiddleware, currentRunLog, logRunEvent, resetRunLogRecorder } from './runLogMiddleware';
@@ -528,5 +529,31 @@ describe('the run log middleware, over a whole run', () => {
         store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
         expect(currentRunLog()).toBeNull();
         expect(readRunLogs()).toEqual([]);
+    });
+
+    it('takeRewardMacro records MACRO_WON with replaced: null on a free slot and the dropped id on a replace (166d)', () => {
+        const store = makeStore();
+        const run = makeRun();
+        store.dispatch(startRun(run));
+        store.dispatch(setRun({ ...run, macros: ['overcharge', null, null] }));
+
+        store.dispatch(takeRewardMacro({ macroId: 'mend' }));
+        const events = currentRunLog()?.events ?? [];
+        const won1 = events.find((e) => e.kind === 'MACRO_WON' && e.macroId === 'mend');
+        expect(won1).toBeDefined();
+        if (won1?.kind === 'MACRO_WON') {
+            expect(won1.replaced).toBeNull();
+        }
+
+        // Fill remaining slot so rack is full: ['overcharge', 'mend', 'revive']
+        store.dispatch(takeRewardMacro({ macroId: 'revive' }));
+        // Replace slot 1 ('mend') with 'surge'
+        store.dispatch(takeRewardMacro({ macroId: 'surge', replaceSlot: 1 }));
+        const won2 = (currentRunLog()?.events ?? []).filter((e) => e.kind === 'MACRO_WON').pop();
+        expect(won2).toBeDefined();
+        if (won2?.kind === 'MACRO_WON') {
+            expect(won2.macroId).toBe('surge');
+            expect(won2.replaced).toBe('mend');
+        }
     });
 });

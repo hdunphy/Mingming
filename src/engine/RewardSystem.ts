@@ -38,6 +38,8 @@ import { PATCH_SLOTS } from './data/patchRegistry';
 import { bestPatchFor } from './data/patchRanking';
 import { rawFirmwareHooks } from './data/firmwareRegistry';
 import { paysDriver } from './run/driverStakes';
+import { rollMacroChoices } from './run/macroRewards';
+import type { FightBonus } from './run/fightBonus';
 import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
@@ -739,6 +741,8 @@ export interface IRewardRollInput {
      * `dryFights`: the ranch owns the counter and `gameSlice` advances it when a run ends.
      */
     readonly firstRun?: boolean;
+    /** TICKET 166d: extra prize from fightBonusFor. Defaults to pre-166 behaviour. */
+    readonly bonus?: FightBonus;
 }
 
 /**
@@ -798,18 +802,21 @@ export function gymClearBlueprints(bossSpecies: ReadonlyArray<string>): string[]
 
 export function rollDropTable(input: IRewardRollInput): IRewardBundle {
     const { defeated, nodeKind, party, seed, dryFights = 0, firstRun = false } = input;
+    const bonus = input.bonus !== undefined ? input.bonus : (paysDriver(nodeKind) ? 'patch' : null);
 
     /*
-     * TICKET 18a: the gauntlet's fights pay nothing at all. The award is `gymClearBlueprints`,
-     * paid once when the third fight is won — see that function for the size and its arithmetic.
-     *
-     * Returned HERE rather than by zeroing `BLUEPRINT_DROP_RATE.gym` and `scrapForWin`, because
-     * those two tables are read by the report, the codex and the run gate as *"what a gym node is
-     * worth"*, and a zero in them would say the exam pays nothing — which is the opposite of what
-     * this ruling does.
+     * TICKET 18a: the gauntlet's fights pay no scrap, no blueprints, and no card picks.
+     * Ticket 166d: gauntlet fights 1 and 2 pay a macro pick (bonus === 'macro') and still nothing else.
+     * The gym clear blueprints are paid once when the third fight is won.
      */
     if (nodeKind === 'gym') {
-        return { scraps: 0, blueprints: [], cards: [], cardChoices: [] };
+        return {
+            scraps: 0,
+            blueprints: [],
+            cards: [],
+            cardChoices: [],
+            ...(bonus === 'macro' ? { macroChoices: rollMacroChoices(seed) } : {}),
+        };
     }
 
     /*
@@ -864,17 +871,8 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         blueprints: allBlueprints,
         cards: [],
         cardChoices: allCardChoices,
-        /*
-         * TICKET 163d, RE-POINTED AT THE DRIVER by the 2026-09-24 merge.
-         *
-         * It read `nodeKind === 'elite'` because 163 §3 says *"an elite pays one"*, written when an
-         * elite's other prize was a relic. Ticket 17 replaced that with the Driver and decided which
-         * nodes pay it — elites AND ambushes, because Henry ruled an ambush is harder than an elite
-         * and should carry the same stakes. `paysDriver` is that list, so the patch asks IT rather
-         * than keeping a second opinion about which fights are the big ones: the two prizes arrive
-         * on the same screen and cannot drift apart when the list next changes.
-         */
-        ...(paysDriver(nodeKind) ? { patchChoices: elitePatchOffer(party) } : {}),
+        ...(bonus === 'patch' ? { patchChoices: elitePatchOffer(party) } : {}),
+        ...(bonus === 'macro' ? { macroChoices: rollMacroChoices(seed) } : {}),
     };
 }
 

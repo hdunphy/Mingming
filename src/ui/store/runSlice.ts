@@ -974,6 +974,22 @@ const runSlice = createSlice({
         },
 
         /**
+         * TICKET 166d — take a macro won on the reward screen. Fills the first empty slot; when the rack is
+         * full it REPLACES `replaceSlot`, which the player chose on the same screen. A full rack with no
+         * slot named is a no-op (the player walked past the prize). Unknown ids are refused.
+         */
+        takeRewardMacro: (state, action: PayloadAction<{ macroId: string; replaceSlot?: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { macroId, replaceSlot } = action.payload;
+            if (!getMacro(macroId)) return { run };
+            const free = firstFreeMacroSlot(run.macros);
+            if (free !== -1) return { run: { ...run, macros: withMacroSlot(run.macros, free, macroId) } };
+            if (replaceSlot === undefined || !Number.isInteger(replaceSlot) || replaceSlot < 0 || replaceSlot >= MACRO_SLOTS) return { run };
+            return { run: { ...run, macros: withMacroSlot(run.macros, replaceSlot, macroId) } };
+        },
+
+        /**
          * Spend a slot. **This is what "single-use" means**, and it is a separate dispatch from the
          * battle resolving the macro because no reducer can write two slices — the same split ticket
          * 11's reward claim and ticket 14's recruit both make.
@@ -1371,6 +1387,7 @@ export const {
     reflashEngine,
     buyMacro,
     grantMacro,
+    takeRewardMacro,
     consumeMacro,
     fireMapReveal,
     beginGauntlet,

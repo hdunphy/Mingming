@@ -23,6 +23,7 @@ import runReducer, {
     fireMapReveal,
     grantMacro,
     startRun,
+    takeRewardMacro,
     type RunSliceState,
 } from './runSlice';
 import { createRun } from '../../engine/run/createRun';
@@ -333,3 +334,34 @@ describe('firstFreeMacroSlot', () => {
         expect(firstFreeMacroSlot(['surge', 'mend', 'kindle'])).toBe(-1);
     });
 });
+
+// =================================================================================================
+// TICKET 166d — takeRewardMacro
+// =================================================================================================
+
+describe('166d — runSlice takeRewardMacro', () => {
+    it('fills the first free slot when rack has space', () => {
+        const state = stateFor(makeRun({ macros: ['surge', null, null] }));
+        const next = runReducer(state, takeRewardMacro({ macroId: 'revive' }));
+        expect(runOf(next).macros).toEqual(['surge', 'revive', null]);
+    });
+
+    it('replaces the specified replaceSlot when rack is full', () => {
+        const state = stateFor(makeRun({ macros: ['surge', 'mend', 'revive'] }));
+        const next = runReducer(state, takeRewardMacro({ macroId: 'cache_pull', replaceSlot: 1 }));
+        expect(runOf(next).macros).toEqual(['surge', 'cache_pull', 'revive']);
+    });
+
+    it('is a no-op when rack is full and replaceSlot is not provided', () => {
+        const state = stateFor(makeRun({ macros: ['surge', 'mend', 'revive'] }));
+        const next = runReducer(state, takeRewardMacro({ macroId: 'cache_pull' }));
+        expect(runOf(next).macros).toEqual(['surge', 'mend', 'revive']);
+    });
+
+    it('is a no-op for an unknown macroId', () => {
+        const state = stateFor(makeRun({ macros: [null, null, null] }));
+        const next = runReducer(state, takeRewardMacro({ macroId: 'nonexistent_macro' }));
+        expect(runOf(next).macros).toEqual([null, null, null]);
+    });
+});
+

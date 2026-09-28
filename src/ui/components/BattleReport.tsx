@@ -9,6 +9,7 @@ import { describeDriver } from '../../engine/data/driverRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
+import { MacroRewardPick } from './MacroRewardPick';
 
 /**
  * The post-fight reward screen — refitted by ticket 12.
@@ -26,6 +27,7 @@ import { playSfx } from '../audio/AudioEngine';
 interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
+    macroRack?: ReadonlyArray<string | null>;
     /** Picked cards, in choice order. `BattleArena` mints them into `IRunState.deck`. */
     /**
      * `storedInstanceIds` is ticket 61 §2: the instance ids among `chosenCards` the player chose to
@@ -38,6 +40,8 @@ interface BattleReportProps {
         storedInstanceIds?: ReadonlyArray<string>,
         /** TICKET 163d: which body the elite's patch was fitted to, when the bundle offered one. */
         chosenPatch?: { readonly memberId: string; readonly patchId: string },
+        /** TICKET 166d: which macro the player chose, when the bundle offered macros. */
+        chosenMacro?: { readonly macroId: string; readonly replaceSlot?: number },
     ) => void;
 }
 
@@ -87,7 +91,12 @@ const CountUp: React.FC<{ value: number; delayMs?: number; durationMs?: number }
 // pool), both of which `BattleArena` resolves before it rolls, so the report is handed a finished
 // bundle and never has to ask who survived. Left in the interface for ticket 19's run-end screen,
 // which is the next thing likely to want the surviving party. Destructured out and voided.
-const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
+const BattleReport: React.FC<BattleReportProps> = ({
+    bundle,
+    winners,
+    macroRack = [null, null, null],
+    onContinue,
+}) => {
     void winners;
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
     /**
@@ -117,6 +126,8 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     const [stored, setStored] = useState<Record<number, boolean>>({});
     // TICKET 163d: which body the patch goes on, when the elite offered one. Null is a real answer.
     const [selectedPatch, setSelectedPatch] = useState<string | null>(null);
+    // TICKET 166d: which macro the player chose, when the gauntlet offered macros.
+    const [selectedMacro, setSelectedMacro] = useState<{ macroId: string; replaceSlot?: number } | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
     //
@@ -193,6 +204,7 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
             chosen,
             storedIds,
             (bundle.patchChoices ?? []).find((offer) => offer.memberId === selectedPatch),
+            selectedMacro ?? undefined,
         );
     };
 
@@ -467,6 +479,16 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                         })}
                                     </div>
                                 </div>
+                            )}
+
+                            {/* TICKET 166d — the macro choice, when the fight offers one (gauntlet fights 1 and 2). */}
+                            {(bundle.macroChoices ?? []).length > 0 && (
+                                <MacroRewardPick
+                                    choices={bundle.macroChoices ?? []}
+                                    rack={macroRack}
+                                    value={selectedMacro}
+                                    onChange={setSelectedMacro}
+                                />
                             )}
 
                             {/* Gym-clear draft summary (draft already resolved above) */}

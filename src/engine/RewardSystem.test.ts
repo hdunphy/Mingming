@@ -848,3 +848,41 @@ describe('18a — the gauntlet pays nothing, and the clear pays blueprints', () 
         expect(gymClearBlueprints([])).toEqual([]);
     });
 });
+
+describe('166d — RewardSystem bonus choices', () => {
+    it('gym with bonus: macro pays 3 macroChoices, 0 scrap, no cards', () => {
+        const bundle = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+            nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-macro-test', bonus: 'macro',
+        });
+        expect(bundle.scraps).toBe(0);
+        expect(bundle.blueprints).toEqual([]);
+        expect(bundle.cardChoices).toEqual([]);
+        expect(bundle.cards).toEqual([]);
+        expect(bundle.macroChoices).toHaveLength(3);
+    });
+
+    it('wild with bonus: macro preserves scrap, blueprints and card choices', () => {
+        const withoutBonus = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+            nodeKind: 'wild', party: FENRIR_V1, seed: 'wild-fork-check',
+        });
+        const withBonus = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+            nodeKind: 'wild', party: FENRIR_V1, seed: 'wild-fork-check', bonus: 'macro',
+        });
+        expect(withBonus.scraps).toBe(withoutBonus.scraps);
+        expect(withBonus.blueprints).toEqual(withoutBonus.blueprints);
+        expect(withBonus.cardChoices).toEqual(withoutBonus.cardChoices);
+        expect(withBonus.macroChoices).toHaveLength(3);
+    });
+
+    it('elite with no bonus passed still defaults to patchChoices', () => {
+        const bundle = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+            nodeKind: 'elite', party: [{ id: 'p1', definitionId: 'fenrir', activeOS: 'fenrir_v1' }], seed: 'elite-default-check',
+        });
+        expect(bundle.patchChoices).toBeDefined();
+        expect(bundle.patchChoices!.length).toBeGreaterThan(0);
+    });
+});
