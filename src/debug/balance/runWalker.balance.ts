@@ -35,7 +35,11 @@ describe('157 — a walk is reproducible', () => {
         // The other half, and the failure it guards is the one `sampleFight`'s header describes:
         // a harness that varies only the shuffle replays the same fight N times and calls it N.
         const runs = walkStarter('kraken_v1', 3, 'walker-spread');
-        expect(new Set(runs.map((r) => r.fights.length)).size).toBeGreaterThan(1);
+        // Compared on the whole fight list, not its length. Three different walks can die at the
+        // same fight by chance: on 2026-09-27, after 164h's new PRNG re-rolled every seed, all three
+        // of these lost fight 4 (the next five seeds died at 4, 7, 3, 7 and 9). That is a
+        // coincidence of length, not one run replayed, and only the length check could not tell.
+        expect(new Set(runs.map((r) => JSON.stringify(r.fights))).size).toBe(runs.length);
     });
 });
 
