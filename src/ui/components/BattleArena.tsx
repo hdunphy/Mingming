@@ -25,6 +25,7 @@ import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { isValidCardTarget, targetVerdict } from '../utils/targeting';
 import { getBestAction } from '../../engine/ai/TacticalAI';
+import { createEnemyBrain, type EnemyBrain } from '../ai/enemyBrain';
 import { canFireMacro } from '../../engine/battleReducer';
 import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable, gymClearBlueprints } from '../../engine/RewardSystem';
@@ -286,6 +287,17 @@ const BattleArena: React.FC = () => {
     const fireMacroRef = useRef<(slot: number, macroId: string) => void>(() => undefined);
     const macrosRef = useRef<ReadonlyArray<string | null>>([]);
 
+    // TICKET 166a: the enemy thinks in a Web Worker so the screen keeps animating while it does.
+    const enemyBrainRef = useRef<EnemyBrain | null>(null);
+    useEffect(() => {
+        const brain = createEnemyBrain();
+        enemyBrainRef.current = brain;
+        return () => {
+            brain.dispose();
+            if (enemyBrainRef.current === brain) enemyBrainRef.current = null;
+        };
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!battleState || battleState.activeSide !== 'PLAYER') return;
@@ -485,10 +497,10 @@ const BattleArena: React.FC = () => {
             // double-invoke included. Computing at the top of the effect would have run the search
             // twice for one decision.
             //
-            // It does NOT fix the freeze. `getBestAction` is synchronous on the main thread, so the
-            // UI is still locked for the duration - the freeze now lands *during* the banner/beat
-            // rather than after it. Un-freezing it needs the search off-thread (ticket 39 asks for
-            // a Web Worker); this change only stops us paying for the same wait twice.
+            // Since ticket 166a the search runs in a Web Worker (`src/ui/ai/enemyBrain.ts`), so the reveal
+            // and the cast sequence keep animating while the enemy thinks; the main-thread path
+            // remains as the fallback where no Worker is available (tests, and a worker that failed to start).
+            //
             // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL.
             //
             // Henry: *"show the cards that get played, animate them to show center screen ... That
@@ -496,12 +508,6 @@ const BattleArena: React.FC = () => {
             // blind 600ms - it is `PLAYED_CARD_REVEAL_MS` with the previous card on screen, and the
             // search runs after it. Wall-clock is about what it was; the time now carries the
             // information the player was having to dig out of the combat log.
-            //
-            // It has to be a REAL hold rather than something the search overlaps, and that is the
-            // one place this file cannot pretend: `getBestAction` is synchronous on the main thread,
-            // so a reveal animating "during" the search would simply freeze. Until the search moves
-            // off-thread (steam-release ticket 39) the honest choice is a short un-frozen window in
-            // which the reveal actually plays, and then the think.
             const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : PLAYED_CARD_REVEAL_MS;
             const DEBOUNCE_MS = 50;
 
@@ -509,7 +515,9 @@ const BattleArena: React.FC = () => {
             if (cancelled) return;
 
             const thinkStart = performance.now();
-            const action = getBestAction(battleState);
+            const brain = enemyBrainRef.current;
+            const action = brain ? await brain.decide(battleState) : getBestAction(battleState);
+            if (cancelled) return;
             const thoughtFor = performance.now() - thinkStart;
 
             await new Promise(r => setTimeout(r, Math.max(0, pauseMs - DEBOUNCE_MS - thoughtFor)));
