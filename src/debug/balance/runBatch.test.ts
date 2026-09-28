@@ -107,6 +107,18 @@ describe('runOne', () => {
         expect(enemyFirst).not.toEqual(playerFirst);
     });
 
+    it('an enemy-first battle is a real enemy-first battle, so a mirror has no side bias', () => {
+        // 2026-09-27. `runOne` used to build a PLAYER-first state and relabel `activeSide`. Once
+        // the enemy stopped being dealt an opening hand, that left the "enemy-first" side acting
+        // with an empty hand while the player drew a second hand on top of its first: fenrir's
+        // mirror read 77.5 points of side bias and the enemy won 0 of 40 when it moved first.
+        // Identical decks must be worth the same to both sides whoever moves first.
+        const paired = quiet(() => runPairedBatch(scenario, { iterations: 24, maxTurns: 30 }));
+
+        expect(paired.enemyFirst.enemyWins).toBeGreaterThan(paired.enemyFirst.decisive / 4);
+        expect(paired.sideBias).toBeLessThan(0.3);
+    });
+
     it('dead-card ratio counts cards that reached a hand and were never played', () => {
         const result = quiet(() => runOne(scenario, 'seed-a', 30));
 

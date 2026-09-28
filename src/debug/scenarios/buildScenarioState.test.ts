@@ -281,6 +281,31 @@ describe('buildScenarioState - decks, drivers and enemyMode', () => {
         expect(state.enemyParty[0].currentIntent).toBeNull();
     });
 
+    it('opens on the side it is asked to: an ENEMY start deals the enemy its hand and the player none', () => {
+        // 2026-09-27. The paired harness runs every matchup twice, once with each side moving
+        // first. After the enemy stopped being dealt an opening hand (d30106e), `runOne` built a
+        // PLAYER-first state and only relabelled `activeSide`, so the "enemy-first" battle opened
+        // with the enemy holding nothing and the player holding a hand it then drew on top of.
+        // The side that moves first must be the side whose turn 1 ran.
+        const setup = makeSetup({ enemyMode: 'CARDS' });
+        setup.enemies = [
+            {
+                definitionId: 'draugr',
+                attackIV: 0,
+                defenseIV: 0,
+                hpIV: 0,
+                deck: ['fire_poke', 'scorch', 'ignite', 'fire_poke', 'scorch', 'ignite'],
+            },
+        ];
+
+        const state = buildScenarioState(setup, 'ENEMY');
+
+        expect(state.activeSide).toBe('ENEMY');
+        expect(state.turn).toBe(1);
+        expect(state.enemyDeck.hand.length).toBeGreaterThan(0);
+        expect(state.playerDeck.hand).toEqual([]);
+    });
+
     it('threads drivers onto activeDrivers and attaches their hooks to the player side only', () => {
         // Ticket 16: the player side goes through the same `applyDrivers` as the enemy side and the
         // live factory, so a Driver here is a Driver in the shipped game, hook for hook.

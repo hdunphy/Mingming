@@ -138,8 +138,12 @@ function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBa
  * Throws when the setup describes a battle that cannot be played - an empty player party
  * or an empty enemy list - matching `createBattleState`'s guards. Both render a hollow
  * arena and an instant, meaningless result, so failing loudly beats materializing them.
+ *
+ * `startingSide` (2026-09-27): whose turn 1 runs. The paired harness passes 'ENEMY' for the
+ * enemy-first half of every matchup; everything else takes the default, which is what the live
+ * game does (`createBattleState` always opens on the player).
  */
-export function buildScenarioState(setup: ComposedSetup): IBattleState {
+export function buildScenarioState(setup: ComposedSetup, startingSide: 'PLAYER' | 'ENEMY' = 'PLAYER'): IBattleState {
     if (setup.player.party.length === 0) {
         throw new Error('[buildScenarioState] Scenario has no player party members.');
     }
@@ -225,5 +229,5 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         enemyMode,
     };
 
-    return normalizeBattleState(beginTurn(rawState, 'PLAYER', 1));
+    return normalizeBattleState(beginTurn(rawState, startingSide, 1));
 }

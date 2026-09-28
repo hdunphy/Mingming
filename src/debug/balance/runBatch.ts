@@ -500,9 +500,13 @@ export function runOne(
     /** Ticket 77 B1: the player's macro policy. Undefined in every shipped path. */
     playerPolicy?: MacroPolicy,
 ): RunResult {
-    const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
+    // 2026-09-27: the side that moves first is built by running ITS turn 1, not by relabelling a
+    // PLAYER-first state. Since the enemy stopped being dealt an opening hand (d30106e), the
+    // relabel left an enemy-first battle opening on an empty enemy hand while the player drew a
+    // second hand on top of its first - every mirror read 65-97% PLAYER.
+    const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed }, startingSide);
     let state: IBattleState = {
-        ...(startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' as const }),
+        ...built,
         // Left off the state entirely when unset, so `TacticalAI.tierFor` reads it as "take the
         // process default" rather than as a grade someone chose.
         ...(enemyAiTier === undefined ? {} : { enemyAiTier }),
