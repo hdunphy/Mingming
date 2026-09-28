@@ -359,6 +359,21 @@ interface SequenceResult {
     leafState: IBattleState;
 }
 
+/**
+ * TICKET 166f (code review A1): keep the `beam` best candidates by immediate score, then put them
+ * back in enumeration order (so ties still go to the first line visited - see the note at the
+ * call site). `beam` is the BATTLE's width. It used to read the process default `BEAM`, which is
+ * 0 in the game, so every beamed search below the root kept nothing and stopped one play deep.
+ */
+export function pruneToBeam<T extends { readonly immediate: number; readonly order: number }>(
+    deferred: ReadonlyArray<T>,
+    beam: number,
+): T[] {
+    if (deferred.length <= beam) return [...deferred];
+    const kept = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, beam);
+    return kept.sort((a, b) => a.order - b.order);
+}
+
 function findBestSequence(
     state: IBattleState,
     side: 'PLAYER' | 'ENEMY',
@@ -589,8 +604,7 @@ function findBestSequence(
             // strict `>`, so among equal-scoring lines the first one VISITED wins, and recursing in
             // score order silently re-picks ties. That bug cost a measurement: at AI_BEAM=16, well
             // above 1v1's branching and pruning nothing there, 23 of 90 grid cells still moved.
-            explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
-            explore.sort((a, b) => a.order - b.order);
+            explore = pruneToBeam(deferred, beam);
             /*
              * UNCONDITIONAL, unlike every other census counter — ticket 144 §2.
              *

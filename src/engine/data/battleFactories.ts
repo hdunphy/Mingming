@@ -73,7 +73,7 @@ export interface BattleOptions {
     readonly enemyAiTier?: AiTier;
     /**
      * TICKET 144 §2 — the beam width for this battle. Comes off the enemy ladder
-     * (`IEnemyLoadout.beam`): bosses beamless, everything else 8. See `IBattleState.aiBeam`.
+     * (`IEnemyLoadout.beam`): all rungs beam 8 since ticket 166f. See `IBattleState.aiBeam`.
      */
     readonly aiBeam?: number;
 }

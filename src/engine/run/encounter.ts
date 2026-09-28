@@ -278,9 +278,12 @@ const ELITE_IV: readonly [number, number] = [0, 31];
 export const ENEMY_LADDER: Readonly<Record<EnemyGrade, IEnemyLoadout>> = {
     wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: false },
     elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: true },
-    // The gym. Beamless: the boss is the one fight worth the full search, and it is the one fight
-    // a player meets once. See `IEnemyLoadout.beam`.
-    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV, beam: 0, duplicateCantrips: true },
+    // The gym. Beam 8 since ticket 166f (Henry, 2026-09-27: "lets first try to fix the search bug and
+    // narrow the gym's search"). The 09-06 ruling made it beamless because beam 8 measured ~12.5
+    // points weaker - but that measurement ran on bug A1, which searched one play deep. Fixed, beam 8
+    // plays the full search's move 14 times in 15 on the Rootfall boss, and its slowest decision
+    // drops from ~43 s to ~5 s (scratch/bossbeam.ts).
+    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: true },
 };
 
 /** The three rungs. Named rather than inferred, so a fourth is a deliberate act. */
@@ -607,7 +610,7 @@ export interface IRunEncounter {
      * `enemyAiTier` above and carried for the same reason: the screen must not have to re-derive
      * it. `RunScreen` and `GauntletNode` hand it to `startBattle` as `options.aiBeam`.
      *
-     * Bosses are beamless. See `IEnemyLoadout.beam`.
+     * Bosses are beam 8 since 166f. See `IEnemyLoadout.beam`.
      */
     readonly aiBeam: number;
     /**
