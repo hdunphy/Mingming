@@ -43,6 +43,7 @@ import {
     emitStatusTick,
 } from './statusTells';
 import { emitHookTell } from './osTells';
+import { scheduleStatusTells } from './statusBurst';
 
 /** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
 export const FLIGHT_MS = 180;
@@ -90,16 +91,16 @@ function playCast(cast: PendingCast, timers: number[]): number {
         last = Math.max(last, offset + TRAIL_MS);
     });
 
-    // Step 4: the statuses, after the last impact, 60ms apart. Ruling 5's order is the point —
-    // a status tell that fires before the thing that caused it lands reads as unrelated.
-    cast.statuses.forEach((entry, index) => {
-        const at = last + STATUS_TELL_STAGGER_MS * (index + 1);
+    // Step 4: the statuses, after the last impact. TICKET 166b: ONE tell per status, fired on every
+    // body that got it at the same instant (Henry: "don't stagger between mingmings"), 60 ms between
+    // different statuses, measured from a fixed base - the old loop re-read `last` and so grew each gap.
+    const afterImpact = last;
+    for (const tell of scheduleStatusTells(afterImpact, cast.statuses, STATUS_TELL_STAGGER_MS)) {
         timers.push(window.setTimeout(() => {
-            const anchor = anchorFor(entry.targetId);
-            if (anchor) emitStatusApplied(entry.status, entry.targetId);
-        }, at));
-        last = Math.max(last, at);
-    });
+            for (const targetId of tell.targetIds) emitStatusApplied(tell.status, targetId);
+        }, tell.at));
+        last = Math.max(last, tell.at);
+    }
 
     return last;
 }

@@ -2264,6 +2264,13 @@ body {
   text-transform: uppercase;
 }
 
+.hud-float-status {
+  /* Ticket 166b: "Sharp ×7" - a label, smaller than a heal, in the status's own colour. */
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
 .hud-float-absorbed {
   font-size: 0.85rem;
   font-weight: 700;

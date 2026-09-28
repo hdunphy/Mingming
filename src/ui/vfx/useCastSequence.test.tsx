@@ -22,6 +22,7 @@ import { globalBattleEventBus } from '../../engine/events';
 import { DEFAULT_SETTINGS, saveSettings } from '../settings/settings';
 import { setParticleSink, setStageAnchors } from './emit';
 import { useCastSequence } from './useCastSequence';
+import * as statusTellsModule from './statusTells';
 import type { ParticleSeed } from './particles';
 import type { IBattleState } from '../../engine/types';
 import type { StageAnchors } from '../hooks/useStageAnchors';
@@ -169,5 +170,37 @@ describe('155 deep dive 9 — a death plays at the slot', () => {
         // meaning a body has left the board.
         lethalHit(30);
         expect(spawned.flat()).toHaveLength(0);
+    });
+
+    it('fires all status tells for one status at the same moment across mingmings', () => {
+        const spy = vi.spyOn(statusTellsModule, 'emitStatusApplied').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'PROGRAM_PLAYED', sourceId: 'ally', targetId: 'foe',
+                programId: 'cinder_slash', timestamp: Date.now(),
+            });
+            // 6 STATUS_APPLIED: Sharp on three ally ids (repeated twice)
+            const allies = ['ally', 'ally2', 'ally3'];
+            for (let i = 0; i < 6; i++) {
+                globalBattleEventBus.emit({
+                    type: 'STATUS_APPLIED', targetId: allies[i % 3], status: 'Sharp',
+                    stacks: 2, timestamp: Date.now(),
+                });
+            }
+        });
+        // Close the window at 0ms
+        act(() => { vi.advanceTimersByTime(0); });
+
+        // Advance to last impact + 60ms (180 flight + 240 trail + 60 stagger = 480ms)
+        act(() => { vi.advanceTimersByTime(480); });
+        expect(spy).toHaveBeenCalledTimes(3);
+        expect(spy).toHaveBeenCalledWith('Sharp', 'ally');
+        expect(spy).toHaveBeenCalledWith('Sharp', 'ally2');
+        expect(spy).toHaveBeenCalledWith('Sharp', 'ally3');
+
+        // Nothing fires at +120ms (another 60ms)
+        act(() => { vi.advanceTimersByTime(60); });
+        expect(spy).toHaveBeenCalledTimes(3);
+        spy.mockRestore();
     });
 });

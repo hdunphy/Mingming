@@ -11,6 +11,7 @@ import {
 } from '../audio/battleCues';
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
 import { describeDriver } from '../../engine/data/driverRegistry';
+import { statusFloatText } from '../vfx/statusBurst';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -30,7 +31,7 @@ import { describeDriver } from '../../engine/data/driverRegistry';
  * PROC-VISIBLE, and a float on the unit is the half of that law the eye is already on — the chip in
  * the top bar flashes at the same moment for the half of the screen it is not.
  */
-export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed' | 'proc';
+export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed' | 'proc' | 'status';
 
 export interface CombatFloat {
     id: number;
@@ -264,6 +265,8 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     const slotRef = React.useRef<Record<string, number>>({});
     // Pending timeouts, cleared on unmount (pendingTimeoutsRef pattern from MingmingUnit).
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
+    // TICKET 166b: STATUS_APPLIED events from one reducer burst, merged by body + status.
+    const statusBurstRef = React.useRef<Map<string, { targetId: string; status: StatusType; stacks: number }> | null>(null);
 
     const triggerLunge = React.useCallback((entityId: string) => {
         setVfx(prev => {
@@ -315,6 +318,52 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 });
             }, FLOAT_LIFETIME_MS);
             pendingTimeoutsRef.current.push(timeout);
+        };
+
+        const flushStatusBurst = () => {
+            const burst = statusBurstRef.current;
+            statusBurstRef.current = null;
+            if (!burst || burst.size === 0) return;
+            const entries = [...burst.values()];
+
+            // One sound per distinct status, in the order they arrived.
+            const sounded = new Set<StatusType>();
+            for (const entry of entries) {
+                if (sounded.has(entry.status)) continue;
+                sounded.add(entry.status);
+                /*
+                 * 147d. The two stances keep their own synthesized cues — they are the only
+                 * statuses that change how a whole unit BEHAVES, and 147 §8 left them out of
+                 * the sample pack for that reason. Everything else is the STS family model:
+                 * up for a buff, down for a debuff, and a cue of its own for the two that put
+                 * a wall in front of a body.
+                 */
+                if (entry.status === 'DarkStance') {
+                    playSfx('stanceDark');
+                } else if (entry.status === 'LightStance') {
+                    playSfx('stanceLight');
+                } else {
+                    playSfx(statusCue(entry.status), { pitch: statusPitch(entry.status) });
+                }
+            }
+
+            // One ring bump per body, coloured by the last status that body received.
+            const ringColour = new Map<string, string>();
+            for (const entry of entries) ringColour.set(entry.targetId, STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+            setVfx(prev => {
+                const unitFx = { ...prev.unitFx };
+                for (const [targetId, colour] of ringColour) {
+                    const unit = unitFx[targetId] ?? EMPTY_UNIT_FX;
+                    unitFx[targetId] = { ...unit, statusKey: unit.statusKey + 1, statusColor: colour };
+                }
+                return { ...prev, unitFx };
+            });
+
+            // One float per body per status, with the stack count.
+            for (const entry of entries) {
+                pushFloat(entry.targetId, 'status', statusFloatText(entry.status, entry.stacks),
+                    STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+            }
         };
 
         const findEntity = (id: string) => {
@@ -469,35 +518,17 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     return;
                 }
                 case 'STATUS_APPLIED': {
-                    /*
-                     * 147d. The two stances keep their own synthesized cues — they are the only
-                     * statuses that change how a whole unit BEHAVES, and 147 §8 left them out of
-                     * the sample pack for that reason. Everything else is the STS family model:
-                     * up for a buff, down for a debuff, and a cue of its own for the two that put
-                     * a wall in front of a body.
-                     */
-                    if (event.status === 'DarkStance') {
-                        playSfx('stanceDark');
-                    } else if (event.status === 'LightStance') {
-                        playSfx('stanceLight');
-                    } else {
-                        playSfx(statusCue(event.status), { pitch: statusPitch(event.status) });
+                    // TICKET 166b: gathered, not played. Every status of one cast arrives in the same
+                    // synchronous reducer burst; a 0 ms timeout runs after the burst and plays it once.
+                    let burst = statusBurstRef.current;
+                    if (!burst) {
+                        burst = new Map();
+                        statusBurstRef.current = burst;
+                        pendingTimeoutsRef.current.push(setTimeout(flushStatusBurst, 0));
                     }
-                    const color = STATUS_COLORS[event.status as StatusType] ?? '#cccccc';
-                    setVfx(prev => {
-                        const unit = prev.unitFx[event.targetId] ?? EMPTY_UNIT_FX;
-                        return {
-                            ...prev,
-                            unitFx: {
-                                ...prev.unitFx,
-                                [event.targetId]: {
-                                    ...unit,
-                                    statusKey: unit.statusKey + 1,
-                                    statusColor: color,
-                                },
-                            },
-                        };
-                    });
+                    const key = `${event.targetId}|${event.status}`;
+                    const previous = burst.get(key);
+                    burst.set(key, { targetId: event.targetId, status: event.status, stacks: (previous?.stacks ?? 0) + event.stacks });
                     return;
                 }
                 case 'STATUS_REMOVED': {
@@ -613,6 +644,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             unsubscribe();
             timeouts.forEach(clearTimeout);
             timeouts.length = 0;
+            statusBurstRef.current = null;
         };
     }, [triggerLunge]);
 

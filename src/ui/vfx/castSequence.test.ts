@@ -12,6 +12,7 @@ import {
 } from './trails';
 import { FLIGHT_MS, STATUS_TELL_STAGGER_MS } from './useCastSequence';
 import { statusColor } from './statusTells';
+import { scheduleStatusTells } from './statusBurst';
 import { PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
 
 const FROM = { x: 100, y: 300, w: 190, h: 190 };
@@ -94,11 +95,25 @@ describe('146c — the sequence fits inside the hold', () => {
          * this is the assertion that makes the word "extends" true rather than hopeful.
          */
         const targets = 3;
-        const statuses = 3;
         const lastImpact = FLIGHT_MS + (targets - 1) * TRAIL_STAGGER_MS + TRAIL_MS;
-        const worst = lastImpact + statuses * STATUS_TELL_STAGGER_MS;
+        const threeScheduled = scheduleStatusTells(lastImpact, [
+            { targetId: 't1', status: 'Burn' },
+            { targetId: 't2', status: 'Poison' },
+            { targetId: 't3', status: 'Sharp' },
+        ], STATUS_TELL_STAGGER_MS);
+        const worst = threeScheduled[threeScheduled.length - 1].at;
 
         expect(worst).toBeLessThan(PLAYED_CARD_REVEAL_MS);
+
+        // Twenty entries across two statuses still end before PLAYED_CARD_REVEAL_MS
+        const twentyEntries = [];
+        for (let i = 0; i < 10; i++) {
+            twentyEntries.push({ targetId: `a${i % 3}`, status: 'Sharp' as const });
+            twentyEntries.push({ targetId: `e${i % 3}`, status: 'Weakened' as const });
+        }
+        const twentyScheduled = scheduleStatusTells(lastImpact, twentyEntries, STATUS_TELL_STAGGER_MS);
+        const twentyWorst = twentyScheduled[twentyScheduled.length - 1].at;
+        expect(twentyWorst).toBeLessThan(PLAYED_CARD_REVEAL_MS);
     });
 
     it('staggers a multi-target cast, so three hits read as three', () => {
