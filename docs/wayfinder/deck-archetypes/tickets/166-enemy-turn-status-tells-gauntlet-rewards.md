@@ -1,10 +1,10 @@
-# Ticket 166 — The enemy turn stops freezing, status tells stop piling up, the gauntlet fields the gym's element, macros between gauntlet fights, and fewer patches
+# Ticket 166 — The enemy turn stops freezing, status tells stop piling up, the gauntlet fields the gym's element, macros between gauntlet fights, fewer patches, and the AI's beam fixed
 
 **Type:** feel + run economy. **Status:** OPEN. Written 2026-09-27 from Henry's 09-26 playtest notes (`playtest-results/2026-26-09/rootfall-fenrir_v2/notes.md` and his answers in `review.md`), and his message the same day:
 
 > *"Write ticket 166 now. Except there should be no patch limit. Just reduce the number of patch rewards offered. They felt very OP so make it only on the last elite you can win one. The others should give extra scrap or maybe a macro instead. Please investigate the stutter first then provide a detailed solution for the handoff to the implementation agent."*
 
-Five rows. Each row is **one commit**, with a **failing test first**.
+Six rows. Each row is **one commit**, with a **failing test first**. 166e and 166f were added to the build list after Henry's rulings of 2026-09-27.
 
 | Row | What | Can it be built now? |
 |---|---|---|
@@ -12,9 +12,10 @@ Five rows. Each row is **one commit**, with a **failing test first**.
 | **166b** | Status tells: one per status, all bodies at once, a ×N float, and a timing bug fixed | Yes |
 | **166c** | Gauntlet fights 1 and 2 field two gym-element bodies and one other | Yes |
 | **166d** | A "take one macro" pick on the reward screen, paid after gauntlet fights 1 and 2 | Yes |
-| **166e** | Only an elite in the final biome pays a patch; other elites and ambushes pay the 166d macro pick; the gate gives one patch, not one per body | **Only after Henry answers decisions E1–E3 at the bottom of this row** |
+| **166e** | Only an elite in the final biome pays a patch; other elites and ambushes pay the 166d macro pick; the gate gives one patch, not one per body | Yes — Henry ruled E1–E3 on 2026-09-27 |
+| **166f** | Fix the AI's beam bug and give the gym a beam, so the boss stops thinking for 27 s | Yes — ruled 2026-09-27; the measurement is in the row |
 
-Build them in the order written. 166e reuses 166d's macro pick, so 166d must land first.
+Build them in the order written. 166e reuses 166d's macro pick, so 166d must land first. 166f changes how every enemy thinks, so it goes last, after 166a has moved the search off the main thread.
 
 ---
 
@@ -22,7 +23,7 @@ Build them in the order written. 166e reuses 166d's macro pick, so 166d must lan
 
 1. **Read the whole row before editing anything.** Every file path, function name and line number below was checked against `129375b` (2026-09-27). Line numbers drift; search for the quoted code rather than trusting a number.
 2. **Write the test first and run it on the parent commit.** It must fail for the reason the row names. Then make the change, and the test must pass. Put "fails on parent: yes" in the commit message.
-3. **Do not change anything a row does not list.** In particular, do **not** touch `src/engine/ai/TacticalAI.ts` in any row. (The code review's beam bug, A1, is known and is deliberately not in this ticket.)
+3. **Do not change anything a row does not list.** In particular, do **not** touch `src/engine/ai/TacticalAI.ts` in any row except 166f, and in 166f only the lines it names.
 4. **Gate:** `npm run gate` must be green before each commit. `npm run build` must also pass for 166a, because it runs `scripts/assert-no-debug.mjs` over the built files, and 166a adds a new built file (the worker).
 5. **Commits:** authored as Henry — `git -c user.name='Henry Dunphy' -c user.email='hdunphy15@gmail.com' commit ...`. **No `Co-Authored-By` trailers.** The last line of every message is `HANDOFF: <one sentence on what the next person needs to know>`.
 6. **Do not push.** Report `git push origin playtest-polish` for Henry to run.
@@ -271,6 +272,10 @@ Notes on that file, so you do not "improve" it:
 Tests 3–5 fail on the parent because the module does not exist; that counts.
 
 Also run the existing `BattleArena`/`BattleStage` tests. They run in jsdom, where `Worker` is undefined, so they take the fallback path and must pass unchanged. If one fails, **stop and report it**; do not change the test.
+
+### Build check
+
+Run `npm run build`. Vite bundles `aiWorker.ts` into its own file under `dist/assets/`. If the build fails with *"UMD and IIFE output formats are not supported for code-splitting builds"*, add `worker: { format: 'es' },` to the object in `vite.config.ts` (beside `define`), with a one-line comment that 166a's worker needs it, and build again. Change nothing else in that file.
 
 ### Verify it by eye (required — a unit test cannot see a freeze)
 
@@ -736,7 +741,7 @@ Two smaller defects in door 1, fixed in this row because they are the same lines
 - `elitePatchOffer(party)` is called without the second argument (`held`), so a body that already has a patch is still offered one; `fitPatch` then silently refuses it. That is a dead row on the reward screen.
 - If every body is already patched, the "last elite" pays nothing extra at all.
 
-### The change (after Henry answers E1–E3; the recommended answers are written in)
+### The change (Henry's rulings E1–E3 are at the bottom of this row)
 
 **1. `src/engine/run/fightBonus.ts`** — replace the last two lines of `fightBonusFor` (the `elite || ambush → 'patch'` line and `return null`) with:
 
@@ -809,15 +814,125 @@ return null;
 
 **Commit:** message starts `feat(run): only a final-biome elite pays a patch; the gate fits one (166e)`, and says it moves the balance numbers.
 
-### Decisions for Henry before 166e is built
+### Henry's rulings (2026-09-27)
 
-- **E1 — What do the other elites and ambushes pay instead of the patch?** You wrote "extra scrap or maybe a macro". **Recommended: the 166d macro pick (take one of three, optional).** Reasons: scrap already piles up (you finished 09-26 with 110 unspent), and the macro pick is already built by 166d. The alternative is **+15 scrap** on top of the elite's 45; if you pick that, the agent replaces the `'macro'` branch for elites/ambushes with a `'scrap'` bonus that adds 15 to `scraps`, and nothing else in the row changes.
-- **E2 — Does the gym gate give one free patch in total, or one per body?** Its heading says one body; the code gives one per unpatched body. **Recommended: one**, because otherwise a party that skipped the final elite arrives unpatched and walks out of the gate with three free patches — more than today.
-- **E3 — Which elite is "the last elite"?** **Recommended: any elite in the final biome.** Every run's final biome has the scout elite (the preview fight of the leader's own comp) at layer 3 or 2, and occasionally a second elite rolled into its middle layers — so a route usually passes one and sometimes two. With the gate's one, that lands on your "1 or 2 by the end". The stricter version is **the scout elite only** (`node.scout === true`); that makes it at most one, and a player who routes around the scout gets none from elites.
+- **E1 — the other elites and ambushes pay the 166d macro pick** instead of the patch. Henry: *"Macro is good."* (The +15 scrap alternative is not built.)
+- **E2 — the gym gate gives one free patch in total**, not one per body. Henry: *"One free patch."*
+- **E3 — "the last elite" is any elite in the final biome** (`node.biomeIndex === run.biomes.length - 1`). Henry: *"The elite in the final biome."* That includes the scout elite and any other elite rolled into that biome.
 
 ---
 
-## Not in this ticket — for Henry to decide
+## 166f — Fix the AI's beam bug, and give the gym a beam
 
-- **The boss still thinks for up to ~27 seconds on its first card.** 166a stops the screen freezing while it does, but the wait itself is the beamless search the gym has used since ticket 144. The three ways to shorten it all change how the boss plays, so they need a ruling and a re-measure: (1) fix the beam bug A1 and give the gym a beam, (2) a time budget (the search returns its best line after N seconds), or (3) leave it and add a visible "thinking…" indicator when a decision takes more than about a second and a half.
+**What Henry asked (2026-09-27).** *"For the boss fight slowdown, lets first try to fix the search bug and narrow the gym's search. If that doesn't help then add a 'thinking' indicator and cap the thinking time with like 5 or 10 seconds."*
+
+**Build after 166a.** 166a moves the search into a Web Worker; this row makes wild and elite enemies think longer (see the numbers), and without 166a that extra time would be a frozen screen.
+
+### The bug (code review finding A1, 2026-09-26)
+
+`src/engine/ai/TacticalAI.ts`, inside `findBestSequence`, around line 592:
+
+```ts
+explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
+```
+
+`BEAM` is the **process default**, which is 0 in the game. The battle's own width is the local variable `beam` a few lines above (`const beam = beamFor(state);`). So whenever a node below the root has more candidate plays than the width, the search keeps **zero** of them instead of the best 8. Every wild and elite enemy has been searching about one play deep since ticket 144. The gym is not affected, because it is beamless (`ENEMY_LADDER.gauntlet.beam: 0`), and that is why the boss is so slow.
+
+### What the fix does, measured (`scratch/bossbeam.ts`, committed with this row)
+
+Same states, timed at each width, and compared with the beamless search's move. Cloud container; Henry's machine will differ, but the shape will not.
+
+| Fight | Search | Typical decision | Slowest 5% | Same move as the full search |
+|---|---|---|---|---|
+| **Boss** (Rootfall fight 3) | beamless — **today's gym** | 10.8 s | **43.4 s** | 15/15 |
+| Boss | beam 8, **fixed** | 2.5 s | 4.8 s | **14/15** |
+| Boss | beam 4, fixed | 1.4 s | 3.8 s | 13/15 |
+| Boss | beam 8 with the bug (today's wilds and elites) | 0.3 s | 3.2 s | 2/15 |
+| Elite-grade AI, 3v3 | beam 8 with the bug — **today** | 0.1 s | 0.9 s | 7/18 |
+| Elite-grade AI, 3v3 | beam 8, **fixed** | 0.8 s | 2.8 s | **18/18** |
+| Wild-grade AI, 3v3 | beam 8 with the bug — **today** | 0.05 s | 0.3 s | 9/18 |
+| Wild-grade AI, 3v3 | beam 8, **fixed** | 0.3 s | 2.3 s | **18/18** |
+
+What that means:
+
+1. **Boss:** beam 8 with the fix plays the full search's move 14 times in 15 and cuts the worst wait from 43 s to about 5 s.
+2. **Wilds and elites get much smarter.** Today they play the full search's move only 7–9 times in 18; fixed, 18 in 18. They also think longer (up to about 2–3 s on a hard 3v3 turn), which is why 166a must land first.
+3. **The run will get harder.** Every walker number since ticket 144 measured the bug. The run gate did not: it plays wild and elite cells beamless (code review B3), which the fix now matches almost exactly.
+
+### The change
+
+1. **`src/engine/ai/TacticalAI.ts`.** Move the selection into a small exported pure function, and fix it there. Add, above `findBestSequence`:
+
+   ```ts
+   /**
+    * TICKET 166f (code review A1): keep the `beam` best candidates by immediate score, then put them
+    * back in enumeration order (so ties still go to the first line visited - see the note at the
+    * call site). `beam` is the BATTLE's width. It used to read the process default `BEAM`, which is
+    * 0 in the game, so every beamed search below the root kept nothing and stopped one play deep.
+    */
+   export function pruneToBeam<T extends { readonly immediate: number; readonly order: number }>(
+       deferred: ReadonlyArray<T>,
+       beam: number,
+   ): T[] {
+       if (deferred.length <= beam) return [...deferred];
+       const kept = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, beam);
+       return kept.sort((a, b) => a.order - b.order);
+   }
+   ```
+
+   Then in `findBestSequence`, replace the two lines
+
+   ```ts
+   explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
+   explore.sort((a, b) => a.order - b.order);
+   ```
+
+   with `explore = pruneToBeam(deferred, beam);`. Keep the long comment above them and the `census.pruned` line exactly as they are. **Change nothing else in this file.**
+
+2. **`src/engine/run/encounter.ts`, `ENEMY_LADDER.gauntlet`:** change `beam: 0` to `beam: GAME_BEAM_WIDTH`, and replace the comment above that line (*"The gym. Beamless: the boss is the one fight worth the full search…"*) with:
+
+   ```ts
+   // The gym. Beam 8 since ticket 166f (Henry, 2026-09-27: "lets first try to fix the search bug and
+   // narrow the gym's search"). The 09-06 ruling made it beamless because beam 8 measured ~12.5
+   // points weaker - but that measurement ran on bug A1, which searched one play deep. Fixed, beam 8
+   // plays the full search's move 14 times in 15 on the Rootfall boss, and its slowest decision
+   // drops from ~43 s to ~5 s (scratch/bossbeam.ts).
+   ```
+
+   Check how `GAME_BEAM_WIDTH` is already imported in that file (the `wild` and `elite` rows use it) and use the same name.
+
+3. **`src/engine/ai/beamDefault.test.ts`:** the test `'wild and elite get the beam; the GAUNTLET is beamless'` pins the old ruling. Rename it to `'every rung gets the beam, the gauntlet included (166f)'`, change `expect(ENEMY_LADDER.gauntlet.beam).toBe(0)` to `.toBe(GAME_BEAM_WIDTH)`, and keep Henry's 09-06 quote but add the 09-27 one below it with one line saying why the ruling changed (the 12.5 points were measured on the bug). In `'a real WILD fight carries 8 and a real GYM fight carries 0 — end to end'`, change the gym expectation to `GAME_BEAM_WIDTH` and the test name to match. Update the describe title `'the boss thinks at full depth'` to `'the boss thinks at beam 8'`.
+
+4. **Search the rest of `src` for anything else that pins the gym at beamless** — `grep -rn "beam: 0\|aiBeam).toBe(0)\|beamless" src --include=*.ts` — and list every hit in the report. Change only tests that assert the gauntlet ladder row or a gym encounter's `aiBeam`. **Do not** change `resolveBeam` or the process default (still 0: harnesses must stay beamless unless they ask; ticket 108's rule).
+
+### Tests (write these first)
+
+`src/engine/ai/pruneToBeam.test.ts` (new):
+
+1. Five candidates with immediate scores `[3, 9, 1, 7, 5]` and orders `[0, 1, 2, 3, 4]`, beam 2 → returns the items with scores 9 and 7, **in order 1 then 3**.
+2. Beam 3 on the same list → scores 9, 7, 5 in order 1, 3, 4.
+3. Beam larger than the list → the whole list, unchanged order.
+4. Beam equal to the list length → the whole list.
+
+These fail on the parent because the function does not exist. Also run `beamDefault.test.ts` after step 3, and the whole gate.
+
+### Measure (required, and report every number)
+
+1. `npx vite-node scratch/bossbeam.ts -- --fight 2 --seeds 3 --per 5 --tier full --widths 8,4,0` on your commit. Report the table. The beam-8 row should look like the one above.
+2. **The walker, before and after this commit, same seeds:** the per-node wild/elite win rates for biomes 0–1 (the same read as the post-164 one: 60 seeds × 12 starters, fights ≤ 6) and the full-run gym clear rate. Henry's ruled wild floor is 85% per node. **Expect it to drop.** Report it; do not tune anything.
+3. After Henry has played a boss fight on this build, record how long its slowest turn felt.
+
+**Commit:** `pruneToBeam` + test, the ladder change, the test updates, `scratch/bossbeam.ts`. Message starts `fix(ai): beamed search keeps the battle's width, and the gym searches at beam 8 (166f)`. Say plainly in the body that this makes every wild and elite smarter and moves the balance numbers.
+
+### Only if this is not enough: 166g, the thinking indicator and a time cap
+
+Henry ruled the fallback in advance: *"If that doesn't help then add a 'thinking' indicator and cap the thinking time with like 5 or 10 seconds."* **Do not build it in this ticket.** Build it only if Henry says the boss still feels slow after playing 166f, or if step 1 above shows any beam-8 boss decision over 5,000 ms. Then stop and tell Henry the number, and he picks 5 s or 10 s. The shape, so it is ready:
+
+- **Indicator:** in `BattleArena.tsx`, if an enemy decision has not come back within 1,500 ms of the search starting, show a small "Enemy is thinking…" label under the enemy turn banner; hide it when the action dispatches. Time-based state lives in `BattleArena`, not the engine.
+- **Cap:** `getBestAction(state, { deadlineMs })`. When a deadline is given, `findBestSequence` checks `performance.now()` at the top of its candidate loop and stops expanding once past it; the root returns the best line found so far. **Only the game's worker path passes a deadline.** Every sim, harness and test calls it without one, so they stay deterministic. A capped decision is time-dependent by design; say so in the code.
+
+---
+
+## Not in this ticket
+
 - **The shop's Amplifier (45 scrap)** is left as it is. If patches still feel strong after 166e, the shop is the remaining door.
