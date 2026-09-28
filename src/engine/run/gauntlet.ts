@@ -212,7 +212,8 @@ export interface GauntletFightInput {
  *
  * This is the leader's recruiting ground for fights 1 and 2 and it is deliberately the *union* of the
  * three biome pools rather than the gym biome's alone: the gauntlet is the run's final exam, and an
- * exam set only on the last chapter would make the first two biomes route decoration.
+ * exam set only on the last chapter would make the first two biomes route decoration. Since ticket
+ * 166c the union is filtered per slot by `gauntletSlotPool`.
  */
 function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
     const ids: string[] = [];
@@ -226,6 +227,23 @@ function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
         }
     }
     return ids;
+}
+
+/**
+ * TICKET 166c (Henry, 2026-09-27): *"it should be mostly nature and mix in some water or fire,
+ * not WWF."* Fights 1 and 2 field the gym's element in the first GAUNTLET_GYM_ELEMENT_SLOTS
+ * slots and one other region element after them. Falls back to the whole region pool when a side
+ * is empty, so a content gap can never leave a slot with nothing to draw.
+ */
+export const GAUNTLET_GYM_ELEMENT_SLOTS = 2;
+
+function gauntletSlotPool(run: IRunState, node: IRegionNode, slot: number, gymElement: string | undefined): string[] {
+    const region = regionSpeciesPool(run, node);
+    if (!gymElement) return region;
+    const own = region.filter((id) => GetMingmingData(id).primaryElement === gymElement);
+    const other = region.filter((id) => GetMingmingData(id).primaryElement !== gymElement);
+    const wanted = slot < GAUNTLET_GYM_ELEMENT_SLOTS ? own : other;
+    return wanted.length > 0 ? wanted : region;
 }
 
 /** Draw one species, preferring one not already on this team (map § Notes: one of each species). */
@@ -359,7 +377,7 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
         const biomeIndex = boss ? Math.min(slot, run.biomes.length - 1) : -1;
         const pool = boss
             ? encounterSpeciesPool(run, { ...node, biomeIndex })
-            : regionSpeciesPool(run, node);
+            : gauntletSlotPool(run, node, slot, gym?.element);
 
         /*
          * The draw happens even when the authored table overrides it — the same stream-position

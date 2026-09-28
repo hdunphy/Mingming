@@ -679,3 +679,36 @@ describe('ticket 152: the gym keeps the loop the wild does not', () => {
         expect(sawADuplicate).toBe(true);
     });
 });
+
+describe('166c — gauntlet fights 1 and 2 element mix', () => {
+    it('fields two gym-element bodies in slots 0-1 and one other element in slot 2', () => {
+        const gymIds = Object.keys(GYM_REGISTRY) as Array<keyof typeof GYM_REGISTRY>;
+        for (const gymId of gymIds) {
+            const gym = GYM_REGISTRY[gymId];
+            for (let s = 0; s < 40; s++) {
+                const seed = `gauntlet-166c-${gymId}-${s}`;
+                const run = makeRun([KRAKEN, FENRIR, RATATOSKR], seed, gym);
+                const node = gymNodeOf(run);
+                for (const fightIndex of [0, 1]) {
+                    const fight = rollGauntletFight({ run, node, fightIndex });
+                    expect(fight.enemyParty).toHaveLength(3);
+                    expect(fight.enemyParty[0].primaryElement, `${gymId} fight ${fightIndex} slot 0 seed ${seed}`).toBe(gym.element);
+                    expect(fight.enemyParty[1].primaryElement, `${gymId} fight ${fightIndex} slot 1 seed ${seed}`).toBe(gym.element);
+                    expect(fight.enemyParty[2].primaryElement, `${gymId} fight ${fightIndex} slot 2 seed ${seed}`).not.toBe(gym.element);
+
+                    // 3. gauntletOpponentElements returns the same elements as the rolled fight
+                    const elements = gauntletOpponentElements({ run, node, fightIndex });
+                    expect(elements).toEqual(fight.enemyParty.map((e) => e.primaryElement));
+                }
+
+                // 2. fightIndex 2 (the boss) fields exactly the authored members in order
+                const bossFight = rollGauntletFight({ run, node, fightIndex: 2 });
+                const authored = authoredBossFor(gymId)!;
+                expect(bossFight.enemyParty.map((e) => e.definitionId)).toEqual(authored.members.map((m) => m.species));
+
+                const bossElements = gauntletOpponentElements({ run, node, fightIndex: 2 });
+                expect(bossElements).toEqual(bossFight.enemyParty.map((e) => e.primaryElement));
+            }
+        }
+    });
+});
