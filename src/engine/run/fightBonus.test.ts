@@ -20,9 +20,13 @@ describe('166d — fightBonusFor', () => {
         expect(fightBonusFor({ nodeKind: 'gym', biomeIndex: 2, biomeCount: 3, gauntlet: null })).toBeNull();
     });
 
-    it('pays patch for elite and ambush before 166e', () => {
-        expect(fightBonusFor({ nodeKind: 'elite', biomeIndex: 0, biomeCount: 3, gauntlet: null })).toBe('patch');
-        expect(fightBonusFor({ nodeKind: 'ambush', biomeIndex: 0, biomeCount: 3, gauntlet: null })).toBe('patch');
+    it('166e: only elite in final biome pays patch; earlier elites and ambushes pay macro', () => {
+        expect(fightBonusFor({ nodeKind: 'elite', biomeIndex: 2, biomeCount: 3, gauntlet: null })).toBe('patch');
+        expect(fightBonusFor({ nodeKind: 'elite', biomeIndex: 0, biomeCount: 3, gauntlet: null })).toBe('macro');
+        expect(fightBonusFor({ nodeKind: 'elite', biomeIndex: 1, biomeCount: 3, gauntlet: null })).toBe('macro');
+        expect(fightBonusFor({ nodeKind: 'ambush', biomeIndex: 0, biomeCount: 3, gauntlet: null })).toBe('macro');
+        expect(fightBonusFor({ nodeKind: 'ambush', biomeIndex: 1, biomeCount: 3, gauntlet: null })).toBe('macro');
+        expect(fightBonusFor({ nodeKind: 'ambush', biomeIndex: 2, biomeCount: 3, gauntlet: null })).toBe('macro');
     });
 
     it('pays null for wild', () => {

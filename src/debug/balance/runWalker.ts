@@ -59,6 +59,7 @@ import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompEl
 import { rollEncounter, isFightNode, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { rollDropTable } from '../../engine/RewardSystem';
+import { fightBonusFor } from '../../engine/run/fightBonus';
 import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold } from '../../engine/run/marketplace';
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
 import { BlueprintLedger } from './BlueprintLedger';
@@ -738,7 +739,10 @@ export function walkRun(input: WalkInput): WalkResult {
             defeated: [...defeated], nodeKind: node.kind, seed: `${run.seed}:${node.id}:reward`,
             party: partyMembers().map((m) => ({ definitionId: m.definitionId, activeOS: m.activeOS, id: m.id })),
             dryFights: run.blueprintDryFights ?? 0,
+            bonus: fightBonusFor({ nodeKind: node.kind, biomeIndex: node.biomeIndex, biomeCount: run.biomes.length, gauntlet: null }),
+            heldPatches: run.patches ?? {},
         });
+        // The walker has no macro policy (it never fires macros), so leave bundle.macroChoices unclaimed.
 
         if (bundle.scraps > 0) {
             store.dispatch(addRunScrap(bundle.scraps));
@@ -869,7 +873,7 @@ export function walkRun(input: WalkInput): WalkResult {
              * three fights with no healing and no shopping between them.
              */
             upgradeBench(node, true);
-            for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'gate')) {
+            for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'gate').slice(0, 1)) {
                 store.dispatch(fitPatch({ memberId: fit.memberId, patchId: fit.patchId }));
                 patchesTaken.push({ patchId: fit.patchId, from: 'gate', price: 0 });
                 record({ kind: 'PATCH_TAKEN', memberId: fit.memberId, patchId: fit.patchId }, fights.length);

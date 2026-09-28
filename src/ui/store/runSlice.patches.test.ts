@@ -127,3 +127,26 @@ describe('163d — what each door offers', () => {
         expect(PATCH_IDS).toContain(SHOP_STOCK_PATCH);
     });
 });
+
+describe('166e — gate benchKey limits fitting to one patch per visit', () => {
+    it('two fitPatch calls with the same benchKey on two different bodies: only the first is fitted', () => {
+        const run = { ...makeRun(), partyIds: ['mm1', 'mm2'] };
+        const key = 'patch:node_gym_rootfall:1';
+        const state1 = runReducer(stateOf(run), fitPatch({ memberId: 'mm1', patchId: 'amplifier', benchKey: key }));
+        expect(patchesOf(state1.run!, 'mm1')).toEqual(['amplifier']);
+        expect(state1.run?.patchBenchesUsed).toContain(key);
+
+        const state2 = runReducer(state1, fitPatch({ memberId: 'mm2', patchId: 'relay', benchKey: key }));
+        expect(patchesOf(state2.run!, 'mm2')).toEqual([]);
+        expect(state2.run).toEqual(state1.run);
+    });
+
+    it('without a benchKey (the elite reward path) multiple bodies can be fitted in succession', () => {
+        const run = { ...makeRun(), partyIds: ['mm1', 'mm2'] };
+        const state1 = runReducer(stateOf(run), fitPatch({ memberId: 'mm1', patchId: 'amplifier' }));
+        const state2 = runReducer(state1, fitPatch({ memberId: 'mm2', patchId: 'relay' }));
+        expect(patchesOf(state2.run!, 'mm1')).toEqual(['amplifier']);
+        expect(patchesOf(state2.run!, 'mm2')).toEqual(['relay']);
+    });
+});
+

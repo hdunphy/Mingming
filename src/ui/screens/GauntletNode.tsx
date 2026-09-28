@@ -308,9 +308,8 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                   * mid-gauntlet; `upgradesTaken` stops it being PRESSED twice before fight one,
                   * which is the half a render cannot enforce.
                   */}
-                {/* TICKET 163d — the gate's CHOICE OF TWO (163 §3), under the same pre-gauntlet
-                    guard as everything else here, and for the same healing argument. */}
-                {gauntlet.fightIndex === 0 && <PatchBench run={run} ranch={ranch} venue="gate" />}
+                {/* TICKET 163d/166e — the gate's CHOICE OF TWO (163 §3), one patch total per visit (166e). */}
+                {gauntlet.fightIndex === 0 && <PatchBench run={run} ranch={ranch} venue="gate" benchKey={`patch:${node.id}:${node.visited}`} />}
                 {gauntlet.fightIndex === 0 && (
                     <UpgradeBench
                         run={run}

@@ -877,12 +877,53 @@ describe('166d — RewardSystem bonus choices', () => {
         expect(withBonus.macroChoices).toHaveLength(3);
     });
 
-    it('elite with no bonus passed still defaults to patchChoices', () => {
-        const bundle = rollDropTable({
-            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
-            nodeKind: 'elite', party: [{ id: 'p1', definitionId: 'fenrir', activeOS: 'fenrir_v1' }], seed: 'elite-default-check',
+    describe('166e — heldPatches and bonus fallback', () => {
+        const party = [
+            { id: 'p1', definitionId: 'fenrir', activeOS: 'fenrir_v1' },
+            { id: 'p2', definitionId: 'kraken', activeOS: 'kraken_v1' },
+            { id: 'p3', definitionId: 'huldra', activeOS: 'huldra_v1' },
+        ];
+
+        it('bonus: patch with heldPatches naming one member offers the other two only', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                nodeKind: 'elite',
+                party,
+                seed: 'patch-held-1',
+                bonus: 'patch',
+                heldPatches: { p1: ['amplifier'] },
+            });
+            expect(bundle.patchChoices).toBeDefined();
+            expect(bundle.patchChoices).toHaveLength(2);
+            const offeredIds = bundle.patchChoices!.map((o) => o.memberId);
+            expect(offeredIds).toContain('p2');
+            expect(offeredIds).toContain('p3');
+            expect(offeredIds).not.toContain('p1');
         });
-        expect(bundle.patchChoices).toBeDefined();
-        expect(bundle.patchChoices!.length).toBeGreaterThan(0);
+
+        it('bonus: patch with every member held gives no patchChoices and 3 macroChoices', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                nodeKind: 'elite',
+                party,
+                seed: 'patch-held-all',
+                bonus: 'patch',
+                heldPatches: { p1: ['amplifier'], p2: ['splitter'], p3: ['converter'] },
+            });
+            expect(bundle.patchChoices).toBeUndefined();
+            expect(bundle.macroChoices).toHaveLength(3);
+        });
+
+        it('elite with no bonus passed defaults to null: neither patchChoices nor macroChoices', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                nodeKind: 'elite',
+                party,
+                seed: 'elite-no-bonus',
+            });
+            expect(bundle.patchChoices).toBeUndefined();
+            expect(bundle.macroChoices).toBeUndefined();
+        });
     });
 });
+

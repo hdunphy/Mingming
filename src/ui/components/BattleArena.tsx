@@ -795,6 +795,7 @@ const BattleArena: React.FC = () => {
                 dryFights,
                 firstRun,
                 bonus,
+                heldPatches: run?.patches ?? {},
             });
             const bundle = driverStake ? { ...rolled, driver: driverStake } : rolled;
 
@@ -806,7 +807,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, driverStake, dryFights, firstRun, bonus]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, driverStake, dryFights, firstRun, bonus, run?.patches]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**

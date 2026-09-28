@@ -405,6 +405,13 @@ export interface IRunState {
     readonly upgradesTaken?: ReadonlyArray<string>;
 
     /**
+     * TICKET 166e — which gate patch benches have been used, as `patch:nodeId:visitCount` keys.
+     * The gate's heading has always said "A PATCH FOR ONE BODY"; before 166e nothing enforced it.
+     * Optional with `.default([])`, the `upgradesTaken` precedent.
+     */
+    readonly patchBenchesUsed?: ReadonlyArray<string>;
+
+    /**
      * TICKET 163d — **the patch fitted to each party member's firmware**, by member id.
      *
      * RUN STATE, not roster state, on 163 §5 decision 5: *"no persistence across runs to start."*
@@ -616,6 +623,7 @@ export const RunStateSchema = z.object({
     // Ticket 142 §7, add-only like the field above it.
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
     upgradesTaken: z.array(z.string()).default([]),
+    patchBenchesUsed: z.array(z.string()).default([]),
     patches: z.record(z.string(), z.array(z.string())).default({}),
     boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),

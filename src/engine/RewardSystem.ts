@@ -37,7 +37,6 @@ import { v2RunPool } from './data/speciesPools';
 import { PATCH_SLOTS } from './data/patchRegistry';
 import { bestPatchFor } from './data/patchRanking';
 import { rawFirmwareHooks } from './data/firmwareRegistry';
-import { paysDriver } from './run/driverStakes';
 import { rollMacroChoices } from './run/macroRewards';
 import type { FightBonus } from './run/fightBonus';
 import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
@@ -741,8 +740,10 @@ export interface IRewardRollInput {
      * `dryFights`: the ranch owns the counter and `gameSlice` advances it when a run ends.
      */
     readonly firstRun?: boolean;
-    /** TICKET 166d: extra prize from fightBonusFor. Defaults to pre-166 behaviour. */
+    /** TICKET 166d/e: extra prize from fightBonusFor. Defaults to null. */
     readonly bonus?: FightBonus;
+    /** TICKET 166e: patches already held on the run's bodies (rosterId -> patchIds). */
+    readonly heldPatches?: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
 /**
@@ -801,8 +802,8 @@ export function gymClearBlueprints(bossSpecies: ReadonlyArray<string>): string[]
 }
 
 export function rollDropTable(input: IRewardRollInput): IRewardBundle {
-    const { defeated, nodeKind, party, seed, dryFights = 0, firstRun = false } = input;
-    const bonus = input.bonus !== undefined ? input.bonus : (paysDriver(nodeKind) ? 'patch' : null);
+    const { defeated, nodeKind, party, seed, dryFights = 0, firstRun = false, heldPatches = {} } = input;
+    const bonus = input.bonus !== undefined ? input.bonus : null;
 
     /*
      * TICKET 18a: the gauntlet's fights pay no scrap, no blueprints, and no card picks.
@@ -865,14 +866,26 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         currentSeed = result.nextSeed.toString();
     }
 
+    /*
+     * TICKET 166e (Henry, 2026-09-27): "only on the last elite you can win one. The others should
+     * give extra scrap or maybe a macro instead."
+     *
+     * The patch no longer follows paysDriver; it follows fightBonusFor, which since 166e pays it
+     * only at an elite in the final biome. Ambushes and earlier elites pay the macro pick.
+     * If all bodies already carry a patch, the final elite pays the macro pick instead so it is never
+     * an empty prize.
+     */
+    const patchOffers = bonus === 'patch' ? elitePatchOffer(party, heldPatches) : [];
+    const paysMacro = bonus === 'macro' || (bonus === 'patch' && patchOffers.length === 0);
+
     return {
         // Ticket 57: one payment for the fight, not a sum over corpses.
         scraps: scrapForWin(nodeKind, defeatedCount),
         blueprints: allBlueprints,
         cards: [],
         cardChoices: allCardChoices,
-        ...(bonus === 'patch' ? { patchChoices: elitePatchOffer(party) } : {}),
-        ...(bonus === 'macro' ? { macroChoices: rollMacroChoices(seed) } : {}),
+        ...(patchOffers.length > 0 ? { patchChoices: patchOffers } : {}),
+        ...(paysMacro ? { macroChoices: rollMacroChoices(seed) } : {}),
     };
 }
 

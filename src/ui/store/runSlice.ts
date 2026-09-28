@@ -458,13 +458,21 @@ const runSlice = createSlice({
          * Refuses a member who is not in the party. The bench is not a body in this fight, and a
          * patch fitted to someone standing outside it is a rule nobody could see working.
          */
+        /**
+         * TICKET 163d/166e — fit a patch to a body's firmware.
+         *
+         * Ticket 166e: accepts an optional `benchKey?: string`. If `benchKey` is provided and has
+         * already been recorded in `run.patchBenchesUsed`, the fitting is refused (the gate offers
+         * exactly one patch per visit). On success with a `benchKey`, it is appended to `patchBenchesUsed`.
+         */
         fitPatch: (
             state,
-            action: PayloadAction<{ memberId: string; patchId: string; price?: number }>,
+            action: PayloadAction<{ memberId: string; patchId: string; price?: number; benchKey?: string }>,
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
-            const { memberId, patchId, price = 0 } = action.payload;
+            const { memberId, patchId, price = 0, benchKey } = action.payload;
+            if (benchKey && (run.patchBenchesUsed ?? []).includes(benchKey)) return { run };
             if (!run.partyIds.includes(memberId)) return { run };
             if (getPatch(patchId) === undefined) return { run };
             if (!Number.isInteger(price) || price < 0) return { run };
@@ -476,6 +484,7 @@ const runSlice = createSlice({
                     ...run,
                     scrap: run.scrap - price,
                     patches: { ...(run.patches ?? {}), [memberId]: [...held, patchId] },
+                    ...(benchKey ? { patchBenchesUsed: [...(run.patchBenchesUsed ?? []), benchKey] } : {}),
                 },
             };
         },

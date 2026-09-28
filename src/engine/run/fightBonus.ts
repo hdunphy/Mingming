@@ -16,7 +16,10 @@ export function fightBonusFor(input: FightBonusInput): FightBonus {
         if (!input.gauntlet) return null;
         return input.gauntlet.fightIndex < input.gauntlet.totalFights - 1 ? 'macro' : null;
     }
-    // Everything below is unchanged behaviour until 166e: elites and ambushes pay the patch offer.
-    if (input.nodeKind === 'elite' || input.nodeKind === 'ambush') return 'patch';
+    // TICKET 166e (Henry, 2026-09-27): "only on the last elite you can win one. The others should
+    // give extra scrap or maybe a macro instead." The last elite is any elite in the FINAL biome -
+    // the one whose exit is the gym (decision E3). Ambushes and earlier elites pay the macro pick (E1).
+    if (input.nodeKind === 'elite' && input.biomeIndex === input.biomeCount - 1) return 'patch';
+    if (input.nodeKind === 'elite' || input.nodeKind === 'ambush') return 'macro';
     return null;
 }

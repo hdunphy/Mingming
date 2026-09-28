@@ -71,11 +71,16 @@ export interface PatchBenchProps {
     readonly ranch: IRanchState;
     /** The gate offers a CHOICE OF TWO per body, free. The shop stocks Amplifier, for scrap. */
     readonly venue: 'gate' | 'shop';
+    /** TICKET 166e: the gate's visit key, e.g. `patch:nodeId:visited`. Ignored by the shop. */
+    readonly benchKey?: string;
 }
 
-export function PatchBench({ run, ranch, venue }: PatchBenchProps): ReactNode {
+export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): ReactNode {
     const dispatch = useDispatch();
     const byId = new Map(ranch.roster.map((member) => [member.id, member]));
+
+    const free = venue === 'gate';
+    const isGateUsed = free && !!benchKey && (run.patchBenchesUsed ?? []).includes(benchKey);
 
     const rows = run.partyIds
         .map((memberId) => ({ memberId, member: byId.get(memberId) }))
@@ -90,7 +95,6 @@ export function PatchBench({ run, ranch, venue }: PatchBenchProps): ReactNode {
                 : [SHOP_STOCK_PATCH],
         }));
 
-    const free = venue === 'gate';
     const affordable = free || run.scrap >= SHOP_PATCH_PRICE;
 
     return (
@@ -100,29 +104,40 @@ export function PatchBench({ run, ranch, venue }: PatchBenchProps): ReactNode {
                 <span className="mk-sub">({free ? 'choice of two, free' : `${SHOP_PATCH_PRICE} scrap`})</span>
             </h2>
             <div className="mk-rows">
-                {rows.map(({ memberId, member, offers }) => offers.map((patchId) => {
-                    const patch = getPatch(patchId);
-                    if (!patch) return null;
-                    return (
-                        <button
-                            key={`${memberId}:${patchId}`}
-                            type="button"
-                            className="rs-row"
-                            disabled={!affordable}
-                            // The price rides the action: the reducer charges and fits in one
-                            // step, so an unaffordable click cannot half-happen.
-                            onClick={() => dispatch(fitPatch({ memberId, patchId, price: free ? 0 : SHOP_PATCH_PRICE }))}
-                        >
-                            <span className="rs-rnm">{member.nickname ?? member.definitionId} · <b>{patch.name}</b></span>
-                            <span className="rs-t">{patch.text}</span>
-                            <span className="rs-sellp">
-                                {free ? 'FREE' : <>−{SHOP_PATCH_PRICE} <Icon name="scrap" size={11} /></>}
-                            </span>
-                        </button>
-                    );
-                }))}
-                {rows.length === 0 && (
-                    <span className="mk-empty">Every body is already running a patch.</span>
+                {isGateUsed ? (
+                    <span className="mk-empty">Patch fitted — the gate offers one.</span>
+                ) : (
+                    <>
+                        {rows.map(({ memberId, member, offers }) => offers.map((patchId) => {
+                            const patch = getPatch(patchId);
+                            if (!patch) return null;
+                            return (
+                                <button
+                                    key={`${memberId}:${patchId}`}
+                                    type="button"
+                                    className="rs-row"
+                                    disabled={!affordable}
+                                    // The price rides the action: the reducer charges and fits in one
+                                    // step, so an unaffordable click cannot half-happen.
+                                    onClick={() => dispatch(fitPatch({
+                                        memberId,
+                                        patchId,
+                                        price: free ? 0 : SHOP_PATCH_PRICE,
+                                        benchKey: free ? benchKey : undefined,
+                                    }))}
+                                >
+                                    <span className="rs-rnm">{member.nickname ?? member.definitionId} · <b>{patch.name}</b></span>
+                                    <span className="rs-t">{patch.text}</span>
+                                    <span className="rs-sellp">
+                                        {free ? 'FREE' : <>−{SHOP_PATCH_PRICE} <Icon name="scrap" size={11} /></>}
+                                    </span>
+                                </button>
+                            );
+                        }))}
+                        {rows.length === 0 && (
+                            <span className="mk-empty">Every body is already running a patch.</span>
+                        )}
+                    </>
                 )}
             </div>
             <p className="rs-hint mk-foot">
