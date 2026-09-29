@@ -443,8 +443,11 @@ describe('ticket 08: the enemy deck is the player’s kit fraction at that depth
          * to give but a number — which is the one thing the law forbids. A tier makes the ORDINARY
          * fight play like the exam did one tier ago, and stops there.
          */
-        expect(enemyLoadoutFor('wild', 1)).toMatchObject({ os: false, ai: 'greedy' });
-        expect(enemyLoadoutFor('wild', 2)).toMatchObject({ os: true, ai: 'greedy' });
+        // TICKET 169a (Henry, 2026-09-29) moved both rungs down one tier: firmware is tier 1 and
+        // the lite AI is tier 2. The rows now live in `data/tiers.json`.
+        expect(enemyLoadoutFor('wild', 0)).toMatchObject({ os: false, ai: 'greedy' });
+        expect(enemyLoadoutFor('wild', 1)).toMatchObject({ os: true, ai: 'greedy' });
+        expect(enemyLoadoutFor('wild', 2)).toMatchObject({ os: true, ai: 'lite' });
         expect(enemyLoadoutFor('wild', 3)).toMatchObject({ os: true, ai: 'lite' });
         // Clamped, not extrapolated: there is no fourth grade, and inventing one at tier 4 would be
         // a scaling knob wearing a ladder's clothes.

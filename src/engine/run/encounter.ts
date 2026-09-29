@@ -48,6 +48,7 @@ import { authoredBossFor } from './bosses';
 import { GYM_REGISTRY, gymCompElementPlan, gymLeaderFirmware, pathElementsFor, speciesOwningFirmware } from './gyms';
 import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
+import { tierRule } from './tiers/tierRegistry';
 
 // ---------------------------------------------------------------------------------------------
 // Which nodes are a fight
@@ -301,7 +302,8 @@ export function gradeFor(kind: NodeKind): EnemyGrade {
 
 /**
  * **THE TIER RAISES THE WILD RUNG, AND NOTHING ELSE** — ticket 60: *"tier 2 = wild OS on; tier 3 =
- * wild AI lite"*, and `exploration-map.md`'s standing law that *"harder tiers unlock by beating
+ * wild AI lite"*, moved down one tier each by ticket 169a (Henry, 2026-09-29): **tier 1 is firmware
+ * and tier 2 is the lite AI.** The rows live in `data/tiers.json` (`tierRegistry`), and `exploration-map.md`'s standing law that *"harder tiers unlock by beating
  * gyms — meaner curated teams, more elites, enemy relics; never bigger numbers."*
  *
  * Only the wild moves, and that is the point rather than an omission: an elite already runs its
@@ -309,8 +311,9 @@ export function gradeFor(kind: NodeKind): EnemyGrade {
  * reaching for a number. A tier makes the ORDINARY fight play like the exam did one tier ago, which
  * is a difficulty curve made of the same three grades the player has already met.
  *
- * Tiers are cumulative and clamped: tier 3 and above is the top rung, because there is no fourth
- * grade and inventing one here would be a scaling knob wearing a ladder's clothes.
+ * Tiers are cumulative and clamped (`tierRule`): the top row is the top rung, because there is no
+ * fourth grade and inventing one here would be a scaling knob wearing a ladder's clothes. (Tiers
+ * also add elites and Drivers elsewhere - 169b and 169c - but never here.)
  */
 export function enemyLoadoutFor(kind: NodeKind, tier: number, biomeIndex = 1): IEnemyLoadout {
     const grade = gradeFor(kind);
@@ -353,9 +356,8 @@ export function enemyLoadoutFor(kind: NodeKind, tier: number, biomeIndex = 1): I
      * rung quietly deleted for a third of the map.
      */
     const deck: EnemyDeckRule = biomeIndex <= 0 ? 'start-kit-plus-generics' : base.deck;
-    if (tier >= 3) return { ...base, deck, os: true, ai: 'lite' };
-    if (tier >= 2) return { ...base, deck, os: true };
-    return { ...base, deck };
+    const rule = tierRule(tier);
+    return { ...base, deck, os: base.os || rule.wildFirmware, ai: rule.wildAi === 'greedy' ? base.ai : rule.wildAi };
 }
 
 /**
