@@ -772,3 +772,41 @@ describe('Tight Budget (169g)', () => {
             .toContain(`<span class="rs-chip">15 `);
     });
 });
+
+/**
+ * TICKET 169h — No Recruits at the workshop. The species list is replaced by one sentence, nothing
+ * offers an assembly, and the parts of the workshop that are not recruiting (reflash) are untouched.
+ */
+describe('No Recruits (169h)', () => {
+    const off = (scrap: number): IRunState => makeRun(scrap, { modifiers: ['mod:no_recruits'] });
+    const SENTENCE = 'No Recruits is on: your party is set for this run.';
+
+    it('says so instead of listing the blueprints', () => {
+        const markup = render(off(400), makeRanch({ skoll: 1, fenrir: 1 }));
+
+        expect(markup).toContain(SENTENCE);
+        expect(markup).not.toContain('blueprints ×');
+        expect(markup).not.toContain('ws-bpc sel');
+    });
+
+    it('offers no assembly, even when a species was pre-selected', () => {
+        const markup = render(off(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        expect(markup).toContain(SENTENCE);
+        expect(markup).not.toContain('ASSEMBLE');
+    });
+
+    it('still lists the party, and still reflashes', () => {
+        const ranch = makeRanch({ kraken: 1 });
+        expect(render(off(400), ranch)).toContain('PARTY 1/3');
+        expect(render(off(400), ranch, { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } }))
+            .toContain('>REFLASH</button>');
+    });
+
+    it('shows the species list, and not the sentence, without the modifier', () => {
+        const markup = render(makeRun(400), makeRanch({ skoll: 1 }));
+
+        expect(markup).not.toContain(SENTENCE);
+        expect(markup).toContain('blueprints ×1');
+    });
+});

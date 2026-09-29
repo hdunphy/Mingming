@@ -15,6 +15,7 @@ import { hasUpgrade } from '../../data/plusRegistry';
 import { rewardCardPool } from '../../RewardSystem';
 import { MingmingRegistry } from '../../data/mingmingRegistry';
 import { PARTY_SIZE, partyBlockFor } from '../../party';
+import { recruitingBlocked } from '../modifiers/noRecruits';
 import { canGive, heldCards } from './eventGive';
 import { partyMembersOf } from './eventContext';
 import type { EventContext } from './eventContext';
@@ -42,6 +43,8 @@ const always = (): boolean => true;
  * lets in. The same two questions `workshop.workshopBlockFor` asks, read off the ranch view.
  */
 export function workshopWouldOfferARecruit(ctx: EventContext): boolean {
+    // TICKET 169h: this check never calls `planRecruit`, so No Recruits has to stop it here.
+    if (recruitingBlocked(ctx.run)) return false;
     if (ctx.run.partyIds.length >= PARTY_SIZE) return false;
     const party = partyMembersOf(ctx);
     return Object.entries(ctx.ranch.blueprints).some(([speciesId, count]) => count >= 1

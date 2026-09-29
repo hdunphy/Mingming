@@ -83,6 +83,7 @@ import {
     type WorkshopBlock,
 } from '../../engine/run/workshop';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
+import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { playSfx } from '../audio/AudioEngine';
 import { assembleMingming, swapOS } from '../store/gameSlice';
@@ -175,7 +176,10 @@ export default function WorkshopNode({
     // render closed over, which is a render behind the dispatch it has to verify.
     const store = useStore<RootState>();
 
-    const [speciesId, setSpeciesId] = useState<string | null>(initialSpeciesId ?? null);
+    const [pickedSpeciesId, setSpeciesId] = useState<string | null>(initialSpeciesId ?? null);
+    // TICKET 169h: No Recruits. Nothing can be selected, so nothing offers an assembly.
+    const noRecruits = recruitingBlocked(run);
+    const speciesId = noRecruits ? null : pickedSpeciesId;
     const [osId, setOsId] = useState<string | null>(null);
     const [built, setBuilt] = useState<IRanchMember | null>(null);
     /** True while ASSEMBLE → PARTY is waiting for the player to name who leaves the field. */
@@ -421,7 +425,10 @@ export default function WorkshopNode({
                 <div className="rs-panel">
                     <h2>BLUEPRINTS</h2>
                     <div className="ws-scroll">
-                        {species.map((entry) => {
+                        {noRecruits && (
+                            <span className="rs-hint">No Recruits is on: your party is set for this run.</span>
+                        )}
+                        {!noRecruits && species.map((entry) => {
                             const data = GetMingmingData(entry.speciesId);
                             const none = entry.blueprints < 1;
                             return (
@@ -457,7 +464,7 @@ export default function WorkshopNode({
                                 </button>
                             );
                         })}
-                        {species.length === 0 && (
+                        {!noRecruits && species.length === 0 && (
                             <span className="rs-hint">
                                 No species in the registry offer blueprints yet.
                             </span>
@@ -605,7 +612,7 @@ export default function WorkshopNode({
                         </div>
                     )}
 
-                    {!definition && (
+                    {!definition && !noRecruits && (
                         <p className="rs-hint">
                             Pick a blueprint on the left. This is the only place the party grows — a
                             blueprint <em>and</em> {assemblyPrice} scrap, so recruiting

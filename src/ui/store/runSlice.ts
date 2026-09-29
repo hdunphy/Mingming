@@ -82,6 +82,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
+import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import {
@@ -865,6 +866,8 @@ const runSlice = createSlice({
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
+            // TICKET 169h: No Recruits. `planRecruit` already yields nothing, so no action should arrive; one that does changes nothing.
+            if (recruitingBlocked(run)) return { run };
             const { memberId, cards, price } = action.payload;
 
             if (!Number.isInteger(price) || price < 0) return { run };
@@ -921,6 +924,8 @@ const runSlice = createSlice({
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
+            // TICKET 169h: No Recruits. `planRecruit` already yields nothing, so no action should arrive; one that does changes nothing.
+            if (recruitingBlocked(run)) return { run };
             const { memberId, cards, price } = action.payload;
 
             if (!Number.isInteger(price) || price < 0) return { run };

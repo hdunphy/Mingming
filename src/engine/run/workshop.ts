@@ -55,6 +55,7 @@ import { RECRUIT_KIT_SIZE, recruitDeckFor, startKitIdsFor } from './createRun';
 import { toMingmingState } from './battleSetup';
 import { withEffectiveOS } from './effectiveOS';
 import { nodeSeed } from './nodeSeed';
+import { recruitingBlocked } from './modifiers/noRecruits';
 import { shopPrice } from './modifiers/shopPrice';
 import type { IRanchMember, IRanchState, IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
 
@@ -441,6 +442,9 @@ function uniqueMemberId(id: string, ranch: IRanchState): string {
  */
 export function planRecruit(input: RecruitPlanInput): IRecruitPlan | null {
     const { ranch, run, node, speciesId, osId } = input;
+
+    // TICKET 169h: No Recruits. The one choke point every workshop and event recruit passes through.
+    if (recruitingBlocked(run)) return null;
 
     /*
      * The firmware this plan will actually build, resolved BEFORE the legality check.
