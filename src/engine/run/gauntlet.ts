@@ -59,7 +59,7 @@ import type { IRegionNode, IRunState } from '../runTypes';
 import { ENEMY_LADDER, encounterSpeciesPool } from './encounter';
 import type { IRunEncounter } from './encounter';
 import { authoredBossFor } from './bosses';
-import { GYM_REGISTRY } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan } from './gyms';
 import { nodeSeed } from './nodeSeed';
 
 // ---------------------------------------------------------------------------------------------
@@ -213,7 +213,7 @@ export interface GauntletFightInput {
  * This is the leader's recruiting ground for fights 1 and 2 and it is deliberately the *union* of the
  * three biome pools rather than the gym biome's alone: the gauntlet is the run's final exam, and an
  * exam set only on the last chapter would make the first two biomes route decoration. Since ticket
- * 166c the union is filtered per slot by `gauntletSlotPool`.
+ * 167a the union is filtered per slot by `gauntletSlotPool`.
  */
 function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
     const ids: string[] = [];
@@ -230,20 +230,25 @@ function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
 }
 
 /**
- * TICKET 166c (Henry, 2026-09-27): *"it should be mostly nature and mix in some water or fire,
- * not WWF."* Fights 1 and 2 field the gym's element in the first GAUNTLET_GYM_ELEMENT_SLOTS
- * slots and one other region element after them. Falls back to the whole region pool when a side
- * is empty, so a content gap can never leave a slot with nothing to draw.
+ * TICKET 167a (Henry, 2026-09-28): *"The boss should vary its first fights. But pull just from the
+ * WWF mingmings."* Fights 1 and 2 field one body per element of the BOSS team's plan
+ * (`gymCompElementPlan`: Tidewrack Water/Water/Fire), each drawn from every species of that
+ * element the region fields. Replaces 166c's "two gym-element bodies and one other", which could
+ * put Nature into a Water/Fire gym.
+ *
+ * Early Access has two species per element, so two same-element slots are always those two
+ * species; the variety is in the odd slot, each body's firmware and its rolled stats. That is
+ * intended, not a bug.
+ *
+ * Falls back to the whole region pool if a slot's element has no species in it, so a content gap
+ * can never leave a slot with nothing to draw.
  */
-export const GAUNTLET_GYM_ELEMENT_SLOTS = 2;
-
-function gauntletSlotPool(run: IRunState, node: IRegionNode, slot: number, gymElement: string | undefined): string[] {
+function gauntletSlotPool(run: IRunState, node: IRegionNode, slot: number, plan: ReadonlyArray<string>): string[] {
     const region = regionSpeciesPool(run, node);
-    if (!gymElement) return region;
-    const own = region.filter((id) => GetMingmingData(id).primaryElement === gymElement);
-    const other = region.filter((id) => GetMingmingData(id).primaryElement !== gymElement);
-    const wanted = slot < GAUNTLET_GYM_ELEMENT_SLOTS ? own : other;
-    return wanted.length > 0 ? wanted : region;
+    const element = plan[slot];
+    if (!element) return region;
+    const matching = region.filter((id) => GetMingmingData(id).primaryElement === element);
+    return matching.length > 0 ? matching : region;
 }
 
 /** Draw one species, preferring one not already on this team (map § Notes: one of each species). */
@@ -357,6 +362,8 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
     const roster = new SeedStream(new SeedStream(seed).fork('gauntlet-roster'));
 
     const gym = GYM_REGISTRY[run.gymId];
+    // 167a: the boss team's element plan, computed once so the slot loop only looks it up.
+    const plan = gym ? gymCompElementPlan(gym) : [];
     // A run always names a gym in the registry (`createRun` copies it off the offer), so this is the
     // label for a state nothing can produce rather than a case with behaviour of its own.
     const gymName = gym?.name ?? 'Gym';
@@ -377,7 +384,7 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
         const biomeIndex = boss ? Math.min(slot, run.biomes.length - 1) : -1;
         const pool = boss
             ? encounterSpeciesPool(run, { ...node, biomeIndex })
-            : gauntletSlotPool(run, node, slot, gym?.element);
+            : gauntletSlotPool(run, node, slot, plan);
 
         /*
          * The draw happens even when the authored table overrides it — the same stream-position

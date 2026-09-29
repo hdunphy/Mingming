@@ -42,7 +42,7 @@ import { getOSBehavior } from '../data/firmwareRegistry';
 import { ENEMY_LADDER, gradeFor } from './encounter';
 import { buildBattleSetup } from './battleSetup';
 import { createRun } from './createRun';
-import { GYM_REGISTRY, type IGymOffer } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan, type IGymOffer } from './gyms';
 import { createBattleState } from '../data/battleFactories';
 import { GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
@@ -680,28 +680,32 @@ describe('ticket 152: the gym keeps the loop the wild does not', () => {
     });
 });
 
-describe('166c — gauntlet fights 1 and 2 element mix', () => {
-    it('fields two gym-element bodies in slots 0-1 and one other element in slot 2', () => {
+describe('167a — gauntlet fights 1 and 2 follow the boss team\'s element plan', () => {
+    it('fields one body per element of the boss plan, in plan order, and the boss is unchanged', () => {
         const gymIds = Object.keys(GYM_REGISTRY) as Array<keyof typeof GYM_REGISTRY>;
         for (const gymId of gymIds) {
             const gym = GYM_REGISTRY[gymId];
+            const plan = gymCompElementPlan(gym);
             for (let s = 0; s < 40; s++) {
-                const seed = `gauntlet-166c-${gymId}-${s}`;
+                const seed = `gauntlet-167a-${gymId}-${s}`;
                 const run = makeRun([KRAKEN, FENRIR, RATATOSKR], seed, gym);
                 const node = gymNodeOf(run);
                 for (const fightIndex of [0, 1]) {
                     const fight = rollGauntletFight({ run, node, fightIndex });
                     expect(fight.enemyParty).toHaveLength(3);
-                    expect(fight.enemyParty[0].primaryElement, `${gymId} fight ${fightIndex} slot 0 seed ${seed}`).toBe(gym.element);
-                    expect(fight.enemyParty[1].primaryElement, `${gymId} fight ${fightIndex} slot 1 seed ${seed}`).toBe(gym.element);
-                    expect(fight.enemyParty[2].primaryElement, `${gymId} fight ${fightIndex} slot 2 seed ${seed}`).not.toBe(gym.element);
+                    for (let i = 0; i < 3; i++) {
+                        expect(
+                            fight.enemyParty[i].primaryElement,
+                            `${gymId} fight ${fightIndex} slot ${i} seed ${seed}`,
+                        ).toBe(plan[i]);
+                    }
 
-                    // 3. gauntletOpponentElements returns the same elements as the rolled fight
+                    // gauntletOpponentElements returns the same elements as the rolled fight
                     const elements = gauntletOpponentElements({ run, node, fightIndex });
                     expect(elements).toEqual(fight.enemyParty.map((e) => e.primaryElement));
                 }
 
-                // 2. fightIndex 2 (the boss) fields exactly the authored members in order
+                // fightIndex 2 (the boss) fields exactly the authored members in order
                 const bossFight = rollGauntletFight({ run, node, fightIndex: 2 });
                 const authored = authoredBossFor(gymId)!;
                 expect(bossFight.enemyParty.map((e) => e.definitionId)).toEqual(authored.members.map((m) => m.species));
@@ -710,5 +714,16 @@ describe('166c — gauntlet fights 1 and 2 element mix', () => {
                 expect(bossElements).toEqual(bossFight.enemyParty.map((e) => e.primaryElement));
             }
         }
+    });
+
+    it('Tidewrack fight 1 still varies: at least two different line-ups over 40 seeds', () => {
+        const gym = GYM_REGISTRY.tidewrack;
+        const lineups = new Set<string>();
+        for (let s = 0; s < 40; s++) {
+            const run = makeRun([KRAKEN, FENRIR, RATATOSKR], `gauntlet-167a-vary-${s}`, gym);
+            const fight = rollGauntletFight({ run, node: gymNodeOf(run), fightIndex: 0 });
+            lineups.add(fight.enemyParty.map((e) => `${e.definitionId}:${e.activeOS}`).join('|'));
+        }
+        expect(lineups.size).toBeGreaterThanOrEqual(2);
     });
 });
