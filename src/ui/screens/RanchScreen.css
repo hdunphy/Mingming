@@ -312,6 +312,15 @@
 .ranch-offer:hover { border-color: #7a5cff; background: rgba(122, 92, 255, 0.12); }
 .ranch-offer-name { font-weight: 700; font-size: 1rem; }
 .ranch-offer-meta { font-size: 0.72rem; opacity: 0.6; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.ranch-offer-cleared { font-size: 0.72rem; opacity: 0.85; letter-spacing: 0.05em; margin: -0.3rem 0 0.5rem; }
+
+/* Ticket 169e: the tier row above the gym offers. */
+.ranch-tier-picker { margin-bottom: 0.9rem; }
+.ranch-tier-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-start; }
+.ranch-tier-slot { display: flex; flex-direction: column; gap: 0.25rem; max-width: 9rem; }
+.ranch-tier-lock { font-size: 0.68rem; opacity: 0.6; line-height: 1.35; }
+.ranch-tier-blurb { display: flex; flex-direction: column; gap: 0.1rem; margin-top: 0.5rem; font-size: 0.78rem; }
+.ranch-tier-blurb span { opacity: 0.72; }
 
 .ranch-offer-route {
     list-style: none;

@@ -407,7 +407,7 @@ export default function RunScreen(): ReactNode {
                     <h1><Icon name="gym" size={20} /> {gym?.name ?? run.gymId}</h1>
                     <div className="ranch-run-meta">
                         Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                        {' '}{run.fightsResolved} fights · {run.scrap} scrap
+                        {' '}Tier {run.tier} · {run.fightsResolved} fights · {run.scrap} scrap
                     </div>
                     {abandonControl()}
                 </header>
@@ -434,7 +434,7 @@ export default function RunScreen(): ReactNode {
                 <h1>{gym?.name ?? run.gymId}</h1>
                 <div className="ranch-run-meta">
                     Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                    layer {current.layer} · {run.fightsResolved} fights · {run.scrap} scrap
+                    layer {current.layer} · Tier {run.tier} · {run.fightsResolved} fights · {run.scrap} scrap
                 </div>
                 <button type="button" className="ranch-button subtle" onClick={abandon}>Abandon run</button>
             </header>

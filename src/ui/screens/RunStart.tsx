@@ -33,7 +33,9 @@ import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
 import { gymSignatures } from '../../engine/run/gauntlet';
+import { TIERS, tierRule } from '../../engine/run/tiers/tierRegistry';
 import { leaderDriverTierLine } from '../../engine/run/tiers/tierText';
+import { clearsByGym, unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
 import { offerGyms, pathElementsFor, type IGymOffer } from '../../engine/run/gyms';
 import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
@@ -59,9 +61,18 @@ export default function RunStart(): ReactNode {
     const offers = useOfferScreen();
     const [chosen, setChosen] = useState<IGymOffer | null>(null);
     const [partyIds, setPartyIds] = useState<string[]>([]);
-    // Ticket 169c: the tier the offer screen describes. Fixed at 0 until 169e's tier picker turns it
-    // into state; the Driver line below already reads it, so the picker only has to change this.
-    const selectedTier = 0;
+    const ranch = useSelector((s: RootState) => s.game);
+
+    /*
+     * TICKET 169e — THE TIER PICKER. Tier 0 is always open; a clear at tier N opens tier N+1 for every
+     * gym (`tierUnlocks`). The screen opens on the HIGHEST unlocked tier (default D3), and the choice
+     * is component state like `chosen`: not saved, so a new visit opens on the highest again.
+     */
+    const unlocked = useMemo(() => unlockedTiers(ranch), [ranch]);
+    const clears = useMemo(() => clearsByGym(ranch), [ranch]);
+    const [pickedTier, setPickedTier] = useState<number | null>(null);
+    const selectedTier =
+        pickedTier !== null && unlocked.includes(pickedTier) ? pickedTier : unlocked[unlocked.length - 1];
 
     const party = useMemo(
         () => partyIds.map((id) => roster.find((m) => m.id === id)).filter((m): m is IRanchMember => !!m),
@@ -92,6 +103,8 @@ export default function RunStart(): ReactNode {
         dispatch(startRun(createRun({
             seed: rollSeed(),
             offer: chosen,
+            // Ticket 169e: the tier picked above. It is fixed for the whole run.
+            tier: selectedTier,
             // Ticket 11: the roster holds `IRanchMember`s. `toMingmingState` adds the one field
             // combat's shape still demands — `blueprintsCollected`, which is vestigial; see its
             // doc comment.
@@ -140,6 +153,36 @@ export default function RunStart(): ReactNode {
                         the two elements that road needs rather than the biome&apos;s — so the blueprint
                         for the body you are missing can be won in any biome, not just its own.
                     </p>
+                    {/* Ticket 169e: the tier row. A locked tier is disabled and says how to open it. */}
+                    <div className="ranch-tier-picker" role="group" aria-label="Difficulty tier">
+                        <div className="ranch-tier-row">
+                            {TIERS.map((row) => {
+                                const open = unlocked.includes(row.tier);
+                                return (
+                                    <div key={row.tier} className="ranch-tier-slot">
+                                        <button
+                                            type="button"
+                                            className={`ranch-button ${selectedTier === row.tier ? '' : 'subtle'}`}
+                                            aria-pressed={selectedTier === row.tier}
+                                            disabled={!open}
+                                            onClick={() => { setPickedTier(row.tier); playSfx('uiClick'); }}
+                                        >
+                                            Tier {row.tier}
+                                        </button>
+                                        {!open && (
+                                            <span className="ranch-tier-lock">
+                                                Beat any gym on Tier {row.tier - 1} to unlock.
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="ranch-tier-blurb">
+                            <strong>{tierRule(selectedTier).name}</strong>
+                            <span>{tierRule(selectedTier).description}</span>
+                        </div>
+                    </div>
                     <div className="ranch-offer-grid">
                         {offers.map((offer) => (
                             <button
@@ -149,9 +192,12 @@ export default function RunStart(): ReactNode {
                                 onClick={() => { setChosen(offer); playSfx('uiClick'); }}
                             >
                                 <div className="ranch-offer-name">{offer.gym.name}</div>
-                                <div className="ranch-offer-meta">
-                                    {offer.gym.element} gym · tier {offer.gym.tier + 1}
-                                </div>
+                                {/* Ticket 169e: the tier is chosen in the row above, so the old "tier 1" label
+                                    (which counted from 1 while every other screen counts from 0) is gone. */}
+                                <div className="ranch-offer-meta">{offer.gym.element} gym</div>
+                                {(clears[offer.gym.id]?.length ?? 0) > 0 && (
+                                    <div className="ranch-offer-cleared">Cleared: {clears[offer.gym.id].join(' ')}</div>
+                                )}
                                 <ol className="ranch-offer-route">
                                     {offer.biomes.map((biome, i) => (
                                         <li key={biome.id}>

@@ -362,6 +362,25 @@ describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
     });
 });
 
+describe('RunScreen — the run says which tier it is (ticket 169e)', () => {
+    it('prints the tier, counted from 0, in the map header', () => {
+        expect(render({ ...BASE, tier: 2 })).toMatch(/layer \d+ · Tier 2 · \d+ fights/);
+        expect(render({ ...BASE, tier: 0 })).toMatch(/layer \d+ · Tier 0 · \d+ fights/);
+    });
+
+    it('prints it in the gauntlet header too', () => {
+        const gym = BASE.nodes.find((n) => n.kind === 'gym')!;
+        const markup = render({
+            ...BASE,
+            tier: 3,
+            currentNodeId: gym.id,
+            phase: 'gauntlet',
+            gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
+        });
+        expect(markup).toMatch(/Tier 3 · \d+ fights/);
+    });
+});
+
 describe('RunScreen — onboarding on the map (ticket 24)', () => {
     it('teaches the map before the gym, one tip at a time', () => {
         const fresh = render(BASE, []);
