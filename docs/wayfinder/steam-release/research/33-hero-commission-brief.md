@@ -1,4 +1,6 @@
-# Hero art commission brief — the four anchor pieces (ticket 33)
+# Species art commission brief — the six Early Access creatures (ticket 33)
+
+> **2026-09-29: widened to all six EA species, no AI anywhere (Henry, re-ruling ticket 32).** Option A is removed. The style paragraph waits on the art-direction decision in progress; do not post this until that is settled.
 
 Ruled by Henry 2026-08-28: heroes = **Fenrir, Ratatoskr, Kraken, Jörmungandr**. Budget from ticket
 32: ~$250 of the $500 art budget. This document is the ready-to-post brief plus the outreach
@@ -15,10 +17,10 @@ blueprints, each running signature firmware. The game's look is **"Neon Industri
 machinery, glowing circuitry, clean line art, high contrast; metallic grays and blacks with one
 vibrant elemental neon per creature.
 
-**The job:** 4 creature illustrations (or 3, see budget), key-art quality. These are the faces of
+**The job:** 6 creature illustrations, key-art quality. These are the faces of
 the game — they anchor the store capsule, screenshots, and trailer.
 
-**The four creatures** (rough shape notes; reference sheets with in-game placeholders provided):
+**The six creatures** (rough shape notes; Henry to confirm 5 and 6 before posting):
 
 1. **FENRIR** (Fire — orange-red neon): a mechanical wolf; molten armored plating, ember-glow seams,
    an unbound/berserker attitude — this creature fights harder the more damaged it is.
@@ -29,6 +31,8 @@ the game — they anchor the store capsule, screenshots, and trailer.
 4. **JÖRMUNGANDR** (Water — blue-green neon): a long serpentine robot made of thick industrial
    cables and aquatic sensors, glowing neon rings along its body; venom motif — teal drip-glow
    accents around the fangs.
+5. **SKÖLL** (Fire, sun-gold neon): the wolf that chases the sun. Lean and fast where Fenrir is heavy, with a solar-array mane and a treacherous grin. Its silhouette must not be confused with Fenrir's.
+6. **HULDRA** (Nature, emerald neon): a forest-spirit construct. Bark-plated, with shield panels that grow like bark, an alluring face and a hollow back, like the hulder of folklore.
 
 **Deliverables, per piece:**
 
@@ -39,30 +43,19 @@ the game — they anchor the store capsule, screenshots, and trailer.
 
 **Timeline:** ~3–4 weeks, sketches front-loaded.
 
-**Budget:** $250 total — offered as 4 pieces at ~$60–65 or 3 pieces at ~$80 if your floor is
-higher (we would drop one Water creature). Payment through the platform's escrow.
+**Budget:** ~$375–390 total for six pieces (~$60–65 each). Payment through the platform's escrow.
 
-**License — read this part before quoting.** Two options; quote for whichever you accept:
-
-- **Option A (preferred):** full commercial license for use in the game and its marketing; artist
-  retains portfolio rights and is credited in-game. Additionally, these pieces will serve as the
-  **style anchor for AI-generated art covering the game's remaining minor creatures** — meaning
-  your finished images may be used as style references during prompt-based image generation. Your
-  art is never contributed to any model training dataset, and the store page will carry Steam's
-  generative-AI disclosure. If you are not comfortable with this, quote Option B instead.
-- **Option B:** full commercial license for game + marketing, portfolio rights, credit — and your
-  work is **never used in any AI workflow**; the remaining roster will be styled from our own
-  prompt library instead.
+**License:** full commercial license for use in the game and its marketing; you keep portfolio rights and are credited in-game. **Your work will never be used in any AI workflow** (no training, no style references for image generation), and no AI-generated art ships in the game.
 
 ---
 
 ## Outreach template (DM for VGen / Fiverr)
 
-> Hi — I'm a solo dev releasing a creature-collector deckbuilder on Steam. I'm commissioning 3–4
+> Hi — I'm a solo dev releasing a creature-collector deckbuilder on Steam. I'm commissioning 6
 > key-art creature illustrations in a "neon industrial" style (mechanical creatures, dark metal +
-> one neon accent color each) — your [piece] looks close to what I'm after. Budget is $250 total,
+> one neon accent color each) — your [piece] looks close to what I'm after. Budget is ~$375–390 total,
 > full brief with shape notes and reference sheets ready. One important term I want to be upfront
-> about: [Option A text / or: no AI involvement with your work — Option B]. Interested?
+> about: your work is never used in any AI workflow, and no AI art ships in the game. Interested?
 
 ---
 
@@ -71,12 +64,12 @@ higher (we would drop one Water creature). Payment through the platform's escrow
 - Portfolio contains **creatures or mechs**, not only humanoid characters.
 - At least one portfolio piece within reach of dark-metal-plus-neon.
 - Commercial license for games stated or agreed in writing; source files included.
-- The AI clause answered explicitly in writing (A or B) — no ambiguity survives the deal.
+- The no-AI clause agreed in writing, both ways: we never feed your work to AI, and you deliver no AI-generated work.
 - Reviews/completed-commission history on the platform; escrow, never direct payment.
 - Turnaround fits ~4 weeks; sketch round before any final rendering.
 
 ## Sequencing reminder (ticket 32's ruling)
 
-Heroes FIRST → they anchor the AI set for the remaining species (33) → screenshots after the UI
+All six species FIRST (no AI set) → screenshots after the UI
 art pass (34) → capsule commission (~$250, from the hero key art) → store page (45, ~Dec 2026).
 The capsule commission does NOT start until the hero style is locked.

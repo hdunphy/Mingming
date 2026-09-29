@@ -8,7 +8,7 @@
 
 ## Deliverable
 
-Assemble the Steam store page: capsule images at every required size (header, small, main, vertical, library assets — commission per ticket 32), 5–8 screenshots at 1920×1080 from ticket 34's pass, a short + long description (the differentiators from vision.md: the team is the deck, recruiting is drafting, the type chart routes the map, the ranch persists), tags (Roguelike Deckbuilder, Turn-Based Tactics, Creature Collector, Singleplayer, Indie), system requirements from ticket 39's numbers, the generative-AI disclosure text if ticket 32 uses AI, languages (English only at launch unless ruled), and publish **Coming Soon** as early as Valve's review allows — wishlists accrue from this day.
+Assemble the Steam store page: capsule images at every required size (header, small, main, vertical, library assets — commission per ticket 32), 5–8 screenshots at 1920×1080 from ticket 34's pass, a short + long description (the differentiators from vision.md: the team is the deck, recruiting is drafting, the type chart routes the map, the ranch persists), tags (Roguelike Deckbuilder, Turn-Based Tactics, Creature Collector, Singleplayer, Indie), system requirements from ticket 39's numbers, the generative-AI disclosure (text only; see Resolution), languages (English only at launch unless ruled), and publish **Coming Soon** as early as Valve's review allows — wishlists accrue from this day.
 
 ## Done when
 
@@ -17,6 +17,8 @@ Page live as Coming Soon; URL recorded; wishlist count baseline noted.
 ## Resolution
 
 _(open)_
+
+**AI disclosure, ruled 2026-09-29 (Henry: "For now plan to disclose").** Content survey question 1 (pre-generated AI content): **yes**, with this text: *"Some in-game text (card, event and creature descriptions) was drafted with AI assistance and edited by the developer. All art is by human artists, and all audio comes from licensed sound libraries."* Question 2 (live-generated content): **no**. The enemy AI is a search algorithm, not generative AI. AI coding tools are exempt (Steam's January 2026 clarification), so the code needs no mention. The store description, capsule and trailer must be made without AI so the text stays true. If Henry later rewrites the in-game text himself, answer question 1 **no** and drop the disclosure.
 
 ## Positioning note (Moonstone Island comp, researched 2026-08-26)
 

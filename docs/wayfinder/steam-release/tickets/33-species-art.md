@@ -1,5 +1,7 @@
 # Species art pass: 16 battle portraits to the ruled standard (ticket 33)
 
+> **2026-09-29: ALL SIX EA PORTRAITS ARE COMMISSIONED, NO AI (Henry, re-ruling ticket 32).** The four heroes plus Sköll and Huldra, from the same artist if possible so the style matches. The AI-anchored set and the brief's Option A licence are gone. Placeholders until the commissions land: 13 SVGs and 3 AI PNGs (Fenrir, Kraken, Ratatoskr), none of them to be used in marketing. The art direction is being re-examined (2026-09-29) before the brief is posted.
+
 > **2026-09-24 — RE-SCOPED by EA scope (Henry 2026-09-22): 6 battle portraits for EA (fenrir, sköll, kraken, jormungandr, ratatoskr, huldra); the other 10 are post-EA.**
 
 - Type: wayfinder:task
