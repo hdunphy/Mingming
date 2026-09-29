@@ -587,8 +587,8 @@
   "id": "acorn_toss",
   "name": "Acorn Toss",
   "cost": 0,
-  "text": "6 power, twice.",
-  "plus": "6 power, three times.",
+  "text": "5 power, three times.",
+  "plus": "5 power, four times.",
   "rule": "multi-hit: +1 hit"
  },
  {

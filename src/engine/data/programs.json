@@ -6980,7 +6980,7 @@
     "acorn_toss": {
         "id": "acorn_toss",
         "name": "Acorn Toss",
-        "description": "6 power, twice.",
+        "description": "5 power, three times.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -6994,12 +6994,17 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 6,
+                "power": 5,
                 "target": "TARGET"
             },
             {
                 "type": "ATTACK",
-                "power": 6,
+                "power": 5,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 5,
                 "target": "TARGET"
             }
         ]
@@ -9349,7 +9354,7 @@
     "acorn_toss+": {
         "id": "acorn_toss+",
         "name": "Acorn Toss+",
-        "description": "6 power, three times.",
+        "description": "5 power, four times.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -9364,17 +9369,22 @@
         "actions": [
             {
                 "type": "ATTACK",
-                "power": 6,
+                "power": 5,
                 "target": "TARGET"
             },
             {
                 "type": "ATTACK",
-                "power": 6,
+                "power": 5,
                 "target": "TARGET"
             },
             {
                 "type": "ATTACK",
-                "power": 6,
+                "power": 5,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 5,
                 "target": "TARGET"
             }
         ]
