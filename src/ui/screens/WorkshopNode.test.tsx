@@ -740,3 +740,35 @@ describe('WorkshopNode — the standing laws', () => {
         expect(markup).not.toContain('<a ');
     });
 });
+
+/**
+ * TICKET 169g — Tight Budget at the workshop. The price on the chip, in the shortfall and in the
+ * hint is the raised one; `planRecruit` and `planReflash` charge it (`shopPrice.test.ts`).
+ */
+describe('Tight Budget (169g)', () => {
+    const tight = (scrap: number): IRunState => makeRun(scrap, { modifiers: ['mod:tight_budget'] });
+
+    it('shows the assembly at 35, and its shortfall against 35', () => {
+        const markup = render(tight(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        expect(markup).toContain(`<span class="rs-chip">35 `);
+        expect(markup).toContain('ASSEMBLE → PARTY — 25 SHORT');
+    });
+
+    it('shows the reflash at 20, and its shortfall against 20', () => {
+        const markup = render(
+            tight(5),
+            makeRanch({ kraken: 1 }),
+            { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } },
+        );
+
+        expect(markup).toContain(`<span class="rs-chip">20 `);
+        expect(markup).toContain('REFLASH — 15 SHORT');
+    });
+
+    it('leaves the plain workshop at 25 and 15', () => {
+        expect(render(makeRun(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' })).toContain(`<span class="rs-chip">25 `);
+        expect(render(makeRun(5), makeRanch({ kraken: 1 }), { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } }))
+            .toContain(`<span class="rs-chip">15 `);
+    });
+});

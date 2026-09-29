@@ -82,6 +82,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import {
     biomeRevealModifier,
@@ -436,7 +437,7 @@ const runSlice = createSlice({
             const to = upgradeIdFor(card.dataId);
             if (to === undefined) return { run };
 
-            const price = free === true ? 0 : upgradePrice(card.dataId);
+            const price = free === true ? 0 : shopPrice(run, upgradePrice(card.dataId));
             if (run.scrap < price) return { run };
 
             const deck = [...run.deck];

@@ -73,6 +73,7 @@ import {
 import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { playSfx } from '../audio/AudioEngine';
 import { buyMacro, buyMarketBlueprint, buyMarketCard, removeJunkCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
 import { junkNote, readDeckFloor } from './deckFloor';
@@ -154,6 +155,9 @@ export default function MarketplaceNode({
     const { floor, atFloor } = reading;
     const macrosHeld = run.macros.filter((slot) => slot !== null).length;
 
+    /** TICKET 169g: junk removal is a price the player pays, so Tight Budget raises it; the sell prices beside it are income and do not move. */
+    const junkRemovalPrice = shopPrice(run, JUNK_REMOVAL_PRICE);
+
     /**
      * Everything the player owns, one row per unique card per pile.
      *
@@ -169,12 +173,12 @@ export default function MarketplaceNode({
                 instances,
                 inDeck,
                 junk: isJunkCard(dataId),
-                price: isJunkCard(dataId) ? JUNK_REMOVAL_PRICE : sellPrice(dataId),
+                price: isJunkCard(dataId) ? junkRemovalPrice : sellPrice(dataId),
             }));
         return [...build(run.deck, true), ...build(run.collection ?? [], false)]
             .sort((a, b) => a.price - b.price
                 || cardFace(a.instances[0].dataId).name.localeCompare(cardFace(b.instances[0].dataId).name));
-    }, [run.deck, run.collection]);
+    }, [run.deck, run.collection, junkRemovalPrice]);
 
     /**
      * Owned instances, for the SOLD check. Deck **and** collection: a bought card lands in the deck,
@@ -220,8 +224,11 @@ export default function MarketplaceNode({
         playSfx('rewardClaim');
     };
 
+    /** TICKET 169g: the stall refresh, at Tight Budget's rate when that is on. */
+    const refreshPrice = shopPrice(run, MARKET_REFRESH_PRICE);
+
     const reroll = (): void => {
-        dispatch(rerollMarketStock({ nodeId: node.id, price: MARKET_REFRESH_PRICE }));
+        dispatch(rerollMarketStock({ nodeId: node.id, price: refreshPrice }));
         playSfx('uiClick');
     };
 
@@ -277,11 +284,11 @@ export default function MarketplaceNode({
                             type="button"
                             className="rs-f"
                             onClick={reroll}
-                            disabled={scrap < MARKET_REFRESH_PRICE}
+                            disabled={scrap < refreshPrice}
                         >
-                            {scrap < MARKET_REFRESH_PRICE
-                                ? `REFRESH ${MARKET_REFRESH_PRICE} scrap — ${shortBy(MARKET_REFRESH_PRICE)} SHORT`
-                                : `REFRESH STALL — ${MARKET_REFRESH_PRICE} scrap`}
+                            {scrap < refreshPrice
+                                ? `REFRESH ${refreshPrice} scrap — ${shortBy(refreshPrice)} SHORT`
+                                : `REFRESH STALL — ${refreshPrice} scrap`}
                         </button>
                     </div>
 

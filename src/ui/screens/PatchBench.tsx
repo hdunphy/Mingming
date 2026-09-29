@@ -24,6 +24,7 @@ import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { gatePatchChoices, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
 import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { effectiveOS } from '../../engine/run/effectiveOS';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 
 /**
@@ -96,13 +97,15 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                 : [SHOP_STOCK_PATCH],
         }));
 
-    const affordable = free || run.scrap >= SHOP_PATCH_PRICE;
+    // TICKET 169g: Tight Budget raises the shop's price; the gate is free and stays free.
+    const patchPrice = shopPrice(run, SHOP_PATCH_PRICE);
+    const affordable = free || run.scrap >= patchPrice;
 
     return (
         <div className="rs-panel mk-patch">
             <h2>
                 {free ? 'THE GATE — A PATCH FOR ONE BODY' : 'FIRMWARE PATCH'}
-                <span className="mk-sub">({free ? 'choice of two, free' : `${SHOP_PATCH_PRICE} scrap`})</span>
+                <span className="mk-sub">({free ? 'choice of two, free' : `${patchPrice} scrap`})</span>
             </h2>
             <div className="mk-rows">
                 {isGateUsed ? (
@@ -123,14 +126,14 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                                     onClick={() => dispatch(fitPatch({
                                         memberId,
                                         patchId,
-                                        price: free ? 0 : SHOP_PATCH_PRICE,
+                                        price: free ? 0 : patchPrice,
                                         benchKey: free ? benchKey : undefined,
                                     }))}
                                 >
                                     <span className="rs-rnm">{member.nickname ?? member.definitionId} · <b>{patch.name}</b></span>
                                     <span className="rs-t">{patch.text}</span>
                                     <span className="rs-sellp">
-                                        {free ? 'FREE' : <>−{SHOP_PATCH_PRICE} <Icon name="scrap" size={11} /></>}
+                                        {free ? 'FREE' : <>−{patchPrice} <Icon name="scrap" size={11} /></>}
                                     </span>
                                 </button>
                             );

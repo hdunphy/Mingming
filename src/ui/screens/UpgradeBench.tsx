@@ -29,6 +29,7 @@ import { Icon } from '../theme/Icon';
 import { upgradeDeckCard } from '../store/runSlice';
 import { upgradeIdFor } from '../../engine/data/plusRegistry';
 import { upgradePrice } from '../../engine/run/marketplace';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import type { IRunState } from '../../engine/runTypes';
 
 export interface UpgradeBenchProps {
@@ -81,7 +82,7 @@ export function UpgradeBench({ run, benchKey, free, heading, allowance = 1 }: Up
                 {rows.map(({ stack, to }) => {
                     const face = cardFace(stack.dataId);
                     const plus = cardFace(to);
-                    const price = free === true ? 0 : upgradePrice(stack.dataId);
+                    const price = free === true ? 0 : shopPrice(run, upgradePrice(stack.dataId));
                     const short = price - run.scrap;
                     const blocked = spent || short > 0;
                     return (

@@ -83,6 +83,7 @@ import {
     type WorkshopBlock,
 } from '../../engine/run/workshop';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { playSfx } from '../audio/AudioEngine';
 import { assembleMingming, swapOS } from '../store/gameSlice';
 import { benchPartyMember, recruitIntoParty, recruitToBench, reflashEngine } from '../store/runSlice';
@@ -219,6 +220,10 @@ export default function WorkshopNode({
     /** The shortfall, in the words the player needs: what they are short, not that they are short. */
     const shortBy = (price: number): number => Math.max(0, price - scrap);
 
+    /** TICKET 169g: what this workshop asks, at Tight Budget's rate when that is on. `planRecruit` and `planReflash` charge the same numbers. */
+    const assemblyPrice = shopPrice(run, WORKSHOP_ASSEMBLY_SCRAP);
+    const reflashPrice = shopPrice(run, WORKSHOP_REFLASH_SCRAP);
+
     /**
      * Build the selected species. **Two dispatches, ranch first** — see the header, and
      * `runSlice.recruitIntoParty` for the argument in full.
@@ -324,7 +329,7 @@ export default function WorkshopNode({
         const plan = member
             ? planReflash({ ranch, run, node, member, targetOS })
             : null;
-        const short = shortBy(WORKSHOP_REFLASH_SCRAP);
+        const short = shortBy(reflashPrice);
 
         return (
             <section className="ws rs-frame rs-fixed">
@@ -391,7 +396,7 @@ export default function WorkshopNode({
                             <span className="rs-chip">
                                 1 × {member ? GetMingmingData(member.definitionId).name.toUpperCase() : ''} BLUEPRINT
                             </span>
-                            <span className="rs-chip">{WORKSHOP_REFLASH_SCRAP} <Icon name="scrap" size={11} /></span>
+                            <span className="rs-chip">{reflashPrice} <Icon name="scrap" size={11} /></span>
                             <button
                                 type="button"
                                 className="rs-btn primary"
@@ -562,7 +567,7 @@ export default function WorkshopNode({
                     {definition && (
                         <div className="ws-cost">
                             <span className="rs-chip">1 × BLUEPRINT</span>
-                            <span className="rs-chip">{WORKSHOP_ASSEMBLY_SCRAP} <Icon name="scrap" size={11} /></span>
+                            <span className="rs-chip">{assemblyPrice} <Icon name="scrap" size={11} /></span>
                             <button
                                 type="button"
                                 className="rs-btn primary"
@@ -570,7 +575,7 @@ export default function WorkshopNode({
                                     !selected
                                     || selected.blueprints < 1
                                     || assemblyBlock === 'duplicate-build'
-                                    || shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
+                                    || shortBy(assemblyPrice) > 0
                                 }
                                 onClick={() => {
                                     playSfx('uiClick');
@@ -580,8 +585,8 @@ export default function WorkshopNode({
                             >
                                 {assemblyBlock === 'duplicate-build'
                                     ? 'THIS OS ALREADY ON THE TEAM'
-                                    : shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
-                                        ? `ASSEMBLE → PARTY — ${shortBy(WORKSHOP_ASSEMBLY_SCRAP)} SHORT`
+                                    : shortBy(assemblyPrice) > 0
+                                        ? `ASSEMBLE → PARTY — ${shortBy(assemblyPrice)} SHORT`
                                         : partyFull ? 'ASSEMBLE → PARTY (SWAP)' : 'ASSEMBLE → PARTY'}
                             </button>
                             <button
@@ -591,7 +596,7 @@ export default function WorkshopNode({
                                     !selected
                                     || selected.blueprints < 1
                                     || assemblyBlock === 'duplicate-build'
-                                    || shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
+                                    || shortBy(assemblyPrice) > 0
                                 }
                                 onClick={() => { playSfx('uiClick'); assemble('bench'); }}
                             >
@@ -603,7 +608,7 @@ export default function WorkshopNode({
                     {!definition && (
                         <p className="rs-hint">
                             Pick a blueprint on the left. This is the only place the party grows — a
-                            blueprint <em>and</em> {WORKSHOP_ASSEMBLY_SCRAP} scrap, so recruiting
+                            blueprint <em>and</em> {assemblyPrice} scrap, so recruiting
                             competes with the marketplace for the same purse.
                         </p>
                     )}
@@ -669,8 +674,8 @@ export default function WorkshopNode({
                         {swappingOut
                             ? 'Pick who steps off the field. Their cards go to the collection with them, and the new engine takes their place in the deck.'
                             : partyFull
-                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. Species clause: no duplicate species across party + bench. Click a member to reflash. 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap.`
-                                : `Click a member to reflash — 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
+                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. Species clause: no duplicate species across party + bench. Click a member to reflash. 1 blueprint + ${reflashPrice} scrap.`
+                                : `Click a member to reflash — 1 blueprint + ${reflashPrice} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
                     </p>
                     <div className={`rs-pill ${deckReading.atFloor ? 'at-floor' : ''}`}>
                         DECK <b>{deckReading.counted}</b> / floor {floor}{junkNote(deckReading)}

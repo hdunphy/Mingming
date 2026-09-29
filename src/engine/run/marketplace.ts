@@ -64,6 +64,7 @@ import { isRewardable, rewardCardPool, type IRewardPartyMember, usesV2Pool, inV2
 import { numericBaseCost } from '../types';
 import type { Element } from '../types';
 import type { IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
+import { shopPrice } from './modifiers/shopPrice';
 
 // =================================================================================================
 // THE MARKETPLACE KNOB — some of it RULED by Henry in ticket 56, the rest still a proposal
@@ -757,7 +758,7 @@ export function rollBlueprintOffer(run: IRunState, node: IRegionNode): IBlueprin
     const pool = blueprintPool();
     if (pool.length === 0) return null;
     const stream = new SeedStream(new SeedStream(marketStockSeed(run, node)).fork('market-blueprint'));
-    return { speciesId: pool[stream.nextInt(0, pool.length - 1)], price: MARKET_BLUEPRINT_PRICE };
+    return { speciesId: pool[stream.nextInt(0, pool.length - 1)], price: shopPrice(run, MARKET_BLUEPRINT_PRICE) };
 }
 
 /**
@@ -933,7 +934,7 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
         // 163f: the `+` slot is priced by its own rule (base + bench, less 15%), not by the card
         // table — an upgraded card's `baseCost` is its base's, so `cardPrice` would sell it for the
         // price of the card it improves on.
-        price: slot === 'upgraded' ? upgradedCardPrice(dataId) : cardPrice(dataId),
+        price: shopPrice(run, slot === 'upgraded' ? upgradedCardPrice(dataId) : cardPrice(dataId)),
         slot,
         wildcard: slot === 'stranger',
     }));
@@ -994,7 +995,7 @@ export function rollMacroStock(input: MarketStockInput): ReadonlyArray<IMacroOff
     const macroStream = new SeedStream(new SeedStream(seed).fork('market-macros'));
 
     return drawDistinct([...MACRO_IDS], MACRO_STOCK_SIZE, macroStream)
-        .map((macroId) => ({ macroId, price: macroPrice(macroId) }));
+        .map((macroId) => ({ macroId, price: shopPrice(run, macroPrice(macroId)) }));
 }
 
 /**

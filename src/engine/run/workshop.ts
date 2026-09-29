@@ -55,6 +55,7 @@ import { RECRUIT_KIT_SIZE, recruitDeckFor, startKitIdsFor } from './createRun';
 import { toMingmingState } from './battleSetup';
 import { withEffectiveOS } from './effectiveOS';
 import { nodeSeed } from './nodeSeed';
+import { shopPrice } from './modifiers/shopPrice';
 import type { IRanchMember, IRanchState, IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
 
 // =================================================================================================
@@ -468,7 +469,7 @@ export function planRecruit(input: RecruitPlanInput): IRecruitPlan | null {
     // keeps `ownerId` for, broken.
     const cards = recruitDeckFor(toMingmingState(member), deckStream);
 
-    return { member, cards, scrap: WORKSHOP_ASSEMBLY_SCRAP };
+    return { member, cards, scrap: shopPrice(run, WORKSHOP_ASSEMBLY_SCRAP) };
 }
 
 /**
@@ -580,5 +581,5 @@ export function planReflash(input: {
     const seed = nodeSeed(run, node, 'workshop');
     const stream = new SeedStream(new SeedStream(seed).fork(`reflash-deck:${member.id}:${targetOS}`));
 
-    return { member: after, retireIds, cards: recruitDeckFor(toMingmingState(after), stream), scrap: WORKSHOP_REFLASH_SCRAP };
+    return { member: after, retireIds, cards: recruitDeckFor(toMingmingState(after), stream), scrap: shopPrice(run, WORKSHOP_REFLASH_SCRAP) };
 }
