@@ -4,6 +4,8 @@
 
 > *"The boss should vary its first fights. But pull just from the WWF mingmings."*
 > *"1. 5 power x 3 and upgrade to x4. 2. Yes [Surge Protection counts the team]. 3. Water has two scaling, Crushing Depths and something else. The other one can we just make that nature? 4. I think draw a card and no weakened. 5. Yes [write this ticket]."*
+>
+> And on the two questions this ticket first asked: *"[Kraken v1's Slander:] Replace with crushing depths I think."* *"[The enemy hand panel:] Shouldn't there be room? Currently the enemies are already moved over to give the panel space. I just want the enemies to slide as far to the right as they can. If the panel is open then push them towards the middle. If it is closed make sure there isn't a gap of 'white space' between them."*
 
 Ten rows. Each row is **one commit**, with a **failing test first**.
 
@@ -12,10 +14,10 @@ Ten rows. Each row is **one commit**, with a **failing test first**.
 | 167a | Gauntlet fights 1–2 follow the boss team's element plan (Tidewrack: Water, Water, Fire) | Yes | Yes |
 | 167b | Acorn Toss: 5 power ×3; Acorn Toss+: 5 power ×4 | Yes | Yes |
 | 167c | Undertow+: "Draw a card." (no Weakened) | Slightly | Yes |
-| 167d | Slander becomes a Nature card | Yes | Yes |
+| 167d | Slander becomes a Nature card; Kraken v1 swaps its Slander for a second Crushing Depths | Yes | Yes |
 | 167e | Surge Protection's refund counts the whole team's triggered draws | Yes | Yes |
 | 167f | Card hover preview becomes a tooltip beside the mouse | No | Yes |
-| 167g | Enemy hand panel: opens and closes on click only, stays open through the enemy turn, enemies sit tight right when closed | No | **Part 1 yes; part 2 waits for decision G1** |
+| 167g | Enemy hand panel: opens and closes on click only, stays open through the enemy turn; the enemies slide right to meet it, and toward the middle when it opens | No | Yes |
 | 167h | Floating numbers: last longer, move slower, stop covering each other | No | Yes |
 | 167i | Round every shield/Bark Shield number the player sees | No | Yes |
 | 167j | The reward screen shows which body already has which patch | No | Yes |
@@ -135,13 +137,13 @@ Today: `acorn_toss` is 0 energy, *"6 power, twice."*; `acorn_toss+` is *"6 power
 1. `programs.json`: `slander` and `slander+` → `"element": "Nature"`. Change nothing else on them.
 2. `upgrades.json` has no element column; nothing to change there.
 3. Check `docs/wayfinder/deck-archetypes/collection-v2/collection.json` for a `slander` entry with an element field. If there is one, change it to Nature too, and say so in the report.
-4. **Do not change any deck.** Kraken v1's tuned deck (`mingmingRegistry.ts`, `kraken_v1`) carries one Slander. After this row it is an off-element card for Kraken. Whether to keep it or swap it is Henry's question (decision D1 at the end), not this row's.
+4. **Kraken v1 swaps its Slander for a second Crushing Depths** (Henry, 2026-09-28: *"Replace with crushing depths I think"*). `src/engine/data/mingmingRegistry.ts`, `kraken.decks.kraken_v1` (around line 122): replace `"slander"` with `"crushing_depths"`, so the list ends `..., "pressure_point", "crushing_depths", "crushing_depths"`. Add one line to the comment above `decks:` saying why (Slander became Nature in 167d). The start kit does not carry Slander, so it does not change. **This also changes the Tidewrack boss**, whose Kraken runs `kraken_v1` (`bosses.ts`); say so in the commit message. Then `grep -n slander docs/wayfinder/deck-archetypes/collection-v2/collection.json` and list in the report any Kraken kit or build entry that still names it; do not edit `registry.json`.
 
 What moves, for the report: reward picks draw from the party's elements, so Slander now appears in Nature parties' rewards (Ratatoskr, Huldra) and leaves Water parties'. Its same-element bonus moves the same way.
 
-**Test (first):** `ProgramRegistry.slander.element === 'Nature'` and the same for `slander+`; and `slander` is in the Nature reward pool (`getPoolForElement('Nature')` or `rewardCardPool` for a Ratatoskr-only party; use whichever the existing reward tests use) and not in the Water pool.
+**Test (first):** `ProgramRegistry.slander.element === 'Nature'` and the same for `slander+`; `getDeckForOS('kraken', 'kraken_v1')` holds no `slander` and exactly two `crushing_depths`; and `slander` is in the Nature reward pool (`getPoolForElement('Nature')` or `rewardCardPool` for a Ratatoskr-only party; use whichever the existing reward tests use) and not in the Water pool.
 
-**Commit:** `feat(cards): Slander becomes Nature (167d)`.
+**Commit:** `feat(cards): Slander becomes Nature; Kraken v1 runs two Crushing Depths (167d)`.
 
 ---
 
@@ -267,25 +269,37 @@ What moves, for the report: reward picks draw from the party's elements, so Slan
 - It returns `null` whenever the enemy holds nothing (`total === 0`). As the enemy plays out its hand the panel vanishes, and the open state inside it is lost.
 - The panel is 270 px wide on the right edge and slides **over** the enemy plaques (z-index 63 over the plaques' 62). Closed, only its 34 px tab shows.
 
-### Part 1 — build now
-
 1. **Move the open state up** to `BattleStage.tsx`: `const [enemyHandOpen, setEnemyHandOpen] = useState(false);`. Pass `open` and `onToggle` props to `EnemyHandPanel`, and remove its internal `open` state.
 2. **Click only.** Remove `onMouseEnter` / `onMouseLeave` from the panel root and `onFocus` from the tab. The tab's `onClick` toggles, and Enter/Space on the tab do the same (it is already a `<button>`). In CSS, delete the `.ehp:hover` and `.ehp:focus-within` selectors from the open rule, leaving `.ehp.open`.
 3. **Never vanish mid-fight.** Return `null` only when the enemy has no deck at all (`battleState.enemyMode !== 'CARDS'`), not when `total === 0`. With nothing to show, the tab reads `ENEMY HAND 0` and the panel body says `Nothing in hand.`
-4. **Closed: the enemies sit tight to the right.** In `src/ui/components/stageGeometry.ts`, give `spriteRect` and `plaqueRect` an optional last parameter `enemyShiftX = 0` (reference pixels), added to the enemy x only. Today the back enemy plaques end at x = 1176 of the 1280 reference width, and the closed tab starts at 1238. When the panel is **closed**, shift the enemy column **+50** (plaques end at 1226, 12 px clear of the tab). Pass the shift through `useStageAnchors.ts` (it calls both functions) so the VFX anchors move with the bodies. Animate the move with the panel's own 200 ms transition, and none when animations are off (`:root[data-animations="off"]`).
-5. **Open, until G1 is ruled: shift 0** (today's positions; the panel covers part of the plaques as it does now).
+4. **The enemies slide to meet the panel's edge** (Henry: *"slide as far to the right as they can. If the panel is open then push them towards the middle. If it is closed make sure there isn't a gap of white space between them."*).
 
-### Part 2 — waits for Henry's decision G1
+   **Why there is usually room, and sometimes not.** The stage is drawn at a scale and centred in the window (`stageGeometry.place`), but the panel is a fixed **270 real pixels** wide (34 when closed) against the window's right edge. On a wide window the centred stage leaves empty space at both sides. At 1920×1080, for example, the stage scale is 1.37, the enemy plaques end at x ≈ 1694, the closed tab starts at 1878 (a **184 px** gap: the white space Henry saw) and the open panel starts at 1642 (52 px of overlap). At exactly 1280×800 there is no side margin: the open panel would need a 186 reference-pixel shift, and only 76 are available before the enemies enter the reveal lane.
 
-**Opening cannot fully "push them over" without hitting the reveal lane.** The open panel's left edge is at x = 1002. To clear it, the enemy plaques would have to end by x = 990, which is a shift of **−186**. That puts the enemy sprites at x = 604–814, **inside the reveal lane** (x = 566–714) where the played card is shown between the two columns. The options are in decision G1 at the end of this ticket. Build whichever Henry picks.
+   **The rule, computed for the current window size:**
+
+   - `panelEdge = viewportWidth − 8 − (open ? 270 : 34)`, in real pixels (the `.ehp` CSS: `right: 8px`, `width: 270px`, tab `34px`). Read those three numbers from one set of exported constants that the CSS comment points at, so they cannot drift apart.
+   - `target = panelEdge − 12`: where the rightmost enemy plaque's right edge should sit.
+   - `current` = the right edge of the rightmost enemy plaque with no shift: the largest `x + w` of `place(plaqueRect('enemy', i), W, H)` over the three enemy slots.
+   - `shiftRef = (target − current) / stageScale(W, H)`, in reference pixels. Positive moves them right, negative moves them toward the middle.
+   - **Clamp** so the front enemy sprite never enters the reveal lane: `shiftRef ≥ REVEAL_RECT.x + REVEAL_RECT.w − spriteRect('enemy', 0).x` (714 − 790 = **−76** today). Name it `ENEMY_MIN_SHIFT` and derive it from those rects; never type −76.
+
+   Put this in a small pure function in `stageGeometry.ts`, `enemyShiftFor(viewportWidth, viewportHeight, panelOpen): number`, and call it from `BattleStage.tsx` with the viewport size the stage already uses. Give `spriteRect` and `plaqueRect` an optional last parameter `enemyShiftX = 0` (reference pixels), added to the **enemy** x only, and pass the shift through `useStageAnchors.ts` (it calls both) so the VFX anchors move with the bodies. Animate the slide with the panel's 200 ms transition, and none when animations are off (`:root[data-animations="off"]`).
+
+   If the enemy has no deck (a MOVES fight, where the panel does not render), use the closed value, so the enemies still sit tight right.
+
+   At a narrow window, where the clamp binds (1280×800), the open panel still covers part of the plaques. That is the reveal-lane rule winning, and it is expected; say so in a comment.
 
 **Tests (first)**, extending `EnemyHandPanel.test.tsx` and `BattleStage.test.tsx`:
 
 1. Hovering the panel does **not** open it; clicking the tab does; clicking again closes it. Fails on the parent.
 2. The panel stays open across a state where the enemy's hand is empty (render with `total === 0` in CARDS mode): the tab is still there and `aria-expanded` is still true. Fails on the parent.
-3. `plaqueRect('enemy', 1, -1, 50).x` is 50 more than `plaqueRect('enemy', 1)`. Ally rects ignore the parameter.
+3. `plaqueRect('enemy', 1, -1, 50).x` is 50 more than `plaqueRect('enemy', 1)`; ally rects ignore the parameter.
+4. `enemyShiftFor`: at 1920×1080 closed, the rightmost plaque's placed right edge lands 12 px left of `1920 − 8 − 34`; open, 12 px left of `1920 − 8 − 270`; at 1280×800 open it returns exactly `ENEMY_MIN_SHIFT`. These fail on the parent (the function does not exist).
 
-**Commit:** `fix(battle): enemy hand panel opens on click, stays open, enemies tight right (167g)`.
+**By eye:** screenshots at 1280×800 and 1920×1080, panel open and closed (four shots).
+
+**Commit:** `fix(battle): enemy hand panel opens on click and stays open; enemies slide to its edge (167g)`.
 
 ---
 
@@ -347,10 +361,7 @@ Rows 167a–167e change the balance. After 167e is committed, run the walker's p
 
 ---
 
-## Decisions for Henry
+## Henry's rulings on this ticket's questions (2026-09-28)
 
-- **D1 — Kraken v1's deck has one Slander.** After 167d it's a Nature card in a Water deck and loses its same-element bonus there. Keep it (the deck is otherwise unchanged), or swap it for a second Crushing Depths? The row keeps it until you say.
-- **G1 — How should the open enemy hand panel make room?** A full push moves the enemy sprites into the reveal lane where the played card shows. Options:
-  1. **Partial push:** move the enemies left only until the front sprite reaches the lane's edge (about −76 px). The open panel still covers the right ~100 px of the plaques.
-  2. **Plaques under the sprites while the panel is open**, so the enemy column is only a sprite wide and clears the panel without moving into the lane. This is the cleanest look and the most work.
-  3. **A narrower panel** (about 190 px instead of 270) plus a partial push.
+- **D1, Kraken v1's Slander:** replaced with a second Crushing Depths (built in 167d).
+- **G1, the enemy hand panel:** the enemies slide as far right as the panel allows, toward the middle when it opens, never into the reveal lane (built in 167g).
