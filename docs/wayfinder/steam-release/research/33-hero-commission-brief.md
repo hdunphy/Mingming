@@ -1,6 +1,6 @@
 # Species art commission brief — the six Early Access creatures (ticket 33)
 
-> **2026-09-29: widened to all six EA species, no AI anywhere (Henry, re-ruling ticket 32).** Option A is removed. The style paragraph waits on the art-direction decision in progress; do not post this until that is settled.
+> **2026-09-29: widened to all six EA species, no AI anywhere (Henry, re-ruling ticket 32).** Option A is removed. **Art direction ruled 2026-09-29** (stylized creature-collector shapes with Neon Industrial accents). Henry confirms the shape notes for Sköll and Huldra before this is posted.
 
 Ruled by Henry 2026-08-28: heroes = **Fenrir, Ratatoskr, Kraken, Jörmungandr**. Budget from ticket
 32: ~$250 of the $500 art budget. This document is the ready-to-post brief plus the outreach
@@ -12,18 +12,31 @@ second, r/gameDevClassifieds / r/HungryArtists if posting the job is preferred.
 ## The brief (post this)
 
 **Project:** *Mingming* — a roguelike creature-collector deckbuilder releasing on Steam (Early
-Access). The creatures ("mingmings") are **assembled machines**: industrial robots you build from
-blueprints, each running signature firmware. The game's look is **"Neon Industrial"** — industrial
-machinery, glowing circuitry, clean line art, high contrast; metallic grays and blacks with one
-vibrant elemental neon per creature.
+Access). The creatures ("mingmings") are **assembled machines** with Norse names: robots you build
+from blueprints, each running signature firmware.
+
+**The look: stylized creature-collector shapes with "Neon Industrial" accents.**
+
+- **Shapes first:** chunky, simple, readable silhouettes. Friendly but powerful, a creature you
+  want to collect. They must read clearly at small size, with six on screen in a 3v3 battle.
+- **Machine, not animal:** dark metal plating with visible panel seams and joints, and mechanical
+  parts (cannons, cables, hydraulics) worked into the creature's shape.
+- **One element colour, and it dominates:** a single glowing neon (Fire orange-red, Water blue,
+  Nature emerald) running through circuit lines and power seams. A player should know the
+  element at a glance.
+- **Norse motifs** in the details, so the roster is its own thing and not a copy of any existing
+  monster franchise.
+- **Touchstones:** Medabots and Zoids (friendly mechanical creatures), Cassette Beasts (an indie
+  creature collector with its own look). Not greebled cyberpunk, and not dark-fantasy organic.
 
 **The job:** 6 creature illustrations, key-art quality. These are the faces of
 the game — they anchor the store capsule, screenshots, and trailer.
 
 **The six creatures** (rough shape notes; Henry to confirm 5 and 6 before posting):
 
-1. **FENRIR** (Fire — orange-red neon): a mechanical wolf; molten armored plating, ember-glow seams,
-   an unbound/berserker attitude — this creature fights harder the more damaged it is.
+1. **FENRIR** (Fire, orange-red neon): an upright, werewolf-like mechanical wolf. Sharp claws,
+   lava dripping from its jaws, flame cannons on its back or arms, and power lines glowing through
+   its body. It has a berserker attitude: this creature fights harder the more damaged it is.
 2. **RATATOSKR** (Nature — emerald neon): a small, quick mechanical squirrel; fiber-optic tail,
    bright-eyed and mischievous — an instigator and messenger, all speed and chatter, no bulk.
 3. **KRAKEN** (Water — deep blue neon): an industrial squid; tentacles of heavy cable and hydraulic
@@ -52,8 +65,8 @@ the game — they anchor the store capsule, screenshots, and trailer.
 ## Outreach template (DM for VGen / Fiverr)
 
 > Hi — I'm a solo dev releasing a creature-collector deckbuilder on Steam. I'm commissioning 6
-> key-art creature illustrations in a "neon industrial" style (mechanical creatures, dark metal +
-> one neon accent color each) — your [piece] looks close to what I'm after. Budget is ~$375–390 total,
+> key-art creature illustrations: stylized, collectible mechanical creatures (dark metal with one
+> glowing element color each; think Medabots or Zoids) — your [piece] looks close to what I'm after. Budget is ~$375–390 total,
 > full brief with shape notes and reference sheets ready. One important term I want to be upfront
 > about: your work is never used in any AI workflow, and no AI art ships in the game. Interested?
 

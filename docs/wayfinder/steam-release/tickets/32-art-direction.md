@@ -32,3 +32,5 @@ _(open)_
 Tickets 33/34/45 are sized by this; the disclosure text drafts in ticket 45.
 
 **Amended 2026-09-29:** ruling 2 is reversed; see the note at the top.
+
+**Amended 2026-09-29 (Henry): ruling 4 refined.** From three concept directions (cyberpunk high-tech, bio-engineered elemental, Pokémon-inspired stylized), the style is **stylized creature-collector shapes with Neon Industrial accents**: chunky, readable, collectible silhouettes; dark metal plating with seams; one dominant glowing element colour per creature; Norse motifs. Neon Industrial stands as the accent layer rather than the whole look. The full brief is `research/33-hero-commission-brief.md`.
