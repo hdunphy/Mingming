@@ -61,6 +61,7 @@ import type { IRunEncounter } from './encounter';
 import { authoredBossFor } from './bosses';
 import { GYM_REGISTRY, gymCompElementPlan } from './gyms';
 import { nodeSeed } from './nodeSeed';
+import { gauntletDriversFor } from './tiers/gauntletDrivers';
 
 // ---------------------------------------------------------------------------------------------
 // The shape of a gauntlet
@@ -420,6 +421,8 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
      * existed. It is read off `ENEMY_LADDER` rather than written as `'full'` so that the gym cannot
      * hold a second opinion about its own rung — the same discipline the deck rule already keeps.
      */
+    const drivers = gauntletDriversFor(run, boss);
+
     return {
         enemyParty,
         enemyDeckIds,
@@ -428,9 +431,11 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
         // Ticket 144 §2: read off the ladder for the same reason the grade is — the gym must not
         // hold a second opinion about its own rung. This row is 0: the boss thinks at full depth.
         aiBeam: ENEMY_LADDER.gauntlet.beam,
-        // Ticket 68: one side-level Driver, on the authored boss fight only. Ticket 60's rung reads
-        // "kit + OS + Driver" and this is the Driver — literally, now that there is one.
-        ...(authored ? { enemyDrivers: [authored.driver] } : {}),
+        // Ticket 68: one side-level Driver, on the authored boss fight. Ticket 60's rung reads
+        // "kit + OS + Driver" and this is the Driver — literally, now that there is one. Ticket 169c:
+        // at tier 3 the leader's Driver rides fights 1 and 2 as well (`gauntletDriversFor`); "absent"
+        // still means "none", so a fight with no Driver has no `enemyDrivers` key at all.
+        ...(drivers.length > 0 ? { enemyDrivers: drivers } : {}),
     };
 }
 

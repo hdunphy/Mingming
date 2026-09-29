@@ -33,6 +33,7 @@ import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
 import { gymSignatures } from '../../engine/run/gauntlet';
+import { leaderDriverTierLine } from '../../engine/run/tiers/tierText';
 import { offerGyms, pathElementsFor, type IGymOffer } from '../../engine/run/gyms';
 import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
@@ -58,6 +59,9 @@ export default function RunStart(): ReactNode {
     const offers = useOfferScreen();
     const [chosen, setChosen] = useState<IGymOffer | null>(null);
     const [partyIds, setPartyIds] = useState<string[]>([]);
+    // Ticket 169c: the tier the offer screen describes. Fixed at 0 until 169e's tier picker turns it
+    // into state; the Driver line below already reads it, so the picker only has to change this.
+    const selectedTier = 0;
 
     const party = useMemo(
         () => partyIds.map((id) => roster.find((m) => m.id === id)).filter((m): m is IRanchMember => !!m),
@@ -196,6 +200,9 @@ export default function RunStart(): ReactNode {
                                             <span className="ranch-offer-driver-rule">{signature.description}</span>
                                         </div>
                                     ))}
+                                    {leaderDriverTierLine(selectedTier) && (
+                                        <div className="ranch-offer-tier-driver">{leaderDriverTierLine(selectedTier)}</div>
+                                    )}
                                 </div>
                             </button>
                         ))}

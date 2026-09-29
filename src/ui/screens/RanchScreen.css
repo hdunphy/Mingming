@@ -397,6 +397,7 @@
 }
 
 .ranch-offer-driver-rule { font-size: 0.72rem; opacity: 0.72; line-height: 1.45; }
+.ranch-offer-tier-driver { font-size: 0.72rem; opacity: 0.72; line-height: 1.45; font-style: italic; }
 
 /* --- Run shell --- */
 
