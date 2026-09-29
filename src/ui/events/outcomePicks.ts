@@ -32,10 +32,14 @@ export interface DriverPickResult { readonly driverId: string }
 /** The body picked for the Black-Market Patch. */
 export interface PatchPickResult { readonly memberId: string }
 
+/** The body picked for the Firmware Reflash. A different key from `PatchPickResult` so the two never read as each other. */
+export interface ReflashPickResult { readonly reflashMemberId: string }
+
 export const isGivePick = (pick: OutcomePick): pick is GiveCardsResult => 'instanceIds' in pick;
 export const isDriverPick = (pick: OutcomePick): pick is DriverPickResult => 'driverId' in pick;
 export const isPatchPick = (pick: OutcomePick): pick is PatchPickResult => 'memberId' in pick;
+export const isReflashPick = (pick: OutcomePick): pick is ReflashPickResult => 'reflashMemberId' in pick;
 
 export type OutcomePick =
     | CardPickResult | BlueprintPickResult | MacroPickResult | RecruitPickResult
-    | GiveCardsResult | DriverPickResult | PatchPickResult;
+    | GiveCardsResult | DriverPickResult | PatchPickResult | ReflashPickResult;

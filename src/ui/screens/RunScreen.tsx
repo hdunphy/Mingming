@@ -74,6 +74,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
+import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
@@ -151,7 +152,9 @@ export default function RunScreen(): ReactNode {
     const marketParty = useMemo(
         () => (run?.partyIds ?? [])
             .map((id) => roster.find((m) => m.id === id))
-            .filter((m): m is (typeof roster)[number] => m !== undefined),
+            .filter((m): m is (typeof roster)[number] => m !== undefined)
+            // TICKET 168f: the shop rolls its stock for the OS a body runs in this run.
+            .map((m) => withEffectiveOS(run!, m)),
         [run, roster],
     );
 
@@ -202,7 +205,7 @@ export default function RunScreen(): ReactNode {
         const party: IMingmingState[] = [];
         for (const id of run.partyIds) {
             const member = roster.find((m) => m.id === id);
-            if (member) party.push(toMingmingState(member));
+            if (member) party.push(toMingmingState(withEffectiveOS(run, member)));
         }
         if (party.length === 0) return;
 

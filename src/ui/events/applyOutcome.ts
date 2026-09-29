@@ -30,18 +30,18 @@ import {
 import {
     applyDuplicate, applyGiveCards, applyTradeUp, applyTransform,
 } from './applyCards';
-import { applyDriverPick, applyGiveBlueprint, applyPatch } from './applyGrants';
+import { applyDriverPick, applyGiveBlueprint, applyPatch, applyReflash } from './applyGrants';
 import {
-    isBlueprintPick, isCardPick, isDriverPick, isGivePick, isMacroPick, isPatchPick, isRecruitPick,
+    isBlueprintPick, isCardPick, isDriverPick, isGivePick, isMacroPick, isPatchPick, isRecruitPick, isReflashPick,
 } from './outcomePicks';
 import type {
     BlueprintPickResult, CardPickResult, DriverPickResult, GiveCardsResult, MacroPickResult, OutcomePick,
-    PatchPickResult, RecruitPickResult,
+    PatchPickResult, RecruitPickResult, ReflashPickResult,
 } from './outcomePicks';
 
 export type {
     BlueprintPickResult, CardPickResult, DriverPickResult, GiveCardsResult, MacroPickResult, OutcomePick,
-    PatchPickResult, RecruitPickResult,
+    PatchPickResult, RecruitPickResult, ReflashPickResult,
 };
 
 /** Anything with `dispatch`, so a test can hand in a bare store. */
@@ -58,7 +58,7 @@ export interface OutcomeContext {
 
 const INTERACTIVE: ReadonlySet<EventOutcome['type']> = new Set([
     'CARD_PICK', 'BLUEPRINT_PICK', 'MACRO_PICK', 'RECRUIT',
-    'GIVE_CARD', 'GIVE_BLUEPRINT', 'TRADE_UP', 'DUPLICATE', 'TRANSFORM', 'DRIVER_PICK', 'PATCH',
+    'GIVE_CARD', 'GIVE_BLUEPRINT', 'TRADE_UP', 'DUPLICATE', 'TRANSFORM', 'DRIVER_PICK', 'PATCH', 'REFLASH',
 ]);
 
 /** Outcomes that take something from the player. They are applied AFTER every gain in their choice. */
@@ -224,6 +224,11 @@ export function applyChoice(
             case 'PATCH': {
                 const pick = picks[index];
                 if (pick && isPatchPick(pick)) applyPatch(dispatch, ctx, pick.memberId, price);
+                break;
+            }
+            case 'REFLASH': {
+                const pick = picks[index];
+                if (pick && isReflashPick(pick)) applyReflash(dispatch, ctx, pick.reflashMemberId);
                 break;
             }
             default:

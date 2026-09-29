@@ -48,6 +48,7 @@ import { useDispatch } from 'react-redux';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getMacro } from '../../engine/data/macroRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
+import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import { RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import {
     GAUNTLET_ENEMY_COUNT,
@@ -108,7 +109,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
             const member: IRanchMember | undefined = ranch.roster.find((m) => m.id === id);
             if (!member) continue;
             const definition = GetMingmingData(member.definitionId);
-            const entity = initializeBattleEntity(toMingmingState(member), definition);
+            const entity = initializeBattleEntity(toMingmingState(withEffectiveOS(run, member)), definition);
             const carried = gauntlet.persistedHp[id];
             lines.push({
                 id,
@@ -122,7 +123,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
             });
         }
         return lines;
-    }, [gauntlet, ranch, run.partyIds]);
+    }, [gauntlet, ranch, run]);
 
     /** The elements walking out next. Rolled from the fight's own seed — see the header. */
     const opponentElements = useMemo(

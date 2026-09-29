@@ -11,13 +11,15 @@ import { ProgramRegistry } from '../../engine/data/programRegistry';
 import type { EventChoice, EventOutcome } from '../../engine/run/events/eventSchema';
 import { getMacro } from '../../engine/data/macroRegistry';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { getPatch } from '../../engine/data/patchRegistry';
 import type { EventContext } from '../../engine/run/events/eventContext';
 import { patchOffers } from '../../engine/run/events/eventPatch';
+import { reflashTargetFor } from '../../engine/run/events/eventReflash';
 import { recompileTarget, tradeUpTarget } from '../../engine/run/events/eventTrade';
 import type { IRunCard } from '../../engine/runTypes';
 import {
-    isBlueprintPick, isCardPick, isDriverPick, isGivePick, isMacroPick, isPatchPick, isRecruitPick,
+    isBlueprintPick, isCardPick, isDriverPick, isGivePick, isMacroPick, isPatchPick, isRecruitPick, isReflashPick,
 } from './outcomePicks';
 import type { OutcomePick } from './outcomePicks';
 
@@ -102,6 +104,14 @@ function describeOne(
             if (!pick || !isPatchPick(pick) || !ctx) return null;
             const offer = patchOffers(ctx).find((row) => row.memberId === pick.memberId);
             return offer ? `${getPatch(offer.patchId)?.name ?? offer.patchId} patch fitted` : null;
+        }
+        case 'REFLASH': {
+            const pick = picks[index];
+            if (!pick || !isReflashPick(pick) || !ctx) return null;
+            const osId = reflashTargetFor(ctx, pick.reflashMemberId);
+            const body = ctx.ranch.roster.find((member) => member.id === pick.reflashMemberId);
+            if (osId === null || !body) return null;
+            return `${speciesName(body.definitionId)} reflashed to ${getOSBehavior(osId)?.name ?? osId}`;
         }
         default: return null;
     }

@@ -44,6 +44,7 @@
  */
 
 import { z } from 'zod';
+import { effectiveOS } from './run/effectiveOS';
 
 // ---------------------------------------------------------------------------------------------
 // Region graph
@@ -448,6 +449,15 @@ export interface IRunState {
     readonly patches?: Readonly<Record<string, ReadonlyArray<string>>>;
 
     /**
+     * TICKET 168f — **the firmware an event switched a body to, for this run only**, by member id.
+     *
+     * Firmware Reflash writes here and never to the ranch, so the roster member keeps its own OS for
+     * the next run. Read through `effectiveOS(run, member)` everywhere a run reads a party member's
+     * firmware. The deck is untouched: only the firmware changes. Optional with `.default({})`.
+     */
+    readonly osOverrides?: Readonly<Record<string, string>>;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -655,6 +665,7 @@ export const RunStateSchema = z.object({
         grants: z.array(z.enum(['driver', 'patch'])),
     })).default([]),
     patches: z.record(z.string(), z.array(z.string())).default({}),
+    osOverrides: z.record(z.string(), z.string()).default({}),
     boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),
@@ -823,9 +834,11 @@ export function reconcileLoadedState(rawRanch: unknown, rawRun: unknown): Reconc
     // holding `kraken_v1` beside `kraken_v2` is exactly what the ruling asked for, and a loader
     // still enforcing the old clause would throw that run away on the next launch — the worst
     // possible place for the two rules to disagree, because it costs the run silently.
+    // TICKET 168f: the firmware a body runs in THIS run. A Firmware Reflash can put a body on the OS
+    // a later recruit holds on the ranch; comparing the ranch's own would discard that legal run.
     const builds = run.partyIds.map((id) => {
         const member = byId.get(id)!;
-        return `${member.definitionId}::${member.activeOS ?? ''}`;
+        return `${member.definitionId}::${effectiveOS(run, member) ?? ''}`;
     });
     if (new Set(builds).size !== builds.length) {
         return { ranch, run: null, discarded: 'party-has-duplicate-species' };

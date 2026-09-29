@@ -6,6 +6,7 @@
  * no ranch slice, can pass what it does hold.
  */
 
+import { withEffectiveOS } from '../effectiveOS';
 import type { IRegionNode, IRunState } from '../../runTypes';
 
 export interface EventRanchView {
@@ -22,7 +23,9 @@ export interface EventContext {
 
 /** The party's members, in party order, as the reward pool wants them (`{ definitionId }`). */
 export function partyMembersOf(ctx: EventContext): Array<{ id: string; definitionId: string; activeOS?: string }> {
+    // TICKET 168f: a body the run has reflashed is on its new OS here, as everywhere in a run.
     return ctx.run.partyIds
         .map((id) => ctx.ranch.roster.find((member) => member.id === id))
-        .filter((member): member is { id: string; definitionId: string; activeOS?: string } => member !== undefined);
+        .filter((member): member is { id: string; definitionId: string; activeOS?: string } => member !== undefined)
+        .map((member) => withEffectiveOS(ctx.run, member));
 }

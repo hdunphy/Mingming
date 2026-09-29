@@ -16,6 +16,7 @@
  */
 
 import type { IBattleSetup } from '../data/battleFactories';
+import { withEffectiveOS } from './effectiveOS';
 import { tempDriverIds } from './tempDrivers';
 import type { IRanchMember, IRanchState, IRunState } from '../runTypes';
 import type { IMingmingState } from '../types';
@@ -29,6 +30,9 @@ import type { IMingmingState } from '../types';
  * the per-individual number and nothing writes it. It is zero here because the type still demands
  * it, not because zero means anything; when `IMingmingState` loses the field, this line goes with
  * it.
+ *
+ * TICKET 168f: this takes the member as given. To build the body a RUN fields, pass
+ * `withEffectiveOS(run, member)` (`buildBattleSetup` does), so a reflashed body is on its new OS.
  */
 export function toMingmingState(member: IRanchMember): IMingmingState {
     return {
@@ -83,7 +87,7 @@ export function buildBattleSetup(
     const party: IMingmingState[] = [];
     for (const id of run.partyIds) {
         const member = byId.get(id);
-        if (member) party.push(toMingmingState(member));
+        if (member) party.push(toMingmingState(withEffectiveOS(run, member)));
     }
 
     return {

@@ -45,6 +45,7 @@ import { useDispatch } from 'react-redux';
 
 import { GetMingmingData, GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import { minimumActiveDeck } from '../../engine/run/createRun';
+import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import type { IRanchMember, IRanchState, IRunCard, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import {
@@ -156,7 +157,11 @@ export default function LoadoutEditor({
     const deckReading = readDeckFloor(run);
     const atFloor = deckReading.atFloor;
 
-    const memberOf = (id: string): IRanchMember | undefined => ranch.roster.find((m) => m.id === id);
+    // TICKET 168f: a body shows the OS it runs in this run (Firmware Reflash), not the ranch's.
+    const memberOf = (id: string): IRanchMember | undefined => {
+        const member = ranch.roster.find((m) => m.id === id);
+        return member ? withEffectiveOS(run, member) : undefined;
+    };
     /** TICKET 158-r1: the firmware actually on the field, for the partner mark. */
     const partyOS = run.partyIds
         .map((id) => memberOf(id)?.activeOS)

@@ -67,6 +67,7 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { minimumActiveDeck, RECRUIT_KIT_SIZE } from '../../engine/run/createRun';
+import { effectiveOS } from '../../engine/run/effectiveOS';
 import { OSGrammarRow } from '../components/OSGrammarRow';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
@@ -193,7 +194,8 @@ export default function WorkshopNode({
      * a fact about THIS party. Read from the party rather than the roster — a benched body is not
      * feeding anybody's currency.
      */
-    const partyOS = partyMembers.map((m) => m.activeOS);
+    // TICKET 168f: the firmware each body runs in this run (Firmware Reflash).
+    const partyOS = partyMembers.map((m) => effectiveOS(run, m));
     const benchMembers = bench.map(memberOf).filter((m): m is IRanchMember => m !== undefined);
 
     const selected = speciesId ? species.find((entry) => entry.speciesId === speciesId) ?? null : null;

@@ -53,6 +53,7 @@ import { createRanchMember } from '../gameTypes';
 import { PARTY_SIZE, partyBlockFor, type PartyBlock, type PartyMember } from '../party';
 import { RECRUIT_KIT_SIZE, recruitDeckFor, startKitIdsFor } from './createRun';
 import { toMingmingState } from './battleSetup';
+import { withEffectiveOS } from './effectiveOS';
 import { nodeSeed } from './nodeSeed';
 import type { IRanchMember, IRanchState, IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
 
@@ -263,7 +264,11 @@ export interface IWorkshopSpecies {
  * mask the duplicate clause.
  */
 function partyMembersOf(ranch: IRanchState, run: IRunState): PartyMember[] {
-    return run.partyIds.map((id) => ranch.roster.find((m) => m.id === id) ?? { id, definitionId: `unresolved:${id}` });
+    // TICKET 168f: the duplicate clause reads the OS a body runs in THIS run (Firmware Reflash).
+    return run.partyIds.map((id) => {
+        const member = ranch.roster.find((m) => m.id === id);
+        return member ? withEffectiveOS(run, member) : { id, definitionId: `unresolved:${id}` };
+    });
 }
 
 /** Every firmware a species offers, in registry order. Empty for a species nothing knows. */

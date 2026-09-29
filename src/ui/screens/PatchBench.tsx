@@ -23,6 +23,7 @@ import { fitPatch } from '../store/runSlice';
 import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { gatePatchChoices, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
 import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
+import { effectiveOS } from '../../engine/run/effectiveOS';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 
 /**
@@ -91,7 +92,7 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
         .map((row) => ({
             ...row,
             offers: venue === 'gate'
-                ? gatePatchChoices(rawFirmwareHooks(row.member.activeOS), run.patches?.[row.memberId] ?? [])
+                ? gatePatchChoices(rawFirmwareHooks(effectiveOS(run, row.member)), run.patches?.[row.memberId] ?? [])
                 : [SHOP_STOCK_PATCH],
         }));
 

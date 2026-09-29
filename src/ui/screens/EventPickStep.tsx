@@ -21,6 +21,7 @@ import EventDriverPick from './EventDriverPick';
 import EventGiveBlueprint from './EventGiveBlueprint';
 import EventMacroPick from './EventMacroPick';
 import EventPatchPick from './EventPatchPick';
+import EventReflashPick from './EventReflashPick';
 import EventRecruitPick from './EventRecruitPick';
 
 export interface EventPickStepProps {
@@ -56,6 +57,8 @@ export default function EventPickStep({ outcome, slot, ctx, run, onTake, onBack 
             return <EventDriverPick drivers={offerDrivers(ctx, outcome.count, slot)} onTake={onTake} onBack={onBack} />;
         case 'PATCH':
             return <EventPatchPick ctx={ctx} onTake={onTake} onBack={onBack} />;
+        case 'REFLASH':
+            return <EventReflashPick ctx={ctx} onTake={onTake} onBack={onBack} />;
         default:
             return null;
     }

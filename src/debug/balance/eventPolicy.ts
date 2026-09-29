@@ -15,6 +15,10 @@
  * given up, a gamble) is refused by the same tests. So the walker takes a Driver, a patch, a trade,
  * a copy or a recompile NEVER: each of them costs a card, a blueprint or scrap and Leave comes first.
  * The one exception is The Toll, which has no Leave.
+ *
+ * Firmware Reflash (168f) is free and has no penalty, but the walker has no way to value an OS
+ * switch: it plays the deck the run built, and that deck is the old firmware's engine. It is not
+ * taken while Leave is open, so it measures nothing it cannot judge.
  */
 
 import { choiceScrapCost } from '../../engine/run/events/eventSchema';
@@ -29,6 +33,9 @@ const PENALTY_TYPES: ReadonlySet<string> = new Set(['TEMP_DRIVER', 'JUNK', 'GAMB
 /** Outcomes that take a card or a blueprint from the player (168e). The walker counts them as a cost. */
 const COST_TYPES: ReadonlySet<string> = new Set(['GIVE_CARD', 'GIVE_BLUEPRINT', 'TRADE_UP', 'TRANSFORM', 'DUPLICATE']);
 
+/** Outcomes the walker cannot value (168f): an OS switch. Leave comes first, as with a cost. */
+const UNVALUED_TYPES: ReadonlySet<string> = new Set(['REFLASH']);
+
 /** A choice with a penalty in it: a temporary Driver, a junk card, or a gamble that can lose. */
 export function hasPenalty(choice: EventChoice): boolean {
     return choice.outcomes.some((outcome) => PENALTY_TYPES.has(outcome.type));
@@ -37,7 +44,7 @@ export function hasPenalty(choice: EventChoice): boolean {
 /** A choice costs nothing to take and does something (Leave, which does nothing, is separate). */
 export function isFreeChoice(choice: EventChoice): boolean {
     return choice.outcomes.length > 0 && choiceScrapCost(choice) === 0 && !hasPenalty(choice)
-        && !choice.outcomes.some((outcome) => COST_TYPES.has(outcome.type));
+        && !choice.outcomes.some((outcome) => COST_TYPES.has(outcome.type) || UNVALUED_TYPES.has(outcome.type));
 }
 
 /**

@@ -96,6 +96,7 @@ import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { isTemporaryDriver } from '../../engine/data/driverRegistry';
 import { minimumActiveDeck } from '../../engine/run/createRun';
+import { speciesOwningFirmware } from '../../engine/run/gyms';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
 import { afterFight, withTempDriver } from '../../engine/run/tempDrivers';
 import { countedDeckSize, isJunkCard } from '../../engine/run/junk';
@@ -493,6 +494,31 @@ const runSlice = createSlice({
                     ...(benchKey ? { patchBenchesUsed: [...(run.patchBenchesUsed ?? []), benchKey] } : {}),
                 },
             };
+        },
+
+        /**
+         * TICKET 168f — Firmware Reflash: put a body on another OS **for this run**.
+         *
+         * Writes `run.osOverrides` and nothing else; the ranch member keeps its own `activeOS`, so the
+         * switch ends with the run. The cards do not change.
+         *
+         * Refuses, silently and byte for byte, a member who is not in the party, a member with a
+         * patch (a patch is fitted to a firmware), and an OS no species has. It cannot check that the
+         * OS belongs to THIS member's species, because a run holds ids and the roster is the ranch's;
+         * `eventReflash.reflashTargetFor` picks the OS from the species' own list, and the screen and
+         * the walker only ever send that one.
+         */
+        reflashMember: (
+            state,
+            action: PayloadAction<{ memberId: string; osId: string }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { memberId, osId } = action.payload;
+            if (!run.partyIds.includes(memberId)) return { run };
+            if ((run.patches?.[memberId] ?? []).length > 0) return { run };
+            if (speciesOwningFirmware(osId) === undefined) return { run };
+            return { run: { ...run, osOverrides: { ...(run.osOverrides ?? {}), [memberId]: osId } } };
         },
 
         /**
@@ -1483,6 +1509,7 @@ export const {
     buyMarketCard,
     upgradeDeckCard,
     fitPatch,
+    reflashMember,
     // `removeRunCardForScrap` was exported here until 2026-08-26. Paid removal is deleted; free
     // editing at the four surfaces replaced it, and `sellRunCard` is the verb that pays.
     sellRunCard,

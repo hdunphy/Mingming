@@ -12,6 +12,7 @@ import { workshopWouldOfferARecruit } from '../../engine/run/events/eventEligibi
 import { offerDrivers } from '../../engine/run/events/eventDrivers';
 import { canGive, deckSpare, heldCards } from '../../engine/run/events/eventGive';
 import { patchOffers } from '../../engine/run/events/eventPatch';
+import { canReflashAny } from '../../engine/run/events/eventReflash';
 import { choiceScrapCost } from '../../engine/run/events/eventSchema';
 import type { EventChoice, EventOutcome } from '../../engine/run/events/eventSchema';
 import { recompileTarget, tradeUpTarget } from '../../engine/run/events/eventTrade';
@@ -39,6 +40,8 @@ function reasonFor(outcome: EventOutcome, ctx: EventContext): string | null {
             return Object.values(ctx.ranch.blueprints).some((count) => count >= 1) ? null : 'No blueprint to give.';
         case 'PATCH':
             return patchOffers(ctx).length > 0 ? null : 'Every body already has a patch.';
+        case 'REFLASH':
+            return canReflashAny(ctx) ? null : 'No body can be reflashed right now.';
         case 'DRIVER_PICK':
             return offerDrivers(ctx, 1, 'available').length > 0 ? null : 'No Driver to offer.';
         case 'RECRUIT':
