@@ -215,9 +215,11 @@ export function startDeckFor(
     member: IMingmingState,
     stream: SeedStream,
     withGenerics: boolean,
+    /** Ticket 169i: the kit the player drafted, used instead of the dealt one. */
+    kitIds?: ReadonlyArray<string>,
 ): IRunCard[] {
     const ids = [
-        ...startKitIdsFor(member, START_KIT_SIZE),
+        ...(kitIds ?? startKitIdsFor(member, START_KIT_SIZE)),
         ...(withGenerics ? Array.from({ length: STARTER_GENERICS }, () => GENERIC_HIT) : []),
     ];
     return mintCards(member, ids, stream);
@@ -257,6 +259,12 @@ export interface CreateRunInput {
      * an unknown id throws, so a typo cannot quietly play as the base game.
      */
     readonly modifiers?: ReadonlyArray<string>;
+    /**
+     * Ticket 169i: each member's drafted start kit, keyed by member id, used instead of the dealt kit.
+     * With Draft Start on, every member must have one of exactly `START_KIT_SIZE` cards or this
+     * throws: a half-drafted run is a bug in the screen, not a game to play.
+     */
+    readonly startKitOverrides?: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
 /**
@@ -275,6 +283,18 @@ export function createRun(input: CreateRunInput): IRunState {
     }
     const modifiers = modifierIds.map(modifierEntry);
 
+    const overrides = input.startKitOverrides ?? {};
+    if (hasModifier({ modifiers }, 'draft_start')) {
+        for (const member of party) {
+            const kit = overrides[member.id];
+            if (kit === undefined || kit.length !== START_KIT_SIZE) {
+                throw new Error(
+                    `createRun: Draft Start needs ${START_KIT_SIZE} drafted cards for "${member.id}", got ${kit === undefined ? 'none' : kit.length}`,
+                );
+            }
+        }
+    }
+
     // Ticket 169b: a tier can add elites to the map (tier 2: one more per biome). Before the Driver
     // stakes are dealt, so a converted elite pays a Driver like every other one. At tier 0 and 1 this
     // returns the graph's own nodes, so the map is exactly what it always was.
@@ -291,7 +311,7 @@ export function createRun(input: CreateRunInput): IRunState {
     const deck: IRunCard[] = [];
     // The generics ride on the FIRST member and only the first (`STARTER_GENERICS`). A party picked
     // at run start can be one, two or three members; whichever is first carries the filler.
-    party.forEach((member, index) => deck.push(...startDeckFor(member, deckStream, index === 0)));
+    party.forEach((member, index) => deck.push(...startDeckFor(member, deckStream, index === 0, overrides[member.id])));
     // Ticket 169f: Junk Start's cards come AFTER the normal deck, from the same stream, so no other
     // card's instance id moves.
     deck.push(...junkStartCards({ modifiers }, deckStream));

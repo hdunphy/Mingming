@@ -44,6 +44,7 @@ import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
 import { Icon } from '../theme/Icon';
 import ModifierChip from '../components/ModifierChip';
+import DraftStart from './DraftStart';
 
 /**
  * The offer screen is rolled ONCE per visit and held in component state.
@@ -104,19 +105,39 @@ export default function RunStart(): ReactNode {
         playSfx('uiClick');
     };
 
+    /**
+     * TICKET 169i: with Draft Start on, Launch opens the draft instead of starting the run. The seed
+     * is rolled ONCE, here, and held, so the draft's offers and the run that follows share it. It is
+     * component state and nothing else: Back (or closing the app) throws the draft away.
+     */
+    const [draftSeed, setDraftSeed] = useState<string | null>(null);
+    // Ticket 169f: only what is switched on, and only once modifiers are unlocked.
+    const activeModifierIds = modifiersOpen ? MODIFIERS.map((m) => m.id).filter((id) => pickedModifiers.includes(id)) : [];
+
     const launch = (): void => {
         if (!chosen || party.length === 0) return;
-        // The run seed is rolled here and threaded through everything downstream — the graph, the
+        if (activeModifierIds.includes('draft_start')) {
+            setDraftSeed(rollSeed());
+            playSfx('uiClick');
+            return;
+        }
+        startWith(rollSeed());
+    };
+
+    const startWith = (seed: string, startKitOverrides?: Record<string, string[]>): void => {
+        if (!chosen) return;
+        // The run seed is rolled at launch and threaded through everything downstream — the graph, the
         // card instance ids, and (later) encounter contents. One roll, so a run replays from one
         // string. `startedAt` is injected for the same reason the engine never calls `Date.now()`:
         // a module that reads the clock cannot be tested deterministically.
         dispatch(startRun(createRun({
-            seed: rollSeed(),
+            seed,
             offer: chosen,
             // Ticket 169e: the tier picked above. It is fixed for the whole run.
             tier: selectedTier,
-            // Ticket 169f: only what is switched on, and only once modifiers are unlocked.
-            modifiers: modifiersOpen ? MODIFIERS.map((m) => m.id).filter((id) => pickedModifiers.includes(id)) : [],
+            modifiers: activeModifierIds,
+            // Ticket 169i: the drafted kits, when Draft Start is on.
+            startKitOverrides,
             // Ticket 11: the roster holds `IRanchMember`s. `toMingmingState` adds the one field
             // combat's shape still demands — `blueprintsCollected`, which is vestigial; see its
             // doc comment.
@@ -125,6 +146,17 @@ export default function RunStart(): ReactNode {
         })));
         playSfx('breach');
     };
+
+    if (chosen && draftSeed !== null) {
+        return (
+            <DraftStart
+                seed={draftSeed}
+                party={party.map(toMingmingState)}
+                onDone={(kits) => startWith(draftSeed, kits)}
+                onBack={() => setDraftSeed(null)}
+            />
+        );
+    }
 
     if (roster.length === 0) {
         return (
