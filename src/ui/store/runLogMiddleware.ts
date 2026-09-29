@@ -651,6 +651,17 @@ export function createRunLogMiddleware(
                     record(runAfter, { kind: 'REROLLED', price: Number(payload?.price ?? 0) });
                     break;
                 }
+                case 'run/resolveEvent': {
+                    // Only when the reducer took it: a refused second resolution changes nothing.
+                    if ((runAfter?.eventHistory ?? []).length > (runBefore?.eventHistory ?? []).length) {
+                        record(runAfter, {
+                            kind: 'EVENT_RESOLVED',
+                            eventId: String(payload?.eventId ?? ''),
+                            choiceId: String(payload?.choiceId ?? ''),
+                        });
+                    }
+                    break;
+                }
                 default:
                     break;
             }

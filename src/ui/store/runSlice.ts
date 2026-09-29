@@ -1064,6 +1064,49 @@ const runSlice = createSlice({
             };
         },
 
+        /**
+         * TICKET 168a — **reveal the biome the run is standing in, with no macro involved.**
+         *
+         * The Relay Tower's Survey. `fireMapReveal` above is the Ping Sweep macro's verb: it takes a
+         * macro SLOT and burns the consumable in it, so an event cannot call it (there is no slot to
+         * name, and passing one would spend a macro the player did not choose to spend). This is its
+         * sibling: the same record, the same helpers (`biomeRevealModifier`, `isBiomeRevealed`), no
+         * macro. Refused when the biome is already surveyed, for `fireMapReveal`'s reason.
+         */
+        revealCurrentBiome: (state): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            if (!here) return { run };
+            if (isBiomeRevealed(run, here.biomeIndex)) return { run };
+            return { run: { ...run, modifiers: [...run.modifiers, biomeRevealModifier(here.biomeIndex)] } };
+        },
+
+        /**
+         * TICKET 168a — **an event node's choice was made.** Appends to `eventHistory` and does nothing
+         * else: the outcomes are dispatched separately (they touch the ranch slice too), and BEFORE
+         * this, so a crash in between leaves the event unresolved rather than paid and lost.
+         *
+         * Refused when this node already has an entry — that is the first-visit rule's teeth. The
+         * test is "this node has a resolved event", not `visited === 1`, so a player who closes the
+         * app mid-event gets the same event back on resume.
+         */
+        resolveEvent: (
+            state,
+            action: PayloadAction<{ nodeId: string; eventId: string; choiceId: string; grants: ReadonlyArray<'driver' | 'patch'> }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { nodeId, eventId, choiceId, grants } = action.payload;
+            if ((run.eventHistory ?? []).some((entry) => entry.nodeId === nodeId)) return { run };
+            return {
+                run: {
+                    ...run,
+                    eventHistory: [...(run.eventHistory ?? []), { nodeId, eventId, choiceId, grants: [...grants] }],
+                },
+            };
+        },
+
         // --- The gauntlet (ticket 18) ---
         //
         // # THE FOUR REDUCERS, AND WHY THE HP LIVES HERE AND NOWHERE ELSE
@@ -1399,6 +1442,8 @@ export const {
     takeRewardMacro,
     consumeMacro,
     fireMapReveal,
+    revealCurrentBiome,
+    resolveEvent,
     beginGauntlet,
     advanceGauntlet,
     reviveGauntletMember,

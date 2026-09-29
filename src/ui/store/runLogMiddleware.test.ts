@@ -27,6 +27,7 @@ import runReducer, {
     enterNode,
     grantMacro,
     recruitIntoParty,
+    resolveEvent,
     sellRunCard,
     setRun,
     startRun,
@@ -555,5 +556,18 @@ describe('the run log middleware, over a whole run', () => {
             expect(won2.macroId).toBe('surge');
             expect(won2.replaced).toBe('mend');
         }
+    });
+});
+
+describe('the run log middleware — events (ticket 168a)', () => {
+    it('records EVENT_RESOLVED once, and not again when a second resolution is refused', () => {
+        const store = makeStore();
+        store.dispatch(startRun(makeRun()));
+        store.dispatch(resolveEvent({ nodeId: 'n1', eventId: 'scrap_cache', choiceId: 'take', grants: [] }));
+        store.dispatch(resolveEvent({ nodeId: 'n1', eventId: 'data_fragments', choiceId: 'scrap', grants: [] }));
+
+        expect(rowsOf('EVENT_RESOLVED')).toMatchObject([
+            { kind: 'EVENT_RESOLVED', eventId: 'scrap_cache', choiceId: 'take' },
+        ]);
     });
 });

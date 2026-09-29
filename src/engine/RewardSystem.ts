@@ -54,7 +54,8 @@ export const SALVAGE_CHOICES_PER_FOE = 3;
 /** Bounded rerolls when hunting for distinct cards within one pick-1-of-3. */
 const SALVAGE_REROLL_LIMIT = 24;
 
-const RARITY_WEIGHTS: Record<Rarity, number> = {
+/** Exported for ticket 168's event card picks, which roll rarity the way a fight reward does. */
+export const RARITY_WEIGHTS: Record<Rarity, number> = {
     'Common': 50,
     'Uncommon': 30,
     'Rare': 15,

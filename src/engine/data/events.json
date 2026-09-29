@@ -1,0 +1,662 @@
+[
+  {
+    "id": "scrap_cache",
+    "name": "Scrap Cache",
+    "rarity": "Common",
+    "text": "A sealed maintenance locker, still humming.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "take",
+        "label": "Take it",
+        "detail": "+25 scrap",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "id": "dig",
+        "label": "Dig deeper",
+        "detail": "+50 scrap. Static Haze next fight.",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": 50
+          },
+          {
+            "type": "TEMP_DRIVER",
+            "driverId": "driver_static_haze",
+            "fights": 1
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "abandoned_terminal",
+    "name": "Abandoned Terminal",
+    "rarity": "Common",
+    "text": "An old compiler, still warm. It will take one program.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "upgrade",
+        "label": "Upgrade a card",
+        "detail": "Free.",
+        "outcomes": [
+          {
+            "type": "UPGRADE",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "data_fragments",
+    "name": "Data Fragments",
+    "rarity": "Common",
+    "text": "Loose code drifts through the static.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "pick",
+        "label": "Pick 1 of 3 cards",
+        "detail": "Common or Uncommon.",
+        "outcomes": [
+          {
+            "type": "CARD_PICK",
+            "count": 3,
+            "rarities": [
+              "Common",
+              "Uncommon"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scrap",
+        "label": "Take 15 scrap instead",
+        "detail": "+15 scrap",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": 15
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "wild_tracks",
+    "name": "Wild Tracks",
+    "rarity": "Common",
+    "text": "Fresh signal trails lead off the path.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "pick",
+        "label": "Pick 1 of 3 blueprints",
+        "detail": "Banked to the ranch at once.",
+        "outcomes": [
+          {
+            "type": "BLUEPRINT_PICK",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "relay_tower",
+    "name": "Relay Tower",
+    "rarity": "Common",
+    "text": "A survey relay, half-buried. It still has power for one sweep.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "survey",
+        "label": "Survey",
+        "detail": "Reveal this biome's map.",
+        "outcomes": [
+          {
+            "type": "MAP_REVEAL"
+          }
+        ]
+      },
+      {
+        "id": "strip",
+        "label": "Strip it",
+        "detail": "+20 scrap",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": 20
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "corrupted_stream",
+    "name": "Corrupted Stream",
+    "rarity": "Common",
+    "text": "The path runs through a torn data stream. It will cost you to cross.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "push",
+        "label": "Push through",
+        "detail": "Frayed Signal next fight.",
+        "outcomes": [
+          {
+            "type": "TEMP_DRIVER",
+            "driverId": "driver_frayed_signal",
+            "fights": 1
+          }
+        ]
+      },
+      {
+        "id": "reroute",
+        "label": "Pay to reroute",
+        "detail": "-25 scrap",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": -25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rare_vault",
+    "name": "Rare Vault",
+    "rarity": "Uncommon",
+    "text": "A locked archive. The lock is already broken.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "pick",
+        "label": "Pick 1 of 3 Rare cards",
+        "detail": "",
+        "outcomes": [
+          {
+            "type": "CARD_PICK",
+            "count": 3,
+            "rarities": [
+              "Rare"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "macro_crate",
+    "name": "Macro Crate",
+    "rarity": "Uncommon",
+    "text": "A crate of single-use routines, factory-sealed.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "pick",
+        "label": "Pick 1 of 3 macros",
+        "detail": "",
+        "outcomes": [
+          {
+            "type": "MACRO_PICK",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "trader",
+    "name": "Trader",
+    "rarity": "Uncommon",
+    "text": "A construct offers to swap. It only trades up.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "trade",
+        "label": "Give up a card",
+        "detail": "Get a random card one rarity higher.",
+        "outcomes": [
+          {
+            "type": "TRADE_UP"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "overclock_rig",
+    "name": "Overclock Rig",
+    "rarity": "Uncommon",
+    "text": "An overclock rig. It works, mostly.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "upgrade",
+        "label": "Upgrade two cards",
+        "detail": "Free. Corrupted Data is added to your deck.",
+        "outcomes": [
+          {
+            "type": "UPGRADE",
+            "count": 2
+          },
+          {
+            "type": "JUNK"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "data_broker",
+    "name": "Data Broker",
+    "rarity": "Uncommon",
+    "text": "A broker with a price list.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "rare",
+        "label": "Pay 40",
+        "detail": "Pick 1 of 3 Rare cards.",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": -40
+          },
+          {
+            "type": "CARD_PICK",
+            "count": 3,
+            "rarities": [
+              "Rare"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "uncommon",
+        "label": "Pay 15",
+        "detail": "Pick 1 of 3 Uncommon cards.",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": -15
+          },
+          {
+            "type": "CARD_PICK",
+            "count": 3,
+            "rarities": [
+              "Uncommon"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "stray_mingming",
+    "name": "Stray Mingming",
+    "rarity": "Uncommon",
+    "text": "A lost Mingming is following your signal.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "recruit",
+        "label": "Recruit",
+        "detail": "Free.",
+        "outcomes": [
+          {
+            "type": "RECRUIT"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "ambush_bait",
+    "name": "Ambush Bait",
+    "rarity": "Uncommon",
+    "text": "Something is nesting in the wreckage, guarding a cache.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "fight",
+        "label": "Fight it",
+        "detail": "A wild fight for double scrap.",
+        "outcomes": [
+          {
+            "type": "FIGHT",
+            "scrapMultiplier": 2
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "mirror_protocol",
+    "name": "Mirror Protocol",
+    "rarity": "Uncommon",
+    "text": "A copier. It charges by the job.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "copy",
+        "label": "Pay 25",
+        "detail": "Duplicate a card.",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": -25
+          },
+          {
+            "type": "DUPLICATE"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "driver_shrine",
+    "name": "Driver Shrine",
+    "rarity": "Rare",
+    "text": "An old Driver, still humming, cradled in a data shrine. It wants an offering.",
+    "grants": [
+      "driver"
+    ],
+    "choices": [
+      {
+        "id": "cards",
+        "label": "Offer two cards",
+        "detail": "Then pick 1 of 2 Drivers.",
+        "outcomes": [
+          {
+            "type": "GIVE_CARD",
+            "count": 2
+          },
+          {
+            "type": "DRIVER_PICK",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "id": "blueprint",
+        "label": "Offer one blueprint",
+        "detail": "Then pick 1 of 2 Drivers.",
+        "outcomes": [
+          {
+            "type": "GIVE_BLUEPRINT"
+          },
+          {
+            "type": "DRIVER_PICK",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "black_market_patch",
+    "name": "Black-Market Patch",
+    "rarity": "Rare",
+    "text": "A patch dealer, no questions asked.",
+    "grants": [
+      "patch"
+    ],
+    "choices": [
+      {
+        "id": "pay",
+        "label": "Pay 30",
+        "detail": "Fit the best patch to one body.",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": -30
+          },
+          {
+            "type": "PATCH"
+          }
+        ]
+      },
+      {
+        "id": "give",
+        "label": "Give up a Rare card",
+        "detail": "Fit the best patch to one body.",
+        "outcomes": [
+          {
+            "type": "GIVE_CARD",
+            "count": 1,
+            "rarity": "Rare"
+          },
+          {
+            "type": "PATCH"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "corrupted_cache",
+    "name": "Corrupted Cache",
+    "rarity": "Rare",
+    "text": "A cache wrapped in corrupted code. Maybe it's fine.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "open",
+        "label": "Open it (50% / 50%)",
+        "detail": "50%: pick 1 of 3 Rare cards. 50%: Corrupted Data and -15 scrap.",
+        "outcomes": [
+          {
+            "type": "GAMBLE",
+            "chance": 50,
+            "win": [
+              {
+                "type": "CARD_PICK",
+                "count": 3,
+                "rarities": [
+                  "Rare"
+                ]
+              }
+            ],
+            "lose": [
+              {
+                "type": "JUNK"
+              },
+              {
+                "type": "SCRAP",
+                "amount": -15
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "the_toll",
+    "name": "The Toll",
+    "rarity": "Rare",
+    "text": "A construct blocks the path. It wants payment.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "pay",
+        "label": "Pay 30 scrap",
+        "detail": "",
+        "outcomes": [
+          {
+            "type": "SCRAP",
+            "amount": -30
+          }
+        ]
+      },
+      {
+        "id": "give",
+        "label": "Give up a card",
+        "detail": "",
+        "outcomes": [
+          {
+            "type": "GIVE_CARD",
+            "count": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "firmware_reflash",
+    "name": "Firmware Reflash",
+    "rarity": "Rare",
+    "text": "A reflash station. One body can be rewritten.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "reflash",
+        "label": "Reflash one body",
+        "detail": "Its OS changes; its cards don't.",
+        "outcomes": [
+          {
+            "type": "REFLASH"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  },
+  {
+    "id": "recompiler",
+    "name": "Recompiler",
+    "rarity": "Rare",
+    "text": "A recompiler. What goes in is not what comes out.",
+    "grants": [],
+    "choices": [
+      {
+        "id": "recompile",
+        "label": "Give up a card",
+        "detail": "Get a random card of the same element and rarity.",
+        "outcomes": [
+          {
+            "type": "TRANSFORM"
+          }
+        ]
+      },
+      {
+        "id": "leave",
+        "label": "Leave",
+        "detail": "",
+        "outcomes": []
+      }
+    ]
+  }
+]

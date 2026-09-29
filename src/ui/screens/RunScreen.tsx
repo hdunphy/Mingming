@@ -79,7 +79,7 @@ import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { PARTY_SIZE } from '../../engine/party';
-import type { IRegionNode, NodeKind } from '../../engine/runTypes';
+import type { IRegionNode } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import { startBattle } from '../store/battleSlice';
@@ -95,25 +95,10 @@ import Callout from '../components/Callout';
 import { nextMapTip } from '../../engine/tips';
 import RunSummary from './RunSummary';
 import WorkshopNode from './WorkshopNode';
+import EventNode from './EventNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 import { Icon } from '../theme/Icon';
 import type { Element as MingmingElement } from '../../engine/types';
-
-/**
- * The kinds that have no handler yet, and the ticket that gives them one.
- *
- * Named rather than lumped into one "coming soon" because the point of showing this at all is to be
- * checkable: standing on a workshop and reading "ticket 14" tells you the trigger fired and which
- * ticket owes you the rest. A silent node would look exactly like a broken one.
- *
- * **`marketplace` left this table in ticket 13 and `workshop` in ticket 14** — both have screens
- * now, so neither is pending. The entries are removed rather than pointed at the landed tickets,
- * because the table's meaning is "nothing happens here", and a kind that renders a shop or a bench
- * would be a false entry in it.
- */
-const PENDING_NODE_TICKET: Partial<Record<NodeKind, number>> = {
-    event: 30,
-};
 
 export default function RunScreen(): ReactNode {
     const dispatch = useDispatch();
@@ -137,6 +122,13 @@ export default function RunScreen(): ReactNode {
      * id so that walking anywhere else — or walking back — opens the next one normally.
      */
     const [closedNodeId, setClosedNodeId] = useState<string | null>(null);
+
+    /**
+     * The event node the player has left, as `nodeId:visit`. Per VISIT rather than per node (unlike
+     * `closedNodeId`): a spent event node shows "The relay is dark" each time it is walked into, so
+     * walking back in must reopen that panel.
+     */
+    const [leftEventKey, setLeftEventKey] = useState<string | null>(null);
 
     /**
      * Whether the shared `LoadoutEditor` is open, and what its context line should read. Null is
@@ -379,6 +371,22 @@ export default function RunScreen(): ReactNode {
     }
 
     /**
+     * The event node — **ticket 168.** Opens on entry, like the stall and the bay, and closes only
+     * once it is spent: an unresolved event has no Leave of its own.
+     */
+    if (current.kind === 'event' && leftEventKey !== `${current.id}:${current.visited}`) {
+        return (
+            <EventNode
+                run={run}
+                node={current}
+                ranch={ranch}
+                biomeName={biome?.name}
+                onLeave={() => setLeftEventKey(`${current.id}:${current.visited}`)}
+            />
+        );
+    }
+
+    /**
      * The gauntlet takes the whole screen — **ticket 18.**
      *
      * Not a panel over the map like the shop and the bench, because the gauntlet is the one node you
@@ -412,8 +420,6 @@ export default function RunScreen(): ReactNode {
         );
     }
 
-    const pendingTicket = PENDING_NODE_TICKET[current.kind];
-
     /** The biome the alert is about, or undefined when no alert is owed. */
     const boundaryBiome = run.boundaryBiome !== undefined ? run.biomes[run.boundaryBiome] : undefined;
 
@@ -432,14 +438,6 @@ export default function RunScreen(): ReactNode {
                 <div className="ranch-section-head">
                     <h2><Icon name={NODE_ICON[current.kind]} size={18} /> {NODE_LABEL[current.kind]}{current.pocket ? ' (pocket)' : ''}</h2>
                 </div>
-
-                {pendingTicket !== undefined && (
-                    <p className="ranch-note">
-                        You are standing in the {NODE_LABEL[current.kind].toLowerCase()} — nothing
-                        here yet (ticket {pendingTicket}). Entering it counted as a visit, so walking
-                        back in later will roll it fresh.
-                    </p>
-                )}
 
                 {/*
                   * The stall and the bay took the whole screen above. What is left here is the way

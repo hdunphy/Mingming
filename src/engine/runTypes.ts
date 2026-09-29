@@ -412,6 +412,17 @@ export interface IRunState {
     readonly patchBenchesUsed?: ReadonlyArray<string>;
 
     /**
+     * TICKET 168: every event resolved this run, in order. The once-per-run and first-visit rules,
+     * and the power cap, read this. Optional with `.default([])`, the `patchBenchesUsed` precedent.
+     */
+    readonly eventHistory?: ReadonlyArray<{
+        readonly nodeId: string;
+        readonly eventId: string;
+        readonly choiceId: string;
+        readonly grants: ReadonlyArray<'driver' | 'patch'>;
+    }>;
+
+    /**
      * TICKET 163d — **the patch fitted to each party member's firmware**, by member id.
      *
      * RUN STATE, not roster state, on 163 §5 decision 5: *"no persistence across runs to start."*
@@ -624,6 +635,12 @@ export const RunStateSchema = z.object({
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
     upgradesTaken: z.array(z.string()).default([]),
     patchBenchesUsed: z.array(z.string()).default([]),
+    eventHistory: z.array(z.object({
+        nodeId: z.string(),
+        eventId: z.string(),
+        choiceId: z.string(),
+        grants: z.array(z.enum(['driver', 'patch'])),
+    })).default([]),
     patches: z.record(z.string(), z.array(z.string())).default({}),
     boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),

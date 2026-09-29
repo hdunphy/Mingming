@@ -238,6 +238,8 @@ export type IRunEvent = IRunEventBase & (
     | { readonly kind: 'MACRO_WON'; readonly macroId: string; readonly replaced: string | null }
     | { readonly kind: 'MACRO_FIRED'; readonly macroId: string }
     | { readonly kind: 'REROLLED'; readonly price: number }
+    /** TICKET 168a: an event node's choice was made. `eventId` is `empty_relay` for the fallback. */
+    | { readonly kind: 'EVENT_RESOLVED'; readonly eventId: string; readonly choiceId: string }
     /**
      * `biomeReached` is the 0-BASED biome index. `runTelemetry`'s field of the same name is 1-based
      * ("biome 1 of 3") — both are stored, so neither is renumbered; readers add 1 to this one.

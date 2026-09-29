@@ -63,6 +63,12 @@ import { fightBonusFor } from '../../engine/run/fightBonus';
 import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold } from '../../engine/run/marketplace';
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
 import { BlueprintLedger } from './BlueprintLedger';
+import { drawEvent } from '../../engine/run/events/eventDraw';
+import { offerCards } from '../../engine/run/events/eventCards';
+import { EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP } from '../../engine/run/events/emptyRelay';
+import { applyChoice, applyEmptyRelay, isInteractiveOutcome } from '../../ui/events/applyOutcome';
+import type { CardPickResult } from '../../ui/events/applyOutcome';
+import { chooseEventChoice } from './eventPolicy';
 export { BlueprintLedger } from './BlueprintLedger';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { PATCH_SLOTS } from '../../engine/data/patchRegistry';
@@ -538,6 +544,52 @@ export function memberFor(id: string, osId: string): IMingmingState {
     };
 }
 
+/**
+ * TICKET 168a — the walker at an event node: draw the event, take the first choice that is free
+ * (`chooseEventChoice`, else Leave), and record what happened. A card pick takes what the walker's
+ * ordinary reward policy would take from the same three cards.
+ *
+ * The ledger stands in for the ranch's blueprint counts (one per species held); no built event
+ * reads them yet.
+ */
+export function playEventNode(
+    store: { dispatch: (action: unknown) => void; getState: () => { run: { run: IRunState | null } } },
+    node: IRegionNode,
+    roster: ReadonlyArray<IMingmingState>,
+    ledger: BlueprintLedger,
+    pickFor: (offered: string[]) => { taken: string | null; toCollection: boolean },
+    record: (event: Parameters<typeof appendRunEvent>[1]) => void,
+): void {
+    const run = store.getState().run.run!;
+    const dispatch = (action: unknown): void => store.dispatch(action);
+    const blueprints: Record<string, number> = {};
+    for (const species of ledger.recruitable([])) blueprints[species] = 1;
+    const ranch = { roster, blueprints };
+    const event = drawEvent(run, node, ranch);
+    const ctx = { run, node };
+    const scrapBefore = run.scrap;
+    const scrapDelta = (): number => store.getState().run.run!.scrap - scrapBefore;
+
+    if (event === null) {
+        applyEmptyRelay(dispatch, ctx, EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP);
+        record({ kind: 'SCRAP', delta: scrapDelta(), reason: 'event' });
+        record({ kind: 'EVENT_RESOLVED', eventId: EMPTY_RELAY_ID, choiceId: 'salvage' });
+        return;
+    }
+
+    const choice = chooseEventChoice(event);
+    const picks: Record<number, CardPickResult> = {};
+    choice.outcomes.forEach((outcome, index) => {
+        if (!isInteractiveOutcome(outcome) || outcome.type !== 'CARD_PICK') return;
+        const offered = offerCards({ run, node, ranch }, { count: outcome.count, rarities: outcome.rarities }, `${choice.id}:${index}`);
+        const decision = pickFor(offered);
+        if (decision.taken !== null) picks[index] = { cardId: decision.taken, toCollection: decision.toCollection };
+    });
+    applyChoice(dispatch, ctx, event, choice, picks);
+    if (scrapDelta() !== 0) record({ kind: 'SCRAP', delta: scrapDelta(), reason: 'event' });
+    record({ kind: 'EVENT_RESOLVED', eventId: event.id, choiceId: choice.id });
+}
+
 export function buyMarketBlueprintIfOffered(
     store: { dispatch: (action: unknown) => void; getState: () => { run: { run: IRunState | null } } },
     node: IRegionNode,
@@ -911,6 +963,12 @@ export function walkRun(input: WalkInput): WalkResult {
         } else if (node.kind === 'workshop') {
             workshop(node);
             upgradeBench(node, false);
+        } else if (node.kind === 'event') {
+            playEventNode(
+                store, node, roster, blueprintLedger,
+                (offered) => choosePick(offered, deckIds(), partyElements()),
+                (evt) => record(evt, fights.length),
+            );
         }
 
         const held = new Set(partyMembers().map((m) => m.definitionId));

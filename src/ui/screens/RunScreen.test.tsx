@@ -146,6 +146,18 @@ describe('RunScreen — a node that fired says so', () => {
         expect(render(standingOn('marketplace'))).not.toContain('BLUEPRINTS');
     });
 
+    it('gives an event node the whole screen, with no placeholder (ticket 168)', () => {
+        // The same inversion as the stall and the bay: the event is a full frame with its own top
+        // bar, so the map's chrome is ABSENT. The "nothing here yet (ticket 30)" note is gone for
+        // good, not merely hidden.
+        const markup = render(standingOn('event'));
+        expect(markup).not.toContain('nothing here yet');
+        expect(markup).not.toContain('ticket 30');
+        expect(markup).not.toContain('rm-canvas');
+        expect(markup).not.toContain('Abandon run');
+        expect(markup).toContain('ev-choice');
+    });
+
     it('says nothing of the kind on a fight node', () => {
         // A wild's contents are not pending — they are a battle, and `App` swaps this screen for
         // `BattleArena` while it runs.
@@ -154,9 +166,9 @@ describe('RunScreen — a node that fired says so', () => {
     });
 
     it('shows the map, the party and the run’s seed while on the map', () => {
-        // A plain node, now that the stall and the bay take the whole screen. `event` is the one
-        // kind still in `PENDING_NODE_TICKET`, so it is the map's own chrome and nothing else.
-        const markup = render(standingOn('event'));
+        // A plain node, now that the stall, the bay and the event take the whole screen: the map's
+        // own chrome and nothing else.
+        const markup = render(standingOn('wild'));
         expect(markup).toContain('run-screen-seed');
         expect(markup).toContain('fights');
         expect(markup).toContain('rm-canvas');
@@ -266,10 +278,10 @@ describe('RunScreen — the gauntlet takes the screen', () => {
 
     it('does NOT draw the region map — there is no walking out of the exam', () => {
         expect(render(inGauntlet())).not.toContain('rm-canvas');
-        // ...and an ordinary node still does. `event` rather than `marketplace` since ticket 63:
-        // the stall takes the whole screen too now, so it is no longer the control case for "the
-        // map is still there" — see the stall's own test for the inversion.
-        expect(render(standingOn('event'))).toContain('rm-canvas');
+        // ...and an ordinary node still does. `wild` rather than `marketplace` since ticket 63 and
+        // rather than `event` since ticket 168: the stall, the bay and the event all take the whole
+        // screen now, so none of them is the control case for "the map is still there".
+        expect(render(standingOn('wild'))).toContain('rm-canvas');
     });
 });
 
@@ -332,7 +344,7 @@ describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
         // On a plain node, because the stall and the bay take the whole screen since tickets 63 and
         // 65 and neither of their ruled top bars carries an abandon. Quitting is still always
         // allowed — it is LEAVE and then this button, one click further away than it was.
-        const markup = render(standingOn('event'));
+        const markup = render(standingOn('wild'));
         expect(markup).toContain('Abandon run');
         // The second step's wording appears only after that click, so a confirm that ships both
         // states at once is not a confirm.
