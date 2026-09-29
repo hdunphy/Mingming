@@ -19,6 +19,8 @@ import type { IMingmingState } from '../types';
 import type { IRunCard, IRunState, MacroSlots } from '../runTypes';
 import { generateRegionGraph } from './regionGraph';
 import { assignDriverStakes } from './driverStakes';
+import { addTierElites } from './tiers/tierElites';
+import { tierRule } from './tiers/tierRegistry';
 import type { IGymOffer } from './gyms';
 
 // ---------------------------------------------------------------------------------------------
@@ -241,6 +243,12 @@ export interface CreateRunInput {
     readonly party: ReadonlyArray<IMingmingState>;
     /** Epoch ms, injected by the caller. See the header note on why this is not read here. */
     readonly startedAt: number;
+    /**
+     * Ticket 169: the difficulty tier the player chose at run start (0-3). Optional, and it falls
+     * back to the gym's own tier (always 0 today) so every caller that predates the tier picker
+     * builds the same run it always did.
+     */
+    readonly tier?: number;
 }
 
 /**
@@ -252,6 +260,12 @@ export function createRun(input: CreateRunInput): IRunState {
     // The graph forks its own labelled child off `seed` internally, so passing the raw run seed is
     // correct here and does not collide with the deck stream below.
     const graph = generateRegionGraph(seed);
+
+    // Ticket 169b: a tier can add elites to the map (tier 2: one more per biome). Before the Driver
+    // stakes are dealt, so a converted elite pays a Driver like every other one. At tier 0 and 1 this
+    // returns the graph's own nodes, so the map is exactly what it always was.
+    const tier = input.tier ?? offer.gym.tier;
+    const tieredNodes = addTierElites(graph.nodes, seed, tierRule(tier).extraElitesPerBiome);
 
     // A labelled fork for deck minting, for the same reason: card instance ids must not be drawn
     // from the same point in the thread as the graph's layout rolls.
@@ -278,12 +292,12 @@ export function createRun(input: CreateRunInput): IRunState {
         // `exploration-map.md`: tier is chosen at run start and never changes mid-run. It comes
         // from the gym because at Early Access the gym IS the difficulty selection — all three
         // launch leaders are tier 0, so this is a single value today and a real choice later.
-        tier: offer.gym.tier,
+        tier,
         biomes: offer.biomes,
 
         // Ticket 17: every elite and ambush carries the Driver it pays, rolled here because the
         // pool depends on the OFFER's biomes and the graph generator only knows the seed.
-        nodes: assignDriverStakes(graph.nodes, offer.biomes, seed),
+        nodes: assignDriverStakes(tieredNodes, offer.biomes, seed),
         currentNodeId: graph.entryNodeId,
 
         partyIds: party.map((m) => m.id),
