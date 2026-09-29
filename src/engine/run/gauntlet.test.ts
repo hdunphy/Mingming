@@ -130,6 +130,7 @@ const ranchOf = (party: ReadonlyArray<IMingmingState>): IRanchState => ({
     codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
     gymsCleared: [],
     highestTierCleared: 0,
+    tierClears: {},
     seenTips: [],
     codexMilestones: [],
 });

@@ -533,7 +533,19 @@ export interface IRanchState {
     readonly codex: ICodex;
     /** Gym ids beaten — what tiers and gyms are offered at run start. */
     readonly gymsCleared: ReadonlyArray<string>;
+    /**
+     * @deprecated Ticket 169d: this cannot tell "nothing cleared" from "tier 0 cleared" (its default
+     * is 0, and recording a tier-0 clear is a no-op). Use `tierClears`, which records the tiers each
+     * gym has been beaten at. Still written, so an older build reading this save keeps working.
+     */
     readonly highestTierCleared: number;
+    /**
+     * Ticket 169d: the tiers each gym has been beaten at, by gym id, each list sorted ascending. A
+     * tier-N clear on any gym unlocks tier N+1 for every gym (`tiers/tierUnlocks.ts`), and a gym
+     * cleared at tiers 1, 2 and 3 earns its achievement. Add-only, `.default({})` and no version
+     * bump, the `seenTips` argument: a save from before this field is a player with no tier clears.
+     */
+    readonly tierClears: Readonly<Record<string, ReadonlyArray<number>>>;
     /**
      * Onboarding tips already shown (ticket 24). `TipId`s, but typed as plain strings for the same
      * reason the codex stores raw dataIds: the save has to survive a build that renamed or retired
@@ -741,6 +753,8 @@ export const RanchStateSchema = z.object({
     codex: CodexSchema.default({ seen: [], played: [], species: [], assembled: [], os: [] }),
     gymsCleared: z.array(z.string()).default([]),
     highestTierCleared: z.number().int().min(0).default(0),
+    // Ticket 169d, same add-only shape as `seenTips`: absent means no tier has been cleared anywhere.
+    tierClears: z.record(z.string(), z.array(z.number().int().min(0))).default({}),
     // Ticket 24. `.default([])` and no version bump: a v4 save written before this field existed is
     // a player who has seen no tips, which is exactly what the default says. That is the whole
     // reason the field is add-only and never removed — see `IRanchState.seenTips`.

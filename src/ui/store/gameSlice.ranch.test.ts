@@ -28,6 +28,7 @@ import gameReducer, {
     addToRoster,
     assembleMingming,
     createEmptyRanch,
+    recordGymTierClear,
     swapOS,
 } from './gameSlice';
 import type { IRanchMember, IRanchState } from '../../engine/runTypes';
@@ -91,7 +92,7 @@ describe('assembleMingming — one blueprint, atomically', () => {
         const after = gameReducer(before, assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
 
         expect(Object.keys(after).sort()).toEqual(
-            ['blueprints', 'codex', 'codexMilestones', 'gymsCleared', 'highestTierCleared', 'roster', 'runsCompleted', 'seenTips'],
+            ['blueprints', 'codex', 'codexMilestones', 'gymsCleared', 'highestTierCleared', 'roster', 'runsCompleted', 'seenTips', 'tierClears'],
         );
         // Still no CARDS. Ticket 31 added three codex ledgers and assembly writes two of them —
         // `seen`/`played` are the card ones and both stay empty, which is the claim this test makes.
@@ -223,5 +224,45 @@ describe('runsCompleted — the counter the first-run blueprint bonus reads', ()
         const legacy = save();
         delete (legacy as { runsCompleted?: number }).runsCompleted;
         expect((legacy.runsCompleted ?? 0) === 0).toBe(true);
+    });
+});
+
+// --- Ticket 169d — clears per gym per tier -------------------------------------------------------
+
+describe('recordGymTierClear — tier clears are kept per gym', () => {
+    it('stores the tier under the gym', () => {
+        const after = gameReducer(save(), recordGymTierClear({ gymId: 'gym_emberfall', tier: 1 }));
+        expect(after.tierClears).toEqual({ gym_emberfall: [1] });
+    });
+
+    it('is idempotent: clearing the same gym at the same tier twice stores it once', () => {
+        const once = gameReducer(save(), recordGymTierClear({ gymId: 'gym_emberfall', tier: 2 }));
+        const twice = gameReducer(once, recordGymTierClear({ gymId: 'gym_emberfall', tier: 2 }));
+        expect(twice.tierClears).toEqual({ gym_emberfall: [2] });
+    });
+
+    it('keeps each gym’s list sorted and separate from the others', () => {
+        let state = save();
+        for (const [gymId, tier] of [
+            ['gym_emberfall', 3],
+            ['gym_emberfall', 0],
+            ['gym_tidewrack', 1],
+            ['gym_emberfall', 2],
+        ] as const) {
+            state = gameReducer(state, recordGymTierClear({ gymId, tier }));
+        }
+        expect(state.tierClears).toEqual({ gym_emberfall: [0, 2, 3], gym_tidewrack: [1] });
+    });
+
+    it('ignores a negative or fractional tier', () => {
+        let state = save();
+        state = gameReducer(state, recordGymTierClear({ gymId: 'gym_emberfall', tier: -1 }));
+        state = gameReducer(state, recordGymTierClear({ gymId: 'gym_emberfall', tier: 1.5 }));
+        state = gameReducer(state, recordGymTierClear({ gymId: 'gym_emberfall', tier: Number.NaN }));
+        expect(state.tierClears).toEqual({});
+    });
+
+    it('a fresh ranch starts with none', () => {
+        expect(createEmptyRanch().tierClears).toEqual({});
     });
 });

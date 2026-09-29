@@ -35,6 +35,7 @@ import {
     buildGrantBlueprint,
     buildReplaceSave,
     buildSetActiveOS,
+    buildUnlockAllTiers,
     buildWipeSave,
     commitEdit,
     parseSaveFileText,
@@ -251,7 +252,10 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
         <div style={{ ...noteStyle, marginBottom: '10px' }}>
             roster {save.roster.length} · blueprints {blueprintTotal} · codex {save.codex.seen.length} seen
             / {save.codex.played.length} played · gyms {save.gymsCleared.join(', ') || 'none'} · highest
-            tier {save.highestTierCleared}
+            tier {save.highestTierCleared} · tier clears{' '}
+            {Object.entries(save.tierClears)
+                .map(([gymId, tiers]) => `${gymId}: ${tiers.join(' ')}`)
+                .join(' | ') || 'none'}
         </div>
     );
 
@@ -290,6 +294,19 @@ export default function SaveEditorPanel({ presentation }: DebugPanelProps): Reac
                 <div style={noteStyle}>
                     Not "unlock species": there is no species flag. Synthesis availability is derived from
                     the blueprints in the save.
+                </div>
+            </section>
+
+            <section style={sectionStyle}>
+                <div style={rowStyle}>
+                    <span style={labelStyle}>unlock all tiers</span>
+                    <button type="button" style={buttonStyle()} onClick={() => run('unlock all tiers', buildUnlockAllTiers(save))}>
+                        unlock
+                    </button>
+                </div>
+                <div style={noteStyle}>
+                    Ticket 169d: writes clears for tiers 0, 1 and 2 on gym_emberfall, which opens tier 3 (and
+                    the modifiers) for playtesting. It only adds; no existing clear is removed.
                 </div>
             </section>
 

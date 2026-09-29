@@ -207,6 +207,7 @@ describe('gameSlice', () => {
                 codex: { seen: ['fire_poke'], played: ['fire_poke'] , species: [], assembled: [], os: [] },
                 gymsCleared: ['gym_emberfall'],
                 highestTierCleared: 1,
+                tierClears: {},
                 seenTips: [],
                 codexMilestones: [],
             };

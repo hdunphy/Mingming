@@ -71,6 +71,7 @@ export function createEmptyRanch(): IRanchState {
         codex: { seen: [], played: [], species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: 0,
+        tierClears: {},
         seenTips: [],
         codexMilestones: [],
         runsCompleted: 0,
@@ -307,6 +308,20 @@ const gameSlice = createSlice({
             state.highestTierCleared = action.payload;
         },
 
+        /**
+         * Ticket 169d: record that `gymId` was beaten at `tier`. Idempotent (a tier is stored once per
+         * gym) and each gym's list stays sorted, so `tierClears` reads the same however the clears
+         * arrived. A negative, fractional or non-numeric tier is ignored, like `recordTierCleared`.
+         */
+        recordGymTierClear: (state, action: PayloadAction<{ gymId: string; tier: number }>) => {
+            const { gymId, tier } = action.payload;
+            if (!Number.isInteger(tier) || tier < 0) return;
+            const clears = state.tierClears as Record<string, number[]>;
+            const list = clears[gymId] ?? [];
+            if (list.includes(tier)) return;
+            clears[gymId] = [...list, tier].sort((a, b) => a - b);
+        },
+
         // --- OS Management ---
         updateMingmingOS: (state, action: PayloadAction<{ id: string, activeOS: string }>) => {
             const { id, activeOS } = action.payload;
@@ -393,6 +408,7 @@ export const {
     skipTips,
     markGymCleared,
     recordTierCleared,
+    recordGymTierClear,
     updateMingmingOS,
     swapOS,
     loadSave,

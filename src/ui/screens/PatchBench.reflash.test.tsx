@@ -36,6 +36,7 @@ const RANCH: IRanchState = {
     codexMilestones: [],
     gymsCleared: [],
     highestTierCleared: 0,
+    tierClears: {},
     seenTips: [],
 };
 const runWith = (over: Partial<IRunState>): IRunState => ({

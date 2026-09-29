@@ -616,6 +616,7 @@ describe('full heal between nodes', () => {
         codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: 0,
+        tierClears: {},
         seenTips: [],
         codexMilestones: [],
     };

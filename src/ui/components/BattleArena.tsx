@@ -34,7 +34,7 @@ import { paysDriver } from '../../engine/run/driverStakes';
 import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFight';
 import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
 import BattleReport from './BattleReport';
-import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
+import { addBlueprint, markGymCleared, recordGymTierClear, recordTierCleared } from '../store/gameSlice';
 import { openSettings } from '../store/uiSlice';
 import {
     addDriver,
@@ -1090,6 +1090,8 @@ const BattleArena: React.FC = () => {
 
             dispatch(markGymCleared(run.gymId));
             dispatch(recordTierCleared(run.tier));
+            // Ticket 169d: which gym, at which tier. This is what unlocks the next tier for every gym.
+            dispatch(recordGymTierClear({ gymId: run.gymId, tier: run.tier }));
             // Ordered after `finishGauntlet`, which sets the phase back to 'map': the run is over,
             // not back on the map, and `endRun` is what says so. `RunSummary` reads it from there.
             dispatch(endRun('victory'));
