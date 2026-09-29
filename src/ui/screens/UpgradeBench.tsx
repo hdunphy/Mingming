@@ -47,7 +47,7 @@ export interface UpgradeBenchProps {
 
 export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps): ReactNode {
     const dispatch = useDispatch();
-    const { peek, peekHandlers } = useCardPeek();
+    const { peek, at, peekHandlers } = useCardPeek();
 
     /*
      * ONE ROW PER UNIQUE CARD — Henry's duplicate amendment, *"one tile per unique card,
@@ -106,7 +106,8 @@ export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps
                                  * even in a title"). The row itself still obeys the one-line row law
                                  * (name and cost only), but hovering or focusing any row — even a
                                  * greyed-out one — reveals the full upgraded card (+ face with changed
-                                 * numbers highlighted) beside the list via `<CardPeek>`.
+                                 * numbers highlighted) beside the MOUSE via `<CardPeek>` (167f: a tooltip drawn
+                                 * into <body>, no longer a block under the list).
                                  */
                             >
                                 <span className="rs-g">{face.cost}</span>
@@ -126,7 +127,7 @@ export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps
                     </span>
                 )}
             </div>
-            <CardPeek peek={peek} className="upg-peek" />
+            <CardPeek peek={peek} at={at} className="upg-peek" />
             <p className="rs-hint mk-foot">
                 {spent
                     ? 'Already used this visit — come back after a fight, or find another bench.'

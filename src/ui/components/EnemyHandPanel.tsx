@@ -28,7 +28,8 @@
  *
  * # WHY IT IS THE EDIT LOADOUT DECK COLUMN
  *
- * §5 is specific: `.rs-panel`, 27px `.rs-row`s, the `.led-peek` tile on hover. Not a new card list.
+ * §5 is specific: `.rs-panel`, 27px `.rs-row`s, the card tile on hover. Not a new card list.
+ * (TICKET 167f: the tile is `<CardPeek>`, a tooltip beside the mouse, like every other list.)
  * The player already reads that column to decide what to cut from a deck, which is the same act as
  * reading what an enemy might cast; a second list shaped differently would be a second thing to
  * learn, and it would drift from the first the next time a row gained a field.
@@ -37,10 +38,12 @@
 import React, { useMemo, useState } from 'react';
 
 import type { IBattleState } from '../../engine/types';
-import { CardTileFace, ElementMark } from '../screens/CardChassis';
+import { ElementMark } from '../screens/CardChassis';
+import { CardPeek } from '../screens/CardPeek';
+import { useCardPeek } from '../hooks/useCardPeek';
 import { colorFor } from '../screens/runShell';
 import { playSfx } from '../audio/AudioEngine';
-import { enemyHandView, stackHand, type HandStack } from './enemyHand';
+import { enemyHandView, stackHand } from './enemyHand';
 
 interface Props {
     readonly battleState: IBattleState | null;
@@ -48,7 +51,7 @@ interface Props {
 
 const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
     const [open, setOpen] = useState(false);
-    const [peek, setPeek] = useState<HandStack | null>(null);
+    const { peek, at, peekHandlers } = useCardPeek();
 
     /*
      * `enemyHandView` returns a fresh object every call, so both of these are memoised on the
@@ -74,7 +77,7 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
     const previewing = view.source === 'PREVIEW';
     const label = previewing ? 'ENEMY DRAWS' : 'ENEMY HAND';
 
-    const close = () => { setOpen(false); setPeek(null); };
+    const close = () => setOpen(false);
 
     return (
         /*
@@ -125,21 +128,13 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
                             className={`rs-row ${stack.unaffordable ? 'ehp-poor' : ''}`}
                             style={{ ['--el' as string]: colorFor(stack.element) }}
                             /*
-                             * OVER/OUT rather than ENTER/LEAVE, and the `relatedTarget` guard with
-                             * them — the same pair `LoadoutEditor` uses and for the same two
-                             * reasons: React synthesises enter/leave from these, so the enter form
-                             * is a peek no interaction test can drive; and the row has child spans,
-                             * so a bare `mouseout` would drop the peek every time the pointer
-                             * crossed one.
+                             * `useCardPeek`'s handlers: OVER/OUT rather than ENTER/LEAVE, with the
+                             * `relatedTarget` guard (the row has child spans), plus mouse MOVE for the
+                             * tooltip's position and focus/blur for the keyboard. TICKET 167f: the tile
+                             * is drawn into <body> beside the mouse; it used to be a block under the
+                             * rows, which grew this panel under the pointer.
                              */
-                            onMouseOver={() => setPeek(stack)}
-                            onFocus={() => setPeek(stack)}
-                            onMouseOut={(e) => {
-                                const to = e.relatedTarget as Node | null;
-                                if (to && e.currentTarget.contains(to)) return;
-                                setPeek(null);
-                            }}
-                            onBlur={() => setPeek(null)}
+                            {...peekHandlers({ face: stack, count: stack.count })}
                         >
                             <span className="rs-g">{stack.cost}</span>
                             <ElementMark element={stack.element} compact />
@@ -164,20 +159,7 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
                     )}
                 </div>
 
-                {/*
-                  * The tile goes UNDER the rows as an ordinary block, exactly as `.led-peek` does
-                  * since 155h — not `position: fixed`, which is what put the Edit Loadout peek in
-                  * the middle of the screen at any width but 1280.
-                  */}
-                {peek && (
-                    <div
-                        className="rs-card ehp-peek"
-                        style={{ ['--el' as string]: colorFor(peek.element) } as React.CSSProperties}
-                        aria-hidden="true"
-                    >
-                        <CardTileFace face={peek} count={peek.count} />
-                    </div>
-                )}
+                <CardPeek peek={peek} at={at} className="ehp-peek" />
             </div>
         </div>
     );

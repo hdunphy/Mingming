@@ -131,7 +131,7 @@ export default function MarketplaceNode({
     run, node, party, biomeName, ranch, onEditLoadout, onLeave,
 }: MarketplaceNodeProps): ReactNode {
     const dispatch = useDispatch();
-    const { peek, peekHandlers } = useCardPeek();
+    const { peek, at, peekHandlers } = useCardPeek();
 
     // Rolled from (run seed, node id, REFRESH count) — never held in component state, so a remount,
     // an app close or a resume shows the same stock. Ticket 142 §7 took the visit count out of that
@@ -515,7 +515,7 @@ export default function MarketplaceNode({
                         {sellable.length === 0 && <span className="mk-empty">Nothing to sell.</span>}
                     </div>
 
-                    <CardPeek peek={peek} className="sell-peek" />
+                    <CardPeek peek={peek} at={at} className="sell-peek" />
 
                     <p className="rs-hint mk-foot">
                         {atFloor

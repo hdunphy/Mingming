@@ -79,40 +79,10 @@
  * the active deck cards look like. I need to see the full card that I would see from the shop or
  * card collection when I hover."*
  *
- * It IS the collection's tile (`CardTileFace` under `.rs-card`), so everything here is placement.
- *
- * ── TICKET 155h — IN THE PANEL, NOT OVER THE SCREEN.
- *
- * This was `position: fixed; right: calc(50% + 360px)` — anchored to the VIEWPORT's centre and
- * tuned at 1280. The offset only lands beside the deck column at that one width; at anything wider
- * the column moves right and the 360px gap does not, so the card drifted into the middle of the
- * grid. Henry, 2026-09-19: *"Edit Loadout hover shows in the middle of the screen"*, and *in the
- * side panel* is where he asked for it.
- *
- * So it stops floating. It renders inside `.led-deck`, under the rows, as a normal block — which
- * is beside the deck at every width by construction rather than by arithmetic, and needs no
- * z-index, no viewport maths and no re-tuning when the panel moves again.
+ * TICKET 167f (Henry, 2026-09-27): *"The card should be static so it hovers next to the mouse and
+ * it should be outside of any containers. Like a tooltip."* It is `<CardPeek>` now, a fixed tile
+ * drawn into <body> beside the pointer (see `.card-peek` in runShell.css), so there is nothing to
+ * place in this column any more. That reverses 155h's "in the panel" block, and with it the two
+ * layout rules that only existed to leave that block room (`.led-deck` as a flex column and
+ * `.led-rows { flex: 0 1 auto }`), which are gone.
  */
-.led-peek {
-  position: static;
-  margin: 10px auto 0;
-  flex: 0 0 auto;
-  /* Never eats the click that sends the card back — the row underneath owns that. */
-  pointer-events: none;
-  box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
-  animation: led-peek-in 0.12s ease-out;
-}
-
-/* The rows give the peek its room rather than scrolling under it. */
-.led-deck { display: flex; flex-direction: column; }
-.led-rows { flex: 0 1 auto; }
-
-@keyframes led-peek-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: none; }
-}
-
-/* Under ~1200px the gutter is gone, so the tile would sit off-screen. Tuck it against the edge. */
-@media (max-width: 1200px) {
-  .led-peek { right: auto; left: 12px; }
-}

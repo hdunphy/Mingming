@@ -4,6 +4,12 @@
  *
  * Henry: "From the screenshot I need to be able to see the full card on hover.
  * For the upgrades it should show what my upgraded card looks like."
+ *
+ * TICKET 167f — the preview is a tooltip beside the mouse, drawn into <body>, not a block inside
+ * the panel. Henry, 2026-09-27: *"Hovering over upgrades in the Workshop spazzes out"* and *"The card
+ * should be static so it hovers next to the mouse and it should be outside of any containers. Like
+ * a tooltip."* So every lookup below is on `document.body`, and the layout-shift and pointer-events
+ * tests at the bottom are the two that fail if it ever goes back in the panel.
  */
 import { describe, expect, it } from 'vitest';
 import { act } from 'react';
@@ -13,6 +19,9 @@ import MarketplaceNode from './MarketplaceNode';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { makeStore, mount, fire, flush } from '../../testing/interaction';
+import { fireAt } from '../../testing/pointer';
+import { placePeek } from './peekPlacement';
+import { stageScale } from '../components/stageGeometry';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 
@@ -41,13 +50,16 @@ function makeMarketRun(scrap: number, over: Partial<IRunState> = {}): { run: IRu
     return { run: runWithNode, node: market };
 }
 
+/** The tooltip, wherever it is: it lives in <body>, so nothing scoped to a panel can find it. */
+const peekTile = (): HTMLElement | null => document.body.querySelector<HTMLElement>('.card-peek');
+
 describe('Ticket 165a — row hover card peek', () => {
     it('1. Hovering an upgrade row shows the + card\'s name and its changed number marked', async () => {
         const store = makeStore();
         const run = makeRun(500);
         const host = await mount(store, <UpgradeBench run={run} heading="UPGRADE" benchKey="n1:1" />);
 
-        expect(host.querySelector('.card-peek')).toBeNull();
+        expect(peekTile()).toBeNull();
 
         // Find the upgrade row for undertow or whirlpool
         const row = host.querySelector('.rs-row');
@@ -56,8 +68,11 @@ describe('Ticket 165a — row hover card peek', () => {
         await fire(row!, 'mouseover');
         await flush();
 
-        const peek = host.querySelector('.card-peek');
+        const peek = peekTile();
         expect(peek, 'Hovering an upgrade row should display .card-peek').not.toBeNull();
+        // 167f: outside every container, as a child of the page body.
+        expect(peek!.parentElement).toBe(document.body);
+        expect(host.contains(peek)).toBe(false);
         expect(peek!.querySelector('.rs-cnm')?.textContent).toContain('+');
         expect(peek!.querySelector('.rs-upn'), 'Changed numbers must be marked with .rs-upn').not.toBeNull();
     });
@@ -78,7 +93,7 @@ describe('Ticket 165a — row hover card peek', () => {
 
         const sellPanel = host.querySelector('.mk-sell');
         expect(sellPanel, 'MarketplaceNode should render sell panel').not.toBeNull();
-        expect(sellPanel!.querySelector('.card-peek')).toBeNull();
+        expect(peekTile()).toBeNull();
 
         const sellRow = sellPanel!.querySelector('.rs-row');
         expect(sellRow, 'Sell panel should have sell rows').not.toBeNull();
@@ -86,8 +101,10 @@ describe('Ticket 165a — row hover card peek', () => {
         await fire(sellRow!, 'mouseover');
         await flush();
 
-        const peek = sellPanel!.querySelector('.card-peek');
+        const peek = peekTile();
         expect(peek, 'Hovering a sell row should show .card-peek').not.toBeNull();
+        expect(peek!.parentElement).toBe(document.body);
+        expect(sellPanel!.contains(peek)).toBe(false);
         expect(peek!.querySelector('.rs-cnm')?.textContent).toBeTruthy();
         expect(peek!.querySelector('.rs-desc')?.textContent).toBeTruthy();
     });
@@ -103,7 +120,10 @@ describe('Ticket 165a — row hover card peek', () => {
 
         await fire(upgRow!, 'mouseover');
         await flush();
-        expect(upgHost.querySelector('.card-peek'), 'Greyed upgrade row should show peek on hover').not.toBeNull();
+        expect(peekTile(), 'Greyed upgrade row should show peek on hover').not.toBeNull();
+        await fire(upgRow!, 'mouseout');
+        await flush();
+        expect(peekTile()).toBeNull();
 
         // 3b: Greyed sell row (at floor, deck cards disabled)
         const { run: floorRun, node: floorNode } = makeMarketRun(500);
@@ -123,7 +143,7 @@ describe('Ticket 165a — row hover card peek', () => {
 
         await fire(greyedSellRow!, 'mouseover');
         await flush();
-        expect(mktSell.querySelector('.card-peek'), 'Greyed sell row should show peek on hover').not.toBeNull();
+        expect(peekTile(), 'Greyed sell row should show peek on hover').not.toBeNull();
     });
 
     it('4. Moving off the row hides it', async () => {
@@ -134,11 +154,11 @@ describe('Ticket 165a — row hover card peek', () => {
         const row = host.querySelector('.rs-row')!;
         await fire(row, 'mouseover');
         await flush();
-        expect(host.querySelector('.card-peek')).not.toBeNull();
+        expect(peekTile()).not.toBeNull();
 
         await fire(row, 'mouseout');
         await flush();
-        expect(host.querySelector('.card-peek')).toBeNull();
+        expect(peekTile()).toBeNull();
     });
 
     it('5. Keyboard focus shows it too', async () => {
@@ -151,12 +171,107 @@ describe('Ticket 165a — row hover card peek', () => {
             row.focus();
         });
         await flush();
-        expect(host.querySelector('.card-peek')).not.toBeNull();
+        expect(peekTile()).not.toBeNull();
 
         await act(async () => {
             row.blur();
         });
         await flush();
-        expect(host.querySelector('.card-peek')).toBeNull();
+        expect(peekTile()).toBeNull();
+    });
+});
+
+/**
+ * THE LAYOUT-SHIFT REGRESSION (167f). The old block grew the panel, the list moved under the mouse,
+ * the hover landed on another row and it repeated. jsdom has no layout, so "the panel did not grow"
+ * is asserted as what growing looks like in markup: the panel gained no child and no text.
+ */
+describe('Ticket 167f — the preview is a tooltip, not a block in the panel', () => {
+    it('hovering does not add anything to the panel it is hovered in', async () => {
+        const store = makeStore();
+        const host = await mount(store, <UpgradeBench run={makeRun(500)} heading="UPGRADE" benchKey="n1:1" />);
+        const panel = host.querySelector('.mk-upgrade') as HTMLElement;
+        const before = { children: panel.childElementCount, html: panel.innerHTML };
+
+        await fireAt(panel.querySelector('.rs-row')!, 'mouseover', 300, 200);
+        await flush();
+
+        expect(peekTile()).not.toBeNull();
+        expect(panel.childElementCount).toBe(before.children);
+        expect(panel.innerHTML).toBe(before.html);
+    });
+
+    it('the same holds for the sell list', async () => {
+        const { run, node } = makeMarketRun(500);
+        const host = await mount(
+            makeStore(),
+            <MarketplaceNode
+                run={run}
+                node={node}
+                party={[{ definitionId: 'kraken', activeOS: 'kraken_v1' }]}
+                onEditLoadout={() => undefined}
+                onLeave={() => undefined}
+            />,
+        );
+        const panel = host.querySelector('.mk-sell') as HTMLElement;
+        const before = panel.innerHTML;
+
+        await fireAt(panel.querySelector('.rs-row')!, 'mouseover', 300, 200);
+        await flush();
+
+        expect(peekTile()).not.toBeNull();
+        expect(panel.innerHTML).toBe(before);
+    });
+
+    it('takes no pointer events, so it can never take the hover away from the row', async () => {
+        const host = await mount(makeStore(), <UpgradeBench run={makeRun(500)} heading="UPGRADE" benchKey="n1:1" />);
+        await fireAt(host.querySelector('.rs-row')!, 'mouseover', 300, 200);
+        await flush();
+        expect(peekTile()!.style.pointerEvents).toBe('none');
+    });
+
+    it('is drawn beside the pointer, at the position `placePeek` gives', async () => {
+        const host = await mount(makeStore(), <UpgradeBench run={makeRun(500)} heading="UPGRADE" benchKey="n1:1" />);
+        const row = host.querySelector('.rs-row')!;
+
+        await fireAt(row, 'mouseover', 300, 200);
+        await flush();
+
+        const scale = stageScale(window.innerWidth, window.innerHeight);
+        const want = placePeek({ x: 300, y: 200 }, window.innerWidth, window.innerHeight, scale);
+        const tile = peekTile()!;
+        expect(tile.style.left).toBe(`${want.left}px`);
+        expect(tile.style.top).toBe(`${want.top}px`);
+        expect(want.flipped).toBe(false);
+        expect(tile.style.transform).toBe(`scale(${scale})`);
+    });
+
+    it('flips to the left of the pointer near the right edge of the window', async () => {
+        const host = await mount(makeStore(), <UpgradeBench run={makeRun(500)} heading="UPGRADE" benchKey="n1:1" />);
+
+        await fireAt(host.querySelector('.rs-row')!, 'mouseover', window.innerWidth - 20, 200);
+        await flush();
+
+        const tile = peekTile()!;
+        expect(parseFloat(tile.style.left)).toBeLessThan(window.innerWidth - 20);
+    });
+
+    it('follows the mouse: a move repositions it within a frame, and leaving cancels a pending move', async () => {
+        const host = await mount(makeStore(), <UpgradeBench run={makeRun(500)} heading="UPGRADE" benchKey="n1:1" />);
+        const row = host.querySelector('.rs-row')!;
+        const frame = () => act(async () => { await new Promise((resolve) => requestAnimationFrame(() => resolve(null))); });
+
+        await fireAt(row, 'mouseover', 300, 200);
+        const startLeft = peekTile()!.style.left;
+
+        await fireAt(row, 'mousemove', 420, 260);
+        await frame();
+        expect(peekTile()!.style.left).not.toBe(startLeft);
+
+        // A move queued and then a mouseout: the late frame must not bring the tile back.
+        await fireAt(row, 'mousemove', 500, 300);
+        await fire(row, 'mouseout');
+        await frame();
+        expect(peekTile()).toBeNull();
     });
 });

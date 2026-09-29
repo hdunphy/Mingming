@@ -348,17 +348,26 @@
 }
 
 .card-peek {
-    position: static;
-    margin: 10px auto 0;
-    flex: 0 0 auto;
+    /*
+     * TICKET 167f: a tooltip beside the mouse, drawn into <body> by `CardPeek`. `left`, `top` and
+     * `transform: scale()` are set inline (they depend on the pointer and the window). The origin is
+     * the top-left corner because the placement maths is done on the scaled size from that corner.
+     *
+     * `pointer-events: none` is REQUIRED, not polish: a tile that could take the hover away from the
+     * row is the loop this row exists to end.
+     */
+    position: fixed;
+    z-index: 10001;
+    transform-origin: top left;
     pointer-events: none;
     box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
     animation: card-peek-in 0.12s ease-out;
 }
 
+/* Opacity only: the tile's `transform` is the stage scale and must not be animated away. */
 @keyframes card-peek-in {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: none; }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .rs-g {

@@ -162,22 +162,30 @@ describe('159b — the enemy hand panel', () => {
         expect(rows()[0].className).not.toContain('ehp-poor');
     });
 
-    it('shows the card tile under the rows on hover, and takes it back', () => {
+    it('shows the card tile beside the mouse on hover, outside the panel, and takes it back', () => {
         render(board(card('ignite')));
-        expect(container.querySelector('.ehp-peek')).toBeNull();
+        const tile = () => document.body.querySelector<HTMLElement>('.card-peek');
+        expect(tile()).toBeNull();
+        const panel = container.querySelector('.ehp-inner') as HTMLElement;
+        const before = { children: panel.childElementCount, html: panel.innerHTML };
 
         act(() => {
-            rows()[0].dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            rows()[0].dispatchEvent(new MouseEvent('mouseover', { bubbles: true, clientX: 200, clientY: 300 }));
         });
-        const peek = container.querySelector('.ehp-peek');
-        expect(peek).not.toBeNull();
-        // It must never eat the pointer — it sits over the rows that opened it.
-        expect(peek!.getAttribute('aria-hidden')).toBe('true');
+        // TICKET 167f: a tooltip drawn into <body>, not a block under the rows in the panel.
+        expect(tile()).not.toBeNull();
+        expect(tile()!.parentElement).toBe(document.body);
+        expect(container.contains(tile())).toBe(false);
+        // It must never eat the pointer, and it must not grow the panel under the mouse.
+        expect(tile()!.getAttribute('aria-hidden')).toBe('true');
+        expect(tile()!.style.pointerEvents).toBe('none');
+        expect(panel.childElementCount).toBe(before.children);
+        expect(panel.innerHTML).toBe(before.html);
 
         act(() => {
             rows()[0].dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
         });
-        expect(container.querySelector('.ehp-peek')).toBeNull();
+        expect(tile()).toBeNull();
     });
 
     it('opens from the keyboard, not only from a pointer', () => {

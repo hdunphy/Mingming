@@ -3934,10 +3934,8 @@ body {
   margin-left: 34px;
   max-height: calc(100vh - 220px);
   overflow: hidden auto;
-  /* Column, like `.led-deck`: the rows give the peek its room rather than it scrolling under
-     them. */
-  display: flex;
-  flex-direction: column;
+  /* Already a column: `.rs-panel` is. (167f: the card tile is a tooltip now, so this panel no
+     longer needs its own rule to leave the old in-panel tile room.) */
 }
 
 .ehp-inner h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -3968,14 +3966,3 @@ body {
    overlay updates the fight underneath it immediately rather than at the next fight. */
 :root[data-enemy-hand='off'] .ehp { display: none; }
 .ehp-unknown .rs-g { background: #2c3240; color: #9fb4c8; }
-
-/* `.led-peek`, to the letter. It sets no width or height on purpose — `.rs-card` already carries
-   `--cw: 152px` / `--ch: 200px`, which is where §5's "152×200" comes from. Restating them here
-   would be a second copy to drift, and the first cut of this file had exactly that. */
-.ehp-peek {
-  position: static;
-  margin: 10px auto 0;
-  flex: 0 0 auto;
-  pointer-events: none;      /* it must never eat a click meant for the row under it */
-  box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
-}

@@ -19,6 +19,10 @@ import { describe, expect, it } from 'vitest';
 import LoadoutEditor from './LoadoutEditor';
 import { makeRun, makeRanch } from './LoadoutEditor.test';
 import { makeStore, mount, fire, flush } from '../../testing/interaction';
+import { fireAt } from '../../testing/pointer';
+
+/** 167f: the tile is a tooltip drawn into <body>, so it is found there and not inside the editor. */
+const peekTile = (): HTMLElement | null => document.body.querySelector<HTMLElement>('.card-peek');
 
 async function openEditor(): Promise<HTMLElement> {
     return mount(
@@ -29,7 +33,8 @@ async function openEditor(): Promise<HTMLElement> {
 
 describe('LoadoutEditor — hovering a deck row shows the collection card', () => {
     it('draws no peek until a row is hovered', async () => {
-        expect((await openEditor()).querySelector('.led-peek')).toBeNull();
+        await openEditor();
+        expect(peekTile()).toBeNull();
     });
 
     it('hovering a deck row opens the tile, and leaving closes it', async () => {
@@ -39,11 +44,14 @@ describe('LoadoutEditor — hovering a deck row shows the collection card', () =
 
         await fire(row!, 'mouseover');
         await flush();
-        expect(host.querySelector('.led-peek'), 'hover should open a peek').not.toBeNull();
+        expect(peekTile(), 'hover should open a peek').not.toBeNull();
+        // 167f: a child of the page body, outside every container.
+        expect(peekTile()!.parentElement).toBe(document.body);
+        expect(host.contains(peekTile())).toBe(false);
 
         await fire(row!, 'mouseout');
         await flush();
-        expect(host.querySelector('.led-peek')).toBeNull();
+        expect(peekTile()).toBeNull();
     });
 
     it('the peek IS the collection tile — the four things a 27px row cannot carry', async () => {
@@ -51,7 +59,7 @@ describe('LoadoutEditor — hovering a deck row shows the collection card', () =
         await fire(host.querySelector('.rs-row')!, 'mouseover');
         await flush();
 
-        const peek = host.querySelector('.led-peek')!;
+        const peek = peekTile()!;
         expect(peek.classList.contains('rs-card')).toBe(true);
         expect(peek.querySelector('.rs-desc'), 'the description is the point').not.toBeNull();
         expect(peek.querySelector('.rs-art'), 'the art block').not.toBeNull();
@@ -63,6 +71,20 @@ describe('LoadoutEditor — hovering a deck row shows the collection card', () =
         const host = await openEditor();
         await fire(host.querySelector('.rs-row')!, 'mouseover');
         await flush();
-        expect((host.querySelector('.led-peek') as HTMLElement).getAttribute('aria-hidden')).toBe('true');
+        expect(peekTile()!.getAttribute('aria-hidden')).toBe('true');
+        expect(peekTile()!.style.pointerEvents).toBe('none');
+    });
+
+    it('hovering does not change the deck column: nothing is added to it (167f)', async () => {
+        const host = await openEditor();
+        const column = host.querySelector('.led-deck') as HTMLElement;
+        const before = { children: column.childElementCount, html: column.innerHTML };
+
+        await fireAt(host.querySelector('.rs-row')!, 'mouseover', 300, 200);
+        await flush();
+
+        expect(peekTile()).not.toBeNull();
+        expect(column.childElementCount).toBe(before.children);
+        expect(column.innerHTML).toBe(before.html);
     });
 });
