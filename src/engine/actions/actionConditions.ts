@@ -8,7 +8,7 @@
 import type { IBattleEntity, IBattleState, ProgramAction } from '../types';
 import { ConditionValidator } from '../core/ConditionValidator';
 
-export const COUNTER_CONSTRAINTS: ReadonlySet<string> = new Set(['CARDS_PLAYED', 'CARDS_DRAWN', 'CARDS_DRAWN_TRIGGERED']);
+export const COUNTER_CONSTRAINTS: ReadonlySet<string> = new Set(['CARDS_PLAYED', 'CARDS_DRAWN', 'CARDS_DRAWN_TRIGGERED', 'SIDE_CARDS_DRAWN_TRIGGERED']);
 
 /**
  * Evaluates whether all action-level conditionals on `action` are met in the current battle context.

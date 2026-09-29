@@ -451,8 +451,8 @@
   "id": "surge_protection",
   "name": "Surge Protection",
   "cost": 1,
-  "text": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
-  "plus": "35 power. If an effect drew you a card this turn, refund 1 Energy.",
+  "text": "25 power. If an effect drew your team a card this turn, refund 1 Energy.",
+  "plus": "35 power. If an effect drew your team a card this turn, refund 1 Energy.",
   "rule": "flat: +40%"
  },
  {

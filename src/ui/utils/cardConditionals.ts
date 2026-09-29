@@ -40,7 +40,7 @@ import type { IBattleEntity, IBattleState, ProgramConstraint, ProgramData } from
 import { validateSingleConstraint } from '../../engine/battleReducer';
 
 /** The per-turn counters the reducer reads on the LIVE caster — see `battleReducer`, ticket 162a. */
-const COUNTER_CONSTRAINTS: ReadonlySet<string> = new Set(['CARDS_PLAYED', 'CARDS_DRAWN', 'CARDS_DRAWN_TRIGGERED']);
+const COUNTER_CONSTRAINTS: ReadonlySet<string> = new Set(['CARDS_PLAYED', 'CARDS_DRAWN', 'CARDS_DRAWN_TRIGGERED', 'SIDE_CARDS_DRAWN_TRIGGERED']);
 
 /** One conditional action on a card, and whether its condition holds right now. */
 export interface ConditionalReading {
@@ -126,6 +126,8 @@ export function describeConditional(c: ProgramConstraint): string {
             return `if this is card ${c.value}+ the caster played this turn`;
         case 'CARDS_DRAWN_TRIGGERED':
             return `if an effect drew the caster ${c.value}+ card${Number(c.value) === 1 ? '' : 's'} this turn`;
+        case 'SIDE_CARDS_DRAWN_TRIGGERED':
+            return `if an effect drew your team ${c.value}+ card${Number(c.value) === 1 ? '' : 's'} this turn`;
         case 'CARDS_DRAWN':
             return `if ${c.value}+ cards were drawn this turn`;
         default:

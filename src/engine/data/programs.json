@@ -1096,7 +1096,7 @@
     "surge_protection": {
         "id": "surge_protection",
         "name": "Surge Protection",
-        "description": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
+        "description": "25 power. If an effect drew your team a card this turn, refund 1 Energy.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -1119,7 +1119,7 @@
                 "target": "SELF",
                 "conditionals": [
                     {
-                        "id": "card_drawn_check"
+                        "id": "team_card_drawn_check"
                     }
                 ]
             }
@@ -8864,7 +8864,7 @@
     "surge_protection+": {
         "id": "surge_protection+",
         "name": "Surge Protection+",
-        "description": "35 power. If an effect drew you a card this turn, refund 1 Energy.",
+        "description": "35 power. If an effect drew your team a card this turn, refund 1 Energy.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",
@@ -8888,7 +8888,7 @@
                 "target": "SELF",
                 "conditionals": [
                     {
-                        "id": "card_drawn_check"
+                        "id": "team_card_drawn_check"
                     }
                 ]
             }

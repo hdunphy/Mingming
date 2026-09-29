@@ -50,6 +50,16 @@ export class CardsDrawnTriggeredConstraintBehavior implements ConstraintBehavior
     }
 }
 
+export class SideCardsDrawnTriggeredConstraintBehavior implements ConstraintBehavior {
+    readonly type: ProgramConstraintType = ProgramConstraintType.SideCardsDrawnTriggered;
+    validate(_constraint: ProgramConstraint, _pkg: ConstraintPackage): boolean {
+        // TICKET 167e: the team's triggered-draw count is a sum over the caster's whole side, and this
+        // registry is the stateless UI PREVIEW path (see CardsDrawnTriggered above), so it cannot see
+        // the other bodies. Same deliberate always-true; the reducer's ConditionValidator decides.
+        return true;
+    }
+}
+
 export class CardsDrawnConstraintBehavior implements ConstraintBehavior {
     readonly type: ProgramConstraintType = ProgramConstraintType.CardsDrawn;
     validate(_constraint: ProgramConstraint, _pkg: ConstraintPackage): boolean {
@@ -81,6 +91,7 @@ const CONSTRAINT_REGISTRY: Record<ProgramConstraintType, ConstraintBehavior> = {
     [ProgramConstraintType.Base]: new BaseConstraintBehavior(),
     [ProgramConstraintType.CardsDrawn]: new CardsDrawnConstraintBehavior(),
     [ProgramConstraintType.CardsDrawnTriggered]: new CardsDrawnTriggeredConstraintBehavior(),
+    [ProgramConstraintType.SideCardsDrawnTriggered]: new SideCardsDrawnTriggeredConstraintBehavior(),
     [ProgramConstraintType.CardsPlayed]: new CardsPlayedConstraintBehavior(),
 };
 

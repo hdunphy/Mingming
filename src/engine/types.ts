@@ -56,6 +56,12 @@ export const ProgramConstraintType = {
    */
   CardsDrawnTriggered: 'CARDS_DRAWN_TRIGGERED',
   /**
+   * TICKET 167e (Henry, 2026-09-28): draws an EFFECT caused this turn for the caster's WHOLE SIDE.
+   * `surge_protection`'s refund only. The 2026-08-30 per-caster ruling stands for everything else,
+   * scalers included - see `CARDS_DRAWN_TRIGGERED`.
+   */
+  SideCardsDrawnTriggered: 'SIDE_CARDS_DRAWN_TRIGGERED',
+  /**
    * TICKET 162a: how many cards THIS CASTER has played this turn, the card already counted.
    *
    * Per-caster rather than per-side, for the reason ticket 123 settled for the `CARDS_PLAYED`

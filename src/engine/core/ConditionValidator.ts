@@ -274,6 +274,20 @@ export const ConditionValidator = {
                 if ((source.nonNaturalDrawsThisTurn ?? 0) < (constraint.value as number)) return false;
                 break;
 
+            case 'SIDE_CARDS_DRAWN_TRIGGERED': {
+                /*
+                 * TICKET 167e (Henry, 2026-09-28): *"make its refund count the whole team's draws."*
+                 * The refund only - `CARDS_DRAWN_TRIGGERED` above stays per-caster, and so does every
+                 * scaler, because the 2026-08-30 ruling was about damage. Every body on the side counts,
+                 * living or not: a draw that happened this turn happened.
+                 */
+                if (!state) return true; // Fail safe, same as CARDS_DRAWN_TRIGGERED
+                const side = state.playerParty.some((e) => e.id === source.id) ? state.playerParty : state.enemyParty;
+                const drawn = side.reduce((total, e) => total + (e.nonNaturalDrawsThisTurn ?? 0), 0);
+                if (drawn < (constraint.value as number)) return false;
+                break;
+            }
+
             case 'CARDS_PLAYED':
                 /*
                  * TICKET 162a - how many cards THIS CASTER has played this turn, `riptide_run`'s

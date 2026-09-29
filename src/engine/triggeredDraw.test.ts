@@ -59,18 +59,21 @@ describe('surge_protection is wired to the triggered check', () => {
     it('its refund INFLATES to the triggered type - not to whatever it was written inline as', () => {
         const card = GetProgramData('surge_protection');
         const refund = card.actions.find((a: ProgramAction) => a.type === 'ENERGY') as ProgramAction;
-        expect(refund.conditionals?.[0]?.id).toBe('card_drawn_check');
+        // TICKET 167e: the refund reads the TEAM's triggered draws (`team_card_drawn_check`), no
+        // longer the caster's own (`card_drawn_check`). Ink Stream's scaler is still per caster.
+        expect(refund.conditionals?.[0]?.id).toBe('team_card_drawn_check');
         // This is the assertion that would have caught the original defect. The card used to
         // carry an inline `type: 'BASE'` alongside the id, and `inflateConstraint` spreads the
         // INLINE object last - so the override won and the "draw check" was really an energy
         // check against cost 0, i.e. always true. It had never been a draw condition at all.
-        expect(refund.conditionals![0].type).toBe('CARDS_DRAWN_TRIGGERED');
+        expect(refund.conditionals![0].type).toBe('SIDE_CARDS_DRAWN_TRIGGERED');
         // TICKET 162a: collection v2 reworded it to "if an effect drew you a card this turn",
         // which is the phrasing ticket 136t already ruled for `starfall` — Henry cut the list
         // because "for each card a card, OS or daemon drew you" does not read. The assertion's
         // job is unchanged: the TEXT has to tell the player the count excludes the draw-phase
         // refill, because that exclusion is the whole difference between the two scalers.
-        expect(card.description).toContain('an effect drew you');
+        // 167e: and it says whose draws count now, "your team".
+        expect(card.description).toContain('an effect drew your team');
     });
 
     it('NO card inline-overrides a library constraint type (the footgun that hid this bug)', () => {

@@ -44,6 +44,11 @@
         "target": "SELF",
         "value": 1
     },
+    "team_card_drawn_check": {
+        "type": "SIDE_CARDS_DRAWN_TRIGGERED",
+        "target": "SELF",
+        "value": 1
+    },
     "self_poisoned": {
         "type": "HAS_STATUS",
         "target": "SELF",

@@ -83,6 +83,7 @@ function clauseMatches(clause: string, c: ProgramConstraint, isElseBranch: boole
         case 'CARDS_PLAYED':
             return /\b(third|second|fourth|\d+(st|nd|rd|th))\b/i.test(clause) || /\bcards? you played\b/i.test(clause);
         case 'CARDS_DRAWN_TRIGGERED':
+        case 'SIDE_CARDS_DRAWN_TRIGGERED':
         case 'CARDS_DRAWN':
             return /\bdr[ae]w\b/i.test(clause) && CONDITION_CUE.test(clause);
         default:
