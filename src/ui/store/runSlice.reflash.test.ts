@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import runReducer, { fitPatch, reflashMember, type RunSliceState } from './runSlice';
+import runReducer, { fitPatch, reflashEngine, reflashMember, type RunSliceState } from './runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import type { IMingmingState } from '../../engine/types';
@@ -55,5 +55,22 @@ describe('reflashMember', () => {
 
     it('does nothing without a run', () => {
         expect(runReducer({ run: null }, reflashMember({ memberId: 'mm1', osId: 'kraken_v2' })).run).toBeNull();
+    });
+});
+
+describe('the workshop’s permanent reflash after an event reflash (168f follow-up)', () => {
+    const workshop = { memberId: 'mm1', retireIds: [] as string[], cards: [], price: 0 };
+
+    it('clears that body’s override, so the run follows the ranch OS the workshop just wrote', () => {
+        let state = stateOf(makeRun());
+        state = runReducer(state, reflashMember({ memberId: 'mm1', osId: 'kraken_v2' }));
+        state = runReducer(state, reflashMember({ memberId: 'mm2', osId: 'fenrir_v2' }));
+        const after = runReducer(state, reflashEngine(workshop)).run!;
+        expect(after.osOverrides).toEqual({ mm2: 'fenrir_v2' });
+    });
+
+    it('leaves a run with no override for that body exactly as it was', () => {
+        const run = makeRun();
+        expect('osOverrides' in runReducer(stateOf(run), reflashEngine(workshop)).run!).toBe('osOverrides' in run);
     });
 });

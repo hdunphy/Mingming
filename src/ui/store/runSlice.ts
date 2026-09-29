@@ -1005,12 +1005,17 @@ const runSlice = createSlice({
                 }
             }
 
+            // TICKET 168f follow-up (Henry): this is the permanent reflash, which rewrites the ranch
+            // member and swaps its engine. An event's run-only OS switch on the same body would win
+            // over it in every fight, so it is dropped: the body follows the OS the workshop wrote.
+            const { [memberId]: _superseded, ...otherOverrides } = run.osOverrides ?? {};
             return {
                 run: {
                     ...run,
                     scrap: run.scrap - price,
                     deck: [...keep, ...cards],
                     collection: [...(run.collection ?? []), ...retired],
+                    ...(run.osOverrides !== undefined && memberId in run.osOverrides ? { osOverrides: otherOverrides } : {}),
                 },
             };
         },
