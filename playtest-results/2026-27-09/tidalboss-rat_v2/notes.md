@@ -1,0 +1,18 @@
+- rat doesn't feel very strong to start. First match took a while, but lets see how it goes.
+- Acorn toss should hit more times. Maybe a 4 power times 3 or 5 power times 3
+- Not getting good cards in first 3 rewards.
+- The enemy hand disappears on enemy turn. If I open it, it should stay open until I close it. Also if its closed, the enemies should be tight tothe right side. Opening it should push them over.
+- The damage numbers cover eachother and move away to fast. its hard to read them.
+- Barkshield numbers need to be fixed either to an int or 2 decimals it currently reads as 1.3248929838928 when you hover over the target with barkshield.
+- Hovering over upgrades in the Workshot spazzes out. It can't move the list high enough
+- The enemy rat doesn't play seed bomb optimally. At the biome elite it just plays it on like the 3rd play and still has a bunch of "forage" cards.
+- The enemy also had an easy kill, left me with 5HP to attack a different mingming with full HP.
+- Surge protection should work on the side. So if your team drew a card
+- Having a hard time finding a good deck maybe this is just part of the run luck, but I was looking for a zoo deck that works on Dazed
+    - I found the dazed scaling cards, they are all water cards. Maybe there should be some nature ones?
+- Undertow upgrade gives you an additional weakend! It should either be no weakend or draw 2 cards.
+- Hovering over the cards in the sell pile or in your deck tries to show the card details at the bottom of the div element which moves everything. The card should be static so it hovers next to the mouse and it should be outside of any containers. Like a tooltip.
+- I need to see which Mingming's already have a patch in the rewards screen.
+- What happens if you have a patch where you already have one?
+- First two battles of the "water" boss had two fire mingmings. That's really frustrating.
+- Lost and really feel like the fire types screwed me over. That was a frustrating way to lose. 
