@@ -666,7 +666,7 @@
       "shape": "scalar",
       "cur": "Dazed",
       "status": "revise",
-      "why": "Was Nature (Rat). Per-stack Dazed is Kraken’s; Rat keeps the binary \"if Dazed\" riders."
+      "why": "Nature since 167d (Henry, 2026-09-28). It left Kraken v1, which now runs a second Crushing Depths, and is a run-only card so a Nature party (Ratatoskr, Huldra) can be offered it. Per-stack Dazed stays the card's job; Kraken keeps Crushing Depths."
     },
     {
       "id": "ink_cloud",
@@ -924,11 +924,11 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "6 power, twice.",
+      "text": "5 power, three times.",
       "shape": "enabler",
       "cur": "cards",
       "status": "revise",
-      "why": "Seed Spit minus the Poison, as the 0e multi-hit: two Dazed-on-target hits for one INSTIGATOR proc. Tackle is the flat 0e."
+      "why": "Seed Spit minus the Poison, as the 0e multi-hit: three hits for one INSTIGATOR proc (167b: 5 power x3, 5 x4 upgraded). Tackle is the flat 0e."
     },
     {
       "id": "forage",
@@ -1894,13 +1894,7 @@
         ],
         [
           "crushing_depths",
-          1,
-          "B",
-          0
-        ],
-        [
-          "slander",
-          1,
+          2,
           "B",
           0
         ]
@@ -1920,7 +1914,7 @@
         ],
         [
           "Depths",
-          "whirlpool whirlpool ink_cloud pressure_point crushing_depths crushing_depths slander undertow"
+          "whirlpool whirlpool ink_cloud pressure_point crushing_depths crushing_depths ink_stream undertow"
         ],
         [
           "With Rat v2",
@@ -2169,6 +2163,7 @@
     "short_fuse",
     "riptide",
     "short_circuit",
-    "static_ward"
+    "static_ward",
+    "slander"
   ]
 }
