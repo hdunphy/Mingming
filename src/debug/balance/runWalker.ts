@@ -577,7 +577,7 @@ export function playEventNode(
         return;
     }
 
-    const choice = chooseEventChoice(event);
+    const choice = chooseEventChoice(event, scrapBefore);
     const picks: Record<number, CardPickResult> = {};
     choice.outcomes.forEach((outcome, index) => {
         if (!isInteractiveOutcome(outcome) || outcome.type !== 'CARD_PICK') return;

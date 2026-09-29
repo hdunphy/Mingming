@@ -16,6 +16,7 @@
  */
 
 import type { IBattleSetup } from '../data/battleFactories';
+import { tempDriverIds } from './tempDrivers';
 import type { IRanchMember, IRanchState, IRunState } from '../runTypes';
 import type { IMingmingState } from '../types';
 
@@ -88,7 +89,8 @@ export function buildBattleSetup(
     return {
         party,
         deck: run.deck.map((card) => card.dataId),
-        drivers: [...run.drivers],
+        // TICKET 168b: the run's Drivers, then any temporary ones the next fight runs under.
+        drivers: [...run.drivers, ...tempDriverIds(run)],
         // TICKET 163d: copied for the reason the comment below gives about `persistedHp` — the run
         // is deeply readonly and the factory is free to read this however it likes.
         patches: { ...(run.patches ?? {}) },

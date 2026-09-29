@@ -82,9 +82,9 @@ describe('events.json', () => {
         expect(EVENTS.filter((e) => e.grants.length > 0)).toHaveLength(2);
     });
 
-    it('offers only the choices whose outcomes are built: Scrap Cache has no Dig deeper yet', () => {
+    it('offers only the choices whose outcomes are built, and Dig deeper is built as of 168b', () => {
         const cache = getEvent('scrap_cache')!;
-        expect(playableChoices(cache).map((c) => c.id)).toEqual(['take', 'leave']);
+        expect(playableChoices(cache).map((c) => c.id)).toEqual(['take', 'dig', 'leave']);
     });
 });
 

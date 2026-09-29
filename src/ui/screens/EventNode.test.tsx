@@ -19,7 +19,7 @@ import EventNode from './EventNode';
 import runReducer from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
-import { drawEvent } from '../../engine/run/events/eventDraw';
+import { BUILT_EVENTS, drawEvent } from '../../engine/run/events/eventDraw';
 import type { EventRanchView } from '../../engine/run/events/eventContext';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
@@ -45,6 +45,11 @@ function baseRun(): IRunState {
         currentNodeId: target.id,
         nodes: run.nodes.map((node) => (node.id === target.id ? { ...node, visited: 1 } : node)),
     };
+}
+
+/** Every built event except the named one (or all of them), so the draw is forced onto what is left. */
+function allBut(keep?: string): string[] {
+    return [...BUILT_EVENTS].filter((id) => id !== keep);
 }
 
 /** A run that has already seen the named events, so the draw is forced onto what is left. */
@@ -108,7 +113,8 @@ describe('EventNode', () => {
         expect(host.textContent).toContain(expected.text);
         const choices = [...host.querySelectorAll('button.ev-choice')];
         expect(choices.length).toBeGreaterThanOrEqual(2);
-        expect(byText('Leave')).toBeDefined();
+        // Every event is leavable except Corrupted Stream and The Toll.
+        expect(byText('Leave') !== undefined).toBe(expected.choices.some((c) => c.id === 'leave'));
     });
 
     it('has no close button: the only way out of an unresolved event is one of its choices', async () => {
@@ -120,11 +126,11 @@ describe('EventNode', () => {
 
     it('shows "The relay is dark" once resolved, with a Leave that calls onLeave', async () => {
         let left = 0;
-        const store = makeStore(baseRun());
+        const store = makeStore(seenRun(allBut('scrap_cache')));
         await mount(store, () => { left += 1; });
 
         await click(byText('Leave'));
-        expect(store.getState().run.run!.eventHistory).toHaveLength(1);
+        expect(store.getState().run.run!.eventHistory).toHaveLength(BUILT_EVENTS.size);
         expect(host.textContent).toContain('The relay is dark. Nothing here now.');
         expect(host.querySelectorAll('button.ev-choice')).toHaveLength(0);
 
@@ -144,7 +150,7 @@ describe('EventNode', () => {
     });
 
     it('pays scrap for Scrap Cache’s Take, then goes dark', async () => {
-        const store = makeStore(seenRun(['data_fragments', 'relay_tower']));
+        const store = makeStore(seenRun(allBut('scrap_cache')));
         await mount(store);
         const before = store.getState().run.run!.scrap;
         await click(byText('Take it'));
@@ -153,7 +159,7 @@ describe('EventNode', () => {
     });
 
     it('offers Data Fragments’ three cards, needs one picked, and puts it in the deck', async () => {
-        const store = makeStore(seenRun(['scrap_cache', 'relay_tower']));
+        const store = makeStore(seenRun(allBut('data_fragments')));
         await mount(store);
         const deckBefore = store.getState().run.run!.deck.length;
 
@@ -162,27 +168,27 @@ describe('EventNode', () => {
         const take = byText('TAKE CARD')!;
         expect(take.disabled).toBe(true);
         // Nothing is spent or granted until the pick is made.
-        // (The two pre-seeded entries are the events this run has already seen.)
-        expect(store.getState().run.run!.eventHistory ?? []).toHaveLength(2);
+        // (The pre-seeded entries are the other built events, already seen.)
+        expect(store.getState().run.run!.eventHistory ?? []).toHaveLength(BUILT_EVENTS.size - 1);
 
         await click(host.querySelector('.rs-card') as HTMLButtonElement);
         expect(byText('TAKE CARD')!.disabled).toBe(false);
         await click(byText('TAKE CARD'));
 
         expect(store.getState().run.run!.deck).toHaveLength(deckBefore + 1);
-        expect(store.getState().run.run!.eventHistory).toHaveLength(3);
+        expect(store.getState().run.run!.eventHistory).toHaveLength(BUILT_EVENTS.size);
         expect(host.textContent).toContain('The relay is dark');
     });
 
     it('can send the picked card to the collection instead, and can back out for free', async () => {
-        const store = makeStore(seenRun(['scrap_cache', 'relay_tower']));
+        const store = makeStore(seenRun(allBut('data_fragments')));
         await mount(store);
         const run0 = store.getState().run.run!;
 
         await click(byText('Pick 1 of 3 cards'));
         await click(byText('BACK'));
         expect(byText('Pick 1 of 3 cards')).toBeDefined();
-        expect(store.getState().run.run!.eventHistory).toHaveLength(2);
+        expect(store.getState().run.run!.eventHistory).toHaveLength(BUILT_EVENTS.size - 1);
 
         await click(byText('Pick 1 of 3 cards'));
         await click(host.querySelector('.rs-card') as HTMLButtonElement);
@@ -194,7 +200,7 @@ describe('EventNode', () => {
     });
 
     it('surveys the biome for Relay Tower, and greys Survey when it is already surveyed', async () => {
-        const store = makeStore(seenRun(['scrap_cache', 'data_fragments']));
+        const store = makeStore(seenRun(allBut('relay_tower')));
         await mount(store);
         const before = store.getState().run.run!.modifiers.length;
         await click(byText('Survey'));
@@ -202,7 +208,7 @@ describe('EventNode', () => {
     });
 
     it('plays the Empty Relay when nothing is left: +15 scrap, remembered as no event', async () => {
-        const store = makeStore(seenRun(['scrap_cache', 'data_fragments', 'relay_tower']));
+        const store = makeStore(seenRun(allBut()));
         await mount(store);
         expect(host.textContent).toContain('The relay is empty. You salvage 15 scrap.');
 
@@ -212,5 +218,39 @@ describe('EventNode', () => {
         expect(run.scrap).toBe(before + 15);
         expect(run.eventHistory!.at(-1)).toMatchObject({ eventId: 'empty_relay', choiceId: 'salvage' });
         expect(host.textContent).toContain('The relay is dark');
+    });
+    it('offers Dig deeper on Scrap Cache: +50 scrap and Static Haze for the next fight', async () => {
+        const store = makeStore(seenRun(allBut('scrap_cache')));
+        await mount(store);
+        const before = store.getState().run.run!.scrap;
+        await click(byText('Dig deeper'));
+        const run = store.getState().run.run!;
+        expect(run.scrap).toBe(before + 50);
+        expect(run.tempDrivers).toEqual([{ driverId: 'driver_static_haze', fightsLeft: 1 }]);
+        expect(run.drivers).not.toContain('driver_static_haze');
+    });
+
+    it('plays Corrupted Stream with no way to leave: Push through gives Frayed Signal', async () => {
+        const store = makeStore({ ...seenRun(allBut('corrupted_stream')), scrap: 10 });
+        await mount(store);
+        expect(host.textContent).toContain('CORRUPTED STREAM');
+        expect(byText('Leave')).toBeUndefined();
+        // Under 25 scrap, the reroute is greyed and says why.
+        const reroute = byText('Pay to reroute')!;
+        expect(reroute.disabled).toBe(true);
+        expect(reroute.textContent).toContain('Not enough scrap');
+
+        await click(byText('Push through'));
+        expect(store.getState().run.run!.tempDrivers).toEqual([{ driverId: 'driver_frayed_signal', fightsLeft: 1 }]);
+        expect(store.getState().run.run!.scrap).toBe(10);
+        expect(host.textContent).toContain('The relay is dark');
+    });
+
+    it('lets Corrupted Stream be paid off with 25 scrap, and then gives no Driver', async () => {
+        const store = makeStore({ ...seenRun(allBut('corrupted_stream')), scrap: 40 });
+        await mount(store);
+        await click(byText('Pay to reroute'));
+        expect(store.getState().run.run!.scrap).toBe(15);
+        expect(store.getState().run.run!.tempDrivers ?? []).toEqual([]);
     });
 });

@@ -11,7 +11,7 @@
 
 import type { EventChoice, EventDefinition, EventOutcome } from './eventSchema';
 
-export const BUILT_OUTCOME_TYPES: ReadonlySet<EventOutcome['type']> = new Set(['SCRAP', 'CARD_PICK', 'MAP_REVEAL']);
+export const BUILT_OUTCOME_TYPES: ReadonlySet<EventOutcome['type']> = new Set(['SCRAP', 'CARD_PICK', 'MAP_REVEAL', 'TEMP_DRIVER']);
 
 /** Whether every outcome of one choice is built. A choice with no outcomes (Leave) always is. */
 export function isChoiceBuilt(choice: EventChoice, built: ReadonlySet<string> = BUILT_OUTCOME_TYPES): boolean {

@@ -94,8 +94,10 @@ import {
 import { upgradeIdFor } from '../../engine/data/plusRegistry';
 import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { PARTY_SIZE } from '../../engine/party';
+import { isTemporaryDriver } from '../../engine/data/driverRegistry';
 import { minimumActiveDeck } from '../../engine/run/createRun';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
+import { afterFight, withTempDriver } from '../../engine/run/tempDrivers';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome } from '../../engine/runTypes';
 
@@ -247,6 +249,7 @@ const runSlice = createSlice({
                     ...run,
                     phase: 'map',
                     fightsResolved: run.fightsResolved + 1,
+                    tempDrivers: afterFight(run.tempDrivers),
                     ...(gate ? { boundaryBiome: here!.biomeIndex + 1 } : {}),
                 },
             };
@@ -1083,6 +1086,22 @@ const runSlice = createSlice({
         },
 
         /**
+         * TICKET 168b — **gain a Driver for the next fight only** (an event's penalty).
+         *
+         * Goes in `tempDrivers`, never `drivers`, so it neither survives the fight nor spends the
+         * run's one event-granted Driver. One already held has its fights added to. A fight count
+         * under 1 is refused, and so is an id that is not a temporary Driver: the list is not a
+         * back door for a permanent one.
+         */
+        addTempDriver: (state, action: PayloadAction<{ driverId: string; fights: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { driverId, fights } = action.payload;
+            if (!isTemporaryDriver(driverId)) return { run };
+            return { run: { ...run, tempDrivers: withTempDriver(run.tempDrivers, driverId, fights) } };
+        },
+
+        /**
          * TICKET 168a — **an event node's choice was made.** Appends to `eventHistory` and does nothing
          * else: the outcomes are dispatched separately (they touch the ranch slice too), and BEFORE
          * this, so a crash in between leaves the event unresolved rather than paid and lost.
@@ -1239,6 +1258,7 @@ const runSlice = createSlice({
                 run: {
                     ...run,
                     fightsResolved: run.fightsResolved + 1,
+                    tempDrivers: afterFight(run.tempDrivers),
                     gauntlet: {
                         ...gauntlet,
                         fightIndex: gauntlet.fightIndex + 1,
@@ -1328,6 +1348,7 @@ const runSlice = createSlice({
                     phase: 'map',
                     gauntlet: null,
                     fightsResolved: run.fightsResolved + 1,
+                    tempDrivers: afterFight(run.tempDrivers),
                 },
             };
         },
@@ -1444,6 +1465,7 @@ export const {
     fireMapReveal,
     revealCurrentBiome,
     resolveEvent,
+    addTempDriver,
     beginGauntlet,
     advanceGauntlet,
     reviveGauntletMember,

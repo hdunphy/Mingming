@@ -30,7 +30,7 @@ import type { EventDefinition, EventRarity } from './eventSchema';
  * The events whose outcomes are all built. Every other event is ineligible until its row lands
  * (168b onward each add their ids here), so a player is never handed a button that does nothing.
  */
-export const BUILT_EVENTS: ReadonlySet<string> = new Set(['scrap_cache', 'data_fragments', 'relay_tower']);
+export const BUILT_EVENTS: ReadonlySet<string> = new Set(['scrap_cache', 'data_fragments', 'relay_tower', 'corrupted_stream']);
 
 /** Ticket 168 rule 4. The Rare weight is zeroed in the first biome. */
 export const EVENT_RARITY_WEIGHTS: Readonly<Record<EventRarity, number>> = { Common: 60, Uncommon: 30, Rare: 10 };

@@ -100,6 +100,24 @@ export const DRIVER_FIRST_BLOOD = 'driver_first_blood';
 export const DRIVER_BULWARK_REFLEX = 'driver_bulwark_reflex';
 export const DRIVER_DEEP_CACHE = 'driver_deep_cache';
 
+/** TICKET 168b — the two Drivers an event's bad outcome gives for the next fight only. */
+export const DRIVER_FRAYED_SIGNAL = 'driver_frayed_signal';
+export const DRIVER_STATIC_HAZE = 'driver_static_haze';
+
+/**
+ * Drivers that exist only as an event's penalty (ticket 168b): FRAYED SIGNAL and STATIC HAZE.
+ *
+ * Deliberately in NONE of `PLAYER_DRIVER_IDS`, `DRIVER_IDS`, the elite stake pool or
+ * `playerDriverOptions()` — nothing may offer them as a reward. This list is how `describeDriver`
+ * and the UI still know they exist and what to call them.
+ */
+export const TEMPORARY_DRIVER_IDS: ReadonlyArray<string> = [DRIVER_FRAYED_SIGNAL, DRIVER_STATIC_HAZE];
+
+/** Whether a Driver is one of the temporary ones. */
+export function isTemporaryDriver(id: string): boolean {
+    return TEMPORARY_DRIVER_IDS.includes(id);
+}
+
 /** The Element Driver for one element. `None` has no Driver — there is no such thing as a None deck. */
 export function elementDriverId(element: Exclude<Element, 'None'>): string {
     return `driver_element_${element.toLowerCase()}`;

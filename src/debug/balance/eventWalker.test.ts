@@ -28,6 +28,16 @@ describe('chooseEventChoice', () => {
         expect(chooseEventChoice(priced).id).toBe('leave');
     });
 
+    it('never takes a temporary Driver unless it is the only option (168b)', () => {
+        const stream = EVENTS.find((e) => e.id === 'corrupted_stream')!;
+        // Corrupted Stream has no free option and no Leave: with 25 scrap the walker pays to
+        // reroute, and with less it has no choice but to push through.
+        expect(chooseEventChoice(stream, 25).id).toBe('reroute');
+        expect(chooseEventChoice(stream, 24).id).toBe('push');
+        // Scrap Cache's Dig deeper adds a temporary Driver, so the free Take beats it.
+        expect(chooseEventChoice(EVENTS.find((e) => e.id === 'scrap_cache')!).id).toBe('take');
+    });
+
     it('never picks a choice that costs scrap', () => {
         for (const event of EVENTS) {
             // Corrupted Stream and The Toll have no Leave, so a walker that finds nothing free is

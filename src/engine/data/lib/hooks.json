@@ -2512,6 +2512,89 @@
             }
         ]
     },
+    "driver_frayed_signal": {
+        "id": "driver_frayed_signal",
+        "name": "FRAYED SIGNAL",
+        "description": "At the start of your first turn, each member loses 25% of its max HP.",
+        "hooks": [
+            {
+                "id": "driver_frayed_signal_drain",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "counter": {
+                        "key": "frayed_signal",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "frayed_signal",
+                        "scope": "OWNER",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "percentMaxHP": -25
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "FRAYED SIGNAL: {owner} loses a quarter of its HP to the torn stream."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_static_haze": {
+        "id": "driver_static_haze",
+        "name": "STATIC HAZE",
+        "description": "At the start of your first turn, each member gains 2 Weakened.",
+        "hooks": [
+            {
+                "id": "driver_static_haze_fog",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "counter": {
+                        "key": "static_haze",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "static_haze",
+                        "scope": "OWNER",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Weakened",
+                        "stacks": 2
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "STATIC HAZE: {owner} is clouded by static."
+                    }
+                ]
+            }
+        ]
+    },
     "driver_bulwark_reflex": {
         "id": "driver_bulwark_reflex",
         "name": "BULWARK REFLEX",

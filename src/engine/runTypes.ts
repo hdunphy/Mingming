@@ -423,6 +423,15 @@ export interface IRunState {
     }>;
 
     /**
+     * TICKET 168b — **Drivers that last for the next fight only**, and how many fights each has
+     * left. An event's bad outcome (Frayed Signal, Static Haze) lands here rather than in `drivers`:
+     * `drivers` is the run's permanent list and the power cap counts it, while this list empties
+     * itself. `battleSetup` applies both lists; `resolveEncounter`, `advanceGauntlet` and
+     * `finishGauntlet` count it down. Optional with `.default([])`.
+     */
+    readonly tempDrivers?: ReadonlyArray<{ readonly driverId: string; readonly fightsLeft: number }>;
+
+    /**
      * TICKET 163d — **the patch fitted to each party member's firmware**, by member id.
      *
      * RUN STATE, not roster state, on 163 §5 decision 5: *"no persistence across runs to start."*
@@ -635,6 +644,10 @@ export const RunStateSchema = z.object({
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
     upgradesTaken: z.array(z.string()).default([]),
     patchBenchesUsed: z.array(z.string()).default([]),
+    tempDrivers: z.array(z.object({
+        driverId: z.string(),
+        fightsLeft: z.number().int().min(1),
+    })).default([]),
     eventHistory: z.array(z.object({
         nodeId: z.string(),
         eventId: z.string(),

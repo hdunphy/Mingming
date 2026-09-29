@@ -20,7 +20,7 @@ import { choiceGrants } from '../../engine/run/events/eventSchema';
 import type { EventChoice, EventDefinition, EventOutcome } from '../../engine/run/events/eventSchema';
 import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import {
-    addRunCards, addRunCollection, addRunScrap, resolveEvent, revealCurrentBiome, spendRunScrap,
+    addRunCards, addRunCollection, addRunScrap, addTempDriver, resolveEvent, revealCurrentBiome, spendRunScrap,
 } from '../store/runSlice';
 
 /** Anything with `dispatch`, so a test can hand in a bare store. */
@@ -43,6 +43,11 @@ export function isInteractiveOutcome(outcome: EventOutcome): boolean {
 function applyScrap(dispatch: OutcomeDispatch, amount: number): void {
     if (amount >= 0) dispatch(addRunScrap(amount));
     else dispatch(spendRunScrap(-amount));
+}
+
+/** `TEMP_DRIVER` (168b): a Driver for the next fight only. */
+function applyTempDriver(dispatch: OutcomeDispatch, driverId: string, fights: number): void {
+    dispatch(addTempDriver({ driverId, fights }));
 }
 
 /** `MAP_REVEAL`: survey the biome the run stands in. */
@@ -76,6 +81,7 @@ export function applyChoice(
         switch (outcome.type) {
             case 'SCRAP': applyScrap(dispatch, outcome.amount); break;
             case 'MAP_REVEAL': applyMapReveal(dispatch); break;
+            case 'TEMP_DRIVER': applyTempDriver(dispatch, outcome.driverId, outcome.fights); break;
             case 'CARD_PICK': {
                 const pick = picks[index];
                 if (pick) applyCardPick(dispatch, ctx, pick);
