@@ -5,6 +5,7 @@ import type { RootState } from '../store/store';
 import type { IBattleState } from '../../engine/types';
 import { describeDriver } from '../../engine/data/driverRegistry';
 import { globalBattleEventBus } from '../../engine/events';
+import { fightKindOf } from '../../engine/run/eventFight';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { Icon } from '../theme/Icon';
 import AudioControls from './AudioControls';
@@ -96,7 +97,9 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
 
     const isPlayerTurn = battleState.activeSide === 'PLAYER';
     const gym = run ? GYM_REGISTRY[run.gymId] : undefined;
-    const nodeKind = run?.nodes.find(n => n.id === run.currentNodeId)?.kind;
+    const here = run?.nodes.find(n => n.id === run.currentNodeId);
+    // TICKET 168g: Ambush Bait's fight is labelled as the wild it is.
+    const nodeKind = run && here ? fightKindOf(run, here) : here?.kind;
 
     /*
      * The right-hand label. A gauntlet fight says WHICH fight, because ticket 18's reason still

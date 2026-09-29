@@ -58,6 +58,7 @@ import { junkToRemove } from './junkPolicy';
 import { createRun, recruitDeckFor } from '../../engine/run/createRun';
 import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompElementPlan, type IGym } from '../../engine/run/gyms';
 import { rollEncounter, isFightNode, RUN_ENEMY_MODE } from '../../engine/run/encounter';
+import { eventFightScrapMultiplier, fightNodeFor } from '../../engine/run/eventFight';
 import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { rollDropTable } from '../../engine/RewardSystem';
 import { fightBonusFor } from '../../engine/run/fightBonus';
@@ -565,7 +566,8 @@ export function playEventNode(
     record: (event: Parameters<typeof appendRunEvent>[1]) => void,
     /** The workshop's recruit at price 0 (Stray Mingming). Absent: the walker cannot recruit here. */
     recruit?: () => void,
-): void {
+    /** `true` when the choice started an event fight (Ambush Bait): the caller plays it. */
+): boolean {
     const run = store.getState().run.run!;
     const dispatch = (action: unknown): void => store.dispatch(action);
     const blueprints: Record<string, number> = {};
@@ -580,7 +582,7 @@ export function playEventNode(
         applyEmptyRelay(dispatch, ctx, EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP);
         record({ kind: 'SCRAP', delta: scrapDelta(), reason: 'event' });
         record({ kind: 'EVENT_RESOLVED', eventId: EMPTY_RELAY_ID, choiceId: 'salvage' });
-        return;
+        return false;
     }
 
     const choice = chooseEventChoice(event, scrapBefore);
@@ -622,6 +624,8 @@ export function playEventNode(
     applyChoice(dispatch, ctx, event, choice, picks);
     if (scrapDelta() !== 0) record({ kind: 'SCRAP', delta: scrapDelta(), reason: 'event' });
     record({ kind: 'EVENT_RESOLVED', eventId: event.id, choiceId: choice.id });
+    // TICKET 168g: the choice may have started Ambush Bait's fight. The walk plays it.
+    return store.getState().run.run!.eventFight === true;
 }
 
 export function buyMarketBlueprintIfOffered(
@@ -821,7 +825,7 @@ export function walkRun(input: WalkInput): WalkResult {
         }));
 
     /** §3's reward row, then §3's shop row, then the recruit. */
-    const takeRewards = (node: IRegionNode, defeated: ReadonlyArray<IBattleEntity>): void => {
+    const takeRewards = (node: IRegionNode, defeated: ReadonlyArray<IBattleEntity>, scrapMultiplier = 1): void => {
         const run = runNow();
         const bundle = rollDropTable({
             defeated: [...defeated], nodeKind: node.kind, seed: `${run.seed}:${node.id}:reward`,
@@ -832,9 +836,11 @@ export function walkRun(input: WalkInput): WalkResult {
         });
         // The walker has no macro policy (it never fires macros), so leave bundle.macroChoices unclaimed.
 
-        if (bundle.scraps > 0) {
-            store.dispatch(addRunScrap(bundle.scraps));
-            record({ kind: 'SCRAP', delta: bundle.scraps, reason: 'fight' }, fights.length);
+        // TICKET 168g: an event fight pays its scrap twice.
+        const scraps = bundle.scraps * scrapMultiplier;
+        if (scraps > 0) {
+            store.dispatch(addRunScrap(scraps));
+            record({ kind: 'SCRAP', delta: scraps, reason: 'fight' }, fights.length);
         }
         for (const species of bundle.blueprints) {
             blueprintLedger.add(species);
@@ -1007,7 +1013,7 @@ export function walkRun(input: WalkInput): WalkResult {
             workshop(node);
             upgradeBench(node, false);
         } else if (node.kind === 'event') {
-            playEventNode(
+            const startedFight = playEventNode(
                 store, node, roster, blueprintLedger,
                 (offered) => choosePick(offered, deckIds(), partyElements()),
                 (evt) => record(evt, fights.length),
@@ -1017,6 +1023,20 @@ export function walkRun(input: WalkInput): WalkResult {
                     executeWorkshopRecruit(store, node, partyMembers(), roster, blueprintLedger, gym, (evt) => record(evt, fights.length), 0);
                 },
             );
+            if (startedFight) {
+                // TICKET 168g: Ambush Bait. Fought as the wild it is, and paid double. The multiplier
+                // is read BEFORE `resolveEncounter` clears the flag, as the arena reads it before the
+                // win is claimed.
+                const state = runNow();
+                const wild = fightNodeFor(state, node);
+                const multiplier = eventFightScrapMultiplier(state, node);
+                const encounter = rollEncounter({ run: state, node: wild, party: partyMembers() });
+                const result = fight(wild, encounter, undefined);
+                store.dispatch(resolveEncounter());
+                if (result.winner !== 'PLAYER') break;
+                takeRewards(wild, corpses(encounter, result), multiplier);
+                if (input.stopAfterFights !== undefined && fights.length >= input.stopAfterFights) break;
+            }
         }
 
         const held = new Set(partyMembers().map((m) => m.definitionId));

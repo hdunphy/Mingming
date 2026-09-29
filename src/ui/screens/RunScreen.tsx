@@ -75,6 +75,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
 import { withEffectiveOS } from '../../engine/run/effectiveOS';
+import { fightNodeFor, isEventFight } from '../../engine/run/eventFight';
 import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
@@ -183,7 +184,8 @@ export default function RunScreen(): ReactNode {
         if (!run || run.phase !== 'encounter') return;
 
         const node = run.nodes.find((n) => n.id === run.currentNodeId);
-        if (!node || !isFightNode(node.kind)) return;
+        // TICKET 168g: an event node fights too while Ambush Bait's fight is on (as a wild).
+        if (!node || !(isFightNode(node.kind) || isEventFight(run, node))) return;
 
         /*
          * TICKET 18: THE GYM IS A FIGHT KIND, BUT IT IS NOT *A* FIGHT.
@@ -209,7 +211,7 @@ export default function RunScreen(): ReactNode {
         }
         if (party.length === 0) return;
 
-        const encounter = rollEncounter({ run, node, party });
+        const encounter = rollEncounter({ run, node: fightNodeFor(run, node), party });
 
         // 155 deep dive 6: the backdrop's two fields, from the map this node sits on.
         const nodeBiome = run.biomes[node.biomeIndex];

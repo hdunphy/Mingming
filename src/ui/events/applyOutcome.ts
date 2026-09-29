@@ -25,7 +25,7 @@ import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine
 import { addBlueprint, assembleMingming } from '../store/gameSlice';
 import {
     addRunCards, addRunCollection, addRunScrap, addTempDriver, buyMarketCard, recordBankedBlueprint,
-    recruitIntoParty, resolveEvent, revealCurrentBiome, spendRunScrap, takeRewardMacro,
+    recruitIntoParty, resolveEvent, revealCurrentBiome, spendRunScrap, startEventFight, takeRewardMacro,
 } from '../store/runSlice';
 import {
     applyDuplicate, applyGiveCards, applyTradeUp, applyTransform,
@@ -231,6 +231,9 @@ export function applyChoice(
                 if (pick && isReflashPick(pick)) applyReflash(dispatch, ctx, pick.reflashMemberId);
                 break;
             }
+            case 'FIGHT':
+                // Started AFTER the event is recorded as resolved, below: a loss or a crash cannot offer it again.
+                break;
             default:
                 // An outcome no row has built yet. Its event is not in `BUILT_EVENTS`, so a player
                 // cannot reach this; a test that does is told which type it was.
@@ -240,6 +243,8 @@ export function applyChoice(
     dispatch(resolveEvent({
         nodeId: ctx.node.id, eventId: event.id, choiceId: choice.id, grants: choiceGrants(played),
     }));
+    // TICKET 168g: the fight starts once the choice is on the record.
+    if (played.outcomes.some((outcome) => outcome.type === 'FIGHT')) dispatch(startEventFight());
 }
 
 /** The Empty Relay: +15 scrap, then the resolution row. */

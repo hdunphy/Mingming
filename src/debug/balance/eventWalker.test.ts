@@ -173,3 +173,30 @@ describe('the walker at the trade and cost events (168e)', () => {
     });
 });
 
+describe('the walker at Ambush Bait (168g)', () => {
+    it('takes the fight: it is free, and Leave comes only after every free choice', () => {
+        expect(chooseEventChoice(EVENTS.find((e) => e.id === 'ambush_bait')!).id).toBe('fight');
+    });
+
+    it('starts the event fight and says so, so the walk can play it', () => {
+        const raw = createRun({ seed: 'walker-ambush', offer: offerGyms('walker-offer')[0], party: [memberFor('mm1', 'kraken_v1')], startedAt: 1 });
+        const target = raw.nodes.find((node) => node.id !== raw.currentNodeId)!;
+        const run: IRunState = {
+            ...raw,
+            currentNodeId: target.id,
+            nodes: raw.nodes.map((node) => (node.id === target.id ? { ...node, kind: 'event' as const } : node)),
+            eventHistory: [...BUILT_EVENTS].filter((id) => id !== 'ambush_bait').map((eventId, i) => (
+                { nodeId: `other${i}`, eventId, choiceId: 'leave', grants: [] }
+            )),
+        };
+        const store = configureStore({ reducer: { run: runReducer }, middleware: (d) => d({ serializableCheck: false }) });
+        store.dispatch(startRun(run));
+        const fought = playEventNode(
+            store, { ...target, kind: 'event', visited: 1 }, [memberFor('mm1', 'kraken_v1')], new BlueprintLedger(),
+            () => ({ taken: null, toCollection: false }), () => {},
+        );
+        expect(fought).toBe(true);
+        expect(store.getState().run.run!.eventFight).toBe(true);
+        expect(store.getState().run.run!.phase).toBe('encounter');
+    });
+});

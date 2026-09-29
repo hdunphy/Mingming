@@ -15,7 +15,7 @@ import type { EventChoice, EventDefinition, EventOutcome } from './eventSchema';
 export const BUILT_OUTCOME_TYPES: ReadonlySet<EventOutcome['type']> = new Set([
     'SCRAP', 'CARD_PICK', 'MAP_REVEAL', 'TEMP_DRIVER', 'UPGRADE', 'JUNK', 'GAMBLE',
     'BLUEPRINT_PICK', 'MACRO_PICK', 'RECRUIT',
-    'GIVE_CARD', 'GIVE_BLUEPRINT', 'TRADE_UP', 'DUPLICATE', 'TRANSFORM', 'DRIVER_PICK', 'PATCH', 'REFLASH',
+    'GIVE_CARD', 'GIVE_BLUEPRINT', 'TRADE_UP', 'DUPLICATE', 'TRANSFORM', 'DRIVER_PICK', 'PATCH', 'REFLASH', 'FIGHT',
 ]);
 
 function isOutcomeBuilt(outcome: EventOutcome, built: ReadonlySet<string>): boolean {

@@ -241,6 +241,9 @@ const runSlice = createSlice({
             if (!run) return { run: null };
 
             const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            // TICKET 168g: an Ambush Bait fight ends with the encounter. Dropped, not set false, so a
+            // run that never fought one stays byte for byte what it was.
+            const { eventFight: _eventFight, ...rest } = run;
             const gate = here !== undefined
                 && here.kind === 'elite'
                 && here.layer === REGION_PARAMS.layersPerBiome - 1
@@ -248,7 +251,7 @@ const runSlice = createSlice({
 
             return {
                 run: {
-                    ...run,
+                    ...rest,
                     phase: 'map',
                     fightsResolved: run.fightsResolved + 1,
                     tempDrivers: afterFight(run.tempDrivers),
@@ -494,6 +497,26 @@ const runSlice = createSlice({
                     ...(benchKey ? { patchBenchesUsed: [...(run.patchBenchesUsed ?? []), benchKey] } : {}),
                 },
             };
+        },
+
+        /**
+         * TICKET 168g — Ambush Bait: start its optional fight on the event node the run stands on.
+         *
+         * Sets `phase: 'encounter'` and `eventFight: true`; `RunScreen` sees the encounter phase and
+         * rolls a wild on this node (`engine/run/eventFight.ts`), and `resolveEncounter` clears the
+         * flag when the fight is won. Refused, silently and byte for byte, off an event node and
+         * when the run is not on the map: a fight already under way cannot be started twice.
+         *
+         * The event is recorded as resolved by `applyChoice` BEFORE this is dispatched, so a loss or
+         * a crash cannot offer it again.
+         */
+        startEventFight: (state): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            if (run.phase !== 'map') return { run };
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            if (here?.kind !== 'event') return { run };
+            return { run: { ...run, phase: 'encounter', eventFight: true } };
         },
 
         /**
@@ -1510,6 +1533,7 @@ export const {
     upgradeDeckCard,
     fitPatch,
     reflashMember,
+    startEventFight,
     // `removeRunCardForScrap` was exported here until 2026-08-26. Paid removal is deleted; free
     // editing at the four surfaces replaced it, and `sellRunCard` is the verb that pays.
     sellRunCard,

@@ -31,6 +31,7 @@ import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable, gymClearBlueprints } from '../../engine/RewardSystem';
 import { authoredBossFor } from '../../engine/run/bosses';
 import { paysDriver } from '../../engine/run/driverStakes';
+import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFight';
 import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
@@ -669,7 +670,10 @@ const BattleArena: React.FC = () => {
      * so a scenario pays what an ordinary fight pays rather than nothing.
      */
     const currentNode = run?.nodes.find(n => n.id === run.currentNodeId);
-    const nodeKind: NodeKind = currentNode?.kind ?? 'wild';
+    // TICKET 168g: an event node in Ambush Bait's fight is classed as the wild it is.
+    const nodeKind: NodeKind = run && currentNode ? fightKindOf(run, currentNode) : currentNode?.kind ?? 'wild';
+    /** TICKET 168g: what a win's scrap is multiplied by — 2 for an event fight, else 1. */
+    const scrapMultiplier = run && currentNode ? eventFightScrapMultiplier(run, currentNode) : 1;
     /**
      * TICKET 17: the Driver this node pays, stamped on it at run creation (`driverStakes.ts`) and
      * shown on the map before the player walked here. Read off the node rather than re-rolled, so
@@ -797,7 +801,8 @@ const BattleArena: React.FC = () => {
                 bonus,
                 heldPatches: run?.patches ?? {},
             });
-            const bundle = driverStake ? { ...rolled, driver: driverStake } : rolled;
+            const paid = scrapMultiplier === 1 ? rolled : { ...rolled, scraps: rolled.scraps * scrapMultiplier };
+            const bundle = driverStake ? { ...paid, driver: driverStake } : paid;
 
             // ticket 55: reviewed, not a defect, and deliberately NOT derived during render. The
             // bundle is ROLLED from a seeded PRNG and must be rolled exactly once per victory: a
@@ -807,7 +812,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, driverStake, dryFights, firstRun, bonus, run?.patches]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, scrapMultiplier, driverStake, dryFights, firstRun, bonus, run?.patches]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**

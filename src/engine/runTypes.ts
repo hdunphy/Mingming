@@ -458,6 +458,16 @@ export interface IRunState {
     readonly osOverrides?: Readonly<Record<string, string>>;
 
     /**
+     * TICKET 168g — **this encounter is Ambush Bait's optional fight**, on an `event` node.
+     *
+     * Set by `startEventFight` when the player chooses Fight it, cleared by `resolveEncounter`. While
+     * it is set the fight is classed as a wild (`engine/run/eventFight.ts`) and its win pays double
+     * scrap. Persisted with the run, so an app close mid-fight resumes into the same fight.
+     * Optional with `.default(false)`.
+     */
+    readonly eventFight?: boolean;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -666,6 +676,7 @@ export const RunStateSchema = z.object({
     })).default([]),
     patches: z.record(z.string(), z.array(z.string())).default({}),
     osOverrides: z.record(z.string(), z.string()).default({}),
+    eventFight: z.boolean().default(false),
     boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),

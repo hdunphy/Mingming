@@ -19,6 +19,9 @@
  * Firmware Reflash (168f) is free and has no penalty, but the walker has no way to value an OS
  * switch: it plays the deck the run built, and that deck is the old firmware's engine. It is not
  * taken while Leave is open, so it measures nothing it cannot judge.
+ *
+ * Ambush Bait (168g) is free and has no penalty, so the walker takes the fight: it plays it as the
+ * wild it is and is paid double.
  */
 
 import { choiceScrapCost } from '../../engine/run/events/eventSchema';

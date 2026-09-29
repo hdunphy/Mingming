@@ -47,6 +47,7 @@ import {
     type RunEventInput,
 } from '../../engine/run/runLog';
 import { battleOutcome, isPlayerVictory } from '../../engine/battleOutcome';
+import { fightKindOf } from '../../engine/run/eventFight';
 import { fightLogIdFor, writeFightLog } from '../../engine/run/fightLog';
 import { loadSettings } from '../settings/settings';
 import { isSimulating } from '../../engine/core/simulationDepth';
@@ -499,7 +500,7 @@ export function createRunLogMiddleware(
                 fightOpen = true;
                 record(runAfter, {
                     kind: 'FIGHT_STARTED',
-                    nodeKind: node?.kind ?? 'wild',
+                    nodeKind: runAfter && node ? fightKindOf(runAfter, node) : 'wild',
                     enemies: battleAfter.enemyParty.map((entity) => entity.definitionId),
                 });
                 /*
@@ -524,7 +525,7 @@ export function createRunLogMiddleware(
                         species: entity.definitionId,
                         osId: entity.activeOS ?? null,
                     })),
-                    nodeKind: node?.kind ?? 'wild',
+                    nodeKind: runAfter && node ? fightKindOf(runAfter, node) : 'wild',
                     biome: node?.biomeIndex ?? 0,
                 });
             }
