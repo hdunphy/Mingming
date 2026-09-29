@@ -659,7 +659,7 @@
       "id": "slander",
       "name": "Slander",
       "cost": 2,
-      "el": "Water",
+      "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
       "text": "15 power per stack of Dazed on the target.",

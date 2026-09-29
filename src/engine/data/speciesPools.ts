@@ -50,12 +50,17 @@ export const SPECIES_CARD_POOLS: Readonly<Record<string, ReadonlyArray<string>>>
  * needs one, which is the failure ticket 69 closed for the marketplace's off-pool slot and is not
  * worth reopening here.
  *
- * Four of the six are also named in a species pool (`static_ward` by kraken_v1 and huldra_v1,
+ * **`slander` (ticket 167d, Henry's answer to the gap it opened, 2026-09-28).** It became a Nature
+ * card and left Kraken v1's deck, which was its only way into the run pool; no species pool names
+ * it. It is a run-only card so a Nature party (Ratatoskr, Huldra) can still be offered it and a
+ * Water party cannot, because the element rule still filters the pool.
+ *
+ * Four of the original six are also named in a species pool (`static_ward` by kraken_v1 and huldra_v1,
  * `riptide` by jormungandr_v2, `tidal_battery` by two Water OS). That overlap is deliberate and
  * harmless: the run pool is a UNION, and a card being wanted by a deck AND available to everyone
  * is exactly the shape of a counter that one archetype leans on.
  */
-export const RUN_ONLY_CARDS: ReadonlyArray<string> = Object.freeze(['tidal_battery', 'overclock_core', 'short_fuse', 'riptide', 'short_circuit', 'static_ward']);
+export const RUN_ONLY_CARDS: ReadonlyArray<string> = Object.freeze(['tidal_battery', 'overclock_core', 'short_fuse', 'riptide', 'short_circuit', 'static_ward', 'slander']);
 
 /**
  * The marketplace's guaranteed neutral slot — ticket 69's list, and why it is in the run pool.

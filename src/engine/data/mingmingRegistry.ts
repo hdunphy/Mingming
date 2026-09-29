@@ -118,8 +118,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // and no Sharp (nothing in the deck scaled off Sharp), and the two surge_protections
         // and two water_slaps became boiling_surge x2 and scald x2 - a Burn setup the boosted
         // hammers then cash. Burn caps at 4, so the two feeds fill it and stop.
+        // Ticket 167d (Henry, 2026-09-28): v1's `slander` became a Nature card, so its slot is a second
+        // `crushing_depths` ("Replace with crushing depths I think"). The Tidewrack boss's Kraken runs this list.
         decks: {
-            "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "ink_stream", "pressure_point", "crushing_depths", "slander"],
+            "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "ink_stream", "pressure_point", "crushing_depths", "crushing_depths"],
             "kraken_v2": ["capacitor", "capacitor", "tide_pool", "boiling_surge", "boiling_surge", "scald", "hydro_blast", "tackle"]
         },
         startKits: {
