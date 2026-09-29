@@ -17,6 +17,7 @@
 > Unlocks: *"Each tier unlocks for all gyms but we add an achievement for each gym (all 9 clears)."*
 > Enemy Drivers at tier 3: *"Keep it, add the engine if it's missing."* (It isn't missing; see above.)
 > Modifiers: *"Use 1, 2, 4, 6, 7"*, which are Junk Start, Tight Budget, Elite Hunt, No Recruits and Draft Start.
+> Defaults D1 to D6: *"Good with all those defaults."*
 
 **The standing law this ticket obeys** (ticket 29, `vision.md`, ticket 21): **a tier never scales a stat.** Harder means different content (firmware, AI, more elites, Drivers), never bigger HP, damage or IVs. Row 169a adds a test that enforces it.
 
@@ -81,9 +82,11 @@ These are opt-in toggles on the run-start screen. They are separate from tiers, 
 
 ---
 
-## Defaults this ticket chose (Henry can overrule any of these before handoff)
+## Defaults, approved by Henry 2026-09-29
 
-Build these as written unless Henry changes them.
+> *"Good with all those defaults."*
+
+Build these as written.
 
 - **D1. A tier-2 extra elite in the final biome pays a patch**, like every final-biome elite (`fightBonusFor`, 166e). There is no special case. A body can still only take one patch.
 - **D2. Modifiers unlock after your first gym clear** (any gym, any tier). Before that the modifier row is shown locked, with the line "Beat a gym to unlock modifiers."
