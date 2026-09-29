@@ -17,7 +17,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import BattleStage from './BattleStage';
 import { setServerViewport } from '../hooks/useStageAnchors';
-import { ACTIVE_STEP, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, plaqueRect, spriteRect } from './stageGeometry';
+import { ACTIVE_STEP, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, enemyShiftFor, plaqueRect, spriteRect } from './stageGeometry';
 import { PLAQUE_STATUS_BUDGET } from './StatusBadges';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
 
@@ -86,6 +86,13 @@ function leftOf(markup: string, testId: string): number {
 
 beforeEach(() => setServerViewport(REF_WIDTH, REF_HEIGHT));
 
+/**
+ * TICKET 167g: the enemy column slides to the enemy hand panel's edge (`enemyShiftFor`), so an
+ * enemy is no longer exactly on the mock's x. These states carry no `enemyMode`, i.e. a MOVES
+ * fight, which takes the CLOSED value. Allies are untouched and still exactly the mock.
+ */
+const CLOSED_SHIFT = enemyShiftFor(REF_WIDTH, REF_HEIGHT, false);
+
 describe('145a — every unit is on the board', () => {
     it('draws a slot and a plaque for all six, not two spotlights', () => {
         // The regression this guards is the whole ticket. The old stage promoted one ally and one
@@ -104,7 +111,7 @@ describe('145a — every unit is on the board', () => {
         const dead = [ENEMIES[0], unit('e2', 'HULDRA', 'Nature', 0), ENEMIES[2]];
         const markup = render({}, state(ALLIES, dead));
         expect(markup).toContain('data-testid="stage-slot-e2"');
-        expect(leftOf(markup, 'stage-slot-e2')).toBe(spriteRect('enemy', 1).x);
+        expect(leftOf(markup, 'stage-slot-e2')).toBe(spriteRect('enemy', 1, -1, CLOSED_SHIFT).x);
     });
 });
 
@@ -263,10 +270,12 @@ describe('145b — the plaque carries what the HUD card carried', () => {
     });
 });
 describe('145a — the composition on a real viewport', () => {
-    it('is the mock at 1280x800', () => {
+    it('is the mock at 1280x800 for the allies, and the mock plus the closed-panel slide for the enemies', () => {
         const markup = render();
         expect(leftOf(markup, 'stage-slot-p1')).toBe(spriteRect('ally', 0, 0).x);
-        expect(leftOf(markup, 'stage-plaque-e1')).toBe(plaqueRect('enemy', 0).x);
+        // 167g: 50 reference px right of the mock at 1280x800, so the closed tab has no white space.
+        expect(CLOSED_SHIFT).toBe(50);
+        expect(leftOf(markup, 'stage-plaque-e1')).toBe(plaqueRect('enemy', 0, -1, CLOSED_SHIFT).x);
     });
 
     it('spreads the columns at 1920x1080 rather than sitting in the corner', () => {

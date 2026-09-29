@@ -81,8 +81,12 @@ export function useViewportSize(): { width: number; height: number } {
  * whichever unit is hovered. Passed in rather than derived here because `BattleArena` owns every
  * targeting decision on this screen and two sources of "who is active" is exactly how the step and
  * the rim light end up disagreeing.
+ *
+ * `enemyShiftX` (ticket 167g, reference pixels) is the slide the enemy column takes to meet the
+ * enemy hand panel, from `enemyShiftFor`. The VFX anchors move with the bodies because they are
+ * computed here from the same rects.
  */
-export function useStageAnchors(state: IBattleState, activeAllyIndex: number): StageAnchors {
+export function useStageAnchors(state: IBattleState, activeAllyIndex: number, enemyShiftX = 0): StageAnchors {
     const { width, height } = useViewportSize();
 
     return useMemo(() => {
@@ -109,8 +113,8 @@ export function useStageAnchors(state: IBattleState, activeAllyIndex: number): S
         const anchor = (side: 'ally' | 'enemy', index: number, active: number): {
             slot: StageRect; plaque: StageRect;
         } => {
-            const slot = place(spriteRect(side, index, active), width, height);
-            const plaque = place(plaqueRect(side, index, active), width, height);
+            const slot = place(spriteRect(side, index, active, enemyShiftX), width, height);
+            const plaque = place(plaqueRect(side, index, active, enemyShiftX), width, height);
             const inset = Math.max(0, (slot.w - drawn) / 2);
             return {
                 slot,
@@ -137,5 +141,5 @@ export function useStageAnchors(state: IBattleState, activeAllyIndex: number): S
             discard: place(DISCARD_ANCHOR, width, height),
             scale: place({ x: 0, y: 0, w: 1, h: 1 }, width, height).w,
         };
-    }, [state.playerParty, state.enemyParty, activeAllyIndex, width, height]);
+    }, [state.playerParty, state.enemyParty, activeAllyIndex, enemyShiftX, width, height]);
 }

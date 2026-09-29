@@ -10,7 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
-import { act } from 'react';
+import { act, useState } from 'react';
 
 import EnemyHandPanel from './EnemyHandPanel';
 import type { IBattleEntity, IBattleState, ProgramEntity } from '../../engine/types';
@@ -66,7 +66,18 @@ afterEach(() => {
     container.remove();
 });
 
-const render = (state: IBattleState | null) => act(() => root.render(<EnemyHandPanel battleState={state} />));
+/**
+ * TICKET 167g: the panel is CONTROLLED (`BattleStage` owns whether it is open, so the state survives
+ * the panel unmounting and the enemies can slide to match it). This wrapper is the stage's part, so a
+ * test can click the tab and see the panel answer.
+ */
+function Controlled({ state }: { state: IBattleState | null }) {
+    const [open, setOpen] = useState(false);
+    return <EnemyHandPanel battleState={state} open={open} onToggle={() => setOpen((o) => !o)} />;
+}
+const render = (state: IBattleState | null) => act(() => root.render(<Controlled state={state} />));
+const tabButton = () => container.querySelector('.ehp-tab') as HTMLButtonElement;
+const panelRoot = () => container.querySelector('[data-testid="enemy-hand"]') as HTMLElement;
 const rows = () => [...container.querySelectorAll('.rs-row')];
 
 describe('159b — the enemy hand panel', () => {
@@ -95,15 +106,29 @@ describe('159b — the enemy hand panel', () => {
         expect(rows()[0].textContent).not.toContain('no EP');
     });
 
-    it('is absent entirely when there is nothing to show — a MOVES enemy has no deck', () => {
+    it('is absent entirely for a MOVES enemy, which has no deck', () => {
         /*
          * Absent rather than empty. A tab reading "ENEMY HAND · 0" in every MOVES fight teaches
-         * the player that the feature is broken.
+         * the player that the feature is broken. TICKET 167g narrowed the rule to exactly this: a
+         * CARDS enemy that has run out of cards keeps its tab (see the next test), because a panel
+         * that vanishes as the enemy plays out its hand loses the open state inside it.
          */
-        render(board([]));
+        render({ enemyMode: 'MOVES', enemyParty: [foe('e1', 9)], enemyDeck: board([]).enemyDeck } as unknown as IBattleState);
         expect(container.querySelector('.ehp-tab')).toBeNull();
         render(null);
         expect(container.querySelector('.ehp-tab')).toBeNull();
+    });
+
+    it('167g — a CARDS enemy with nothing in hand keeps its tab and says so', () => {
+        render(board([]));
+        expect(tabButton()).not.toBeNull();
+        expect(tabButton().textContent).toContain('ENEMY HAND');
+        expect(tabButton().textContent).toContain('0');
+        // Not "ENEMY DRAWS 0": with nothing to preview there is no preview to label.
+        expect(tabButton().textContent).not.toContain('DRAWS');
+        expect(container.querySelector('.ehp-inner')!.textContent).toContain('Nothing in hand.');
+        // The only row is the static message, not a card the player can peek at.
+        expect(rows().filter(r => !r.classList.contains('ehp-empty'))).toHaveLength(0);
     });
 
     it('falls to the drawpile preview when their hand is empty, and labels it as one', () => {
@@ -188,17 +213,55 @@ describe('159b — the enemy hand panel', () => {
         expect(tile()).toBeNull();
     });
 
-    it('opens from the keyboard, not only from a pointer', () => {
-        // §5 asks for it, and a hover-only telegraph is a telegraph half the players cannot read.
+    it('167g — hovering does NOT open it; clicking the tab does, and clicking again closes it', () => {
         render(board(card('ignite')));
-        const tab = container.querySelector('.ehp-tab') as HTMLButtonElement;
+        expect(tabButton().getAttribute('aria-expanded')).toBe('false');
 
-        expect(tab.getAttribute('aria-expanded')).toBe('false');
-        // `.focus()` rather than a synthetic FocusEvent: React delegates on `focusin`, so a
-        // hand-built `focus` event never reaches the handler and the test would pass or fail for
-        // a reason that has nothing to do with the component.
-        act(() => { tab.focus(); });
-        expect(tab.getAttribute('aria-expanded')).toBe('true');
+        // Hover and pointer-enter on the panel: nothing. (It used to open on hover.)
+        act(() => { panelRoot().dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+        act(() => { panelRoot().dispatchEvent(new MouseEvent('mouseenter', { bubbles: false })); });
+        expect(tabButton().getAttribute('aria-expanded')).toBe('false');
+        expect(panelRoot().classList.contains('open')).toBe(false);
+
+        act(() => { tabButton().click(); });
+        expect(tabButton().getAttribute('aria-expanded')).toBe('true');
+        expect(panelRoot().classList.contains('open')).toBe(true);
+
+        // ...and leaving does not close it either: it stays open until the player closes it.
+        act(() => { panelRoot().dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
+        act(() => { panelRoot().dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })); });
+        expect(tabButton().getAttribute('aria-expanded')).toBe('true');
+
+        act(() => { tabButton().click(); });
+        expect(tabButton().getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('167g — focusing the tab does not open it either; the tab is a real button for Enter and Space', () => {
+        render(board(card('ignite')));
+        expect(tabButton().tagName).toBe('BUTTON');
+        act(() => { tabButton().focus(); });
+        expect(tabButton().getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('167g — an open panel stays open when the enemy plays out its hand', () => {
+        render(board(card('ignite', 2)));
+        act(() => { tabButton().click(); });
+        expect(tabButton().getAttribute('aria-expanded')).toBe('true');
+
+        // The enemy's turn plays the hand out: same panel, nothing left to show.
+        render(board([]));
+        expect(tabButton(), 'the tab must not vanish mid-fight').not.toBeNull();
+        expect(tabButton().getAttribute('aria-expanded')).toBe('true');
+        expect(panelRoot().classList.contains('open')).toBe(true);
+        expect(container.querySelector('.ehp-inner')!.textContent).toContain('Nothing in hand.');
+    });
+
+    it('167g — it stays open when the label flips between HAND and DRAWS', () => {
+        render(board(card('ignite')));
+        act(() => { tabButton().click(); });
+        render(previewBoard(card('ignite', 2)));
+        expect(tabButton().textContent).toContain('ENEMY DRAWS');
+        expect(tabButton().getAttribute('aria-expanded')).toBe('true');
     });
 
     it('predicts nothing — no target, no order, no damage', () => {

@@ -7,10 +7,10 @@ import { getElementAccent } from '../utils/contrastText';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { targetVerdict, type TargetVerdict } from '../utils/targeting';
-import { useStageAnchors } from '../hooks/useStageAnchors';
+import { useStageAnchors, useViewportSize } from '../hooks/useStageAnchors';
 import ParticleLayer from '../vfx/ParticleLayer';
 import EnemyHandPanel from './EnemyHandPanel';
-import { spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
+import { enemyShiftFor, spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
 import { StatusBadgeRow, PLAQUE_STATUS_BUDGET } from './StatusBadges';
 import { DaemonTags, FirmwareChip, UnitPreview } from './UnitReadouts';
 import type { DamagePreview } from '../utils/damagePreview';
@@ -239,7 +239,7 @@ const StageSlot: React.FC<SlotProps> = ({
     return (
         <>
             <div
-                className="stage-floor"
+                className={isEnemy ? 'stage-floor stage-enemy-shift' : 'stage-floor'}
                 style={{
                     // Derived from the DRAWN sprite box, not from the reference: past 1280 the
                     // sprite caps at 190 while its slot keeps growing, so a floor sized off the
@@ -254,7 +254,7 @@ const StageSlot: React.FC<SlotProps> = ({
             <div
                 className={[
                     'stage-slot',
-                    isEnemy ? 'stage-slot-enemy' : 'stage-slot-ally',
+                    isEnemy ? 'stage-slot-enemy stage-enemy-shift' : 'stage-slot-ally',
                     isActive ? 'stage-slot-active' : '',
                     isTargeted ? 'stage-slot-targeted' : '',
                     verdict ? (verdict.ok ? 'stage-slot-legal' : 'stage-slot-illegal') : '',
@@ -276,7 +276,7 @@ const StageSlot: React.FC<SlotProps> = ({
             </div>
 
             <div
-                className={`stage-plaque ${isActive ? 'stage-plaque-active' : ''} ${isDead ? 'stage-plaque-dead' : ''}`}
+                className={`stage-plaque ${isEnemy ? 'stage-enemy-shift' : ''} ${isActive ? 'stage-plaque-active' : ''} ${isDead ? 'stage-plaque-dead' : ''}`}
                 data-testid={`stage-plaque-${entity.id}`}
                 style={{
                     left: plaque.x,
@@ -405,7 +405,20 @@ const BattleStage: React.FC<BattleStageProps> = ({
     const biomeName = battleState.biomeName ?? null;
     const biomeColor = getElementAccent(battleState.biomeElement ?? 'None');
 
-    const anchors = useStageAnchors(battleState, activeAllyIndex);
+    /*
+     * TICKET 167g — THE ENEMY HAND PANEL'S OPEN STATE LIVES HERE, because the enemies slide to meet
+     * it. Henry, 2026-09-28: *"If the panel is open then push them towards the middle. If it is
+     * closed make sure there isn't a gap of 'white space' between them."*
+     *
+     * The shift is a function of the window and of open/closed (`enemyShiftFor`), never of the
+     * selection or the hand, so the anchors keep their §3 stability. A MOVES fight renders no panel,
+     * so it takes the closed value and the enemies still sit tight to the right.
+     */
+    const [enemyHandOpen, setEnemyHandOpen] = React.useState(false);
+    const viewport = useViewportSize();
+    const enemyHasDeck = battleState.enemyMode === 'CARDS';
+    const enemyShiftX = enemyShiftFor(viewport.width, viewport.height, enemyHandOpen && enemyHasDeck);
+    const anchors = useStageAnchors(battleState, activeAllyIndex, enemyShiftX);
     const spriteW = spriteWidthAt(anchors.scale);
 
     // The same verdict predicate the HUD cards drew, now asked once per slot.
@@ -505,7 +518,11 @@ const BattleStage: React.FC<BattleStageProps> = ({
               * Nothing is predicted here: no targets, no order — see the component's header for
               * why that line is the whole design.
               */}
-            <EnemyHandPanel battleState={battleState} />
+            <EnemyHandPanel
+                battleState={battleState}
+                open={enemyHandOpen}
+                onToggle={() => setEnemyHandOpen((open) => !open)}
+            />
         </div>
     );
 };

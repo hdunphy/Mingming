@@ -14,9 +14,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    ACTIVE_STEP, CONSOLE_H, PLAQUE_W, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, ROW_PITCH,
+    ACTIVE_STEP, CONSOLE_H, EHP_OPEN_WIDTH, EHP_RIGHT_INSET, EHP_TAB_WIDTH, ENEMY_MIN_SHIFT,
+    ENEMY_PANEL_GAP, PLAQUE_W, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, ROW_PITCH,
     SPRITE_H, SPRITE_MAX_W, SPRITE_W, STAGE_H, TOP_BAR_H,
-    consoleHeightAt, place, plaqueRect, spriteRect, stageScale, spriteWidthAt,
+    consoleHeightAt, enemyShiftFor, place, plaqueRect, spriteRect, stageScale, spriteWidthAt,
 } from './stageGeometry';
 
 /** Straight off the mock's final frame. ally 1 is the active one there, which is why it is at 330. */
@@ -187,5 +188,87 @@ describe('155b — every slot fits the band the console leaves', () => {
         // A 768px laptop is the tightest common case. The console must still be able to hold a
         // card: below about 150px the fan has nowhere to go and the piles overlap it.
         expect(consoleHeightAt(1366, 768)).toBeGreaterThan(150);
+    });
+});
+
+/**
+ * TICKET 167g — THE ENEMIES SLIDE TO THE HAND PANEL'S EDGE.
+ *
+ * Henry, 2026-09-28: *"I just want the enemies to slide as far to the right as they can. If the panel
+ * is open then push them towards the middle. If it is closed make sure there isn't a gap of 'white
+ * space' between them."* The shift is computed per window size, because the stage is scaled and
+ * centred but the panel is a fixed number of real pixels on the window's edge.
+ */
+describe('167g — the optional enemy shift on the rects', () => {
+    it('adds the shift to an ENEMY plaque and sprite, in reference pixels', () => {
+        expect(plaqueRect('enemy', 1, -1, 50).x).toBe(plaqueRect('enemy', 1).x + 50);
+        expect(spriteRect('enemy', 0, -1, 50).x).toBe(spriteRect('enemy', 0).x + 50);
+        // Only x moves.
+        expect(plaqueRect('enemy', 2, -1, 50).y).toBe(plaqueRect('enemy', 2).y);
+    });
+
+    it('never moves an ally, whatever the shift', () => {
+        for (const i of [0, 1, 2]) {
+            expect(plaqueRect('ally', i, 0, 50)).toEqual(plaqueRect('ally', i, 0));
+            expect(spriteRect('ally', i, 0, 50)).toEqual(spriteRect('ally', i, 0));
+        }
+    });
+
+    it('is unchanged when no shift is given, so the mock still holds', () => {
+        for (const i of [0, 1, 2]) {
+            expect(spriteRect('enemy', i)).toEqual(spriteRect('enemy', i, -1, 0));
+        }
+    });
+});
+
+describe('167g — enemyShiftFor', () => {
+    /** The rightmost enemy plaque's right edge, as drawn in a real window, with the shift applied. */
+    const plaqueRightAt = (w: number, h: number, shift: number): number =>
+        Math.max(...[0, 1, 2].map((i) => {
+            const r = place(plaqueRect('enemy', i, -1, shift), w, h);
+            return r.x + r.w;
+        }));
+
+    it('derives the reveal-lane clamp from the rects, not from a typed number', () => {
+        expect(ENEMY_MIN_SHIFT).toBe(REVEAL_RECT.x + REVEAL_RECT.w - spriteRect('enemy', 0).x);
+        expect(ENEMY_MIN_SHIFT).toBe(-76);
+    });
+
+    it('reads the panel footprint from exported constants that match the stylesheet (right 8, open 270, tab 34)', () => {
+        expect([EHP_RIGHT_INSET, EHP_OPEN_WIDTH, EHP_TAB_WIDTH, ENEMY_PANEL_GAP]).toEqual([8, 270, 34, 12]);
+    });
+
+    it('at 1920x1080 with the panel CLOSED lands the plaques 12 px short of the tab', () => {
+        const shift = enemyShiftFor(1920, 1080, false);
+        expect(plaqueRightAt(1920, 1080, shift)).toBeCloseTo(1920 - EHP_RIGHT_INSET - EHP_TAB_WIDTH - ENEMY_PANEL_GAP, 6);
+        // ...which closes the ~184 px of white space Henry saw: they were at x = 1694.
+        expect(shift).toBeGreaterThan(0);
+    });
+
+    it('at 1920x1080 with the panel OPEN lands them 12 px short of its edge, toward the middle', () => {
+        const open = enemyShiftFor(1920, 1080, true);
+        const closed = enemyShiftFor(1920, 1080, false);
+        expect(plaqueRightAt(1920, 1080, open)).toBeCloseTo(1920 - EHP_RIGHT_INSET - EHP_OPEN_WIDTH - ENEMY_PANEL_GAP, 6);
+        expect(open).toBeLessThan(closed);
+    });
+
+    it('at 1280x800 with the panel open the reveal-lane clamp binds and returns exactly ENEMY_MIN_SHIFT', () => {
+        // The open panel would need a 186 reference-pixel shift; only 76 are available before the
+        // front enemy enters the reveal lane. The lane wins, and the panel covers part of the plaques.
+        expect(enemyShiftFor(1280, 800, true)).toBe(ENEMY_MIN_SHIFT);
+    });
+
+    it('never lets the front enemy sprite enter the reveal lane, at any window size or panel state', () => {
+        for (const [w, h] of [[1280, 800], [1280, 720], [1366, 768], [1600, 900], [1920, 1080], [2560, 1080]]) {
+            for (const open of [false, true]) {
+                const shift = enemyShiftFor(w, h, open);
+                expect(shift).toBeGreaterThanOrEqual(ENEMY_MIN_SHIFT);
+                expect(spriteRect('enemy', 0, -1, shift).x).toBeGreaterThanOrEqual(REVEAL_RECT.x + REVEAL_RECT.w);
+            }
+        }
+    });
+
+    it('survives a window too short to have a stage', () => {
+        expect(Number.isFinite(enemyShiftFor(300, 20, false))).toBe(true);
     });
 });

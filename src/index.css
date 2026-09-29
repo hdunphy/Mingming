@@ -3882,6 +3882,9 @@ body {
    are already above the lane card. Read as behaviour rather than as numbers, the panel covering
    the plaques is the part that is observable, so that is the one implemented. Flagged for Henry
    rather than split the difference silently. */
+/* TICKET 167g: `right: 8px`, `width: 270px` and the 34px tab below are also `EHP_RIGHT_INSET`,
+   `EHP_OPEN_WIDTH` and `EHP_TAB_WIDTH` in `stageGeometry.ts`, which `enemyShiftFor` reads to slide
+   the enemies to this panel's edge. Change them together. */
 .ehp {
   position: absolute;
   top: 56px;                 /* clear of TOP_BAR_H (44), the mock's number */
@@ -3894,12 +3897,15 @@ body {
   transform: translateX(calc(100% - 34px));
   transition: transform 200ms ease;
 }
-.ehp.open,
-.ehp:hover,
-.ehp:focus-within { transform: none; }
+.ehp.open { transform: none; }
 
 /* Off means off — 146a's rule for the VFX switches, applied to the slide. */
 :root[data-animations="off"] .ehp { transition: none; }
+
+/* TICKET 167g: the enemies slide to meet the panel with the panel's own 200 ms, and not at all
+   with animations off. Enemies only: an ally's active-step has never animated and must not start. */
+.stage-enemy-shift { transition: left 200ms ease; }
+:root[data-animations="off"] .stage-enemy-shift { transition: none; }
 
 .ehp-tab {
   position: absolute;

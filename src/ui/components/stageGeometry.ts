@@ -90,15 +90,21 @@ export const rowY = (index: number): number => 62 + index * ROW_PITCH;
  * `activeIndex` is the ally whose turn it is; pass `-1` (or an enemy side) for no step. Only the x
  * moves, and only for an ally — §3 requires that a slot is otherwise stable across selection,
  * death and hand size, because 146 caches these.
+ *
+ * `enemyShiftX` (TICKET 167g, reference pixels) slides the ENEMY column sideways to meet the enemy
+ * hand panel, see `enemyShiftFor`. It is added to an enemy's x and ignored for an ally. It is a
+ * function of the WINDOW and whether the panel is open, never of the selection, a death or the
+ * hand, so §3's stability property holds: 146 reads the same rect until the panel is toggled or
+ * the window is resized.
  */
-export function spriteRect(side: StageSide, index: number, activeIndex = -1): StageRect {
+export function spriteRect(side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0): StageRect {
     const y = rowY(index);
     if (side === 'ally') {
         const stepped = index === activeIndex ? ACTIVE_STEP : 0;
         return { x: ALLY_COLUMN_X + stepped, y, w: SPRITE_W, h: SPRITE_H };
     }
     const stepped = index === 0 ? ENEMY_FRONT_STEP : 0;
-    return { x: ENEMY_COLUMN_X - stepped, y, w: SPRITE_W, h: SPRITE_H };
+    return { x: ENEMY_COLUMN_X - stepped + enemyShiftX, y, w: SPRITE_W, h: SPRITE_H };
 }
 
 /**
@@ -106,8 +112,8 @@ export function spriteRect(side: StageSide, index: number, activeIndex = -1): St
  * middle of the screen clear for the reveal lane. An ally's plaque sits to the LEFT of its sprite
  * and an enemy's to the RIGHT, so neither ever crosses the lane however far a sprite steps.
  */
-export function plaqueRect(side: StageSide, index: number, activeIndex = -1): StageRect {
-    const sprite = spriteRect(side, index, activeIndex);
+export function plaqueRect(side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0): StageRect {
+    const sprite = spriteRect(side, index, activeIndex, enemyShiftX);
     const x = side === 'ally' ? sprite.x - PLAQUE_W - 8 : sprite.x + sprite.w + 8;
     return { x, y: sprite.y + PLAQUE_DY, w: PLAQUE_W, h: 0 };
 }
@@ -218,4 +224,62 @@ export function place(rect: StageRect, viewportWidth: number, viewportHeight: nu
         w: rect.w * scale,
         h: rect.h * scale,
     };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The enemy hand panel's edge (ticket 167g)
+// ---------------------------------------------------------------------------------------------
+
+/*
+ * The enemy hand panel's footprint against the WINDOW's right edge, in REAL pixels. These are the
+ * numbers `.ehp` in `index.css` carries (`right: 8px`, `width: 270px`, and the 34px tab that stays
+ * proud when it is closed); the stylesheet's comment points here so the two cannot drift apart.
+ */
+export const EHP_RIGHT_INSET = 8;
+export const EHP_OPEN_WIDTH = 270;
+export const EHP_TAB_WIDTH = 34;
+/** How far short of the panel's edge the enemy plaques stop, in real pixels. */
+export const ENEMY_PANEL_GAP = 12;
+
+/**
+ * The most the enemies may slide TOWARD the middle, in reference pixels: the front enemy's sprite
+ * stops where it would touch the reveal lane. 714 - 790 = -76 today. Derived from the rects, never
+ * typed, so it follows the mock if the lane or the columns ever move.
+ */
+export const ENEMY_MIN_SHIFT = REVEAL_RECT.x + REVEAL_RECT.w - spriteRect('enemy', 0).x;
+
+/**
+ * TICKET 167g — how far the enemy column slides so the enemies sit against the enemy hand panel.
+ *
+ * Henry, 2026-09-28: *"I just want the enemies to slide as far to the right as they can. If the panel
+ * is open then push them towards the middle. If it is closed make sure there isn't a gap of 'white
+ * space' between them."*
+ *
+ * WHY IT DEPENDS ON THE WINDOW. The stage is drawn at a scale and CENTRED, but the panel is a fixed
+ * number of real pixels on the window's edge. On a wide window the centred stage leaves empty space
+ * at both sides, so the closed tab sits far from the plaques (a 184 px gap at 1920x1080); on a narrow
+ * one the open panel overlaps them.
+ *
+ * The rule: the rightmost enemy plaque's right edge goes `ENEMY_PANEL_GAP` short of the panel's left
+ * edge, the panel being the open width or just the tab. Positive slides right, negative toward the
+ * middle. The result is clamped at `ENEMY_MIN_SHIFT` so the front enemy never enters the reveal
+ * lane. **At a narrow window (1280x800 is the case) the clamp binds and the open panel still covers
+ * part of the plaques.** That is the reveal-lane rule winning, and it is expected.
+ *
+ * Not applied to the drawn plaque's cap inset (`useStageAnchors` pulls a plaque in by a few pixels
+ * once the sprite cap bites, above ~1.36 scale); the shift is the geometry's, the inset is the
+ * anchor's, and the difference is under 8 px.
+ */
+export function enemyShiftFor(viewportWidth: number, viewportHeight: number, panelOpen: boolean): number {
+    const scale = stageScale(viewportWidth, viewportHeight);
+    // No stage to slide (a window shorter than the top bar): leave the mock's composition alone.
+    if (!(scale > 0)) return 0;
+
+    const panelEdge = viewportWidth - EHP_RIGHT_INSET - (panelOpen ? EHP_OPEN_WIDTH : EHP_TAB_WIDTH);
+    const target = panelEdge - ENEMY_PANEL_GAP;
+    const current = Math.max(...[0, 1, 2].map((index) => {
+        const plaque = place(plaqueRect('enemy', index), viewportWidth, viewportHeight);
+        return plaque.x + plaque.w;
+    }));
+    return Math.max(ENEMY_MIN_SHIFT, (target - current) / scale);
 }

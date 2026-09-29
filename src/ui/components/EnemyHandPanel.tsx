@@ -35,7 +35,7 @@
  * learn, and it would drift from the first the next time a row gained a field.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 
 import type { IBattleState } from '../../engine/types';
 import { ElementMark } from '../screens/CardChassis';
@@ -47,10 +47,16 @@ import { enemyHandView, stackHand } from './enemyHand';
 
 interface Props {
     readonly battleState: IBattleState | null;
+    /**
+     * TICKET 167g: whether the panel is open, owned by `BattleStage`. It is up there because the
+     * enemies slide to meet the panel, and because a panel that owned its own state lost it every
+     * time it unmounted.
+     */
+    readonly open: boolean;
+    readonly onToggle: () => void;
 }
 
-const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
-    const [open, setOpen] = useState(false);
+const EnemyHandPanel: React.FC<Props> = ({ battleState, open, onToggle }) => {
     const { peek, at, peekHandlers } = useCardPeek();
 
     /*
@@ -68,16 +74,18 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
     /*
      * A MOVES enemy has no deck by construction, so there is nothing to show and the tab would be
      * a control that opens onto an empty list. Absent rather than empty: a tab reading "ENEMY
-     * HAND · 0" in every MOVES fight teaches the player that the feature is broken. The same
-     * applies to a CARDS enemy that has genuinely run out of cards — nothing to show is nothing
-     * to show.
+     * HAND · 0" in every MOVES fight teaches the player that the feature is broken.
+     *
+     * TICKET 167g (Henry: *"The enemy hand disappears on enemy turn. If I open it, it should stay
+     * open until I close it."*): that is the ONLY case that returns null. It used to return null
+     * whenever `total === 0` too, so as the enemy played out its hand the panel vanished and the
+     * open state inside it went with it. A CARDS enemy with nothing to show keeps its tab, which
+     * reads `ENEMY HAND 0`, and the body says `Nothing in hand.`
      */
-    if (!battleState || total === 0) return null;
+    if (!battleState || battleState.enemyMode !== 'CARDS') return null;
 
     const previewing = view.source === 'PREVIEW';
-    const label = previewing ? 'ENEMY DRAWS' : 'ENEMY HAND';
-
-    const close = () => setOpen(false);
+    const label = previewing && total > 0 ? 'ENEMY DRAWS' : 'ENEMY HAND';
 
     return (
         /*
@@ -88,33 +96,33 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
           * `transform: none`. That is why the tab is INSIDE this element rather than a sibling:
           * it is the part of the panel that never leaves.
           *
-          * Hover and focus-within both open it, so a keyboard walking into a row opens the panel
-          * that row is in — which is the only way the rows are reachable without a mouse.
+          * TICKET 167g: it opens and closes on CLICK only. Henry: *"If I open it, it should stay open
+          * until I close it."* Hover and focus used to open it, and leaving the mouse closed it.
+          * Closed, the rows are `inert` so a keyboard walking the page cannot land on a list that
+          * is off-screen; the tab is the way in, and Enter or Space on it toggles.
           */
         <div
             className={`ehp ${open ? 'open' : ''}`}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={close}
             data-testid="enemy-hand"
             data-source={view.source}
         >
             {/*
               * A real button: §5 asks for keyboard, and a div with a hover handler is reachable by
               * exactly one input device. Click toggles, so touch and keyboard both have a way in
-              * that hover cannot give them.
+              * that hover cannot give them - and since 167g it is the ONLY way, hover no longer
+              * opens anything.
               */}
             <button
                 type="button"
                 className="ehp-tab"
                 aria-expanded={open}
                 aria-controls="enemy-hand-panel"
-                onFocus={() => setOpen(true)}
-                onClick={() => { playSfx('uiClick'); setOpen(!open); }}
+                onClick={() => { playSfx('uiClick'); onToggle(); }}
             >
                 <span>{label} <b>{total}</b></span>
             </button>
 
-            <div className="rs-panel ehp-inner" id="enemy-hand-panel">
+            <div className="rs-panel ehp-inner" id="enemy-hand-panel" inert={!open}>
                 <h2>
                     {label} · {total}
                     <span className="ehp-ep">{view.energy} EP</span>
@@ -149,6 +157,12 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState }) => {
                       * question marks the player has to count — and not silence, which would make
                       * the panel quietly under-report the size of the turn coming at them.
                       */}
+                    {total === 0 && (
+                        <div className="rs-row static ehp-empty" data-testid="enemy-hand-empty">
+                            <span className="rs-rnm">Nothing in hand.</span>
+                        </div>
+                    )}
+
                     {view.unknown > 0 && (
                         <div className="rs-row static ehp-unknown" data-testid="enemy-hand-unknown">
                             <span className="rs-g">?</span>
