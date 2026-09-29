@@ -43,7 +43,7 @@ Seven rows, one commit each, **failing test first**. Build them in order: 168a i
 ## The rules every event follows
 
 1. **First visit only.** An event plays the first time the player steps on its node. On any later visit the node shows one line, *"The relay is dark. Nothing here now."*, and a Leave button. This is an explicit exception to ticket 07's "entering a node triggers it again, always" (which still holds for fights). The test is "this node has a resolved event", **not** `visited === 1`, so a player who closes the app mid-event gets the same event back on resume.
-2. **Every event can be left without taking anything,** except The Toll, which has no free option. Choosing is the only way to close an event screen.
+2. **Every event can be left without taking anything,** except the two bad events, **Corrupted Stream** and **The Toll**, which have no free option. Choosing is the only way to close an event screen.
 3. **Each event appears at most once per run.**
 4. **Rarity.** When an event node is entered, roll the rarity first: **Common 60, Uncommon 30, Rare 10**. **Rare events only roll in the second and third biome** (`biomeIndex` 1 and 2); in the first biome the Rare weight is 0 and the other two are drawn as 60:30. Then pick uniformly among the **eligible, not-yet-seen** events of that rarity. If none is left in that rarity, fall back to the next rarity down (Rare → Uncommon → Common), then up. If nothing at all is eligible, the node pays the **Empty Relay** fallback: +15 scrap, no choice, and it does **not** count as a seen event.
 5. **The power cap:** at most **1 Driver and 1 patch per run from events**. Once an event has granted a Driver, every event that can grant a Driver is ineligible for the rest of the run; the same for patches.
