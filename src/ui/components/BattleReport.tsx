@@ -10,6 +10,7 @@ import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { MacroRewardPick } from './MacroRewardPick';
+import PatchHolders from './PatchHolders';
 
 /**
  * The post-fight reward screen — refitted by ticket 12.
@@ -28,6 +29,11 @@ interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
     macroRack?: ReadonlyArray<string | null>;
+    /**
+     * TICKET 167j: the patches the run's bodies already hold (`rosterId -> patchIds`), so the patch
+     * offer can say who has what. Defaults to none.
+     */
+    heldPatches?: Readonly<Record<string, ReadonlyArray<string>>>;
     /** Picked cards, in choice order. `BattleArena` mints them into `IRunState.deck`. */
     /**
      * `storedInstanceIds` is ticket 61 §2: the instance ids among `chosenCards` the player chose to
@@ -95,6 +101,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
     bundle,
     winners,
     macroRack = [null, null, null],
+    heldPatches = {},
     onContinue,
 }) => {
     void winners;
@@ -454,6 +461,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                 <div style={{ padding: '12px 14px', background: 'rgba(255,212,121,0.08)', borderRadius: '8px', border: '1px solid rgba(255,212,121,0.4)' }}>
                                     <div style={{ fontSize: '0.75rem', color: '#ffd479', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>FIRMWARE PATCH — FIT IT TO ONE BODY</div>
                                     <div style={{ fontSize: '0.7rem', color: '#9aa3ad', marginBottom: '10px' }}>One slot each, and it cannot be swapped later. Walking past it is allowed.</div>
+                                    <PatchHolders winners={winners} heldPatches={heldPatches} />
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
                                         {patchOffers.map((offer) => {
                                             const patch = getPatch(offer.patchId);

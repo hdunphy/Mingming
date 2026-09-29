@@ -1237,6 +1237,7 @@ const BattleArena: React.FC = () => {
                         bundle={rewardBundle}
                         winners={battleState.playerParty}
                         macroRack={run?.macros ?? [null, null, null]}
+                        heldPatches={run?.patches ?? {}}
                         onContinue={handleContinue}
                     />
                 )}
