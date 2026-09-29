@@ -35,13 +35,15 @@ import { createRun } from '../../engine/run/createRun';
 import { gymSignatures } from '../../engine/run/gauntlet';
 import { TIERS, tierRule } from '../../engine/run/tiers/tierRegistry';
 import { leaderDriverTierLine } from '../../engine/run/tiers/tierText';
-import { clearsByGym, unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
+import { clearsByGym, modifiersUnlocked, unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
+import { MODIFIERS } from '../../engine/run/modifiers/modifierRegistry';
 import { offerGyms, pathElementsFor, type IGymOffer } from '../../engine/run/gyms';
 import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
 import { Icon } from '../theme/Icon';
+import ModifierChip from '../components/ModifierChip';
 
 /**
  * The offer screen is rolled ONCE per visit and held in component state.
@@ -71,6 +73,14 @@ export default function RunStart(): ReactNode {
     const unlocked = useMemo(() => unlockedTiers(ranch), [ranch]);
     const clears = useMemo(() => clearsByGym(ranch), [ranch]);
     const [pickedTier, setPickedTier] = useState<number | null>(null);
+    // Ticket 169f: the modifiers switched on. Locked until the first gym clear (default D2), and a
+    // locked ranch launches with none whatever this holds.
+    const modifiersOpen = modifiersUnlocked(ranch);
+    const [pickedModifiers, setPickedModifiers] = useState<string[]>([]);
+    const toggleModifier = (id: string): void => {
+        setPickedModifiers((held) => (held.includes(id) ? held.filter((m) => m !== id) : [...held, id]));
+        playSfx('uiClick');
+    };
     const selectedTier =
         pickedTier !== null && unlocked.includes(pickedTier) ? pickedTier : unlocked[unlocked.length - 1];
 
@@ -105,6 +115,8 @@ export default function RunStart(): ReactNode {
             offer: chosen,
             // Ticket 169e: the tier picked above. It is fixed for the whole run.
             tier: selectedTier,
+            // Ticket 169f: only what is switched on, and only once modifiers are unlocked.
+            modifiers: modifiersOpen ? MODIFIERS.map((m) => m.id).filter((id) => pickedModifiers.includes(id)) : [],
             // Ticket 11: the roster holds `IRanchMember`s. `toMingmingState` adds the one field
             // combat's shape still demands — `blueprintsCollected`, which is vestigial; see its
             // doc comment.
@@ -292,6 +304,22 @@ export default function RunStart(): ReactNode {
                                 </button>
                             );
                         })}
+                    </div>
+
+                    {/* Ticket 169f: opt-in run modifiers. They earn nothing but a label. */}
+                    <div className="ranch-modifier-row" role="group" aria-label="Run modifiers">
+                        <span className="ranch-modifier-title">Modifiers</span>
+                        {MODIFIERS.map((modifier) => (
+                            <ModifierChip
+                                key={modifier.id}
+                                name={modifier.name}
+                                description={modifier.description}
+                                on={modifiersOpen && pickedModifiers.includes(modifier.id)}
+                                disabled={!modifiersOpen}
+                                onToggle={() => toggleModifier(modifier.id)}
+                            />
+                        ))}
+                        {!modifiersOpen && <span className="ranch-modifier-lock">Beat a gym to unlock modifiers.</span>}
                     </div>
 
                     <div className="ranch-modal-actions">

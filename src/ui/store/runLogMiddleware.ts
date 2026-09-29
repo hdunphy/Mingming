@@ -54,6 +54,7 @@ import { isSimulating } from '../../engine/core/simulationDepth';
 import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 import type { IBattleState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
+import { activeModifiers } from '../../engine/run/modifiers/modifierRegistry';
 
 /**
  * Report something the store does not hold. Handled by no reducer — see the header.
@@ -448,6 +449,7 @@ export function createRunLogMiddleware(
                             gymId: runAfter.gymId,
                             tier: runAfter.tier,
                             party: [...runAfter.partyIds],
+                            modifiers: activeModifiers(runAfter),
                         });
                     }
                 }

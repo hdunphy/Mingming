@@ -21,6 +21,9 @@ import { generateRegionGraph } from './regionGraph';
 import { assignDriverStakes } from './driverStakes';
 import { addTierElites } from './tiers/tierElites';
 import { tierRule } from './tiers/tierRegistry';
+import { applyEliteHunt } from './modifiers/eliteHunt';
+import { junkStartCards } from './modifiers/junkStart';
+import { MODIFIER_IDS, hasModifier, modifierEntry } from './modifiers/modifierRegistry';
 import type { IGymOffer } from './gyms';
 
 // ---------------------------------------------------------------------------------------------
@@ -249,6 +252,11 @@ export interface CreateRunInput {
      * builds the same run it always did.
      */
     readonly tier?: number;
+    /**
+     * Ticket 169f: the run modifiers the player switched on, by id (`data/modifiers.json`). Optional;
+     * an unknown id throws, so a typo cannot quietly play as the base game.
+     */
+    readonly modifiers?: ReadonlyArray<string>;
 }
 
 /**
@@ -261,11 +269,20 @@ export function createRun(input: CreateRunInput): IRunState {
     // correct here and does not collide with the deck stream below.
     const graph = generateRegionGraph(seed);
 
+    const modifierIds = input.modifiers ?? [];
+    for (const id of modifierIds) {
+        if (!MODIFIER_IDS.includes(id)) throw new Error(`createRun: unknown run modifier "${id}"`);
+    }
+    const modifiers = modifierIds.map(modifierEntry);
+
     // Ticket 169b: a tier can add elites to the map (tier 2: one more per biome). Before the Driver
     // stakes are dealt, so a converted elite pays a Driver like every other one. At tier 0 and 1 this
     // returns the graph's own nodes, so the map is exactly what it always was.
     const tier = input.tier ?? offer.gym.tier;
-    const tieredNodes = addTierElites(graph.nodes, seed, tierRule(tier).extraElitesPerBiome);
+    const tiered = addTierElites(graph.nodes, seed, tierRule(tier).extraElitesPerBiome);
+    // Ticket 169f: Elite Hunt turns every rival into an elite, after the tier's own elites and before
+    // the stakes, so the converted nodes pay a Driver too.
+    const tieredNodes = hasModifier({ modifiers }, 'elite_hunt') ? applyEliteHunt(tiered) : tiered;
 
     // A labelled fork for deck minting, for the same reason: card instance ids must not be drawn
     // from the same point in the thread as the graph's layout rolls.
@@ -275,6 +292,9 @@ export function createRun(input: CreateRunInput): IRunState {
     // The generics ride on the FIRST member and only the first (`STARTER_GENERICS`). A party picked
     // at run start can be one, two or three members; whichever is first carries the filler.
     party.forEach((member, index) => deck.push(...startDeckFor(member, deckStream, index === 0)));
+    // Ticket 169f: Junk Start's cards come AFTER the normal deck, from the same stream, so no other
+    // card's instance id moves.
+    deck.push(...junkStartCards({ modifiers }, deckStream));
 
     // `macros-and-drivers.md`: three fixed slots (`MACRO_SLOTS`), all empty at run start. Written
     // as a literal rather than built from the constant because `MacroSlots` is a fixed-length
@@ -327,13 +347,14 @@ export function createRun(input: CreateRunInput): IRunState {
         macros,
         // Drivers are party-wide passives won from elites; there are none before the first fight.
         drivers: [],
-        // Opt-in ascension-shaped run modifiers. Empty for the vertical slice.
+        // Opt-in ascension-shaped run modifiers, stored as `mod:<id>` (ticket 169f). Empty unless the
+        // player switched some on at run start.
         //
         // Ticket 24 briefly put an `onboarding` flag here, gating an easier first fight on whether
         // the player had seen the tips. Henry retired it (2026-08-23): the opening fight is easy in
         // EVERY run, Slay the Spire's model, so there is nothing per-player to carry and nothing to
         // couple to "Skip tips". See `isOpeningFight`.
-        modifiers: [],
+        modifiers,
 
         // The run opens standing on the entry node with the map up. `generateRegionGraph` marks
         // that node `visited: 1` so the "entering a node triggers it" rule does not fire a fight

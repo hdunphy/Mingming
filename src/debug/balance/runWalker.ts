@@ -745,7 +745,7 @@ export function walkRun(input: WalkInput): WalkResult {
     const partyElements = (): Set<string> =>
         new Set(partyMembers().map((m) => GetMingmingData(m.definitionId).primaryElement));
 
-    record({ kind: 'RUN_STARTED', gymId: gym.id, tier: gym.tier, party: party.map((m) => m.definitionId) }, 0);
+    record({ kind: 'RUN_STARTED', gymId: gym.id, tier: gym.tier, party: party.map((m) => m.definitionId), modifiers: [] }, 0);
 
     /** Play one rolled encounter and fold the result into the log. Returns whether it was won. */
     const fight = (node: IRegionNode, encounter: ReturnType<typeof rollEncounter>, carriedHp?: Readonly<Record<string, number>>): RunResult => {

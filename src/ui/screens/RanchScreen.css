@@ -322,6 +322,18 @@
 .ranch-tier-blurb { display: flex; flex-direction: column; gap: 0.1rem; margin-top: 0.5rem; font-size: 0.78rem; }
 .ranch-tier-blurb span { opacity: 0.72; }
 
+/* Ticket 169f: the modifier row on the party screen. */
+.ranch-modifier-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.9rem 0 0.6rem; }
+.ranch-modifier-title { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
+.ranch-modifier-chip {
+    font-family: inherit; font-size: 0.78rem; color: inherit; cursor: pointer;
+    background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(122, 92, 255, 0.3); border-radius: 999px; padding: 0.25rem 0.7rem;
+}
+.ranch-modifier-chip:hover:not(:disabled) { border-color: #7a5cff; }
+.ranch-modifier-chip.on { background: rgba(122, 92, 255, 0.3); border-color: #7a5cff; }
+.ranch-modifier-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.ranch-modifier-lock { font-size: 0.72rem; opacity: 0.6; }
+
 .ranch-offer-route {
     list-style: none;
     margin: 0;

@@ -100,6 +100,7 @@ import WorkshopNode from './WorkshopNode';
 import EventNode from './EventNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 import { Icon } from '../theme/Icon';
+import RunTierLabel from './RunTierLabel';
 import type { Element as MingmingElement } from '../../engine/types';
 
 export default function RunScreen(): ReactNode {
@@ -407,7 +408,7 @@ export default function RunScreen(): ReactNode {
                     <h1><Icon name="gym" size={20} /> {gym?.name ?? run.gymId}</h1>
                     <div className="ranch-run-meta">
                         Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                        {' '}Tier {run.tier} · {run.fightsResolved} fights · {run.scrap} scrap
+                        {' '}<RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
                     </div>
                     {abandonControl()}
                 </header>
@@ -434,7 +435,7 @@ export default function RunScreen(): ReactNode {
                 <h1>{gym?.name ?? run.gymId}</h1>
                 <div className="ranch-run-meta">
                     Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                    layer {current.layer} · Tier {run.tier} · {run.fightsResolved} fights · {run.scrap} scrap
+                    layer {current.layer} · <RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
                 </div>
                 <button type="button" className="ranch-button subtle" onClick={abandon}>Abandon run</button>
             </header>

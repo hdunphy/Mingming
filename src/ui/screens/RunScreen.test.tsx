@@ -381,6 +381,23 @@ describe('RunScreen — the run says which tier it is (ticket 169e)', () => {
     });
 });
 
+describe('RunScreen — the run says which modifiers are on (ticket 169f)', () => {
+    it('adds "N modifiers" after the tier, and lists them on hover (the title)', () => {
+        const markup = render({ ...BASE, tier: 1, modifiers: ['mod:junk_start', 'mod:no_recruits'] });
+        expect(markup).toContain('Tier 1 · 2 modifiers');
+        expect(markup).toContain('title="Junk Start, No Recruits"');
+    });
+
+    it('says "1 modifier" for one, and nothing for none', () => {
+        expect(render({ ...BASE, modifiers: ['mod:elite_hunt'] })).toContain('1 modifier</span> ·');
+        expect(render(BASE)).not.toMatch(/modifier/);
+    });
+
+    it('does not count a map reveal as a modifier', () => {
+        expect(render({ ...BASE, modifiers: ['reveal:biome:1'] })).not.toMatch(/modifier/);
+    });
+});
+
 describe('RunScreen — onboarding on the map (ticket 24)', () => {
     it('teaches the map before the gym, one tip at a time', () => {
         const fresh = render(BASE, []);

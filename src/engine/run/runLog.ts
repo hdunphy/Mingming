@@ -102,7 +102,11 @@ export interface IRunEventBase {
 }
 
 export type IRunEvent = IRunEventBase & (
-    | { readonly kind: 'RUN_STARTED'; readonly gymId: string; readonly tier: number; readonly party: ReadonlyArray<string> }
+    /**
+     * `modifiers` (ticket 169f) is the ids of the run modifiers switched on at run start. Rows written
+     * before it have no such field; the log's schema is loose (`passthrough`), so they still read.
+     */
+    | { readonly kind: 'RUN_STARTED'; readonly gymId: string; readonly tier: number; readonly party: ReadonlyArray<string>; readonly modifiers: ReadonlyArray<string> }
     | { readonly kind: 'NODE_ENTERED'; readonly nodeKind: NodeKind; readonly biome: number; readonly layer: number }
     | { readonly kind: 'FIGHT_STARTED'; readonly nodeKind: NodeKind; readonly enemies: ReadonlyArray<string> }
     /**

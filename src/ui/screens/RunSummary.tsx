@@ -62,6 +62,7 @@ import {
 import { findRunLog, runLogKeyFor } from '../../engine/run/runLog';
 import { recordRunEnd, runTelemetryEntryFor } from '../../engine/run/runTelemetry';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
+import { activeModifierNames } from '../../engine/run/modifiers/modifierRegistry';
 import type { IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import { autoSaveRunLog } from '../settings/exportRunLog';
@@ -159,6 +160,8 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
 
     const summary = useMemo(() => summarizeRun(run, clock, activeMs), [run, clock, activeMs]);
     const banked = useMemo(() => bankedBlueprintCounts(run.modifiers), [run.modifiers]);
+    // Ticket 169f: the modifiers this run was played with, named next to the tier.
+    const modifierNames = useMemo(() => activeModifierNames(run), [run]);
 
     /**
      * Write the run clock to the local playtest log — ticket 19's Done-when, and **local only**.
@@ -288,7 +291,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
                     <div className="rs-stat">
                         <span className="rs-stat-label">Reached</span>
                         <span className="rs-stat-figure">biome {summary.biomeReached} of {run.biomes.length}</span>
-                        <span className="rs-stat-note">{summary.biomeName} · tier {run.tier}</span>
+                        <span className="rs-stat-note">{summary.biomeName} · tier {run.tier}{modifierNames.length > 0 && ` · ${modifierNames.join(', ')}`}</span>
                     </div>
                 </div>
 
