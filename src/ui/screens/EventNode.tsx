@@ -31,6 +31,8 @@ import { useDispatch } from 'react-redux';
 
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { isBiomeRevealed } from '../../engine/data/macroRegistry';
+import { resolveGambles } from '../../engine/run/events/eventGamble';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { eventResolvedAt } from '../../engine/run/events/eventState';
 import { drawEvent } from '../../engine/run/events/eventDraw';
 import { playableChoices } from '../../engine/run/events/eventChoices';
@@ -42,9 +44,11 @@ import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { Rarity } from '../../engine/types';
 import { playSfx } from '../audio/AudioEngine';
 import { applyChoice, applyEmptyRelay, isInteractiveOutcome } from '../events/applyOutcome';
+import { describeApplied } from '../events/describeOutcome';
 import type { CardPickResult } from '../events/applyOutcome';
 import { Icon } from '../theme/Icon';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
+import { UpgradeBench } from './UpgradeBench';
 import { cardFace, colorFor } from './runShell';
 import './runShell.css';
 import './EventNode.css';
@@ -82,6 +86,10 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
     const [pick, setPick] = useState<PickState | null>(null);
     const [selected, setSelected] = useState<string | null>(null);
     const [toCollection, setToCollection] = useState(false);
+    /** The choice whose upgrades the player is making now (Overclock Rig), gambles already resolved. */
+    const [upgrading, setUpgrading] = useState<EventChoice | null>(null);
+    /** What the last choice did, shown above the dark line so a bad roll is not silent. */
+    const [note, setNote] = useState<string>('');
 
     const resolved = eventResolvedAt(run, node.id);
     const visitKey = `${node.id}:${node.visited}`;
@@ -123,7 +131,12 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
 
     // A spent node. The event that was played here is not named: the point is that it is gone.
     if (resolved) {
-        return shell('EVENT', <p className="ev-text">The relay is dark. Nothing here now.</p>, true);
+        return shell('EVENT', (
+            <>
+                {note !== '' && <p className="ev-note">{note}</p>}
+                <p className="ev-text">The relay is dark. Nothing here now.</p>
+            </>
+        ), true);
     }
 
     // Nothing was eligible: the Empty Relay, which is not an event and is not remembered as one.
@@ -150,18 +163,57 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
 
     const finish = (choice: EventChoice, picks: Readonly<Record<number, CardPickResult>>): void => {
         playSfx('uiClick');
-        applyChoice(dispatch, { run, node }, event, choice, picks);
+        // The gamble is settled before anything is read off the choice, so the note describes the
+        // branch that was actually applied.
+        const played = resolveGambles({ run, node }, choice);
+        setNote(describeApplied(played, run.scrap, picks));
+        applyChoice(dispatch, { run, node }, event, played, picks);
         setPick(null);
+        setUpgrading(null);
         setSelected(null);
         setToCollection(false);
     };
 
     const choose = (choice: EventChoice): void => {
-        const interactive = interactiveIndices(choice);
-        if (interactive.length === 0) { finish(choice, {}); return; }
+        // A gamble is rolled here, once, from the node's seed; what follows is its winning or
+        // losing branch. Backing out and choosing again lands on the same branch.
+        const played = resolveGambles({ run, node }, choice);
+        if (played.outcomes.some((outcome) => outcome.type === 'UPGRADE')) {
+            playSfx('uiClick');
+            setUpgrading(played);
+            return;
+        }
+        const interactive = interactiveIndices(played);
+        if (interactive.length === 0) { finish(played, {}); return; }
         playSfx('uiClick');
-        setPick({ choice, outcomeIndex: interactive[0], picks: {} });
+        setPick({ choice: played, outcomeIndex: interactive[0], picks: {} });
     };
+
+    // The upgrade bench (Overclock Rig): free, and `count` cards, spent as the player clicks. The
+    // rest of the choice (its junk) is applied on DONE, after every upgrade is made.
+    if (upgrading) {
+        const upgrade = upgrading.outcomes.find((outcome) => outcome.type === 'UPGRADE');
+        const allowance = upgrade && upgrade.type === 'UPGRADE' ? upgrade.count : 1;
+        const benchKey = `event:${node.id}`;
+        const used = (run.upgradesTaken ?? []).filter((key) => key === benchKey).length;
+        const upgradable = run.deck.filter((card) => hasUpgrade(card.dataId)).length;
+        // Done once the allowance is spent, or when nothing is left to upgrade.
+        const finished = used >= allowance || upgradable === 0;
+        return shell(event.name.toUpperCase(), (
+            <>
+                <p className="ev-text">Upgrade {allowance} cards. Pick them below.</p>
+                <UpgradeBench run={run} benchKey={benchKey} free allowance={allowance} heading="OVERCLOCK" />
+                <div className="ev-choices ev-row">
+                    <button type="button" className="rs-btn primary" disabled={!finished} onClick={() => finish(upgrading, {})}>
+                        DONE
+                    </button>
+                    <button type="button" className="rs-btn" disabled={used > 0} onClick={() => { playSfx('uiClick'); setUpgrading(null); }}>
+                        BACK
+                    </button>
+                </div>
+            </>
+        ));
+    }
 
     // The card pick. Nothing has been dispatched yet: backing out costs nothing.
     if (pick && pickedOutcome && pickedOutcome.type === 'CARD_PICK') {

@@ -53,11 +53,12 @@ import type { ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
-import { minimumActiveDeck } from '../../engine/run/createRun';
+import { isJunkCard } from '../../engine/run/junk';
 import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import {
     CARD_PRICE_BY_ENERGY,
     SELL_PRICE_BY_ENERGY,
+    JUNK_REMOVAL_PRICE,
     sellPrice,
     MARKET_REFRESH_PRICE,
     isOfferSold,
@@ -73,7 +74,8 @@ import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
-import { buyMacro, buyMarketBlueprint, buyMarketCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { buyMacro, buyMarketBlueprint, buyMarketCard, removeJunkCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { junkNote, readDeckFloor } from './deckFloor';
 import { addBlueprint } from '../store/gameSlice';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { cardFace, colorFor, groupByData } from './runShell';
@@ -104,6 +106,8 @@ interface SellStack {
     readonly instances: ReadonlyArray<IRunCard>;
     readonly inDeck: boolean;
     readonly price: number;
+    /** TICKET 168c: junk is removed for a price, not sold, and the floor never blocks it. */
+    readonly junk: boolean;
 }
 
 export interface MarketplaceNodeProps {
@@ -146,8 +150,8 @@ export default function MarketplaceNode({
     const blueprintSold = isBlueprintSlotSold(run, node);
 
     const scrap = run.scrap;
-    const floor = minimumActiveDeck(run.partyIds.length);
-    const atFloor = run.deck.length <= floor;
+    const reading = readDeckFloor(run);
+    const { floor, atFloor } = reading;
     const macrosHeld = run.macros.filter((slot) => slot !== null).length;
 
     /**
@@ -164,7 +168,8 @@ export default function MarketplaceNode({
                 key: `${inDeck ? 'deck' : 'coll'}:${dataId}`,
                 instances,
                 inDeck,
-                price: sellPrice(dataId),
+                junk: isJunkCard(dataId),
+                price: isJunkCard(dataId) ? JUNK_REMOVAL_PRICE : sellPrice(dataId),
             }));
         return [...build(run.deck, true), ...build(run.collection ?? [], false)]
             .sort((a, b) => a.price - b.price
@@ -204,6 +209,12 @@ export default function MarketplaceNode({
     };
 
     const sell = (stack: SellStack): void => {
+        if (stack.junk) {
+            if (scrap < stack.price) { playSfx('uiError'); return; }
+            dispatch(removeJunkCard({ instanceId: stack.instances[0].instanceId, price: stack.price }));
+            playSfx('uiClick');
+            return;
+        }
         if (stack.inDeck && atFloor) { playSfx('uiError'); return; }
         dispatch(sellRunCard({ instanceId: stack.instances[0].instanceId, price: stack.price }));
         playSfx('rewardClaim');
@@ -486,7 +497,7 @@ export default function MarketplaceNode({
                     <div className="mk-rows">
                         {sellable.map((stack) => {
                             const face = cardFace(stack.instances[0].dataId);
-                            const blocked = stack.inDeck && atFloor;
+                            const blocked = stack.junk ? scrap < stack.price : stack.inDeck && atFloor;
                             return (
                                 <div
                                     key={stack.key}
@@ -507,7 +518,9 @@ export default function MarketplaceNode({
                                         {stack.instances[0].dataId === GENERIC_HIT && <span className="rs-t">generic</span>}
                                         <span className="rs-t">{stack.inDeck ? 'deck' : 'collection'}</span>
                                         {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
-                                        <span className="rs-sellp">+{stack.price} <Icon name="scrap" size={11} /></span>
+                                        {stack.junk
+                                            ? <span className="rs-sellp mk-remove">Remove — {stack.price} <Icon name="scrap" size={11} /></span>
+                                            : <span className="rs-sellp">+{stack.price} <Icon name="scrap" size={11} /></span>}
                                     </button>
                                 </div>
                             );
@@ -525,7 +538,7 @@ export default function MarketplaceNode({
                         {CARD_PRICE_BY_ENERGY.join('/')}; always less than buy, so there is no loop to farm.
                     </p>
                     <div className={`rs-pill mk-pill ${atFloor ? 'at-floor' : ''}`}>
-                        DECK <b>{run.deck.length}</b> / floor {floor}
+                        DECK <b>{reading.counted}</b> / floor {floor}{junkNote(reading)}
                     </div>
                 </div>
             </div>

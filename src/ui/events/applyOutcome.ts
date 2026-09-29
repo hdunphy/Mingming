@@ -16,6 +16,8 @@ import type { UnknownAction } from '@reduxjs/toolkit';
 
 import { SeedStream } from '../../engine/core/SeedStream';
 import { nodeSeed } from '../../engine/run/nodeSeed';
+import { JUNK_CARD_ID } from '../../engine/run/junk';
+import { resolveGambles } from '../../engine/run/events/eventGamble';
 import { choiceGrants } from '../../engine/run/events/eventSchema';
 import type { EventChoice, EventDefinition, EventOutcome } from '../../engine/run/events/eventSchema';
 import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
@@ -55,13 +57,24 @@ function applyMapReveal(dispatch: OutcomeDispatch): void {
     dispatch(revealCurrentBiome());
 }
 
+/** A run-card instance id derived from the node's seed, so the same event on the same node mints the same id. */
+function mintInstanceId(ctx: OutcomeContext, purpose: string, prefix: string): string {
+    return new SeedStream(nodeSeed(ctx.run, ctx.node, purpose)).nextId(prefix);
+}
+
+/** `JUNK` (168c): one Corrupted Data, into the deck. `index` keeps two junk cards in one choice apart. */
+function applyJunk(dispatch: OutcomeDispatch, ctx: OutcomeContext, index: number): void {
+    const instanceId = new SeedStream(new SeedStream(nodeSeed(ctx.run, ctx.node, 'event-junk')).fork(String(index))).nextId('junk');
+    dispatch(addRunCards([{ instanceId, dataId: JUNK_CARD_ID, ownerId: null }]));
+}
+
 /**
  * `CARD_PICK`: the picked card goes to the deck, or to the run collection when the player stored it
  * (the same deck/store choice the reward screen has). The instance id is derived from the node's
  * seed, so the same pick on the same node mints the same card.
  */
 function applyCardPick(dispatch: OutcomeDispatch, ctx: OutcomeContext, pick: CardPickResult): void {
-    const instanceId = new SeedStream(nodeSeed(ctx.run, ctx.node, 'event-card')).nextId('evt');
+    const instanceId = mintInstanceId(ctx, 'event-card', 'evt');
     const card: IRunCard = { instanceId, dataId: pick.cardId, ownerId: null };
     dispatch(pick.toCollection ? addRunCollection([card]) : addRunCards([card]));
 }
@@ -77,10 +90,16 @@ export function applyChoice(
     choice: EventChoice,
     picks: Readonly<Record<number, CardPickResult>> = {},
 ): void {
-    choice.outcomes.forEach((outcome, index) => {
+    // A gamble lands on one branch first (seeded, so the same node always lands on the same one),
+    // and only then are its outcomes applied like any other.
+    const played = resolveGambles(ctx, choice);
+    played.outcomes.forEach((outcome, index) => {
         switch (outcome.type) {
             case 'SCRAP': applyScrap(dispatch, outcome.amount); break;
             case 'MAP_REVEAL': applyMapReveal(dispatch); break;
+            case 'JUNK': applyJunk(dispatch, ctx, index); break;
+            // The bench dispatches each upgrade itself as the player makes it; nothing to do here.
+            case 'UPGRADE': break;
             case 'TEMP_DRIVER': applyTempDriver(dispatch, outcome.driverId, outcome.fights); break;
             case 'CARD_PICK': {
                 const pick = picks[index];
@@ -94,7 +113,7 @@ export function applyChoice(
         }
     });
     dispatch(resolveEvent({
-        nodeId: ctx.node.id, eventId: event.id, choiceId: choice.id, grants: choiceGrants(choice),
+        nodeId: ctx.node.id, eventId: event.id, choiceId: choice.id, grants: choiceGrants(played),
     }));
 }
 

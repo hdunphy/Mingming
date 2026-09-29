@@ -42,3 +42,5 @@
 
 .ev-destination { display: flex; gap: 8px; justify-content: center; }
 .ev-destination .rs-f[aria-pressed='true'] { color: #ffd479; border-color: #ffd479; }
+
+.ev-note { font-size: 13px; color: #ffd479; margin: 0; }

@@ -98,6 +98,7 @@ import { isTemporaryDriver } from '../../engine/data/driverRegistry';
 import { minimumActiveDeck } from '../../engine/run/createRun';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
 import { afterFight, withTempDriver } from '../../engine/run/tempDrivers';
+import { countedDeckSize, isJunkCard } from '../../engine/run/junk';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome } from '../../engine/runTypes';
 
@@ -409,17 +410,19 @@ const runSlice = createSlice({
          */
         upgradeDeckCard: (
             state,
-            action: PayloadAction<{ instanceId: string; benchKey?: string; free?: boolean }>,
+            action: PayloadAction<{ instanceId: string; benchKey?: string; free?: boolean; allowance?: number }>,
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
-            const { instanceId, benchKey, free } = action.payload;
+            const { instanceId, benchKey, free, allowance } = action.payload;
 
             // One per visit, per bench. `benchKey` is `nodeId:visitCount` (see `upgradesTaken`).
             // Optional rather than required so a test, a scenario or a future venue can exercise
             // the verb without inventing a bench — not because any shipped venue omits it.
+            // TICKET 168c: `allowance` (default 1) is how many upgrades one bench key may spend; the
+            // Overclock Rig's event bench allows two. Each spend adds the key again.
             const spent = run.upgradesTaken ?? [];
-            if (benchKey !== undefined && spent.includes(benchKey)) return { run };
+            if (benchKey !== undefined && spent.filter((key) => key === benchKey).length >= (allowance ?? 1)) return { run };
 
             const index = run.deck.findIndex((card) => card.instanceId === instanceId);
             if (index === -1) return { run };
@@ -508,11 +511,13 @@ const runSlice = createSlice({
         moveCardToCollection: (state, action: PayloadAction<string>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
-            // The floor counts the PARTY, so benching a member lowers it in the same edit session.
-            if (run.deck.length <= minimumActiveDeck(run.partyIds.length)) return { run };
             const instanceId = action.payload;
             const card = run.deck.find((held) => held.instanceId === instanceId);
             if (!card) return { run };
+            // The floor counts the PARTY, so benching a member lowers it in the same edit session.
+            // Junk (168c) does not count toward it, so sending junk out is never floor-blocked and
+            // a deck at its floor plus a junk card still refuses to shed a real one.
+            if (!isJunkCard(card.dataId) && countedDeckSize(run.deck) <= minimumActiveDeck(run.partyIds.length)) return { run };
             return {
                 run: {
                     ...run,
@@ -638,8 +643,12 @@ const runSlice = createSlice({
             const { instanceId, price } = action.payload;
             if (!Number.isInteger(price) || price < 0) return { run };
 
+            // TICKET 168c: junk is not sold — it is removed for a price (`removeJunkCard`).
+            const held = [...run.deck, ...(run.collection ?? [])].find((card) => card.instanceId === instanceId);
+            if (held && isJunkCard(held.dataId)) return { run };
+
             const fromDeck = run.deck.some((card) => card.instanceId === instanceId);
-            if (fromDeck && run.deck.length <= minimumActiveDeck(run.partyIds.length)) return { run };
+            if (fromDeck && countedDeckSize(run.deck) <= minimumActiveDeck(run.partyIds.length)) return { run };
 
             const deck = run.deck.filter((card) => card.instanceId !== instanceId);
             const collection = (run.collection ?? []).filter((card) => card.instanceId !== instanceId);
@@ -648,6 +657,34 @@ const runSlice = createSlice({
             if (!soldFromDeck && !soldFromCollection) return { run };
 
             return { run: { ...run, scrap: run.scrap + price, deck, collection } };
+        },
+
+        /**
+         * TICKET 168c — **pay to remove a junk card** (Corrupted Data), from the deck or the
+         * collection. The price rides the action and the scrap and the card move in one step (the
+         * `buyMarketCard` rule), so a crash cannot take the scrap and leave the card.
+         *
+         * Refused for a card that is not junk (a real card is sold, not removed), for an unaffordable
+         * price and for an unknown instance. **Never blocked by the floor**: junk does not count
+         * toward it, so removing it cannot leave a deck under.
+         */
+        removeJunkCard: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { instanceId, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0 || run.scrap < price) return { run };
+
+            const held = [...run.deck, ...(run.collection ?? [])].find((card) => card.instanceId === instanceId);
+            if (!held || !isJunkCard(held.dataId)) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    deck: run.deck.filter((card) => card.instanceId !== instanceId),
+                    collection: (run.collection ?? []).filter((card) => card.instanceId !== instanceId),
+                },
+            };
         },
 
         /**
@@ -1466,6 +1503,7 @@ export const {
     revealCurrentBiome,
     resolveEvent,
     addTempDriver,
+    removeJunkCard,
     beginGauntlet,
     advanceGauntlet,
     reviveGauntletMember,

@@ -74,7 +74,8 @@ export function codexCardIds(): string[] {
     // coincidence of the JSON.
     return Object.keys(ProgramRegistry).filter((id) => {
         const data = ProgramRegistry[id];
-        return data.isToken !== true && !data.upgradeOf && inV2RunPool(id);
+        // TICKET 168c: junk is not a card to collect.
+        return data.isToken !== true && data.junk !== true && !data.upgradeOf && inV2RunPool(id);
     });
 }
 

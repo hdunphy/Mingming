@@ -41,11 +41,16 @@ export interface UpgradeBenchProps {
     readonly benchKey?: string;
     /** The gym gate's upgrade is free (163 §2). The only fact a venue is allowed to name. */
     readonly free?: boolean;
+    /**
+     * TICKET 168c: how many upgrades this bench key may spend. Default 1, which is every venue
+     * before the Overclock Rig event (two).
+     */
+    readonly allowance?: number;
     /** What the venue calls itself in the one-per line. */
     readonly heading: string;
 }
 
-export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps): ReactNode {
+export function UpgradeBench({ run, benchKey, free, heading, allowance = 1 }: UpgradeBenchProps): ReactNode {
     const dispatch = useDispatch();
     const { peek, at, peekHandlers } = useCardPeek();
 
@@ -66,11 +71,12 @@ export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps
         [run.deck],
     );
 
-    const spent = benchKey !== undefined && (run.upgradesTaken ?? []).includes(benchKey);
+    const used = benchKey === undefined ? 0 : (run.upgradesTaken ?? []).filter((key) => key === benchKey).length;
+    const spent = benchKey !== undefined && used >= allowance;
 
     return (
         <div className="rs-panel mk-upgrade">
-            <h2>{heading} <span className="mk-sub">({free === true ? 'free, once' : 'one per visit'})</span></h2>
+            <h2>{heading} <span className="mk-sub">({free === true ? (allowance > 1 ? `free, ${allowance} cards` : 'free, once') : 'one per visit'})</span></h2>
             <div className="mk-rows">
                 {rows.map(({ stack, to }) => {
                     const face = cardFace(stack.dataId);
@@ -94,6 +100,7 @@ export function UpgradeBench({ run, benchKey, free, heading }: UpgradeBenchProps
                                     instanceId: stack.instances[0].instanceId,
                                     benchKey,
                                     free,
+                                    allowance,
                                 }))}
                                 /*
                                  * TICKET 165a — THE HOVER PEEK.

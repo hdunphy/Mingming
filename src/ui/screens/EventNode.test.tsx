@@ -20,6 +20,8 @@ import runReducer from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { BUILT_EVENTS, drawEvent } from '../../engine/run/events/eventDraw';
+import { gambleWins } from '../../engine/run/events/eventGamble';
+import { JUNK_CARD_ID } from '../../engine/run/junk';
 import type { EventRanchView } from '../../engine/run/events/eventContext';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
@@ -254,3 +256,99 @@ describe('EventNode', () => {
         expect(store.getState().run.run!.tempDrivers ?? []).toEqual([]);
     });
 });
+
+describe('EventNode — junk and gambles (168c)', () => {
+    /** A run whose Corrupted Cache gamble lands on the wanted side, found by varying the run seed. */
+    function cacheRun(win: boolean): IRunState {
+        for (let i = 0; i < 200; i += 1) {
+            // A Rare event cannot be drawn in the first biome (rule 4), so the node stands in the second.
+            const seen = seenRun(allBut('corrupted_cache'));
+            const run = {
+                ...seen,
+                seed: `cache-${i}`,
+                nodes: seen.nodes.map((n) => (n.id === seen.currentNodeId ? { ...n, biomeIndex: 1 } : n)),
+            };
+            const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
+            if (gambleWins({ run, node }, 0, 50) === win) return run;
+        }
+        throw new Error('no seed found for the wanted side');
+    }
+
+    it('upgrades two cards free at Overclock Rig, then adds one Corrupted Data on DONE', async () => {
+        const store = makeStore(seenRun(allBut('overclock_rig')));
+        await mount(store);
+        const before = store.getState().run.run!;
+        const scrapBefore = before.scrap;
+
+        await click(byText('Upgrade two cards'));
+        expect(byText('DONE')!.disabled).toBe(true);
+        for (let i = 0; i < 2; i += 1) await click(host.querySelector('.mk-upgrade .rs-row') as HTMLButtonElement);
+
+        const mid = store.getState().run.run!;
+        expect(mid.deck.filter((c) => c.upgraded === true)).toHaveLength(2);
+        expect(mid.scrap).toBe(scrapBefore);
+        // The junk is not added until the bench is finished, and the event is not spent yet.
+        expect(mid.deck.some((c) => c.dataId === JUNK_CARD_ID)).toBe(false);
+        expect(byText('BACK')!.disabled).toBe(true);
+        expect(byText('DONE')!.disabled).toBe(false);
+
+        await click(byText('DONE'));
+        const after = store.getState().run.run!;
+        expect(after.deck.filter((c) => c.dataId === JUNK_CARD_ID)).toHaveLength(1);
+        expect(after.deck).toHaveLength(before.deck.length + 1);
+        expect(after.eventHistory).toHaveLength(BUILT_EVENTS.size);
+        expect(host.textContent).toContain('The relay is dark');
+    });
+
+    it('lets Overclock Rig be left with nothing changed', async () => {
+        const store = makeStore(seenRun(allBut('overclock_rig')));
+        await mount(store);
+        const before = store.getState().run.run!;
+        await click(byText('Leave'));
+        const after = store.getState().run.run!;
+        expect(after.deck).toEqual(before.deck);
+        expect(after.eventHistory).toHaveLength(BUILT_EVENTS.size);
+    });
+
+    it('Corrupted Cache, on a win, offers three Rare cards and takes nothing else', async () => {
+        const store = makeStore(cacheRun(true));
+        await mount(store);
+        const before = store.getState().run.run!;
+        expect(byText('Open it (50% / 50%)')).toBeDefined();
+
+        await click(byText('Open it'));
+        expect(host.querySelectorAll('.rs-card')).toHaveLength(3);
+        await click(host.querySelector('.rs-card') as HTMLButtonElement);
+        await click(byText('TAKE CARD'));
+
+        const after = store.getState().run.run!;
+        expect(after.deck).toHaveLength(before.deck.length + 1);
+        expect(after.deck.some((c) => c.dataId === JUNK_CARD_ID)).toBe(false);
+        expect(after.scrap).toBe(before.scrap);
+    });
+
+    it('Corrupted Cache, on a loss, adds Corrupted Data and takes 15 scrap', async () => {
+        const store = makeStore({ ...cacheRun(false), scrap: 40 });
+        await mount(store);
+        await click(byText('Open it'));
+
+        const after = store.getState().run.run!;
+        expect(after.deck.filter((c) => c.dataId === JUNK_CARD_ID)).toHaveLength(1);
+        expect(after.scrap).toBe(25);
+        expect(host.textContent).toContain('The relay is dark');
+    });
+
+    it('Corrupted Cache, on a loss with under 15 scrap, takes what the run holds and no more', async () => {
+        const store = makeStore({ ...cacheRun(false), scrap: 5 });
+        await mount(store);
+        await click(byText('Open it'));
+        expect(store.getState().run.run!.scrap).toBe(0);
+    });
+
+    it('Corrupted Cache lands on the same side every time for the same node', async () => {
+        const run = cacheRun(false);
+        const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
+        expect([1, 2, 3].map(() => gambleWins({ run, node }, 0, 50))).toEqual([false, false, false]);
+    });
+});
+

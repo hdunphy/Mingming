@@ -358,6 +358,18 @@ export function sellPrice(dataId: string): number {
     return SELL_PRICE_BY_ENERGY[Math.max(0, energy)];
 }
 
+/**
+ * WHAT IT COSTS TO REMOVE A JUNK CARD — **25 scrap** (ticket 168c).
+ *
+ * Henry, on the events ticket: *"Yes junk cards. Also you have to pay to remove them instead of
+ * selling them for scrap at the shop."* So Corrupted Data is the one card the market does not buy:
+ * its row in the sell list reads "Remove — 25 scrap" and the scrap goes the other way. It is not a
+ * revival of the deleted paid removal below (which charged to shrink a deck the player could shrink
+ * for free); junk is a card the player did not choose, and clearing it is the price of the event
+ * that gave it. It is never blocked by the deck floor, because junk does not count toward it.
+ */
+export const JUNK_REMOVAL_PRICE = 25;
+
 /*
  * PAID REMOVAL IS DELETED — Henry, 2026-08-26. `REMOVAL_PRICE` (20) and its whole derivation lived
  * here, and `WORKSHOP_REMOVAL_PRICE` re-exported it so one sink had one price at two counters.

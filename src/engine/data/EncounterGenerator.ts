@@ -94,7 +94,8 @@ export function generateEncounter(options: IEncounterOptions): IGeneratedEncount
      * is closed at `RewardSystem.isRewardable`; this is the other side of the same door, and it is
      * a filter on the SOURCE lists rather than a check at each of the four draw sites.
      */
-    const isBaseCard = (id: string) => !ProgramRegistry[id].upgradeOf;
+    // TICKET 168c: junk is the player's penalty card and an enemy never gets one.
+    const isBaseCard = (id: string) => !ProgramRegistry[id].upgradeOf && ProgramRegistry[id].junk !== true;
 
     // 4. Build Elemental Deck
     // Logic: Sector Element cards + "None" category utility cards

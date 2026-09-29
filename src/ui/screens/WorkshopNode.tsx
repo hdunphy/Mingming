@@ -88,6 +88,7 @@ import { benchPartyMember, recruitIntoParty, recruitToBench, reflashEngine } fro
 import type { RootState } from '../store/store';
 import { ElementMark } from './CardChassis';
 import { cardFace, colorFor } from './runShell';
+import { junkNote, readDeckFloor } from './deckFloor';
 import { UpgradeBench } from './UpgradeBench';
 import './runShell.css';
 import './WorkshopNode.css';
@@ -181,6 +182,7 @@ export default function WorkshopNode({
 
     const scrap = run.scrap;
     const floor = minimumActiveDeck(run.partyIds.length);
+    const deckReading = readDeckFloor(run);
     const bench = useMemo(() => run.bench ?? [], [run.bench]);
     const species = useMemo(() => workshopSpecies(ranch, run), [ranch, run]);
 
@@ -668,8 +670,8 @@ export default function WorkshopNode({
                                 ? `Party is full — ASSEMBLE → PARTY asks who to bench. Species clause: no duplicate species across party + bench. Click a member to reflash. 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap.`
                                 : `Click a member to reflash — 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
                     </p>
-                    <div className={`rs-pill ${run.deck.length <= floor ? 'at-floor' : ''}`}>
-                        DECK <b>{run.deck.length}</b> / floor {floor}
+                    <div className={`rs-pill ${deckReading.atFloor ? 'at-floor' : ''}`}>
+                        DECK <b>{deckReading.counted}</b> / floor {floor}{junkNote(deckReading)}
                     </div>
 
                     {/*

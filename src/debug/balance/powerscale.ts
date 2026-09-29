@@ -285,8 +285,10 @@ export function bandVerdict(score: number, band: number): BandVerdict {
  * It is not a licence for the rest of the pool. The base card keeps its band, and `isBandExempt`
  * is driven by `upgradeOf` rather than by a name ending in `+`, so nothing else can wander in.
  */
-export function isBandExempt(card: Pick<ProgramData, 'upgradeOf'>): boolean {
-    return card.upgradeOf !== undefined;
+export function isBandExempt(card: Pick<ProgramData, 'upgradeOf' | 'junk'>): boolean {
+    // TICKET 168c: a junk card is not a card anyone is offered, so it has no budget to be over. It
+    // is skipped, not scored — "fix each by excluding junk, not by giving it a score".
+    return card.upgradeOf !== undefined || card.junk === true;
 }
 
 /** The band a card of this cost is budgeted against. Costs above 3 use the 3+ band. */

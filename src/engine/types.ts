@@ -615,6 +615,11 @@ export interface ProgramData {
   readonly isToken?: boolean; // If true, this is a generated token card
   readonly exhaust?: boolean; // If true, card is removed from battle after use
   /**
+   * TICKET 168c — a JUNK card (Corrupted Data): does nothing, costs an Energy to clear. Never
+   * offered, never scored, never counted toward the deck floor, never given to an enemy.
+   */
+  readonly junk?: boolean;
+  /**
    * Ticket 53 - RAMPAGE growth. This card INSTANCE permanently gains +N power on every
    * ATTACK action each time it resolves, for the rest of the battle. Per instance, not per
    * card id: two copies of `zealots_edge` grow independently, and the accumulator is a

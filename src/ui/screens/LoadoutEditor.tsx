@@ -54,6 +54,8 @@ import {
     swapBenchMember,
 } from '../store/runSlice';
 import { cardFace, colorFor, groupByData, isPayoff, type Banner } from './runShell';
+import { junkNote, readDeckFloor } from './deckFloor';
+import { isJunkCard } from '../../engine/run/junk';
 import './runShell.css';
 import './LoadoutEditor.css';
 import { CardTileFace, ElementMark } from './CardChassis';
@@ -151,7 +153,8 @@ export default function LoadoutEditor({
     const collection = useMemo(() => run.collection ?? [], [run.collection]);
     const bench = useMemo(() => run.bench ?? [], [run.bench]);
     const floor = minimumActiveDeck(run.partyIds.length);
-    const atFloor = run.deck.length <= floor;
+    const deckReading = readDeckFloor(run);
+    const atFloor = deckReading.atFloor;
 
     const memberOf = (id: string): IRanchMember | undefined => ranch.roster.find((m) => m.id === id);
     /** TICKET 158-r1: the firmware actually on the field, for the partner mark. */
@@ -193,7 +196,8 @@ export default function LoadoutEditor({
     };
 
     const send = (stack: Stack): void => {
-        if (atFloor) { playSfx('uiError'); return; }
+        // Junk (168c) does not count toward the floor, so sending it out is never blocked.
+        if (atFloor && !isJunkCard(stack.dataId)) { playSfx('uiError'); return; }
         dispatch(moveCardToCollection(stack.instances[0].instanceId));
         playSfx('uiClick');
     };
@@ -233,7 +237,7 @@ export default function LoadoutEditor({
                 <span className="rs-ctx">{context}</span>
                 <span className="rs-spacer" />
                 <span className={`rs-pill ${atFloor ? 'at-floor' : ''}`}>
-                    DECK <b>{run.deck.length}</b> / floor {floor}
+                    DECK <b>{deckReading.counted}</b> / floor {floor}{junkNote(deckReading)}
                 </span>
                 <button type="button" className="rs-btn primary" onClick={() => { playSfx('uiClick'); onClose(); }}>
                     CONFIRM
@@ -375,7 +379,7 @@ export default function LoadoutEditor({
                 </div>
 
                 <div className="rs-panel led-deck">
-                    <h2>ACTIVE DECK · {run.deck.length} / floor {floor}</h2>
+                    <h2>ACTIVE DECK · {deckReading.counted} / floor {floor}{junkNote(deckReading)}</h2>
 
                     <div className="led-rows">
                         {deckStacks
@@ -387,7 +391,7 @@ export default function LoadoutEditor({
                                     type="button"
                                     className="rs-row"
                                     style={{ ['--el' as string]: colorFor(stack.element) }}
-                                    disabled={atFloor}
+                                    disabled={atFloor && !isJunkCard(stack.dataId)}
                                     onClick={() => send(stack)}
                                     /*
                                      * Henry, 2026-09-11: the row is the right shape for editing a

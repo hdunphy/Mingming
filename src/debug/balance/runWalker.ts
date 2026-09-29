@@ -52,15 +52,16 @@ import { configureStore } from '@reduxjs/toolkit';
 import runReducer, {
     startRun, enterNode, resolveEncounter, endRun, addRunScrap, addRunCards, addRunCollection,
     buyMarketCard, recruitIntoParty, beginGauntlet, advanceGauntlet, finishGauntlet,
-    recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint,
+    recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
 } from '../../ui/store/runSlice';
+import { junkToRemove } from './junkPolicy';
 import { createRun, recruitDeckFor } from '../../engine/run/createRun';
 import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompElementPlan, type IGym } from '../../engine/run/gyms';
 import { rollEncounter, isFightNode, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { rollDropTable } from '../../engine/RewardSystem';
 import { fightBonusFor } from '../../engine/run/fightBonus';
-import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold } from '../../engine/run/marketplace';
+import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold, JUNK_REMOVAL_PRICE } from '../../engine/run/marketplace';
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
 import { BlueprintLedger } from './BlueprintLedger';
 import { drawEvent } from '../../engine/run/events/eventDraw';
@@ -867,6 +868,13 @@ export function walkRun(input: WalkInput): WalkResult {
             patchesTaken.push({ patchId: fit.patchId, from: 'shop', price: patchPrice });
             record({ kind: 'PATCH_TAKEN', memberId: fit.memberId, patchId: fit.patchId }, fights.length);
             break;
+        }
+
+        // TICKET 168c: junk is cleared LAST, with whatever the purchases left. A card, a body and a
+        // patch are worth more to the run than an empty slot in the hand, so removal never outbids
+        // them; it spends only scrap the shop visit had no other use for.
+        for (const instanceId of junkToRemove(runNow().deck, runNow().scrap)) {
+            store.dispatch(removeJunkCard({ instanceId, price: JUNK_REMOVAL_PRICE }));
         }
     };
 
