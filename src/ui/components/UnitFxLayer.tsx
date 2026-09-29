@@ -52,37 +52,49 @@ export const FxTransientOverlays: React.FC<{ fx?: UnitFx }> = ({ fx }) => (
 
 interface FxFloatsProps {
     fx?: UnitFx;
-    /** How far (px) floats rise. HUD cards use the default 86; the stage pushes higher. */
+    /** How far (px) floats rise. HUD cards use the default 70; the stage pushes higher (90). */
     rise?: number;
-    /** Lateral px between the 6 fan-out slots (HUD default 15). */
-    slotSpacing?: number;
 }
 
+/**
+ * TICKET 167h: how far each slot starts below the one before it. The six slots used to fan out
+ * SIDEWAYS, which put a burst of hits in a wide row that still overlapped at the ends; they now
+ * stack upward, newest lowest, so every number of a burst has a line of its own.
+ */
+const SLOT_STEP_PX = 22;
+/** Where the status column sits, left of the damage column, so a status never covers a number. */
+const STATUS_COLUMN_LEFT = 'calc(50% - 70px)';
+
 /** Floating combat numbers (damage / crit / heal / ABSORBED readouts). */
-export const FxFloats: React.FC<FxFloatsProps> = ({ fx, rise = 86, slotSpacing = 15 }) => (
+export const FxFloats: React.FC<FxFloatsProps> = ({ fx, rise = 70 }) => (
     <AnimatePresence>
-        {(fx?.floats ?? []).map(f => (
-            <motion.div
-                key={f.id}
-                className={`hud-float hud-float-${f.kind}`}
-                style={{ color: f.color, left: `calc(50% + ${(f.slot - 2.5) * slotSpacing}px)` }}
-                initial={{ opacity: 0, y: 6, scale: f.kind === 'crit' ? 0.6 : 0.7 }}
-                animate={{
-                    opacity: [0, 1, 1, 0],
-                    y: prefersReducedMotion() ? -18 : -rise,
-                    scale: f.kind === 'crit' ? 1.55 : f.kind === 'absorbed' ? 0.95 : 1.15,
-                    rotate: f.kind === 'crit' ? (f.slot % 2 ? -8 : 8) : 0,
-                }}
-                exit={{ opacity: 0 }}
-                transition={{
-                    duration: 1,
-                    ease: 'easeOut',
-                    opacity: { duration: 1, times: [0, 0.08, 0.7, 1] },
-                }}
-            >
-                {f.text}
-            </motion.div>
-        ))}
+        {(fx?.floats ?? []).map(f => {
+            // Vertical only. The offset holds for the whole life, so the stack stays a stack.
+            const slotY = f.slot * SLOT_STEP_PX;
+            return (
+                <motion.div
+                    key={f.id}
+                    className={`hud-float hud-float-${f.kind}`}
+                    style={{ color: f.color, left: f.kind === 'status' ? STATUS_COLUMN_LEFT : '50%' }}
+                    initial={{ opacity: 0, y: 6 + slotY, scale: f.kind === 'crit' ? 0.6 : 0.7 }}
+                    animate={{
+                        opacity: [0, 1, 1, 0],
+                        y: (prefersReducedMotion() ? -18 : -rise) + slotY,
+                        scale: f.kind === 'crit' ? 1.55 : f.kind === 'absorbed' ? 0.95 : 1.15,
+                        rotate: f.kind === 'crit' ? (f.slot % 2 ? -8 : 8) : 0,
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{
+                        duration: 1.8,
+                        ease: 'easeOut',
+                        // They hold readable for most of the life (167h: 1 s was too fast to read).
+                        opacity: { duration: 1.8, times: [0, 0.06, 0.8, 1] },
+                    }}
+                >
+                    {f.text}
+                </motion.div>
+            );
+        })}
     </AnimatePresence>
 );
 

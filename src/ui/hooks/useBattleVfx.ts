@@ -38,7 +38,7 @@ export interface CombatFloat {
     kind: FloatKind;
     text: string;
     color: string;
-    /** 0..5 lateral slot so rapid hits fan out instead of overlapping dead-center. */
+    /** 0..5 vertical slot (ticket 167h) so rapid hits stack instead of overlapping dead-center. */
     slot: number;
 }
 
@@ -139,8 +139,8 @@ const CRIT_FRACTION = 0.25;
 const ARENA_SHAKE_FRACTION = 0.33;
 /** Cap concurrent floats per unit; oldest are dropped beyond this. */
 const MAX_FLOATS_PER_UNIT = 8;
-/** Must outlive the ~1s float animation. */
-const FLOAT_LIFETIME_MS = 1150;
+/** Must outlive the 1.8 s float animation (`FxFloats`, ticket 167h). */
+const FLOAT_LIFETIME_MS = 2000;
 const FLOAT_SLOTS = 6;
 
 const HEAL_COLOR = '#4ade80';

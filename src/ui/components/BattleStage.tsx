@@ -196,7 +196,7 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width, i
             )}
 
             <FxTransientOverlays fx={fx} />
-            <FxFloats fx={fx} rise={120} slotSpacing={24} />
+            <FxFloats fx={fx} rise={90} />
             <TerminatedStamp visible={isDead} glitching={deathGlitch} />
         </motion.div>
     );

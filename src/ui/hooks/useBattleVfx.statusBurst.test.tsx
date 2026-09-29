@@ -98,3 +98,20 @@ describe('166b — useBattleVfx status burst handling', () => {
         sfxSpy.mockRestore();
     });
 });
+
+describe('167h — a float lives long enough to read', () => {
+    it('is still on the unit at 1.5 s and gone by 2.1 s (it was 1.15 s)', () => {
+        vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({ type: 'STATUS_APPLIED', targetId: 'p1', status: 'Sharp', stacks: 2, timestamp: Date.now() });
+        });
+        act(() => { vi.advanceTimersByTime(10); });
+        expect(seen.vfx!.unitFx['p1']?.floats ?? []).toHaveLength(1);
+
+        act(() => { vi.advanceTimersByTime(1500); });
+        expect(seen.vfx!.unitFx['p1']?.floats ?? []).toHaveLength(1);
+
+        act(() => { vi.advanceTimersByTime(600); });
+        expect(seen.vfx!.unitFx['p1']?.floats ?? []).toHaveLength(0);
+    });
+});
