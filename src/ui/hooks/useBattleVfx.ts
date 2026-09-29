@@ -11,7 +11,7 @@ import {
 } from '../audio/battleCues';
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
 import { describeDriver } from '../../engine/data/driverRegistry';
-import { statusFloatText } from '../vfx/statusBurst';
+import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -409,7 +409,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     }
 
                     if (absorbed > 0) {
-                        pushFloat(targetId, 'absorbed', `-${absorbed} 🛡`, ABSORB_COLOR);
+                        pushFloat(targetId, 'absorbed', `-${absorbedAmount(absorbed)} 🛡`, ABSORB_COLOR);
                     }
                     /*
                      * Three shield moments, not one (147 §8): the bark held (`blockedByBark`),

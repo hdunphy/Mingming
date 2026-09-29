@@ -148,8 +148,9 @@ const HandCardFace: React.FC<HandCardFaceProps> = ({
                 <span className="hc-vs">{trueDamage > 0 ? 'vs' : 'to'} {preview.measuredOn}</span>
             )}
             {preview && preview.hitCount > 1 && <span className="hc-chip">×{preview.hitCount} HITS</span>}
+            {/* 167i: whole numbers on screen. Bark Shield absorbs a share of max HP, so the engine's figure is rarely whole. */}
             {preview && preview.absorbed > 0 && (
-                <span className="hc-chip is-shielded">ABS {preview.absorbed}</span>
+                <span className="hc-chip is-shielded">{`ABS ${Math.round(preview.absorbed)}`}</span>
             )}
             {/*
               * The WORD stays, not just the multiplier. Trimming these to a bare `×1.5` for the

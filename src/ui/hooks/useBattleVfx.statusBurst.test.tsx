@@ -115,3 +115,19 @@ describe('167h — a float lives long enough to read', () => {
         expect(seen.vfx!.unitFx['p1']?.floats ?? []).toHaveLength(0);
     });
 });
+
+describe('167i — the absorbed float shows a whole number', () => {
+    it('a hit that a Bark Shield eats 13.7 of floats "-14 🛡", not the raw figure', () => {
+        vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'DAMAGE_TAKEN', targetId: 'p1', amount: 5, element: 'Fire', timestamp: Date.now(),
+                damage: { absorbed: 13.7 },
+            } as never);
+        });
+        act(() => { vi.advanceTimersByTime(10); });
+        const texts = (seen.vfx!.unitFx['p1']?.floats ?? []).map(f => f.text);
+        expect(texts).toContain('-14 🛡');
+        expect(texts.some(t => t.includes('13.7'))).toBe(false);
+    });
+});
