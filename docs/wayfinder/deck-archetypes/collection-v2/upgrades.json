@@ -372,8 +372,8 @@
   "name": "Undertow",
   "cost": 0,
   "text": "Draw a card. You gain 1 Weakened.",
-  "plus": "Draw a card. You gain 2 Weakened.",
-  "rule": "status: +1 stacks (1 + cost)"
+  "plus": "Draw a card.",
+  "rule": "self-debuff removed (Henry, 2026-09-28)"
  },
  {
   "id": "blind_spot",

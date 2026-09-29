@@ -8586,7 +8586,7 @@
     "undertow+": {
         "id": "undertow+",
         "name": "Undertow+",
-        "description": "Draw a card. You gain 2 Weakened.",
+        "description": "Draw a card.",
         "element": "Water",
         "target": "Self",
         "category": "Skill",
@@ -8602,12 +8602,6 @@
             {
                 "type": "DRAW",
                 "amount": 1,
-                "target": "SELF"
-            },
-            {
-                "type": "STATUS",
-                "status": "Weakened",
-                "stacks": 2,
                 "target": "SELF"
             }
         ]
