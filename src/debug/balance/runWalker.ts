@@ -71,7 +71,7 @@ import { offerMacros } from '../../engine/run/events/eventMacros';
 import { EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP } from '../../engine/run/events/emptyRelay';
 import { applyChoice, applyEmptyRelay } from '../../ui/events/applyOutcome';
 import type { OutcomePick } from '../../ui/events/outcomePicks';
-import { chooseEventChoice } from './eventPolicy';
+import { chooseEventChoice, chooseGiveUps } from './eventPolicy';
 export { BlueprintLedger } from './BlueprintLedger';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { PATCH_SLOTS } from '../../engine/data/patchRegistry';
@@ -613,6 +613,10 @@ export function playEventNode(
             }
         } else if (outcome.type === 'RECRUIT') {
             recruit?.();
+        } else if (outcome.type === 'GIVE_CARD') {
+            // Only The Toll gets here (the walker leaves every other event that takes a card): it
+            // gives up the cheapest cards it can spare.
+            picks[index] = { instanceIds: chooseGiveUps(store.getState().run.run!, outcome.count, outcome.rarity, scoreOf) };
         }
     });
     applyChoice(dispatch, ctx, event, choice, picks);

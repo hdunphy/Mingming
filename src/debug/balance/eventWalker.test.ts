@@ -18,7 +18,7 @@ import { offerGyms } from '../../engine/run/gyms';
 import type { IRunState } from '../../engine/runTypes';
 import { BlueprintLedger } from './BlueprintLedger';
 import { memberFor, playEventNode, walkRun } from './runWalker';
-import { chooseEventChoice, isFreeChoice } from './eventPolicy';
+import { chooseEventChoice, chooseGiveUps, isFreeChoice } from './eventPolicy';
 
 describe('chooseEventChoice', () => {
     it('takes the first free choice, and leaves when none is free', () => {
@@ -143,6 +143,33 @@ describe('playEventNode with a forced event (168d)', () => {
         const { run, log } = play('data_broker');
         expect(run.scrap).toBe(createRun({ seed: 'walker-pick', offer: offerGyms('walker-offer')[0], party: [memberFor('mm1', 'kraken_v1')], startedAt: 1 }).scrap);
         expect(log).toContainEqual({ kind: 'EVENT_RESOLVED', eventId: 'data_broker', choiceId: 'leave' });
+    });
+});
+
+describe('the walker at the trade and cost events (168e)', () => {
+    const pick = (id: string, scrap?: number): string => chooseEventChoice(EVENTS.find((e) => e.id === id)!, scrap).id;
+
+    it('leaves every event that takes a card, a blueprint or scrap for a Driver, a patch, a trade or a copy', () => {
+        for (const id of ['trader', 'mirror_protocol', 'recompiler', 'driver_shrine', 'black_market_patch']) {
+            expect(pick(id, 1000), id).toBe('leave');
+        }
+    });
+
+    it('pays The Toll when it can, and gives up a card when it cannot (the Toll has no Leave)', () => {
+        expect(pick('the_toll', 30)).toBe('pay');
+        expect(pick('the_toll', 25)).toBe('give');
+    });
+
+    it('gives up the cheapest spare cards: collection first, deck only above its floor', () => {
+        const card = (instanceId: string, dataId: string) => ({ instanceId, dataId, ownerId: null });
+        const base = createRun({ seed: 'give', offer: offerGyms('give-offer')[0], party: [memberFor('mm1', 'kraken_v1')], startedAt: 1 });
+        const score = (id: string): number | null => (id === 'cheap' ? 1 : id === 'dear' ? 9 : 5);
+        const run: IRunState = { ...base, deck: [...base.deck, card('d1', 'dear'), card('d2', 'cheap')], collection: [card('c1', 'dear')] };
+        expect(chooseGiveUps(run, 1, undefined, score)).toEqual(['c1']);
+        expect(chooseGiveUps(run, 2, undefined, score)).toEqual(['c1', 'd2']);
+        // A deck at its floor gives nothing from the deck.
+        const floor = { ...run, deck: base.deck, collection: [] };
+        expect(chooseGiveUps(floor, 1, undefined, score)).toEqual([]);
     });
 });
 

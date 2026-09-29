@@ -15,7 +15,7 @@ import { hasUpgrade } from '../../data/plusRegistry';
 import { rewardCardPool } from '../../RewardSystem';
 import { MingmingRegistry } from '../../data/mingmingRegistry';
 import { PARTY_SIZE, partyBlockFor } from '../../party';
-import { minimumActiveDeck } from '../createRun';
+import { canGive, heldCards } from './eventGive';
 import { partyMembersOf } from './eventContext';
 import type { EventContext } from './eventContext';
 
@@ -24,11 +24,9 @@ function poolOf(ctx: EventContext, rarity: string): string[] {
     return rewardCardPool(partyMembersOf(ctx)).filter((id) => ProgramRegistry[id]?.rarity === rarity);
 }
 
-/** Rule 7: a deck card cannot be given up below the floor; a collection card always can. */
+/** Rule 7: a deck card cannot be given up below the floor; a collection card always can. Junk is never given. */
 function canGiveUpCards(ctx: EventContext, count = 1): boolean {
-    const { deck, collection = [], partyIds } = ctx.run;
-    const spareInDeck = Math.max(0, deck.length - minimumActiveDeck(partyIds.length));
-    return spareInDeck + collection.length >= count;
+    return canGive(ctx.run, count);
 }
 
 const upgradableCards = (ctx: EventContext): number => ctx.run.deck.filter((card) => hasUpgrade(card.dataId)).length;
@@ -43,7 +41,7 @@ const always = (): boolean => true;
  * species whose blueprint the ranch holds, on a firmware the duplicate clause (species + firmware)
  * lets in. The same two questions `workshop.workshopBlockFor` asks, read off the ranch view.
  */
-function workshopWouldOfferARecruit(ctx: EventContext): boolean {
+export function workshopWouldOfferARecruit(ctx: EventContext): boolean {
     if (ctx.run.partyIds.length >= PARTY_SIZE) return false;
     const party = partyMembersOf(ctx);
     return Object.entries(ctx.ranch.blueprints).some(([speciesId, count]) => count >= 1
@@ -69,7 +67,7 @@ const CHECKS: Readonly<Record<string, (ctx: EventContext) => boolean>> = {
     data_broker: (ctx) => poolOf(ctx, 'Rare').length >= 1,
     stray_mingming: workshopWouldOfferARecruit,
     ambush_bait: always,
-    mirror_protocol: (ctx) => ctx.run.deck.length + (ctx.run.collection ?? []).length >= 1,
+    mirror_protocol: (ctx) => heldCards(ctx.run).length >= 1,
     // Rare
     driver_shrine: (ctx) => ctx.run.drivers.filter((id) => PLAYER_DRIVER_IDS.includes(id)).length < PLAYER_DRIVER_IDS.length
         && (canGiveUpCards(ctx, 2) || heldBlueprints(ctx) >= 1),

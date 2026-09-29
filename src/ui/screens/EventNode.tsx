@@ -30,15 +30,12 @@ import type { ReactNode } from 'react';
 import { useDispatch, useStore } from 'react-redux';
 
 import { ProgramRegistry } from '../../engine/data/programRegistry';
-import { isBiomeRevealed } from '../../engine/data/macroRegistry';
 import { resolveGambles } from '../../engine/run/events/eventGamble';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { eventResolvedAt } from '../../engine/run/events/eventState';
 import { drawEvent } from '../../engine/run/events/eventDraw';
 import { playableChoices } from '../../engine/run/events/eventChoices';
-import { offerBlueprints } from '../../engine/run/events/eventBlueprints';
 import { offerCards } from '../../engine/run/events/eventCards';
-import { offerMacros } from '../../engine/run/events/eventMacros';
 import { EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP, EMPTY_RELAY_TEXT } from '../../engine/run/events/emptyRelay';
 import type { EventContext, EventRanchView } from '../../engine/run/events/eventContext';
 import type { EventChoice, EventDefinition } from '../../engine/run/events/eventSchema';
@@ -46,11 +43,10 @@ import type { IRanchState, IRegionNode, IRunState } from '../../engine/runTypes'
 import type { Rarity } from '../../engine/types';
 import { playSfx } from '../audio/AudioEngine';
 import { applyChoice, applyEmptyRelay, isInteractiveOutcome } from '../events/applyOutcome';
+import { choiceBlockedReason } from '../events/choiceAvailability';
 import { describeApplied } from '../events/describeOutcome';
 import type { OutcomePick } from '../events/outcomePicks';
-import EventBlueprintPick from './EventBlueprintPick';
-import EventMacroPick from './EventMacroPick';
-import EventRecruitPick from './EventRecruitPick';
+import EventPickStep from './EventPickStep';
 import { Icon } from '../theme/Icon';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
 import { UpgradeBench } from './UpgradeBench';
@@ -172,7 +168,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         // The gamble is settled before anything is read off the choice, so the note describes the
         // branch that was actually applied.
         const played = resolveGambles({ run, node }, choice);
-        setNote(describeApplied(played, run.scrap, picks));
+        setNote(describeApplied(played, run.scrap, picks, ctx));
         // The ranch is read at the moment of applying, not at render: a recruit spends a blueprint and
         // checks the roster after, and both have to be the store's own view.
         applyChoice(dispatch, {
@@ -239,27 +235,19 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         setSelected(null);
     };
 
-    if (pick && pickedOutcome && pickedOutcome.type === 'BLUEPRINT_PICK') {
+    // Every question but the card pick has its own small screen (`EventPickStep`).
+    if (pick && pickedOutcome && pickedOutcome.type !== 'CARD_PICK') {
         return shell(event.name.toUpperCase(), (
-            <EventBlueprintPick
-                species={offerBlueprints(ctx, pickedOutcome.count, `${pick.choice.id}:${pick.outcomeIndex}`)}
+            <EventPickStep
+                key={`${pick.choice.id}:${pick.outcomeIndex}`}
+                outcome={pickedOutcome}
+                slot={`${pick.choice.id}:${pick.outcomeIndex}`}
+                ctx={ctx}
+                run={run}
                 onTake={takePick}
                 onBack={back}
             />
         ));
-    }
-    if (pick && pickedOutcome && pickedOutcome.type === 'MACRO_PICK') {
-        return shell(event.name.toUpperCase(), (
-            <EventMacroPick
-                choices={offerMacros(ctx, pickedOutcome.count, `${pick.choice.id}:${pick.outcomeIndex}`)}
-                rack={run.macros}
-                onTake={takePick}
-                onBack={back}
-            />
-        ));
-    }
-    if (pick && pickedOutcome && pickedOutcome.type === 'RECRUIT') {
-        return shell(event.name.toUpperCase(), <EventRecruitPick run={run} onTake={takePick} onBack={back} />);
     }
 
     // The card pick.
@@ -322,20 +310,18 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
             <p className="ev-text">{event.text}</p>
             <div className="ev-choices">
                 {playableChoices(event).map((choice) => {
-                    const surveyed = choice.outcomes.some((outcome) => outcome.type === 'MAP_REVEAL')
-                        && isBiomeRevealed(run, node.biomeIndex);
-                    const short = choice.outcomes.some((outcome) => outcome.type === 'SCRAP' && run.scrap + outcome.amount < 0);
+                    const blocked = choiceBlockedReason(choice, ctx);
                     return (
                         <button
                             key={choice.id}
                             type="button"
                             className="rs-btn ev-choice"
-                            disabled={surveyed || short}
+                            disabled={blocked !== null}
                             onClick={() => choose(choice)}
                         >
                             <span className="ev-label">{choice.label}</span>
                             <span className="ev-detail">
-                                {surveyed ? 'This biome is already surveyed.' : short ? 'Not enough scrap.' : choice.detail}
+                                {blocked ?? choice.detail}
                             </span>
                         </button>
                     );

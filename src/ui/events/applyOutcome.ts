@@ -28,13 +28,21 @@ import {
     recruitIntoParty, resolveEvent, revealCurrentBiome, spendRunScrap, takeRewardMacro,
 } from '../store/runSlice';
 import {
-    isBlueprintPick, isCardPick, isMacroPick, isRecruitPick,
+    applyDuplicate, applyGiveCards, applyTradeUp, applyTransform,
+} from './applyCards';
+import { applyDriverPick, applyGiveBlueprint, applyPatch } from './applyGrants';
+import {
+    isBlueprintPick, isCardPick, isDriverPick, isGivePick, isMacroPick, isPatchPick, isRecruitPick,
 } from './outcomePicks';
 import type {
-    BlueprintPickResult, CardPickResult, MacroPickResult, OutcomePick, RecruitPickResult,
+    BlueprintPickResult, CardPickResult, DriverPickResult, GiveCardsResult, MacroPickResult, OutcomePick,
+    PatchPickResult, RecruitPickResult,
 } from './outcomePicks';
 
-export type { BlueprintPickResult, CardPickResult, MacroPickResult, OutcomePick, RecruitPickResult };
+export type {
+    BlueprintPickResult, CardPickResult, DriverPickResult, GiveCardsResult, MacroPickResult, OutcomePick,
+    PatchPickResult, RecruitPickResult,
+};
 
 /** Anything with `dispatch`, so a test can hand in a bare store. */
 export type OutcomeDispatch = (action: UnknownAction) => unknown;
@@ -48,7 +56,16 @@ export interface OutcomeContext {
     readonly rosterHas?: (memberId: string) => boolean;
 }
 
-const INTERACTIVE: ReadonlySet<EventOutcome['type']> = new Set(['CARD_PICK', 'BLUEPRINT_PICK', 'MACRO_PICK', 'RECRUIT']);
+const INTERACTIVE: ReadonlySet<EventOutcome['type']> = new Set([
+    'CARD_PICK', 'BLUEPRINT_PICK', 'MACRO_PICK', 'RECRUIT',
+    'GIVE_CARD', 'GIVE_BLUEPRINT', 'TRADE_UP', 'DUPLICATE', 'TRANSFORM', 'DRIVER_PICK', 'PATCH',
+]);
+
+/** Outcomes that take something from the player. They are applied AFTER every gain in their choice. */
+const COSTS: ReadonlySet<EventOutcome['type']> = new Set(['GIVE_CARD', 'GIVE_BLUEPRINT']);
+
+/** Outcomes whose own action carries the choice's scrap price, so the price and the item move together. */
+const CARRIES_PRICE: ReadonlySet<EventOutcome['type']> = new Set(['CARD_PICK', 'DUPLICATE', 'PATCH']);
 
 /** Outcomes that need the player to pick something before anything is dispatched. */
 export function isInteractiveOutcome(outcome: EventOutcome): boolean {
@@ -136,11 +153,15 @@ export function applyChoice(
     // A gamble lands on one branch first (seeded, so the same node always lands on the same one),
     // and only then are its outcomes applied like any other.
     const played = resolveGambles(ctx, choice);
-    // A choice that pays for a card pick hands its whole price to the pick (see `applyCardPick`), so
-    // that a pick the player did not make is never paid for.
-    const pickPays = played.outcomes.some((outcome) => outcome.type === 'CARD_PICK');
+    // A choice that pays for a card, a copy or a patch hands its whole price to that outcome's own
+    // action, so a pick the player did not make is never paid for.
+    const pickPays = played.outcomes.some((outcome) => CARRIES_PRICE.has(outcome.type));
     const price = choiceScrapCost(played);
-    played.outcomes.forEach((outcome, index) => {
+    // Gains first, then what is taken: a crash in the middle leaves the player paid, not robbed
+    // (the Driver Shrine grants its Driver BEFORE it takes the two cards or the blueprint).
+    const order = played.outcomes.map((outcome, index) => ({ outcome, index }));
+    const inOrder = [...order.filter(({ outcome }) => !COSTS.has(outcome.type)), ...order.filter(({ outcome }) => COSTS.has(outcome.type))];
+    inOrder.forEach(({ outcome, index }) => {
         switch (outcome.type) {
             case 'SCRAP':
                 if (!(pickPays && outcome.amount < 0)) applyScrap(dispatch, outcome.amount);
@@ -168,6 +189,41 @@ export function applyChoice(
             case 'RECRUIT': {
                 const pick = picks[index];
                 if (pick && isRecruitPick(pick)) applyRecruit(dispatch, ctx, pick);
+                break;
+            }
+            case 'GIVE_CARD': {
+                const pick = picks[index];
+                if (pick && isGivePick(pick)) applyGiveCards(dispatch, pick.instanceIds);
+                break;
+            }
+            case 'GIVE_BLUEPRINT': {
+                const pick = picks[index];
+                if (pick && isBlueprintPick(pick)) applyGiveBlueprint(dispatch, pick.speciesId);
+                break;
+            }
+            case 'TRADE_UP': {
+                const pick = picks[index];
+                if (pick && isGivePick(pick) && pick.instanceIds[0]) applyTradeUp(dispatch, ctx, pick.instanceIds[0]);
+                break;
+            }
+            case 'TRANSFORM': {
+                const pick = picks[index];
+                if (pick && isGivePick(pick) && pick.instanceIds[0]) applyTransform(dispatch, ctx, pick.instanceIds[0]);
+                break;
+            }
+            case 'DUPLICATE': {
+                const pick = picks[index];
+                if (pick && isGivePick(pick) && pick.instanceIds[0]) applyDuplicate(dispatch, ctx, pick.instanceIds[0], price);
+                break;
+            }
+            case 'DRIVER_PICK': {
+                const pick = picks[index];
+                if (pick && isDriverPick(pick)) applyDriverPick(dispatch, pick.driverId);
+                break;
+            }
+            case 'PATCH': {
+                const pick = picks[index];
+                if (pick && isPatchPick(pick)) applyPatch(dispatch, ctx, pick.memberId, price);
                 break;
             }
             default:

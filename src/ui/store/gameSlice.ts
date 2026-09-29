@@ -128,6 +128,20 @@ const gameSlice = createSlice({
         },
 
         /**
+         * TICKET 168e — **spend one blueprint without building anything** (an event that takes a
+         * blueprint as its price: the Driver Shrine's offering). Refuses, silently and as the slice
+         * always does, when the species has none; deletes the key at zero so the ranch never holds a
+         * `0` entry, the way `assembleMingming` does.
+         */
+        spendBlueprint: (state, action: PayloadAction<string>) => {
+            const counts = state.blueprints as Record<string, number>;
+            const held = counts[action.payload] ?? 0;
+            if (held < 1) return;
+            counts[action.payload] = held - 1;
+            if (counts[action.payload] === 0) delete counts[action.payload];
+        },
+
+        /**
          * The player-facing assembly path (ticket 20). **Costs exactly one blueprint of the
          * species and no scrap** — `economy-session.md` and `vision.md` agree once you split the
          * places apart: a blueprint at the ranch, a blueprint PLUS scrap at a mid-run workshop
@@ -370,6 +384,7 @@ export const {
     addToRoster,
     removeFromRoster,
     addBlueprint,
+    spendBlueprint,
     assembleMingming,
     recordCodexSeen,
     recordCodex,

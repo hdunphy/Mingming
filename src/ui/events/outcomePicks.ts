@@ -17,9 +17,25 @@ export interface MacroPickResult { readonly macroId: string; readonly replaceSlo
 /** A recruit (Stray Mingming): the species and the firmware it is built on. */
 export interface RecruitPickResult { readonly speciesId: string; readonly osId: string }
 
-export type OutcomePick = CardPickResult | BlueprintPickResult | MacroPickResult | RecruitPickResult;
 
 export const isCardPick = (pick: OutcomePick): pick is CardPickResult => 'cardId' in pick;
 export const isMacroPick = (pick: OutcomePick): pick is MacroPickResult => 'macroId' in pick;
 export const isRecruitPick = (pick: OutcomePick): pick is RecruitPickResult => 'speciesId' in pick && 'osId' in pick;
 export const isBlueprintPick = (pick: OutcomePick): pick is BlueprintPickResult => 'speciesId' in pick && !('osId' in pick);
+
+/** Cards given up, trade-in cards and cards to copy (168e): the instance ids the player chose. */
+export interface GiveCardsResult { readonly instanceIds: ReadonlyArray<string> }
+
+/** A Driver picked at the Driver Shrine. */
+export interface DriverPickResult { readonly driverId: string }
+
+/** The body picked for the Black-Market Patch. */
+export interface PatchPickResult { readonly memberId: string }
+
+export const isGivePick = (pick: OutcomePick): pick is GiveCardsResult => 'instanceIds' in pick;
+export const isDriverPick = (pick: OutcomePick): pick is DriverPickResult => 'driverId' in pick;
+export const isPatchPick = (pick: OutcomePick): pick is PatchPickResult => 'memberId' in pick;
+
+export type OutcomePick =
+    | CardPickResult | BlueprintPickResult | MacroPickResult | RecruitPickResult
+    | GiveCardsResult | DriverPickResult | PatchPickResult;

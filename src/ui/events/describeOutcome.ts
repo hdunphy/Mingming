@@ -11,16 +11,31 @@ import { ProgramRegistry } from '../../engine/data/programRegistry';
 import type { EventChoice, EventOutcome } from '../../engine/run/events/eventSchema';
 import { getMacro } from '../../engine/data/macroRegistry';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
-import { isBlueprintPick, isCardPick, isMacroPick, isRecruitPick } from './outcomePicks';
+import { getPatch } from '../../engine/data/patchRegistry';
+import type { EventContext } from '../../engine/run/events/eventContext';
+import { patchOffers } from '../../engine/run/events/eventPatch';
+import { recompileTarget, tradeUpTarget } from '../../engine/run/events/eventTrade';
+import type { IRunCard } from '../../engine/runTypes';
+import {
+    isBlueprintPick, isCardPick, isDriverPick, isGivePick, isMacroPick, isPatchPick, isRecruitPick,
+} from './outcomePicks';
 import type { OutcomePick } from './outcomePicks';
 
 const speciesName = (speciesId: string): string => MingmingRegistry[speciesId]?.name ?? speciesId;
+const cardName = (dataId: string): string => ProgramRegistry[dataId]?.name ?? dataId;
+
+/** The held card with this id, read off the run as it stands BEFORE the choice is applied. */
+function heldCard(ctx: EventContext | undefined, instanceId: string | undefined): IRunCard | undefined {
+    if (!ctx || !instanceId) return undefined;
+    return [...ctx.run.deck, ...(ctx.run.collection ?? [])].find((card) => card.instanceId === instanceId);
+}
 
 function describeOne(
     outcome: EventOutcome,
     index: number,
     scrapBefore: number,
     picks: Readonly<Record<number, OutcomePick>>,
+    ctx?: EventContext,
 ): string | null {
     switch (outcome.type) {
         case 'SCRAP':
@@ -53,6 +68,41 @@ function describeOne(
             if (!pick || !isRecruitPick(pick)) return null;
             return `${speciesName(pick.speciesId)} joined your party`;
         }
+        case 'GIVE_CARD': {
+            const pick = picks[index];
+            if (!pick || !isGivePick(pick)) return null;
+            const names = pick.instanceIds.map((id) => heldCard(ctx, id)).filter((card): card is IRunCard => card !== undefined).map((card) => cardName(card.dataId));
+            return names.length > 0 ? `Gave up ${names.join(' and ')}` : 'Gave up a card';
+        }
+        case 'GIVE_BLUEPRINT': {
+            const pick = picks[index];
+            if (!pick || !isBlueprintPick(pick)) return null;
+            return `Gave up a ${speciesName(pick.speciesId)} blueprint`;
+        }
+        case 'TRADE_UP':
+        case 'TRANSFORM': {
+            const pick = picks[index];
+            const given = pick && isGivePick(pick) ? heldCard(ctx, pick.instanceIds[0]) : undefined;
+            if (!ctx || !given) return null;
+            const target = outcome.type === 'TRADE_UP' ? tradeUpTarget(ctx, given) : recompileTarget(ctx, given);
+            return target === null ? null : `${cardName(given.dataId)} became ${cardName(target)}`;
+        }
+        case 'DUPLICATE': {
+            const pick = picks[index];
+            const given = pick && isGivePick(pick) ? heldCard(ctx, pick.instanceIds[0]) : undefined;
+            return given ? `${cardName(given.dataId)} copied` : null;
+        }
+        case 'DRIVER_PICK': {
+            const pick = picks[index];
+            if (!pick || !isDriverPick(pick)) return null;
+            return `${describeDriver(pick.driverId).name} Driver gained`;
+        }
+        case 'PATCH': {
+            const pick = picks[index];
+            if (!pick || !isPatchPick(pick) || !ctx) return null;
+            const offer = patchOffers(ctx).find((row) => row.memberId === pick.memberId);
+            return offer ? `${getPatch(offer.patchId)?.name ?? offer.patchId} patch fitted` : null;
+        }
         default: return null;
     }
 }
@@ -62,9 +112,10 @@ export function describeApplied(
     choice: EventChoice,
     scrapBefore: number,
     picks: Readonly<Record<number, OutcomePick>> = {},
+    ctx?: EventContext,
 ): string {
     return choice.outcomes
-        .map((outcome, index) => describeOne(outcome, index, scrapBefore, picks))
+        .map((outcome, index) => describeOne(outcome, index, scrapBefore, picks, ctx))
         .filter((line): line is string => line !== null)
         .join(' · ');
 }

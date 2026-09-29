@@ -33,6 +33,7 @@ import type { EventDefinition, EventRarity } from './eventSchema';
 export const BUILT_EVENTS: ReadonlySet<string> = new Set([
     'scrap_cache', 'data_fragments', 'relay_tower', 'corrupted_stream', 'overclock_rig', 'corrupted_cache',
     'abandoned_terminal', 'wild_tracks', 'rare_vault', 'macro_crate', 'data_broker', 'stray_mingming',
+    'trader', 'mirror_protocol', 'recompiler', 'the_toll', 'driver_shrine', 'black_market_patch',
 ]);
 
 /** Ticket 168 rule 4. The Rare weight is zeroed in the first biome. */
