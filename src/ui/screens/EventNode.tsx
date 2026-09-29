@@ -27,7 +27,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useStore } from 'react-redux';
 
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { isBiomeRevealed } from '../../engine/data/macroRegistry';
@@ -36,16 +36,21 @@ import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { eventResolvedAt } from '../../engine/run/events/eventState';
 import { drawEvent } from '../../engine/run/events/eventDraw';
 import { playableChoices } from '../../engine/run/events/eventChoices';
+import { offerBlueprints } from '../../engine/run/events/eventBlueprints';
 import { offerCards } from '../../engine/run/events/eventCards';
+import { offerMacros } from '../../engine/run/events/eventMacros';
 import { EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP, EMPTY_RELAY_TEXT } from '../../engine/run/events/emptyRelay';
 import type { EventContext, EventRanchView } from '../../engine/run/events/eventContext';
 import type { EventChoice, EventDefinition } from '../../engine/run/events/eventSchema';
-import type { IRegionNode, IRunState } from '../../engine/runTypes';
+import type { IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
 import type { Rarity } from '../../engine/types';
 import { playSfx } from '../audio/AudioEngine';
 import { applyChoice, applyEmptyRelay, isInteractiveOutcome } from '../events/applyOutcome';
 import { describeApplied } from '../events/describeOutcome';
-import type { CardPickResult } from '../events/applyOutcome';
+import type { OutcomePick } from '../events/outcomePicks';
+import EventBlueprintPick from './EventBlueprintPick';
+import EventMacroPick from './EventMacroPick';
+import EventRecruitPick from './EventRecruitPick';
 import { Icon } from '../theme/Icon';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
 import { UpgradeBench } from './UpgradeBench';
@@ -72,7 +77,7 @@ const TILE = { ['--cw' as string]: '170px', ['--ch' as string]: '216px', ['--ah'
 interface PickState {
     readonly choice: EventChoice;
     readonly outcomeIndex: number;
-    readonly picks: Readonly<Record<number, CardPickResult>>;
+    readonly picks: Readonly<Record<number, OutcomePick>>;
 }
 
 /** Indices of a choice's outcomes that need the player to pick something. */
@@ -82,6 +87,7 @@ function interactiveIndices(choice: EventChoice): number[] {
 
 export default function EventNode({ run, node, ranch, biomeName, onLeave }: EventNodeProps): ReactNode {
     const dispatch = useDispatch();
+    const store = useStore<{ game: IRanchState }>();
     const drawn = useRef<Drawn | null>(null);
     const [pick, setPick] = useState<PickState | null>(null);
     const [selected, setSelected] = useState<string | null>(null);
@@ -161,13 +167,18 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         ));
     }
 
-    const finish = (choice: EventChoice, picks: Readonly<Record<number, CardPickResult>>): void => {
+    const finish = (choice: EventChoice, picks: Readonly<Record<number, OutcomePick>>): void => {
         playSfx('uiClick');
         // The gamble is settled before anything is read off the choice, so the note describes the
         // branch that was actually applied.
         const played = resolveGambles({ run, node }, choice);
         setNote(describeApplied(played, run.scrap, picks));
-        applyChoice(dispatch, { run, node }, event, played, picks);
+        // The ranch is read at the moment of applying, not at render: a recruit spends a blueprint and
+        // checks the roster after, and both have to be the store's own view.
+        applyChoice(dispatch, {
+            run, node, ranch: store.getState().game,
+            rosterHas: (memberId) => store.getState().game.roster.some((member) => member.id === memberId),
+        }, event, played, picks);
         setPick(null);
         setUpgrading(null);
         setSelected(null);
@@ -215,16 +226,47 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         ));
     }
 
-    // The card pick. Nothing has been dispatched yet: backing out costs nothing.
+    // Every pick works the same way: nothing has been dispatched yet, so backing out costs nothing,
+    // and the answer is recorded against the outcome's index until the last one is in.
+    const back = (): void => { playSfx('uiClick'); setPick(null); setSelected(null); };
+    const takePick = (answer: OutcomePick): void => {
+        if (!pick) return;
+        const picks = { ...pick.picks, [pick.outcomeIndex]: answer };
+        const rest = interactiveIndices(pick.choice).filter((index) => index > pick.outcomeIndex);
+        if (rest.length === 0) { finish(pick.choice, picks); return; }
+        playSfx('uiClick');
+        setPick({ ...pick, outcomeIndex: rest[0], picks });
+        setSelected(null);
+    };
+
+    if (pick && pickedOutcome && pickedOutcome.type === 'BLUEPRINT_PICK') {
+        return shell(event.name.toUpperCase(), (
+            <EventBlueprintPick
+                species={offerBlueprints(ctx, pickedOutcome.count, `${pick.choice.id}:${pick.outcomeIndex}`)}
+                onTake={takePick}
+                onBack={back}
+            />
+        ));
+    }
+    if (pick && pickedOutcome && pickedOutcome.type === 'MACRO_PICK') {
+        return shell(event.name.toUpperCase(), (
+            <EventMacroPick
+                choices={offerMacros(ctx, pickedOutcome.count, `${pick.choice.id}:${pick.outcomeIndex}`)}
+                rack={run.macros}
+                onTake={takePick}
+                onBack={back}
+            />
+        ));
+    }
+    if (pick && pickedOutcome && pickedOutcome.type === 'RECRUIT') {
+        return shell(event.name.toUpperCase(), <EventRecruitPick run={run} onTake={takePick} onBack={back} />);
+    }
+
+    // The card pick.
     if (pick && pickedOutcome && pickedOutcome.type === 'CARD_PICK') {
         const take = (): void => {
             if (selected === null) return;
-            const picks = { ...pick.picks, [pick.outcomeIndex]: { cardId: selected, toCollection } };
-            const rest = interactiveIndices(pick.choice).filter((index) => index > pick.outcomeIndex);
-            if (rest.length === 0) { finish(pick.choice, picks); return; }
-            playSfx('uiClick');
-            setPick({ ...pick, outcomeIndex: rest[0], picks });
-            setSelected(null);
+            takePick({ cardId: selected, toCollection });
         };
         return shell(event.name.toUpperCase(), (
             <>
@@ -267,7 +309,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
                     <button type="button" className="rs-btn primary" disabled={selected === null} onClick={take}>
                         TAKE CARD
                     </button>
-                    <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); setPick(null); setSelected(null); }}>
+                    <button type="button" className="rs-btn" onClick={back}>
                         BACK
                     </button>
                 </div>

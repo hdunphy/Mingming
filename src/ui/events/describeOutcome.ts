@@ -9,13 +9,18 @@
 import { describeDriver } from '../../engine/data/driverRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import type { EventChoice, EventOutcome } from '../../engine/run/events/eventSchema';
-import type { CardPickResult } from './applyOutcome';
+import { getMacro } from '../../engine/data/macroRegistry';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { isBlueprintPick, isCardPick, isMacroPick, isRecruitPick } from './outcomePicks';
+import type { OutcomePick } from './outcomePicks';
+
+const speciesName = (speciesId: string): string => MingmingRegistry[speciesId]?.name ?? speciesId;
 
 function describeOne(
     outcome: EventOutcome,
     index: number,
     scrapBefore: number,
-    picks: Readonly<Record<number, CardPickResult>>,
+    picks: Readonly<Record<number, OutcomePick>>,
 ): string | null {
     switch (outcome.type) {
         case 'SCRAP':
@@ -29,9 +34,24 @@ function describeOne(
         case 'UPGRADE': return `${outcome.count} cards upgraded`;
         case 'CARD_PICK': {
             const pick = picks[index];
-            if (!pick) return null;
+            if (!pick || !isCardPick(pick)) return null;
             const name = ProgramRegistry[pick.cardId]?.name ?? pick.cardId;
             return `${name} added to your ${pick.toCollection ? 'collection' : 'deck'}`;
+        }
+        case 'BLUEPRINT_PICK': {
+            const pick = picks[index];
+            if (!pick || !isBlueprintPick(pick)) return null;
+            return `${speciesName(pick.speciesId)} blueprint banked to the ranch`;
+        }
+        case 'MACRO_PICK': {
+            const pick = picks[index];
+            if (!pick || !isMacroPick(pick)) return null;
+            return `${getMacro(pick.macroId)?.name ?? pick.macroId} added to your rack`;
+        }
+        case 'RECRUIT': {
+            const pick = picks[index];
+            if (!pick || !isRecruitPick(pick)) return null;
+            return `${speciesName(pick.speciesId)} joined your party`;
         }
         default: return null;
     }
@@ -41,7 +61,7 @@ function describeOne(
 export function describeApplied(
     choice: EventChoice,
     scrapBefore: number,
-    picks: Readonly<Record<number, CardPickResult>> = {},
+    picks: Readonly<Record<number, OutcomePick>> = {},
 ): string {
     return choice.outcomes
         .map((outcome, index) => describeOne(outcome, index, scrapBefore, picks))

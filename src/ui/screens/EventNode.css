@@ -44,3 +44,5 @@
 .ev-destination .rs-f[aria-pressed='true'] { color: #ffd479; border-color: #ffd479; }
 
 .ev-note { font-size: 13px; color: #ffd479; margin: 0; }
+
+.ev-choice.picked { outline: 2px solid #ffd479; outline-offset: 1px; }

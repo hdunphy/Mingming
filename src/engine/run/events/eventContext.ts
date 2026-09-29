@@ -9,7 +9,8 @@
 import type { IRegionNode, IRunState } from '../../runTypes';
 
 export interface EventRanchView {
-    readonly roster: ReadonlyArray<{ readonly id: string; readonly definitionId: string }>;
+    /** `activeOS` is optional: the duplicate clause (species + firmware) reads it when it is there. */
+    readonly roster: ReadonlyArray<{ readonly id: string; readonly definitionId: string; readonly activeOS?: string }>;
     readonly blueprints: Readonly<Record<string, number>>;
 }
 
@@ -20,8 +21,8 @@ export interface EventContext {
 }
 
 /** The party's members, in party order, as the reward pool wants them (`{ definitionId }`). */
-export function partyMembersOf(ctx: EventContext): Array<{ id: string; definitionId: string }> {
+export function partyMembersOf(ctx: EventContext): Array<{ id: string; definitionId: string; activeOS?: string }> {
     return ctx.run.partyIds
         .map((id) => ctx.ranch.roster.find((member) => member.id === id))
-        .filter((member): member is { id: string; definitionId: string } => member !== undefined);
+        .filter((member): member is { id: string; definitionId: string; activeOS?: string } => member !== undefined);
 }

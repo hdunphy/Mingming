@@ -65,10 +65,12 @@ import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlue
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
 import { BlueprintLedger } from './BlueprintLedger';
 import { drawEvent } from '../../engine/run/events/eventDraw';
+import { offerBlueprints } from '../../engine/run/events/eventBlueprints';
 import { offerCards } from '../../engine/run/events/eventCards';
+import { offerMacros } from '../../engine/run/events/eventMacros';
 import { EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP } from '../../engine/run/events/emptyRelay';
-import { applyChoice, applyEmptyRelay, isInteractiveOutcome } from '../../ui/events/applyOutcome';
-import type { CardPickResult } from '../../ui/events/applyOutcome';
+import { applyChoice, applyEmptyRelay } from '../../ui/events/applyOutcome';
+import type { OutcomePick } from '../../ui/events/outcomePicks';
 import { chooseEventChoice } from './eventPolicy';
 export { BlueprintLedger } from './BlueprintLedger';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
@@ -550,8 +552,9 @@ export function memberFor(id: string, osId: string): IMingmingState {
  * (`chooseEventChoice`, else Leave), and record what happened. A card pick takes what the walker's
  * ordinary reward policy would take from the same three cards.
  *
- * The ledger stands in for the ranch's blueprint counts (one per species held); no built event
- * reads them yet.
+ * The ledger stands in for the ranch's blueprint counts (one per species held). 168d: a blueprint
+ * pick adds to it, a macro pick takes the first macro offered, an upgrade uses the free bench
+ * `count` times, and a recruit goes through the walker's own workshop recruit at price 0.
  */
 export function playEventNode(
     store: { dispatch: (action: unknown) => void; getState: () => { run: { run: IRunState | null } } },
@@ -560,6 +563,8 @@ export function playEventNode(
     ledger: BlueprintLedger,
     pickFor: (offered: string[]) => { taken: string | null; toCollection: boolean },
     record: (event: Parameters<typeof appendRunEvent>[1]) => void,
+    /** The workshop's recruit at price 0 (Stray Mingming). Absent: the walker cannot recruit here. */
+    recruit?: () => void,
 ): void {
     const run = store.getState().run.run!;
     const dispatch = (action: unknown): void => store.dispatch(action);
@@ -579,12 +584,36 @@ export function playEventNode(
     }
 
     const choice = chooseEventChoice(event, scrapBefore);
-    const picks: Record<number, CardPickResult> = {};
+    const picks: Record<number, OutcomePick> = {};
+    const eventCtx = { run, node, ranch };
     choice.outcomes.forEach((outcome, index) => {
-        if (!isInteractiveOutcome(outcome) || outcome.type !== 'CARD_PICK') return;
-        const offered = offerCards({ run, node, ranch }, { count: outcome.count, rarities: outcome.rarities }, `${choice.id}:${index}`);
-        const decision = pickFor(offered);
-        if (decision.taken !== null) picks[index] = { cardId: decision.taken, toCollection: decision.toCollection };
+        const slot = `${choice.id}:${index}`;
+        if (outcome.type === 'CARD_PICK') {
+            const offered = offerCards(eventCtx, { count: outcome.count, rarities: outcome.rarities }, slot);
+            const decision = pickFor(offered);
+            if (decision.taken !== null) picks[index] = { cardId: decision.taken, toCollection: decision.toCollection };
+        } else if (outcome.type === 'BLUEPRINT_PICK') {
+            // A species the walker does not hold yet beats one it does: a second copy is a spare.
+            const offered = offerBlueprints(eventCtx, outcome.count, slot);
+            const speciesId = offered.find((id) => !ledger.has(id)) ?? offered[0];
+            if (speciesId) { picks[index] = { speciesId }; ledger.add(speciesId); }
+        } else if (outcome.type === 'MACRO_PICK') {
+            const macroId = offerMacros(eventCtx, outcome.count, slot)[0];
+            if (macroId) picks[index] = { macroId, replaceSlot: 0 };
+        } else if (outcome.type === 'UPGRADE') {
+            // The free bench, `count` times, on the key the screen uses. Taken whatever the run's
+            // `upgrades` arm says: that arm measures the purchase, and this one is not bought.
+            for (let taken = 0; taken < outcome.count; taken += 1) {
+                const current = store.getState().run.run!;
+                const upgrade = chooseUpgrade(current.deck, current.scrap, true);
+                if (!upgrade) break;
+                dispatch(upgradeDeckCard({
+                    instanceId: upgrade.instanceId, benchKey: `event:${node.id}`, free: true, allowance: outcome.count,
+                }));
+            }
+        } else if (outcome.type === 'RECRUIT') {
+            recruit?.();
+        }
     });
     applyChoice(dispatch, ctx, event, choice, picks);
     if (scrapDelta() !== 0) record({ kind: 'SCRAP', delta: scrapDelta(), reason: 'event' });
@@ -620,9 +649,11 @@ export function executeWorkshopRecruit(
     ledger: BlueprintLedger,
     gym: IGym,
     record?: (event: Parameters<typeof appendRunEvent>[1]) => void,
+    /** What the recruit costs: the workshop's price, or 0 for an event. */
+    price: number = WORKSHOP_ASSEMBLY_SCRAP,
 ): RecruitChoice | null {
     const run = store.getState().run.run;
-    if (!run || run.partyIds.length >= 3 || run.scrap < WORKSHOP_ASSEMBLY_SCRAP) return null;
+    if (!run || run.partyIds.length >= 3 || run.scrap < price) return null;
     const held = new Set(partyMembers.map((m) => m.definitionId));
     const recruitable = new Set(ledger.recruitable(held));
     const candidates = LAUNCH_SPECIES.filter((s) => recruitable.has(s));
@@ -646,7 +677,7 @@ export function executeWorkshopRecruit(
     roster.push(member);
     const stream = new SeedStream(new SeedStream(`${run.seed}:${node.id}:recruit`).fork('recruit-deck'));
     const cards = recruitDeckFor(member, stream);
-    store.dispatch(recruitIntoParty({ memberId: member.id, cards, price: WORKSHOP_ASSEMBLY_SCRAP }));
+    store.dispatch(recruitIntoParty({ memberId: member.id, cards, price }));
     ledger.spend(choice.speciesId);
     record?.({ kind: 'RECRUITED', definitionId: member.definitionId, cards: cards.map((c) => c.dataId) });
     return choice;
@@ -976,6 +1007,11 @@ export function walkRun(input: WalkInput): WalkResult {
                 store, node, roster, blueprintLedger,
                 (offered) => choosePick(offered, deckIds(), partyElements()),
                 (evt) => record(evt, fights.length),
+                () => {
+                    const held = new Set(partyMembers().map((m) => m.definitionId));
+                    if (runNow().partyIds.length >= 3 || blueprintLedger.recruitable(held).length === 0) return;
+                    executeWorkshopRecruit(store, node, partyMembers(), roster, blueprintLedger, gym, (evt) => record(evt, fights.length), 0);
+                },
             );
         }
 

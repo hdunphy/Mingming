@@ -215,7 +215,7 @@ export interface GauntletFightInput {
  * exam set only on the last chapter would make the first two biomes route decoration. Since ticket
  * 167a the union is filtered per slot by `gauntletSlotPool`.
  */
-function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
+export function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
     const ids: string[] = [];
     for (let biomeIndex = 0; biomeIndex < run.biomes.length; biomeIndex += 1) {
         // `encounterSpeciesPool` reads the element off the node's biome, so each biome is asked

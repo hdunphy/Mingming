@@ -13,7 +13,8 @@ import { ProgramRegistry } from '../../data/programRegistry';
 import { PLAYER_DRIVER_IDS } from '../../data/driverRegistry';
 import { hasUpgrade } from '../../data/plusRegistry';
 import { rewardCardPool } from '../../RewardSystem';
-import { PARTY_SIZE } from '../../party';
+import { MingmingRegistry } from '../../data/mingmingRegistry';
+import { PARTY_SIZE, partyBlockFor } from '../../party';
 import { minimumActiveDeck } from '../createRun';
 import { partyMembersOf } from './eventContext';
 import type { EventContext } from './eventContext';
@@ -37,6 +38,20 @@ const heldBlueprints = (ctx: EventContext): number =>
     Object.values(ctx.ranch.blueprints).reduce((sum, count) => sum + count, 0);
 const always = (): boolean => true;
 
+/**
+ * Stray Mingming: the party has an open slot and the workshop would offer at least one recruit — a
+ * species whose blueprint the ranch holds, on a firmware the duplicate clause (species + firmware)
+ * lets in. The same two questions `workshop.workshopBlockFor` asks, read off the ranch view.
+ */
+function workshopWouldOfferARecruit(ctx: EventContext): boolean {
+    if (ctx.run.partyIds.length >= PARTY_SIZE) return false;
+    const party = partyMembersOf(ctx);
+    return Object.entries(ctx.ranch.blueprints).some(([speciesId, count]) => count >= 1
+        && (MingmingRegistry[speciesId]?.availableOS ?? []).some((osId) => (
+            partyBlockFor({ id: `candidate:${speciesId}`, definitionId: speciesId, activeOS: osId }, party) === null
+        )));
+}
+
 const CHECKS: Readonly<Record<string, (ctx: EventContext) => boolean>> = {
     // Common
     scrap_cache: always,
@@ -52,7 +67,7 @@ const CHECKS: Readonly<Record<string, (ctx: EventContext) => boolean>> = {
     trader: (ctx) => canGiveUpCards(ctx),
     overclock_rig: (ctx) => upgradableCards(ctx) >= 2,
     data_broker: (ctx) => poolOf(ctx, 'Rare').length >= 1,
-    stray_mingming: (ctx) => ctx.run.partyIds.length < PARTY_SIZE && heldBlueprints(ctx) >= 1,
+    stray_mingming: workshopWouldOfferARecruit,
     ambush_bait: always,
     mirror_protocol: (ctx) => ctx.run.deck.length + (ctx.run.collection ?? []).length >= 1,
     // Rare
