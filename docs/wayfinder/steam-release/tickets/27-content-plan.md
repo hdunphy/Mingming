@@ -20,5 +20,5 @@ A numbered content list in the resolution; tickets 28–31 re-sized to it.
 
 ## Resolution
 
-_(open)_
+**(b) ruled by Henry 2026-09-29:** **20 events** at launch (built by [deck-archetypes 168](../../deck-archetypes/tickets/168-events.md)) and **5 run modifiers** (Junk Start, Tight Budget, Elite Hunt, No Recruits, Draft Start; built by [deck-archetypes 169](../../deck-archetypes/tickets/169-tiers-and-modifiers.md)). (a), (c) and (d) were ruled elsewhere; see the notes at the top.
 

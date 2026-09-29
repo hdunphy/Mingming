@@ -16,5 +16,10 @@ Tiers + modifiers selectable and saved; a test asserts no entity stat differs ac
 
 ## Resolution
 
-_(open)_
+**Ruled by Henry 2026-09-29; build ticket: [deck-archetypes 169](../../deck-archetypes/tickets/169-tiers-and-modifiers.md).**
+
+- **Ladder** (stacking, `tiers.json`): 0 Standard; 1 Armed Wilds (wild firmware); 2 Elite Territory (+1 elite per biome, wild lite AI); 3 Leaders' Drivers (the gym's Driver in all three gauntlet fights). No stat changes at any tier; 169a's test enforces it.
+- **Unlocks:** beating any gym at tier N unlocks N+1 for every gym. One achievement per gym for clearing it at tiers 1, 2 and 3 (added to ticket 44).
+- **Modifiers (5, opt-in, label only, no reward):** Junk Start, Tight Budget, Elite Hunt, No Recruits, Draft Start.
+- **Build after** ticket 168 and one playtest of run length and scrap.
 
