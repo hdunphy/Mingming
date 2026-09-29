@@ -9,7 +9,12 @@ import { isJunkCard } from '../../engine/run/junk';
 import type { IRunCard } from '../../engine/runTypes';
 
 /** The junk cards, in deck order, that `scrap` pays to remove. Removal is never floor-blocked. */
-export function junkToRemove(deck: readonly IRunCard[], scrap: number): string[] {
-    const affordable = Math.max(0, Math.floor(scrap / JUNK_REMOVAL_PRICE));
+export function junkToRemove(
+    deck: readonly IRunCard[],
+    scrap: number,
+    /** TICKET 169j: what one removal costs. Tight Budget raises it; the default is the shop's plain price. */
+    price: number = JUNK_REMOVAL_PRICE,
+): string[] {
+    const affordable = Math.max(0, Math.floor(scrap / price));
     return deck.filter((card) => isJunkCard(card.dataId)).slice(0, affordable).map((card) => card.instanceId);
 }

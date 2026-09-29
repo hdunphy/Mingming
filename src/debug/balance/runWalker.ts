@@ -55,7 +55,11 @@ import runReducer, {
     recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
 } from '../../ui/store/runSlice';
 import { junkToRemove } from './junkPolicy';
-import { createRun, recruitDeckFor } from '../../engine/run/createRun';
+import { START_KIT_SIZE, createRun, recruitDeckFor, startKitIdsFor } from '../../engine/run/createRun';
+import { DRAFT_PICKS, draftOffer, draftPool, takePick } from '../../engine/run/modifiers/draftStart';
+import { activeModifiers } from '../../engine/run/modifiers/modifierRegistry';
+import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompElementPlan, type IGym } from '../../engine/run/gyms';
 import { rollEncounter, isFightNode, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { eventFightScrapMultiplier, fightNodeFor } from '../../engine/run/eventFight';
@@ -363,10 +367,12 @@ export function chooseUpgrade(
     deck: ReadonlyArray<IRunCard>,
     scrap: number,
     free: boolean,
+    /** TICKET 169j: the game's price rule (Tight Budget) applied to a base price. Default: the plain price. */
+    priceOf: (base: number) => number = (base) => base,
 ): { instanceId: string; from: string; to: string; price: number } | null {
     const candidates = deck
         .filter((card) => hasUpgrade(card.dataId))
-        .map((card) => ({ card, score: scoreOf(card.dataId), price: free ? 0 : upgradePrice(card.dataId) }))
+        .map((card) => ({ card, score: scoreOf(card.dataId), price: free ? 0 : priceOf(upgradePrice(card.dataId)) }))
         .filter((row): row is { card: IRunCard; score: number; price: number } =>
             row.score !== null && row.price <= scrap)
         .sort((a, b) => b.score - a.score || a.card.instanceId.localeCompare(b.card.instanceId));
@@ -448,6 +454,13 @@ export interface WalkInput {
      * means anything and neither should be read. `summariseFightOne` reads `byFightIndex` alone.
      */
     readonly stopAfterFights?: number;
+    /**
+     * TICKET 169j: the difficulty tier to play (0-3). Left out it is the gym's own tier, which is
+     * what every walk before 169 played, so the default reproduces them exactly.
+     */
+    readonly tier?: number;
+    /** TICKET 169j: run modifiers to play, by id. Left out, none. */
+    readonly modifiers?: ReadonlyArray<string>;
 }
 
 export interface FightRecord {
@@ -536,6 +549,46 @@ export function setupFor(
         ...(enemyDrivers.length > 0 ? { enemyDrivers: [...enemyDrivers] } : {}),
         statJitter: BALANCE_STAT_JITTER,
     };
+}
+
+/**
+ * TICKET 169j — which of the offered cards the walker takes at one Draft Start pick.
+ *
+ * The first offered card that is in the member's start kit and not yet used up (a kit that holds two
+ * copies lets a second through); if none is, the offer with the highest `scoreOf`, ties to the first
+ * offered. So the walker drafts the kit the game would have dealt it whenever the offers allow, and
+ * otherwise the best card it is shown. Pure, so the policy is testable without a walk.
+ */
+export function chooseDraftPick(
+    offer: ReadonlyArray<string>,
+    kit: ReadonlyArray<string>,
+    picked: ReadonlyArray<string>,
+): string | undefined {
+    const count = (ids: ReadonlyArray<string>, id: string): number => ids.filter((other) => other === id).length;
+    const fromKit = offer.find((id) => count(kit, id) > count(picked, id));
+    if (fromKit !== undefined) return fromKit;
+    let best: string | undefined;
+    let bestScore = -Infinity;
+    for (const id of offer) {
+        const score = scoreOf(id) ?? -Infinity;
+        // Strictly greater, so a tie keeps the first offered; and the first card is taken even at -Infinity.
+        if (best === undefined || score > bestScore) { best = id; bestScore = score; }
+    }
+    return best;
+}
+
+/** TICKET 169j: a whole Draft Start draft for one member, five picks with `chooseDraftPick`. */
+export function draftKitFor(seed: string, member: IMingmingState, memberIndex = 0): string[] {
+    const kit = startKitIdsFor(member, START_KIT_SIZE);
+    let remaining = draftPool(member);
+    const picks: string[] = [];
+    for (let pick = 0; pick < DRAFT_PICKS; pick += 1) {
+        const chosen = chooseDraftPick(draftOffer(seed, memberIndex, pick, remaining), kit, picks);
+        if (chosen === undefined) break;
+        picks.push(chosen);
+        remaining = takePick(remaining, chosen);
+    }
+    return picks;
 }
 
 /** A roster member built at the corpus IVs, so the walk measures decks rather than stat rolls. */
@@ -657,11 +710,15 @@ export function executeWorkshopRecruit(
     ledger: BlueprintLedger,
     gym: IGym,
     record?: (event: Parameters<typeof appendRunEvent>[1]) => void,
-    /** What the recruit costs: the workshop's price, or 0 for an event. */
-    price: number = WORKSHOP_ASSEMBLY_SCRAP,
+    /** What the recruit costs: the workshop's price (Tight Budget's, when on), or 0 for an event. */
+    priceOverride?: number,
 ): RecruitChoice | null {
     const run = store.getState().run.run;
-    if (!run || run.partyIds.length >= 3 || run.scrap < price) return null;
+    // TICKET 169j: No Recruits. The walker builds its recruit itself rather than through
+    // `planRecruit`, so it has to ask the same question the game does.
+    if (!run || recruitingBlocked(run)) return null;
+    const price = priceOverride ?? shopPrice(run, WORKSHOP_ASSEMBLY_SCRAP);
+    if (run.partyIds.length >= 3 || run.scrap < price) return null;
     const held = new Set(partyMembers.map((m) => m.definitionId));
     const recruitable = new Set(ledger.recruitable(held));
     const candidates = LAUNCH_SPECIES.filter((s) => recruitable.has(s));
@@ -712,7 +769,16 @@ export function walkRun(input: WalkInput): WalkResult {
     const party: IMingmingState[] = [memberFor('mm1', starter)];
     const roster: IMingmingState[] = [...party];
     const store = configureStore({ reducer: { run: runReducer } });
-    store.dispatch(startRun(createRun({ seed, offer, party, startedAt: 1_700_000_000_000 })));
+    // TICKET 169j: the tier and modifiers, and — with Draft Start — the walker's own draft, since it
+    // cannot click. Every one of these is absent by default, so a plain walk is the walk it always was.
+    const modifiers = input.modifiers ?? [];
+    const startKitOverrides = modifiers.includes('draft_start')
+        ? Object.fromEntries(party.map((member, index) => [member.id, draftKitFor(seed, member, index)]))
+        : undefined;
+    store.dispatch(startRun(createRun({
+        seed, offer, party, startedAt: 1_700_000_000_000,
+        tier: input.tier, modifiers, startKitOverrides,
+    })));
 
     const runNow = (): IRunState => store.getState().run.run!;
     const gymNodeId = runNow().nodes.find((node) => node.kind === 'gym')!.id;
@@ -745,7 +811,7 @@ export function walkRun(input: WalkInput): WalkResult {
     const partyElements = (): Set<string> =>
         new Set(partyMembers().map((m) => GetMingmingData(m.definitionId).primaryElement));
 
-    record({ kind: 'RUN_STARTED', gymId: gym.id, tier: gym.tier, party: party.map((m) => m.definitionId), modifiers: [] }, 0);
+    record({ kind: 'RUN_STARTED', gymId: gym.id, tier: runNow().tier, party: party.map((m) => m.definitionId), modifiers: activeModifiers(runNow()) }, 0);
 
     /** Play one rolled encounter and fold the result into the log. Returns whether it was won. */
     const fight = (node: IRegionNode, encounter: ReturnType<typeof rollEncounter>, carriedHp?: Readonly<Record<string, number>>): RunResult => {
@@ -901,7 +967,7 @@ export function walkRun(input: WalkInput): WalkResult {
         // TICKET 163e: the shop's Amplifier at `SHOP_PATCH_PRICE`. Bought AFTER the card and the
         // blueprint, which is the order the policy already ranks them in — a patch is the newest
         // shelf and has the least evidence behind its price, so it should not outbid the two that do.
-        const patchPrice = input.patchPrice ?? SHOP_PATCH_PRICE;
+        const patchPrice = shopPrice(runNow(), input.patchPrice ?? SHOP_PATCH_PRICE);
         for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'shop')) {
             patchShelvesSeen += 1;
             if (runNow().scrap < patchPrice) break;
@@ -914,8 +980,9 @@ export function walkRun(input: WalkInput): WalkResult {
         // TICKET 168c: junk is cleared LAST, with whatever the purchases left. A card, a body and a
         // patch are worth more to the run than an empty slot in the hand, so removal never outbids
         // them; it spends only scrap the shop visit had no other use for.
-        for (const instanceId of junkToRemove(runNow().deck, runNow().scrap)) {
-            store.dispatch(removeJunkCard({ instanceId, price: JUNK_REMOVAL_PRICE }));
+        const removalPrice = shopPrice(runNow(), JUNK_REMOVAL_PRICE);
+        for (const instanceId of junkToRemove(runNow().deck, runNow().scrap, removalPrice)) {
+            store.dispatch(removeJunkCard({ instanceId, price: removalPrice }));
         }
     };
 
@@ -932,7 +999,7 @@ export function walkRun(input: WalkInput): WalkResult {
      */
     const upgradeBench = (node: IRegionNode, free: boolean): void => {
         const run = runNow();
-        const choice = chooseUpgrade(run.deck, run.scrap, free);
+        const choice = chooseUpgrade(run.deck, run.scrap, free, (base) => shopPrice(run, base));
         /*
          * THE BENCH IS COUNTED IN BOTH ARMS, and only the purchase is gated.
          *
@@ -1159,13 +1226,17 @@ export function summarise(starter: string, results: ReadonlyArray<WalkResult>): 
 }
 
 /** Walk `seeds` runs of one starter. Seeds are labelled, so a row can be reproduced by hand. */
-export function walkStarter(starter: string, seeds: number, label = 'walk', upgrades = false, patchPrice?: number): WalkResult[] {
+export function walkStarter(
+    starter: string, seeds: number, label = 'walk', upgrades = false, patchPrice?: number,
+    /** TICKET 169j: the tier and modifiers, forwarded to every walk. */
+    tier?: number, modifiers?: ReadonlyArray<string>,
+): WalkResult[] {
     const out: WalkResult[] = [];
     for (let i = 0; i < seeds; i += 1) {
         // The SAME seed in both arms, so the two are paired: the graph, the enemies and the offers
         // are identical and the only difference is the spending policy. An unpaired comparison at
         // ten seeds would be measuring the region generator.
-        out.push(walkRun({ seed: `${label}:${starter}:${i}`, starter, gymIndex: i % 3, upgrades, patchPrice }));
+        out.push(walkRun({ seed: `${label}:${starter}:${i}`, starter, gymIndex: i % 3, upgrades, patchPrice, tier, modifiers }));
     }
     return out;
 }

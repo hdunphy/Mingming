@@ -20,8 +20,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
     scoreOf, deckPower, chooseStep, choosePick, chooseRecruit, chooseUpgrade, choosePatches,
-    walkRun, eaStarters, NO_FIRMWARE_OS, summariseFightOne,
+    walkRun, walkStarter, eaStarters, NO_FIRMWARE_OS, summariseFightOne,
+    memberFor, draftKitFor, chooseDraftPick,
 } from './runWalker';
+import { DRAFT_PICKS, draftOffer, draftPool } from '../../engine/run/modifiers/draftStart';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { upgradePrice } from '../../engine/run/marketplace';
 import { PATCH_SLOTS } from '../../engine/data/patchRegistry';
@@ -29,13 +31,14 @@ import { SHOP_STOCK_PATCH, bestPatchFor } from '../../engine/data/patchRanking';
 import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { NO_FIRMWARE_OS as GATE_NO_FIRMWARE_OS, sampleFight, CELLS } from './runGate';
 import { runOne } from './runBatch';
-import { createRun } from '../../engine/run/createRun';
+import { START_KIT_SIZE, createRun, startKitIdsFor } from '../../engine/run/createRun';
 import { offerGyms, COUNTERED_BY } from '../../engine/run/gyms';
 import { rollEncounter } from '../../engine/run/encounter';
 import { MingmingRegistry, LAUNCH_SPECIES } from '../../engine/data/mingmingRegistry';
 import { grammarFor } from '../../engine/data/osGrammar';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculatePowerscale } from './powerscale';
+import type { IRunEvent } from '../../engine/run/runLog';
 import type { IMingmingState } from '../../engine/types';
 
 const SOLO: IMingmingState[] = [{
@@ -519,5 +522,131 @@ describe('40 — a WHOLE run is deterministic in its seed, end to end', () => {
         // Guards the guard. Two walks that agreed because the walker ignored its seed entirely
         // would pass every case above, and that is exactly the bug they exist to catch.
         expect(other.fights).not.toEqual(a.fights);
+    });
+});
+
+/*
+ * TICKET 169j — the walker plays tiers and modifiers.
+ *
+ * Bounded to a fight or two with `stopAfterFights` like every walk in the gate (see the note on
+ * "a whole walk" above): the claims are about what the walker PASSES to `createRun` and what it
+ * logs, not about how the fights end.
+ */
+/** The first event of a kind from a walk's log, typed by its kind. */
+function eventOf<K extends IRunEvent['kind']>(result: ReturnType<typeof walkRun>, kind: K): Extract<IRunEvent, { kind: K }> {
+    const found = result.log.events.find((e): e is Extract<IRunEvent, { kind: K }> => e.kind === kind);
+    if (!found) throw new Error(`no ${kind} in the log`);
+    return found;
+}
+
+describe('169j — tiers and modifiers reach the run', () => {
+    const SEED = 't169j:walk';
+    const fightsOf = (input: Partial<Parameters<typeof walkRun>[0]> = {}) =>
+        walkRun({ seed: SEED, starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 2, ...input });
+    const started = (result: ReturnType<typeof walkRun>) =>
+        eventOf(result, 'RUN_STARTED');
+
+    it('reproduces today\'s walk exactly when tier and modifiers are left out, or given as the defaults', () => {
+        const plain = fightsOf();
+        const explicit = fightsOf({ tier: 0, modifiers: [] });
+        expect(explicit.fights).toEqual(plain.fights);
+        expect(explicit.finalDeck).toEqual(plain.finalDeck);
+        expect(started(plain)).toMatchObject({ tier: 0, modifiers: [] });
+    });
+
+    it('plays a higher tier: the run is built at it and the log says so', () => {
+        const tier3 = fightsOf({ tier: 3 });
+        expect(started(tier3).tier).toBe(3);
+    });
+
+    it('logs the modifiers it was given', () => {
+        const junk = fightsOf({ modifiers: ['junk_start'] });
+        expect(started(junk).modifiers).toEqual(['junk_start']);
+    });
+
+    it('walkStarter forwards both to every walk', () => {
+        const [only] = walkStarter('kraken_v1', 1, 't169j:starter', false, undefined, 2, ['tight_budget']);
+        expect(started(only).tier).toBe(2);
+        expect(started(only).modifiers).toEqual(['tight_budget']);
+    });
+});
+
+describe('169j — the Draft Start policy', () => {
+    const KRAKEN = memberFor('mm1', 'kraken_v1');
+    const kit = startKitIdsFor(KRAKEN, START_KIT_SIZE);
+
+    it('drafts exactly five cards, all from the tuned deck, no card more often than the deck holds it', () => {
+        for (let i = 0; i < 20; i++) {
+            const picks = draftKitFor(`policy-${i}`, KRAKEN);
+            expect(picks).toHaveLength(DRAFT_PICKS);
+            const pool = draftPool(KRAKEN);
+            for (const id of new Set(picks)) {
+                expect(picks.filter((p) => p === id).length).toBeLessThanOrEqual(pool.filter((p) => p === id).length);
+            }
+        }
+    });
+
+    it('is deterministic in the seed', () => {
+        expect(draftKitFor('same', KRAKEN)).toEqual(draftKitFor('same', KRAKEN));
+    });
+
+    it('takes the first offered card that is in the start kit and not yet used up', () => {
+        expect(chooseDraftPick(['x', 'b', 'a'], ['a', 'b', 'c', 'd', 'e'], [])).toBe('b');
+    });
+
+    it('does not take a kit card the kit has run out of: one copy in the kit, one already taken', () => {
+        // `b` is in the kit once and was taken already, so `a` is the first usable kit card.
+        expect(chooseDraftPick(['b', 'a'], ['a', 'b'], ['b'])).toBe('a');
+        // A kit that holds two copies of `b` lets a second copy through.
+        expect(chooseDraftPick(['b', 'a'], ['a', 'b', 'b'], ['b'])).toBe('b');
+    });
+
+    it('falls back to the highest-scoring offer when no offered card is a usable kit card, ties to the first', () => {
+        const offer = draftPool(KRAKEN).filter((id) => !kit.includes(id)).slice(0, 3);
+        const best = offer.reduce((top, id) => ((scoreOf(id) ?? -Infinity) > (scoreOf(top) ?? -Infinity) ? id : top), offer[0]);
+        expect(chooseDraftPick(offer, kit, [])).toBe(best);
+        // Two cards that score the same: the first offered wins.
+        expect(chooseDraftPick(['tackle', 'tackle'], [], [])).toBe('tackle');
+    });
+
+    it('takes nothing from an empty offer', () => {
+        expect(chooseDraftPick([], kit, [])).toBeUndefined();
+    });
+
+    it('follows the kit rule in a whole draft: a kit card offered at pick 0 is what is taken', () => {
+        for (let i = 0; i < 20; i++) {
+            const seed = `kit-first-${i}`;
+            const offer = draftOffer(seed, 0, 0, draftPool(KRAKEN));
+            const expected = offer.find((id) => kit.includes(id));
+            if (expected === undefined) continue;
+            expect(draftKitFor(seed, KRAKEN)[0]).toBe(expected);
+        }
+    });
+
+    it('a walk with Draft Start starts on the drafted kit, and logs the modifier', () => {
+        const seed = 't169j:draft';
+        const result = walkRun({ seed, starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 1, modifiers: ['draft_start'] });
+        expect(eventOf(result, 'RUN_STARTED').modifiers).toEqual(['draft_start']);
+        // Fight one's deck opens with the five drafted cards.
+        const deck = eventOf(result, 'FIGHT_DECK');
+        const drafted = draftKitFor(seed, memberFor('mm1', 'kraken_v1'));
+        for (const id of new Set(drafted)) {
+            expect(deck.deck.filter((d) => d === id).length).toBeGreaterThanOrEqual(drafted.filter((d) => d === id).length);
+        }
+    });
+});
+
+describe('169j — the walker pays Tight Budget\'s prices for what it prices itself', () => {
+    it('the upgrade bench: a purse that reaches the plain price but not the raised one buys nothing', () => {
+        const deck = [{ instanceId: 'c1', dataId: 'tackle', ownerId: null }];
+        const plain = chooseUpgrade(deck, 999, false);
+        expect(plain).not.toBeNull();
+        const raised = (base: number): number => base + 10;
+
+        expect(chooseUpgrade(deck, plain!.price + 5, false, raised)).toBeNull();
+        const bought = chooseUpgrade(deck, plain!.price + 10, false, raised);
+        expect(bought?.price).toBe(plain!.price + 10);
+        // A free bench stays free whatever the rule.
+        expect(chooseUpgrade(deck, 0, true, raised)?.price).toBe(0);
     });
 });

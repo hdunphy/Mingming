@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import runReducer, { startRun, addRunScrap } from '../../ui/store/runSlice';
+import runReducer, { startRun, addRunScrap, spendRunScrap } from '../../ui/store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { BlueprintLedger } from './BlueprintLedger';
@@ -157,5 +157,78 @@ describe('Ticket 164g — In the walker, blueprints and recruits are free', () =
             const noChoice = executeWorkshopRecruit(store, workshopNode, partyNow, roster, ledger, gym);
             expect(noChoice).toBeNull();
         });
+    });
+});
+
+/*
+ * TICKET 169j — the walker's workshop recruit under the two modifiers that touch it.
+ *
+ * The walker builds its recruit itself rather than through `planRecruit`, so it had to be told:
+ * No Recruits refuses it (and must not spend the ledger or grow the roster), and Tight Budget
+ * charges the same raised price the workshop screen shows.
+ */
+describe('Ticket 169j — the walker\'s recruit and the modifiers', () => {
+    function setupModifiedRun(modifiers: string[]) {
+        const gym = GYM_REGISTRY.gym_rootfall;
+        const store = configureStore({ reducer: { run: runReducer } });
+        store.dispatch(startRun(createRun({
+            seed: 'walker-modifiers',
+            offer: { gym, biomes: [{ id: 'b1', name: 'Biome', elements: ['Water'] }] },
+            party: SOLO,
+            startedAt: 1_700_000_000_000,
+            modifiers,
+        })));
+        store.dispatch(addRunScrap(100));
+        return { store, gym };
+    }
+
+    it('No Recruits: no recruit, no phantom roster member, no blueprint spent, no scrap taken', () => {
+        const { store, gym } = setupModifiedRun(['no_recruits']);
+        const workshopNode = store.getState().run.run!.nodes.find((n) => n.kind === 'workshop')!;
+        const roster = [...SOLO];
+        const ledger = new BlueprintLedger();
+        ledger.add('kraken');
+        const scrapBefore = store.getState().run.run!.scrap;
+
+        const choice = executeWorkshopRecruit(store, workshopNode, [...SOLO], roster, ledger, gym);
+
+        expect(choice).toBeNull();
+        expect(roster).toHaveLength(1);
+        expect(ledger.has('kraken')).toBe(true);
+        expect(store.getState().run.run!.scrap).toBe(scrapBefore);
+        expect(store.getState().run.run!.partyIds).toHaveLength(1);
+    });
+
+    it('Tight Budget: the recruit costs 35, the price the workshop shows', () => {
+        const { store, gym } = setupModifiedRun(['tight_budget']);
+        const workshopNode = store.getState().run.run!.nodes.find((n) => n.kind === 'workshop')!;
+        const ledger = new BlueprintLedger();
+        ledger.add('kraken');
+        const scrapBefore = store.getState().run.run!.scrap;
+
+        expect(executeWorkshopRecruit(store, workshopNode, [...SOLO], [...SOLO], ledger, gym)).not.toBeNull();
+        expect(store.getState().run.run!.scrap).toBe(scrapBefore - 35);
+    });
+
+    it('Tight Budget: a purse of 30 cannot afford the recruit, though 25 would have', () => {
+        const { store, gym } = setupModifiedRun(['tight_budget']);
+        const run = store.getState().run.run!;
+        const workshopNode = run.nodes.find((n) => n.kind === 'workshop')!;
+        store.dispatch(spendRunScrap(run.scrap - 30));
+        const ledger = new BlueprintLedger();
+        ledger.add('kraken');
+
+        expect(executeWorkshopRecruit(store, workshopNode, [...SOLO], [...SOLO], ledger, gym)).toBeNull();
+    });
+
+    it('an event recruit at price 0 stays free under Tight Budget', () => {
+        const { store, gym } = setupModifiedRun(['tight_budget']);
+        const workshopNode = store.getState().run.run!.nodes.find((n) => n.kind === 'workshop')!;
+        const ledger = new BlueprintLedger();
+        ledger.add('kraken');
+        const scrapBefore = store.getState().run.run!.scrap;
+
+        expect(executeWorkshopRecruit(store, workshopNode, [...SOLO], [...SOLO], ledger, gym, undefined, 0)).not.toBeNull();
+        expect(store.getState().run.run!.scrap).toBe(scrapBefore);
     });
 });

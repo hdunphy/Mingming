@@ -27,6 +27,12 @@ describe('junkToRemove', () => {
     it('never touches a real card', () => {
         expect(junkToRemove([card('a', 'baseline_jab')], 1000)).toEqual([]);
     });
+
+    it('prices removal at the price it is given, so Tight Budget clears fewer', () => {
+        // 60 scrap pays for two removals at 25 and one at 35.
+        expect(junkToRemove(deck, 60)).toEqual(['j1', 'j2']);
+        expect(junkToRemove(deck, 60, 35)).toEqual(['j1']);
+    });
 });
 
 describe('the walker at the two junk events', () => {
