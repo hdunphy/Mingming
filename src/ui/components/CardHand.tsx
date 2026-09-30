@@ -3,7 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import type { IBattleEntity, ProgramAction, ProgramConstraint } from '../../engine/types';
-import { selectCard, endTurn } from '../store/battleSlice';
+import { selectCard, endTurn, nudgeEndTurn } from '../store/battleSlice';
+import { decideEndTurn, nudgeIsLive } from '../utils/endTurnNudge';
 import {
     FAN_SELECTED_LIFT, FAN_TRANSFORM_ORIGIN, fanCard, fanCardSize, fanOverlapFor,
 } from './fanGeometry';
@@ -199,6 +200,18 @@ const CardHand: React.FC<{
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const isOurTurn = battleState?.activeSide === 'PLAYER';
+    /*
+     * TICKET 171h — END TURN with Energy still on the table flashes the button and lights the cards
+     * that could still spend it; the second press ends the turn. See `endTurnNudge.ts`.
+     */
+    const endTurnNudge = useSelector((state: RootState) => state.battle.endTurnNudge);
+    const liveNudge = nudgeIsLive(battleState, endTurnNudge) ? endTurnNudge : null;
+    const onEndTurn = (): void => {
+        playSfx('uiClick');
+        const decision = decideEndTurn(battleState, endTurnNudge);
+        if (decision.kind === 'nudge') dispatch(nudgeEndTurn(decision.cardIds));
+        else dispatch(endTurn());
+    };
     /**
      * The card a `PLAY_LAST_CARD` card would replay — YOUR side's last card (2026-09-05).
      *
@@ -314,8 +327,11 @@ const CardHand: React.FC<{
               */}
             <button
                 disabled={!isOurTurn}
-                onClick={() => { playSfx('uiClick'); dispatch(endTurn()); }}
-                className="action-button end-turn"
+                onClick={onEndTurn}
+                className={`action-button end-turn ${liveNudge ? 'nudge' : ''}`}
+                title={liveNudge
+                    ? `${liveNudge.cardIds.length} card${liveNudge.cardIds.length === 1 ? '' : 's'} can still spend Energy — press again to end the turn`
+                    : undefined}
             >
                 END TURN
             </button>
@@ -451,7 +467,7 @@ const CardHand: React.FC<{
                                  * until a card was lifted, which was his own 09-20 call for wide
                                  * hands; he has reversed it, so the description always shows.
                                  */
-                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''}`}
+                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''} ${liveNudge?.cardIds.includes(card.id) ? 'nudge-playable' : ''}`}
                                 /*
                                  * TICKET 155, DEEP DIVE 8 — a card is a control.
                                  *

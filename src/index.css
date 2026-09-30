@@ -1525,6 +1525,24 @@ body {
   border: 2px solid var(--accent-primary);
 }
 
+/* TICKET 171h: END TURN pressed with Energy still spendable. The button flashes three times and
+   the cards that could spend it glow gold; the second press ends the turn. No popup (Henry). */
+.action-button.end-turn.nudge {
+  border-color: #ffd24a;
+  animation: end-turn-nudge 0.45s ease-in-out 3;
+}
+@keyframes end-turn-nudge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 74, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 210, 74, 0.85); }
+}
+.rs-card.hand-card.nudge-playable {
+  border-color: #ffd24a;
+  box-shadow: 0 0 0 2px #ffd24a, 0 0 18px 4px rgba(255, 210, 74, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-button.end-turn.nudge { animation: none; box-shadow: 0 0 0 3px rgba(255, 210, 74, 0.85); }
+}
+
 /* ── Pile Indicators ── */
 /* Ticket 145d: the console is macro stack · draw · fan · discard, and END TURN sits inside
    the discard column directly under its pile (§2c) rather than floating between them. */

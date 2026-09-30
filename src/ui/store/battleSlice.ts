@@ -4,12 +4,15 @@ import type { Element, IBattleState } from '../../engine/types';
 import { createBattleState } from '../../engine/data/battleFactories';
 import type { BattleOptions, IBattleSetup } from '../../engine/data/battleFactories';
 import { battleReducer } from '../../engine/battleReducer';
+import type { EndTurnNudge } from '../utils/endTurnNudge';
 
 export interface BattleUIState {
     battle: IBattleState | null;
     selectedSourceId: string | null;
     selectedTargetId: string | null;
     selectedCardId: string | null;
+    /** TICKET 171h: the END TURN nudge on screen, if the first press found a play left. */
+    endTurnNudge?: EndTurnNudge | null;
 }
 
 const initialState: BattleUIState = {
@@ -48,6 +51,15 @@ const battleSlice = createSlice({
             if (state.battle) {
                 state.battle = battleReducer(state.battle, { type: 'END_TURN' }) as Draft<IBattleState>;
             }
+            state.endTurnNudge = null;
+        },
+        /**
+         * TICKET 171h — the first press of END TURN with a play still available. Records which turn
+         * it was and which cards to light; `decideEndTurn` makes the second press end the turn.
+         */
+        nudgeEndTurn: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            if (!state.battle) return;
+            state.endTurnNudge = { turn: state.battle.turn, cardIds: [...action.payload] };
         },
         /**
          * **NOTHING DISPATCHES THIS — unwired pending a ruling, and deliberately so.**
@@ -87,6 +99,7 @@ const battleSlice = createSlice({
         },
         setBattleState: (state, action: PayloadAction<IBattleState | null>) => {
             state.battle = action.payload as Draft<IBattleState> | null;
+            state.endTurnNudge = null;
         },
         /**
          * Ticket 11: the payload carries an `IBattleSetup`, not a save. The caller resolves the
@@ -122,6 +135,7 @@ const battleSlice = createSlice({
             state.selectedSourceId = null;
             state.selectedTargetId = null;
             state.selectedCardId = null;
+            state.endTurnNudge = null;
         }
     }
 });
@@ -130,6 +144,7 @@ export const {
     playProgram,
     fireMacro,
     endTurn,
+    nudgeEndTurn,
     transferEnergy,
     executeIntent,
     selectCard,

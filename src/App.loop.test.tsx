@@ -187,6 +187,11 @@ describe('the core loop, click by click', () => {
 
         vi.useFakeTimers();
         try {
+            // TICKET 171h: the opening hand still has Energy to spend, so the first press only
+            // nudges (the button flashes, the playable cards light) and the second ends the turn.
+            await clickText(host, 'END TURN');
+            expect(store.getState().battle.battle!.activeSide).toBe('PLAYER');
+            expect(store.getState().battle.endTurnNudge?.cardIds.length).toBeGreaterThan(0);
             await clickText(host, 'END TURN');
             expect(store.getState().battle.battle!.activeSide).toBe('ENEMY');
 

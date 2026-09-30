@@ -20,7 +20,8 @@ import {
     ENEMY_KEYS,
     MACRO_KEYS,
 } from '../keybinds';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, nudgeEndTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
+import { decideEndTurn } from '../utils/endTurnNudge';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { isValidCardTarget, targetVerdict } from '../utils/targeting';
@@ -178,6 +179,7 @@ const BattleArena: React.FC = () => {
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
+    const endTurnNudge = useSelector((state: RootState) => state.battle.endTurnNudge);
     // TICKET 11: a battle's context is the RUN, not the ranch. The gauntlet, the drivers and the
     // scrap the fight pays out are all `IRunState` fields now; the only thing the ranch still
     // receives from a won fight is blueprints, which are the one persistent currency.
@@ -397,10 +399,12 @@ const BattleArena: React.FC = () => {
                 endDrag(true);
             }
 
-            // Space: End Turn
+            // Space: End Turn — through the same 171h nudge as the button, so the key cannot skip it.
             if (e.key === END_TURN_KEY) {
                 e.preventDefault();
-                dispatch(endTurn());
+                const decision = decideEndTurn(battleState, endTurnNudge);
+                if (decision.kind === 'nudge') dispatch(nudgeEndTurn(decision.cardIds));
+                else dispatch(endTurn());
             }
 
             /*
@@ -449,7 +453,7 @@ const BattleArena: React.FC = () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag]);
+    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag, endTurnNudge]);
 
     useEffect(() => {
         if (battleState?.activeSide !== prevSideRef.current) {
