@@ -5,6 +5,7 @@ import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import { getEffectiveAttackPower, getDamageScalingMultiplier } from '../../engine/actions/ActionExecutors';
 import { battleReducer } from '../../engine/battleReducer';
 import { globalBattleEventBus } from '../../engine/events';
+import { powerBonusLabel } from '../components/scalingLabels';
 
 /** Result of the on-hover damage preview, with the breakdown chips that explain the number. */
 export interface DamagePreview {
@@ -39,7 +40,12 @@ export interface DamagePreview {
     /** The card's element — used to color the STAB chip. */
     element: Element;
     /** Extra POWER granted by action scaling (SHARP_STACKS etc.); 0 when inactive. */
-    sharpBonus: number;
+    powerBonus: number;
+    /**
+     * TICKET 171c: what that bonus reads, for the chip ("SHARP", "· 2 BURN"). It was hard-coded
+     * "SHARP", so Flashover's +15 per Burn read "+30 SHARP". See `powerBonusLabel`.
+     */
+    powerBonusLabel: string;
     /**
      * Ticket 90: the POST-damage multiplier this card is riding right now - cards played this
      * turn, Energy spent, the target's Burn stacks. 1 when the card has no such scaling.
@@ -67,7 +73,7 @@ export interface DamagePreview {
 
 const NO_PREVIEW: DamagePreview = {
     damage: 0, absorbed: 0, hpDamage: 0, lethal: false, hitCount: 0, stab: false, effectiveness: 1,
-    element: 'None', sharpBonus: 0, scalingMultiplier: 1, statusChanges: [],
+    element: 'None', powerBonus: 0, powerBonusLabel: '', scalingMultiplier: 1, statusChanges: [],
 };
 
 /** HP plus shield, because absorbed damage is still damage the player watches happen. */
@@ -290,7 +296,12 @@ export function computeDamagePreview(
         stab,
         effectiveness,
         element: data.element,
-        sharpBonus: effectivePower - basePower,
+        powerBonus: effectivePower - basePower,
+        powerBonusLabel: powerBonusLabel(
+            first.scaling,
+            first.scalingStatus,
+            first.scalingStatus ? (target.statusEffects.find(s => s.type === first.scalingStatus)?.stacks ?? 0) : 0,
+        ),
         scalingMultiplier: multiplier,
         scalingKind: multiplier === 1 ? undefined : first.scaling,
     };

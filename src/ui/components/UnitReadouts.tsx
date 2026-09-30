@@ -193,7 +193,7 @@ export const UnitPreview: React.FC<{ preview: DamagePreview | null; className?: 
         </div>
     )}
     {/* Elemental breakdown of the hover preview: STAB / type effectiveness / Sharp scaling */}
-    {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0 || preview.scalingMultiplier !== 1 || preview.hitCount > 1 || preview.lethal) && (
+    {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.powerBonus > 0 || preview.scalingMultiplier !== 1 || preview.hitCount > 1 || preview.lethal) && (
         <div className={rowClass}>
             {preview.stab && (
                 <span
@@ -218,9 +218,9 @@ export const UnitPreview: React.FC<{ preview: DamagePreview | null; className?: 
                     LETHAL
                 </span>
             )}
-            {preview.sharpBonus > 0 && (
+            {preview.powerBonus > 0 && (
                 <span className="hud-preview-chip">
-                    +{preview.sharpBonus} SHARP
+                    +{preview.powerBonus} {preview.powerBonusLabel}
                 </span>
             )}
             {/* Ticket 90: the turn-history multiplier, named. A `stampede` reading
