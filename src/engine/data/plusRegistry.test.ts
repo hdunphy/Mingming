@@ -141,7 +141,8 @@ describe('163a — nothing can reach a `+` card', () => {
         expect(offerable).toEqual([]);
         // Guards the guard: the base cards it shadows ARE offerable, so a blanket `false` here
         // would not pass.
-        expect(isRewardable('tackle')).toBe(true);
+        // (171g took `tackle` itself out of every offer, so the base checked is `scald`.)
+        expect(isRewardable('scald')).toBe(true);
     });
 
     it('is in no kit, no start kit, no species pool and no run-only list', () => {

@@ -31,7 +31,7 @@ import {
 } from './RewardSystem';
 import { GAUNTLET_FIGHTS } from './run/gauntlet';
 import { GetProgramData, ProgramRegistry } from './data/programRegistry';
-import { getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
+import { GENERIC_HIT, LAUNCH_SPECIES, getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
 import { encounterSeed } from './run/encounter';
 import type { IRegionNode, IRunState } from './runTypes';
 import type { Element, IBattleEntity } from './types';
@@ -927,3 +927,29 @@ describe('166d — RewardSystem bonus choices', () => {
     });
 });
 
+describe('171g — Tackle is never offered', () => {
+    // Henry, 2026-09-30: "Remove tackle from card rewards."
+    it('is not rewardable, though it is still a real card in kits and decks', () => {
+        expect(GENERIC_HIT).toBe('tackle');
+        expect(isRewardable(GENERIC_HIT)).toBe(false);
+        expect(getDeckForOS('kraken', 'kraken_v2')).toContain(GENERIC_HIT);
+    });
+
+    it('is in no EA firmware\'s pick pool', () => {
+        for (const species of LAUNCH_SPECIES) {
+            for (const os of MingmingRegistry[species].availableOS ?? []) {
+                expect(rewardCardPool([{ definitionId: species, activeOS: os }]), os).not.toContain(GENERIC_HIT);
+            }
+        }
+    });
+
+    it('never turns up in the card choices after a fight', () => {
+        const party = [{ definitionId: 'kraken', activeOS: 'kraken_v2' }];
+        for (let i = 0; i < 60; i += 1) {
+            const bundle = rollDropTable({ defeated: deadParty(3, 'kraken', 'Water'), nodeKind: 'wild', party, seed: `no-tackle-${i}` });
+            for (const choice of bundle.cardChoices) {
+                expect(choice.options.map((o) => o.dataId)).not.toContain(GENERIC_HIT);
+            }
+        }
+    });
+});

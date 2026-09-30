@@ -62,7 +62,7 @@ EMBER_FUSE works (it fired 4, 4 and 2 times in the three fights Skoll played), b
 
 ## 171g: Tackle leaves the rewards
 
-`tackle` (the generic hit) is no longer offered as a card reward. The shop is unchanged.
+`tackle` (the generic hit) is no longer offered anywhere a card is offered: fight rewards, event picks and trades, and the shop. It goes in `isRewardable`, the one gate every offer shares; putting it in the reward pool alone would have dropped it into the shop's stranger slot (built from "rewardable and not in the pool"), and the shop shares the reward rule by ticket 13. Kits and decks keep it.
 
 ## 171h: The END TURN nudge
 

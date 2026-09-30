@@ -1201,3 +1201,18 @@ describe('163f — the one upgraded card in the stall', () => {
         expect(upgradedOfferFor(makeRun('plus-empty'), makeRun('plus-empty').nodes.find((n) => isMarketNode(n.kind))!, [])).toBeNull();
     });
 });
+
+describe('171g — the stall never sells Tackle', () => {
+    // Out of the pick pool, it must not fall into the stranger slot ("rewardable and not in the
+    // pool") instead. Fifty refreshes of every market, solo and trio.
+    it('in any slot, on any refresh', () => {
+        for (const party of [SOLO, TRIO]) {
+            for (const market of MARKETS) {
+                for (let r = 0; r < 50; r += 1) {
+                    const stock = stockAt(visited(market, 1), { ...RUN, marketRefreshes: { [market.id]: r } }, party);
+                    expect(stock.offers.map((o) => o.card.dataId)).not.toContain(GENERIC_HIT);
+                }
+            }
+        }
+    });
+});

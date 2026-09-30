@@ -39,7 +39,7 @@ import { bestPatchFor } from './data/patchRanking';
 import { rawFirmwareHooks } from './data/firmwareRegistry';
 import { rollMacroChoices } from './run/macroRewards';
 import type { FightBonus } from './run/fightBonus';
-import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
+import { GENERIC_HIT, GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
 import { FIGHT_KINDS } from './run/encounter';
@@ -471,6 +471,19 @@ export function isRewardable(rawId: string): boolean {
      * drifts from the first.
      */
     if (data.upgradeOf) return false;
+    /*
+     * TICKET 171g — **the generic hit is never a card you are offered.** Henry, 2026-09-30:
+     * *"Remove tackle from card rewards."* `tackle` is `GENERIC_HIT`, the filler the first member
+     * brings three of, and a fourth as the prize for a won fight is the reward that felt like
+     * nothing in the 2026-09-29 playtest.
+     *
+     * HERE rather than in `rewardCardPool` for the reason the `+` rule above gives: this is the one
+     * gate every offer shares. Put in the pool alone, Tackle would have fallen straight into the
+     * stall's stranger slot, which is built from "rewardable and NOT in the pool". So it leaves
+     * fight rewards, event picks and trades, and the stall's shelves together (the stall shares
+     * the reward rule by ticket 13). Kits and decks still hold it; only the offer is gone.
+     */
+    if (dataId === GENERIC_HIT) return false;
     return !CALIBRATION_ONLY.has(dataId);
 }
 
