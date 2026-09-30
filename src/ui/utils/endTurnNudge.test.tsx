@@ -16,7 +16,7 @@ import battleSliceReducer, { endTurn, nudgeEndTurn } from '../store/battleSlice'
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import { decideEndTurn, nudgeIsLive } from './endTurnNudge';
-import { energyPlaysLeft } from './playsLeft';
+import { playsLeft } from './playsLeft';
 import type { Element, IBattleEntity, IBattleState, ProgramEntity } from '../../engine/types';
 
 function unit(id: string, over: Partial<IBattleEntity> = {}): IBattleEntity {
@@ -49,19 +49,21 @@ function board(hand: ProgramEntity[], over: Partial<IBattleState> = {}): IBattle
 const PUNCH = card('c1', 'fire_punch_v2', 1);
 const TACKLE = card('c2', 'tackle', 0);
 
-describe('energyPlaysLeft — a play that spends Energy', () => {
-    it('finds a 1e card a caster with Energy can cast', () => {
-        expect(energyPlaysLeft(board([PUNCH, TACKLE]))).toEqual(['c1']);
+describe('playsLeft — any card still playable', () => {
+    it('finds a 1e card a caster with Energy can cast, and a 0e card too (ticket 172)', () => {
+        // Henry, 2026-09-30, on 0e cards: "I think it still should trigger."
+        expect(playsLeft(board([PUNCH, TACKLE]))).toEqual(['c1', 'c2']);
+        expect(playsLeft(board([TACKLE]))).toEqual(['c2']);
     });
 
-    it('does not count a 0e card: it spends nothing, and would nudge nearly every turn', () => {
-        expect(energyPlaysLeft(board([TACKLE]))).toEqual([]);
+    it('with no Energy left, only the 0e card is still a play', () => {
+        expect(playsLeft(board([PUNCH, TACKLE], { playerParty: [unit('blaze', { currentEnergy: 0 })] }))).toEqual(['c2']);
     });
 
-    it('is empty with no Energy left, on the enemy turn, or with every ally down', () => {
-        expect(energyPlaysLeft(board([PUNCH], { playerParty: [unit('blaze', { currentEnergy: 0 })] }))).toEqual([]);
-        expect(energyPlaysLeft(board([PUNCH], { activeSide: 'ENEMY' }))).toEqual([]);
-        expect(energyPlaysLeft(board([PUNCH], { playerParty: [unit('blaze', { currentHp: 0 })] }))).toEqual([]);
+    it('is empty with nothing castable, on the enemy turn, or with every ally down', () => {
+        expect(playsLeft(board([PUNCH], { playerParty: [unit('blaze', { currentEnergy: 0 })] }))).toEqual([]);
+        expect(playsLeft(board([PUNCH], { activeSide: 'ENEMY' }))).toEqual([]);
+        expect(playsLeft(board([PUNCH], { playerParty: [unit('blaze', { currentHp: 0 })] }))).toEqual([]);
     });
 });
 
@@ -73,8 +75,9 @@ describe('decideEndTurn — flash first, end on the second press', () => {
         expect(decideEndTurn(state, { turn: state.turn, cardIds: ['c1'] })).toEqual({ kind: 'end' });
     });
 
-    it('ends straight away when nothing is left to spend', () => {
-        expect(decideEndTurn(board([TACKLE]), null)).toEqual({ kind: 'end' });
+    it('ends straight away when nothing is playable', () => {
+        expect(decideEndTurn(board([]), null)).toEqual({ kind: 'end' });
+        expect(decideEndTurn(board([PUNCH], { playerParty: [unit('blaze', { currentEnergy: 0 })] }), null)).toEqual({ kind: 'end' });
     });
 
     it('a nudge from an earlier turn does not count as the second press', () => {
@@ -106,7 +109,7 @@ describe('the slice and the hand', () => {
     it('flashes the button and lights only the playable card while nudged', () => {
         const markup = renderToStaticMarkup(<Provider store={storeWith({ turn: 3, cardIds: ['c1'] })}><CardHand /></Provider>);
         expect(markup).toContain('action-button end-turn nudge');
-        expect(markup.match(/nudge-playable/g)).toHaveLength(1);
+        expect(markup.match(/nudge-playable/g)).toHaveLength(1);   // the nudge on screen lit c1 only
         expect(markup).toContain('press again to end the turn');
 
         const quiet = renderToStaticMarkup(<Provider store={storeWith(null)}><CardHand /></Provider>);

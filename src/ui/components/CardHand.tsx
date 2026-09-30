@@ -330,7 +330,7 @@ const CardHand: React.FC<{
                 onClick={onEndTurn}
                 className={`action-button end-turn ${liveNudge ? 'nudge' : ''}`}
                 title={liveNudge
-                    ? `${liveNudge.cardIds.length} card${liveNudge.cardIds.length === 1 ? '' : 's'} can still spend Energy — press again to end the turn`
+                    ? `${liveNudge.cardIds.length} card${liveNudge.cardIds.length === 1 ? '' : 's'} can still be played — press again to end the turn`
                     : undefined}
             >
                 END TURN

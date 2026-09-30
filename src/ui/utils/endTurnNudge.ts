@@ -3,7 +3,7 @@
  *
  * Henry's ask (2026-09-29), ruled as written on 2026-09-30: *"a flash on the button and then the
  * card that is playable lights up"*, and nothing like a popup. So the first press of END TURN while a
- * play that spends Energy is still available does not end the turn: it flashes the button and lights
+ * card is still playable (any cost, ticket 172) does not end the turn: it flashes the button and lights
  * those cards. The second press ends it. Nothing else is blocked, and the player never has to answer
  * anything.
  *
@@ -12,7 +12,7 @@
  */
 
 import type { IBattleState } from '../../engine/types';
-import { energyPlaysLeft } from './playsLeft';
+import { playsLeft } from './playsLeft';
 
 /** The nudge on screen: which turn it belongs to, and which cards it lit. */
 export interface EndTurnNudge {
@@ -26,12 +26,12 @@ export type EndTurnDecision =
 
 /**
  * What a press of END TURN does. Ends the turn if this turn has already been nudged (the second
- * press), or if nothing that spends Energy is left; otherwise nudges, naming the cards to light.
+ * press), or if no card is playable; otherwise nudges, naming the cards to light.
  */
 export function decideEndTurn(state: IBattleState | null | undefined, nudge: EndTurnNudge | null | undefined): EndTurnDecision {
     if (!state) return { kind: 'end' };
     if (nudge && nudge.turn === state.turn) return { kind: 'end' };
-    const cardIds = energyPlaysLeft(state);
+    const cardIds = playsLeft(state);
     return cardIds.length > 0 ? { kind: 'nudge', cardIds } : { kind: 'end' };
 }
 

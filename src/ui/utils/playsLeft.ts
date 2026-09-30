@@ -1,5 +1,5 @@
 /**
- * TICKET 171h — **IS THERE STILL A PLAY THAT SPENDS ENERGY?**
+ * TICKET 171h — **IS THERE STILL A PLAY?**
  *
  * Henry, 2026-09-29 playtest: *"I missed out on 3e on a turn because I hit the end button. It would
  * be great to highlight or alert the user if they can still make a play. Something noticeable but
@@ -10,10 +10,11 @@
  * ticket 104): a card counts only if some living ally could cast it at some living target and the
  * reducer accepts. A second rule-set here would drift from the one that decides the play.
  *
- * **Only plays that SPEND Energy count.** The miss was unspent Energy. A 0e card (a Tackle, a Scald)
- * is almost always castable, so counting it would nudge on nearly every turn and the nudge would
- * stop meaning anything. A card whose cost for that caster is 1 or more, and within that caster's
- * Energy, is the "you are leaving Energy on the table" case.
+ * **Every playable card counts, 0e included** (ticket 172, Henry 2026-09-30: *"I think it still should
+ * trigger"*). 171h first counted only plays that spent Energy, on the reasoning that a 0e card is
+ * nearly always castable; Henry ruled that a card left in hand is a play left, whatever it costs.
+ * A caster needs no Energy for a 0e card, so casters are every living ally, not only those with
+ * Energy left.
  *
  * Asked on a click, not on render: it is hand x casters x targets reducer runs (at most ~150), which
  * is nothing once and a stutter every frame.
@@ -44,12 +45,12 @@ function accepts(state: IBattleState, casterId: string, cardId: string, targetId
 }
 
 /**
- * The ids of the cards in the player's hand that some living ally could cast right now for 1 or
- * more Energy. Empty when it is not the player's turn.
+ * The ids of the cards in the player's hand that some living ally could cast right now, at any cost
+ * it can pay. Empty when it is not the player's turn.
  */
-export function energyPlaysLeft(state: IBattleState | null | undefined): string[] {
+export function playsLeft(state: IBattleState | null | undefined): string[] {
     if (!state || state.activeSide !== 'PLAYER') return [];
-    const casters = state.playerParty.filter((unit) => unit.currentHp > 0 && unit.currentEnergy > 0);
+    const casters = state.playerParty.filter((unit) => unit.currentHp > 0);
     if (casters.length === 0) return [];
     const targets = [...state.enemyParty, ...state.playerParty].filter((unit) => unit.currentHp > 0);
 
@@ -57,7 +58,7 @@ export function energyPlaysLeft(state: IBattleState | null | undefined): string[
     for (const card of state.playerDeck.hand) {
         const castable = casters.some((caster) => {
             const cost = costFor(state, caster, card);
-            if (cost === null || cost < 1 || cost > caster.currentEnergy) return false;
+            if (cost === null || cost > caster.currentEnergy) return false;
             return targets.some((target) => accepts(state, caster.id, card.id, target.id));
         });
         if (castable) playable.push(card.id);
