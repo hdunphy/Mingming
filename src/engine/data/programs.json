@@ -1128,7 +1128,7 @@
     "poison_injection": {
         "id": "poison_injection",
         "name": "Poison Injection",
-        "description": "Add one stack of Poison.",
+        "description": "Apply 1 Poison.",
         "element": "Water",
         "target": "Single",
         "category": "Attack",

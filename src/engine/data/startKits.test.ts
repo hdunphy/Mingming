@@ -37,7 +37,7 @@ const KIT_GLUE: Readonly<Record<string, string>> = {
     kraken_v1: 'undertow',
     kraken_v2: 'tackle',
     jormungandr_v1: 'undertow',
-    jormungandr_v2: 'tackle',
+    jormungandr_v2: 'poison_injection',
     ratatoskr_v1: 'forage',
     ratatoskr_v2: 'forage',
     huldra_v1: 'soothe',
@@ -312,13 +312,29 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
     });
 });
 
-describe('171e — kraken_v2 opens on its engine, not on four Tackles', () => {
+describe('171e / 172 — kraken_v2 opens on its engine, not on four Tackles', () => {
     it('the kit swaps its Tackle for a second Capacitor (a 2e card from its own deck)', () => {
         // Henry, 2026-09-29: "I'm just getting tackles and capacitor in the same hand. I think I
         // start with 4 tackles??" He did: the kit's Tackle plus the three generic hits.
         const kit = MingmingRegistry.kraken.startKits!.kraken_v2;
         expect(kit).not.toContain(GENERIC_HIT);
-        expect(kit.filter((id) => id === 'capacitor')).toHaveLength(2);
-        expect(GetProgramData('capacitor').baseCost).toBeGreaterThanOrEqual(2);
+        // TICKET 172: the second Capacitor became a damaging card ("Capacitor is not good").
+        expect(kit.filter((id) => id === 'capacitor')).toHaveLength(1);
+        expect(kit).toContain('surge_protection');
+        expect(GetProgramData('surge_protection').actions.some((a) => a.type === 'ATTACK')).toBe(true);
+    });
+});
+
+describe('172 — Jormungandr trades its Tackle for a 0e Poison card', () => {
+    it('both decks carry poison_injection instead of tackle, and v2 opens on it', () => {
+        for (const os of ['jormungandr_v1', 'jormungandr_v2']) {
+            const deck = getDeckForOS('jormungandr', os);
+            expect(deck, os).not.toContain(GENERIC_HIT);
+            expect(deck, os).toContain('poison_injection');
+        }
+        expect(MingmingRegistry.jormungandr.startKits!.jormungandr_v2).toContain('poison_injection');
+        const card = GetProgramData('poison_injection');
+        expect(card.baseCost).toBe(0);
+        expect(card.actions).toEqual([{ type: 'STATUS', status: 'Poison', stacks: 1, target: 'TARGET' }]);
     });
 });

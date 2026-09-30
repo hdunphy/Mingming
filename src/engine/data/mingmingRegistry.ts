@@ -122,19 +122,21 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // `crushing_depths` ("Replace with crushing depths I think"). The Tidewrack boss's Kraken runs this list.
         decks: {
             "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "ink_stream", "pressure_point", "crushing_depths", "crushing_depths"],
-            "kraken_v2": ["capacitor", "capacitor", "tide_pool", "boiling_surge", "boiling_surge", "scald", "hydro_blast", "tackle"]
+            // TICKET 172 (Henry, 2026-09-30: "I want another damaging card ... just a 1e 30p card"):
+            // `surge_protection` joins the deck so the kit can open on it. A 9th card, not a swap.
+            "kraken_v2": ["capacitor", "capacitor", "tide_pool", "boiling_surge", "boiling_surge", "scald", "hydro_blast", "tackle", "surge_protection"]
         },
         startKits: {
             // v1: the draw payoff over the cards that fill the pile it counts.
             "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "pressure_point"],
             // v2: the 2e payoff (boiling_surge), the ramp that reaches it, and scald to load it.
-            // TICKET 171e (Henry, 2026-09-30: "Swap it with another card from its deck, preferably a
-            // 2e or 3e card"): the kit's `tackle` became a second `capacitor`. With the three generic
-            // hits the first member brings, the old kit opened on four Tackles in eight cards.
-            // `capacitor` is the deck's only 2e/3e card the standing kit rules allow: `hydro_blast`
-            // is tagged a consume (161 §2 keeps consumes out of the opening five) and a second
-            // `boiling_surge` would be a second payoff (157-r1: exactly one).
-            "kraken_v2": ["capacitor", "capacitor", "tide_pool", "boiling_surge", "scald"]
+            // TICKET 171e took the kit's `tackle` out (with the three generic hits it opened on four
+            // Tackles in eight cards) and put in a second `capacitor`. TICKET 172 (Henry: "Capacitor
+            // is not good. I want another damaging card.") makes that slot `surge_protection`: 25
+            // power for 1e, Water, and its refund rides on `tide_pool`'s draw. Tagged glue, so the
+            // one-payoff rule (157-r1) still counts `boiling_surge` alone; `venom_fang` (30 power)
+            // is tagged a scalar and would have made two.
+            "kraken_v2": ["capacitor", "tide_pool", "boiling_surge", "scald", "surge_protection"]
         },
         moves: [
             {
@@ -344,8 +346,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // 2-Energy world; the card stays in the registry as a ramp draft pick) and `contagion`
         // stayed, because doubling the pile now doubles the amplifier immediately.
         decks: {
-            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "serpents_coil", "serpents_coil", "surge_protection", "riptide_run", "tackle"],
-            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "serpent_flurry", "serpents_coil", "toxic_surge", "tackle"]
+            // TICKET 172 (Henry, 2026-09-30: "Jorm needs to replace the tackle ... add a 0e poison
+            // card for both v1 and v2"): `tackle` -> `poison_injection` (0e, Apply 1 Poison) in both.
+            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "serpents_coil", "serpents_coil", "surge_protection", "riptide_run", "poison_injection"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "serpent_flurry", "serpents_coil", "toxic_surge", "poison_injection"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // v1 keeps `undertow` x2 - the loop counts Water cards drawn, so the draw half has to
@@ -370,7 +374,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
              * one-payoff rule counting `serpents_coil` alone.
              */
             "jormungandr_v1": ["undertow", "blind_spot", "serpents_coil", "riptide_run", "surge_protection"],
-            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "tackle"]
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "poison_injection"]
         },
         moves: [
             {

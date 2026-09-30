@@ -743,6 +743,19 @@
       "status": "keep"
     },
     {
+      "id": "poison_injection",
+      "name": "Poison Injection",
+      "cost": 0,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Apply 1 Poison.",
+      "shape": "enabler",
+      "cur": "Poison",
+      "status": "new",
+      "why": "Henry 09-30 (ticket 172): Jormungandr's Tackle becomes a 0e Poison card, in both decks. The registry's old Poison Injection, reworded. One stack: a 0e card is a one-job card, and TOXIN_FANG pays +10 per stack on every attack that follows."
+    },
+    {
       "id": "tidal_battery",
       "name": "Tidal Battery",
       "cost": 2,
@@ -1747,7 +1760,7 @@
           1
         ],
         [
-          "tackle",
+          "poison_injection",
           1,
           "G",
           0
@@ -1823,7 +1836,7 @@
           0
         ],
         [
-          "tackle",
+          "poison_injection",
           1,
           "G",
           1
@@ -1942,7 +1955,7 @@
           "capacitor",
           2,
           "A",
-          2
+          1
         ],
         [
           "tide_pool",
@@ -1973,6 +1986,12 @@
           1,
           "G",
           0
+        ],
+        [
+          "surge_protection",
+          1,
+          "G",
+          1
         ]
       ],
       "pool": [
