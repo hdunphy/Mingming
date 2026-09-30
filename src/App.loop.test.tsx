@@ -33,11 +33,10 @@ vi.mock('./engine/core/SeedStream', async (importOriginal) => ({
     rollSeed: () => 'ticket-58-interaction',
 }));
 
-/** The starter cards are `motion.div`s, not buttons, so they are found by their copy. */
+/** The starter cards are `motion.div`s, not buttons, so they are found by their test id. */
 async function pickStarter(host: HTMLElement, name: string): Promise<void> {
-    const card = [...host.querySelectorAll<HTMLElement>('div')]
-        .filter((el) => el.textContent?.includes('STARTER CARD:') && el.textContent.includes(name))
-        .pop();
+    // TICKET 172: the card no longer prints a "starter card"; it is found by its test id.
+    const card = host.querySelector<HTMLElement>(`[data-testid="starter-${name.toLowerCase()}"]`);
     if (!card) throw new Error(`no starter card for ${name}`);
     await click(card);
 }
@@ -110,12 +109,12 @@ describe('the core loop, click by click', () => {
     it('starter picked → the picker is gone and the blueprint is held', async () => {
         const store = makeStore();
         const host = await mountApp(store);
-        expect(host.textContent).toContain('CHOOSE YOUR STARTER PROGRAM');
+        expect(host.textContent).toContain('CHOOSE YOUR FIRST MINGMING');
 
         await pickStarter(host, 'KRAKEN');
 
         expect(store.getState().game.blueprints.kraken).toBe(1);
-        expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
+        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
         expect(host.textContent).toContain('Assembly bay');
     });
 
