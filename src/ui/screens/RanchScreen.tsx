@@ -67,6 +67,7 @@ import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
+import { RANCH_PARTY_CLAUSE } from './partyRuleText';
 
 type Section = 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex';
 
@@ -161,7 +162,7 @@ function RosterSection({
             </div>
             <p className="ranch-note">
                 Everything you have ever assembled lives here, and none of it is committed to anything.
-                <strong> The party is chosen at run start</strong> — up to three, one per species — so this
+                <strong> The party is chosen at run start</strong> — {RANCH_PARTY_CLAUSE} — so this
                 list is your collection rather than a loadout. The team is the deck: each member brings its
                 own start kit when a run begins.
             </p>

@@ -96,6 +96,7 @@ import { UpgradeBench } from './UpgradeBench';
 import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
+import { WORKSHOP_DUPLICATE_CLAUSE } from './partyRuleText';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
 export interface ReflashTarget {
@@ -681,7 +682,7 @@ export default function WorkshopNode({
                         {swappingOut
                             ? 'Pick who steps off the field. Their cards go to the collection with them, and the new engine takes their place in the deck.'
                             : partyFull
-                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. Species clause: no duplicate species across party + bench. Click a member to reflash. 1 blueprint + ${reflashPrice} scrap.`
+                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. ${WORKSHOP_DUPLICATE_CLAUSE} Click a member to reflash. 1 blueprint + ${reflashPrice} scrap.`
                                 : `Click a member to reflash — 1 blueprint + ${reflashPrice} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
                     </p>
                     <div className={`rs-pill ${deckReading.atFloor ? 'at-floor' : ''}`}>

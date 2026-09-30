@@ -29,7 +29,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { rollSeed } from '../../engine/core/SeedStream';
-import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
+import { partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
 import { gymSignatures } from '../../engine/run/gauntlet';
@@ -45,6 +45,7 @@ import { playSfx } from '../audio/AudioEngine';
 import { Icon } from '../theme/Icon';
 import ModifierChip from '../components/ModifierChip';
 import DraftStart from './DraftStart';
+import { RUN_START_PARTY_TEXT } from './partyRuleText';
 
 /**
  * The offer screen is rolled ONCE per visit and held in component state.
@@ -304,8 +305,7 @@ export default function RunStart(): ReactNode {
                 <>
                     <p className="ranch-note">
                         Opening biome: <strong>{chosen.biomes[0].name} ({chosen.biomes[0].elements.join(' / ')})</strong>.
-                        Up to {PARTY_SIZE} members, one per species. Each brings 8 cards — 5 from its kit and 3
-                        generics — and the whole party&apos;s cards form one shared deck.
+                        {RUN_START_PARTY_TEXT}
                     </p>
                     <div className="ranch-roster-grid">
                         {roster.map((member) => {
