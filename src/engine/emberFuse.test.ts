@@ -22,6 +22,7 @@
  * make this file fail for a reason that is nothing to do with the OS.
  */
 import { describe, it, expect } from 'vitest';
+import { globalBattleEventBus, type BattleEvent, type StatusAppliedEvent } from './events';
 import { battleReducer } from './battleReducer';
 import { createSparseBattleState, createSparseEntity } from '../debug/scenarios/scenarioTestSupport';
 import { GetProgramData } from './data/programRegistry';
@@ -122,5 +123,25 @@ describe('EMBER_FUSE — an attack on a Burning target adds a Burn', () => {
         expect(burnOn(state.playerParty[0])).toBe(0);
         const burning = play({ enemyOS: 'skoll_v2', dataId: 'tackle', casterId: 'e1', targetBurn: 0, aimAtPlayer: true, playerBurn: 1 });
         expect(burnOn(burning.playerParty[0])).toBe(2);
+    });
+});
+
+describe('171f — EMBER_FUSE says the Burn is its own', () => {
+    // Henry, 2026-09-29: "I don't see the burn getting added." The fuse ran inside the card's
+    // action, so its Burn reached the bus tagged as the CARD and the stage merged it into the
+    // card's own Burn. It now carries the hook, which is what the stage's separate beat keys on.
+    it('tags the fuse Burn with the hook and the OS, and the card Burn with the card', () => {
+        const seen: BattleEvent[] = [];
+        const unsubscribe = globalBattleEventBus.subscribe((e) => seen.push(e));
+        try {
+            play({ casterOS: 'skoll_v2', dataId: 'ember_jab', casterId: 'p1', targetBurn: 1 });
+        } finally {
+            unsubscribe();
+        }
+        const burns = seen.filter((e): e is StatusAppliedEvent => e.type === 'STATUS_APPLIED' && e.status === 'Burn');
+        expect(burns.map((e) => e.source?.kind)).toEqual(['os', 'card']);
+        expect(burns[0].source).toMatchObject({ kind: 'os', id: 'skoll_v2', ownerId: 'p1', hookId: 'skoll_v2_ember_fuse' });
+        expect(burns[1].source).toMatchObject({ kind: 'card', id: 'ember_jab' });
+        expect(burns[1].source?.hookId).toBeUndefined();
     });
 });

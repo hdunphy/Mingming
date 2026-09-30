@@ -3,6 +3,7 @@
 // union was never imported here. Found by ticket 55 — the `(action as any).element` reaches in
 // `HookFactory` were papering over it.
 import type { Element, IBattleState, IBattleEntity, ProgramData, ProgramAction, StatusType, ActionType, ProgramCategory } from '../types';
+import type { StatusSource } from '../events';
 
 /**
  * Counter scoping: 'OWNER' (the default for hook counters) namespaces the key
@@ -97,6 +98,12 @@ export type HookContext = {
      * `runVitalsHook`, where there is no single action and `isAttack` therefore cannot pass.
      */
     action?: ProgramAction;
+    /**
+     * TICKET 171f — set by `HookFactory` while a data hook's `do` list runs, so a STATUS it applies
+     * is reported as the hook's (`StatusSource.hookId`) rather than as the card that triggered it.
+     * Event payload only: nothing in the battle state reads it.
+     */
+    statusSource?: StatusSource;
 };
 
 export type HookCondition = {

@@ -12,6 +12,7 @@ import {
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
 import { describeDriver } from '../../engine/data/driverRegistry';
 import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
+import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '../vfx/hookStatusBeat';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -267,6 +268,17 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
     // TICKET 166b: STATUS_APPLIED events from one reducer burst, merged by body + status.
     const statusBurstRef = React.useRef<Map<string, { targetId: string; status: StatusType; stacks: number }> | null>(null);
+    /*
+     * TICKET 171f: statuses a HOOK applied (EMBER_FUSE's Burn), held out of the burst above and
+     * played as their own beat after the card. Keyed hookId|body|status so Pack Tactics' three fuses
+     * read as one "+3 Burn · EMBER_FUSE". `label` and `sound` arrive with the HOOK_FIRED that follows
+     * the statuses in the same burst; the sound waits for the float so the two land together.
+     */
+    const hookBurstRef = React.useRef<{
+        entries: Map<string, { hookId: string; targetId: string; status: StatusType; stacks: number }>;
+        labels: Map<string, string | undefined>;
+        sounds: Array<() => void>;
+    } | null>(null);
 
     const triggerLunge = React.useCallback((entityId: string) => {
         setVfx(prev => {
@@ -363,6 +375,28 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             for (const entry of entries) {
                 pushFloat(entry.targetId, 'status', statusFloatText(entry.status, entry.stacks),
                     STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+            }
+        };
+
+        const flushHookBurst = () => {
+            const burst = hookBurstRef.current;
+            hookBurstRef.current = null;
+            if (!burst) return;
+            for (const sound of burst.sounds) sound();
+            const entries = [...burst.entries.values()];
+            setVfx(prev => {
+                const unitFx = { ...prev.unitFx };
+                for (const entry of entries) {
+                    const unit = unitFx[entry.targetId] ?? EMPTY_UNIT_FX;
+                    unitFx[entry.targetId] = {
+                        ...unit, statusKey: unit.statusKey + 1, statusColor: STATUS_COLORS[entry.status] ?? '#cccccc',
+                    };
+                }
+                return { ...prev, unitFx };
+            });
+            for (const entry of entries) {
+                pushFloat(entry.targetId, 'status', hookFloatText(entry.status, entry.stacks, burst.labels.get(entry.hookId)),
+                    STATUS_COLORS[entry.status] ?? '#cccccc');
             }
         };
 
@@ -518,6 +552,22 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     return;
                 }
                 case 'STATUS_APPLIED': {
+                    // TICKET 171f: a hook's status is its own beat, after the card. See hookBurstRef.
+                    if (isHookStatus(event.source)) {
+                        let hooks = hookBurstRef.current;
+                        if (!hooks) {
+                            hooks = { entries: new Map(), labels: new Map(), sounds: [] };
+                            hookBurstRef.current = hooks;
+                            pendingTimeoutsRef.current.push(setTimeout(flushHookBurst, HOOK_BEAT_DELAY_MS));
+                        }
+                        const hookKey = `${event.source.hookId}|${event.targetId}|${event.status}`;
+                        const before = hooks.entries.get(hookKey);
+                        hooks.entries.set(hookKey, {
+                            hookId: event.source.hookId, targetId: event.targetId, status: event.status,
+                            stacks: (before?.stacks ?? 0) + event.stacks,
+                        });
+                        return;
+                    }
                     // TICKET 166b: gathered, not played. Every status of one cast arrives in the same
                     // synchronous reducer burst; a 0 ms timeout runs after the burst and plays it once.
                     let burst = statusBurstRef.current;
@@ -557,7 +607,16 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     const hookAt = Date.now();
                     const hookStep = nextSeriesStep(hookStepRef.current, event.hookId, hookAt);
                     hookStepRef.current = { key: event.hookId, step: hookStep, at: hookAt };
-                    playSfx(hookCue(findEntity(event.ownerId), event.osId, event.daemonId), { step: hookStep });
+                    const cue = hookCue(findEntity(event.ownerId), event.osId, event.daemonId);
+                    // TICKET 171f: a hook that put a status on someone this burst sounds with that
+                    // status's float, after the card, rather than under the card.
+                    const held = hookBurstRef.current;
+                    if (held && [...held.entries.values()].some((entry) => entry.hookId === event.hookId)) {
+                        held.labels.set(event.hookId, hookBeatLabel(event.osId, event.daemonId));
+                        held.sounds.push(() => playSfx(cue, { step: hookStep }));
+                        return;
+                    }
+                    playSfx(cue, { step: hookStep });
                     return;
                 }
                 case 'PROGRAM_PLAYED': {
@@ -645,6 +704,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             timeouts.forEach(clearTimeout);
             timeouts.length = 0;
             statusBurstRef.current = null;
+            hookBurstRef.current = null;
         };
     }, [triggerLunge]);
 

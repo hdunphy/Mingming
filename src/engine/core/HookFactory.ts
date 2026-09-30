@@ -7,7 +7,22 @@ import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExe
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
 import { isSimulating } from './simulationDepth';
-import { globalBattleEventBus } from '../events';
+import { globalBattleEventBus, type StatusSource } from '../events';
+import { GetProgramData } from '../data/programRegistry';
+
+/**
+ * TICKET 171f — who a data hook's statuses belong to. A daemon's when one of the owner's installed
+ * daemons lists the hook; otherwise the owner's firmware side (its OS, a patch or a driver). The
+ * `hookId` is exact either way, and it is what the stage keys the separate beat on.
+ *
+ * Skipped inside AI lookahead (`isSimulating`): it only feeds an event, the bus is muted there, and
+ * a hook fires on that hot path tens of thousands of times a decision (ticket 144).
+ */
+function hookStatusSource(hookId: string, owner: IBattleEntity): StatusSource {
+    const daemon = (owner.daemons ?? []).find((d) => GetProgramData(d.dataId).hooks?.includes(hookId));
+    if (daemon) return { kind: 'daemon', id: daemon.dataId, ownerId: owner.id, hookId };
+    return { kind: 'os', id: owner.activeOS ?? hookId, ownerId: owner.id, hookId };
+}
 
 // Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
 const warnedBadConditions = new Set<string>();
@@ -137,7 +152,7 @@ export const HookFactory = {
                         && evaluateCustomCondition(id, eventData.condition, context, owner)) {
                         if (eventData.proc) this.announceProc(driverId, id, context, owner);
                         return {
-                            state: this.executeActions(eventData.do, context, owner)
+                            state: this.executeActions(eventData.do, isSimulating() ? context : { ...context, statusSource: hookStatusSource(id, owner) }, owner)
                         };
                     }
                     return { state: context.state };

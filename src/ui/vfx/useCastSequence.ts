@@ -44,6 +44,7 @@ import {
 } from './statusTells';
 import { emitHookTell } from './osTells';
 import { scheduleStatusTells } from './statusBurst';
+import { HOOK_BEAT_GAP_MS, isHookStatus } from './hookStatusBeat';
 
 /** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
 export const FLIGHT_MS = 180;
@@ -61,6 +62,10 @@ interface PendingCast {
     readonly doubled: boolean;
     readonly resisted: boolean;
     readonly statuses: Array<{ targetId: string; status: StatusType }>;
+    /** TICKET 171f: statuses a hook applied during this cast — played as their own beat after it. */
+    readonly hookStatuses: Array<{ hookId: string; targetId: string; status: StatusType }>;
+    /** TICKET 171f: the tell of each hook that applied one of those, held to play with them. */
+    readonly hookTells: Array<{ hookId: string; owner: IBattleEntity | undefined; osId?: string; daemonId?: string }>;
 }
 
 /**
@@ -101,6 +106,24 @@ function playCast(cast: PendingCast, timers: number[]): number {
         }, tell.at));
         last = Math.max(last, tell.at);
     }
+
+    /*
+     * TICKET 171f — the hook beat, after the card. Henry: *"Its own animation that shows the status
+     * being added after the card."* One beat per hook, in the order they fired: the firmware's own
+     * signature tell, then its statuses pulse on the bodies they landed on. The float that names it
+     * ("+1 Burn · EMBER_FUSE") is `useBattleVfx`'s, on `HOOK_BEAT_DELAY_MS`.
+     */
+    const hookIds = [...new Set(cast.hookStatuses.map((entry) => entry.hookId))];
+    hookIds.forEach((hookId, index) => {
+        const at = last + HOOK_BEAT_GAP_MS * (index + 1);
+        const statuses = cast.hookStatuses.filter((entry) => entry.hookId === hookId);
+        const tell = cast.hookTells.find((entry) => entry.hookId === hookId);
+        timers.push(window.setTimeout(() => {
+            if (tell) emitHookTell(tell.owner, tell.osId, tell.daemonId, statuses[0]?.targetId);
+            for (const entry of statuses) emitStatusApplied(entry.status, entry.targetId, true);
+        }, at));
+        if (index === hookIds.length - 1) last = at;
+    });
 
     return last;
 }
@@ -194,6 +217,8 @@ export function useCastSequence(battleState: IBattleState | null): void {
                         doubled: effectiveness >= SUPER_EFFECTIVE_AT,
                         resisted: effectiveness <= RESISTED_AT,
                         statuses: [],
+                        hookStatuses: [],
+                        hookTells: [],
                     };
                     return;
                 }
@@ -201,7 +226,9 @@ export function useCastSequence(battleState: IBattleState | null): void {
                     // Belongs to the cast whose window is open. A status that lands with no window
                     // is an engine expiry or a turn-boundary effect, and 146f plays it immediately
                     // rather than queueing it behind a cast that is not happening.
-                    if (open) open.statuses.push({ targetId: event.targetId, status: event.status });
+                    if (open && isHookStatus(event.source)) {
+                        open.hookStatuses.push({ hookId: event.source.hookId, targetId: event.targetId, status: event.status });
+                    } else if (open) open.statuses.push({ targetId: event.targetId, status: event.status });
                     else emitStatusApplied(event.status, event.targetId);
                     return;
                 }
@@ -274,7 +301,20 @@ export function useCastSequence(battleState: IBattleState | null): void {
                      *
                      * The event is already guarded against AI lookahead in the engine (146b), so
                      * everything reaching here happened in the real fight.
+                     *
+                     * TICKET 171f is the one exception, by Henry's ruling: a hook that put a STATUS on
+                     * someone during this cast is held and played with that status, after the card
+                     * (see `playCast`). Its statuses arrive before this event in the same burst, so
+                     * they are already in the window. Every other hook still plays at arrival.
                      */
+                    if (open && !open.hookTells.some((t) => t.hookId === event.hookId)
+                        && open.hookStatuses.some((entry) => entry.hookId === event.hookId)) {
+                        open.hookTells.push({
+                            hookId: event.hookId, owner: findEntity(event.ownerId), osId: event.osId, daemonId: event.daemonId,
+                        });
+                        return;
+                    }
+                    if (open?.hookTells.some((t) => t.hookId === event.hookId)) return;
                     emitHookTell(
                         findEntity(event.ownerId),
                         event.osId,

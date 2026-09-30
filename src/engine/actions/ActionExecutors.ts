@@ -661,7 +661,8 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
                 stacks: effectiveStacks,
                 // Ticket 146b. A card put this here, and `_program` is which card — 146g and 146f
                 // both want to point at the caster rather than only at the target.
-                source: { kind: 'card' as const, id: _program?.id ?? 'card', ownerId: sourceId }
+                // TICKET 171f: a hook's own STATUS action says so, rather than borrowing the card.
+                source: _context?.statusSource ?? { kind: 'card' as const, id: _program?.id ?? 'card', ownerId: sourceId }
             }
         }]);
     }

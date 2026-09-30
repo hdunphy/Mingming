@@ -113,6 +113,14 @@ export interface StatusSource {
     readonly id: string;
     /** The unit that owns the thing that did it. */
     readonly ownerId: string;
+    /**
+     * TICKET 171f — the HOOK that applied it, when a hook did. EMBER_FUSE's Burn used to arrive
+     * tagged as the card being played (the hook runs inside the card's action, so the executor saw
+     * that card), and the stage merged it into the card's own Burn. Henry, 2026-09-29: *"I don't
+     * think skoll v2 works. I don't see the burn getting added."* With the hook named, the stage can
+     * give it its own beat after the card. Matches `HookFiredEvent.hookId`.
+     */
+    readonly hookId?: string;
 }
 
 export interface StatusAppliedEvent extends BaseEvent {

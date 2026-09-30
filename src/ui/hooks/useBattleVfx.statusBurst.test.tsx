@@ -131,3 +131,35 @@ describe('167i — the absorbed float shows a whole number', () => {
         expect(texts.some(t => t.includes('13.7'))).toBe(false);
     });
 });
+
+describe('171f — a hook\'s status floats on its own, after the card, with its name', () => {
+    it('Ember Jab on a Burning target floats "Burn", then "+1 Burn · EMBER_FUSE"', () => {
+        // Henry, 2026-09-29: "I don't see the burn getting added." It read "Burn ×2".
+        const sfxSpy = vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 1, timestamp: Date.now(),
+                source: { kind: 'os', id: 'skoll_v2', ownerId: 'p1', hookId: 'skoll_v2_ember_fuse' },
+            });
+            globalBattleEventBus.emit({
+                type: 'HOOK_FIRED', osId: 'skoll_v2', hookId: 'skoll_v2_ember_fuse', ownerId: 'p1',
+                trigger: 'onPostDamage', timestamp: Date.now(),
+            });
+            globalBattleEventBus.emit({
+                type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 1, timestamp: Date.now(),
+                source: { kind: 'card', id: 'ember_jab', ownerId: 'p1' },
+            });
+        });
+        act(() => { vi.advanceTimersByTime(10); });
+        const first = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
+        expect(first).toEqual(['Burn']);
+        // The status sound played; the fuse's own sound is held for its float.
+        expect(sfxSpy).toHaveBeenCalledTimes(1);
+
+        act(() => { vi.advanceTimersByTime(700); });
+        const after = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
+        expect(after).toEqual(['Burn', '+1 Burn · EMBER_FUSE']);
+        expect(sfxSpy).toHaveBeenCalledTimes(2);
+        sfxSpy.mockRestore();
+    });
+});

@@ -23,6 +23,7 @@ import { DEFAULT_SETTINGS, saveSettings } from '../settings/settings';
 import { setParticleSink, setStageAnchors } from './emit';
 import { useCastSequence } from './useCastSequence';
 import * as statusTellsModule from './statusTells';
+import * as osTellsModule from './osTells';
 import type { ParticleSeed } from './particles';
 import type { IBattleState } from '../../engine/types';
 import type { StageAnchors } from '../hooks/useStageAnchors';
@@ -202,5 +203,67 @@ describe('155 deep dive 9 — a death plays at the slot', () => {
         act(() => { vi.advanceTimersByTime(60); });
         expect(spy).toHaveBeenCalledTimes(3);
         spy.mockRestore();
+    });
+});
+
+describe('171f — a hook\'s status is its own beat, after the card', () => {
+    // Henry, 2026-09-30: "Its own animation that shows the status being added after the card."
+    // EMBER_FUSE's Burn used to merge into Ember Jab's own Burn tell; its OS tell played at arrival,
+    // during the card's flight, before anything had landed.
+    it('plays the card\'s Burn with the card, then the fuse tell and its Burn one beat later', () => {
+        const statusSpy = vi.spyOn(statusTellsModule, 'emitStatusApplied').mockImplementation(() => undefined);
+        const hookSpy = vi.spyOn(osTellsModule, 'emitHookTell').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'PROGRAM_PLAYED', sourceId: 'ally', targetId: 'foe', programId: 'ember_jab', timestamp: Date.now(),
+            });
+            // The engine's order: the swing, the fuse's Burn, the fuse's HOOK_FIRED, the card's Burn.
+            globalBattleEventBus.emit({
+                type: 'STATUS_APPLIED', targetId: 'foe', status: 'Burn', stacks: 1, timestamp: Date.now(),
+                source: { kind: 'os', id: 'skoll_v2', ownerId: 'ally', hookId: 'skoll_v2_ember_fuse' },
+            });
+            globalBattleEventBus.emit({
+                type: 'HOOK_FIRED', osId: 'skoll_v2', hookId: 'skoll_v2_ember_fuse', ownerId: 'ally',
+                trigger: 'onPostDamage', timestamp: Date.now(),
+            });
+            globalBattleEventBus.emit({
+                type: 'STATUS_APPLIED', targetId: 'foe', status: 'Burn', stacks: 1, timestamp: Date.now(),
+                source: { kind: 'card', id: 'ember_jab', ownerId: 'ally' },
+            });
+        });
+        // Not at arrival.
+        expect(hookSpy).not.toHaveBeenCalled();
+
+        act(() => { vi.advanceTimersByTime(0); });
+        // The card: flight 180 + trail 220 + one status 60 = 460.
+        act(() => { vi.advanceTimersByTime(460); });
+        expect(statusSpy).toHaveBeenCalledTimes(1);
+        expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe');
+        expect(hookSpy).not.toHaveBeenCalled();
+
+        // The fuse, 200 ms later: its tell, then its Burn as a stack added.
+        act(() => { vi.advanceTimersByTime(200); });
+        expect(hookSpy).toHaveBeenCalledTimes(1);
+        expect(hookSpy.mock.calls[0][1]).toBe('skoll_v2');
+        expect(statusSpy).toHaveBeenCalledTimes(2);
+        expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe', true);
+
+        statusSpy.mockRestore();
+        hookSpy.mockRestore();
+    });
+
+    it('still plays a hook that applied no status at arrival (146g is unchanged for those)', () => {
+        const hookSpy = vi.spyOn(osTellsModule, 'emitHookTell').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'PROGRAM_PLAYED', sourceId: 'ally', targetId: 'foe', programId: 'ember_jab', timestamp: Date.now(),
+            });
+            globalBattleEventBus.emit({
+                type: 'HOOK_FIRED', osId: 'kraken_v2', hookId: 'some_damage_hook', ownerId: 'ally',
+                trigger: 'onPowerCalculated', timestamp: Date.now(),
+            });
+        });
+        expect(hookSpy).toHaveBeenCalledTimes(1);
+        hookSpy.mockRestore();
     });
 });
