@@ -12,7 +12,7 @@
  * that export exists and why a size can be asserted at all.
  */
 import type React from 'react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import BattleStage from './BattleStage';
@@ -20,6 +20,12 @@ import { setServerViewport } from '../hooks/useStageAnchors';
 import { ACTIVE_STEP, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, enemyShiftFor, plaqueRect, spriteRect } from './stageGeometry';
 import { PLAQUE_STATUS_BUDGET } from './StatusBadges';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
+
+// The art policy is a build-time constant; this lets one file exercise both sides of it.
+const artPolicy = vi.hoisted(() => ({ enabled: false }));
+vi.mock('./monsterArtPolicy', () => ({
+    get MONSTER_ART_ENABLED() { return artPolicy.enabled; },
+}));
 
 function unit(id: string, name: string, element: string, hp = 100): IBattleEntity {
     return {
@@ -203,7 +209,9 @@ describe('145b — active and dead read at a glance', () => {
         // With art, the rim is a tight drop-shadow in the element colour against the resting
         // state's loose 18px one.
         const withArt = ALLIES.map(a => ({ ...a, artReference: `${a.name.toLowerCase()}.png` } as unknown as IBattleEntity));
-        const markup = render({ selectedSourceId: 'p2' }, state(withArt, ENEMIES));
+        artPolicy.enabled = true;
+        let markup: string;
+        try { markup = render({ selectedSourceId: 'p2' }, state(withArt, ENEMIES)); } finally { artPolicy.enabled = false; }
         const p2 = markup.slice(markup.indexOf('stage-slot-p2'), markup.indexOf('stage-plaque-p2'));
         const p3 = markup.slice(markup.indexOf('stage-slot-p3'), markup.indexOf('stage-plaque-p3'));
         expect(p2).toContain('drop-shadow(0 0 8px');
@@ -289,5 +297,23 @@ describe('145a — the composition on a real viewport', () => {
         const ref = render();
         expect(leftOf(wide, 'stage-slot-p1')).toBeGreaterThan(leftOf(ref, 'stage-slot-p1'));
         expect(leftOf(wide, 'stage-slot-e1')).toBeGreaterThan(leftOf(ref, 'stage-slot-e1'));
+    });
+});
+
+describe('monster art policy — no artwork while it is switched off', () => {
+    const withArt = (es: IBattleEntity[]) =>
+        es.map(e => ({ ...e, artReference: `${e.name.toLowerCase()}.png` } as unknown as IBattleEntity));
+
+    it('draws a WIP block, and no <img>, for a unit that has an artReference', () => {
+        const markup = render({}, state(withArt(ALLIES), withArt(ENEMIES)));
+        expect(markup).not.toContain('<img');
+        expect(markup).not.toContain('battleArt');
+        expect(markup.match(/data-testid="monster-art-wip"/g)).toHaveLength(6);
+    });
+
+    it('still rim-lights the acting unit on the placeholder', () => {
+        const markup = render({ selectedSourceId: 'p2' }, state(withArt(ALLIES), ENEMIES));
+        const p2 = markup.slice(markup.indexOf('stage-slot-p2'), markup.indexOf('stage-plaque-p2'));
+        expect(p2).toContain('0 0 14px');
     });
 });

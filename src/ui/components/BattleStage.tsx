@@ -10,6 +10,8 @@ import { targetVerdict, type TargetVerdict } from '../utils/targeting';
 import { useStageAnchors, useViewportSize } from '../hooks/useStageAnchors';
 import ParticleLayer from '../vfx/ParticleLayer';
 import EnemyHandPanel from './EnemyHandPanel';
+import MonsterArtPlaceholder from './MonsterArtPlaceholder';
+import { MONSTER_ART_ENABLED } from './monsterArtPolicy';
 import { enemyShiftFor, spriteWidthAt, SPRITE_H, SPRITE_W, type StageRect } from './stageGeometry';
 import { StatusBadgeRow, PLAQUE_STATUS_BUDGET } from './StatusBadges';
 import { DaemonTags, FirmwareChip, UnitPreview } from './UnitReadouts';
@@ -137,7 +139,7 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width, i
         });
     }, [lungeKey, isEnemy, controls]);
 
-    const showArt = !!entity.artReference && !artBroken;
+    const showArt = MONSTER_ART_ENABLED && !!entity.artReference && !artBroken;
     const height = width * (SPRITE_H / SPRITE_W);
 
     return (
@@ -175,8 +177,8 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width, i
                     onError={() => setArtBroken(true)}
                 />
             ) : (
-                <div
-                    className="stage-art-disc"
+                <MonsterArtPlaceholder
+                    className="stage-art-wip"
                     style={{
                         color: accent,
                         borderColor: isActive ? accent : `${accent}88`,
@@ -190,9 +192,7 @@ const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width, i
                                 : `0 0 30px ${accent}33, inset 0 0 24px ${accent}22`,
                         filter: isDead ? 'brightness(0.4) saturate(0.35)' : undefined,
                     }}
-                >
-                    {entity.primaryElement[0]}
-                </div>
+                />
             )}
 
             <FxTransientOverlays fx={fx} />

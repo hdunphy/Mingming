@@ -13,6 +13,8 @@ import { readableTextOn, badgeTextShadow } from '../utils/contrastText';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
+import MonsterArtPlaceholder from './MonsterArtPlaceholder';
+import { MONSTER_ART_ENABLED } from './monsterArtPolicy';
 
 
 /** Maps element names to neon accent colors */
@@ -273,7 +275,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             )}
             {/* ── Sidebar: Art + Level ── */}
             <div className="hud-sidebar" style={{ background: `linear-gradient(180deg, ${accent}55 0%, ${accent}22 100%)` }}>
-                {entity.artReference ? (
+                {MONSTER_ART_ENABLED && entity.artReference ? (
                     <motion.img
                         src={new URL(`../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
                         alt={entity.name}
@@ -284,9 +286,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         transition={{ duration: 0.4 }}
                     />
                 ) : (
-                    <div className="hud-art-placeholder" style={{ color: accent }}>
-                        {entity.primaryElement[0]}
-                    </div>
+                    <MonsterArtPlaceholder className="hud-art-wip" style={{ color: accent }} />
                 )}
             </div>
 
