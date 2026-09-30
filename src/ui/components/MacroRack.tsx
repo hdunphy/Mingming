@@ -31,6 +31,7 @@ import type { IBattleState } from '../../engine/types';
 import { computeMacroPreview } from '../utils/macroPreview';
 import { playSfx } from '../audio/AudioEngine';
 import './MacroRack.css';
+import { macroTargetId } from '../utils/macroTarget';
 
 export interface MacroRackProps {
     readonly macros: MacroSlots;
@@ -68,9 +69,8 @@ export default function MacroRack({
                  * gets no such default: guessing a target for Surge would let a mis-click spend a
                  * consumable on the wrong enemy, so it stays dead until one is chosen.
                  */
-                const targetId = macro.targeting === 'ALLY'
-                    ? (selectedTargetId ?? selectedSourceId ?? '')
-                    : (selectedTargetId ?? '');
+                // TICKET 172: and a Revive lands on a downed ally without needing a click on one.
+                const targetId = macroTargetId(battleState, macro, selectedSourceId, selectedTargetId);
 
                 const preview = computeMacroPreview(battleState, macro.id, selectedSourceId, targetId);
 

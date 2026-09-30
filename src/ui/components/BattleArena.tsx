@@ -22,6 +22,7 @@ import {
 } from '../keybinds';
 import { selectSource, selectTarget, selectCard, endTurn, nudgeEndTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
 import { decideEndTurn } from '../utils/endTurnNudge';
+import { macroTargetId } from '../utils/macroTarget';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { isValidCardTarget, targetVerdict } from '../utils/targeting';
@@ -566,11 +567,9 @@ const BattleArena: React.FC = () => {
         if (!battleState || !run) return;
         const macro = getMacro(macroId);
         if (!macro) return;
-        // Mirrors MacroRack's defaulting: an ally-facing macro with nobody picked lands on the
-        // firing unit. Kept in step by both reading `macro.targeting` rather than by agreement.
-        const targetId = macro.targeting === 'ALLY'
-            ? (selectedTargetId ?? selectedSourceId ?? '')
-            : (selectedTargetId ?? '');
+        // The same target the rack previewed: both call `macroTargetId` (ticket 172), so an
+        // ally-facing macro defaults to the firing unit and a Revive to the first downed ally.
+        const targetId = macroTargetId(battleState, macro, selectedSourceId, selectedTargetId);
         const payload = { macroId, sourceId: selectedSourceId ?? '', targetId };
         if (canFireMacro(battleState, payload) !== null) return;
 
@@ -1141,7 +1140,16 @@ const BattleArena: React.FC = () => {
 
     /** Click a unit (sidebar card or stage spotlight): target enemies / select allies. */
     const handleEntityClick = (entity: IBattleEntity, isEnemy: boolean) => {
-        if (entity.currentHp <= 0) return;
+        /*
+         * TICKET 172: a downed ALLY is clickable while a Revive is in the rack, and the click picks
+         * it as the macro's target (with two down, this is how the player chooses). Every other
+         * click on a unit at 0 HP is still refused.
+         */
+        if (entity.currentHp <= 0) {
+            const holdsRevive = (run?.macros ?? []).some((id) => id !== null && getMacro(id)?.targeting === 'DOWNED_ALLY');
+            if (!isEnemy && holdsRevive) dispatch(selectTarget(selectedTargetId === entity.id ? null : entity.id));
+            return;
+        }
         const isTargeted = selectedTargetId === entity.id;
 
         // Friendly = source (caster). Clicking an ally selects or switches the active caster (ticket 165b)
