@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { createRun } from './createRun';
 import { generateRegionGraph } from './regionGraph';
 import { GYM_REGISTRY } from './gyms';
-import { assignDriverStakes, driverStakePool, paysDriver, DRIVER_STAKE_KINDS } from './driverStakes';
+import { assignDriverStakes, driverStakePool, paysDriver, DRIVER_STAKE_KINDS, partyElementsOf, resolveDriverStake } from './driverStakes';
 import { GYM_DRIVER_IDS, PLAYER_DRIVER_IDS, elementDriverId } from '../data/driverRegistry';
 import { RunStateSchema, type IBiome } from '../runTypes';
 import type { IMingmingState } from '../types';
@@ -96,5 +96,26 @@ describe('determinism and the save', () => {
         expect(parsed.nodes.filter((n) => n.driverStake).length).toBeGreaterThan(0);
         const legacy = { ...run, nodes: run.nodes.map(({ driverStake: _s, ...rest }) => rest) };
         expect(() => RunStateSchema.parse(JSON.parse(JSON.stringify(legacy)))).not.toThrow();
+    });
+});
+
+describe('172 — an Element Driver pays for an element you field', () => {
+    // Henry, 2026-09-30: "I got a Nature Driver on my run with no nature mingmings."
+    it('keeps a named Driver, and an Element Driver the party fields', () => {
+        expect(resolveDriverStake('driver_first_blood', ['Water'])).toBe('driver_first_blood');
+        expect(resolveDriverStake('driver_element_water', ['Fire', 'Water'])).toBe('driver_element_water');
+    });
+
+    it('swaps an unfielded Element Driver for the first member\'s element', () => {
+        const party = partyElementsOf([
+            { primaryElement: 'Water', secondaryElement: 'None' },
+            { primaryElement: 'Fire', secondaryElement: 'None' },
+        ]);
+        expect(party).toEqual(['Water', 'Fire']);
+        expect(resolveDriverStake('driver_element_nature', party)).toBe('driver_element_water');
+    });
+
+    it('leaves the stake alone for an empty party rather than inventing one', () => {
+        expect(resolveDriverStake('driver_element_nature', [])).toBe('driver_element_nature');
     });
 });

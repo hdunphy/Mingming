@@ -32,7 +32,7 @@ import { canFireMacro } from '../../engine/battleReducer';
 import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
 import { rollDropTable, gymClearBlueprints } from '../../engine/RewardSystem';
 import { authoredBossFor } from '../../engine/run/bosses';
-import { paysDriver } from '../../engine/run/driverStakes';
+import { partyElementsOf, paysDriver, resolveDriverStake } from '../../engine/run/driverStakes';
 import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFight';
 import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
 import BattleReport from './BattleReport';
@@ -683,8 +683,9 @@ const BattleArena: React.FC = () => {
      * the report pays exactly what the map promised. Undefined for every node kind that does not
      * pay one and for every debug scenario.
      */
-    const driverStake: string | undefined = paysDriver(nodeKind)
-        ? currentNode?.driverStake
+    // TICKET 172: an Element Driver pays for an element this party fields (`resolveDriverStake`).
+    const driverStake: string | undefined = paysDriver(nodeKind) && currentNode?.driverStake
+        ? resolveDriverStake(currentNode.driverStake, partyElementsOf(battleState?.playerParty ?? []))
         : undefined;
 
     /**

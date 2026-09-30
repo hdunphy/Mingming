@@ -39,7 +39,7 @@ import {
     DRIVER_ANTIVENOM, DRIVER_BULWARK_REFLEX, DRIVER_DEEP_CACHE, DRIVER_FIRST_BLOOD,
     DRIVER_OVERKILL_RECOVERY, DRIVER_STATIC_FIELD, DRIVER_TENTH_STRIKE, elementDriverId,
 } from '../data/driverRegistry';
-import type { Element } from '../types';
+import { ELEMENTS, type Element } from '../types';
 import type { IBiome, IRegionNode, NodeKind } from '../runTypes';
 
 /** The node kinds that pay a Driver on a win. The alpha pays a blueprint instead (ticket 12). */
@@ -86,3 +86,47 @@ export function assignDriverStakes(
         return { ...node, driverStake };
     });
 }
+
+/**
+ * TICKET 172 — **AN ELEMENT DRIVER PAYS FOR AN ELEMENT YOU FIELD.**
+ *
+ * Henry, 2026-09-30 playtest: *"I got a Nature Driver on my run with no nature mingmings."* The stake
+ * is rolled at run creation from the BIOMES' elements, when the party is one body and the rest of the
+ * team does not exist yet; by the time the player reaches the node the team is whatever they built,
+ * and an Element Driver for an element nobody on it runs is a prize that does nothing.
+ *
+ * So an Element Driver stake is read against the party at the moment it is shown or paid:
+ *
+ * - a named Driver, or an Element Driver whose element someone in the party runs (primary or
+ *   secondary), pays exactly what was rolled;
+ * - otherwise it pays the Element Driver of the FIRST party member's primary element, the body the
+ *   run was started with and so the element the player has built around longest.
+ *
+ * The map shows the resolved Driver for the team as it stands (`RegionMap`), so "visible before you
+ * commit" still holds: what the node says is what a win pays with this team. The rolled stake on the
+ * node is untouched, which keeps every save and every graph test exactly as it was.
+ */
+export function resolveDriverStake(stake: string, partyElements: ReadonlyArray<string>): string {
+    const element = ELEMENT_BY_DRIVER.get(stake);
+    if (element === undefined) return stake;
+    const fielded = partyElements.filter((e) => e !== 'None');
+    if (fielded.length === 0 || fielded.includes(element)) return stake;
+    return elementDriverId(fielded[0] as Exclude<Element, 'None'>);
+}
+
+/** Every element a party runs, first member first, primary before secondary, without repeats. */
+export function partyElementsOf(
+    party: ReadonlyArray<{ readonly primaryElement?: string; readonly secondaryElement?: string }>,
+): string[] {
+    const out: string[] = [];
+    for (const member of party) {
+        for (const element of [member.primaryElement, member.secondaryElement]) {
+            if (element && element !== 'None' && !out.includes(element)) out.push(element);
+        }
+    }
+    return out;
+}
+
+const ELEMENT_BY_DRIVER: ReadonlyMap<string, string> = new Map(
+    ELEMENTS.filter((e): e is Exclude<Element, 'None'> => e !== 'None').map((e) => [elementDriverId(e), e] as const),
+);

@@ -51,6 +51,7 @@ import type { IconName } from '../theme/icons';
 import './RegionMap.css';
 import { Icon } from '../theme/Icon';
 import { iconPaths } from '../theme/icons';
+import { resolveDriverStake } from '../../engine/run/driverStakes';
 
 const ELEMENT_COLOR: Record<string, string> = {
     Fire: '#e8734a',
@@ -123,10 +124,16 @@ export interface RegionMapProps {
      * a caller that has no run behind it draws the ordinary one-layer fog.
      */
     readonly revealedBiomes?: ReadonlyArray<number>;
+    /**
+     * TICKET 172 — the elements the party fields, so an Element Driver stake names the Driver a win
+     * would actually pay this team (`resolveDriverStake`). Empty by default: the rolled stake.
+     */
+    readonly partyElements?: ReadonlyArray<string>;
     readonly onTravel: (node: IRegionNode) => void;
 }
 
 const NO_REVEALS: ReadonlyArray<number> = [];
+const NO_ELEMENTS: ReadonlyArray<string> = [];
 const NO_RIVAL_ELEMENTS: ReadonlyArray<ReadonlyArray<string>> = [];
 
 export default function RegionMap({
@@ -136,8 +143,10 @@ export default function RegionMap({
     biomeElements,
     rivalElements = NO_RIVAL_ELEMENTS,
     revealedBiomes = NO_REVEALS,
+    partyElements = NO_ELEMENTS,
     onTravel,
 }: RegionMapProps): ReactNode {
+    const stakeName = (stake: string): string => describeDriver(resolveDriverStake(stake, partyElements)).name;
     const layout = useMemo(
         () => layoutRegion(nodes, currentNodeId, revealedBiomes),
         [nodes, currentNodeId, revealedBiomes],
@@ -267,7 +276,7 @@ export default function RegionMap({
         if (isRunStart(laid.node)) parts.push('walking back in is a Wild fight');
         if (laid.revealed && laid.node.kind === 'ambush') parts.push('HIGH RISK — they outnumber you');
         if (laid.revealed && laid.node.driverStake) {
-            parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${describeDriver(laid.node.driverStake).name}`);
+            parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${stakeName(laid.node.driverStake)}`);
         }
         parts.push(`biome ${laid.node.biomeIndex + 1}`, `layer ${laid.node.layer}`);
         if (laid.node.pocket) parts.push('dead end');
@@ -472,7 +481,7 @@ export default function RegionMap({
                                         cx={x} cy={y} r={R + 4}
                                         className="rm-node-stake-ring"
                                     >
-                                        <title>{`Driver at stake: ${describeDriver(laid.node.driverStake).name}`}</title>
+                                        <title>{`Driver at stake: ${stakeName(laid.node.driverStake)}`}</title>
                                     </circle>
                                 )}
                                 {laid.revealed && laid.node.scout && (

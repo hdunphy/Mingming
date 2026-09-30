@@ -102,6 +102,7 @@ import { NODE_ICON, NODE_LABEL } from './regionLayout';
 import { Icon } from '../theme/Icon';
 import RunTierLabel from './RunTierLabel';
 import type { Element as MingmingElement } from '../../engine/types';
+import { partyElementsOf } from '../../engine/run/driverStakes';
 
 export default function RunScreen(): ReactNode {
     const dispatch = useDispatch();
@@ -158,6 +159,11 @@ export default function RunScreen(): ReactNode {
             // TICKET 168f: the shop rolls its stock for the OS a body runs in this run.
             .map((m) => withEffectiveOS(run!, m)),
         [run, roster],
+    );
+    /** TICKET 172: the elements this team fields, so the map names the Driver a win really pays. */
+    const partyElements = useMemo(
+        () => partyElementsOf(marketParty.map((m) => GetMingmingData(m.definitionId))),
+        [marketParty],
     );
 
     /**
@@ -523,6 +529,7 @@ export default function RunScreen(): ReactNode {
                 <RegionMap
                     nodes={run.nodes}
                     currentNodeId={run.currentNodeId}
+                    partyElements={partyElements}
                     biomeNames={run.biomes.map((b) => b.name)}
                     biomeElements={run.biomes.map((b) => b.elements[0])}
                     // Ticket 142c: what a rival fields in each biome, off-biome element first — the
