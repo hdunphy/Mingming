@@ -1,5 +1,7 @@
 # Species art pass: 16 battle portraits to the ruled standard (ticket 33)
 
+> **2026-09-29: FAKEMON-STYLE DESIGNS, NOT KEY ART (Henry).** Each EA species is a clean-line, cel-shaded design on a transparent PNG (at least 1024 px, layered file, commercial use included, about $60–90 each), Fenrir first as a test piece. The only full key art is the capsule, painted from the six designs. Brief: `research/33-hero-commission-brief.md`.
+
 > **2026-09-29: ALL SIX EA PORTRAITS ARE COMMISSIONED, NO AI (Henry, re-ruling ticket 32).** The four heroes plus Sköll and Huldra, from the same artist if possible so the style matches. The AI-anchored set and the brief's Option A licence are gone. Placeholders until the commissions land: 13 SVGs and 3 AI PNGs (Fenrir, Kraken, Ratatoskr), none of them to be used in marketing. Art direction ruled 2026-09-29: stylized creature-collector shapes with Neon Industrial accents (ticket 32, amended ruling 4).
 
 > **2026-09-24 — RE-SCOPED by EA scope (Henry 2026-09-22): 6 battle portraits for EA (fenrir, sköll, kraken, jormungandr, ratatoskr, huldra); the other 10 are post-EA.**
