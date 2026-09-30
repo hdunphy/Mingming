@@ -44,6 +44,7 @@ import runReducer, {
     reflashEngine,
     resolveEncounter,
     swapBenchMember,
+    unbenchMember,
     type RunSliceState,
 } from './runSlice';
 import { createRun, minimumActiveDeck } from '../../engine/run/createRun';
@@ -259,6 +260,50 @@ describe('swapBenchMember — the verb the biome boundary exists for', () => {
         expect(runReducer(stateOf(run), swapBenchMember({ outId: 'mm2', inId: 'mm2' })).run).toEqual(run);
         // Neither exists.
         expect(runReducer(stateOf(run), swapBenchMember({ outId: 'ghost', inId: 'phantom' })).run).toEqual(run);
+    });
+});
+
+describe('unbenchMember — back into an empty slot (ticket 171a)', () => {
+    /*
+     * Henry, 2026-09-29: "I can't unbench Skoll. When I press confirm she stays benched." A party
+     * of two with a benched third had no verb that put the third back without trading someone out.
+     */
+    const SKOLL: IMingmingState = { ...KRAKEN, id: 'mm3', definitionId: 'skoll', activeOS: 'skoll_v2' };
+
+    it('puts the member back in the party and her engine back in the deck', () => {
+        const run = runReducer(stateOf(makeRun([KRAKEN, FENRIR, SKOLL])), benchPartyMember('mm3')).run!;
+        expect(run.partyIds).toEqual(['mm1', 'mm2']);
+        const skollCards = run.collection!.filter((c) => c.ownerId === 'mm3');
+        expect(skollCards.length).toBe(5);
+
+        const after = runReducer(stateOf(run), unbenchMember('mm3')).run!;
+
+        expect(after.partyIds).toEqual(['mm1', 'mm2', 'mm3']);
+        expect(after.bench).toEqual([]);
+        expect(after.deck.filter((c) => c.ownerId === 'mm3')).toEqual(skollCards);
+        expect(after.collection!.some((c) => c.ownerId === 'mm3')).toBe(false);
+    });
+
+    it('does not deal twice the cards already moved into the deck by hand', () => {
+        // The playtest save: Henry had edited all five of her cards back into the deck while she sat
+        // on the bench. Those stay put; only what is still in the collection comes back.
+        const benched = runReducer(stateOf(makeRun([KRAKEN, SKOLL])), benchPartyMember('mm3')).run!;
+        const oneCard = benched.collection!.find((c) => c.ownerId === 'mm3')!;
+        const run = runReducer(stateOf(benched), moveCardToDeck(oneCard.instanceId)).run!;
+
+        const after = runReducer(stateOf(run), unbenchMember('mm3')).run!;
+
+        const ids = after.deck.map((c) => c.instanceId);
+        expect(new Set(ids).size).toBe(ids.length);
+        expect(after.deck.filter((c) => c.ownerId === 'mm3').length).toBe(5);
+    });
+
+    it('refuses a full party (a full party swaps) and a member who is not benched', () => {
+        const full = runReducer(stateOf(makeRun([KRAKEN, FENRIR, SKOLL])), benchPartyMember('mm3')).run!;
+        const refilled = { ...full, partyIds: ['mm1', 'mm2', 'mm9'] };
+        expect(runReducer(stateOf(refilled), unbenchMember('mm3')).run).toEqual(refilled);
+        expect(runReducer(stateOf(full), unbenchMember('mm1')).run).toEqual(full);
+        expect(runReducer(stateOf(full), unbenchMember('ghost')).run).toEqual(full);
     });
 });
 

@@ -137,7 +137,9 @@ export function makeRanch(roster: IRanchMember[] = ROSTER): IRanchState {
  * none here either: an editor with no way out and no idea which door it came through is not a state
  * `RunScreen` can produce, so the harness always supplies both.
  */
-function render(run: IRunState, ranch: IRanchState = makeRanch(), initialPage?: number): string {
+function render(
+    run: IRunState, ranch: IRanchState = makeRanch(), initialPage?: number, initialSwapping?: string,
+): string {
     const store = configureStore({
         reducer: { run: runReducer, game: gameReducer },
         preloadedState: { game: ranch, run: { run } },
@@ -151,6 +153,7 @@ function render(run: IRunState, ranch: IRanchState = makeRanch(), initialPage?: 
                 context="WORKSHOP · NATURE BIOME · 143 SCRAP"
                 onClose={() => undefined}
                 initialPage={initialPage}
+                initialSwapping={initialSwapping}
             />
         </Provider>,
     );
@@ -643,3 +646,28 @@ function countByData(cards: ReadonlyArray<IRunCard>): Array<[string, number]> {
     for (const c of cards) counts.set(c.dataId, (counts.get(c.dataId) ?? 0) + 1);
     return [...counts.entries()];
 }
+
+describe('an empty party slot takes a benched member back (ticket 171a)', () => {
+    /*
+     * Henry, 2026-09-29: "I can't unbench Skoll. When I press confirm she stays benched." The strip
+     * drew only occupied party chips, so a party of one-or-two with someone benched had nowhere to
+     * put them back except on top of somebody else.
+     */
+    it('draws an open slot as a landing site once a benched member is picked up', () => {
+        const markup = render(makeRun({ bench: ['mm2'] }), makeRanch(), undefined, 'mm2');
+        const slots = buttonsOfClass(markup, 'rs-mem led-slot-open');
+        // Party of one: two open slots.
+        expect(slots.length).toBe(2);
+        expect(slots[0]).toContain('bring in');
+    });
+
+    it('shows the slot but not as a button while nobody is picked up', () => {
+        const markup = render(makeRun({ bench: ['mm2'] }));
+        expect(buttonsOfClass(markup, 'rs-mem led-slot-open').length).toBe(0);
+        expect(markup).toContain('pick a benched member');
+    });
+
+    it('draws no empty slot when the bench is empty', () => {
+        expect(render(makeRun())).not.toContain('led-slot-open');
+    });
+});

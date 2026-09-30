@@ -53,7 +53,9 @@ import {
     moveCardToCollection,
     moveCardToDeck,
     swapBenchMember,
+    unbenchMember,
 } from '../store/runSlice';
+import { PARTY_SIZE } from '../../engine/party';
 import { cardFace, colorFor, groupByData, isPayoff, type Banner } from './runShell';
 import { junkNote, readDeckFloor } from './deckFloor';
 import { isJunkCard } from '../../engine/run/junk';
@@ -88,6 +90,8 @@ export interface LoadoutEditorProps {
     readonly onClose: () => void;
     /** Test seam: `renderToStaticMarkup` cannot click a pager. */
     readonly initialPage?: number;
+    /** Test seam (ticket 171a): a benched member already picked up, as if clicked. */
+    readonly initialSwapping?: string;
 }
 
 type ElementFilter = 'ALL' | string;
@@ -132,7 +136,7 @@ function stacksOf(
 }
 
 export default function LoadoutEditor({
-    run, ranch, context, onClose, initialPage = 0,
+    run, ranch, context, onClose, initialPage = 0, initialSwapping,
 }: LoadoutEditorProps): ReactNode {
     const dispatch = useDispatch();
     const [page, setPage] = useState(initialPage);
@@ -147,7 +151,13 @@ export default function LoadoutEditor({
     const [sort, setSort] = useState<Sort>('COST');
     const [search, setSearch] = useState('');
     /** The benched member awaiting a party slot to swap into. Null is the ordinary state. */
-    const [swapping, setSwapping] = useState<string | null>(null);
+    const [swapping, setSwapping] = useState<string | null>(initialSwapping ?? null);
+    /**
+     * TICKET 171a: CONFIRM pressed while a benched member is still picked up. The first press
+     * explains instead of closing; the second closes and leaves them benched. Before this, CONFIRM
+     * closed at once and the pick was dropped without a word, which is the playtest bug.
+     */
+    const [confirmWarned, setConfirmWarned] = useState(false);
 
     // Memoized because `?? []` mints a new array every render, which would defeat every `useMemo`
     // below it — the lint rule that catches this is doing real work, not being fussy.
@@ -223,6 +233,7 @@ export default function LoadoutEditor({
         if (swapping) {
             dispatch(swapBenchMember({ outId: memberId, inId: swapping }));
             setSwapping(null);
+            setConfirmWarned(false);
             playSfx('rewardClaim');
             return;
         }
@@ -230,6 +241,31 @@ export default function LoadoutEditor({
         if (!canBench) { playSfx('uiError'); return; }
         dispatch(benchPartyMember(memberId));
         playSfx('uiClick');
+    };
+
+    /** TICKET 171a: the party has room, so a picked-up bench member can walk straight in. */
+    const openSlots = Math.max(0, PARTY_SIZE - run.partyIds.length);
+    const swappingName = swapping ? (() => {
+        const member = memberOf(swapping);
+        return member ? (member.nickname ?? GetMingmingData(member.definitionId).name) : 'That member';
+    })() : '';
+
+    const onEmptySlot = (): void => {
+        if (!swapping) { playSfx('uiError'); return; }
+        dispatch(unbenchMember(swapping));
+        setSwapping(null);
+        setConfirmWarned(false);
+        playSfx('rewardClaim');
+    };
+
+    const onConfirm = (): void => {
+        if (swapping && !confirmWarned) {
+            setConfirmWarned(true);
+            playSfx('uiError');
+            return;
+        }
+        playSfx('uiClick');
+        onClose();
     };
 
     const memberCardCount = (memberId: string): number =>
@@ -244,10 +280,16 @@ export default function LoadoutEditor({
                 <span className={`rs-pill ${atFloor ? 'at-floor' : ''}`}>
                     DECK <b>{deckReading.counted}</b> / floor {floor}{junkNote(deckReading)}
                 </span>
-                <button type="button" className="rs-btn primary" onClick={() => { playSfx('uiClick'); onClose(); }}>
+                <button type="button" className="rs-btn primary" onClick={onConfirm}>
                     CONFIRM
                 </button>
             </div>
+            {swapping && confirmWarned && (
+                <div className="rs-hint led-confirm-warn" role="alert">
+                    {swappingName} is still picked up — click a party slot to bring them in, or press
+                    CONFIRM again to leave them benched.
+                </div>
+            )}
 
             {/* TICKET 158-r1: the firmware on the field. A benched body is not feeding anybody's
                 currency, so the mark on a bench row reads against the PARTY, not the roster. */}
@@ -281,6 +323,27 @@ export default function LoadoutEditor({
                         </button>
                     );
                 })}
+                {/* TICKET 171a: an open party slot is a place a benched member can go. Only drawn
+                    when there is someone on the bench to fill it; a button only while one is picked
+                    up, because clicking an empty slot with nobody in hand has nothing to do. */}
+                {bench.length > 0 && Array.from({ length: openSlots }, (_, i) => (
+                    swapping ? (
+                        <button
+                            key={`empty-${i}`}
+                            type="button"
+                            className="rs-mem led-slot-open led-target"
+                            onClick={onEmptySlot}
+                        >
+                            <span className="rs-mem-text"><span className="rs-mnm">Empty slot</span></span>
+                            <span className="rs-meta">bring in ⇐</span>
+                        </button>
+                    ) : (
+                        <span key={`empty-${i}`} className="rs-mem led-slot-open static">
+                            <span className="rs-mem-text"><span className="rs-mnm">Empty slot</span></span>
+                            <span className="rs-meta">pick a benched member</span>
+                        </span>
+                    )
+                ))}
                 {bench.map((id) => {
                     const member = memberOf(id);
                     if (!member) return null;
@@ -292,7 +355,7 @@ export default function LoadoutEditor({
                             className={`rs-mem benched ${swapping === id ? 'sel' : ''}`}
                             style={{ ['--el' as string]: colorFor(data.primaryElement) }}
                             aria-pressed={swapping === id}
-                            onClick={() => { setSwapping(swapping === id ? null : id); playSfx('uiClick'); }}
+                            onClick={() => { setSwapping(swapping === id ? null : id); setConfirmWarned(false); playSfx('uiClick'); }}
                         >
                             <span className="rs-dot">{data.name.charAt(0)}</span>
                             <span className="rs-mem-text">

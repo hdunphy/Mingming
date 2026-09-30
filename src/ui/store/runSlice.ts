@@ -631,6 +631,41 @@ const runSlice = createSlice({
         },
 
         /**
+         * TICKET 171a — **bring a benched member back into an EMPTY party slot.**
+         *
+         * Henry, 2026-09-29 playtest: *"I can't unbench Skoll. When I press confirm she stays
+         * benched."* The party was two of three with Sköll on the bench, and nothing could put her
+         * back: `swapBenchMember` needs someone to trade out, `benchPartyMember` only goes one way,
+         * and `recruitIntoParty` only takes a NEW body. This is the missing direction.
+         *
+         * Her engine follows her, the mirror of `benchPartyMember`: every card she owns that is in
+         * the collection goes to the deck. Cards of hers already in the deck (the editor lets you
+         * move them in by hand) stay where they are, so nothing is dealt twice. The party grows by
+         * one and the deck by at most five, so the floor (8/13/18) can only be met, never broken.
+         *
+         * Refuses, silently and byte for byte, a member who is not on the bench and a party that is
+         * already full (a full party swaps instead).
+         */
+        unbenchMember: (state, action: PayloadAction<string>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const memberId = action.payload;
+            const bench = run.bench ?? [];
+            if (!bench.includes(memberId) || run.partyIds.length >= PARTY_SIZE) return { run };
+            const collection = run.collection ?? [];
+            const returning = collection.filter((card) => card.ownerId === memberId);
+            return {
+                run: {
+                    ...run,
+                    partyIds: [...run.partyIds, memberId],
+                    bench: bench.filter((id) => id !== memberId),
+                    deck: [...run.deck, ...returning],
+                    collection: collection.filter((card) => card.ownerId !== memberId),
+                },
+            };
+        },
+
+        /**
          * Bench a party member with no one coming back the other way — the party shrinks.
          *
          * Separate from `swapBenchMember` because the floor behaves differently: a party of three
@@ -1551,6 +1586,7 @@ export const {
     moveCardToCollection,
     moveCardToDeck,
     swapBenchMember,
+    unbenchMember,
     benchPartyMember,
     buyMarketBlueprint,
     rerollMarketStock,

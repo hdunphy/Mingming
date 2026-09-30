@@ -86,3 +86,8 @@
  * layout rules that only existed to leave that block room (`.led-deck` as a flex column and
  * `.led-rows { flex: 0 1 auto }`), which are gone.
  */
+
+/* TICKET 171a: an open party slot, and the note CONFIRM shows while a bench pick is pending. */
+.led-slot-open { border-style: dashed; opacity: 0.7; justify-content: center; }
+.led-slot-open.led-target { opacity: 1; }
+.led-confirm-warn { color: #e0b050; font-size: 12px; font-style: normal; padding: 4px 12px; }
