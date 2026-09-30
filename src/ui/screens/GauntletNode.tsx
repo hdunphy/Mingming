@@ -3,8 +3,8 @@
  *
  * # WHAT THE PLAYER IS LOOKING AT
  *
- * `exploration-map.md` rules the gym a gauntlet of **three fights with no healing between them**,
- * and ticket 18 asks for the screen that sits in the gaps: *"A between-fights screen (the old 'Pit
+ * `exploration-map.md` rules the gym a gauntlet of **three fights with no healing between them**
+ * (ticket 173a, Henry 2026-09-30: now a 30% repair for every member still standing), and ticket 18 asks for the screen that sits in the gaps: *"A between-fights screen (the old 'Pit
  * Stop' idea) showing HP, Macros, and the next opponent's visible types."* Those three things are
  * not a list of widgets, they are the three terms of the only decision on offer here — **is the
  * party healthy enough to walk into what is coming, or is this the moment to spend a consumable?**
@@ -56,6 +56,7 @@ import {
     isBossFight,
     rollGauntletFight,
 } from '../../engine/run/gauntlet';
+import { GAUNTLET_HEAL_PERCENT } from '../../engine/run/gauntletHeal';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { initializeBattleEntity } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
@@ -89,6 +90,8 @@ interface MemberLine {
     /** Carried HP, or full when nothing is carried — fight 1 opens with the party whole. */
     readonly currentHp: number;
     readonly down: boolean;
+    /** HP the 30% repair gave back after the last fight (ticket 173). */
+    readonly healed: number;
 }
 
 export default function GauntletNode({ run, node, ranch, onEditLoadout }: GauntletNodeProps): ReactNode {
@@ -120,6 +123,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                 // `IBattleSetup.persistedHp` makes, and the reason a 0 is not the same as a gap.
                 currentHp: carried === undefined ? entity.maxHp : carried,
                 down: gauntlet.downedMemberIds.includes(id),
+                healed: gauntlet.healedHp?.[id] ?? 0,
             });
         }
         return lines;
@@ -184,9 +188,9 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                     ))}
                 </div>
                 <p className="gn-note">
-                    <strong>No healing between these three fights.</strong> Damage carries; a member
-                    who falls stays down until something brings them back, and nothing here is a rest
-                    stop. What you spend now is what you have.
+                    <strong>Between fights, every member still standing repairs {GAUNTLET_HEAL_PERCENT}% of
+                    its max HP.</strong> The rest of the damage carries, and a member who falls stays
+                    down until a Revive brings them back.
                 </p>
             </header>
 
@@ -194,7 +198,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
 
             <div className="gn-section-head">
                 <h3>Party</h3>
-                <span className="gn-tag-note">HP carries between fights</span>
+                <span className="gn-tag-note">HP carries between fights · +{GAUNTLET_HEAL_PERCENT}% repair</span>
             </div>
 
             <ul className="gn-list">
@@ -206,6 +210,9 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                                 <span className="gn-row-name">{member.name}</span>
                                 <span className="gn-row-meta">{member.element}</span>
                                 {member.down && <span className="gn-tag danger">Down — revivable</span>}
+                                {!member.down && member.healed > 0 && (
+                                    <span className="gn-tag">+{member.healed} repaired</span>
+                                )}
                             </div>
                             <div className="gn-hp">
                                 <span className="gn-hp-figure">{member.currentHp}/{member.maxHp}</span>

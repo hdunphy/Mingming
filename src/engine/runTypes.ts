@@ -225,6 +225,12 @@ export interface IGauntletProgress {
     readonly persistedHp: Readonly<Record<string, number>>;
     /** Members at 0 HP, awaiting whatever revive shape playtesting picks. */
     readonly downedMemberIds: ReadonlyArray<string>;
+    /**
+     * TICKET 173a — what the last between-fights repair gave each standing member (30% of max HP,
+     * `gauntletHeal.ts`), so the pit stop can say it. Absent before the first repair and on saves
+     * from before the field.
+     */
+    readonly healedHp?: Readonly<Record<string, number>>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -656,6 +662,8 @@ export const GauntletProgressSchema = z.object({
     totalFights: z.number().int().min(1),
     persistedHp: z.record(z.string(), z.number().int().min(0)),
     downedMemberIds: z.array(z.string()),
+    // Ticket 173a, add-only: what the last between-fights repair gave each member, for the pit stop.
+    healedHp: z.record(z.string(), z.number().int().min(0)).optional(),
 });
 
 export const RunStateSchema = z.object({

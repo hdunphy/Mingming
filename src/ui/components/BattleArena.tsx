@@ -1038,10 +1038,10 @@ const BattleArena: React.FC = () => {
         const lastGauntletFight = gauntlet !== null && gauntlet.fightIndex >= gauntlet.totalFights - 1;
 
         if (gauntlet && !lastGauntletFight) {
-            // The party as this fight left it — HP and all, downed members included. Nothing is
-            // healed on the way out, which is the whole of "three fights, NO healing between them".
+            // The party as this fight left it — HP and all, downed members included. TICKET 173a:
+            // `maxHp` rides along so the run can repair each standing member 30% between fights.
             dispatch(advanceGauntlet(
-                (battleState?.playerParty ?? []).map(member => ({ memberId: member.id, hp: member.currentHp })),
+                (battleState?.playerParty ?? []).map(member => ({ memberId: member.id, hp: member.currentHp, maxHp: member.maxHp })),
             ));
         } else if (gauntlet) {
             dispatch(finishGauntlet());

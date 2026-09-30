@@ -393,10 +393,12 @@ describe('the gym is the enemy ladder’s top rung', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// exploration-map.md — three fights, NO healing between them
+// exploration-map.md — three fights, NO healing between them. Ticket 173a adds a 30% repair, applied
+// in `advanceGauntlet` before `persistedHp` is written; the setup below still builds each fight from
+// exactly the HP it is handed.
 // ---------------------------------------------------------------------------------------------
 
-describe('no healing between the three fights', () => {
+describe('HP carries between the three fights', () => {
     const party = [KRAKEN, FENRIR, RATATOSKR];
     const ranch = ranchOf(party);
 

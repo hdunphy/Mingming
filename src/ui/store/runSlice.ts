@@ -83,6 +83,7 @@ import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
 import { snapshotMarketParty } from '../../engine/run/marketParty';
+import { healBetweenFights } from '../../engine/run/gauntletHeal';
 import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
@@ -1404,7 +1405,8 @@ const runSlice = createSlice({
          */
         advanceGauntlet: (
             state,
-            action: PayloadAction<ReadonlyArray<{ memberId: string; hp: number }>>,
+            // TICKET 173a: `maxHp`, when the caller has it, turns on the between-fights repair.
+            action: PayloadAction<ReadonlyArray<{ memberId: string; hp: number; maxHp?: number }>>,
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
@@ -1414,13 +1416,18 @@ const runSlice = createSlice({
 
             const persistedHp: Record<string, number> = { ...gauntlet.persistedHp };
             const downed = new Set(gauntlet.downedMemberIds);
+            const healedHp: Record<string, number> = {};
 
             for (const entry of action.payload) {
                 // Only the party. A battle can contain entities the run does not own (nothing does
                 // that today), and writing one into `persistedHp` would leave a key no member
                 // matches — harmless until the day something iterates it.
                 if (!run.partyIds.includes(entry.memberId)) continue;
-                const hp = Number.isFinite(entry.hp) ? Math.max(0, Math.floor(entry.hp)) : 0;
+                const left = Number.isFinite(entry.hp) ? Math.max(0, Math.floor(entry.hp)) : 0;
+                // TICKET 173a: standing members repair 30% of max HP between fights; the downed stay at 0.
+                const repair = entry.maxHp !== undefined ? healBetweenFights(left, entry.maxHp) : { hp: left, healed: 0 };
+                const hp = repair.hp;
+                if (entry.maxHp !== undefined) healedHp[entry.memberId] = repair.healed;
                 persistedHp[entry.memberId] = hp;
                 if (hp <= 0) downed.add(entry.memberId);
                 else downed.delete(entry.memberId);
@@ -1432,10 +1439,12 @@ const runSlice = createSlice({
                     fightsResolved: run.fightsResolved + 1,
                     tempDrivers: afterFight(run.tempDrivers),
                     gauntlet: {
-                        ...gauntlet,
                         fightIndex: gauntlet.fightIndex + 1,
+                        totalFights: gauntlet.totalFights,
                         persistedHp,
                         downedMemberIds: [...downed],
+                        // The last fight's repair is not this one's: rewritten each fight, never merged.
+                        ...(Object.keys(healedHp).length > 0 ? { healedHp } : {}),
                     },
                 },
             };

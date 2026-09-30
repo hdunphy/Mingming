@@ -147,6 +147,33 @@ describe('advanceGauntlet', () => {
         expect(after.run?.phase).toBe('gauntlet');
     });
 
+    it('repairs each standing member 30% of max HP when the fight passes max HP (ticket 173a)', () => {
+        const state = savable(runReducer(atGym(), advanceGauntlet([
+            { memberId: 'mm1', hp: 100, maxHp: 1000 },
+            { memberId: 'mm2', hp: 0, maxHp: 1000 },
+            { memberId: 'mm3', hp: 950, maxHp: 1000 },
+        ])));
+
+        expect(state.run?.gauntlet?.persistedHp).toEqual({ mm1: 400, mm2: 0, mm3: 1000 });
+        expect(state.run?.gauntlet?.healedHp).toEqual({ mm1: 300, mm2: 0, mm3: 50 });
+        // The downed stay down: the repair is not a Revive.
+        expect(state.run?.gauntlet?.downedMemberIds).toEqual(['mm2']);
+    });
+
+    it('rewrites the repair each fight rather than adding to the last one (ticket 173a)', () => {
+        let state = runReducer(atGym(), advanceGauntlet([{ memberId: 'mm1', hp: 100, maxHp: 1000 }]));
+        state = savable(runReducer(state, advanceGauntlet([{ memberId: 'mm1', hp: 900, maxHp: 1000 }])));
+
+        expect(state.run?.gauntlet?.healedHp).toEqual({ mm1: 100 });
+    });
+
+    it('without max HP there is no repair, and no repair record (ticket 173a)', () => {
+        const state = savable(runReducer(atGym(), advanceGauntlet([{ memberId: 'mm1', hp: 100 }])));
+
+        expect(state.run?.gauntlet?.persistedHp.mm1).toBe(100);
+        expect(state.run?.gauntlet?.healedHp).toBeUndefined();
+    });
+
     it('keeps a member’s carried HP when the payload omits them', () => {
         // Defensive rather than expected — `buildBattleSetup` fields every party member — but the
         // failure it prevents is the bad one: an omitted member walking into the next fight healed.

@@ -130,7 +130,7 @@ const MAP_TIPS: ReadonlyArray<Tip> = [
         id: 'map:gym',
         title: 'The gym is the run',
         body:
-            'The last node of the third biome is the gym: three fights back to back with no healing ' +
+            'The last node of the third biome is the gym: three fights back to back, with only a 30% repair ' +
             'in between. Everything before it is preparation for it.',
     },
     {

@@ -222,11 +222,12 @@ describe('RunScreen — the gauntlet takes the screen', () => {
         ...over,
     });
 
-    it('shows which fight it is, and that nothing heals between them', () => {
+    it('shows which fight it is, and the 30% repair between them (ticket 173)', () => {
         const markup = render(inGauntlet());
 
         expect(markup).toContain('fight 1 of 3');
-        expect(markup).toContain('No healing between these three fights');
+        expect(markup).not.toContain('No healing between these three fights');
+        expect(markup).toContain('repairs 30% of');
         expect(markup).toContain('Begin fight 1 of 3');
     });
 
@@ -235,6 +236,15 @@ describe('RunScreen — the gauntlet takes the screen', () => {
 
         expect(markup).toContain('HP carries between fights');
         expect(markup).toContain('12/');
+    });
+
+    it('shows what the repair gave each member, and nothing for a downed one (ticket 173)', () => {
+        // Henry, 2026-09-30: no hidden math. The pit stop says how much came back, not only the total.
+        const markup = render(inGauntlet({}, { fightIndex: 1, persistedHp: { mm1: 40 }, healedHp: { mm1: 25 } }));
+        expect(markup).toContain('+25 repaired');
+
+        const down = render(inGauntlet({}, { fightIndex: 1, persistedHp: { mm1: 0 }, downedMemberIds: ['mm1'] }));
+        expect(down).not.toContain('repaired');
     });
 
     it('calls a downed member out as revivable rather than hiding them', () => {
