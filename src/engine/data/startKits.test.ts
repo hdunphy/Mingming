@@ -311,3 +311,14 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
         expect((MingmingRegistry.jormungandr.startKits?.[DECK_TOO_THIN] ?? []).filter(isPayoff).length).toBe(2);
     });
 });
+
+describe('171e — kraken_v2 opens on its engine, not on four Tackles', () => {
+    it('the kit swaps its Tackle for a second Capacitor (a 2e card from its own deck)', () => {
+        // Henry, 2026-09-29: "I'm just getting tackles and capacitor in the same hand. I think I
+        // start with 4 tackles??" He did: the kit's Tackle plus the three generic hits.
+        const kit = MingmingRegistry.kraken.startKits!.kraken_v2;
+        expect(kit).not.toContain(GENERIC_HIT);
+        expect(kit.filter((id) => id === 'capacitor')).toHaveLength(2);
+        expect(GetProgramData('capacitor').baseCost).toBeGreaterThanOrEqual(2);
+    });
+});

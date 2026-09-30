@@ -127,8 +127,14 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         startKits: {
             // v1: the draw payoff over the cards that fill the pile it counts.
             "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "pressure_point"],
-            // v2: the 3e payoff, the ramp that reaches it, the mitigation that survives to cash it.
-            "kraken_v2": ["capacitor", "tide_pool", "boiling_surge", "scald", "tackle"]
+            // v2: the 2e payoff (boiling_surge), the ramp that reaches it, and scald to load it.
+            // TICKET 171e (Henry, 2026-09-30: "Swap it with another card from its deck, preferably a
+            // 2e or 3e card"): the kit's `tackle` became a second `capacitor`. With the three generic
+            // hits the first member brings, the old kit opened on four Tackles in eight cards.
+            // `capacitor` is the deck's only 2e/3e card the standing kit rules allow: `hydro_blast`
+            // is tagged a consume (161 §2 keeps consumes out of the opening five) and a second
+            // `boiling_surge` would be a second payoff (157-r1: exactly one).
+            "kraken_v2": ["capacitor", "capacitor", "tide_pool", "boiling_surge", "scald"]
         },
         moves: [
             {
