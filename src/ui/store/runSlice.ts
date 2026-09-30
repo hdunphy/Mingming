@@ -82,6 +82,8 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
+import { snapshotMarketParty } from '../../engine/run/marketParty';
+import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
@@ -824,10 +826,13 @@ const runSlice = createSlice({
                 },
             };
         },
-        rerollMarketStock: (state, action: PayloadAction<{ nodeId: string; price: number }>): RunSliceState => {
+        rerollMarketStock: (
+            state,
+            action: PayloadAction<{ nodeId: string; price: number; party?: ReadonlyArray<IRewardPartyMember> }>,
+        ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
-            const { nodeId, price } = action.payload;
+            const { nodeId, price, party } = action.payload;
             if (!Number.isInteger(price) || price < 0) return { run };
             if (run.scrap < price) return { run };
 
@@ -844,7 +849,42 @@ const runSlice = createSlice({
              */
             const refreshes = { ...(run.marketRefreshes ?? {}) };
             refreshes[target.id] = (refreshes[target.id] ?? 0) + 1;
-            return { run: { ...run, scrap: run.scrap - price, marketRefreshes: refreshes } };
+            // TICKET 171b: a refresh is a new shelf, so it is rolled for the team you have NOW and
+            // frozen again at that team. Without a `party` (older callers) the old snapshot stands.
+            const marketParties = party
+                ? { ...(run.marketParties ?? {}), [target.id]: snapshotMarketParty(party) }
+                : run.marketParties;
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    marketRefreshes: refreshes,
+                    ...(marketParties ? { marketParties } : {}),
+                },
+            };
+        },
+
+        /**
+         * TICKET 171b — **freeze a shop's shelf at the first visit.** Records the team this market
+         * was first seen with; `marketPartyFor` rolls the stock for it from then on. A no-op for a
+         * shop that is already frozen, and for a node that is not a market.
+         */
+        freezeMarketParty: (
+            state,
+            action: PayloadAction<{ nodeId: string; party: ReadonlyArray<IRewardPartyMember> }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { nodeId, party } = action.payload;
+            const target = run.nodes.find((node) => node.id === nodeId);
+            if (!target || !isMarketNode(target.kind)) return { run };
+            if (run.marketParties?.[nodeId] !== undefined) return { run };
+            return {
+                run: {
+                    ...run,
+                    marketParties: { ...(run.marketParties ?? {}), [nodeId]: snapshotMarketParty(party) },
+                },
+            };
         },
 
         // --- The workshop's run half (ticket 14) ---
@@ -1590,6 +1630,7 @@ export const {
     benchPartyMember,
     buyMarketBlueprint,
     rerollMarketStock,
+    freezeMarketParty,
     recruitIntoParty,
     recruitToBench,
     reflashEngine,

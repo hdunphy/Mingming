@@ -48,7 +48,7 @@
  * inherits screens that already work without a mouse rather than screens that need retrofitting.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 
@@ -75,7 +75,8 @@ import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { playSfx } from '../audio/AudioEngine';
-import { buyMacro, buyMarketBlueprint, buyMarketCard, removeJunkCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { buyMacro, buyMarketBlueprint, buyMarketCard, freezeMarketParty, removeJunkCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { frozenMarketParty, marketPartyFor } from '../../engine/run/marketParty';
 import { junkNote, readDeckFloor } from './deckFloor';
 import { addBlueprint } from '../store/gameSlice';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
@@ -141,10 +142,19 @@ export default function MarketplaceNode({
     // Rolled from (run seed, node id, REFRESH count) — never held in component state, so a remount,
     // an app close or a resume shows the same stock. Ticket 142 §7 took the visit count out of that
     // key: walking back in no longer changes anything, and a paid refresh is the only thing that does.
-    const stock = useMemo(() => rollMarketStock({ run, node, party }), [run, node, party]);
+    //
+    // TICKET 171b: and rolled for the team this shop was FIRST visited with, not the live one, so a
+    // recruit or a bench (even from the loadout editor opened here) cannot restock it. The first
+    // visit writes the snapshot; until that lands, the live team IS the snapshot.
+    const hasSnapshot = frozenMarketParty(run, node.id) !== undefined;
+    useEffect(() => {
+        if (!hasSnapshot) dispatch(freezeMarketParty({ nodeId: node.id, party }));
+    }, [dispatch, hasSnapshot, node.id, party]);
+    const shelfParty = useMemo(() => marketPartyFor(run, node.id, party), [run, node.id, party]);
+    const stock = useMemo(() => rollMarketStock({ run, node, party: shelfParty }), [run, node, shelfParty]);
     // Its own fork of the same seed (`market-macros`), so the macro shelf holds and refreshes with
     // the card shelf and neither can shift the other.
-    const macroStock = useMemo(() => rollMacroStock({ run, node, party }), [run, node, party]);
+    const macroStock = useMemo(() => rollMacroStock({ run, node, party: shelfParty }), [run, node, shelfParty]);
     // Ticket 142 §7: one blueprint, from the species this ROUTE can recruit. Same seed, so it holds
     // and refreshes with the rest of the stall.
     const blueprintOffer = useMemo(() => rollBlueprintOffer(run, node), [run, node]);
@@ -228,7 +238,7 @@ export default function MarketplaceNode({
     const refreshPrice = shopPrice(run, MARKET_REFRESH_PRICE);
 
     const reroll = (): void => {
-        dispatch(rerollMarketStock({ nodeId: node.id, price: refreshPrice }));
+        dispatch(rerollMarketStock({ nodeId: node.id, price: refreshPrice, party }));
         playSfx('uiClick');
     };
 

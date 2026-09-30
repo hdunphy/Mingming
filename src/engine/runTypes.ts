@@ -234,6 +234,12 @@ export interface IGauntletProgress {
 export type RunPhase = 'map' | 'encounter' | 'gauntlet' | 'ended';
 export type RunOutcome = 'victory' | 'defeat' | 'abandoned';
 
+/** TICKET 171b — one team member as a shop remembers them: the two fields its pool reads. */
+export interface IMarketPartyEntry {
+    readonly definitionId: string;
+    readonly activeOS?: string;
+}
+
 export interface IRunState {
     /**
      * The run's root seed. Everything procedural in the run derives from it through `SeedStream`,
@@ -371,6 +377,17 @@ export interface IRunState {
      * run that has refreshed nothing, which is what the default says.
      */
     readonly marketRefreshes?: Readonly<Record<string, number>>;
+
+    /**
+     * TICKET 171b — the team each shop was first visited with, by node id. The shelf's card and
+     * macro stock are rolled for THIS team rather than the live one, so recruiting or benching
+     * cannot change a shop you have already seen. Henry: *"It should be frozen with your first
+     * visit."* A paid refresh replaces the entry. See `engine/run/marketParty.ts`.
+     *
+     * Optional: a run saved before this field has frozen nothing, and its next visit to each shop
+     * freezes it then.
+     */
+    readonly marketParties?: Readonly<Record<string, ReadonlyArray<IMarketPartyEntry>>>;
 
     /**
      * Which marketplace blueprint slots have been bought, as `nodeId:refreshCount` keys.
@@ -674,6 +691,12 @@ export const RunStateSchema = z.object({
     blueprintDryFights: z.number().int().min(0).default(0),
     // Ticket 142 §7, add-only like the field above it.
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
+    // Ticket 171b, add-only. `.optional()` rather than `.default({})` so a save without it reads
+    // back byte for byte.
+    marketParties: z.record(z.string(), z.array(z.object({
+        definitionId: z.string(),
+        activeOS: z.string().optional(),
+    }))).optional(),
     upgradesTaken: z.array(z.string()).default([]),
     patchBenchesUsed: z.array(z.string()).default([]),
     tempDrivers: z.array(z.object({
