@@ -552,6 +552,33 @@ export function setupFor(
 }
 
 /**
+ * TICKET 173b — THE GAUNTLET CARRIES HP IN THE WALKER TOO.
+ *
+ * Until 173 the walker printed the carried HP in its log and never handed it to the fight, so every
+ * gauntlet fight it played started from full: ticket 172f found the balance reports had been
+ * measuring a full heal between gauntlet fights, not the game. This puts each member's carried HP on
+ * its setup row; a member carried at 0 starts the fight down, the way `buildBattleSetup`'s
+ * `persistedHp` does it. A member with no carried number, and any fight with no map, is untouched.
+ */
+export function withCarriedHp(
+    setup: ComposedSetup,
+    party: ReadonlyArray<IMingmingState>,
+    carriedHp: Readonly<Record<string, number>> | undefined,
+): ComposedSetup {
+    if (!carriedHp) return setup;
+    return {
+        ...setup,
+        player: {
+            ...setup.player,
+            party: setup.player.party.map((unit, i) => {
+                const hp = carriedHp[party[i]?.id ?? ''];
+                return hp === undefined ? unit : { ...unit, currentHp: hp };
+            }),
+        },
+    };
+}
+
+/**
  * TICKET 169j — which of the offered cards the walker takes at one Draft Start pick.
  *
  * The first offered card that is in the member's start kit and not yet used up (a kit that holds two
@@ -816,11 +843,12 @@ export function walkRun(input: WalkInput): WalkResult {
     /** Play one rolled encounter and fold the result into the log. Returns whether it was won. */
     const fight = (node: IRegionNode, encounter: ReturnType<typeof rollEncounter>, carriedHp?: Readonly<Record<string, number>>): RunResult => {
         const members = partyMembers();
-        const setup = setupFor(
+        const built = setupFor(
             encounter.seed, members, deckIds(), encounter.enemyParty, encounter.enemyDeckIds,
             encounter.enemyDrivers ?? [], runNow().drivers ?? [],
             runNow().patches,
         );
+        const setup = withCarriedHp(built, members, carriedHp);
         record({
             kind: 'FIGHT_DECK',
             deck: [...deckIds()].sort(),
@@ -1038,7 +1066,7 @@ export function walkRun(input: WalkInput): WalkResult {
              * THE GYM GATE, which is the one venue that is free (163 §3: *"the gym gate offers a
              * choice of two; the shop stocks Amplifier"*, and the upgrade there is free, once). It
              * runs BEFORE `beginGauntlet` because that is where the screen puts it — the gauntlet is
-             * three fights with no healing and no shopping between them.
+             * three fights with no shopping between them (and, since 173, only a 30% repair).
              */
             upgradeBench(node, true);
             for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'gate').slice(0, 1)) {
@@ -1055,9 +1083,12 @@ export function walkRun(input: WalkInput): WalkResult {
                 const result = fight(node, encounter, persisted);
                 if (result.winner !== 'PLAYER') { cleared = false; break; }
                 const members = partyMembers();
-                const carried = result.playerEnd.map((e, i) => ({ memberId: members[i]?.id ?? e.id, hp: e.hp }));
-                for (const row of carried) persisted[row.memberId] = row.hp;
+                // 173b: `maxHp` turns on the game's own 30% repair (173a), and the next fight is built
+                // from what the reducer wrote rather than from a second copy of the rule here.
+                const carried = result.playerEnd.map((e, i) => ({ memberId: members[i]?.id ?? e.id, hp: e.hp, maxHp: e.maxHp }));
                 store.dispatch(advanceGauntlet(carried));
+                const written = runNow().gauntlet?.persistedHp ?? {};
+                for (const row of carried) persisted[row.memberId] = written[row.memberId] ?? row.hp;
             }
             if (cleared) { store.dispatch(finishGauntlet()); outcome = 'victory'; }
             break;

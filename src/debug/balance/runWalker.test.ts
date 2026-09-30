@@ -21,8 +21,9 @@ import { describe, expect, it } from 'vitest';
 import {
     scoreOf, deckPower, chooseStep, choosePick, chooseRecruit, chooseUpgrade, choosePatches,
     walkRun, walkStarter, eaStarters, NO_FIRMWARE_OS, summariseFightOne,
-    memberFor, draftKitFor, chooseDraftPick,
+    memberFor, draftKitFor, chooseDraftPick, withCarriedHp,
 } from './runWalker';
+import type { ComposedSetup } from '../scenarios/scenarioSchema';
 import { DRAFT_PICKS, draftOffer, draftPool } from '../../engine/run/modifiers/draftStart';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { upgradePrice } from '../../engine/run/marketplace';
@@ -648,5 +649,27 @@ describe('169j — the walker pays Tight Budget\'s prices for what it prices its
         expect(bought?.price).toBe(plain!.price + 10);
         // A free bench stays free whatever the rule.
         expect(chooseUpgrade(deck, 0, true, raised)?.price).toBe(0);
+    });
+});
+
+describe('173b — the gauntlet carries HP in the walker', () => {
+    const party = [
+        { id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v2', blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10 },
+        { id: 'mm2', definitionId: 'skoll', activeOS: 'skoll_v2', blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10 },
+        { id: 'mm3', definitionId: 'jormungandr', activeOS: 'jormungandr_v2', blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10 },
+    ];
+    const setup = {
+        seed: 's',
+        player: { party: party.map((m) => ({ definitionId: m.definitionId })), deck: [] },
+        enemies: [],
+    } as unknown as ComposedSetup;
+
+    it('puts the carried HP of each member on its row, 0 included', () => {
+        const carried = withCarriedHp(setup, party, { mm1: 400, mm2: 0 });
+        expect(carried.player.party.map((u) => u.currentHp)).toEqual([400, 0, undefined]);
+    });
+
+    it('leaves a fight with no carried map exactly as built', () => {
+        expect(withCarriedHp(setup, party, undefined)).toBe(setup);
     });
 });

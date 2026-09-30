@@ -33,4 +33,13 @@ One commit per row, test first, authored by Henry, no push.
 
 `runWalker.ts` printed the carried HP in its log and never gave it to the fight, so every gauntlet fight it played started at full HP. That is 172f's "100%" row, not the game. `withCarriedHp` now puts each member's carried HP on the fight's setup, and the gym loop passes `maxHp` to `advanceGauntlet`, so the walker uses the game's own repair rather than a copy of it.
 
-This moves the walker's gauntlet numbers once, on purpose. Nothing before the gym changes. Before and after on the same seeds are in the outcome note.
+This moves the walker's gauntlet numbers once, on purpose. Nothing before the gym changes, and gauntlet fight 1 is unchanged (it starts from full either way).
+
+**Before and after, same seeds** (20 walks per starter, all twelve EA starters, 240 walks). 20 walks reached the gym; 9 of those won gauntlet fight 1.
+
+| | Won gauntlet fight 2 | Cleared the gauntlet (run victories) |
+|---|---|---|
+| Before 173 (every gauntlet fight from full) | 8 | 5 |
+| After 173 (HP carries, 30% repair) | 5 | 0 |
+
+The five clears were fenrir_v2 (2), kraken_v1 (2) and kraken_v2 (1). With the game's real rules the walker clears none of them. The sample is small: 9 parties reached fight 2.
