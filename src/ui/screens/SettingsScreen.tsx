@@ -27,6 +27,7 @@ import {
 import { FIGHT_LOG_CAP } from '../../engine/run/fightLog';
 import { playSfx } from '../audio/AudioEngine';
 import { useFullscreen } from '../hooks/useFullscreen';
+import { BUILD_INFO, buildText } from '../buildInfo';
 import './SettingsScreen.css';
 
 /**
@@ -501,6 +502,10 @@ export default function SettingsScreen(): ReactNode {
                                scrap went.`
                             : `A JSON transcript of your last ${RUN_LOG_RUNS} runs. It stays on this
                                machine until you send it somewhere.`}
+                    </p>
+                    {/* TICKET 181a: the build a bug report should quote, next to the log that names it too. */}
+                    <p className="settings-note" data-testid="settings-build">
+                        Build: {buildText(BUILD_INFO)}
                     </p>
                 </section>
 

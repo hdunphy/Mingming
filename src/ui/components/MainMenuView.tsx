@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { addBlueprint } from '../store/gameSlice';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { BUILD_INFO, buildText } from '../buildInfo';
 
 /**
  * TICKET 172 — the starter card says what the assembly bay will ask you, not what the alpha did.
@@ -170,7 +171,8 @@ const MainMenuView: React.FC = () => {
             </motion.div>
 
             <div style={{ position: 'fixed', bottom: '10px', color: '#333', fontSize: '0.8rem' }}>
-                ALPHA v0.3.5 | ROGUELIKE LOOP SYSTEM
+                {/* TICKET 181a: the build, so a bug report can name it. Was a hard-coded `ALPHA v0.3.5`. */}
+                {buildText(BUILD_INFO)}
             </div>
         </div>
     );

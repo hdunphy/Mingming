@@ -454,6 +454,18 @@ export function fightLogIdsIn(logs: ReadonlyArray<IRunLog>): string[] {
 }
 
 /**
+ * TICKET 181a: which build wrote an export — the label and short commit the UI was built with.
+ *
+ * Injected by the caller (`ui/settings/exportRunLog.ts`) rather than read here: the engine has no
+ * build step of its own, and a parameter keeps this module pure. Written at the top level of the
+ * envelope as `build: { label, commit }`, so a tester's file names the build it came from.
+ */
+export interface IRunLogBuild {
+    readonly label: string;
+    readonly commit: string;
+}
+
+/**
  * The export payload — every stored transcript, pretty-printed. `exportedAt` is injected.
  *
  * SPLIT IN STORAGE, WHOLE ON THE WAY OUT. 156 §3 says *"the export stays a single JSON"*, and
@@ -462,11 +474,12 @@ export function fightLogIdsIn(logs: ReadonlyArray<IRunLog>): string[] {
  * keyed by the same `logId` the rows carry. A transcript that has gone missing is simply absent
  * from the map, which a reader can see, rather than a null it has to special-case.
  */
-export function serializeRunLogs(exportedAt: number): string {
+export function serializeRunLogs(exportedAt: number, build?: IRunLogBuild): string {
     const logs = readRunLogs();
     return JSON.stringify({
         version: RUN_LOG_VERSION,
         exportedAt,
+        ...(build ? { build } : {}),
         logs,
         fightLogs: collectFightLogs(fightLogIdsIn(logs)),
     }, null, 2);
@@ -484,10 +497,11 @@ export function findRunLog(runKey: string): IRunLog | null {
  * these does not need two parsers, and a pile of per-run files concatenates into a bulk export
  * without translation.
  */
-export function serializeOneRunLog(log: IRunLog, exportedAt: number): string {
+export function serializeOneRunLog(log: IRunLog, exportedAt: number, build?: IRunLogBuild): string {
     return JSON.stringify({
         version: RUN_LOG_VERSION,
         exportedAt,
+        ...(build ? { build } : {}),
         logs: [log],
         fightLogs: collectFightLogs(fightLogIdsIn([log])),
     }, null, 2);
