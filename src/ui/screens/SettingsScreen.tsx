@@ -643,7 +643,7 @@ export default function SettingsScreen(): ReactNode {
                 <section className="settings-group">
                     <h3>Credits</h3>
                     <p className="settings-note">
-                        Mingming — built by Henry Dunphy. Runs on React, Redux Toolkit, Framer Motion, Zod
+                        Mingming: Midgard Circuit — built by Henry Dunphy. Runs on React, Redux Toolkit, Framer Motion, Zod
                         and Vite; every sound is synthesized in the browser with the Web Audio API, so
                         there are no sampled assets to credit. Full third-party licence text ships with the
                         release build.

@@ -1,4 +1,4 @@
-// Mingming — Terminal Gauntlet. Steam Input keyboard/mouse template (ticket 37).
+// Mingming: Midgard Circuit. Steam Input keyboard/mouse template (ticket 37).
 //
 // Every key this file sends is one `src/ui/keybinds.ts` already listens for; see README.md in this
 // folder for the mapping table, the measurement behind choosing a KB/M template over native gamepad
@@ -9,7 +9,7 @@
 {
 	"version"		"3"
 	"revision"		"1"
-	"title"			"Mingming — Terminal Gauntlet (keyboard & mouse)"
+	"title"			"Mingming: Midgard Circuit (keyboard & mouse)"
 	"description"	"Cursor on the right stick, the game's own hotkeys on the buttons. The cursor is the primary path; the hotkeys are accelerators."
 	"creator"		"Henry Dunphy"
 	"controller_type"	"controller_steamcontroller_gordon"
