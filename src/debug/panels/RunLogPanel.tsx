@@ -25,6 +25,8 @@ import {
     type IRunEvent,
     type IRunLog,
 } from '../../engine/run/runLog';
+import { scrapCurve } from '../../engine/run/scrapCurve';
+import { formatScrapCurve } from '../balance/scrapCurveTable';
 
 const RAW_ROW_LIMIT = 60;
 
@@ -123,6 +125,7 @@ export default function RunLogPanel() {
     const curves = runCurves(log);
     const sinks = scrapByReason(log);
     const flow = cardFlow(log);
+    const biomeScrap = scrapCurve(log);
     const ended = log.events.find((event) => event.kind === 'RUN_ENDED');
     const rows = log.events.slice(-RAW_ROW_LIMIT);
 
@@ -184,6 +187,16 @@ export default function RunLogPanel() {
                         </span>
                     </div>
                 ))}
+            </div>
+
+            <div style={boxStyle}>
+                {/* Ticket 174a: the same table `npm run balance:scrap-curve` prints, so a playtest is
+                    readable the moment the run ends. Low point and scrap at end are the two numbers
+                    174 was opened for: the early squeeze and the late surplus. */}
+                <div style={labelStyle}>Scrap by biome</div>
+                {biomeScrap.length === 0 ? <div style={{ opacity: 0.6 }}>no fights yet</div> : (
+                    <pre style={{ ...monoStyle, margin: 0, whiteSpace: 'pre-wrap' }}>{formatScrapCurve(biomeScrap)}</pre>
+                )}
             </div>
 
             <div style={boxStyle}>
