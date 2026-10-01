@@ -55,9 +55,10 @@ import runReducer, {
     recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
 } from '../../ui/store/runSlice';
 import { junkToRemove } from './junkPolicy';
+import type { GymSnapshot } from './gymSnapshot';
 import { START_KIT_SIZE, createRun, recruitDeckFor, startKitIdsFor } from '../../engine/run/createRun';
 import { DRAFT_PICKS, draftOffer, draftPool, takePick } from '../../engine/run/modifiers/draftStart';
-import { activeModifiers } from '../../engine/run/modifiers/modifierRegistry';
+import { activeModifiers, modifierEntry } from '../../engine/run/modifiers/modifierRegistry';
 import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompElementPlan, type IGym } from '../../engine/run/gyms';
@@ -461,6 +462,25 @@ export interface WalkInput {
     readonly tier?: number;
     /** TICKET 169j: run modifiers to play, by id. Left out, none. */
     readonly modifiers?: ReadonlyArray<string>;
+    /**
+     * TICKET 170a: **the ghost rule.** A fight lost BEFORE the gym is carried on as if the party had
+     * won it: the party is whole, the rewards are rolled with every enemy down, and the walk goes
+     * on. The fight record keeps `won: false` and gains `ghost: true`, and `ghostFights` counts
+     * them. Left out, a lost fight ends the walk as it always has. Used by `walkToGym` and nothing
+     * else; the death report (170c) deliberately walks WITHOUT it.
+     */
+    readonly ghost?: boolean;
+    /**
+     * TICKET 170a: stop at the gym gate, before the gate's free upgrade and patch, and hand back a
+     * `gymSnapshot`. The walk's `outcome` is meaningless when this is set.
+     */
+    readonly stopAtGym?: boolean;
+    /**
+     * TICKET 170a: start from a snapshot taken at the gate instead of from `createRun`. The tier
+     * and modifiers in this input replace the snapshot's. The gate's steps and the gauntlet then
+     * play as in any walk.
+     */
+    readonly resume?: GymSnapshot;
 }
 
 export interface FightRecord {
@@ -473,6 +493,8 @@ export interface FightRecord {
     readonly won: boolean;
     readonly turns: number;
     readonly truncated: boolean;
+    /** TICKET 170a: set only on a fight that was lost and carried on as a win by the ghost rule. */
+    readonly ghost?: true;
     /** Who was left standing, and on what fraction of their pool. */
     readonly survivors: ReadonlyArray<{ osId: string; hpFraction: number }>;
 }
@@ -500,6 +522,10 @@ export interface WalkResult {
     readonly scrapAtEnd: number;
     /** 156's rows, so `runRead` can read this run exactly as it reads a human one. */
     readonly log: IRunLog;
+    /** TICKET 170a: fights lost and carried on. Present only when `input.ghost` was set. */
+    readonly ghostFights?: number;
+    /** TICKET 170a: the party at the gym gate. Present only when `input.stopAtGym` was set and the gate was reached. */
+    readonly gymSnapshot?: GymSnapshot;
 }
 
 const asSetupMember = (member: IMingmingState, patches?: Readonly<Record<string, ReadonlyArray<string>>>) => {
@@ -797,8 +823,9 @@ export function walkRun(input: WalkInput): WalkResult {
     const offer = offers[input.gymIndex % offers.length];
     const gym = GYM_REGISTRY[offer.gym.id] ?? offer.gym;
 
-    const party: IMingmingState[] = [memberFor('mm1', starter)];
-    const roster: IMingmingState[] = [...party];
+    const resume = input.resume;
+    const party: IMingmingState[] = resume ? [...resume.roster] : [memberFor('mm1', starter)];
+    const roster: IMingmingState[] = resume ? [...resume.roster] : [...party];
     const store = configureStore({ reducer: { run: runReducer } });
     // TICKET 169j: the tier and modifiers, and — with Draft Start — the walker's own draft, since it
     // cannot click. Every one of these is absent by default, so a plain walk is the walk it always was.
@@ -806,16 +833,28 @@ export function walkRun(input: WalkInput): WalkResult {
     const startKitOverrides = modifiers.includes('draft_start')
         ? Object.fromEntries(party.map((member, index) => [member.id, draftKitFor(seed, member, index)]))
         : undefined;
-    store.dispatch(startRun(createRun({
-        seed, offer, party, startedAt: 1_700_000_000_000,
-        tier: input.tier, modifiers, startKitOverrides,
-    })));
+    /*
+     * TICKET 170a: a resumed walk starts from the snapshot's run state with only the tier and the
+     * modifiers swapped, so every tier plays from the same deck, party and purse. Everything a
+     * tier changes before the gym (extra elites, Draft Start's kit) was settled when the snapshot
+     * was taken and stays as it was; only what the gauntlet reads off the run is replaced.
+     */
+    store.dispatch(startRun(resume
+        ? {
+            ...resume.run,
+            tier: input.tier ?? resume.run.tier,
+            modifiers: modifiers.map(modifierEntry),
+        }
+        : createRun({
+            seed, offer, party, startedAt: 1_700_000_000_000,
+            tier: input.tier, modifiers, startKitOverrides,
+        })));
 
     const runNow = (): IRunState => store.getState().run.run!;
     const gymNodeId = runNow().nodes.find((node) => node.kind === 'gym')!.id;
 
-    let log = emptyRunLog(seed, 1_700_000_000_000);
-    let seq = 0;
+    let log = resume ? resume.log : emptyRunLog(seed, 1_700_000_000_000);
+    let seq = resume ? resume.seq : 0;
     const record = (input_: Parameters<typeof appendRunEvent>[1], fightIndex: number): void => {
         const run = runNow();
         log = appendRunEvent(log, input_, {
@@ -837,7 +876,10 @@ export function walkRun(input: WalkInput): WalkResult {
         if (spent > 0) record({ kind: 'SCRAP', delta: -spent, reason }, fights.length);
     };
 
-    const fights: FightRecord[] = [];
+    const fights: FightRecord[] = resume ? [...resume.fights] : [];
+    /** 170a: fights lost and carried on by the ghost rule. */
+    let ghostFights = resume ? resume.ghostFights : 0;
+    let gymSnapshot: GymSnapshot | undefined;
     const picks: PickDecision[] = [];
     const bought: Array<{ dataId: string; price: number }> = [];
     const recruits: RecruitChoice[] = [];
@@ -856,7 +898,7 @@ export function walkRun(input: WalkInput): WalkResult {
     const partyElements = (): Set<string> =>
         new Set(partyMembers().map((m) => GetMingmingData(m.definitionId).primaryElement));
 
-    record({ kind: 'RUN_STARTED', gymId: gym.id, tier: runNow().tier, party: party.map((m) => m.definitionId), modifiers: activeModifiers(runNow()) }, 0);
+    if (!resume) record({ kind: 'RUN_STARTED', gymId: gym.id, tier: runNow().tier, party: party.map((m) => m.definitionId), modifiers: activeModifiers(runNow()) }, 0);
 
     /** Play one rolled encounter and fold the result into the log. Returns whether it was won. */
     const fight = (node: IRegionNode, encounter: ReturnType<typeof rollEncounter>, carriedHp?: Readonly<Record<string, number>>): RunResult => {
@@ -935,6 +977,19 @@ export function walkRun(input: WalkInput): WalkResult {
             ...entity,
             currentHp: result.enemyEnd[index]?.hp ?? entity.currentHp,
         }));
+
+    /**
+     * TICKET 170a: THE GHOST RULE. A lost fight before the gym is carried on as a win: the record
+     * keeps `won: false` and gains `ghost: true`, and the rewards are rolled with every enemy down
+     * (`rollDropTable` pays only for bodies at 0 HP). Returns whether the walk goes on.
+     */
+    const carryLostFight = (encounter: ReturnType<typeof rollEncounter>): IBattleEntity[] | null => {
+        if (input.ghost !== true) return null;
+        ghostFights += 1;
+        const last = fights[fights.length - 1];
+        fights[fights.length - 1] = { ...last, ghost: true };
+        return encounter.enemyParty.map((entity) => ({ ...entity, currentHp: 0 }));
+    };
 
     /** §3's reward row, then §3's shop row, then the recruit. */
     const takeRewards = (node: IRegionNode, defeated: ReadonlyArray<IBattleEntity>, scrapMultiplier = 1): void => {
@@ -1110,6 +1165,21 @@ export function walkRun(input: WalkInput): WalkResult {
              * runs BEFORE `beginGauntlet` because that is where the screen puts it — the gauntlet is
              * three fights with no shopping between them (and, since 173, only a 30% repair).
              */
+            if (input.stopAtGym === true) {
+                // 170a: the party at the gate, before the gate's free upgrade and patch. Everything a
+                // later gauntlet reads is copied here, so the snapshot is not a view into this walk.
+                gymSnapshot = structuredClone({
+                    input: {
+                        seed, starter, gymIndex: input.gymIndex,
+                        ...(input.upgrades !== undefined ? { upgrades: input.upgrades } : {}),
+                        ...(input.patchPrice !== undefined ? { patchPrice: input.patchPrice } : {}),
+                    },
+                    run: runNow(), roster, fights, ghostFights,
+                    realFightsWon: fights.filter((f) => f.won).length,
+                    log, seq,
+                });
+                break;
+            }
             upgradeBench(node, true);
             for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'gate').slice(0, 1)) {
                 store.dispatch(fitPatch({ memberId: fit.memberId, patchId: fit.patchId }));
@@ -1140,8 +1210,12 @@ export function walkRun(input: WalkInput): WalkResult {
             const encounter = rollEncounter({ run, node, party: partyMembers() });
             const result = fight(node, encounter, undefined);
             store.dispatch(resolveEncounter());
-            if (result.winner !== 'PLAYER') break;
-            takeRewards(node, corpses(encounter, result));
+            if (result.winner === 'PLAYER') takeRewards(node, corpses(encounter, result));
+            else {
+                const ghostCorpses = carryLostFight(encounter);
+                if (!ghostCorpses) break;
+                takeRewards(node, ghostCorpses);
+            }
             // 157-r1's truncation. After the rewards, so a stop at N still measures the Nth fight
             // in full — the reward roll is part of what that fight WAS, and dropping it would make
             // the truncated walk disagree with the full one about the run it just played.
@@ -1173,8 +1247,12 @@ export function walkRun(input: WalkInput): WalkResult {
                 const encounter = rollEncounter({ run: state, node: wild, party: partyMembers() });
                 const result = fight(wild, encounter, undefined);
                 store.dispatch(resolveEncounter());
-                if (result.winner !== 'PLAYER') break;
-                takeRewards(wild, corpses(encounter, result), multiplier);
+                if (result.winner === 'PLAYER') takeRewards(wild, corpses(encounter, result), multiplier);
+                else {
+                    const ghostCorpses = carryLostFight(encounter);
+                    if (!ghostCorpses) break;
+                    takeRewards(wild, ghostCorpses, multiplier);
+                }
                 if (input.stopAfterFights !== undefined && fights.length >= input.stopAfterFights) break;
             }
         }
@@ -1196,6 +1274,8 @@ export function walkRun(input: WalkInput): WalkResult {
         fights, picks, bought, recruits, steps,
         upgraded, patches: patchesTaken, benchesMissed, patchShelvesSeen,
         finalDeck: deckIds(), scrapAtEnd: runNow().scrap, log,
+        ...(input.ghost === true ? { ghostFights } : {}),
+        ...(gymSnapshot ? { gymSnapshot } : {}),
     };
 }
 
