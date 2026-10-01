@@ -62,7 +62,7 @@ function toRunCards(chosen: ReadonlyArray<IOwnedProgram>): IRunCard[] {
 }
 
 describe('claiming a reward bundle (ticket 12, piece 5)', () => {
-    it('puts one picked card per defeated enemy into the shared run deck', () => {
+    it('puts the one picked card of a two-enemy fight into the shared run deck', () => {
         const store = makeStore();
         store.dispatch(startRun(makeRun()));
         const deckBefore = store.getState().run.run!.deck.length;
@@ -74,13 +74,15 @@ describe('claiming a reward bundle (ticket 12, piece 5)', () => {
             seed: 'claim-seed',
         });
 
-        // The player takes the first option of each pick — one card per defeated enemy.
+        // The player takes the first option of each pick. Ticket 179: a fight offers ONE pick however
+        // many enemies it fielded, so two defeated enemies still mean one card.
+        expect(bundle.cardChoices).toHaveLength(1);
         const chosen = bundle.cardChoices.map((choice) => choice.options[0]);
         store.dispatch(addRunCards(toRunCards(chosen)));
         store.dispatch(addRunScrap(bundle.scraps));
 
         const deck = store.getState().run.run!.deck;
-        expect(deck).toHaveLength(deckBefore + 2);
+        expect(deck).toHaveLength(deckBefore + 1);
         // The claim ADDS to what the run was already holding, and since 2026-08-24 a run is not
         // holding nothing: it opens on `STARTING_SCRAP`. Written as the sum rather than as the new
         // literal because the claim's job here is the addition, not either number.

@@ -1,7 +1,7 @@
 /**
  * POST-FIGHT REWARDS — ticket 12 (steam-release map), refitting Epic 3's drop table.
  *
- * What a won fight pays: **scrap**, **one pick-1-of-3 per defeated enemy**, and **possibly a
+ * What a won fight pays: **scrap**, **one pick-1-of-3 per fight** (ticket 179; it was per defeated enemy), and **possibly a
  * blueprint**. That is the whole list. Three things changed here and each one is a ruling rather
  * than a tidy-up:
  *
@@ -48,7 +48,13 @@ import type { IBattleEntity, Element, Rarity } from './types';
 
 // --- Rarity Distribution Constants ---
 
-/** Card-salvage options offered per defeated foe ("pick 1 of N"). */
+/**
+ * Card-salvage options offered per fight ("pick 1 of N").
+ *
+ * TICKET 179: this was "per defeated foe" until Henry's 2026-10-01 scrap-bloat ruling, so a 3v3 win
+ * handed out three picks. A fight now offers ONE. The constant keeps its name and its value; only
+ * the count of triples changed.
+ */
 export const SALVAGE_CHOICES_PER_FOE = 3;
 
 /** Bounded rerolls when hunting for distinct cards within one pick-1-of-3. */
@@ -867,6 +873,17 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
     const allCardChoices: ICardChoice[] = [];
     let currentSeed: string | number = seed;
 
+    /*
+     * TICKET 179 (Henry, 2026-10-01): *"we should always offer one set of card rewards per battle.
+     * Right now it is one set per Mingming."* Every fight offers exactly ONE pick of three, whatever
+     * its size.
+     *
+     * Every corpse is still rolled, and the later triples are thrown away on purpose: each
+     * `rollForEntity` consumes the numeric seed chain, so skipping the roll would shift every later
+     * corpse's blueprint roll and change drops for every existing seed. The instance-id stream is a
+     * separate thread, so the triple that is kept keeps the ids it always had.
+     */
+
     for (const entity of defeated) {
         // Only get rewards for fainted enemies
         if (entity.currentHp > 0) continue;
@@ -878,7 +895,7 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         if (result.blueprint) {
             allBlueprints.push(result.blueprint);
         }
-        allCardChoices.push(result.cardChoice);
+        if (allCardChoices.length === 0) allCardChoices.push(result.cardChoice);
         currentSeed = result.nextSeed.toString();
     }
 

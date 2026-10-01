@@ -16,7 +16,7 @@ import PatchHolders from './PatchHolders';
  * The post-fight reward screen — refitted by ticket 12.
  *
  * What it shows is now exactly what a fight pays: **scrap**, **any blueprint**, and **one
- * pick-1-of-3 per defeated enemy**. There is no XP panel (ticket 21 deleted levelling; ticket 12
+ * pick-1-of-3 per fight** (ticket 179; it was per defeated enemy). There is no XP panel (ticket 21 deleted levelling; ticket 12
  * removed the last field), and the gym-clear draft is parked for ticket 18 — see `draftRounds`
  * below.
  *

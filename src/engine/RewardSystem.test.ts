@@ -75,6 +75,21 @@ function deadParty(count: number, defId = 'fyrbot', element: Element = 'Fire'): 
     return Array.from({ length: count }, (_, i) => makeDeadEntity(`e${i}`, defId, `Foe ${i}`, element));
 }
 
+/**
+ * TICKET 179a — blueprint and scrap payouts recorded on the PARENT of 179 (the commit before one card
+ * pick per fight), for 50 fixed seeds (`bp179-0` .. `bp179-49`), 1-3 fyrbot bodies, a wild node,
+ * the fenrir_v1 party. Key is `<dryFights>/<bodies>`. They are pasted rather than recomputed so that
+ * the test cannot pass by changing both sides.
+ */
+const PARENT_PAYOUTS: Record<string, { blueprints: string[][]; scraps: number }> = {
+    '0/1': { scraps: 10, blueprints: [[],['fyrbot'],['fyrbot'],[],[],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],['fyrbot'],[],[],[],[],[],['fyrbot'],['fyrbot'],[],['fyrbot'],[],[],['fyrbot'],[],[],[],['fyrbot'],[],[],[],['fyrbot'],['fyrbot'],[],[],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],['fyrbot']] },
+    '0/2': { scraps: 15, blueprints: [[],['fyrbot'],[],['fyrbot'],[],[],['fyrbot'],[],['fyrbot'],[],[],[],[],['fyrbot'],[],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],[],['fyrbot'],['fyrbot'],[],['fyrbot'],['fyrbot'],[],['fyrbot'],[],[],[],['fyrbot','fyrbot'],[],[],[],[],['fyrbot'],[],[],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],[]] },
+    '0/3': { scraps: 20, blueprints: [['fyrbot'],['fyrbot'],[],['fyrbot','fyrbot'],[],[],['fyrbot','fyrbot'],[],['fyrbot'],[],[],['fyrbot'],[],['fyrbot'],[],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],[],['fyrbot','fyrbot'],['fyrbot'],[],['fyrbot'],['fyrbot'],[],['fyrbot'],[],[],[],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],['fyrbot']] },
+    '99/1': { scraps: 10, blueprints: [['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot']] },
+    '99/2': { scraps: 15, blueprints: [['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot']] },
+    '99/3': { scraps: 20, blueprints: [['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot','fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot']] },
+};
+
 describe('RewardSystem', () => {
     describe('the bundle has no XP (ticket 12, piece 1)', () => {
         it('does not carry a totalXP field at all', () => {
@@ -92,7 +107,7 @@ describe('RewardSystem', () => {
             expect(Object.keys(bundle).sort()).toEqual(['blueprints', 'cardChoices', 'cards', 'scraps']);
         });
 
-        it('pays scrap, one pick per defeated enemy, and possibly a blueprint — and nothing else', () => {
+        it('pays scrap, one card pick for the fight, and possibly a blueprint — and nothing else', () => {
             const bundle = rollDropTable({
                 defeated: deadParty(3),
                 nodeKind: 'wild',
@@ -101,7 +116,8 @@ describe('RewardSystem', () => {
             });
 
             expect(bundle.scraps).toBeGreaterThan(0);
-            expect(bundle.cardChoices).toHaveLength(3);
+            // TICKET 179: one pick per FIGHT. Three corpses used to mean three picks.
+            expect(bundle.cardChoices).toHaveLength(1);
             for (const choice of bundle.cardChoices) {
                 expect(choice.options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
             }
@@ -379,14 +395,14 @@ describe('RewardSystem', () => {
             expect(Math.abs(rateFor(7) - blueprintRateFor('wild', 1))).toBeLessThan(0.08);
         });
 
-        it('still offers a full pick-1-of-3 per enemy on a re-entered node', () => {
+        it('still offers a full pick-1-of-3 on a re-entered node', () => {
             const tenth = rollDropTable({
                 defeated: deadParty(3),
                 nodeKind: 'wild',
                 party: FENRIR_V1,
                 seed: seedForVisit('farm-picks', 10),
             });
-            expect(tenth.cardChoices).toHaveLength(3);
+            expect(tenth.cardChoices).toHaveLength(1);
             for (const choice of tenth.cardChoices) {
                 expect(choice.options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
             }
@@ -676,8 +692,9 @@ describe('RewardSystem', () => {
                 seed: 'unique-ids',
             });
             const ids = bundle.cardChoices.flatMap((c) => c.options.map((o) => o.instanceId));
-            expect(ids).toHaveLength(9);
-            expect(new Set(ids).size).toBe(9);
+            // One pick of 3 for the fight (ticket 179).
+            expect(ids).toHaveLength(3);
+            expect(new Set(ids).size).toBe(3);
         });
     });
 
@@ -951,5 +968,58 @@ describe('171g — Tackle is never offered', () => {
                 expect(choice.options.map((o) => o.dataId)).not.toContain(GENERIC_HIT);
             }
         }
+    });
+});
+
+describe('one card pick per fight (ticket 179a)', () => {
+    /** The shape every fight kind now pays: exactly one pick, of three distinct cards. */
+    function expectOnePick(bundle: ReturnType<typeof rollDropTable>): void {
+        expect(bundle.cardChoices).toHaveLength(1);
+        expect(bundle.cardChoices[0].options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
+        expect(new Set(bundle.cardChoices[0].options.map((o) => o.dataId)).size).toBe(SALVAGE_CHOICES_PER_FOE);
+    }
+
+    it.each([1, 2, 3])('a %i-body win returns exactly one card choice of 3 options', (bodies) => {
+        for (let i = 0; i < 10; i += 1) {
+            expectOnePick(rollDropTable({ defeated: deadParty(bodies), nodeKind: 'wild', party: FENRIR_V1, seed: `one-pick-${bodies}-${i}` }));
+        }
+    });
+
+    it.each(['elite', 'ambush', 'rival', 'alpha'] as const)('a %s fight returns one pick, however many bodies it fielded', (nodeKind) => {
+        for (const bodies of [1, 2, 3, 4]) {
+            expectOnePick(rollDropTable({ defeated: deadParty(bodies), nodeKind, party: FENRIR_V1, seed: `one-pick-${nodeKind}-${bodies}` }));
+        }
+    });
+
+    it('a gym fight still returns none (ticket 18a)', () => {
+        const bundle = rollDropTable({ defeated: deadParty(3), nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-none' });
+        expect(bundle.cardChoices).toEqual([]);
+    });
+
+    it('a fight with no corpses offers no pick at all', () => {
+        const bundle = rollDropTable({ defeated: [makeAliveEntity('e1', 'fyrbot', 'Alive')], nodeKind: 'wild', party: FENRIR_V1, seed: 'no-corpse' });
+        expect(bundle.cardChoices).toEqual([]);
+    });
+
+    it('the kept pick is the one the FIRST corpse used to offer, ids and all', () => {
+        // The first corpse's roll runs before any later corpse's, so its triple does not depend on
+        // how many bodies stood behind it. Same seed, one body vs three: the same pick comes out.
+        const one = rollDropTable({ defeated: deadParty(1), nodeKind: 'wild', party: FENRIR_V1, seed: 'first-corpse' });
+        const three = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: 'first-corpse' });
+        expect(three.cardChoices[0].options.map((o) => o.dataId)).toEqual(one.cardChoices[0].options.map((o) => o.dataId));
+        expect(three.cardChoices[0].options.map((o) => o.instanceId)).toEqual(one.cardChoices[0].options.map((o) => o.instanceId));
+    });
+
+    describe.each(Object.keys(PARENT_PAYOUTS))('blueprints and scrap are what the parent paid (dryFights/bodies %s)', (key) => {
+        const [dry, bodies] = key.split('/').map(Number);
+        it('is identical for 50 fixed seeds', () => {
+            const expected = PARENT_PAYOUTS[key];
+            expect(expected.blueprints).toHaveLength(50);
+            for (let s = 0; s < 50; s += 1) {
+                const bundle = rollDropTable({ defeated: deadParty(bodies), nodeKind: 'wild', party: FENRIR_V1, seed: `bp179-${s}`, dryFights: dry });
+                expect(bundle.blueprints, `seed bp179-${s}`).toEqual(expected.blueprints[s]);
+                expect(bundle.scraps, `seed bp179-${s}`).toBe(expected.scraps);
+            }
+        });
     });
 });

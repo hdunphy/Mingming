@@ -49,7 +49,11 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const owned = (dataId: string, n: number): IOwnedProgram =>
     ({ instanceId: `${dataId}_${n}`, dataId } as IOwnedProgram);
 
-/** Two picks, as a 2v2 win pays: one per defeated body. */
+/**
+ * Two picks. A real fight pays ONE since ticket 179 (see `BattleReport.onePick.test.tsx`), but the
+ * screen is generic over `cardChoices`, and a two-pick bundle is what exercises the per-pick state
+ * machine (a skip on one pick must not touch the other).
+ */
 const BUNDLE: IRewardBundle = {
     scraps: 15,
     blueprints: [],

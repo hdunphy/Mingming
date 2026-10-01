@@ -104,8 +104,11 @@ describe('draftKitFor with the best-card drafter', () => {
 describe('170e — the walker', () => {
     const hashOf = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 16);
     // Hashes of whole Draft Start walk results, taken on the parent of 170e (no draftPolicy option existed).
+    // TICKET 179 (one card pick per fight) moved the first hash once, on purpose: d1a64b1db0e0586a ->
+    // 942eb155ecef6c8e, because the walk now takes one card pick per fight instead of one per defeated
+    // body. The other draft walk and the 170a default walk below did not move.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, string]> = [
-        ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, 'd1a64b1db0e0586a'],
+        ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '942eb155ecef6c8e'],
         ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '4efe7ab1aadd2ec5'],
     ];
 

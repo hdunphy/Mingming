@@ -1021,9 +1021,10 @@ const BattleArena: React.FC = () => {
              * rewards this fight" are the same silence — and which of the two it was is exactly the
              * question the log exists to answer about how a deck grows.
              *
-             * Matched by instance id rather than by counting: `cardChoices` is one triple per
-             * defeated body, and a taken card belongs to the triple it came out of, so a skip is a
-             * triple with no taken card in it.
+             * Matched by instance id rather than by counting: a taken card belongs to the triple it
+             * came out of, so a skip is a triple with no taken card in it. Since ticket 179 a fight
+             * offers ONE triple, so this loop logs one row; it still iterates so it keeps working if
+             * that ever changes.
              */
             const taken = new Set(chosenCards.map(card => card.instanceId));
             for (const choice of rewardBundle.cardChoices) {
