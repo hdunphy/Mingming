@@ -1,16 +1,30 @@
-# Ticket 181: Friends and family playtest 1 — prep and release (SOP)
+# Ticket 181: Playtest round 2 (friends and family) — prep and release (SOP)
 
-**Type:** release procedure, plus two small build changes. **Status:** OPEN. **Owner:** Henry. The agent builds only the two code rows (181a, 181b), once Henry rules on the decisions below.
+**Type:** release procedure, plus three small build changes. **Status:** OPEN. **Owner:** Henry. The agent builds only the code rows (181a, 181b, 181c), once Henry rules on the decisions below.
+
+**Round 1** was Henry's brother. **Round 2** is this one.
 
 **Henry (2026-10-01):**
 
 > *"I'm going to give it to them via the GitHub pages so they can access it on their web browser and I would also like to add them all to my discord which I just started so they can give feedback. Not ready for public feedback yet."*
 
-**Goal:** 5–8 trusted people (family, cousins, friends) play the current build in a browser over about two weeks, and report bugs and impressions through a private Discord. Henry ends with:
+**Henry's brainstorm notes (2026-10-01, handwritten):**
+
+- *"Send individual message for better responses."* A personal message to each person, not one group message.
+- About **13 people**: friends and cousins (and Dad). Only **3–4 of the 13 play this genre**, so *"it's a favor to me to playtest"*, and *"I want the playtesting to be as frictionless as possible."*
+- *"The game currently looks like a generic Claude web app and is AI sloppy because of all the heavy text. I don't want a bad 1st impression."*
+- *"I'm going away from the futuristic robot theme and try to lean into the Pokémon nostalgic feeling w/o crossing the 'clone' line. I think I want it to be **Slay the Spire dressed as Pokémon**."*
+- On Discord: post a **vision**, **gameplay rules**, **how to get started**, a **roadmap**, maybe a **bestiary / Pokédex**, and a survey *"or make it part of the game"*.
+- *"See if I can go through the cut list of text before playtesting."*
+- A **video devlog** would excite people more, but *"I want the UI rework before video; don't want to be labeled AI slop."*
+
+**Goal:** about 13 people (friends, cousins, family) play the current build in a browser over about two weeks, and report bugs and impressions through a private Discord. Most of them are new to deckbuilders, so the round is built around **one easy run each**, with more welcome. Henry ends with:
 
 - a list of bugs
 - answers to a short survey
-- exported run logs that Claude can analyse like Henry's own playtests
+- exported run logs (optional for testers) that Claude can analyse like Henry's own playtests
+
+**This is the last browser-based round.** Later rounds move to a desktop build (Steam Playtest or similar). Henry's rule for this round: **the least friction for testers** (a link to play and Discord to talk), so every ask of testers is kept as small as possible.
 
 **This is not a public test.** Section 1, D1 covers what "not public" can and can't mean with GitHub Pages.
 
@@ -45,15 +59,18 @@ Each decision has a recommended default. Mark each one **yes** or write your cho
 | D1 | **Privacy of the game link.** Pages can't be password-protected. Options: (a) Pages, and simply don't post the link anywhere public ("unlisted", not private); (b) an itch.io page set to *restricted* with a password, which hosts browser games free and is private; (c) a private repo (needs a paid GitHub plan, and the Pages site is still public anyway). | **(a) Pages, unlisted**, as you asked, plus a "please don't share the link" line in the invite. Move to (b) if you ever need real privacy. | |
 | D2 | **What triggers a deploy.** Today every push to `main` redeploys. | **181b:** deploy only from a branch named `playtest`. `main` keeps running CI but no longer publishes, so testers only see a new build when you push to `playtest` on purpose. | |
 | D3 | **What's in the build.** | Today's `playtest-polish` (171–174 built) **plus ticket 179** (one card pick per fight). Not 175 (localization) or 176 (map and towns). | |
-| D4 | **First-run experience.** Ship as is, or do the Tier 0 cut list first (hide macros, firmware, patches etc. until first use; one sentence of copy per screen)? | **Ship as is.** What confuses new players *is* the test of the cut list. Ask about it directly in the survey (§4.4). | |
-| D5 | **Testers.** | **5–8 people.** Mix in some deckbuilder players (Slay the Spire), some Pokémon fans, and one or two who play neither. Include your brother and the two who haven't played yet. | |
-| D6 | **Test window.** | **2 weeks**, asking for **at least 2 full runs** each. | |
+| D4 | **First-run experience.** The Tier 0 cut list (the Claude project doc "Tier 0 cut list + UI direction") has three layers: (1) **cut the text**: one sentence of copy per screen, tips as short toasts instead of "Got it / Skip tips" panels; (2) **hide systems until first use** (macros, firmware, patches, tiers); (3) **the new visual style**. | **Do layer 1 before release (ticket 182, to be written from the cut list).** It's mostly copy, it's what makes the game read as "AI slop", and 9 of 13 testers are new to the genre. Layer 2 only if 182 comes in quick. **Layer 3 waits for the UI rework.** | |
+| D5 | **Testers.** | **Henry's list of about 13** (friends, cousins, Dad). A **personal message to each** (§4.1, two versions). **Keep the names out of this repo:** it's public, so the list lives in your own notes, and logs and reports use first initials. Expect about half to play; that's normal for a favour. | |
+| D6 | **Test window and the ask.** | **2 weeks.** The ask is **one run (about 30–45 minutes)**; a second is welcome. The 3–4 deckbuilder players are asked for **two or more**, because their balance feedback is the part the others can't give. | |
 | D7 | **Builds during the test.** | **At most one hotfix**, for blockers only (crashes, soft-locks, lost saves), and **no balance changes mid-test**, so everyone's feedback is about the same game. | |
-| D8 | **Where feedback goes.** | **Discord:** a forum channel for bugs and a channel for run logs. **One short Google Form** after each run, for answers you can tally. | |
-| D9 | **Run logs.** | Ask everyone to export the run log after **each** run and post it in `#run-logs`. | |
+| D8 | **Where feedback goes.** | **The form is part of the game (181c):** when a run ends, the run summary shows **"Tell Henry how it went"**, which opens the short Google Form with the build, starter and how far they got already filled in. Settings has the same button. **Discord** is for bugs, chat and anything longer. One form per run is fine now, because it's one click from the game, not something to remember. | |
+| D9 | **Run logs.** | **Optional.** "If you can, export the run log after a run and drop it in `#run-logs`; it helps a lot." Never required. | |
 | D10 | **Confidentiality.** | A plain request ("please don't share the link or post screenshots publicly yet"), not an NDA. | |
 | D11 | **Supported setup.** | Desktop or laptop browser (Chrome, Edge or Firefox), window at least 1280×800. **Phones and tablets not supported**; say so up front. | |
-| D12 | **Build label.** | **181a:** the main menu and Settings show `PLAYTEST 1 · <commit>` (the short git hash at build time), so every bug report names the build. | |
+| D12 | **Build label.** | **181a:** the main menu and Settings show `PLAYTEST 2 · <commit>` (the short git hash at build time), so every bug report names the build. | |
+| D13 | **What goes in the Discord.** | Keep it short, since most testers won't read much: **welcome + how to start** (§4.2), a **3-line vision** (§4.7), **gameplay basics** (§4.3), and a **5-line roadmap** without dates (§4.8). **Bestiary / Pokédex: not this round.** The art is placeholder and the theme is moving, so it would need rewriting; point to the in-game **Codex** instead. | |
+| D14 | **Video devlog.** | **Not part of this round.** As you said: after the UI rework, as the first piece of public marketing (Steam wishlists). Friends and family come in through your personal message, not a video. | |
+| D15 | **Theme words this round.** | The game still says firmware, OS and kernel. **Don't rename anything for this round.** But the vision post (§4.7) sells the new direction ("Slay the Spire dressed as Pokémon", Norse monsters) and not robots, so testers aren't told one thing now and another later. | |
 
 ---
 
@@ -65,13 +82,14 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
 |---|---|
 | 181a | A build label from the commit |
 | 181b | Publish to Pages only from the `playtest` branch |
+| 181c | "Tell Henry how it went": the feedback form, one click from the end of a run |
 
 ### 181a: A build label from the commit
 
 1. `vite.config.ts`: `define` two constants at build time:
    - `__BUILD_LABEL__`: from the env var `VITE_BUILD_LABEL`, defaulting to `dev`
    - `__BUILD_COMMIT__`: `git rev-parse --short HEAD`, or `unknown` if git isn't available
-2. Replace the hard-coded `ALPHA v0.3.5` in `MainMenuView.tsx` with `{label} · {commit}`, e.g. `PLAYTEST 1 · 5557bbb`. Keep the rest of the line's styling.
+2. Replace the hard-coded `ALPHA v0.3.5` in `MainMenuView.tsx` with `{label} · {commit}`, e.g. `PLAYTEST 2 · 5557bbb`. Keep the rest of the line's styling.
 3. Show the same text at the bottom of `SettingsScreen.tsx`, next to **Export run log**.
 4. **Write the label into exported run logs** as `build: { label, commit }`, so every log names its build.
 5. **Tests:**
@@ -86,6 +104,23 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
 3. Update the comments in both files to say why: *"Ticket 181: testers only get a new build when Henry pushes to `playtest` on purpose."*
 4. **No test is possible for workflow files.** Instead, the commit message lists the exact `on:` blocks before and after.
 
+### 181c: "Tell Henry how it went", one click from the end of a run
+
+1. **Henry makes the form first** (§4.4) and uses Google Forms' **Get pre-filled link** to find the field ids for: build, starter, how far, and run number.
+2. **`src/ui/feedback/feedbackLink.ts`** (new, small): `feedbackUrl(run | null): string | null` builds the form URL from `import.meta.env.VITE_FEEDBACK_FORM_URL`. The env var is a template with `{build}`, `{starter}`, `{reached}` and `{run}` placeholders. Each value is URL-encoded:
+   - `{build}`: 181a's label and commit
+   - `{starter}`: the starter's species name
+   - `{reached}`: "area 1 / 2 / 3 / gym / beat the gym", from the ended run
+   - `{run}`: the ranch's completed-run count
+   It returns `null` when the env var isn't set, and **the buttons then don't render** (local and dev builds show nothing).
+3. **Run summary** (`RunSummary.tsx`): a button **"Tell Henry how it went"** next to the existing leave button. It opens the URL in a new tab (`window.open(url, '_blank', 'noopener')`). It's the most prominent thing after the result, but it never blocks leaving.
+4. **Settings** (`SettingsScreen.tsx`): the same button, without run details (build only), beside **Export run log**.
+5. **Deploy** (181b's workflow): pass `VITE_FEEDBACK_FORM_URL` from a repository variable `vars.FEEDBACK_FORM_URL`, so the form link isn't written into the repo.
+6. **Tests:**
+   - the URL fills each placeholder, encoded
+   - no env var: no button on either screen
+   - the run summary shows the button for both a win and a loss
+
 ---
 
 ## 3. Release procedure (Henry)
@@ -94,24 +129,27 @@ Do these in order and tick them off. Rough times are in brackets.
 
 ### Phase 1: Freeze the build (about 1–2 hours, mostly your own run)
 
-- [ ] **1.1** Rule on D1–D12 above.
-- [ ] **1.2** The agent builds **179**, **181a** and **181b**. Check the reports.
-- [ ] **1.3** Play **one full run yourself** on the build (the 174 check from `playtest-results/2026-10-01/playtest-strategy.md`). Anything that blocks a run gets fixed before you continue.
+- [ ] **1.1** Rule on D1–D15 above.
+- [ ] **1.2** If D4 is yes: Claude writes **ticket 182** (the text cut) from the cut list, and you rule on it.
+- [ ] **1.3a** Make the **Google Form** (§4.4) and its pre-filled link. Set the repository variables `FEEDBACK_FORM_URL` (the template from 181c) and `PLAYTEST_LABEL` (`PLAYTEST 2`).
+- [ ] **1.3b** The agent builds **179**, **181a**, **181b**, **181c** and, if ruled, **182**. Check the reports.
+- [ ] **1.3c** Play **one full run yourself** on the build (the 174 check from `playtest-results/2026-10-01/playtest-strategy.md`). Anything that blocks a run gets fixed before you continue.
 - [ ] **1.4** Run `npm run release-check`. It must be green: all gates, no debug toolkit in the build, plus the asset weight.
 - [ ] **1.5** Check that no AI-generated image ships. Search the built `dist/` for the species art files and confirm none are referenced. Monster art is switched off, but files can still be bundled.
 - [ ] **1.6** Push the work branch: `git push origin playtest-polish`.
 - [ ] **1.7** Merge `playtest-polish` into `main` through a pull request (CI runs on it).
-- [ ] **1.8** Tag the release commit: `git tag playtest-1 && git push origin playtest-1`.
-- [ ] **1.9** In GitHub → Settings → Secrets and variables → Actions → Variables, set `PLAYTEST_LABEL` to `PLAYTEST 1`, so the first deploy carries the label.
-- [ ] **1.10** Create the release branch from the tag and push it. **This publishes the build:** `git branch playtest playtest-1 && git push origin playtest`.
+- [ ] **1.8** Tag the release commit: `git tag playtest-2 && git push origin playtest-2`.
+- [ ] **1.9** Check the two repository variables from 1.3a are set (GitHub → Settings → Secrets and variables → Actions → Variables), so the first deploy carries the label and the form link.
+- [ ] **1.10** Create the release branch from the tag and push it. **This publishes the build:** `git branch playtest playtest-2 && git push origin playtest`.
 
 ### Phase 2: Check the live site (about 45 minutes)
 
 - [ ] **2.1** The deploy finished: GitHub → Actions → "Deploy to GitHub Pages" is green.
-- [ ] **2.2** Open `https://hdunphy.github.io/Mingming/` in a **private window** (a fresh browser, like a tester's). The main menu shows `PLAYTEST 1 · <commit>`.
+- [ ] **2.2** Open `https://hdunphy.github.io/Mingming/` in a **private window** (a fresh browser, like a tester's). The main menu shows `PLAYTEST 2 · <commit>`.
 - [ ] **2.3** In that window, play: pick a starter, assembly, choose a gym, the map, the first fight, rewards, a shop visit, and one more fight.
 - [ ] **2.4** **Reload the page mid-run.** The run resumes where you were.
 - [ ] **2.5** Settings → **Export run log**. A `.json` file downloads, and it contains `build`.
+- [ ] **2.5b** Lose or abandon a run. On the run summary, **"Tell Henry how it went"** opens the form with build, starter and how far already filled in. Submit a test answer, then delete it from the responses.
 - [ ] **2.6** Open the browser console (F12). There should be no red errors during 2.3–2.5.
 - [ ] **2.7** Repeat 2.2–2.3 quickly in a **second browser** (Edge if you used Chrome, or Firefox).
 - [ ] **2.8** Try a **1280×800 window**: nothing important is cut off.
@@ -141,40 +179,41 @@ Do these in order and tick them off. Rough times are in brackets.
   | `#general` | text | Playtester | chat |
 
 - [ ] **3.4** In `#bug-reports`, add **tags**: `crash`, `stuck`, `card text wrong`, `UI`, `balance`, `other`. Set the **post guidelines** to the template in §4.6.
-- [ ] **3.5** Post and pin §4.2 in `#welcome`, §4.3 in `#how-to-play` and §4.5 in `#known-issues`.
-- [ ] **3.6** Create the **Google Form** from §4.4 (responses to a Google Sheet) and put its link in `#welcome` and `#how-to-play`.
+- [ ] **3.5** Post and pin: §4.2 and §4.7 (vision) in `#welcome`, §4.3 in `#how-to-play`, §4.8 (roadmap) in `#announcements`, and §4.5 in `#known-issues`. **No bestiary this round (D13);** the in-game Codex covers it.
+- [ ] **3.6** Put the plain form link (not pre-filled) in `#welcome`, for anyone who'd rather not use the in-game button.
 - [ ] **3.7** Create **one invite link** from `#welcome`: expires after **7 days**, max uses **testers + 2**. Don't post it anywhere public.
-- [ ] **3.8** *(Optional)* A Discord webhook in `#announcements` that the deploy workflow calls, to post "New build: PLAYTEST N · commit" automatically. Not needed for round 1; announce by hand.
+- [ ] **3.8** *(Optional)* A Discord webhook in `#announcements` that the deploy workflow calls, to post "New build: PLAYTEST N · commit" automatically. Not needed this round; announce by hand.
 
 ### Phase 4: Launch (about 30 minutes)
 
-- [ ] **4.1** Send each tester the invite message (§4.1) personally: text or DM.
+- [ ] **4.1** Send each tester a **personal** message (§4.1): version A for most people, version B for the 3–4 deckbuilder players. Add one line that's just for them. Personal messages get far more replies than a group message.
 - [ ] **4.2** As each joins, give them the `Playtester` role.
-- [ ] **4.3** Post a kick-off in `#announcements`: the test is open, the dates, "two runs each, form after each run, logs in #run-logs".
-- [ ] **4.4** Write the tester list and start date in `playtest-results/friends-1/README.md` (create the folder).
+- [ ] **4.3** Post a kick-off in `#announcements`: the test is open, the dates, "one run is all I'm asking, more is a bonus; the game asks for feedback when a run ends; run logs welcome in #run-logs".
+- [ ] **4.4** Write the start date and the **number** of testers in `playtest-results/round-2-friends/README.md` (create the folder). Keep names out of the repo (it's public): use first initials.
 
 ### Phase 5: During the test (about 10 minutes a day)
 
 - [ ] **5.1** **Daily triage** of `#bug-reports`:
   - reply to each new post (even just "got it")
   - add the `confirmed` or `need info` tag
-  - move confirmed bugs to a ticket list in `playtest-results/friends-1/bugs.md`
-- [ ] **5.2** Save run logs from `#run-logs` into `playtest-results/friends-1/logs/<tester>/` (download each file). Use first names or nicknames only.
-- [ ] **5.3** **Hotfix rule (D7):** blockers only. Fix on a branch, merge to `main`, then push `playtest` to the fix (`git push origin <fix>:playtest`). Bump `PLAYTEST_LABEL` to `PLAYTEST 1.1` first, and announce it.
-- [ ] **5.4** Mid-test nudge (around day 7) in `#announcements` for anyone who hasn't played or filled in the form.
+  - move confirmed bugs to a ticket list in `playtest-results/round-2-friends/bugs.md`
+- [ ] **5.2** Save run logs from `#run-logs` into `playtest-results/round-2-friends/logs/<initial>/` (download each file).
+- [ ] **5.3** **Hotfix rule (D7):** blockers only. Fix on a branch, merge to `main`, then push `playtest` to the fix (`git push origin <fix>:playtest`). Bump `PLAYTEST_LABEL` to `PLAYTEST 2.1` first, and announce it.
+- [ ] **5.4** Mid-test nudge (around day 7): a short **personal** follow-up to anyone who hasn't played yet. No pressure; it's a favour.
 - [ ] **5.5** Bring Claude the logs and form answers whenever there's a batch. Ask for the same write-up as your own playtests: the scrap curve and fight table from the logs, plus a summary of the survey answers and bug list.
 
 ### Phase 6: Close (about 1 hour)
 
 - [ ] **6.1** Post a thank-you and say what happens next.
-- [ ] **6.2** Export the form responses to `playtest-results/friends-1/survey.csv`.
-- [ ] **6.3** Ask Claude for the round summary, `playtest-results/friends-1/summary.md`:
+- [ ] **6.2** Export the form responses to `playtest-results/round-2-friends/survey.csv`.
+- [ ] **6.3** Ask Claude for the round summary, `playtest-results/round-2-friends/summary.md`:
   - top bugs
   - what confused people on the first screens (D4)
   - which Mingmings and cards felt strong or weak
   - would they play again
-  - what to change before round 2
-- [ ] **6.4** Decide round 2's scope (likely after 176 and the UI rework) and whether it moves to Steam Playtest or a password-protected itch.io page.
+  - what to change before round 3
+  - deckbuilder players and new players reported separately
+- [ ] **6.4** Decide round 3's scope (likely after 176 and the UI rework, on a desktop build through Steam Playtest) and the devlog video's timing (D14).
 
 ---
 
@@ -182,22 +221,37 @@ Do these in order and tick them off. Rough times are in brackets.
 
 Edit to your own voice; these are drafts.
 
-### 4.1 Invite message (personal text or DM)
+### 4.1 Invite message (personal, one person at a time)
 
-> Hey! I've been building a game called **Mingming: Midgard Circuit**: a roguelike deckbuilder where you collect Norse-inspired robot monsters and build a deck around your team. It's early and the art is placeholder, but it's playable, and I'd love your honest feedback before anyone else sees it.
+Write a line of your own at the top for each person; that's what gets the reply.
+
+**Version A (most people, new to this kind of game):**
+
+> Hey [name]! Favour to ask. I've been making a video game in my spare time, **Mingming: Midgard Circuit**. You collect monsters from Norse myth and battle with a deck of cards (think Pokémon, but the moves are cards). It's early and the art is placeholder, but it's playable.
 >
-> It runs in your web browser on a computer (not phone): [game link]
-> Feedback happens on my Discord: [invite link] (expires in a week)
+> Would you play **one run** (about 30–45 minutes) in the next two weeks? It runs in a web browser on a computer, not a phone: [game link]
+> When the run ends, the game has a button to tell me how it went. That's all I need.
+> If you want to chat or report anything weird, here's my Discord: [invite link]
 >
-> If you can, play **two full runs** over the next two weeks and fill in the short form after each one (link in Discord). Please don't share the link or post screenshots publicly yet. Thank you!
+> Please don't share the link yet. Thank you, it really helps!
+
+**Version B (the 3–4 deckbuilder players):**
+
+> Hey [name]! I've been building a roguelike deckbuilder: **Slay the Spire dressed as Pokémon**, with Norse-myth monsters you recruit into a three-monster team that shares one deck. It's early (placeholder art, the UI is getting reworked), but the systems are all in, and I'd love feedback from someone who knows the genre.
+>
+> If you can, play **two or three runs** over the next two weeks: [game link] (desktop browser)
+> The game asks for quick feedback when a run ends, and the Discord has a bug forum: [invite link]. Balance opinions are gold: which monsters and cards felt broken or useless, and why.
+>
+> Please don't share the link yet. Thanks!
 
 ### 4.2 `#welcome` (pinned)
 
 > **Welcome to the Mingming playtest!** Thanks for helping.
 >
 > **Play:** [game link] (desktop browser, Chrome/Edge/Firefox, window at least 1280×800)
-> **After each run:** fill in the form: [form link] (2 minutes)
-> **Also after each run:** Settings → **Export run log**, then drop the file in #run-logs
+> **When a run ends:** press **"Tell Henry how it went"** on the summary screen (about 3 minutes). Or use this link: [form link]
+> **One run is all I'm asking.** More is a bonus.
+> **Optional, but it helps a lot:** after a run, Settings → **Export run log**, then drop the file in #run-logs
 > **Bugs:** one post each in #bug-reports (there's a template)
 > **Anything else:** #feedback
 >
@@ -214,16 +268,16 @@ Keep this short; part of the test is whether the game explains itself.
 > - Spend scrap at the **market** (cards, macros) and the **workshop** (build new Mingmings, upgrade cards).
 > - Losing ends the run. That's normal; it's a roguelike.
 
-### 4.4 Google Form (after each run)
+### 4.4 Google Form (opened from the end of a run; build, starter, how far and run number come pre-filled)
 
 1. Your name (first name is fine)
-2. Which run is this? (1st / 2nd / 3rd+)
-3. Which starter did you pick, and how far did you get? (died in area 1 / 2 / 3 / at the gym / beat the gym)
+2. **Build** (pre-filled) · **Starter** (pre-filled) · **How far** (pre-filled: area 1 / 2 / 3 / gym / beat the gym) · **Run number** (pre-filled)
+3. Have you played games like Slay the Spire before? (yes / a little / no)
 4. **What confused you, especially on the first screens?** (long answer)
-5. Best moment of the run? (short answer)
+5. Best moment? (short answer)
 6. Worst or most frustrating moment? (short answer)
 7. Any Mingming or card that felt **too strong** or **too weak**? Why? (long answer)
-8. How long did the run take? (under 20 min / 20–40 / 40–60 / over 60)
+8. Roughly how long did a run take? (under 20 min / 20–40 / 40–60 / over 60)
 9. How much do you want to play another run? (1–5 scale)
 10. Anything that looked broken? (or post it in #bug-reports)
 
@@ -234,6 +288,7 @@ Keep this short; part of the test is whether the game explains itself.
 > - The **map** and the **shop/workshop screens** are being redesigned.
 > - The overall visual style (colours, fonts) is getting a full rework.
 > - Phones and tablets aren't supported yet.
+- Some words (firmware, OS, macro) are old names that are being simplified.
 >
 > Still worth reporting about these: anything that's **broken**, **confusing**, or that makes you stop playing.
 
@@ -243,15 +298,28 @@ Keep this short; part of the test is whether the game explains itself.
 > **What happened:**
 > **What you expected:**
 > **Steps** (what you clicked just before):
-> **Build:** the text at the bottom of the main menu (e.g. PLAYTEST 1 · 5557bbb)
+> **Build:** the text at the bottom of the main menu (e.g. PLAYTEST 2 · 5557bbb)
 > **Browser:** Chrome / Edge / Firefox / other
 > **Screenshot or run log** if you can (Settings → Export run log)
+
+### 4.7 Vision (pinned in `#welcome`, three lines)
+
+> **Mingming: Midgard Circuit** is Slay the Spire dressed as Pokémon.
+> Recruit monsters from Norse myth, build one deck around your team of three, and battle your way through three regions to the gym.
+> Every run is different: new monsters, new cards, new routes.
+
+### 4.8 Roadmap (pinned in `#announcements`, no dates)
+
+> 1. **Now:** friends-and-family playtest (that's you, thank you!)
+> 2. **Next:** a new look (real monster art, a friendlier UI) and a redesigned map with towns and routes
+> 3. **Then:** a Steam page and a short devlog video
+> 4. **Later:** a bigger playtest on Steam, then Early Access
 
 ---
 
 ## Done when
 
-- D1–D12 are ruled, and 179, 181a and 181b are built.
-- `playtest` deploys `PLAYTEST 1 · <commit>` to Pages, and it passed the §3 Phase 2 checks.
-- The Discord is set up as in Phase 3, testers are invited, and the form is live.
-- At the end, `playtest-results/friends-1/` holds the bugs, the logs, the survey and the summary.
+- D1–D15 are ruled, and 179, 181a, 181b, 181c and (if ruled) 182 are built.
+- `playtest` deploys `PLAYTEST 2 · <commit>` to Pages, and it passed the §3 Phase 2 checks.
+- The Discord is set up as in Phase 3, testers are invited, and the form opens pre-filled from the game.
+- At the end, `playtest-results/round-2-friends/` holds the bugs, the logs, the survey and the summary.
