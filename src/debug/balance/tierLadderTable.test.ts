@@ -4,8 +4,10 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { firstEasierStep, formatLadder, ladderRow } from './tierLadderTable';
-import type { RunDigest } from './tierLadderTable';
+import {
+    firstEasierStep, formatGauntlet, formatLadder, formatProvenance, gauntletLadderProblem, gauntletRow, gauntletRows, ladderRow, provenanceRow,
+} from './tierLadderTable';
+import type { GauntletDigest, RunDigest } from './tierLadderTable';
 
 const fight = (kind: string, won: boolean) => ({ kind, won });
 const run = (fights: Array<[string, boolean]>, outcome: 'victory' | 'defeat', scrapAtEnd = 0): RunDigest => ({
@@ -72,5 +74,81 @@ describe('firstEasierStep', () => {
         const found = firstEasierStep([rowOf('0', 5), rowOf('1', 4), rowOf('2', 6), rowOf('3', 1)]);
         expect(found?.from.label).toBe('1');
         expect(found?.to.label).toBe('2');
+    });
+});
+
+// ---------------------------------------------------------------------------------------------
+// TICKET 170b — the gauntlet-only table and its check
+// ---------------------------------------------------------------------------------------------
+
+describe('gauntletRow', () => {
+    it('averages fights won and counts clears', () => {
+        const row = gauntletRow('Tier 1', [{ fightsWon: 3, cleared: true }, { fightsWon: 1, cleared: false }, { fightsWon: 0, cleared: false }, { fightsWon: 2, cleared: false }]);
+        expect(row.parties).toBe(4);
+        expect(row.meanFightsWon).toBe(1.5);
+        expect(row.clearPct).toBe(25);
+    });
+
+    it('handles a tier with zero parties without dividing by zero', () => {
+        const row = gauntletRow('Tier 2', []);
+        expect(row).toEqual({ label: 'Tier 2', parties: 0, clearPct: 0, meanFightsWon: 0 });
+        expect(formatGauntlet([row])).not.toMatch(/NaN|undefined|Infinity/);
+        expect(provenanceRow([])).toEqual({ parties: 0, meanRealFightsWon: 0, meanGhostFights: 0, noGhostPct: 0 });
+        expect(formatProvenance(provenanceRow([]))).not.toMatch(/NaN|undefined|Infinity/);
+    });
+});
+
+describe('gauntletRows with a stubbed gauntlet', () => {
+    const snapshots = ['a', 'b', 'c', 'd'];
+    const play = (wonAtTier: (tier: number, index: number) => number) => (snapshot: string, tier: number): GauntletDigest => {
+        const fightsWon = wonAtTier(tier, snapshots.indexOf(snapshot));
+        return { fightsWon, cleared: fightsWon === 3 };
+    };
+
+    it('plays every snapshot at every tier, 0 to the top one', () => {
+        const rows = gauntletRows(snapshots, play(() => 2), 3);
+        expect(rows.map((row) => row.label)).toEqual(['Tier 0', 'Tier 1', 'Tier 2', 'Tier 3']);
+        expect(rows.every((row) => row.parties === 4)).toBe(true);
+    });
+
+    it('passes a ladder that gets harder or stays level', () => {
+        expect(gauntletLadderProblem(gauntletRows(snapshots, play((tier) => Math.max(1, 3 - tier)), 3))).toBeNull();
+        expect(gauntletLadderProblem(gauntletRows(snapshots, play(() => 2), 3))).toBeNull();
+    });
+
+    it('fails, and names Tier 3, when Tier 3 always loses', () => {
+        const rows = gauntletRows(snapshots, play((tier) => (tier === 3 ? 0 : 2)), 3);
+        const problem = gauntletLadderProblem(rows);
+        expect(problem).toContain('Tier 3');
+        expect(problem).toContain('0.00');
+    });
+
+    it('fails, and names both numbers, when Tier 3 wins more than Tier 2', () => {
+        const rows = gauntletRows(snapshots, play((tier) => (tier === 3 ? 2 : tier === 2 ? 1 : 3)), 3);
+        const problem = gauntletLadderProblem(rows);
+        expect(problem).toContain('Tier 3');
+        expect(problem).toContain('Tier 2');
+        expect(problem).toContain('2.00');
+        expect(problem).toContain('1.00');
+    });
+
+    it('fails when no party reached the gate, rather than passing on empty rows', () => {
+        expect(gauntletLadderProblem(gauntletRows([], play(() => 0), 3))).toContain('No party reached the gym gate');
+    });
+});
+
+describe('formatGauntlet and provenance', () => {
+    it('prints a markdown table with the clear share and the fights won', () => {
+        const rows = [gauntletRow('Tier 0', [{ fightsWon: 3, cleared: true }, { fightsWon: 1, cleared: false }])];
+        const table = formatGauntlet(rows);
+        expect(table.split('\n')).toHaveLength(3);
+        expect(table).toContain('| Tier 0 | 2 | 50.0% | 2.00 |');
+    });
+
+    it('says how much of the deck was earned: real wins, carried losses, and parties needing no carry', () => {
+        const row = provenanceRow([{ ghostFights: 0, realFightsWon: 10 }, { ghostFights: 2, realFightsWon: 4 }]);
+        expect(row).toEqual({ parties: 2, meanRealFightsWon: 7, meanGhostFights: 1, noGhostPct: 50 });
+        expect(formatProvenance(row)).toContain('2 parties at the gate');
+        expect(formatProvenance(row)).toContain('50.0% needed no carrying');
     });
 });
