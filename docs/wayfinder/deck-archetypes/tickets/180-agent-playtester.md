@@ -68,6 +68,7 @@
 
 1. **A session is a seed plus a move log,** saved as `results/playtest/<session>/session.json`: `{ seed, starter, gymIndex, mode, tier, modifiers, moves: [...] }`.
    - Every command rebuilds the state by **replaying** the log from the seed: a fresh store, `createRun`, then every move in order.
+   - Add `results/playtest/` to `.gitignore` (other folders under `results/` are committed, so ignore only this one).
    - The engine is deterministic, so a replay is exact. That also means any session file is a perfect bug reproduction.
    - **Test:** replaying a 30-move session twice gives identical state hashes.
 2. **The CLI** (`src/debug/playtest/cli.ts`, script `npm run playtest -- <command>`):
@@ -102,7 +103,7 @@
    - unaffordable items are shown with "N short" and get no move
 2. **Workshop:** blueprints held, assembly (species, each firmware and its 5-card engine, price), reflash per member, party and bench swaps, the upgrade bench, and **leave**.
 3. **Upgrades** show the card now and after (`+` text) and the price.
-4. **Reuse the screens' own helpers** for prices, allowances and eligibility (`marketplace.ts`, `workshop.ts`, `UPGRADES_PER_VISIT`, `PatchBench`'s offer logic, `workshopWouldOfferARecruit`). Never recompute a rule here.
+4. **Reuse the screens' own helpers** for prices, allowances and eligibility (`marketplace.ts`, `workshop.ts`, `UPGRADES_PER_VISIT`, `PatchBench`'s offer logic, `workshop.ts`'s recruit and reflash helpers). Never recompute a rule here.
 5. **Tests:**
    - each move type changes the run exactly as the matching reducer does
    - a third upgrade at a two-upgrade bench has no move
@@ -129,7 +130,7 @@
    - **Moves:** `legalActions` (177a) for the player side, each written as **"play <card> (cost) from <caster> → <target>"**, plus macro moves and END TURN.
 2. **The enemy side** plays with the encounter's own AI tier and beam, exactly as `runOne` sets them.
 3. **`turn` mode** takes a list of moves for the turn and stops at the first illegal one, reporting it. **`card` mode** takes one move per call.
-4. **A turn cap** (the walker's `WALK_MAX_TURNS`) and a **decision budget** (default 400 per run) end a session cleanly, with outcome `budget`.
+4. **A turn cap** (60, the walker's `WALK_MAX_TURNS`; export it rather than copying the number) and a **decision budget** (default 400 per run) end a session cleanly, with outcome `budget`.
 5. **Tests:**
    - a scripted fixture battle played move by move through the CLI ends in the same state as the same moves applied with `battleReducer` directly
    - END TURN hands the turn to the enemy AI and back
@@ -171,7 +172,7 @@
      - an `--expect` on every card play in `card` mode
      - a `note` whenever something feels too strong, too weak, confusing, or unrewarding, and why
    - **Keeping its own context small:** don't re-print screens it doesn't need, and keep a running 3-line plan instead of re-reading history.
-2. **`scripts/playtest-night`** (PowerShell for Henry's Windows PC, plus an `npm run playtest:night` entry):
+2. **`scripts/playtest-night.mjs`** (a Node script, like the others in `scripts/`, run with `npm run playtest:night` on Henry's Windows PC):
    - runs A5's N sessions one after another
    - seeds `pt<date>:<i>`, starters rotating through the 12 EA starters, gyms rotating
    - modes per A2
