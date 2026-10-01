@@ -102,8 +102,8 @@ Do these in order and tick them off. Rough times are in brackets.
 - [ ] **1.6** Push the work branch: `git push origin playtest-polish`.
 - [ ] **1.7** Merge `playtest-polish` into `main` through a pull request (CI runs on it).
 - [ ] **1.8** Tag the release commit: `git tag playtest-1 && git push origin playtest-1`.
-- [ ] **1.9** Create the release branch from that tag and push it, which publishes: `git branch playtest playtest-1 && git push origin playtest`.
-- [ ] **1.10** In GitHub → Settings → Variables, set `PLAYTEST_LABEL` to `PLAYTEST 1` *before* step 1.9, so the first deploy carries the label.
+- [ ] **1.9** In GitHub → Settings → Secrets and variables → Actions → Variables, set `PLAYTEST_LABEL` to `PLAYTEST 1`, so the first deploy carries the label.
+- [ ] **1.10** Create the release branch from the tag and push it. **This publishes the build:** `git branch playtest playtest-1 && git push origin playtest`.
 
 ### Phase 2: Check the live site (about 45 minutes)
 
@@ -132,7 +132,7 @@ Do these in order and tick them off. Rough times are in brackets.
   | Channel | Type | Who can post | Purpose |
   |---|---|---|---|
   | `#welcome` | text | Dev only | rules and the game link (§4.2) |
-  | `#announcements` | announcement/text | Dev only | new builds, reminders |
+  | `#announcements` | text | Dev only | new builds, reminders |
   | `#how-to-play` | text | Dev only | the quick start (§4.3) |
   | `#known-issues` | text | Dev only | what's already known or changing (§4.5) |
   | `#bug-reports` | **forum** | Playtester | one post per bug, using the template (§4.6) |
@@ -195,11 +195,11 @@ Edit to your own voice; these are drafts.
 
 > **Welcome to the Mingming playtest!** Thanks for helping.
 >
-> 🎮 **Play:** [game link] (desktop browser, Chrome/Edge/Firefox, window at least 1280×800)
-> 📝 **After each run:** fill in the form: [form link] (2 minutes)
-> 📄 **After each run:** Settings → **Export run log**, then drop the file in #run-logs
-> 🐞 **Bugs:** one post each in #bug-reports (there's a template)
-> 💬 **Anything else:** #feedback
+> **Play:** [game link] (desktop browser, Chrome/Edge/Firefox, window at least 1280×800)
+> **After each run:** fill in the form: [form link] (2 minutes)
+> **Also after each run:** Settings → **Export run log**, then drop the file in #run-logs
+> **Bugs:** one post each in #bug-reports (there's a template)
+> **Anything else:** #feedback
 >
 > Your save lives in your browser, so don't clear browsing data or use a private window, or you'll lose progress.
 > This is private for now: please don't share the link or screenshots publicly.
