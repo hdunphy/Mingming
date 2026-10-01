@@ -3,7 +3,7 @@
 > **2026-09-24 — RE-KEYED TO THE WALKER (Henry). The instrument this ticket's Done-when names (`balance:run-gate` inside ±5) was ruled NOISE on collection v2 on 09-24: it runs the un-drifted starter kit, which 161 deliberately weakened. Done-when is now: deck-archetypes 157's walker (a played run: picks, upgrades, patches, strategic recruits) reports the three bands, and they sit inside ±5 of 95/75/60. The 60±5 gauntlet-compound target stands until the walker says otherwise. 2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. **
 
 - Type: wayfinder:grilling
-- Status: open
+- Status: closed
 - Assignee: session-67-build (steps 1-2 only; the grilling is Henry's)
 - Blocked by: [61](61-apply-60.md)
 - Phase: Vertical Slice
@@ -411,3 +411,7 @@ against the specific boss battle. so this specific boss battle should be about 8
    Rootfall reads ~7.6pt under WITH NO TOOLBOX CARDS in the deck; Tidewrack's 37-point outlier is
    the open problem and its verdict waits on the five remaining toolbox cards
    (research/69-toolbox-printings.md) plus the firmware-pairing harness fix.
+
+## Resolution
+
+**CLOSED 2026-10-01 (Henry: "Close this. We need to revamp the walker and then I'm not sure what the metrics should be.").** The 95/75/60 walker bands are retired as a gate. The walker rework is deck-archetypes 170; what it should measure, and against which targets, is decided after that, in a new ticket. Henry's own playtests are the difficulty gate until then.

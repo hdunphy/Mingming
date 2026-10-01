@@ -3,7 +3,7 @@
 > **2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. The 12 EA decks are different decks (162a: "do not read a cell as a regression against the old grid"), the grid was deliberately not re-run, and Henry ruled the 1v1/3v3 tables wait for playtest. Q1 (is a sharp triangle the point) is live; Q3's cells no longer exist as measured.**
 
 - Type: wayfinder:grilling
-- Status: open
+- Status: closed
 - Assignee: 
 - Blocked by: nothing - the measurement is done (below)
 - Phase: Vertical Slice
@@ -131,4 +131,4 @@ two-win-paths rework (ticket 78's frame — a deck with one damage path is the d
 
 ## Resolution
 
-_(open)_
+**CLOSED 2026-10-01 (Henry: "Triangle is good.").** `TYPE_CHART` stays as it is. The gauntlet's first two fights now follow the gym's element plan (deck-archetypes 167a), which was the felt problem.

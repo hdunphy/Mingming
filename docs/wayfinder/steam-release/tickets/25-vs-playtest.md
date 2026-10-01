@@ -3,7 +3,7 @@
 > **2026-09-24 — RE-SCOPED against deck-archetypes 161/162/163 (Henry's rulings). The testers play collection v2 (98 cards) with in-place `+` upgrades at three benches and one OS patch per body; the run log already records CARD_UPGRADED and PATCH_TAKEN — add "upgrades taken / patches fitted" to the scoresheet. "Removed" is not a verb any more (61); "sold" is. The 20–25 deck gate STANDS (Henry: grow the deck, but only to about 20–25 — mostly replacing; no extra Strike/Block filler, the three tackles are the filler). **25-pre is DONE (2026-09-24)** — see the write-back at the foot of this file. This ticket is unblocked on that count.**
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: 
 - Blocked by: [09](09-run-start.md), [10](10-region-map-screen.md), [11](11-encounter-flow.md), [12](12-rewards-refit.md), [13](13-marketplace-node.md), [14](14-workshop-node.md), [15](15-macros.md), [17](17-elite-nodes.md), [18](18-gauntlet-refit.md), [19](19-run-end.md), [20](20-ranch-minimal.md), [22](22-3v3-game-side.md), [24](24-onboarding-lite.md)
 - Phase: Vertical Slice
@@ -18,7 +18,7 @@ The first playtest of the LOOP (previous rounds tested fights). Protocol file un
 
 ## Resolution
 
-_(open)_
+**CLOSED 2026-10-01 (Henry: "close it unless I'm missing important stuff").** The round was played as five logged playtests (2026-09-25 to 09-30, `playtest-results/`), each reviewed, and every finding landed as deck-archetypes tickets 166-174. The gauntlet revive question was answered with data in 172/173 (30% repair between gym fights). The one envelope miss is run length: 18-20 fights against the ruled 10-13. That is handed to deck-archetypes 174 (the early scrap squeeze that drove the grinding) and 176 (map redesign). Run time in minutes was never measured.
 
 ---
 

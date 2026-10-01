@@ -3,7 +3,7 @@
 > **2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. All 17 arms and Track A ran at `e14cfd0`, before the archive. The start deck is still 5 kit + 3 generics (8/13/18; the generic is `tackle`), but the kits are 161's shape and 163 adds power WITHOUT adding cards (in-place `+`, one patch per body) — which is exactly Track B's conclusion ("the only measured route to player power that does not cost a card slot"). Henry ruled 09-24: the deck DOES grow, to about 20–25 at the gauntlet, mostly by replacing (sell + pick); no extra Strike/Block filler. The Done-when's 60±5 re-measure is 157's walker; the n=60 arms are not re-run by hand.**
 
 - Type: wayfinder:grilling (measurement first — the arms below run before Henry's session)
-- Status: open
+- Status: closed
 - Assignee: arms: agent; session: Henry
 - Blocked by: nothing for Track A; Track B needs two small harness builds (below); Track C needs one knob type
 - Phase: Vertical Slice
@@ -271,4 +271,4 @@ or the residual explicitly accepted, with the player-side lever named as the one
 
 ## Resolution
 
-_(open)_
+**CLOSED 2026-10-01 (Henry).** Superseded: the arms were measured on the v1 pool, and the gauntlet compound they chased was settled by deck-archetypes 172/173 (30% repair, Revive targeting).

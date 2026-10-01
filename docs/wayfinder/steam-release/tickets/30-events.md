@@ -3,7 +3,7 @@
 > **2026-09-24 — NOTE. "Card removal" is not an outcome verb (deleted in 61). Verbs that exist now: card pick (V2_RUN_POOL-narrowed), a free `+` upgrade (163b), an OS patch (163d), a blueprint (142g), scrap, a Macro.**
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: 
 - Blocked by: [10](10-region-map-screen.md), [13](13-marketplace-node.md), [27](27-content-plan.md)
 - Phase: Content Complete
@@ -17,6 +17,8 @@ A data-driven event format (zod-schema'd JSON like scenarios): text, 2–3 choic
 Event node plays end-to-end; the schema has a validator test; the launch event set is written and reviewed by Henry.
 
 ## Resolution
+
+**CLOSED 2026-10-01 (Henry).** Built by deck-archetypes 168.
 
 **RULED 2026-09-29, built by `deck-archetypes/tickets/168-events.md`.** Twenty launch events (this answers ticket 27 (b): the event count is 20), drawn by rarity (Common 60 / Uncommon 30 / Rare 10, Rare only in the second and third biome), each at most once per run. Henry's rulings:
 

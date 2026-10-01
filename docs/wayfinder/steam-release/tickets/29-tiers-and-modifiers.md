@@ -1,7 +1,7 @@
 # Difficulty tiers and opt-in run modifiers (ticket 29)
 
 - Type: wayfinder:task
-- Status: open
+- Status: closed
 - Assignee: 
 - Blocked by: [19](19-run-end.md), [27](27-content-plan.md)
 - Phase: Content Complete
@@ -15,6 +15,8 @@ Tiers unlock by beating gyms (ranch-persistent); each tier = a content ladder (c
 Tiers + modifiers selectable and saved; a test asserts no entity stat differs across tiers.
 
 ## Resolution
+
+**CLOSED 2026-10-01 (Henry).** Built by deck-archetypes 169 (commits 47dce56..6621b9c).
 
 **Ruled by Henry 2026-09-29; build ticket: [deck-archetypes 169](../../deck-archetypes/tickets/169-tiers-and-modifiers.md).**
 

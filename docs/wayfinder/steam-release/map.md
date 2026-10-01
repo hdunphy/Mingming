@@ -137,6 +137,8 @@ Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 
 
 ### Phase 1 — Vertical Slice (~mid-September → ~late November 2026)
 
+> **PHASE 1 CLOSED 2026-10-01 (Henry).** The loop is built and has been played through five logged playtests; every Phase 1 ticket is closed. The one miss against the definition is run length: 18-20 fights against 10-13, handed to deck-archetypes 174 (scrap curve) and 176 (map redesign). The walker-band gate (67) is retired until the walker rework (deck-archetypes 170) decides new metrics. Phase 2 is already under way: tiers, modifiers and events are built (169, 168), and localization prep (175) is ruled.
+
 **Definition:** one region offer (three biomes, three gyms to choose from), the full loop playable — ranch → start → map → fights/market/workshop/elite → gauntlet → run end → ranch — with Macros, Drivers, partial start kits growing to 20–25 cards, no leveling, save v4, and a playtest round that measures the run against the ruled envelope (35–45 min, 10–13 fights). Placeholder art is fine. This phase is the whole game's spine; nothing in phases 2–3 is worth starting before it is fun.
 
 | Ticket | Type | Driver | Blocked by |
@@ -160,19 +162,19 @@ Cheap, unblocked, and everything downstream is safer for them. **02, 03, 04 and 
 | [22 3v3 game-side completion: six-entity UI, shared hand, caster STAB, energy transfer decision](tickets/22-3v3-game-side.md) | task | agent | [06](tickets/06-run-data-model.md) |
 | [23 Save schema v4: ranch + run, migration from v3, in-progress run survives restart](tickets/23-save-v4.md) | task | agent | [06](tickets/06-run-data-model.md) |
 | [24 Onboarding-lite: the first fight teaches the fight, the first run teaches the run](tickets/24-onboarding-lite.md) | task | agent | [09](tickets/09-run-start.md), [10](tickets/10-region-map-screen.md), [18](tickets/18-gauntlet-refit.md) |
-| [25 Vertical Slice playtest round: protocol, scoresheet, findings](tickets/25-vs-playtest.md) | task | agent | [09](tickets/09-run-start.md), [10](tickets/10-region-map-screen.md), [11](tickets/11-encounter-flow.md), [12](tickets/12-rewards-refit.md), [13](tickets/13-marketplace-node.md), [14](tickets/14-workshop-node.md), [15](tickets/15-macros.md), [17](tickets/17-elite-nodes.md), [18](tickets/18-gauntlet-refit.md), [19](tickets/19-run-end.md), [20](tickets/20-ranch-minimal.md), [22](tickets/22-3v3-game-side.md), [24](tickets/24-onboarding-lite.md) |
+| ~~[25 Vertical Slice playtest round: protocol, scoresheet, findings](tickets/25-vs-playtest.md)~~ **CLOSED 2026-10-01** | task | agent | [09](tickets/09-run-start.md), [10](tickets/10-region-map-screen.md), [11](tickets/11-encounter-flow.md), [12](tickets/12-rewards-refit.md), [13](tickets/13-marketplace-node.md), [14](tickets/14-workshop-node.md), [15](tickets/15-macros.md), [17](tickets/17-elite-nodes.md), [18](tickets/18-gauntlet-refit.md), [19](tickets/19-run-end.md), [20](tickets/20-ranch-minimal.md), [22](tickets/22-3v3-game-side.md), [24](tickets/24-onboarding-lite.md) |
 | ~~[59 Run telemetry: log a playtest so it can be analysed after the fact](tickets/59-run-telemetry.md)~~ **CLOSED** | task | agent | [23](tickets/23-save-v4.md), [19](tickets/19-run-end.md) |
 | ~~[60 Difficulty and agency: the playtest verdict on the slice](tickets/60-difficulty-and-agency.md)~~ **CLOSED** | grilling | Henry | [25](tickets/25-vs-playtest.md), [56](tickets/56-economy-numbers.md) |
 | ~~[61 Apply ticket 60: mini-engine starts, enemy ladder, sim gate, collection + bench](tickets/61-apply-60.md)~~ **CLOSED** | task | agent | [60](tickets/60-difficulty-and-agency.md), [57](tickets/57-apply-56.md) |
-| [67 The enemy ladder, and the three bands the run gate says we are failing](tickets/67-enemy-ladder-and-bands.md) **BUILT — awaiting the grilling** | grilling | Henry | [61](tickets/61-apply-60.md) |
+| ~~[67 The enemy ladder, and the three bands the run gate says we are failing](tickets/67-enemy-ladder-and-bands.md)~~ **CLOSED 2026-10-01** | grilling | Henry | [61](tickets/61-apply-60.md) |
 | ~~[68 Boss redesign: enemy-side Drivers, hand-authored gym trios, the telegraph](tickets/68-boss-redesign-drivers.md)~~ **CLOSED — 0/60 -> 80.0% prepared; now 15pt ABOVE target, Henry's call** | task | agent (Tidewrack/Rootfall authoring: Henry) | [67](tickets/67-enemy-ladder-and-bands.md) |
 | ~~[69 Neutral utility cards reach the market: the off-pool slot gets a curated list](tickets/69-neutral-market-slot.md)~~ **CLOSED** | task | agent | [57](tickets/57-apply-56.md) |
-| [70 The first-KO snowball: action economy, overkill aversion, comebacks](tickets/70-first-ko-snowball.md) — **measure first, then grill** | grilling | Henry (measurement: agent) | — |
+| ~~[70 The first-KO snowball: action economy, overkill aversion, comebacks](tickets/70-first-ko-snowball.md)~~ **CLOSED 2026-10-01** | grilling | Henry (measurement: agent) | — |
 | [71 Tidewrack authored: the zoo leader under TIDAL SURGE](tickets/71-tidewrack-build.md) | task | agent | [68](tickets/68-boss-redesign-drivers.md), [70](tickets/70-first-ko-snowball.md) |
 | [72 Rootfall authored: the strangler under ROOT ROT](tickets/72-rootfall-build.md) | task | agent | [71](tickets/71-tidewrack-build.md) |
 | [74 Tidewrack re-authored: kraken_v2 replaces kraken_v1; thorn_tithe printing](tickets/74-tidewrack-comp-swap.md) | task | agent | [71](tickets/71-tidewrack-build.md) |
 | [76 Rootfall: find the hole before ruling the lever](tickets/76-rootfall-diagnosis.md) | grilling | Henry (arms: agent) | [75](tickets/75-tidewrack-rolled-fights.md) |
-| [77 The player side has never been in the graded arm: leveling, macros, Drivers, ROOT ROT reshaped](tickets/77-player-progression-arms.md) | grilling | Henry (arms: agent) | [76](tickets/76-rootfall-diagnosis.md) |
+| ~~[77 The player side has never been in the graded arm: leveling, macros, Drivers, ROOT ROT reshaped](tickets/77-player-progression-arms.md)~~ **CLOSED 2026-10-01** | grilling | Henry (arms: agent) | [76](tickets/76-rootfall-diagnosis.md) |
 | [78 Party synergy: the only channel between members is the enemy's status bar](tickets/78-party-synergy-matrix.md) **SUPERSEDED 09-24 by deck-archetypes 158/158-r1 — was: HELD — matrix runs after deck-archetypes 151** | grilling | Henry (tags + matrix: agent) | deck-archetypes [151](../deck-archetypes/tickets/151-ea-deck-rework-two-paths.md) |
 
 ### Phase 2 — Content Complete (~December 2026 → ~March 2027)
@@ -181,10 +183,10 @@ Re-cut by [Content plan](tickets/27-content-plan.md) once the slice has been pla
 
 | Ticket | Type | Driver | Blocked by |
 |---|---|---|---|
-| [27 Content plan: biome pairs, gyms, tiers and events at launch — in numbers](tickets/27-content-plan.md) | grilling | Henry | [05](tickets/05-release-shape.md), [25](tickets/25-vs-playtest.md) |
+| ~~[27 Content plan: biome pairs, gyms, tiers and events at launch — in numbers](tickets/27-content-plan.md)~~ **CLOSED 2026-10-01** | grilling | Henry | [05](tickets/05-release-shape.md), [25](tickets/25-vs-playtest.md) |
 | [28 Authored gym bosses: curated 3v3 teams with signature firmware per biome pair](tickets/28-authored-gyms.md) | task | agent | [18](tickets/18-gauntlet-refit.md), [27](tickets/27-content-plan.md), deck-archetypes [109](tickets/../../deck-archetypes/tickets/109-3v3-pricing-and-canary.md) |
-| [29 Difficulty tiers and opt-in run modifiers](tickets/29-tiers-and-modifiers.md) | task | agent | [19](tickets/19-run-end.md), [27](tickets/27-content-plan.md) |
-| [30 Events node system + the first event set](tickets/30-events.md) | task | agent | [10](tickets/10-region-map-screen.md), [13](tickets/13-marketplace-node.md), [27](tickets/27-content-plan.md) |
+| ~~[29 Difficulty tiers and opt-in run modifiers](tickets/29-tiers-and-modifiers.md)~~ **CLOSED 2026-10-01** | task | agent | [19](tickets/19-run-end.md), [27](tickets/27-content-plan.md) |
+| ~~[30 Events node system + the first event set](tickets/30-events.md)~~ **CLOSED 2026-10-01** | task | agent | [10](tickets/10-region-map-screen.md), [13](tickets/13-marketplace-node.md), [27](tickets/27-content-plan.md) |
 | [31 Codex: seen/played species, OS and cards; completion payouts](tickets/31-codex.md) | task | agent | [23](tickets/23-save-v4.md), [19](tickets/19-run-end.md) |
 | [32 Art direction and budget: AI-assisted vs commissioned, disclosure, what cards look like](tickets/32-art-direction.md) | grilling | Henry | [05](tickets/05-release-shape.md) |
 | [33 Species art pass: 16 battle portraits to the ruled standard](tickets/33-species-art.md) | task | agent | [32](tickets/32-art-direction.md) |
