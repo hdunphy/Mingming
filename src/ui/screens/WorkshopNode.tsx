@@ -93,6 +93,7 @@ import { ElementMark } from './CardChassis';
 import { cardFace, colorFor } from './runShell';
 import { junkNote, readDeckFloor } from './deckFloor';
 import { UpgradeBench } from './UpgradeBench';
+import { UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
 import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
@@ -701,7 +702,8 @@ export default function WorkshopNode({
                     <UpgradeBench
                         run={run}
                         benchKey={`${node.id}:${node.visited}`}
-                        heading="UPGRADE — ONE CARD IN YOUR DECK"
+                        allowance={UPGRADES_PER_VISIT}
+                        heading="UPGRADE — UP TO TWO CARDS IN YOUR DECK"
                     />
                 </div>
             </div>

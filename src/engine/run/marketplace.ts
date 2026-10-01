@@ -474,6 +474,16 @@ export function upgradePrice(dataId: string): number {
 }
 
 /**
+ * How many upgrades one visit to the market or the workshop may buy.
+ *
+ * Henry, 2026-09-30, ticket 174: two per visit at the market and the workshop (was one, 163 §2).
+ * Late runs had scrap and upgradeable cards but nowhere to spend it. The gym gate's free upgrade
+ * (once) and the Overclock Rig event bench (two, free) keep their own allowances and do not read
+ * this.
+ */
+export const UPGRADES_PER_VISIT = 2;
+
+/**
  * The gym gate's upgrade is FREE — 163 §2, *"and a free upgrade at the gym gate (the rest-site
  * venue). Both answer 153's 'scrap is not scarce'."*
  *

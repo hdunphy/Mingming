@@ -69,6 +69,7 @@ import {
     rollMarketStock,
     type IMacroOffer,
     type IMarketOffer,
+    UPGRADES_PER_VISIT,
 } from '../../engine/run/marketplace';
 import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
@@ -506,7 +507,8 @@ export default function MarketplaceNode({
                 <UpgradeBench
                     run={run}
                     benchKey={`${node.id}:${node.visited}`}
-                    heading="UPGRADE — ONE CARD IN YOUR DECK"
+                    allowance={UPGRADES_PER_VISIT}
+                    heading="UPGRADE — UP TO TWO CARDS IN YOUR DECK"
                 />
 
                 <div className="rs-panel mk-sell">

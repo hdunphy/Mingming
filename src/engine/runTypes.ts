@@ -425,6 +425,9 @@ export interface IRunState {
      *
      * Optional with `.default([])`, the `boughtBlueprints` precedent: a run saved before this field
      * is a run that has upgraded nothing.
+     *
+     * Henry, 2026-09-30, ticket 174: two per visit at the market and workshop (`UPGRADES_PER_VISIT`); event benches and the gym gate keep their own allowances.
+     * Each spend adds the key again, so a key appearing twice means the allowance of two is used.
      */
     readonly upgradesTaken?: ReadonlyArray<string>;
 

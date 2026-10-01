@@ -74,10 +74,15 @@ export function UpgradeBench({ run, benchKey, free, heading, allowance = 1 }: Up
 
     const used = benchKey === undefined ? 0 : (run.upgradesTaken ?? []).filter((key) => key === benchKey).length;
     const spent = benchKey !== undefined && used >= allowance;
+    // Ticket 174c: the paid bench reads its allowance instead of printing "one per visit" whatever
+    // it is. `· N left` appears once one has been used, so a half-spent bench says it is half spent.
+    const paidNote = allowance === 1
+        ? 'one per visit'
+        : `${allowance} per visit${used > 0 && !spent ? ` · ${allowance - used} left` : ''}`;
 
     return (
         <div className="rs-panel mk-upgrade">
-            <h2>{heading} <span className="mk-sub">({free === true ? (allowance > 1 ? `free, ${allowance} cards` : 'free, once') : 'one per visit'})</span></h2>
+            <h2>{heading} <span className="mk-sub">({free === true ? (allowance > 1 ? `free, ${allowance} cards` : 'free, once') : paidNote})</span></h2>
             <div className="mk-rows">
                 {rows.map(({ stack, to }) => {
                     const face = cardFace(stack.dataId);
