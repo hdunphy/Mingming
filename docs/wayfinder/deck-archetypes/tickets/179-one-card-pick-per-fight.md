@@ -1,6 +1,6 @@
 # Ticket 179: One card pick per fight
 
-**Type:** economy. **Status:** OPEN; small, and independent of 176, so it can be built before it. Decisions P1–P3 below have recommended defaults; build those unless Henry rules otherwise.
+**Type:** economy. **Status:** OPEN; small, and independent of 176, so it can be built before it. **Henry ruled P1–P3 yes on 2026-10-01.**
 
 **Henry (2026-10-01):**
 
@@ -20,7 +20,7 @@ The reward screen (`BattleReport`), the run log (`BattleArena`) and the walker (
 
 **Why it bloats scrap:** a 3v3 fight hands out three cards. Most of them end up in the collection and get sold (5–20 scrap each), on top of the fight's scrap.
 
-## Decisions (recommended defaults first)
+## Decisions (all ruled yes, 2026-10-01)
 
 - **P1. Blueprints stay one roll per defeated enemy.** Only the card pick changes. Blueprints are how you recruit, and 142's rates were measured per body.
 - **P2. Every fight gives exactly one pick of 3,** whatever its size: wild, rival, elite, alpha, ambush, and event fights. Gauntlet fights stay at none (18a).
