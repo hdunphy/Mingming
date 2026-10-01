@@ -1,6 +1,8 @@
 # Ticket 174: The early scrap squeeze and the late surplus
 
-**Type:** run economy. **Status:** OPEN. **Blocked on Henry's rulings D1–D4 below.** The rows after them build the recommended answers; change a row if Henry rules differently.
+**Type:** run economy. **Status:** OPEN, **ruled by Henry 2026-09-30, ready to build.**
+
+**Rulings:** D1 *"Yes, 45 scrap."* · D2 *"Leave as is."* · D3 *"Two per visit."* · D4 *"Let's add a new ticket for a map redesign; I don't love the current layout"* (ticket 176, so biome length is not changed here).
 
 **Henry (2026-09-30):**
 
@@ -37,18 +39,18 @@ So the curve is backwards: income rises through the run while the needs fall, an
 
 ---
 
-## Decisions for Henry
+## Decisions (as put to Henry; rulings at the top)
 
-**D1. Starting scrap: 20 → 45?** *(recommended)*
+**D1. Starting scrap: 20 → 45?** *(recommended; ruled yes)*
 `STARTING_SCRAP` (`createRun.ts`) is 20. At 45, the first workshop recruit (25) plus a first card (15–25) are affordable without grinding. It puts scrap exactly where the need is and changes nothing later. The ticket-09 rule ("a fixed grant every run carries nothing between runs") still holds.
 
-**D2. Wild fight pay: leave it?** *(recommended: leave it)*
+**D2. Wild fight pay: leave it?** *(recommended: leave it; ruled: leave it)*
 The alternative is raising `BASE_WIN_SCRAP` 10 → 15 (wilds pay 15 / 20 / 25). That helps biome 0, but it also adds scrap in biomes 1–2, which already have a surplus. D1 does the biome-0 job alone.
 
-**D3. Upgrades per visit: one → unlimited?** *(recommended)*
+**D3. Upgrades per visit: one → unlimited?** *(recommended unlimited; **ruled: two per visit**)*
 This turns the late surplus into the thing you want to buy. It also follows the standing "no arbitrary caps" rule; 163 §2's one-per-visit was ruled when scrap was scarce everywhere. The middle option is **two per visit**. The gauntlet has room for more late power: walker clears are 0% since 173, and your own replays are 35%.
 
-**D4. Biome 0 length: leave it for now?** *(recommended)*
+**D4. Biome 0 length: leave it for now?** *(recommended; **ruled: moved to a map redesign, ticket 176**)*
 Re-measure after D1 and D3. If you still find yourself grinding, add one middle layer to biome 0 only in a follow-up. The catch: runs are already 18–20 fights against the 10–13 target, and adding a layer means changing the save schema (`RegionNodeSchema` caps `layer` at 4) and the generator. If the grinding was driven by the scrap squeeze, fixing scrap shortens runs instead.
 
 ---
@@ -69,10 +71,10 @@ Re-measure after D1 and D3. If you still find yourself grinding, add one middle 
 |---|---|---|
 | 174a | A scrap-curve report built from run logs (the table above, as a tool) | nothing |
 | 174b | Starting scrap 20 → 45 | D1 |
-| 174c | Upgrades per visit: one → unlimited | D3 |
+| 174c | Upgrades per visit: one → two | D3 |
 | 174d | Before/after measurement with the walker | 174a–c |
 
-D2 and D4 build nothing if ruled as recommended.
+D2 builds nothing. D4 is ticket 176.
 
 ---
 
@@ -99,17 +101,22 @@ So every future playtest can be read the same way, without a one-off script. `ru
 2. Update any test that asserts 20 (search `STARTING_SCRAP` and `scrap: 20` in tests). Assert the constant, not a copied number.
 3. If a tip or screen prints the starting scrap as text, it should read the constant. Search `src/ui` and `src/engine/tips.ts` for "20 scrap".
 
-## 174c: Upgrades per visit, one → unlimited (D3)
+## 174c: Upgrades per visit, one → two (D3)
 
-1. **`MarketplaceNode.tsx` and `WorkshopNode.tsx`:** each renders `<UpgradeBench ... benchKey={`${node.id}:${node.visited}`} ...>` with no `allowance`, so the default of 1 applies. Pass `allowance={Infinity}` at both, and change the heading from `"UPGRADE — ONE CARD IN YOUR DECK"` to `"UPGRADE — CARDS IN YOUR DECK"`.
-2. **Leave `UpgradeBench`'s default, the reducer's default and every other venue unchanged:** the event benches (Overclock Rig's 2, Abandoned Terminal's 1) and the gym gate's free upgrade.
-3. **`runSlice.ts`:** the upgrade reducer compares `spent.filter(...).length >= (allowance ?? 1)`. `Infinity` already works with that comparison. Add a test that three upgrades on one market bench key all succeed and each charges its price.
-4. **Docs:** update the `upgradesTaken` docblock in `runTypes.ts` (search `ONE UPGRADE PER VISIT`) with a dated line: *"Henry, 2026-09-30, ticket 174: unlimited at the market and workshop; event benches and the gym gate keep their allowances."*
-5. **Tests:** a market visit allows repeated paid upgrades while scrap lasts; the Overclock Rig event bench still stops at 2; the gym gate still gives exactly one free upgrade.
+1. **A named constant:** in `src/engine/run/marketplace.ts`, beside the upgrade prices, add `export const UPGRADES_PER_VISIT = 2;` with a docblock: *"Henry, 2026-09-30, ticket 174: two per visit at the market and the workshop (was one, 163 §2). Late runs had scrap and upgradeable cards but nowhere to spend it."*
+2. **`MarketplaceNode.tsx` and `WorkshopNode.tsx`:** each renders `<UpgradeBench ... benchKey={`${node.id}:${node.visited}`} ...>` with no `allowance`, so the default of 1 applies. Pass `allowance={UPGRADES_PER_VISIT}` at both, and change the heading from `"UPGRADE — ONE CARD IN YOUR DECK"` to `"UPGRADE — UP TO TWO CARDS IN YOUR DECK"`. In `UpgradeBench.tsx`, the sub-heading prints `'one per visit'` for every paid bench (search `'one per visit'`). Make it read the allowance: `one per visit` when it's 1, `${allowance} per visit` otherwise. Add `· N left` once one has been used this visit.
+3. **Leave `UpgradeBench`'s default, the reducer's default and every other venue unchanged:** the event benches (Overclock Rig's 2, Abandoned Terminal's 1) and the gym gate's free upgrade.
+4. **`runSlice.ts`:** the upgrade reducer already honours `allowance` (`spent.filter(...).length >= (allowance ?? 1)`), and `UpgradeBench` already forwards its `allowance` prop in the dispatch, so no reducer change is needed.
+5. **Docs:** update the `upgradesTaken` docblock in `runTypes.ts` (search `ONE UPGRADE PER VISIT`) with a dated line: *"Henry, 2026-09-30, ticket 174: two per visit at the market and workshop (`UPGRADES_PER_VISIT`); event benches and the gym gate keep their own allowances."*
+6. **Tests:**
+   - on one market visit, two paid upgrades succeed and the third is refused
+   - leaving and re-entering the node (a new `visited` count) allows two more, as one did before
+   - the same at the workshop
+   - the Overclock Rig event bench still stops at 2, and the gym gate still gives exactly one free upgrade
 
 ## 174d: Measure before and after
 
-1. **The walker's upgrade policy** (`chooseUpgrade` in `runWalker.ts`) currently takes one upgrade per bench. Let it keep buying the best upgrade (by its own existing ranking) while it can afford it and an upgradeable card remains. Without this, the walker cannot show the surplus being spent.
+1. **The walker's upgrade policy** (`chooseUpgrade` in `runWalker.ts`) currently takes one upgrade per bench. Let it take up to `UPGRADES_PER_VISIT` per bench, by its own existing ranking, while it can afford them and an upgradeable card remains. Without this, the walker cannot show the surplus being spent.
 2. **Expose the walker's run log.** `walkRun` already builds a log (`let log = emptyRunLog(...)`, then `appendRunEvent`), but `WalkResult` does not return it. Add `readonly log: IRunLog` to `WalkResult` and return it. It already records `NODE_ENTERED` (with `biome`) and `FIGHT_ENDED`. It records `SCRAP` only for fights, events and blueprints (reasons `'fight'`, `'event'`, `'blueprint'`), not for the other things it pays for. Next to each `store.dispatch(...)` that spends scrap (`buyMarketCard`, `upgradeDeckCard`, `recruitIntoParty`, a paid `fitPatch`), add `record({ kind: 'SCRAP', delta: -price, reason: '<the reducer name>' })`, the same reason names the game's log uses. Without these, the walker's "spent" column is missing most of its spending.
 3. **Run** the walker on the same seeds before (parent commit) and after (174b + 174c): `walkStarter` for each of `eaStarters()`, 30 seeds each. Build the same per-biome table from the walker's run logs using `scrapCurve`.
 4. **Write** `docs/balance/scrap-curve-174.md` (LF): per biome, before and after:
@@ -119,12 +126,12 @@ So every future playtest can be read the same way, without a one-off script. `ru
    - mean revisits
 
    Also include the win rates (wild, elite, gym clear).
-5. **Do not tune anything else.** Report the numbers to Henry. D2 and D4 are re-asked from this table.
+5. **Do not tune anything else.** Report the numbers to Henry. They also feed ticket 176, the map redesign.
 
 ---
 
 ## Done when
 
 - The report tool works on real playtest logs (174a).
-- Runs start with 45 scrap (174b), and the market and workshop allow as many paid upgrades as the player can afford (174c).
+- Runs start with 45 scrap (174b), and the market and workshop each allow two paid upgrades per visit (174c).
 - `docs/balance/scrap-curve-174.md` shows biome 0's low point and the final biome's leftover scrap before and after (174d).

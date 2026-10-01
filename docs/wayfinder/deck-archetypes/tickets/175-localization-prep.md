@@ -1,6 +1,8 @@
 # Ticket 175: Localization prep (string tables, then card-text templates)
 
-**Type:** infrastructure. **Status:** OPEN. **Blocked on Henry's rulings L1–L5 below.** English only for now; no translations are ordered by this ticket.
+**Type:** infrastructure. **Status:** OPEN, **ruled by Henry 2026-09-30, ready to build.** English only for now; no translations are ordered by this ticket.
+
+**Rulings:** L1–L5 *"Yes to all"*: per-area CSVs; the CSV is the only place English is written; an in-house `t()`; the `{a0.power}` / `[if a1]…[/if]` syntax; live hand numbers left for a later ticket.
 
 **Henry (2026-09-30):**
 
@@ -12,7 +14,7 @@
 
 - **Card text:** `src/engine/data/programs.json` holds 367 cards, including the 98 `+` upgrades, each with a `name` and a free-text English `description`. Numbers are typed into the prose ("45 power") separately from the data (`"power": 45`), so the two can drift.
 - **Conditional highlighting finds its words with English regexes.** `src/ui/utils/conditionalClauses.ts` splits the description into sentences and looks for words like "if", "while", "above" and status names to decide which clause turns green. Its own header says so: *"The description is authored prose, not generated from the actions, so this is a match and not a derivation."* This cannot work in another language.
-- **Upgrade highlighting also diffs English text.** `CardChassis.tsx` / `litSegments.ts` compare the base and `+` descriptions word by word and paint the changed words (`rs-upn`).
+- **Upgrade highlighting also diffs English text.** `describeUpgrade` (`src/ui/screens/runShell.ts`) compares the base and `+` descriptions and marks the changed words, which `CardFace` (`CardChassis.tsx`) paints `rs-upn`.
 - **Other content text:**
   - `events.json` (20 events: text, choice labels and details)
   - `tiers.json` and `modifiers.json`
@@ -29,7 +31,7 @@
 
 ---
 
-## Decisions for Henry
+## Decisions (all ruled as recommended, 2026-09-30)
 
 **L1. Where the strings live: CSV files, one per area, a column per language.** *(recommended, and what you described)*
 
@@ -190,7 +192,7 @@ Where English grammar is built from parts ("draw" + "s"), use a plural key inste
 ## 175h: Highlighting from templates
 
 1. **Green conditionals:** `HandCardFace.tsx` passes `lit` ranges into `CardFace` (in `src/ui/screens/CardChassis.tsx`, painted by `paintSegments` in `litSegments.ts`) today, from `litClauses` in `conditionalClauses.ts`. Replace that with the segments from `renderCardText`. A segment whose `conditionalAction` reads true (`readCardConditionals` in `cardConditionals.ts` already computes this) is painted `rs-lit`.
-2. **Upgrade highlights:** render the base card's and the `+` card's templates. A value token whose number differs is painted `rs-upn`. Keep the current word-diff as the fallback for text that differs outside tokens: when a `+` card adds or removes a whole clause, highlight that clause.
+2. **Upgrade highlights:** replace the text diff in `describeUpgrade` (`runShell.ts`): render the base card's and the `+` card's templates. A value token whose number differs is painted `rs-upn`. Keep the current word-diff as the fallback for text that differs outside tokens: when a `+` card adds or removes a whole clause, highlight that clause.
 3. **Delete** the regex matching in `conditionalClauses.ts` (`splitClauses`, `clauseForEachConditional`, `litClauses` and the word lists). Keep any exported type still imported elsewhere, or move it.
 4. **Tests:**
    - the existing hand tests that expect "If the target is Dazed, draw 1" to turn green still pass
