@@ -4,7 +4,7 @@
 
 ## How it was run
 
-- **Measured at** commit `62eb4ea` (the 170c commit), on **2026-10-01**.
+- **Measured at** commit `ff4eacb` (the 170c commit in your repository), on **2026-10-01**.
 - **Walks:** all 12 EA starters, 30 seeds each, **360 walks**. Tier 0, no modifiers, and **no ghost rule** (a lost fight ends the walk, as it does in every other measurement). The seeds are the tier ladder's own (`tier-ladder:<starter>:<i>`), so these are the same walks as the ladder's Tier 0 row.
 - **Walker settings:** the defaults. That matters for one finding below: by default the walker **never buys upgrades** (the upgrade policy is an option that is off unless a report switches it on, as 174's report did).
 - **Reproduce:** `BALANCE_CACHE_DIR=/tmp/cache npm run balance -- src/debug/balance/walkerDeaths.balance.ts`. About 40 minutes on two cores.
