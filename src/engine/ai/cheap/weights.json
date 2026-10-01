@@ -1,19 +1,19 @@
 {
-  "source": "hand-set first version (ticket 177b); 177c replaces it with a fit",
+  "source": "INTERIM fit by fitWeights.ts (ticket 177c) on a partial recording (153 of 2000 fights, 21 held out): 132 fights / 4851 decisions, held-out top-1 agreement with full 47.0%",
   "weights": {
-    "enemyHpRemoved": 1,
-    "allyHpLost": 0,
-    "enemyKills": 3,
-    "allyDeaths": -5,
-    "overkill": 0,
-    "shieldGained": 0,
-    "enemyStatusValue": 0,
-    "allyStatusValue": 0,
-    "energySpent": 0,
-    "energyLeft": 0,
-    "cardsDrawn": 0,
-    "lowestEnemyHpFraction": 0,
-    "isEndTurn": 0,
-    "evalDelta": 0.05
+    "enemyHpRemoved": 0.245965,
+    "allyHpLost": -0.410208,
+    "enemyKills": 0.0332831,
+    "allyDeaths": -0.0266508,
+    "overkill": 0.0883211,
+    "shieldGained": 0.0124381,
+    "enemyStatusValue": 0.121769,
+    "allyStatusValue": 0.0647066,
+    "energySpent": -0.240172,
+    "energyLeft": 0.00998689,
+    "cardsDrawn": 0.338689,
+    "lowestEnemyHpFraction": -0.321422,
+    "isEndTurn": -1.36309,
+    "evalDelta": 0.0000123365
   }
 }

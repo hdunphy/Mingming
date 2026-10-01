@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { cheapBestAction, featuresForLegalActions } from './cheapPolicy';
 import { actionFeatures, FEATURE_NAMES } from './features';
-import { cheapWeights, weightsTable } from './weights';
+import { cheapWeights, cheapWeightsFile, weightsTable } from './weights';
 import { parseWeights } from './weightsSchema';
 import { legalActions } from '../legalActions';
 import { battleReducer, type BattleAction } from '../../battleReducer';
@@ -148,11 +148,10 @@ describe('177b — actionFeatures', () => {
 });
 
 describe('177b — weights', () => {
-    it('the shipped weights.json validates and starts as the hand-set version', () => {
-        expect(cheapWeights().enemyHpRemoved).toBe(1);
-        expect(cheapWeights().enemyKills).toBe(3);
-        expect(cheapWeights().allyDeaths).toBe(-5);
-        expect(cheapWeights().evalDelta).toBe(0.05);
+    it('the shipped weights.json validates: every feature has a finite weight (a refit changes the values, not this)', () => {
+        const w = cheapWeights();
+        for (const name of FEATURE_NAMES) expect(Number.isFinite(w[name])).toBe(true);
+        expect(cheapWeightsFile().source.length).toBeGreaterThan(0);
     });
 
     it('rejects a missing feature, an unknown one, and a non-number', () => {
@@ -167,9 +166,12 @@ describe('177b — weights', () => {
     });
 
     it('prints a table sorted by size, biggest first', () => {
-        const lines = weightsTable(cheapWeights()).split('\n');
+        const w = cheapWeights();
+        const lines = weightsTable(w).split('\n');
         expect(lines).toHaveLength(FEATURE_NAMES.length);
-        expect(lines[0].startsWith('allyDeaths')).toBe(true);   // |-5| is the largest
-        expect(lines[1].startsWith('enemyKills')).toBe(true);
+        const sizes = lines.map((l) => Math.abs(w[l.split(/\s+/)[0] as keyof typeof w]));
+        for (let i = 1; i < sizes.length; i += 1) expect(sizes[i]).toBeLessThanOrEqual(sizes[i - 1]);
+        // and the table is exactly the weights, none dropped, none repeated
+        expect(new Set(lines.map((l) => l.split(/\s+/)[0]))).toEqual(new Set(FEATURE_NAMES));
     });
 });
