@@ -55,6 +55,7 @@ import runReducer, {
     recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
 } from '../../ui/store/runSlice';
 import { junkToRemove } from './junkPolicy';
+import { chooseDraftPickBest, type DraftPolicy } from './draftPolicy';
 import type { GymSnapshot } from './gymSnapshot';
 import { START_KIT_SIZE, createRun, recruitDeckFor, startKitIdsFor } from '../../engine/run/createRun';
 import { DRAFT_PICKS, draftOffer, draftPool, takePick } from '../../engine/run/modifiers/draftStart';
@@ -486,6 +487,12 @@ export interface WalkInput {
      * default because it adds a key to the result, and a default walk is pinned byte for byte.
      */
     readonly reportLeftovers?: boolean;
+    /**
+     * TICKET 170e: which drafter plays Draft Start. `'kit'` (left out) is 169j's: take the dealt kit
+     * whenever the offers allow. `'best'` is `chooseDraftPickBest`. It does nothing without the
+     * `draft_start` modifier.
+     */
+    readonly draftPolicy?: DraftPolicy;
 }
 
 export interface FightRecord {
@@ -637,13 +644,17 @@ export function chooseDraftPick(
     return best;
 }
 
-/** TICKET 169j: a whole Draft Start draft for one member, five picks with `chooseDraftPick`. */
-export function draftKitFor(seed: string, member: IMingmingState, memberIndex = 0): string[] {
+/**
+ * TICKET 169j: a whole Draft Start draft for one member, five picks with `chooseDraftPick`.
+ * TICKET 170e: `policy` `'best'` drafts with `chooseDraftPickBest` instead. Left out it is `'kit'`.
+ */
+export function draftKitFor(seed: string, member: IMingmingState, memberIndex = 0, policy: DraftPolicy = 'kit'): string[] {
     const kit = startKitIdsFor(member, START_KIT_SIZE);
     let remaining = draftPool(member);
     const picks: string[] = [];
     for (let pick = 0; pick < DRAFT_PICKS; pick += 1) {
-        const chosen = chooseDraftPick(draftOffer(seed, memberIndex, pick, remaining), kit, picks);
+        const offer = draftOffer(seed, memberIndex, pick, remaining);
+        const chosen = policy === 'best' ? chooseDraftPickBest(offer, picks, scoreOf) : chooseDraftPick(offer, kit, picks);
         if (chosen === undefined) break;
         picks.push(chosen);
         remaining = takePick(remaining, chosen);
@@ -838,7 +849,7 @@ export function walkRun(input: WalkInput): WalkResult {
     // cannot click. Every one of these is absent by default, so a plain walk is the walk it always was.
     const modifiers = input.modifiers ?? [];
     const startKitOverrides = modifiers.includes('draft_start')
-        ? Object.fromEntries(party.map((member, index) => [member.id, draftKitFor(seed, member, index)]))
+        ? Object.fromEntries(party.map((member, index) => [member.id, draftKitFor(seed, member, index, input.draftPolicy)]))
         : undefined;
     /*
      * TICKET 170a: a resumed walk starts from the snapshot's run state with only the tier and the

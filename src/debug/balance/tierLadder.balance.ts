@@ -20,6 +20,10 @@
  * hours): `TIER_LADDER_SEEDS` (default 30), `TIER_LADDER_MODIFIER_SEEDS` (default: the same),
  * `TIER_LADDER_STARTERS` (a comma list of starter firmware ids; default all twelve).
  *
+ * TICKET 170e: the modifier report prints TWO Draft Start rows, the kit drafter and the best-card
+ * drafter, on the same seeds; `TIER_LADDER_MODIFIERS` (a comma list of modifier ids) runs only some.
+ * A walk here is cached under `BALANCE_CACHE_DIR` like the gauntlet table's (see below).
+ *
  * TICKET 170b adds `TIER_LADDER_GYM_SEEDS` (default 30): the gauntlet-only table below. Each starter
  * is walked to the gym gate once per seed with the ghost rule (`walkToGym`), and every tier then
  * plays the three gauntlet fights from that one snapshot, so only the tier differs. It asserts that
@@ -33,7 +37,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { eaStarters, walkStarter } from './runWalker';
+import { eaStarters, walkRun } from './runWalker';
+import type { DraftPolicy } from './draftPolicy';
 import { MODIFIERS } from '../../engine/run/modifiers/modifierRegistry';
 import { MAX_TIER } from '../../engine/run/tiers/tierRegistry';
 import {
@@ -44,10 +49,15 @@ import { playGauntlet, walkToGym } from './ghostWalk';
 import { cached, cacheDirFromEnv } from './walkCache';
 
 const LABEL = 'tier-ladder';
+const cacheDir = cacheDirFromEnv();
 /** 170b: the gauntlet-only table's own seeds, so it is not a second reading of the whole-run ladder's walks. */
 const GYM_LABEL = 'tier-ladder-gym';
 const SEEDS = Number(process.env.TIER_LADDER_SEEDS ?? 30);
 const GYM_SEEDS = Number(process.env.TIER_LADDER_GYM_SEEDS ?? 30);
+/** 170e: a comma list of modifier ids to report (default all), so the Draft Start rows can be run alone. */
+const MODIFIER_IDS = process.env.TIER_LADDER_MODIFIERS
+    ? process.env.TIER_LADDER_MODIFIERS.split(',').map((s) => s.trim()).filter(Boolean)
+    : undefined;
 const MODIFIER_SEEDS = Math.min(Number(process.env.TIER_LADDER_MODIFIER_SEEDS ?? SEEDS), SEEDS);
 const STARTERS = process.env.TIER_LADDER_STARTERS
     ? process.env.TIER_LADDER_STARTERS.split(',').map((s) => s.trim()).filter(Boolean)
@@ -56,10 +66,17 @@ const STARTERS = process.env.TIER_LADDER_STARTERS
 /** One configuration's walks, per starter and in seed order, so a smaller sample is a prefix of a larger one. */
 type Walks = Map<string, RunDigest[]>;
 
-function walkAll(seeds: number, tier: number, modifiers?: ReadonlyArray<string>): Walks {
+function walkAll(seeds: number, tier: number, modifiers?: ReadonlyArray<string>, draftPolicy?: DraftPolicy): Walks {
     const out: Walks = new Map();
+    const config = `tier${tier}-${(modifiers ?? []).join('+') || 'none'}${draftPolicy ? `-${draftPolicy}` : ''}`;
     for (const starter of STARTERS) {
-        out.set(starter, walkStarter(starter, seeds, LABEL, false, undefined, tier, modifiers).map(digest));
+        const runs: RunDigest[] = [];
+        for (let i = 0; i < seeds; i += 1) {
+            // The same seed and gym as `walkStarter` gives its i-th walk, so a row here is the row 169j measured.
+            runs.push(cached<RunDigest>(cacheDir, [LABEL, config, starter, i], () =>
+                digest(walkRun({ seed: `${LABEL}:${starter}:${i}`, starter, gymIndex: i % 3, upgrades: false, tier, modifiers, draftPolicy }))));
+        }
+        out.set(starter, runs);
     }
     return out;
 }
@@ -91,11 +108,22 @@ describe('169j — the tier ladder', () => {
         // Tier 0 with none is the ladder's own first rung, restricted to the same seeds.
         const baseline = byTier[0] ?? walkAll(SEEDS, 0);
         const rows = [ladderRow('Tier 0, no modifier', flat(baseline, MODIFIER_SEEDS))];
-        for (const modifier of MODIFIERS) {
-            rows.push(ladderRow(`Tier 0, ${modifier.name}`, flat(walkAll(MODIFIER_SEEDS, 0, [modifier.id]))));
+        const modifiers = MODIFIERS.filter((modifier) => !MODIFIER_IDS || MODIFIER_IDS.includes(modifier.id));
+        let expected = 1;
+        for (const modifier of modifiers) {
+            if (modifier.id === 'draft_start') {
+                // TICKET 170e: two Draft Start rows on the same seeds. `kit` is 169j's drafter (take the
+                // dealt kit whenever the offers allow); `best` takes the best card it is shown.
+                rows.push(ladderRow(`Tier 0, ${modifier.name} (kit drafter)`, flat(walkAll(MODIFIER_SEEDS, 0, [modifier.id], 'kit'))));
+                rows.push(ladderRow(`Tier 0, ${modifier.name} (best drafter)`, flat(walkAll(MODIFIER_SEEDS, 0, [modifier.id], 'best'))));
+                expected += 2;
+            } else {
+                rows.push(ladderRow(`Tier 0, ${modifier.name}`, flat(walkAll(MODIFIER_SEEDS, 0, [modifier.id]))));
+                expected += 1;
+            }
         }
         console.log(`\nModifier report: ${STARTERS.length} starters x ${MODIFIER_SEEDS} seeds, tier 0, one modifier at a time\n\n${formatLadder(rows, { scrap: true })}\n`);
-        expect(rows).toHaveLength(MODIFIERS.length + 1);
+        expect(rows).toHaveLength(expected);
     });
 });
 
@@ -107,8 +135,6 @@ describe('170b — the gauntlet ladder', () => {
      */
     type GymUnit = { missing: true } | { missing: false; ghostFights: number; realFightsWon: number; tiers: GauntletDigest[] };
     const byStarter = new Map<string, GymUnit[]>();
-    const cacheDir = cacheDirFromEnv();
-
     for (const starter of STARTERS) {
         it(`${starter}: ${GYM_SEEDS} seeds walked to the gate, then every tier plays the gauntlet`, () => {
             const units: GymUnit[] = [];
