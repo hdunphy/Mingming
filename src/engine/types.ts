@@ -803,7 +803,17 @@ export interface IBattleState {
    * harness that plays both sides the player deliberately stays on the process default — grading
    * both would measure two changes at once.
    */
-  readonly enemyAiTier?: 'greedy' | 'lite' | 'full';
+  readonly enemyAiTier?: 'greedy' | 'lite' | 'full' | 'cheap';
+  /**
+   * TICKET 177e — the PLAYER side's grade, for a harness that plays both sides and wants to grade
+   * them separately (the cheap-AI measurement puts `cheap` on one side and `full` on the other).
+   *
+   * The mirror of `enemyAiTier` and read the same way: undefined means the process-wide default
+   * (`TacticalAI.AI_TIER`), which is exactly what the player's half has always taken, so a battle
+   * that leaves it unset plays as it always did. Nothing in the shipped game sets it: the AI does
+   * not play the player's half there. `'cheap'` is for simulations only (ticket 177 C3).
+   */
+  readonly playerAiTier?: 'greedy' | 'lite' | 'full' | 'cheap';
   /**
    * TICKET 144 §2 — THE BEAM, AS A PROPERTY OF THE BATTLE.
    *

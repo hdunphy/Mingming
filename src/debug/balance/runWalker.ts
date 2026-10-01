@@ -92,6 +92,7 @@ import { emptyRunLog, appendRunEvent, type IRunLog } from '../../engine/run/runL
 import { SeedStream } from '../../engine/core/SeedStream';
 import { calculatePowerscale } from './powerscale';
 import { runOne, type RunResult } from './runBatch';
+import type { AiTier } from '../../engine/ai/TacticalAI';
 import { BALANCE_STAT_JITTER, BALANCE_IV } from './balanceScenarios';
 import type { ComposedSetup, EnemySetup } from '../scenarios/scenarioSchema';
 import type { IMingmingState, IBattleEntity } from '../../engine/types';
@@ -493,6 +494,18 @@ export interface WalkInput {
      * `draft_start` modifier.
      */
     readonly draftPolicy?: DraftPolicy;
+    /**
+     * TICKET 177e: the grade that plays the PLAYER's side in every fight of the walk. Left out, the
+     * process default, which is what every walk before this played. `'cheap'` is the distilled
+     * policy (`ai/cheap/`); it is for simulations only.
+     */
+    readonly playerAiTier?: AiTier;
+    /**
+     * TICKET 177e: the grade for every ENEMY in the walk, replacing the encounter's own (the ladder's
+     * wild/elite/gauntlet grades). Left out, the encounter's grade, as always. A simulation lever
+     * only: it measures a walk against a different enemy AI than the one the game fields.
+     */
+    readonly enemyAiTier?: AiTier;
 }
 
 export interface FightRecord {
@@ -954,7 +967,8 @@ export function walkRun(input: WalkInput): WalkResult {
         // a ladder the game does not field.
         const result = runOne(
             setup, encounter.seed, WALK_MAX_TURNS, 'PLAYER', false,
-            encounter.enemyAiTier, encounter.aiBeam,
+            input.enemyAiTier ?? encounter.enemyAiTier, encounter.aiBeam,
+            undefined, undefined, undefined, input.playerAiTier,
         );
 
         const won = result.winner === 'PLAYER';

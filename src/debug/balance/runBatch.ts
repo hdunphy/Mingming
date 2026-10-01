@@ -103,6 +103,14 @@ export interface BatchOptions {
      */
     enemyAiTier?: AiTier;
     /**
+     * TICKET 177e — which grade of `TacticalAI` plays the PLAYER side: the mirror of `enemyAiTier`,
+     * for the cheap-AI measurement (`cheap` against `full`) and any other two-grade comparison. The
+     * paragraph above says the player's side is never graded BY `enemyAiTier`, and that stays true;
+     * a harness that wants to grade it asks by name, here. Omitted means the process-wide default,
+     * so every existing suite keeps the grade it had and every existing result is byte-identical.
+     */
+    playerAiTier?: AiTier;
+    /**
      * TICKET 144 §2 — the beam width for these battles. Undefined takes the process default, which
      * is now 8 everywhere.
      *
@@ -499,6 +507,8 @@ export function runOne(
     bereavementDraw?: BereavementDraw,
     /** Ticket 77 B1: the player's macro policy. Undefined in every shipped path. */
     playerPolicy?: MacroPolicy,
+    /** Ticket 177e: the grade that plays the PLAYER side. Undefined takes the process default. */
+    playerAiTier?: AiTier,
 ): RunResult {
     // 2026-09-27: the side that moves first is built by running ITS turn 1, not by relabelling a
     // PLAYER-first state. Since the enemy stopped being dealt an opening hand (d30106e), the
@@ -510,6 +520,8 @@ export function runOne(
         // Left off the state entirely when unset, so `TacticalAI.tierFor` reads it as "take the
         // process default" rather than as a grade someone chose.
         ...(enemyAiTier === undefined ? {} : { enemyAiTier }),
+        // 177e: same shape, same reason. Left off the state entirely when unset.
+        ...(playerAiTier === undefined ? {} : { playerAiTier }),
         // Same shape, same reason: left OFF the state entirely when unset, so the search reads it
         // as "take the process default" rather than as a width someone chose.
         ...(aiBeam === undefined ? {} : { aiBeam }),
@@ -950,7 +962,8 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
             runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier,
-                options.aiBeam, options.bereavementEnergy, options.bereavementDraw, options.playerPolicy)),
+                options.aiBeam, options.bereavementEnergy, options.bereavementDraw, options.playerPolicy,
+                options.playerAiTier)),
     );
 }
 

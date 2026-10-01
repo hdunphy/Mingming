@@ -1,6 +1,8 @@
 
 import { battleReducer, type BattleAction } from '../battleReducer';
 import { legalPlays } from './legalActions';
+import { cheapBestAction } from './cheap/cheapPolicy';
+import { cheapWeights } from './cheap/weights';
 import { beginSimulation, endSimulation } from '../core/simulationDepth';
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
@@ -584,8 +586,15 @@ const LOOKAHEAD_REPLY_DEPTH = 2;
  *    that also handicapped the player would be measuring two changes at once.
  * 2. **An unset field means the process default**, so every existing caller — the balance suites,
  *    the debug scenarios, the pre-roguelike battle path — keeps the behaviour it had.
+ *
+ * TICKET 177e adds a FOURTH grade, `'cheap'`, and its mirror on the player's half. `cheap` is not a
+ * search at all: it is `cheapBestAction` (`ai/cheap/`), one reducer call per legal action scored by
+ * a weighted list of features, fitted to copy `full`. It is for SIMULATIONS and the walker only
+ * (ticket 177 C3): nothing in the shipped game, and no row of `ENEMY_LADDER`, names it. Consequence
+ * 1 above is therefore no longer the whole story: `IBattleState.playerAiTier` now exists beside
+ * `enemyAiTier`, so a harness can put one grade on each side. Left unset it changes nothing.
  */
-export type AiTier = 'greedy' | 'lite' | 'full';
+export type AiTier = 'greedy' | 'lite' | 'full' | 'cheap';
 
 /** Candidates the lookahead re-ranks. Lite narrows the lookahead rather than removing it. */
 const lookaheadTopN = (tier: AiTier): number => (tier === 'lite' ? 2 : 3);
@@ -742,6 +751,8 @@ export const AI_TIER: AiTier =
  */
 function tierFor(state: IBattleState, side: 'PLAYER' | 'ENEMY'): AiTier {
     if (side === 'ENEMY' && state.enemyAiTier !== undefined) return state.enemyAiTier;
+    // 177e: the player's half, for a harness that grades both sides. Unset is today's behaviour.
+    if (side === 'PLAYER' && state.playerAiTier !== undefined) return state.playerAiTier;
     return AI_TIER;
 }
 /**
@@ -874,6 +885,10 @@ export function getBestAction(state: IBattleState): BattleAction {
     // 3. Card-play tactical simulation: the player side (Balance Tester /
     // the headless batch sims), or card-user enemies (enemyMode === 'CARDS').
     const side = state.activeSide;
+
+    // TICKET 177e: the cheap grade does not search. After the two early returns above, so an
+    // enemy's telegraphed intents and a MOVES enemy's pass behave exactly as they do for every grade.
+    if (tierFor(state, side) === 'cheap') return cheapBestAction(state, cheapWeights());
 
     // Silence events during AI simulation to prevent log spam and side effects.
     //
