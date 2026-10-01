@@ -14,6 +14,8 @@
     "balance:deck": "vite-node src/debug/balance/runDeckReport.ts",
     "runread": "vite-node src/debug/balance/runRunRead.ts",
     "balance:scrap-curve": "vite-node src/debug/balance/runScrapCurve.ts",
+    "balance:scrap-walk": "vite-node src/debug/balance/runScrapCurveWalk.ts",
+    "balance:scrap-report": "vite-node src/debug/balance/runScrapCurveReport.ts",
     "decks": "vite-node src/debug/balance/runDeckBrowser.ts",
     "balance:run-gate": "vite-node src/debug/balance/runRunGate.ts",
     "balance:walk": "vite-node src/debug/balance/runRunWalker.ts",

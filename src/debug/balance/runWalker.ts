@@ -66,7 +66,7 @@ import { eventFightScrapMultiplier, fightNodeFor } from '../../engine/run/eventF
 import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { rollDropTable } from '../../engine/RewardSystem';
 import { fightBonusFor } from '../../engine/run/fightBonus';
-import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold, JUNK_REMOVAL_PRICE } from '../../engine/run/marketplace';
+import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold, JUNK_REMOVAL_PRICE, UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
 import { BlueprintLedger } from './BlueprintLedger';
 import { drawEvent } from '../../engine/run/events/eventDraw';
@@ -769,7 +769,11 @@ export function executeWorkshopRecruit(
     roster.push(member);
     const stream = new SeedStream(new SeedStream(`${run.seed}:${node.id}:recruit`).fork('recruit-deck'));
     const cards = recruitDeckFor(member, stream);
+    const scrapBefore = run.scrap;
     store.dispatch(recruitIntoParty({ memberId: member.id, cards, price }));
+    // 174d: a workshop recruit leaves a SCRAP row (an event's free recruit costs 0 and leaves none).
+    const paid = scrapBefore - (store.getState().run.run?.scrap ?? scrapBefore);
+    if (paid > 0) record?.({ kind: 'SCRAP', delta: -paid, reason: 'recruitIntoParty' });
     ledger.spend(choice.speciesId);
     record?.({ kind: 'RECRUITED', definitionId: member.definitionId, cards: cards.map((c) => c.dataId) });
     return choice;
@@ -817,6 +821,20 @@ export function walkRun(input: WalkInput): WalkResult {
         log = appendRunEvent(log, input_, {
             seq: seq++, fightIndex, deckSize: run.deck.length, scrap: run.scrap,
         });
+    };
+    /*
+     * TICKET 174d: A PURCHASE LEAVES A `SCRAP` ROW, under the reducer's own name.
+     *
+     * The walker used to log scrap only for what it GAINED (fights, events) and for blueprints, so
+     * a per-biome table built from its log (`scrapCurve`) had an honest income column and a spend
+     * column missing most of its spending. The amount is read off the purse, not off the price the
+     * policy asked for: if the reducer refused the purchase (no room, no scrap) nothing left the
+     * purse and nothing is logged. Recording changes no game state, so every walk plays exactly
+     * as it did before.
+     */
+    const recordSpend = (reason: string, scrapBefore: number): void => {
+        const spent = scrapBefore - runNow().scrap;
+        if (spent > 0) record({ kind: 'SCRAP', delta: -spent, reason }, fights.length);
     };
 
     const fights: FightRecord[] = [];
@@ -984,8 +1002,10 @@ export function walkRun(input: WalkInput): WalkResult {
             .sort((a, b) => b.score - a.score);
         if (affordable.length > 0) {
             const { offer: best } = affordable[0];
+            const scrapBefore = runNow().scrap;
             store.dispatch(buyMarketCard({ card: best.card, price: best.price }));
             bought.push({ dataId: best.card.dataId, price: best.price });
+            recordSpend('buyMarketCard', scrapBefore);
             record({ kind: 'CARD_BOUGHT', dataId: best.card.dataId, price: best.price }, fights.length);
         }
 
@@ -999,7 +1019,9 @@ export function walkRun(input: WalkInput): WalkResult {
         for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'shop')) {
             patchShelvesSeen += 1;
             if (runNow().scrap < patchPrice) break;
+            const scrapBefore = runNow().scrap;
             store.dispatch(fitPatch({ memberId: fit.memberId, patchId: fit.patchId, price: patchPrice }));
+            recordSpend('fitPatch', scrapBefore);
             patchesTaken.push({ patchId: fit.patchId, from: 'shop', price: patchPrice });
             record({ kind: 'PATCH_TAKEN', memberId: fit.memberId, patchId: fit.patchId }, fights.length);
             break;
@@ -1010,7 +1032,9 @@ export function walkRun(input: WalkInput): WalkResult {
         // them; it spends only scrap the shop visit had no other use for.
         const removalPrice = shopPrice(runNow(), JUNK_REMOVAL_PRICE);
         for (const instanceId of junkToRemove(runNow().deck, runNow().scrap, removalPrice)) {
+            const scrapBefore = runNow().scrap;
             store.dispatch(removeJunkCard({ instanceId, price: removalPrice }));
+            recordSpend('removeJunkCard', scrapBefore);
         }
     };
 
@@ -1018,7 +1042,7 @@ export function walkRun(input: WalkInput): WalkResult {
      * TICKET 163e — the upgrade bench, at whichever venue the walker is standing in.
      *
      * 163b ships three: the market stall, the workshop node and the gym gate (free, once). One
-     * upgrade per visit, which `upgradeDeckCard`'s `benchKey` enforces — the walker passes the same
+     * upgrade per visit (two at the market and workshop since 174c), which `upgradeDeckCard`'s `benchKey` enforces — the walker passes the same
      * `nodeId:visit` key the screens do rather than counting for itself.
      *
      * A bench walked past with nothing affordable or nothing upgradable is COUNTED rather than
@@ -1026,25 +1050,43 @@ export function walkRun(input: WalkInput): WalkResult {
      * was no bench", and 163e's take-rate needs the denominator.
      */
     const upgradeBench = (node: IRegionNode, free: boolean): void => {
-        const run = runNow();
-        const choice = chooseUpgrade(run.deck, run.scrap, free, (base) => shopPrice(run, base));
         /*
-         * THE BENCH IS COUNTED IN BOTH ARMS, and only the purchase is gated.
+         * TICKET 174d: UP TO THE VENUE'S ALLOWANCE, by the same ranking, one purchase at a time.
          *
-         * The first build returned before counting when the arm was off, which left the control arm
-         * reporting "0 of 0 benches" — a take-rate with no denominator, and the one number a
-         * paired comparison actually needs. A bench the walker stood at is a bench whether or not
-         * the policy spent at it.
+         * The market and the workshop allow `UPGRADES_PER_VISIT` (174c); the gate's free upgrade is
+         * once. Each pass re-reads the run, so the second pick sees the purse the first left and
+         * the deck the first changed (the upgraded card has no `+` of its own, so the ranking moves
+         * on to the next best). The walker passes the allowance to the reducer, exactly as the
+         * screens do, and the reducer is what enforces it.
+         *
+         * A bench slot the policy could not use is counted as missed and the visit stops there: a
+         * second slot cannot be usable when the first was not. With an allowance of one this is
+         * the walk it always was.
          */
-        if (!choice) { benchesMissed += 1; return; }
-        if (input.upgrades !== true) { benchesMissed += 1; return; }
-        const before = runNow().deck.filter((c) => c.upgraded === true).length;
-        store.dispatch(upgradeDeckCard({
-            instanceId: choice.instanceId, benchKey: `${node.id}:${node.visited}`, free,
-        }));
-        if (runNow().deck.filter((c) => c.upgraded === true).length === before) { benchesMissed += 1; return; }
-        upgraded.push({ from: choice.from, to: choice.to, price: choice.price });
-        record({ kind: 'CARD_UPGRADED', from: choice.from, to: choice.to, price: choice.price }, fights.length);
+        const allowance = free ? 1 : UPGRADES_PER_VISIT;
+        for (let slot = 0; slot < allowance; slot += 1) {
+            const run = runNow();
+            const choice = chooseUpgrade(run.deck, run.scrap, free, (base) => shopPrice(run, base));
+            /*
+             * THE BENCH IS COUNTED IN BOTH ARMS, and only the purchase is gated.
+             *
+             * The first build returned before counting when the arm was off, which left the control arm
+             * reporting "0 of 0 benches" — a take-rate with no denominator, and the one number a
+             * paired comparison actually needs. A bench the walker stood at is a bench whether or not
+             * the policy spent at it.
+             */
+            if (!choice) { benchesMissed += 1; return; }
+            if (input.upgrades !== true) { benchesMissed += 1; return; }
+            const before = run.deck.filter((c) => c.upgraded === true).length;
+            const scrapBefore = run.scrap;
+            store.dispatch(upgradeDeckCard({
+                instanceId: choice.instanceId, benchKey: `${node.id}:${node.visited}`, free, allowance,
+            }));
+            if (runNow().deck.filter((c) => c.upgraded === true).length === before) { benchesMissed += 1; return; }
+            upgraded.push({ from: choice.from, to: choice.to, price: choice.price });
+            recordSpend('upgradeDeckCard', scrapBefore);
+            record({ kind: 'CARD_UPGRADED', from: choice.from, to: choice.to, price: choice.price }, fights.length);
+        }
     };
 
     /** §5.2's strategic recruit, at a workshop, while a blueprint is held and the party has room. */
