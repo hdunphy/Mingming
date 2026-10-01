@@ -481,6 +481,11 @@ export interface WalkInput {
      * play as in any walk.
      */
     readonly resume?: GymSnapshot;
+    /**
+     * TICKET 170c: also report what the walk was still holding when it ended (`leftovers`). Off by
+     * default because it adds a key to the result, and a default walk is pinned byte for byte.
+     */
+    readonly reportLeftovers?: boolean;
 }
 
 export interface FightRecord {
@@ -526,6 +531,8 @@ export interface WalkResult {
     readonly ghostFights?: number;
     /** TICKET 170a: the party at the gym gate. Present only when `input.stopAtGym` was set and the gate was reached. */
     readonly gymSnapshot?: GymSnapshot;
+    /** TICKET 170c: what the walk still held at the end. Present only when `input.reportLeftovers` was set. */
+    readonly leftovers?: { readonly blueprintsHeld: number };
 }
 
 const asSetupMember = (member: IMingmingState, patches?: Readonly<Record<string, ReadonlyArray<string>>>) => {
@@ -1276,6 +1283,7 @@ export function walkRun(input: WalkInput): WalkResult {
         finalDeck: deckIds(), scrapAtEnd: runNow().scrap, log,
         ...(input.ghost === true ? { ghostFights } : {}),
         ...(gymSnapshot ? { gymSnapshot } : {}),
+        ...(input.reportLeftovers === true ? { leftovers: { blueprintsHeld: blueprintLedger.total } } : {}),
     };
 }
 
