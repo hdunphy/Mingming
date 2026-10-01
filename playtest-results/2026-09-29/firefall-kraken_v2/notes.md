@@ -1,0 +1,14 @@
+- The intro text doesn't make sense anymore. It says core card or something.
+- The V2 starting kit is rough. I'm just getting tackles and capacitor in the same hand. I think I start with 4 tackles??
+- my rewards are not helping me. A 0e card and a 1e 10p*3 card.
+- I don't think skoll v2 works. I don't see the burn getting added.
+- The shop changed, the third time I went there. I'm also doing a lot of grinding to try to purchase the stuff I need. The beginning needs a lot of scrap to get setup.
+- I missed out on 3e on a turn because I hit the end button. It would be great to highlight or alert the user if they can still make a play. Something noticable but not intrusive like a popup or anything. Just like a flash on the button and then the card that is playable lights up. 
+- The shop changed again after I swapped my loadout and dropped skoll from my team
+- Ramp poison is a lot of fun with Jorm_v2. It's so satisfying to build the poison then crush them with a 3x attack.
+- I had a hover over preview say +30 sharp, but no sharp was added it was a damage ability Flashover.
+- I can't "unbench" skoll. When I press confirm she stays benched. I'm doing this at the workshop in biome 2
+
+- I got a Nature Driver on my run with no nature mingmings
+- I can't revive, because I can't select my terminated mingming. So the revive macro doesn't work
+- I lost why do you think I lost?
