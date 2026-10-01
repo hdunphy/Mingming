@@ -1,0 +1,19 @@
+{
+  "source": "hand-set first version (ticket 177b); 177c replaces it with a fit",
+  "weights": {
+    "enemyHpRemoved": 1,
+    "allyHpLost": 0,
+    "enemyKills": 3,
+    "allyDeaths": -5,
+    "overkill": 0,
+    "shieldGained": 0,
+    "enemyStatusValue": 0,
+    "allyStatusValue": 0,
+    "energySpent": 0,
+    "energyLeft": 0,
+    "cardsDrawn": 0,
+    "lowestEnemyHpFraction": 0,
+    "isEndTurn": 0,
+    "evalDelta": 0.05
+  }
+}

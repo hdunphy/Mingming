@@ -304,8 +304,10 @@ function getEntityScore(entity: IBattleEntity): number {
  * Evaluates the total board state for a specific side.
  * Formula: Sum(Ally_Scores) - Sum(Enemy_Scores)
  * Higher is better.
+ *
+ * Exported (ticket 177b) for the cheap policy's `evalDelta` feature; nothing else about it changed.
  */
-function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
+export function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
     const myPartyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
     const oppPartyKey = side === 'PLAYER' ? 'enemyParty' : 'playerParty';
 
