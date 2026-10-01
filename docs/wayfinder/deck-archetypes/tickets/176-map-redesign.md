@@ -1,6 +1,6 @@
 # Ticket 176: Map redesign: towns joined by branching routes
 
-**Type:** map, engine and UI. **Status:** OPEN, **design ruled 2026-10-01; do not start until Henry says go.** Decisions M1–M8 below have recommended defaults; build those unless Henry rules otherwise.
+**Type:** map, engine and UI. **Status:** OPEN, **design ruled 2026-10-01; do not start until Henry says go.** Henry ruled M1–M6 on 2026-10-01. M7 (the town screen) was ruled the same day from the prototypes. M8 is a default.
 
 **Henry (2026-09-30, ruling D4 on ticket 174):**
 
@@ -57,14 +57,14 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
 
 ---
 
-## Decisions (recommended defaults first)
+## Decisions
 
 - **M1. The rows per biome** are the table above:
   - row widths: biome 0 `1, 2, 3, town, 2`; biome 1 `2, 3, town, 2`; biome 2 `2, 3, town`
   - one town per biome
   - the scout stays in biome 2's last route row, so it comes **before** the last town, as 142b wants: you meet the leader's comp with a market and workshop still ahead of the gym
 
-  The widths and row counts are Henry's numbers to tune.
+  The widths and row counts are Henry's numbers to tune. **Ruled: yes** (*"Shape is good"*).
 - **M2. Paths never cross.** Each node links forward to 1 or 2 nodes in the next row. Every node has a way in and a way forward, and no two links cross when drawn. Two paths may merge into one node, which is how "two split into three" rejoins.
 - **M3. Detours:**
   - one per biome, rolled from today's pocket list (wild, wild, alpha, ambush)
@@ -72,15 +72,28 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
   - so taking it costs exactly one extra fight, and it's drawn outside the route, so it never crosses anything
   - never off the scripted first fight
 
-  "Bonus wild" means a plain wild: the bonus is one more fight's scrap and card pick.
-- **M4. The map reveal becomes a species reveal.** Types are always visible now, so Ping Sweep and Relay Tower's Survey instead show **which Mingmings are in every fight in this biome** (rolled for your team as it is now). It still uses the same `reveal:biome:N` record.
-- **M5. A run saved before this ticket is discarded on load.** The existing `run-schema-invalid` path already does this and tells the player. The ranch is untouched. No migration (pre-EA, Henry's saves only).
-- **M6. Left to right**, as today. It fits the 1280×800 Steam Deck frame, and the map scrolls sideways to keep you in view.
-- **M7. The town screen:**
-  - entering a town opens a town panel with two buttons, **Market** and **Workshop**
-  - you can open and close each as often as you like until you step onto the next route
-  - the market shelf is frozen the first time you open the Market (171b, unchanged), so recruiting at the workshop first gets you a shelf for your new team
-  - each building keeps its own `UPGRADES_PER_VISIT = 2`, so a town allows 2 + 2, the same per biome as today
+  "Bonus wild" means a plain wild: the bonus is one more fight's scrap and card pick. **Ruled: yes** (*"Detours are good as one off branches"*).
+- **M4. The map reveal becomes a species reveal.** Types are always visible now, so Ping Sweep and Relay Tower's Survey instead show **which Mingmings are in every fight in this biome** (rolled for your team as it is now). It still uses the same `reveal:biome:N` record. **Ruled: yes.**
+- **M5. A run saved before this ticket is discarded on load.** The existing `run-schema-invalid` path already does this and tells the player. The ranch is untouched. No migration (pre-EA, Henry's saves only). **Ruled: yes** (*"No need for a migration throw away old saves"*).
+- **M6. Left to right, and bigger.** Henry: *"Left to right still, but we can make the map bigger for readability it's always felt small."* Nodes, roads and labels are drawn about 1.5× today's size. The map fills the screen's height at 1280×800 and scrolls sideways to keep you in view (176e).
+- **M7. The town screen: four tabs, entered from a town square. Ruled 2026-10-01.** Henry: *"The shop is getting crowded maybe we have tabs instead."* Reference: the "Town Screen Prototypes" canvas.
+  - **Arriving:** a **town square** with four large building buttons: Shop, Upgrades, Workshop, Loadout. Each shows what's waiting (e.g. "Sköll ready to assemble").
+  - **Inside a building:** a **side rail** on the left with the four tabs, a "← Town square" button and LEAVE TOWN. A **dock** on the right always shows scrap, the team (with patch state), deck count, the macro rack and upgrades left. The dock is hidden on Loadout, which shows the team itself. Henry: *"I like C but then it should transition to look like B once you have entered somewhere."*
+  - **What each tab holds:**
+    - **Shop**, with a BUY / SELL switch:
+      - Buy: card stock, the route's blueprint, macros
+      - Sell: your deck and collection **as card tiles, the same as the buy tiles**, with a sell plate; junk shows as a card with a REMOVE plate
+    - **Upgrades:** card upgrades and **patches** (Henry: *"Patches in upgrades makes sense"*)
+    - **Workshop:** assembly, reflash, party and bench
+    - **Loadout:** today's loadout editor, unchanged, except **bigger Mingming portraits** in the team row
+  - **Cards look the way they do in the game today** (Henry didn't like a restyle):
+    - the stall tile (`rs-card`: pips, type mark, art band, element word, price plate)
+    - the list row (`rs-row`: cost dot, element code, name, tag, ×N)
+    - the hover card (`CardPeek`)
+    - **Every card row shows the full card on hover**, including the Workshop's engine lists.
+    - **The Upgrades preview is two full cards side by side,** now → upgraded, the same as the hover card.
+  - **Upgrade allowance per town visit grows by biome: 1 / 2 / 4** (Henry: *"Upgrade limit should be 1 / 2 / 4 for each biome so it increases with each biome"*). It's one pool per town, shared by everything on the Upgrades tab. This replaces 174's flat `UPGRADES_PER_VISIT = 2` at the market and workshop. Patches stay one slot per Mingming and don't count against it.
+  - Unchanged: you can switch tabs freely until you step onto the next route. The shop's shelf is frozen the first time the Shop tab opens (171b), so assembling in the Workshop first gets a shelf for the new team.
 - **M8. The walker skips detours by default.** A `takeDetours` flag takes every detour, for the "greedy player" measurement.
 
 ---
@@ -174,20 +187,32 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
 1. **One node, two buildings.** `isMarketNode` (`marketplace.ts`) and `isWorkshopNode` (`workshop.ts`) also return true for `'town'`. Grep every caller of both.
    - Reducers that only gate on "is this a shop" now accept a town, which is right.
    - Any place that **chooses a screen or a policy from the kind** has to handle a town as both. That's `RunScreen.tsx` and the walker.
-2. **Bench keys in a town** (the screens build these, today `${node.id}:${node.visited}`):
-   - the Market uses `${node.id}:market:${node.visited}` and the Workshop uses `${node.id}:workshop:${node.visited}`
-   - patch benches likewise, if the workshop has one
-   - plain `marketplace` and `workshop` nodes keep today's keys
-   - each building's upgrade bench keeps `UPGRADES_PER_VISIT` (M7)
-3. **`RunScreen.tsx` (M7):**
-   - On a town, show a **town panel**: a heading "Town" (with the biome name in the context line) and two buttons, **Market** and **Workshop**, each opening the existing `MarketplaceNode` / `WorkshopNode`.
-   - Their LEAVE returns to the town panel, and the map below it is how you move on.
-   - Replace the single `closedNodeId` with "which building is open on this node" (`'market' | 'workshop' | null`).
-   - A town opens with **neither** building open, so the market's shelf isn't frozen (171b's `freezeMarketParty` runs when `MarketplaceNode` mounts) until the player chooses to go in.
+2. **One upgrade pool per town visit (M7):**
+   - Replace `UPGRADES_PER_VISIT` (`marketplace.ts`) with `UPGRADES_PER_TOWN_BY_BIOME = [1, 2, 4]`, read by the town's biome.
+   - The town's upgrade bench key is `${node.id}:upgrades:${node.visited}`, with that allowance.
+   - The patch bench key is `${node.id}:patch:${node.visited}`.
+   - Plain `marketplace` / `workshop` nodes (old code paths, tests) keep 2 and their old keys.
+   - The gym gate and event benches are unchanged.
+   - **Test:** a town in biome 0, 1 and 2 allows exactly 1, 2 and 4 upgrades, and refuses the next.
+3. **The town screen (M7), `RunScreen.tsx` plus new small components.** Prefer small single-purpose components over growing `MarketplaceNode` / `WorkshopNode`.
+   - `TownSquare`: the four building buttons with their status lines.
+   - `TownShell`: the rail, the dock and the tab body.
+   - The tab bodies reuse today's pieces:
+     - **Shop:** `MarketplaceNode`'s stock, blueprint and macro shelves. The sell list becomes a grid of the same `rs-card` tiles with a green sell plate; junk is a tile with a REMOVE plate.
+     - **Upgrades:** `UpgradeBench` and `PatchBench`. The bench's preview becomes two `CardFace`s at the hover card's size (now → upgraded).
+     - **Workshop:** `WorkshopNode`'s blueprint, assemble, reflash and party panels. Every engine list uses `rs-row` with `CardPeek` on hover, the way the loadout's deck rows already do.
+     - **Loadout:** `LoadoutEditor` as it is, with the roster portrait (`rs-dot`) enlarged to about 72 px.
+   - Keep the "which tab is open on this node" state (`'square' | 'shop' | 'upgrades' | 'workshop' | 'loadout'`) beside the run, not inside a component, so a reload reopens the same tab.
+   - The Shop tab mounts `MarketplaceNode`'s shelf only when opened, so 171b's freeze happens then.
+   - **Tests:**
+     - a town opens on the square
+     - each building opens its tab, and "← Town square" returns
+     - the dock is hidden on Loadout
+     - the sell grid lists every deck and collection card with its sell price
+     - every Workshop engine row shows a `CardPeek` on hover
 4. **Labels and icon:** `NODE_LABEL.town = 'Town'`. Add a `town` icon to `icons.ts`; the `ranch` house paths are fine for now.
-5. **The walker (`runWalker.ts`):** on a town, run `workshop(node)`, then `shop(node)`, then the workshop's and the market's upgrade benches, each with its own key. Workshop first, so a recruit happens before the market shelf is rolled.
+5. **The walker (`runWalker.ts`):** on a town, run `workshop(node)`, then `shop(node)`, then the town's one upgrade bench with the biome's allowance (1 / 2 / 4). Workshop first, so a recruit happens before the market shelf is rolled.
 6. **Tests:**
-   - in a town, two upgrades at each building succeed, and a third at either is refused
    - opening the Workshop, recruiting, then opening the Market rolls the shelf for the three-member team
    - a market bought out in a town stays bought out when you close and reopen it
    - the walker records a workshop visit and a market visit at each town
@@ -217,6 +242,7 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
    - Nodes in a column keep **generation order top to bottom**; the no-crossing rule depends on it.
    - A detour sits **half a column right of its host**, outside the route: above the top row for a top detour, below the bottom row for a bottom one.
    - Keep `wanderFor` for **vertical** jitter only, at no more than 12% of the row height, so a jitter can't make two links look crossed.
+   - **Bigger (M6):** about 1.5× today's geometry in `RegionMap.tsx` (`COL_W` 96 → 144, `ROW_H` 74 → 110, node radius `R` 21 → 30), with node labels and icons scaled to match. At 1280×800 the map fills the height available under the run header and scrolls sideways; it never shrinks to fit.
 2. **Drawing:**
    - **Links are roads:** thicker lines than today.
    - **The path you've taken** is highlighted. **Nodes you passed and didn't take are faded.** Delete the "×N" visit count; a visited node is spent now.
@@ -258,7 +284,7 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
 ## Done when
 
 - A run is three biomes of towns joined by branching, one-way routes (M1). Every node type is visible, paths never cross, and each biome has one optional detour.
-- The market and workshop live in towns, each with its own upgrade bench.
+- The market and workshop live in towns, behind the town square and the tabbed rail-and-dock screen (M7), with 1 / 2 / 4 upgrades per town visit by biome.
 - The reveal shows species.
 - The walker walks the new map, and `docs/balance/map-176.md` gives fights per run and the scrap curve against the parent.
 - Henry has looked at the map in the desktop app.
