@@ -49,7 +49,7 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
                    └──────────── Route 5 ──────────┘
 ```
 
-**Fight count.** Every path from start to gym is **11 steps**, before detours: biome 0 has 5 (the scripted wild, 3 more route steps and the gate), biome 1 has 4, and biome 2 has 2. The 3 town visits don't count as steps.
+**Fight count.** Every path from start to gym is **11 steps before the gym**, without detours: biome 0 has 5 (the scripted wild, 3 more route steps and the gate), biome 1 has 4, and biome 2 has 2. The 3 town visits don't count as steps.
 
 - About 1–2 of those steps are events, so **about 9–10 fights**, plus the **3-fight gauntlet = 12–13**.
 - That's inside the 10–13 target.
@@ -138,19 +138,19 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
    5. **Across biomes:** each exit links to every node of the next biome's first route row.
    6. **Scout (142b), final biome only:** same preference order as today (`elite`, `wild`, `rival`, `event`), from the **last route row before the town**, else the row before it. Same `'scout'` fork.
    7. **Rivals (142a):** today's logic, unchanged. Use the same `rivals:<biome>` forks, take a third of the route wilds (never the scripted opening), at least one per biome, and fall back to an event.
-   8. **Detour (M3):** pick a route row `r` that has another route row `r+1` after it. Never the scripted row, and in biome 0 not the row the scripted row links from. Then pick top or bottom:
+   8. **Detour (M3):** pick a route row `r` that has another route row `r+1` after it. Never the scripted row. Then pick top or bottom:
       - the host link goes from the top node of `r` to the top node of `r+1` (or bottom to bottom); that link always exists because of the home rule
       - add a node with `detour: true`, `layer = r`, a kind from `detourKinds`, and the links host → detour → the host link's target
       - keep the host link too: skipping is the plain path
       - **Biome 2's detour may also hang from its last route row's top or bottom node to the town.**
       - **Rival last resort:** today's rule; if a biome has no rival, a wild detour becomes one.
-6. **Tests** (replace the old shape tests in `regionGraph.test.ts`; keep the determinism and schema tests). Over 500 seeds:
+5. **Tests** (replace the old shape tests in `regionGraph.test.ts`; keep the determinism and schema tests). Over 500 seeds:
    - row widths and roles match M1; one town per biome; no `marketplace` or `workshop` nodes
    - biome 0's first route row is a single `wild`
    - **every node is reachable from the start, and the gym is reachable from every node,** following `edges` forward
    - links only go from row `r` to row `r+1`, or through a detour
    - **no crossings** (the rule in step 4)
-   - every start-to-gym path without detours is **11 steps** (town nodes don't count)
+   - every start-to-gym path without detours passes **11 nodes before the gym**, not counting the start and the towns
    - exactly one detour per biome, hanging from a top or bottom link
    - at least one rival per biome; exactly one scout, in the final biome, before the town
    - every node passes `RegionNodeSchema`, and the same seed gives the same graph
