@@ -153,10 +153,12 @@ describe('run-scoped scrap', () => {
     });
 
     it('does not spend scrap if insufficient', () => {
-        // Still genuinely insufficient with the opening grant counted in: 20 + 10 = 30, and 50 is
-        // more than 30. The whole 50 is refused rather than partially drawn.
+        // Still genuinely insufficient with the opening grant counted in: the run holds
+        // `STARTING_SCRAP + 10`, and the spend asks for 5 more than that. The whole amount is
+        // refused rather than partially drawn. (A literal 50 stopped being insufficient when
+        // ticket 174 raised the grant to 45.)
         let state = runReducer({ run: makeRun() }, addRunScrap(10));
-        state = runReducer(state, spendRunScrap(50));
+        state = runReducer(state, spendRunScrap(STARTING_SCRAP + 15));
         expect(state.run?.scrap).toBe(STARTING_SCRAP + 10);
     });
 

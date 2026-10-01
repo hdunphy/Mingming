@@ -105,8 +105,10 @@ export function minimumActiveDeck(partySize: number): number {
  * recruit now if the run has already paid a fight or two, or take a removal at the market instead —
  * which is the decision the opening shop was supposed to offer and could not at 0. See the
  * `scrap:` field below for the measurement this came from.
+ *
+ * Henry, 2026-09-30, ticket 174: 20 → 45. Biome 0 is where the recruits and first cards are bought, and it pays the least.
  */
-export const STARTING_SCRAP = 20;
+export const STARTING_SCRAP = 45;
 
 /**
  * Species already warned about for missing `startKits`, so a three-member debug party of untagged
@@ -352,7 +354,7 @@ export function createRun(input: CreateRunInput): IRunState {
          *
          * Ticket 09 set this to 0 with the right argument — *"carrying any in would make the first
          * marketplace a function of the previous run"* — and that argument is about CARRYING, not
-         * about the opening balance. A fixed grant every run carries nothing: it is the same 20
+         * about the opening balance. A fixed grant every run carries nothing: it is the same grant
          * after a win and after a wipe, so no run can bank into the next one.
          *
          * What 0 actually cost, measured in Henry's 2026-08-24 playtest: early fights are 1-2
