@@ -1,6 +1,6 @@
 # Ticket 182: The text cut, hide-when-empty, and the intro run
 
-**Type:** UI copy, a little UI logic, and one new run mode. **Status:** OPEN. Henry ruled every decision below on 2026-10-02. **Ticket 181 (playtest round 2) waits on this ticket and on ticket 183 (the UI rework).** Not blocked by 176 or 183: this ticket changes words, visibility and one run mode, not the look.
+**Type:** UI copy, a little UI logic, and one new run mode. **Status:** BUILT 2026-10-02 (182a–d), on branch `first-impressions`, not pushed; see the Resolution at the bottom. Henry ruled every decision below on 2026-10-02. **Ticket 181 (playtest round 2) waits on this ticket and on ticket 183 (the UI rework).** Not blocked by 176 or 183: this ticket changes words, visibility and one run mode, not the look.
 
 **Henry (2026-10-02), in his words:**
 
@@ -263,3 +263,23 @@ Two **separate** switches (R9). Both appear on the **starter screen of a new sav
 2. **Skip intro is saved per save; Show advanced content is saved per person** (it carries over to a new save slot).
 3. **The walker's bar for the leader is 75%.**
 4. **Existing saves count as intro done**, so Henry's own save never sees it (he can start a new slot to play it).
+
+---
+
+## Resolution
+
+**Built 2026-10-02, one commit per row on `first-impressions` (not pushed).** 182a is the text cut (starter, ranch and run start, map, battle, market/workshop/event/gate/summary, tips, Abandon run moved to Settings, and the copy-budget test). 182b is hide-when-empty (`6c8d3dd` is the last of it). 182c is the intro run: engine `026904d`, ending and run log `0d62533`, screens `6f06fb9`, and the leader tuning and measurement. 182d is the two switches and the intro start, `52e9a76`.
+
+**What the intro is.** `mode: 'intro'` on the run and `introDone` on the ranch (both add-only with defaults, so an old save is an ordinary one that has done the intro). A new save, with Skip intro off, goes from the starter pick straight into a hand-built six-node map in the biome the starter beats, with a stray Mingming (the two starters you did not pick, on v1, free) and a one-fight leader (two enemies). No macros, patches, firmware choice, sell panel, combat log or enemy-hand tab. It ends the same way won, lost or abandoned: `introDone` becomes true, and `runsCompleted`, `gymsCleared` and `tierClears` do not move. Its run log carries `mode: "intro"`. The summary says "Intro complete" and claims no gym or tier.
+
+**Measured** (`docs/balance/intro-run-182.md`): the walker wins the leader **87 of 90 (97%)**: Kraken 28/30, Fenrir 30/30, Ratatoskr 29/30. The first pairs (Skoll + Fenrir, Huldra + Ratatoskr at IV 10, Jormungandr + Kraken) gave 40%, 100% and 0%; every pair tried is in that file. Tuning was species and IVs only; no card was touched.
+
+**Starter flavour lines** (8 words at most, `starterFlavour.ts`): Kraken "Patient depths, sudden storms." Fenrir "Chained fury that bites back." Ratatoskr "Quick little squirrel, quicker gossip."
+
+**Stale cut-list rows** (already true in the build, skipped): the starter card and stats row (172 built it, Henry ruled it on 2026-09-30) and the `ALPHA v0.3.5` footer (181a replaced it with the build label).
+
+**How to remove the intro** (R10): delete `src/engine/run/intro/` and `src/ui/intro/`; make `introRules(run)` return `NORMAL_RULES` (or inline it at its callers, which only ask it questions); in `MainMenuView.tsx` make `choose` always `addBlueprint` and drop the "Skip intro" switch (`switches.ts`, `GameSwitches.tsx` and its Settings line); delete the intro tests and `introWalk*`/`runIntroWalk.ts`, and the `intro` option in `runWalker.ts`. The `mode` and `introDone` fields can stay: they default to an ordinary run and a finished intro, so they change nothing.
+
+**Not done, and why.** Screenshots of the starter screen, the intro map and the first battle were not taken: the rendering tool was never working in this environment. The checks were run in parts here (eslint, `tsc -b`, the unit tests in shards, the balance tests one by one, and `vite build`, all green) rather than as one `npm run gate`, and the three intermediate 182c commits were not gate-run on their own; the combined tree was green before each.
+
+**Decisions Henry owes.** (1) The intro is far shorter than the 15 to 20 minute target: about 3 fights of roughly 3 turns, which is 3 to 4 minutes at 20 s a turn before reading time. Add a fight or a third leader enemy, or wait for his own timing in 181 Phase 1? (2) The Fire and Water leaders are two of the same species (Skoll twice, Jormungandr twice), because the stronger partner (Fenrir, Kraken) made the weakest starters lose; fine, or add a card or species later? (3) Screenshots: take them by hand when he next runs the game, or skip.

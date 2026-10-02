@@ -28,19 +28,28 @@ export interface IIntroLeaderMember {
     readonly defenseIV: number;
 }
 
-/** The leader pairs, by intro-biome element. Species come from that biome's own pool. */
+/**
+ * The leader pairs, by intro-biome element. Species come from that biome's own pool.
+ *
+ * TUNED against the walker (`docs/balance/intro-run-182.md`), species and IVs only:
+ *  - Fire (Kraken's intro): two Skoll at IV 0. Skoll + Fenrir was 40-70%, and Fenrir was the part that hurt.
+ *  - Nature (Fenrir's intro): Huldra + Ratatoskr at IV 31. Fire beats Nature, so it is the one that is
+ *    easy whatever the IVs are; the top IVs are the hardest the pool can be made.
+ *  - Water (Ratatoskr's intro): two Jormungandr at IV 0. Kraken is the strongest body in the pool and
+ *    with it the leader beat Ratatoskr's party every time; Water has only these two species.
+ */
 export const INTRO_LEADERS: Readonly<Record<string, ReadonlyArray<IIntroLeaderMember>>> = {
     Fire: [
-        { species: 'skoll', os: 'skoll_v1', hpIV: 10, attackIV: 10, defenseIV: 10 },
-        { species: 'fenrir', os: 'fenrir_v1', hpIV: 10, attackIV: 10, defenseIV: 10 },
+        { species: 'skoll', os: 'skoll_v1', hpIV: 0, attackIV: 0, defenseIV: 0 },
+        { species: 'skoll', os: 'skoll_v1', hpIV: 0, attackIV: 0, defenseIV: 0 },
     ],
     Nature: [
-        { species: 'huldra', os: 'huldra_v1', hpIV: 10, attackIV: 10, defenseIV: 10 },
-        { species: 'ratatoskr', os: 'ratatoskr_v1', hpIV: 10, attackIV: 10, defenseIV: 10 },
+        { species: 'huldra', os: 'huldra_v1', hpIV: 31, attackIV: 31, defenseIV: 31 },
+        { species: 'ratatoskr', os: 'ratatoskr_v1', hpIV: 31, attackIV: 31, defenseIV: 31 },
     ],
     Water: [
-        { species: 'jormungandr', os: 'jormungandr_v1', hpIV: 10, attackIV: 10, defenseIV: 10 },
-        { species: 'kraken', os: 'kraken_v1', hpIV: 10, attackIV: 10, defenseIV: 10 },
+        { species: 'jormungandr', os: 'jormungandr_v1', hpIV: 0, attackIV: 0, defenseIV: 0 },
+        { species: 'jormungandr', os: 'jormungandr_v1', hpIV: 0, attackIV: 0, defenseIV: 0 },
     ],
 };
 

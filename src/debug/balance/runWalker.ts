@@ -66,6 +66,8 @@ import { offerGyms, GYM_REGISTRY, COUNTERED_BY, speciesOwningFirmware, gymCompEl
 import { rollEncounter, isFightNode, RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import { eventFightScrapMultiplier, fightNodeFor } from '../../engine/run/eventFight';
 import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
+import { createIntroRun } from '../../engine/run/intro/createIntroRun';
+import { introRules } from '../../engine/run/intro/introRules';
 import { rollDropTable } from '../../engine/RewardSystem';
 import { fightBonusFor } from '../../engine/run/fightBonus';
 import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold, JUNK_REMOVAL_PRICE, UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
@@ -511,6 +513,11 @@ export interface WalkInput {
      * only: it measures a walk against a different enemy AI than the one the game fields.
      */
     readonly enemyAiTier?: AiTier;
+    /**
+     * TICKET 182c: walk the INTRO run (the hand-built six-node map, one free recruit, a one-fight
+     * leader) instead of an ordinary gym. `gymIndex` is ignored. Left out, nothing changes.
+     */
+    readonly intro?: boolean;
 }
 
 export interface FightRecord {
@@ -857,7 +864,12 @@ export function walkRun(input: WalkInput): WalkResult {
     const { seed, starter } = input;
     const offers = offerGyms(`${seed}:gyms`);
     const offer = offers[input.gymIndex % offers.length];
-    const gym = GYM_REGISTRY[offer.gym.id] ?? offer.gym;
+    const introStart = input.intro === true
+        ? createIntroRun({ seed, starter: memberFor('mm1', starter), startedAt: 1_700_000_000_000 })
+        : null;
+    const gym = introStart
+        ? (GYM_REGISTRY[introStart.gymId] ?? offer.gym)
+        : (GYM_REGISTRY[offer.gym.id] ?? offer.gym);
 
     const resume = input.resume;
     const party: IMingmingState[] = resume ? [...resume.roster] : [memberFor('mm1', starter)];
@@ -881,7 +893,7 @@ export function walkRun(input: WalkInput): WalkResult {
             tier: input.tier ?? resume.run.tier,
             modifiers: modifiers.map(modifierEntry),
         }
-        : createRun({
+        : introStart ?? createRun({
             seed, offer, party, startedAt: 1_700_000_000_000,
             tier: input.tier, modifiers, startKitOverrides,
         })));
@@ -1083,6 +1095,9 @@ export function walkRun(input: WalkInput): WalkResult {
     /** §3's shop row: buy the highest-scored affordable card once per visit; refresh never. */
     const shop = (node: IRegionNode): void => {
         const run = runNow();
+        // 182c: the intro's market has no patch bench, no sell panel (junk removal is the sell panel)
+        // and no blueprint shelf.
+        const marketRules = introRules(run).market;
         const stock = rollMarketStock({
             run, node,
             party: partyMembers().map((m) => ({ definitionId: m.definitionId, activeOS: m.activeOS, id: m.id })),
@@ -1102,13 +1117,14 @@ export function walkRun(input: WalkInput): WalkResult {
         }
 
         // A blueprint on the shelf is a body, which the recruit policy values above any card.
-        buyMarketBlueprintIfOffered(store, node, blueprintLedger, (evt) => record(evt, fights.length));
+        if (marketRules.blueprint) buyMarketBlueprintIfOffered(store, node, blueprintLedger, (evt) => record(evt, fights.length));
 
         // TICKET 163e: the shop's Amplifier at `SHOP_PATCH_PRICE`. Bought AFTER the card and the
         // blueprint, which is the order the policy already ranks them in — a patch is the newest
         // shelf and has the least evidence behind its price, so it should not outbid the two that do.
         const patchPrice = shopPrice(runNow(), input.patchPrice ?? SHOP_PATCH_PRICE);
-        for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'shop')) {
+        const shopPatches = marketRules.patchBench ? choosePatches(partyMembers(), runNow().patches ?? {}, 'shop') : [];
+        for (const fit of shopPatches) {
             patchShelvesSeen += 1;
             if (runNow().scrap < patchPrice) break;
             const scrapBefore = runNow().scrap;
@@ -1123,7 +1139,7 @@ export function walkRun(input: WalkInput): WalkResult {
         // patch are worth more to the run than an empty slot in the hand, so removal never outbids
         // them; it spends only scrap the shop visit had no other use for.
         const removalPrice = shopPrice(runNow(), JUNK_REMOVAL_PRICE);
-        for (const instanceId of junkToRemove(runNow().deck, runNow().scrap, removalPrice)) {
+        for (const instanceId of marketRules.sell ? junkToRemove(runNow().deck, runNow().scrap, removalPrice) : []) {
             const scrapBefore = runNow().scrap;
             store.dispatch(removeJunkCard({ instanceId, price: removalPrice }));
             recordSpend('removeJunkCard', scrapBefore);
@@ -1218,7 +1234,9 @@ export function walkRun(input: WalkInput): WalkResult {
                 break;
             }
             upgradeBench(node, true);
-            for (const fit of choosePatches(partyMembers(), runNow().patches ?? {}, 'gate').slice(0, 1)) {
+            // 182c: the intro's gate has no patch bench.
+            const gatePatches = introRules(runNow()).showPatches ? choosePatches(partyMembers(), runNow().patches ?? {}, 'gate') : [];
+            for (const fit of gatePatches.slice(0, 1)) {
                 store.dispatch(fitPatch({ memberId: fit.memberId, patchId: fit.patchId }));
                 patchesTaken.push({ patchId: fit.patchId, from: 'gate', price: 0 });
                 record({ kind: 'PATCH_TAKEN', memberId: fit.memberId, patchId: fit.patchId }, fights.length);
@@ -1227,7 +1245,8 @@ export function walkRun(input: WalkInput): WalkResult {
             const persisted: Record<string, number> = {};
             store.dispatch(beginGauntlet());
             let cleared = true;
-            for (let index = 0; index < GAUNTLET_FIGHTS; index += 1) {
+            const gauntletFights = introRules(runNow()).gauntletFights ?? GAUNTLET_FIGHTS;
+            for (let index = 0; index < gauntletFights; index += 1) {
                 const encounter = rollGauntletFight({ run: runNow(), node, fightIndex: index });
                 const result = fight(node, encounter, persisted);
                 if (result.winner !== 'PLAYER') { cleared = false; break; }
@@ -1269,9 +1288,16 @@ export function walkRun(input: WalkInput): WalkResult {
                 (offered) => choosePick(offered, deckIds(), partyElements()),
                 (evt) => record(evt, fights.length),
                 () => {
+                    // TICKET 182c: the intro's stray Mingming grants its blueprint at build time, so the
+                    // ledger (which stands in for the vault) is given the two options first.
+                    // It offers ONLY those two (not whatever the fights dropped), so it recruits from a
+                    // ledger holding just them.
+                    const rules = introRules(runNow());
+                    const recruitLedger = rules.intro ? new BlueprintLedger() : blueprintLedger;
+                    if (rules.intro) for (const option of rules.recruitOptions?.(runNow()) ?? []) recruitLedger.add(option.speciesId);
                     const held = new Set(partyMembers().map((m) => m.definitionId));
-                    if (runNow().partyIds.length >= 3 || blueprintLedger.recruitable(held).length === 0) return;
-                    executeWorkshopRecruit(store, node, partyMembers(), roster, blueprintLedger, gym, (evt) => record(evt, fights.length), 0);
+                    if (runNow().partyIds.length >= 3 || recruitLedger.recruitable(held).length === 0) return;
+                    executeWorkshopRecruit(store, node, partyMembers(), roster, recruitLedger, gym, (evt) => record(evt, fights.length), 0);
                 },
             );
             if (startedFight) {
