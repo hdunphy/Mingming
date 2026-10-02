@@ -10,6 +10,7 @@
  */
 import { MingmingRegistry, LAUNCH_SPECIES } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { parsePrediction } from './expect/prediction';
 import { cardLine } from './gameText';
 import { currentScreen } from './screen';
 import { renderScreen, screenJson } from './render';
@@ -113,6 +114,8 @@ function applyNumbered(root: string, args: ParsedArgs, numbers: ReadonlyArray<nu
     const rawExpect = text(args, 'expect');
     if (rawExpect !== undefined) {
         try { expect = JSON.parse(rawExpect); } catch { return refuse('--expect must be valid JSON. Nothing was changed.'); }
+        const checked = parsePrediction(expect);
+        if (!checked.ok) return refuse(`${checked.reason} Nothing was changed.`);
     }
 
     let session: SessionFile;
@@ -198,6 +201,20 @@ export function cmdNote(root: string, args: ParsedArgs): CommandResult {
     }
 }
 
+/** `replay --session s --to N`: the screen as it was after the first N moves. Read-only; the one-line reproduction a finding points at. */
+export function cmdReplay(root: string, args: ParsedArgs): CommandResult {
+    const name = sessionName(args);
+    if (isRefusal(name)) return name;
+    try {
+        const session = readSession(root, name);
+        const to = text(args, 'to') === undefined ? session.moves.length : Number(text(args, 'to'));
+        if (!Number.isInteger(to) || to < 0 || to > session.moves.length) return refuse(`--to must be a whole number from 0 to ${session.moves.length}.`);
+        return ok(show(replayWorld(session, session.moves.slice(0, to)), args));
+    } catch (error) {
+        return refuse(error instanceof Error ? error.message : String(error));
+    }
+}
+
 export const COMMANDS: Readonly<Record<string, (root: string, args: ParsedArgs) => CommandResult>> = {
-    new: cmdNew, state: cmdState, move: cmdMove, moves: cmdMoves, card: cmdCard, note: cmdNote,
+    new: cmdNew, state: cmdState, move: cmdMove, moves: cmdMoves, card: cmdCard, note: cmdNote, replay: cmdReplay,
 };

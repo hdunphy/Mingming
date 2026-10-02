@@ -17,6 +17,8 @@ import type { RunSliceState } from '../../ui/store/runSlice';
 import type { EventDefinition } from '../../engine/run/events/eventSchema';
 import type { OutcomePick } from '../../ui/events/outcomePicks';
 import type { HitTotal } from './battleSim';
+import type { PlayRecord } from './expect/outcome';
+import type { Finding } from './findings';
 
 export type PlaytestMode = 'run' | 'turn' | 'card';
 
@@ -177,6 +179,10 @@ export interface World {
     view: View;
     /** Moves applied so far, in order. This is the session's log. */
     readonly log: LoggedMove[];
+    /** Surprises and invariant failures found so far (180e). Rebuilt by every replay, never saved. */
+    readonly findings: Finding[];
+    /** The card or macro the agent played in the move being applied, for `--expect` to read. Cleared before each move. */
+    lastPlay: PlayRecord | null;
 }
 
 export interface Move {

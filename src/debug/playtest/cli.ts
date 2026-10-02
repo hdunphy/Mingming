@@ -7,6 +7,7 @@
  *   moves --session s1 <n,n,n> --why "..."
  *   card  --session s1 <card name>
  *   note  --session s1 "<text>"
+ *   replay --session s1 --to <n>     (the screen after the first n moves; read-only)
  *
  * A thin shell over `commands.ts`: it parses argv, runs one command, prints, and sets the exit code.
  */

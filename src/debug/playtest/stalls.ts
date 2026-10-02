@@ -5,6 +5,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import type { IRanchMember, IRunCard, IRegionNode } from '../../engine/runTypes';
+import { flag } from './findings';
 import type { World } from './types';
 import { runOf } from './types';
 
@@ -22,7 +23,10 @@ export function dispatchChecked(world: World, action: PayloadAction<unknown>, wh
     const before = world.store.getState().run.run;
     world.store.dispatch(action);
     const changed = world.store.getState().run.run !== before;
-    if (!changed) world.view.news.push(`Nothing happened (${what}).`);
+    if (!changed) {
+        world.view.news.push(`Nothing happened (${what}).`);
+        flag(world, 'move-refused', `the screen offered "${what}" and the game's reducer refused it`);
+    }
     return changed;
 }
 

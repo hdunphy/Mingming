@@ -16,7 +16,9 @@ import { getMacro, revivedHpFor } from '../../../engine/data/macroRegistry';
 import type { IBattleState } from '../../../engine/types';
 import { consumeMacro, reviveGauntletMember } from '../../../ui/store/runSlice';
 import { PLAYTEST_MAX_TURNS, cardNameFor, mergeHits, sortedHits, step, type HitTotal } from '../battleSim';
+import { flag } from '../findings';
 import { failFight, settleFight } from '../fightSettle';
+import { battleKeyOf } from './keys';
 import type { BattleFlow, World } from '../types';
 import { runOf } from '../types';
 import { runEnemyTurn } from './enemyTurn';
@@ -53,9 +55,11 @@ function applyAction(world: World, flow: BattleFlow, action: BattleAction, said:
     const moved = step(flow.state, action);
     if (!moved.changed) {
         world.view.news.push('Nothing happened: the game would not do that.');
+        flag(world, 'move-refused', `the battle offered "${battleKeyOf(action)}" and the reducer refused it`);
         return false;
     }
     const named = stabilizeIds(moved.state, flow.minted);
+    world.lastPlay = { action, before: flow.state, after: named.state, hits: moved.hits };
     world.view.news.push(said, ...hitLines(moved.hits), ...downedLines(flow.state, named.state));
     advance(world, { ...flow, minted: named.minted }, named.state, mergedInto(flow.hits, moved.hits));
     return true;
@@ -84,6 +88,7 @@ export function fireMacro(world: World, slot: number, sourceId: string, targetId
     const payload = { macroId, sourceId, targetId };
     if (canFireMacro(flow.state, payload) !== null) {
         world.view.news.push(`Nothing happened: ${macro.name} cannot be fired there.`);
+        flag(world, 'move-refused', `the battle offered macro slot ${slot} and canFireMacro refused it`);
         return;
     }
     try {

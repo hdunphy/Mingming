@@ -20,6 +20,7 @@ import { offerGyms, speciesOwningFirmware } from '../../engine/run/gyms';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import type { IRanchMember } from '../../engine/runTypes';
 import { BALANCE_IV } from '../balance/balanceScenarios';
+import { beforeMove, checkMove } from './afterMove';
 import { currentScreen } from './screen';
 import type { LoggedMove, SessionHeader, View, World } from './types';
 
@@ -57,7 +58,7 @@ export function createWorld(header: SessionHeader): World {
         tier: header.tier, modifiers: [...header.modifiers],
     })));
 
-    return { header, store, view: emptyView(), log: [] };
+    return { header, store, view: emptyView(), log: [], findings: [], lastPlay: null };
 }
 
 /** How many decisions a run may take before the session is stopped with outcome `budget` (ticket 180d). */
@@ -84,8 +85,12 @@ export function applyMove(world: World, move: LoggedMove, more = false): void {
     if (!found) throw new IllegalMoveError(`"${move.key}" is not a legal move on this screen`);
     world.view.news = [];
     world.view.fight = null;
+    world.lastPlay = null;
+    const before = beforeMove(world);
+    const atMove = world.log.length;
     found.apply(world);
     world.log.push(move);
+    checkMove(world, before, move, atMove);
     if (!more) enforceBudget(world);
 }
 
