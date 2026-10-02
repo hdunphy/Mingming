@@ -338,6 +338,29 @@ body {
   line-height: 1.2;
 }
 
+/* ── TICKET 184c — THE COUNTER PIP (`CounterPip`), beside a firmware chip, daemon tag or Driver
+   chip. Same footprint as the patch letter above; the colour says the state, the text the count. */
+.counter-pip {
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-left: 3px;
+  line-height: 1.25;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.counter-pip-counting { color: #c9d1dc; border-color: #c9d1dc66; }
+.counter-pip-ready { color: #1a1300; background: #ffcc00; border-color: #ffcc00; }
+.counter-pip-spent { color: #8a8f98; border-color: #8a8f9855; opacity: 0.75; }
+.counter-pip-armed { color: #7fe0a3; border-color: #7fe0a388; }
+.counter-pip-live { color: #ff9a4d; border-color: #ff9a4d88; }
+/* The tooltip line under the firmware's own sentence: what the counter stands at right now. */
+.tooltip-os-counter { display: block; margin-top: 6px; color: #ffcc00; }
+
 /* The rider's rule, under the firmware's own sentence in the plaque tooltip. Its own line and its
    own colour, because it is a SECOND rule rather than a longer first one. */
 .tooltip-os-patch {

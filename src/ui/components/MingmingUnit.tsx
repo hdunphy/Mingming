@@ -374,11 +374,11 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     )}
 
                     {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
-                    <FirmwareChip entity={entity} />
+                    <FirmwareChip entity={entity} battleState={battleState} />
                 </div>
 
                 {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
-                <DaemonTags entity={entity} />
+                <DaemonTags entity={entity} battleState={battleState} />
 
                 {/* Status Row (ticket 145): its own line, so six badges fit and the art stays clear. */}
                 {/* Ticket 145b: one implementation, shared with the stage plaque — see StatusBadges. */}

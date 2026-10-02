@@ -38,7 +38,9 @@ import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import type { DamagePreview } from '../utils/damagePreview';
 import { formatMultiplier } from './elementMatchups';
 import { SCALING_LABEL } from './scalingLabels';
-import type { IBattleEntity } from '../../engine/types';
+import type { IBattleEntity, IBattleState } from '../../engine/types';
+import { CounterPip } from './CounterPip';
+import { readDaemonCounter, readFirmwareCounter } from '../counters/readCounter';
 
 /*
  * `SCALING_LABEL` and `formatMultiplier` are NOT redefined here. They already exist — the labels in
@@ -51,7 +53,7 @@ import type { IBattleEntity } from '../../engine/types';
  * Portalled, like every other tooltip on this screen, so the plaque's `overflow` and the stage's
  * stacking context can never clip it.
  */
-export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) => {
+export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBattleState }> = ({ entity, battleState }) => {
     const [showOSTooltip, setShowOSTooltip] = React.useState(false);
     /*
      * `useAnchoredRect` rather than reading `ref.current.getBoundingClientRect()` inline — ticket
@@ -67,6 +69,8 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
     // One slot (163 §5), so the first is the only one; written as a lookup rather than a map so an
     // id the registry does not know renders nothing instead of a broken chip.
     const patch = getPatch(entity.patches?.[0] ?? '');
+    // TICKET 184c: what this firmware's counter stands at, if it has one (`ui/counters`).
+    const counter = battleState ? readFirmwareCounter(entity, battleState) : null;
     return (
         <div
             ref={osIconRef}
@@ -96,6 +100,7 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
               * carried there and for the same reason — a chip has room for a word, not a sentence.
               */}
             {patch && <span className="hud-os-patch" title={patch.text}>{patch.name.charAt(0)}</span>}
+            <CounterPip reading={counter} />
 
             {showOSTooltip && rect !== null && createPortal(
                 <div
@@ -125,6 +130,7 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
                             // sentences — the authored table this whole row exists to avoid.
                             <span className="tooltip-os-patch">{patch.name} — {patch.text}</span>
                         )}
+                        {counter && <span className="tooltip-os-counter">{counter.tooltip}</span>}
                     </div>
                     <div className="tooltip-footer">TECHNICAL READOUT // SECTOR 0</div>
                 </div>,
@@ -139,7 +145,7 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity }> = ({ entity }) =>
  * The daemon tags. A daemon is a passive the player bought and can lose track of, so it is named
  * rather than iconified — `title` carries the rule, as it did on the HUD card.
  */
-export const DaemonTags: React.FC<{ entity: IBattleEntity; className?: string }> = ({ entity, className }) => {
+export const DaemonTags: React.FC<{ entity: IBattleEntity; className?: string; battleState?: IBattleState }> = ({ entity, className, battleState }) => {
     if (!entity.daemons || entity.daemons.length === 0) return null;
     return (
         <div className={className ?? 'hud-daemons-row'}>
@@ -159,6 +165,8 @@ export const DaemonTags: React.FC<{ entity: IBattleEntity; className?: string }>
                             borrowed silently, so a future `daemon` glyph knows where to land. */}
                         <Icon name="settings" className="hud-daemon-icon" />
                         <span className="hud-daemon-name">{data.name}</span>
+                        {/* 184c: a daemon with a per-turn limit shows what is left of it. */}
+                        {battleState && <CounterPip reading={readDaemonCounter(entity, daemon.dataId, battleState)} />}
                     </div>
                 );
             })}

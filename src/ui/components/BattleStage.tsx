@@ -214,6 +214,8 @@ interface SlotProps {
     /** Ticket 145b: what the held card would do to this unit. Null unless it is the hover target. */
     preview: DamagePreview | null;
     fx?: UnitFx;
+    /** 184c: the counters on the plaque (firmware, daemons) read the battle. */
+    battleState: IBattleState;
     onClick: () => void;
     onPointerUp: () => void;
     onHoverChange: (hovering: boolean) => void;
@@ -227,7 +229,7 @@ interface SlotProps {
  * puts it 22px left of the sprite and 94px down, 195x26 — all four numbers scale together here.
  */
 const StageSlot: React.FC<SlotProps> = ({
-    entity, isEnemy, rect, plaque, scale, isActive, isTargeted, verdict, preview, fx,
+    entity, isEnemy, rect, plaque, scale, isActive, isTargeted, verdict, preview, fx, battleState,
     onClick, onPointerUp, onHoverChange,
 }) => {
     const accent = getElementAccent(entity.primaryElement);
@@ -295,7 +297,7 @@ const StageSlot: React.FC<SlotProps> = ({
                       * beside it. `.stage-plaque-name-text` can ellipsis so the chip never gets
                       * pushed off the plaque by a long species name.
                       */}
-                    <FirmwareChip entity={entity} />
+                    <FirmwareChip entity={entity} battleState={battleState} />
                 </div>
                 <div className="stage-plaque-row">
                     <StageBar percent={hpPercent} color={getHpColor(hpPercent)} />
@@ -331,7 +333,7 @@ const StageSlot: React.FC<SlotProps> = ({
                   * The daemons get their own row rather than sharing the status line: a daemon is
                   * named, not iconified, and a word does not share 152px with four badges.
                   */}
-                <DaemonTags entity={entity} className="hud-daemons-row stage-plaque-daemons" />
+                <DaemonTags entity={entity} className="hud-daemons-row stage-plaque-daemons" battleState={battleState} />
                 {/*
                   * ABSOLUTE, not in the plaque's flow, and that is load-bearing rather than
                   * cosmetic. The preview appears and disappears as the pointer crosses a target;
@@ -458,6 +460,7 @@ const BattleStage: React.FC<BattleStageProps> = ({
                             : null
                     }
                     fx={unitFx[entity.id]}
+                    battleState={battleState}
                     onClick={() => onEntityClick(entity, isEnemy)}
                     onPointerUp={() => onEntityPointerUp(entity, isEnemy)}
                     onHoverChange={(hovering) => {

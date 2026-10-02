@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import type { IBattleState } from '../../engine/types';
 import { describeDriver } from '../../engine/data/driverRegistry';
+import { CounterPip } from './CounterPip';
+import { readDriverCounter } from '../counters/readCounter';
 import { globalBattleEventBus } from '../../engine/events';
 import { fightKindOf } from '../../engine/run/eventFight';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
@@ -203,6 +205,8 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                             >
                                 <i />
                                 {name}
+                                {/* 184c: a Driver that counts toward something shows where it is. */}
+                                <CounterPip reading={readDriverCounter(id, battleState)} />
                             </span>
                         );
                     })}
