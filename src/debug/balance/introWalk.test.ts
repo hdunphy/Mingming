@@ -9,12 +9,13 @@ import { INTRO_STARTERS_V1, minutesAt, summariseIntro, walkIntro, type IntroWalk
 import { walkRun } from './runWalker';
 
 describe('182c the intro walk', () => {
-    it('walks the intro map: two fights on the way at most, the free recruit, then the one-fight leader', () => {
+    it('walks the intro map: three or four wild fights, the free recruit, then the one-fight leader', () => {
         const result = walkRun({ seed: 'intro-walk-test:kraken_v1:0', starter: 'kraken_v1', gymIndex: 0, intro: true, ghost: true });
         const kinds = result.fights.map((f) => f.kind);
         expect(kinds[kinds.length - 1]).toBe('gym');
         expect(kinds.filter((k) => k === 'gym')).toHaveLength(1);
-        expect(result.fights.length).toBeLessThanOrEqual(4);
+        expect(result.fights.length).toBeGreaterThanOrEqual(4);
+        expect(result.fights.length).toBeLessThanOrEqual(5);
         expect(result.log.events.some((e) => e.kind === 'RECRUITED')).toBe(true);
         // The intro has no patch bench anywhere.
         expect(result.patches).toEqual([]);

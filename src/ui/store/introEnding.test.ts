@@ -95,7 +95,7 @@ describe('182c ending the run', () => {
     it('the intro gate is one fight, not three', () => {
         const store = makeStore();
         store.dispatch(startRun(intro()));
-        for (const id of ['b0l1n0', 'b0l2n0', 'b0l3n1', 'b0l4n0']) store.dispatch(enterNode(id));
+        for (const id of ['b0l1n0', 'b0l1n1', 'b0l2n1', 'b0l3n0', 'b0l4n0']) store.dispatch(enterNode(id));
         store.dispatch(beginGauntlet());
         expect(store.getState().run.run?.gauntlet?.totalFights).toBe(1);
     });

@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import type { ReactNode } from 'react';
 import { useSelector } from 'react-redux';
 
+import { layoutRegion } from './regionLayout';
 import EventNode from './EventNode';
 import GauntletNode from './GauntletNode';
 import MarketplaceNode from './MarketplaceNode';
@@ -81,7 +82,7 @@ function visible(el: Element): string {
 }
 
 describe('182c the stray Mingming', () => {
-    const toStray = ['b0l1n0', 'b0l2n0'];
+    const toStray = ['b0l1n0', 'b0l1n1'];
 
     it('is a recruit with no Leave, and offers the two starters not picked, on v1', async () => {
         const store = storeFor('intro', toStray);
@@ -126,7 +127,7 @@ describe('182c the stray Mingming', () => {
 });
 
 describe('182c the market', () => {
-    const toMarket = ['b0l1n0', 'b0l2n0', 'b0l3n0'];
+    const toMarket = ['b0l1n0', 'b0l1n1', 'b0l2n0'];
 
     it('is a card stall and an upgrade bench in the intro, and nothing else', async () => {
         const host = await mount(storeFor('intro', toMarket), <MarketHarness />);
@@ -154,7 +155,7 @@ describe('182c the market', () => {
 });
 
 describe('182c the leader\'s gate', () => {
-    const toGate = ['b0l1n0', 'b0l2n0', 'b0l3n1', 'b0l4n0'];
+    const toGate = ['b0l1n0', 'b0l1n1', 'b0l2n1', 'b0l3n0', 'b0l4n0'];
 
     it('is one fight with no macro list and no patch bench', async () => {
         const store = storeFor('intro', toGate);
@@ -183,7 +184,7 @@ describe('182c the leader\'s gate', () => {
 
 describe('182c the fight', () => {
     function fightStore(kind: 'intro' | 'ordinary'): TestStore {
-        const store = storeFor(kind, kind === 'intro' ? ['b0l1n0', 'b0l2n0', 'b0l3n1', 'b0l4n0'] : []);
+        const store = storeFor(kind, kind === 'intro' ? ['b0l1n0', 'b0l1n1', 'b0l2n1', 'b0l3n0', 'b0l4n0'] : []);
         if (kind === 'ordinary') {
             const run = store.getState().run.run!;
             store.dispatch(enterNode(run.nodes.find((n) => n.kind === 'gym')!.id));
@@ -210,5 +211,17 @@ describe('182c the fight', () => {
         const host = await mount(fightStore('ordinary'), <BattleArena />);
         expect(host.querySelector('.battle-topbar-log')).not.toBeNull();
         expect(host.querySelector('[data-testid="enemy-hand"]')).not.toBeNull();
+    });
+});
+
+describe('182c the map draws', () => {
+    it('lays the seven intro nodes out one to a cell, the leader at the far right', () => {
+        const run = createIntroRun({ seed: 'intro-layout', starter: toMingmingState(starterFor('kraken')), startedAt: 1 });
+        const layout = layoutRegion(run.nodes, run.currentNodeId);
+        expect(layout.nodes).toHaveLength(7);
+        expect(new Set(layout.nodes.map((n) => `${n.column}:${n.row}`)).size).toBe(7);
+        const leader = layout.nodes.find((n) => n.node.kind === 'gym')!;
+        expect(leader.column).toBe(Math.max(...layout.nodes.map((n) => n.column)));
+        expect(leader.column).toBeLessThan(layout.columnCount);
     });
 });

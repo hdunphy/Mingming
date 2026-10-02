@@ -29,18 +29,37 @@ describe('182c the intro map', () => {
     const nodes = buildIntroNodes();
     const byLayer = (layer: number) => nodes.filter((n) => n.layer === layer);
 
-    it('is six nodes in five layers, all in biome 0', () => {
-        expect(nodes).toHaveLength(6);
+    it('is seven nodes in five layers, all in biome 0', () => {
+        expect(nodes).toHaveLength(7);
         expect(new Set(nodes.map((n) => n.layer))).toEqual(new Set([0, 1, 2, 3, 4]));
         expect(nodes.every((n) => n.biomeIndex === 0 && !n.pocket)).toBe(true);
     });
 
-    it('goes Start, a wild fight, the stray, then a fork, then the leader', () => {
+    it('goes Start, a wild fight and the stray, a fork, one more wild fight, then the leader', () => {
         expect(byLayer(0).map((n) => n.kind)).toEqual(['wild']);
-        expect(byLayer(1).map((n) => n.kind)).toEqual(['wild']);
-        expect(byLayer(2).map((n) => n.kind)).toEqual(['event']);
-        expect(byLayer(3).map((n) => n.kind).sort()).toEqual(['marketplace', 'wild']);
+        expect(byLayer(1).map((n) => n.kind).sort()).toEqual(['event', 'wild']);
+        expect(byLayer(2).map((n) => n.kind).sort()).toEqual(['marketplace', 'wild']);
+        expect(byLayer(3).map((n) => n.kind)).toEqual(['wild']);
         expect(byLayer(4).map((n) => n.kind)).toEqual(['gym']);
+    });
+
+    it('opens one way: Start leads only to the first wild fight, which leads only on to the stray', () => {
+        const [start] = byLayer(0);
+        const wild = byLayer(1).find((n) => n.kind === 'wild')!;
+        const stray = byLayer(1).find((n) => n.kind === 'event')!;
+        expect(start.edges).toEqual([wild.id]);
+        expect([...wild.edges].sort()).toEqual([start.id, stray.id].sort());
+        expect(stray.edges).not.toContain(start.id);
+    });
+
+    it('makes the last wild fight unavoidable: both fork nodes lead to it, and it is the leader\'s only way in', () => {
+        const [last] = byLayer(3);
+        const [leader] = byLayer(4);
+        for (const forkNode of byLayer(2)) {
+            expect(forkNode.edges).toContain(last.id);
+            expect(forkNode.edges).not.toContain(leader.id);
+        }
+        expect(leader.edges).toEqual([last.id]);
     });
 
     it('opens on Start, visited once, so nothing fires before the player moves', () => {
@@ -49,7 +68,7 @@ describe('182c the intro map', () => {
     });
 
     it('joins the fork so the player can take one node or both', () => {
-        const [a, b] = byLayer(3);
+        const [a, b] = byLayer(2);
         expect(a.edges).toContain(b.id);
         expect(b.edges).toContain(a.id);
     });
@@ -64,7 +83,7 @@ describe('182c the intro map', () => {
         }
     });
 
-    it('is the same six nodes every time, whatever the seed', () => {
+    it('is the same seven nodes every time, whatever the seed', () => {
         expect(buildIntroNodes()).toEqual(nodes);
     });
 });
