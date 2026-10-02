@@ -22,7 +22,7 @@ import { battleKeyOf } from './keys';
 import type { BattleFlow, World } from '../types';
 import { runOf } from '../types';
 import { runEnemyTurn } from './enemyTurn';
-import { downedLines, hitLines } from './news';
+import { downedLines, hitLines, LOG_LINES, logLines } from './news';
 
 const nameIn = (state: IBattleState, id: string): string =>
     [...state.playerParty, ...state.enemyParty].find((e) => e.id === id)?.name ?? id;
@@ -58,7 +58,7 @@ function applyAction(world: World, flow: BattleFlow, action: BattleAction, said:
         return false;
     }
     world.lastPlay = { action, before: flow.state, after: moved.state, hits: moved.hits };
-    world.view.news.push(said, ...hitLines(moved.hits), ...downedLines(flow.state, moved.state));
+    world.view.news.push(said, ...hitLines(moved.hits), ...logLines(flow.state, moved.state), ...downedLines(flow.state, moved.state));
     advance(world, flow, moved.state, mergedInto(flow.hits, moved.hits));
     return true;
 }
@@ -121,7 +121,7 @@ export function endTurn(world: World): void {
         const turn = enemy.hits.length > 0
             ? ['The enemy took its turn:', ...hitLines(enemy.hits)]
             : ['The enemy took its turn without hitting anyone.'];
-        world.view.news.push(...turn, ...downedLines(flow.state, enemy.state));
+        world.view.news.push(...turn, ...logLines(flow.state, enemy.state, 2 * LOG_LINES), ...downedLines(flow.state, enemy.state));
         advance(world, flow, enemy.state, mergedInto(flow.hits, [...ended.hits, ...enemy.hits]), enemy.truncated);
     } catch (error) {
         failFight(world, error);

@@ -42,10 +42,11 @@ reason like "it was first" is a fine reason when it is the true one.
 
 Some sessions play the fights yourself. The moves then are the plays your hand allows, the macros in
 your rack, and END TURN. END TURN gives the turn to the enemy and brings it back to you, and the screen
-tells you what the enemy did. Macros are single use: use one when it is worth the most. A battle that
-runs very long is ended as a loss, so go for the win. You also have a limit on how many calls a whole
-session may take; when you run out, the run is ended where it stands, so do not waste calls on looking
-at things twice.
+tells you what the enemy did. After every play the screen also prints the lines the game added to its
+combat log, the same ones a player reads in the log panel. Macros are single use: use one when it is
+worth the most. A battle that runs very long is ended as a loss, so go for the win. You also have a
+limit on how many calls a whole session may take; when you run out, the run is ended where it stands,
+so do not waste calls on looking at things twice.
 
 ### Predictions (card mode only)
 
@@ -61,6 +62,10 @@ will do, written before it happens, and the tool tells you afterwards where you 
 - `self`: the status changes on your own side, `{"<status>": <stacks gained>}`, again all of them.
 - `draw`: how many cards you will draw. `energy`: the change in your energy (a cost shows as a minus).
 - `created`: how many new cards appear. `exhausted`: how many cards leave play.
+
+A unit's firmware (its built-in passive) can add to what a card does: an extra status, a cost in HP, a
+bonus. The card's text does not list those. The lines of the combat log printed after each play do, so
+read them, and put what you learned into your next predictions.
 
 Leave a key out when you have no opinion on it. A wrong prediction is useful, not a mistake: it means
 the card does not say what it does, and the people reading want to know.

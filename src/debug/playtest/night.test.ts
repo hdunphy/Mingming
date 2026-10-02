@@ -258,6 +258,11 @@ describe('180f — the player brief', () => {
         for (const key of PREDICTION_KEYS) expect(brief).toContain(`\`${key}\``);
     });
 
+    it('says the firmware’s effects come through the combat log, not the card text', () => {
+        expect(brief).toMatch(/firmware/);
+        expect(brief).toMatch(/combat log/);
+    });
+
     it('keeps the agent to the tool: no reading the code, the data, the tickets or the balance notes', () => {
         expect(brief).toMatch(/code, its data files, its tickets or its balance notes/);
     });

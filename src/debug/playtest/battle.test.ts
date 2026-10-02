@@ -16,6 +16,7 @@ import { legalActions } from '../../engine/ai/legalActions';
 import { battleOutcome } from '../../engine/battleOutcome';
 import { grantMacro } from '../../ui/store/runSlice';
 import { battleKeyOf, parseBattleKey } from './battle/keys';
+import { LOG_LINES, logLines } from './battle/news';
 import { cardName } from './gameText';
 import { PLAYTEST_MAX_TURNS } from './battleSim';
 import { currentScreen } from './screen';
@@ -238,5 +239,43 @@ describe('180d — the gauntlet in turn mode', () => {
             return;
         }
         throw new Error('no seed reached its gym gate');
+    });
+});
+
+describe('186d — the game’s own combat log comes with every move', () => {
+    const playFirst = (world: World): void => {
+        const key = currentScreen(world).moves.find((m) => m.key.startsWith('battle:play:'))!.key;
+        applyMove(world, { key, why: 'test' });
+    };
+
+    it('a card play prints the lines the game added to its combat log, firmware effects included', () => {
+        const world = inBattle({ seed: 'ps1', starter: 'fenrir_v1' });
+        const before = battleOf(world).state.logs.length;
+        playFirst(world);
+        const added = battleOf(world).state.logs.slice(before).map((l) => l.trim());
+        expect(added.length).toBeGreaterThan(0);
+        const shown = world.view.news.join('\n');
+        for (const line of added.slice(0, 6)) expect(shown, line).toContain(line);
+    });
+
+    it('END TURN prints what the game logged while the enemy played', () => {
+        const world = inBattle({ seed: 'ps4' });
+        const before = battleOf(world).state.logs.length;
+        applyMove(world, { key: 'battle:end', why: 'test' });
+        const flow = world.view.battle;
+        if (!flow) return; // the fight ended on that turn: nothing to compare
+        const added = flow.state.logs.slice(before).map((l) => l.trim());
+        expect(added.length).toBeGreaterThan(0);
+        expect(world.view.news.join('\n')).toContain(added[0]);
+    });
+
+    it('a long log is cut to a few lines and says how many more there were', () => {
+        const world = inBattle({ seed: 'ps4' });
+        const state = battleOf(world).state;
+        const crowded = { ...state, logs: [...state.logs, ...Array.from({ length: 80 }, (_, i) => `filler ${i}`)] };
+        const lines = logLines(state, crowded);
+        expect(lines.length).toBeLessThan(20);
+        expect(lines[lines.length - 1]).toContain(`${80 - LOG_LINES} more`);
+        expect(logLines(state, state)).toEqual([]);
     });
 });
