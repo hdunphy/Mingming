@@ -365,7 +365,7 @@ function closeFight(run: IRunState | null, board: IBattleState): void {
 function beginOrResume(run: IRunState, existing: ReadonlyArray<IRunLog>): void {
     const key = runLogKeyFor(run.seed, run.startedAt);
     const found = existing.find((log) => log.runKey === key);
-    current = found ?? emptyRunLog(run.seed, run.startedAt);
+    current = found ?? emptyRunLog(run.seed, run.startedAt, run.mode);
     seq = current.events.reduce((highest, event) => Math.max(highest, event.seq), 0);
 }
 
@@ -458,7 +458,8 @@ export function createRunLogMiddleware(
 
             if (!current) return result;
 
-            if (action.type === 'run/endRun' && runAfter) {
+            // TICKET 182c: the intro's ending is `run/endIntroRun` (so the ranch does not count it as a run), and it closes the transcript the same way.
+            if ((action.type === 'run/endRun' || action.type === 'run/endIntroRun') && runAfter) {
                 /*
                  * A defeat ends the RUN while the board is still on screen — `handleDefeat`
                  * clears it on the next dispatch. Close the fight first so `RUN_ENDED` stays the

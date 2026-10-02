@@ -293,6 +293,12 @@ export interface IRunLog {
      * minutes?"*
      */
     readonly activeMs: number;
+    /**
+     * TICKET 182c — `"intro"` on the transcript of the intro run, absent on every other. Settings →
+     * Export run log includes it, so a playtester's file says which of its runs was the intro.
+     * Add-only: a log with no `mode` is an ordinary run's.
+     */
+    readonly mode?: 'intro';
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -304,10 +310,11 @@ export function runLogKeyFor(seed: string, startedAt: number): string {
     return `${seed}@${startedAt}`;
 }
 
-export function emptyRunLog(seed: string, startedAt: number): IRunLog {
+export function emptyRunLog(seed: string, startedAt: number, mode?: 'normal' | 'intro'): IRunLog {
     return {
         runKey: runLogKeyFor(seed, startedAt), seed, startedAt, events: [], droppedEvents: 0,
         activeMs: 0,
+        ...(mode === 'intro' ? { mode } : {}),
     };
 }
 
@@ -362,6 +369,7 @@ const LogSchema = z.object({
      * load, silently. `.default(0)` is what makes a log written before 156 still readable.
      */
     activeMs: z.number().nonnegative().default(0),
+    mode: z.literal('intro').optional(),
 });
 
 const StoreSchema = z.object({

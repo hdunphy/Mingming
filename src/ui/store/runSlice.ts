@@ -81,6 +81,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
+import { introRules } from '../../engine/run/intro/introRules';
 import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
 import { snapshotMarketParty } from '../../engine/run/marketParty';
 import { healBetweenFights } from '../../engine/run/gauntletHeal';
@@ -158,6 +159,18 @@ const runSlice = createSlice({
          * it does.
          */
         endRun: (state, action: PayloadAction<RunOutcome>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            return { run: { ...run, phase: 'ended', outcome: action.payload } };
+        },
+
+        /**
+         * TICKET 182c — the intro run's ending. The same state change as `endRun`, under its own
+         * action type, so the ranch's "runs that ENDED" counter (`gameSlice`, matched on
+         * `'run/endRun'`) does not count it: the first real run still gets the first-run blueprint
+         * bonus. Callers do not pick between the two themselves; they use `endRunAction`.
+         */
+        endIntroRun: (state, action: PayloadAction<RunOutcome>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
             return { run: { ...run, phase: 'ended', outcome: action.payload } };
@@ -1362,7 +1375,8 @@ const runSlice = createSlice({
                     phase: 'gauntlet',
                     gauntlet: {
                         fightIndex: 0,
-                        totalFights: GAUNTLET_FIGHTS,
+                        // TICKET 182c: the intro's leader is one fight, not the three-fight gauntlet.
+                        totalFights: introRules(run).gauntletFights ?? GAUNTLET_FIGHTS,
                         // Nobody is hurt and nobody is down before the first fight. The empty
                         // objects are the "full heal on the way in" that `exploration-map.md` grants
                         // between ordinary nodes — the gauntlet's asymmetry starts after fight one.
@@ -1615,6 +1629,7 @@ export const {
     startRun,
     setRun,
     endRun,
+    endIntroRun,
     clearRun,
     enterNode,
     resolveEncounter,
@@ -1660,5 +1675,14 @@ export const {
     recordBankedBlueprint,
     recordFightBlueprintOutcome,
 } = runSlice.actions;
+
+/**
+ * TICKET 182c: the action that ends `run`. Every ending (defeat, victory, abandon) goes through
+ * here, so the intro's ending is chosen in one place: an intro run ends with `endIntroRun`, which
+ * the ranch does not count as a finished run; any other run ends with `endRun`.
+ */
+export function endRunAction(run: Pick<IRunState, 'mode'> | null | undefined, outcome: RunOutcome) {
+    return introRules(run).countsAsProgress ? runSlice.actions.endRun(outcome) : runSlice.actions.endIntroRun(outcome);
+}
 
 export default runSlice.reducer;

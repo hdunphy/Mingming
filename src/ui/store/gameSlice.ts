@@ -75,6 +75,9 @@ export function createEmptyRanch(): IRanchState {
         seenTips: [],
         codexMilestones: [],
         runsCompleted: 0,
+        // TICKET 182c: a NEW save has not played the intro. (A save written before the field is
+        // parsed with `.default(true)`: that player already plays the normal game.)
+        introDone: false,
     };
 }
 
@@ -115,6 +118,15 @@ const gameSlice = createSlice({
         },
         removeFromRoster: (state, action: PayloadAction<string>) => {
             state.roster = (state.roster as IRanchMember[]).filter(m => m.id !== action.payload);
+        },
+
+        /**
+         * TICKET 182c/d: the intro is done (it ended, or "Skip intro" is on). `false` is the switch
+         * turned back off on the starter screen of a save that has not begun; Settings only ever
+         * sends `true`.
+         */
+        setIntroDone: (state, action: PayloadAction<boolean>) => {
+            state.introDone = action.payload;
         },
 
         // --- Blueprints ---
@@ -398,6 +410,7 @@ const gameSlice = createSlice({
 export const {
     addToRoster,
     removeFromRoster,
+    setIntroDone,
     addBlueprint,
     spendBlueprint,
     assembleMingming,

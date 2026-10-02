@@ -67,7 +67,8 @@ import type { Dispatch } from '@reduxjs/toolkit';
 
 import { codexSeenFrom } from '../../engine/run/runSummary';
 import type { IRunState } from '../../engine/runTypes';
-import { markGymCleared, recordCodexSeen, recordTierCleared } from './gameSlice';
+import { introRules } from '../../engine/run/intro/introRules';
+import { markGymCleared, recordCodexSeen, recordTierCleared, setIntroDone } from './gameSlice';
 import { clearRun } from './runSlice';
 
 export interface TeardownRunInput {
@@ -87,7 +88,11 @@ export function teardownRun({ run, dispatch }: TeardownRunInput): void {
     // power attached (`economy-session.md`) — there is nothing to withhold from a loser.
     dispatch(recordCodexSeen(codexSeenFrom(run.deck)));
 
-    if (run.outcome === 'victory') {
+    // TICKET 182c: the intro ends the same way whatever its outcome, and it unlocks nothing.
+    const rules = introRules(run);
+    if (rules.intro) dispatch(setIntroDone(true));
+
+    if (run.outcome === 'victory' && rules.countsAsProgress) {
         dispatch(markGymCleared(run.gymId));
         dispatch(recordTierCleared(run.tier));
     }
