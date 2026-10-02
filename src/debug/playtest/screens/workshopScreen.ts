@@ -10,6 +10,7 @@ import { nodeLabel } from '../gameText';
 import { assemblySection } from './workshop/assembly';
 import { reflashSection } from './workshop/reflash';
 import { teamLines } from './workshop/teamLines';
+import { openLoadout } from './loadoutScreen';
 import { upgradeSection } from './upgradeBench';
 
 export function workshopScreen(world: World): Screen {
@@ -26,6 +27,6 @@ export function workshopScreen(world: World): Screen {
             `${nodeLabel(node)}, visit ${node.visited}. Scrap: ${run.scrap}.`,
             ...assembly.lines, ...reflash.lines, ...teamLines(world), ...upgrades.lines,
         ],
-        moves: [...assembly.moves, ...reflash.moves, ...upgrades.moves, leave],
+        moves: [...assembly.moves, ...reflash.moves, ...upgrades.moves, openLoadout, leave],
     };
 }

@@ -11,19 +11,17 @@
  * call what the screens call: the reward roll is seeded with the battle's seed and is told
  * `firstRun`, and the player side also runs the temporary Drivers an event may have granted.
  */
-import { enterNode, endRun, freezeMarketParty } from '../../ui/store/runSlice';
-import { isMarketNode } from '../../engine/run/marketplace';
-import { rollEncounter, isFightNode } from '../../engine/run/encounter';
+import { endRun } from '../../ui/store/runSlice';
+import { rollEncounter } from '../../engine/run/encounter';
 import { fightNodeFor } from '../../engine/run/eventFight';
 import { tempDriverIds } from '../../engine/run/tempDrivers';
 import type { IRegionNode } from '../../engine/runTypes';
 import type { IBattleState } from '../../engine/types';
-import { setupFor } from '../balance/runWalker';
-import { autoPlay, openBattle } from './battleSim';
+import { setupFor, withCarriedHp } from '../balance/runWalker';
+import { autoPlay, openBattle, type AutoResult } from './battleSim';
 import { partyOf } from './party';
 import { speciesName } from './gameText';
 import { startRewards } from './rewards';
-import { liveRanchParty } from './stalls';
 import type { FightReport, World } from './types';
 import { runOf } from './types';
 
@@ -43,29 +41,35 @@ export function reportFor(node: IRegionNode, battle: IBattleState, won: boolean,
     };
 }
 
-/** Walk onto a node. A fight node is fought on the spot; anything else just becomes the current node. */
-export function stepOnto(world: World, nodeId: string): void {
-    world.store.dispatch(enterNode(nodeId));
-    const node = runOf(world).nodes.find((n) => n.id === nodeId);
-    if (node && isFightNode(node.kind) && node.kind !== 'gym') playFightNode(world, node);
-    // The stall freezes its shelf for the team it was first seen with. `MarketplaceNode` does this in
-    // an effect on first render; here it is the same dispatch, made on arrival.
-    if (node && isMarketNode(node.kind)) world.store.dispatch(freezeMarketParty({ nodeId, party: liveRanchParty(world) }));
+/** Play an encounter out with the game's AI on both sides, from the party as it stands (and as the gauntlet carried it). */
+export function fightEncounter(
+    world: World, encounter: ReturnType<typeof rollEncounter>, carriedHp?: Readonly<Record<string, number>>,
+): AutoResult | null {
+    const run = runOf(world);
+    const party = partyOf(world);
+    const built = setupFor(
+        encounter.seed, party, run.deck.map((c) => c.dataId), encounter.enemyParty, encounter.enemyDeckIds,
+        encounter.enemyDrivers ?? [], [...(run.drivers ?? []), ...tempDriverIds(run)], run.patches,
+    );
+    const setup = withCarriedHp(built, party, carriedHp);
+    try {
+        return autoPlay(openBattle({ setup, seed: encounter.seed, enemyAiTier: encounter.enemyAiTier, aiBeam: encounter.aiBeam }));
+    } catch (error) {
+        // The game's own code threw mid-fight. That is a game bug worth a report line, not a reason
+        // to lose the session: the run is cut short (as abandoned) and the message is kept.
+        world.view.engineError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        world.store.dispatch(endRun('abandoned'));
+        return null;
+    }
 }
 
 /** Roll the node's encounter, play it out with the game's AI on both sides, and settle the result. */
 export function playFightNode(world: World, node: IRegionNode): void {
     const run = runOf(world);
-    const party = partyOf(world);
     const fought = fightNodeFor(run, node);
-    const encounter = rollEncounter({ run, node: fought, party });
-    const setup = setupFor(
-        encounter.seed, party, run.deck.map((c) => c.dataId), encounter.enemyParty, encounter.enemyDeckIds,
-        encounter.enemyDrivers ?? [], [...(run.drivers ?? []), ...tempDriverIds(run)], run.patches,
-    );
-    const result = autoPlay(openBattle({
-        setup, seed: encounter.seed, enemyAiTier: encounter.enemyAiTier, aiBeam: encounter.aiBeam,
-    }));
+    const encounter = rollEncounter({ run, node: fought, party: partyOf(world) });
+    const result = fightEncounter(world, encounter);
+    if (!result) return;
     const won = result.winner === 'PLAYER';
     world.view.fight = reportFor(fought, result.state, won, result.turns, result.truncated, result.hits);
 

@@ -4,7 +4,8 @@
  * `BattleArena` rolls `rollDropTable` once the player has won, banks the blueprints straight away
  * (so a reload on the reward screen cannot lose one), and claims the rest when the player presses
  * Continue: scrap, then the patch, then the macro, then the picked cards, then the Driver, then
- * `resolveEncounter`. This is that sequence over the playtester's moves.
+ * `resolveEncounter` (or, in the gauntlet, `advanceGauntlet` / `finishGauntlet`). This is that
+ * sequence over the playtester's moves.
  *
  * The decisions the player is asked are, in order: one per card choice (take it for the deck, send
  * it to the collection, or skip), then the patch (take one or none), then the macro (take one or
@@ -12,13 +13,14 @@
  * claimed at once.
  */
 import {
-    addBlueprint,
+    addBlueprint, markGymCleared, recordGymTierClear, recordTierCleared,
 } from '../../ui/store/gameSlice';
 import {
-    addDriver, addRunCards, addRunCollection, addRunScrap, fitPatch, recordBankedBlueprint,
-    recordFightBlueprintOutcome, resolveEncounter, takeRewardMacro,
+    addDriver, addRunCards, addRunCollection, addRunScrap, advanceGauntlet, endRun, finishGauntlet, fitPatch,
+    recordBankedBlueprint, recordFightBlueprintOutcome, resolveEncounter, takeRewardMacro,
 } from '../../ui/store/runSlice';
-import { rollDropTable } from '../../engine/RewardSystem';
+import { gymClearBlueprints, rollDropTable } from '../../engine/RewardSystem';
+import { authoredBossFor } from '../../engine/run/bosses';
 import { fightBonusFor } from '../../engine/run/fightBonus';
 import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFight';
 import { paysDriver, partyElementsOf, resolveDriverStake } from '../../engine/run/driverStakes';
@@ -51,7 +53,7 @@ export function nextDecision(flow: RewardFlow): Decision | null {
 }
 
 /** Roll what a win pays, bank its blueprints, and open the claim. Called once, right after the win. */
-export function startRewards(world: World, node: IRegionNode, battle: IBattleState): void {
+export function startRewards(world: World, node: IRegionNode, battle: IBattleState, carried?: RewardFlow['carried']): void {
     const run = runOf(world);
     const ranch = world.store.getState().game;
     const nodeKind = fightKindOf(run, node);
@@ -81,6 +83,7 @@ export function startRewards(world: World, node: IRegionNode, battle: IBattleSta
 
     const flow: RewardFlow = {
         nodeId: node.id,
+        ...(carried === undefined ? {} : { carried }),
         scraps: rolled.scraps * scrapMultiplier,
         blueprints: [...rolled.blueprints],
         driver: driverStake ?? rolled.driver ?? null,
@@ -105,7 +108,7 @@ export function answerReward(world: World, answer: RewardAnswer): void {
     if (nextDecision(next) === null) claimRewards(world);
 }
 
-/** The arena's `handleContinue`, minus the gauntlet branch (180c). Ends with `resolveEncounter`. */
+/** The arena's `handleContinue`. */
 export function claimRewards(world: World): void {
     const flow = world.view.reward;
     if (!flow) return;
@@ -151,8 +154,31 @@ export function claimRewards(world: World): void {
     if (forCollection.length > 0) store.dispatch(addRunCollection(forCollection));
     if (flow.driver) store.dispatch(addDriver(flow.driver));
 
-    store.dispatch(resolveEncounter());
+    settleEncounter(world, flow);
     world.view.reward = null;
+}
+
+/**
+ * The arena's tail of `handleContinue`: a gauntlet fight advances the gauntlet (carrying HP) or, the
+ * last one, finishes it, banks the leader's blueprints, records the clear and ends the run in
+ * victory; any other fight is resolved. Order is the arena's.
+ */
+function settleEncounter(world: World, flow: RewardFlow): void {
+    const { store } = world;
+    const run = runOf(world);
+    const gauntlet = run.gauntlet;
+    if (!gauntlet) { store.dispatch(resolveEncounter()); return; }
+    if (gauntlet.fightIndex < gauntlet.totalFights - 1) { store.dispatch(advanceGauntlet(flow.carried ?? [])); return; }
+
+    store.dispatch(finishGauntlet());
+    for (const speciesId of gymClearBlueprints((authoredBossFor(run.gymId)?.members ?? []).map((m) => m.species))) {
+        store.dispatch(addBlueprint(speciesId));
+        store.dispatch(recordBankedBlueprint(speciesId));
+    }
+    store.dispatch(markGymCleared(run.gymId));
+    store.dispatch(recordTierCleared(run.tier));
+    store.dispatch(recordGymTierClear({ gymId: run.gymId, tier: run.tier }));
+    store.dispatch(endRun('victory'));
 }
 
 /** How many macro slots a rack has, for the replace-a-slot moves. */

@@ -13,6 +13,8 @@ import type { EnhancedStore } from '@reduxjs/toolkit';
 
 import type { IRanchState, IRunState, NodeKind } from '../../engine/runTypes';
 import type { RunSliceState } from '../../ui/store/runSlice';
+import type { EventDefinition } from '../../engine/run/events/eventSchema';
+import type { OutcomePick } from '../../ui/events/outcomePicks';
 import type { HitTotal } from './battleSim';
 
 export type PlaytestMode = 'run' | 'turn' | 'card';
@@ -76,6 +78,8 @@ export type RewardAnswer =
 /** A won fight's pay, waiting to be claimed. Blueprints are already banked, as the arena banks them. */
 export interface RewardFlow {
     readonly nodeId: string;
+    /** In a gauntlet: each member's HP as the fight left it, for `advanceGauntlet`. */
+    readonly carried?: ReadonlyArray<{ readonly memberId: string; readonly hp: number; readonly maxHp: number }>;
     readonly scraps: number;
     readonly blueprints: ReadonlyArray<string>;
     readonly driver: string | null;
@@ -83,6 +87,32 @@ export interface RewardFlow {
     readonly patchOffers: ReadonlyArray<{ readonly memberId: string; readonly patchId: string }>;
     readonly macroOffers: ReadonlyArray<string>;
     readonly answers: ReadonlyArray<RewardAnswer>;
+}
+
+/**
+ * An event in progress. The event is drawn once, on arrival, and kept here for the visit: a draw
+ * reads the run, and the run changes while a choice is being made, so redrawing would change the
+ * event under the player's feet (`EventNode` holds its draw in a ref for the same reason).
+ */
+export interface EventFlow {
+    readonly visitKey: string;
+    /** `null` is the Empty Relay, the node's fallback when nothing is eligible. */
+    readonly event: EventDefinition | null;
+    /** The choice taken and awaiting its picks, or null while the choices are on offer. */
+    readonly choiceId: string | null;
+    readonly outcomeIndex: number;
+    readonly picks: Readonly<Record<number, OutcomePick>>;
+    /** Cards ticked so far in a multi-card step. */
+    readonly selected: ReadonlyArray<string>;
+    /** The Overclock Rig's free upgrade bench is open. */
+    readonly upgrading: boolean;
+}
+
+/** The loadout editor, open over whatever screen opened it. */
+export interface EditorState {
+    /** A benched member picked up, waiting for a slot. */
+    readonly swapping: string | null;
+    readonly confirmWarned: boolean;
 }
 
 export interface View {
@@ -99,6 +129,10 @@ export interface View {
     closedStall: string | null;
     /** `nodeId:visit` of the last event the player walked out of (`RunScreen`'s `leftEventKey`). */
     leftEvent: string | null;
+    event: EventFlow | null;
+    editor: EditorState | null;
+    /** Set when the game's own code threw during a fight. The run is cut short and the message is kept for the report. */
+    engineError: string | null;
 }
 
 /** What a section of a screen contributes: some lines of text and the moves that go with them. */

@@ -12,7 +12,10 @@ import { endScreen } from './screens/endScreen';
 import { mapScreen } from './screens/mapScreen';
 import { rewardScreen } from './screens/rewardScreen';
 import { marketScreen } from './screens/marketScreen';
-import { leftKey, unbuiltScreen } from './screens/unbuiltScreen';
+import { boundaryScreen } from './screens/boundaryScreen';
+import { eventScreen } from './screens/eventScreen';
+import { gauntletScreen } from './screens/gauntletScreen';
+import { loadoutScreen } from './screens/loadoutScreen';
 import { workshopScreen } from './screens/workshopScreen';
 import { stallOpen } from './stalls';
 import type { Screen, World } from './types';
@@ -22,14 +25,15 @@ export function currentScreen(world: World): Screen {
     const run = runOf(world);
     if (run.phase === 'ended') return endScreen(world);
     if (world.view.reward) return rewardScreen(world);
+    if (world.view.editor) return loadoutScreen(world);
 
     const node = run.nodes.find((n) => n.id === run.currentNodeId);
     if (node && stallOpen(world, node)) {
         if (isMarketNode(node.kind)) return marketScreen(world);
         if (isWorkshopNode(node.kind)) return workshopScreen(world);
     }
-    if (node && world.view.leftEvent !== leftKey(node.id, node.visited) && (node.kind === 'event' || node.kind === 'gym')) {
-        return unbuiltScreen(world);
-    }
+    if (run.phase === 'gauntlet') return gauntletScreen(world);
+    if (node && node.kind === 'event' && world.view.leftEvent !== `${node.id}:${node.visited}`) return eventScreen(world);
+    if (run.boundaryBiome !== undefined) return boundaryScreen(world);
     return mapScreen(world);
 }

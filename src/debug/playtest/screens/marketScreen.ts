@@ -14,6 +14,7 @@ import { blueprintShelf } from './market/blueprintShelf';
 import { cardShelf } from './market/cardShelf';
 import { macroShelf } from './market/macroShelf';
 import { sellList } from './market/sellList';
+import { openLoadout } from './loadoutScreen';
 import { patchSection } from './patchBench';
 import { upgradeSection } from './upgradeBench';
 
@@ -45,6 +46,6 @@ export function marketScreen(world: World): Screen {
             `${nodeLabel(node)}, visit ${node.visited}. Scrap: ${run.scrap}. This stock is fixed for the run; a refresh is ${priceNote(world, refreshPrice)}.`,
             ...cards.lines, ...blueprint.lines, ...macros.lines, ...patches.lines, ...upgrades.lines, ...sell.lines,
         ],
-        moves: [...cards.moves, ...blueprint.moves, ...macros.moves, ...refresh, ...patches.moves, ...upgrades.moves, ...sell.moves, leave],
+        moves: [...cards.moves, ...blueprint.moves, ...macros.moves, ...refresh, ...patches.moves, ...upgrades.moves, ...sell.moves, openLoadout, leave],
     };
 }

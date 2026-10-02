@@ -10,10 +10,10 @@ import { addBlueprint } from '../../ui/store/gameSlice';
 import { addRunScrap, spendRunScrap } from '../../ui/store/runSlice';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import { isBlueprintSlotSold, rollBlueprintOffer } from '../../engine/run/marketplace';
-import { stepOnto } from './fightFlow';
+import { stepOnto } from './arrive';
 import { freshWorld } from './testKit';
 import { currentScreen } from './screen';
-import type { World } from './types';
+import type { Screen, World } from './types';
 import { runOf } from './types';
 import { applyMove } from './world';
 
@@ -45,17 +45,36 @@ export function settleRewards(world: World): void {
     }
 }
 
+/**
+ * The plain routine a test player follows off any screen that is not the map: take a card on offer,
+ * look in a stall and leave, close an editor, ignore the boundary, answer an event with its first
+ * choice, begin each gauntlet fight. `tried` stops a multi-step screen repeating one move forever.
+ */
+export function routineMove(screen: Screen, tried: ReadonlySet<string> = new Set()): string {
+    const keys = screen.moves.map((m) => m.key);
+    const by = (test: (key: string) => boolean): string | undefined => keys.find((k) => test(k) && !tried.has(k));
+    switch (screen.id) {
+        case 'market': case 'workshop': return keys.includes('leave') ? 'leave' : keys[0];
+        case 'loadout': return 'loadout:confirm';
+        case 'boundary': return 'boundary:ignore';
+        case 'gauntlet': return by((k) => k === 'gauntlet:begin') ?? keys[0];
+        case 'reward': return by((k) => k.includes(':take:')) ?? by((k) => k.endsWith(':skip')) ?? keys[0];
+        case 'event': return by((k) => k === 'event:confirm') ?? by((k) => k !== 'event:back') ?? keys[0];
+        default: return by((k) => k.startsWith('enter:')) ?? keys[0];
+    }
+}
+
 /** Walk to the nearest node of `kind` by real moves. False when the run ends or no route exists. */
-export function walkTo(world: World, kind: NodeKind, maxMoves = 40): boolean {
+export function walkTo(world: World, kind: NodeKind, maxMoves = 60): boolean {
     for (let made = 0; made < maxMoves; made += 1) {
-        settleRewards(world);
         const run = runOf(world);
         if (run.phase === 'ended') return false;
         const here = run.nodes.find((n) => n.id === run.currentNodeId)!;
-        if (here.kind === kind && here.visited > 0) return true;
+        const screen = currentScreen(world);
+        if (here.kind === kind && here.visited > 0 && screen.id !== 'map' && screen.id !== 'reward') return true;
+        if (screen.id !== 'map') { applyMove(world, { key: routineMove(screen), why: 'test' }); continue; }
         const step = firstStepToward(world, kind);
-        if (step === null) return false;
-        const move = currentScreen(world).moves.find((m) => m.key === `enter:${step}`);
+        const move = step === null ? undefined : screen.moves.find((m) => m.key === `enter:${step}`);
         if (!move) return false;
         applyMove(world, { key: move.key, why: 'test' });
     }
@@ -94,4 +113,13 @@ export function marketWithBlueprint(): { world: World; speciesId: string; price:
         }
     }
     throw new Error('no seed offers a blueprint at a market');
+}
+
+/** A fresh world on the first seed that has a node of this kind, with the party standing on it. */
+export function worldAt(kind: NodeKind, over: Parameters<typeof freshWorld>[0] = {}): World {
+    for (let n = 1; n <= 40; n += 1) {
+        const world = freshWorld({ ...over, seed: `ps${n}` });
+        if (runOf(world).nodes.some((node) => node.kind === kind)) { standAt(world, kind); return world; }
+    }
+    throw new Error(`no seed in ps1..ps40 has a ${kind} node`);
 }

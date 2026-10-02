@@ -19,7 +19,7 @@ import { isWorkshopNode } from '../../../engine/run/workshop';
 import type { IRegionNode } from '../../../engine/runTypes';
 import { fireMapReveal } from '../../../ui/store/runSlice';
 import { layoutRegion, type LaidOutNode } from '../../../ui/screens/regionLayout';
-import { stepOnto } from '../fightFlow';
+import { stepOnto } from '../arrive';
 import { driverName, nodeKindLabel, nodeLabel } from '../gameText';
 import { partyOf } from '../party';
 import type { Move, Screen, World } from '../types';
