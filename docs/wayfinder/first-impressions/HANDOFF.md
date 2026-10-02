@@ -10,23 +10,25 @@
 - **181** (playtest round 2) is the goal. It waits on 182, 183 and 181c (the "Tell Henry how it went" button, which needs Henry's Google Form first).
 - **176** is blocked until 183a–c ship. **175** comes after everything else. **180** waits for Henry's go.
 
-## Two agents in parallel (from 2026-10-02)
+## Two agents in parallel (from 2026-10-02): same folder, same branch, careful
 
-Two agents work at once, **each in its own git worktree on its own branch**, so neither can switch the other's branch, stage the other's files or run the gate against the other's half-done code.
+Two agents work at once **in this one folder, on branch `first-impressions`** (Henry chose no separate worktree). That works only if both follow these rules.
 
 | | Agent A: the screens | Agent B: the agent playtester |
 |---|---|---|
-| Folder | `Mingming-Balancing` (this one) | `Mingming-Balancing-180` (a git worktree) |
-| Branch | `first-impressions` | `agent-playtester` (made from `first-impressions`) |
 | Tickets | 182 → 183a–e → 183f–h → 181c | 180 only |
 | Owns | everything under `src/` **except** `src/debug/playtest/`; this map, this HANDOFF, every ticket except 180 | `src/debug/playtest/`, `scripts/playtest-*.mjs`, `docs/playtest/`, ticket 180, `HANDOFF-180.md` |
 | Shared files | must not touch `package.json` scripts or `.gitignore` | may add only its own `playtest*` script lines to `package.json` and its `results/` line to `.gitignore` |
 
-- **B never changes game code** (ticket 180's rule 3). A bug B finds goes in its report, for A or Henry to fix.
+- **Never switch branches, and never run anything that touches the whole working tree:** no `git checkout -- .`, `git restore .`, `git reset`, `git stash`, `git clean`, `git add -A` / `git add .` / `git commit -a`, and no repo-wide `eslint --fix` or formatter.
+- **Stage and commit your own files by explicit path only** (`git commit -- <paths>`). Before committing, `git status` and check that every path you commit is yours.
+- **Never edit, revert or "fix" a file the other agent owns,** even if it breaks your build. B never changes game code (ticket 180, rule 3); a bug B finds goes in its report.
+- **The gate runs on the whole tree, including the other agent's unfinished work.** If `npm run gate` fails only in the other agent's files, wait a few minutes and run it again. If it stays red for more than about 20 minutes, stop and tell Henry. Don't commit on a red gate.
+- **Keep work-in-progress short.** Finish a row and commit it rather than leaving half-done edits sitting in shared files for hours.
 - **B never edits this HANDOFF or `map.md`.** Its progress goes in ticket 180 and `HANDOFF-180.md`.
-- **B's tests must not pin on-screen wording**: 182 rewrites the copy and 183h renames the words. B prints whatever the game's own modules print.
-- **Neither agent merges, rebases, switches branch or pushes.** Henry merges `agent-playtester` into `first-impressions` (`git merge --no-ff agent-playtester`) only while A is stopped at a ticket checkpoint, then pushes.
-- **Locks:** both worktrees share one `.git`. Never park a lock younger than a minute; it may be the other agent's.
+- **B's tests must not pin on-screen wording:** 182 rewrites the copy and 183h renames the words.
+- **Locks:** never move a git lock file that is less than a minute old; it may be the other agent's commit in progress.
+- **Neither agent pushes, merges or rebases.** Henry pushes.
 
 ## What Henry owes
 
