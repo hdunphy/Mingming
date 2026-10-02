@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 
 import type { RootState } from '../store/store';
 import type { IBattleState } from '../../engine/types';
-import { describeDriver } from '../../engine/data/driverRegistry';
 import { CounterPip } from './CounterPip';
 import { readDriverCounter } from '../counters/readCounter';
 import { globalBattleEventBus } from '../../engine/events';
@@ -16,6 +15,7 @@ import './topbar/topbar.css';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
 import { introRules } from '../../engine/run/intro/introRules';
 import { deckScalesWithCardsPlayed } from '../utils/cardsPlayedScaling';
+import { driverText } from '../labels/driverText';
 
 
 /**
@@ -196,9 +196,9 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
               */}
             {drivers.length > 0 && (
                 <div className="battle-drivers" data-testid="battle-drivers">
-                    <span className="battle-drivers-label">DRIVERS</span>
+                    <span className="battle-drivers-label">TOTEMS</span>
                     {drivers.map((id) => {
-                        const { name, description } = describeDriver(id);
+                        const { name, description } = driverText(id);
                         const procKey = procKeys[id] ?? 0;
                         return (
                             <span

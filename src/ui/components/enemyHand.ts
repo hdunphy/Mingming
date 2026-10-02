@@ -43,6 +43,7 @@ import type { IBattleState, ProgramEntity } from '../../engine/types';
 import { describeDraw } from '../utils/drawFormula';
 import { bannerFor } from '../screens/runShell';
 import type { Banner } from '../screens/runShell';
+import { plain } from '../labels/labels';
 
 /** One unique card, with however many copies of it are in the list. */
 export interface HandStack {
@@ -172,7 +173,7 @@ export function stackHand(hand: ReadonlyArray<ProgramEntity>, energy: number): H
             dataId,
             count,
             name: data.name,
-            description: data.description ?? '',
+            description: plain(data.description ?? ''),
             element: data.element ?? 'None',
             cost,
             banner: bannerFor(data.category),

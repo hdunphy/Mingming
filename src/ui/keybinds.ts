@@ -91,7 +91,7 @@ export const KEYBINDS: ReadonlyArray<Keybind> = [
         action: 'Cast',
         detail: 'Through the same validity check the mouse drop uses, so it can never play a card the game would refuse.',
     },
-    { id: 'macro', keys: 'Z/X/C', action: 'Fire macro', detail: 'The three slots on the rack beside the hand.' },
+    { id: 'macro', keys: 'Z/X/C', action: 'Fire draught', detail: 'The three slots on the rack beside the hand.' },
     { id: 'endturn', keys: 'Space', action: 'End turn' },
     {
         id: 'clear',

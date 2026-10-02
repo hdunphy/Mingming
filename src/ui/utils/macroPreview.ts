@@ -25,6 +25,7 @@ import { canFireMacro, battleReducer, type MacroFireBlock } from '../../engine/b
 import { getMacro } from '../../engine/data/macroRegistry';
 import { globalBattleEventBus } from '../../engine/events';
 import type { IBattleState } from '../../engine/types';
+import { plain } from '../labels/labels';
 
 export interface MacroPreview {
     /** True when the shot will land. When false, `block` says why and nothing else is meaningful. */
@@ -55,7 +56,7 @@ export const MACRO_BLOCK_LABEL: Readonly<Record<MacroFireBlock, string>> = {
     'wrong-phase': 'Not right now',
     'not-your-turn': 'Only on your turn',
     'battle-over': 'The fight is over',
-    'unknown-macro': 'Unknown macro',
+    'unknown-macro': 'Unknown draught',
     'map-only': 'Fires from the map, not in a fight',
     'no-source': 'Pick one of your units first',
     'bad-target': 'Pick a valid target first',
@@ -106,7 +107,7 @@ export function computeMacroPreview(
         ? `${-hpDelta} damage`
         : movesHp
             ? `${hpDelta} HP restored`
-            : macro.description;
+            : plain(macro.description);
 
     return { ok: true, block: null, hpDelta, line };
 }

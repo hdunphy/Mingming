@@ -29,6 +29,7 @@ import { CardFace } from '../screens/CardChassis';
 import { shortTargetLabel } from '../utils/targeting';
 import type { TextRange } from '../utils/conditionalClauses';
 import { ReadoutStrip } from '../theme/kit/ReadoutStrip';
+import { plain } from '../labels/labels';
 
 /** The fight's numbers for one card, already scoped to a caster and a target. */
 export interface HandCardPreviewFace {
@@ -117,7 +118,7 @@ const HandCardFace: React.FC<HandCardFaceProps> = ({
         <CardFace
             face={{
                 name: data.name,
-                description: data.description ?? '',
+                description: plain(data.description ?? ''),
                 element: data.element ?? 'None',
                 cost: displayCost,
             }}

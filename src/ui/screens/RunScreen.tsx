@@ -106,6 +106,7 @@ import RunMeta from './RunMeta';
 import PartyFaces from './PartyFaces';
 import type { Element as MingmingElement } from '../../engine/types';
 import { partyElementsOf } from '../../engine/run/driverStakes';
+import { plain } from '../labels/labels';
 
 export default function RunScreen(): ReactNode {
     const dispatch = useDispatch();
@@ -297,7 +298,7 @@ export default function RunScreen(): ReactNode {
 
     /** The mockups' context line: where you are, and what you are holding while you decide. */
     const contextLine = (where: string): string =>
-        `${where} · ${(biome?.name ?? 'BIOME').toUpperCase()} · ${run.scrap} SCRAP`;
+        `${where} · ${(biome?.name ?? 'BIOME').toUpperCase()} · ${run.scrap} AMBER`;
 
     const stallOpen = closedNodeId !== run.currentNodeId;
 
@@ -326,7 +327,7 @@ export default function RunScreen(): ReactNode {
                     node={current}
                     ranch={ranch}
                     biomeName={biome?.name}
-                    onEditLoadout={() => setEditorContext(contextLine('WORKSHOP'))}
+                    onEditLoadout={() => setEditorContext(contextLine('DEN'))}
                     onLeave={() => setClosedNodeId(current.id)}
                 />
                 {editor}
@@ -410,7 +411,7 @@ export default function RunScreen(): ReactNode {
                         className="ranch-button"
                         onClick={() => { setClosedNodeId(null); playSfx('uiClick'); }}
                     >
-                        {isMarketNode(current.kind) ? 'Back to the stall' : 'Back to the assembly bay'}
+                        {isMarketNode(current.kind) ? 'Back to the stall' : 'Back to the summon bay'}
                     </button>
                 )}
 
@@ -479,7 +480,7 @@ export default function RunScreen(): ReactNode {
                     onIgnore={() => dispatch(dismissBoundaryAlert())}
                     onEdit={() => {
                         dispatch(dismissBoundaryAlert());
-                        setEditorContext(`BIOME BOUNDARY · ${boundaryBiome.name.toUpperCase()} AHEAD · ${run.scrap} SCRAP`);
+                        setEditorContext(`BIOME BOUNDARY · ${boundaryBiome.name.toUpperCase()} AHEAD · ${run.scrap} AMBER`);
                     }}
                 />
             )}
@@ -504,7 +505,7 @@ function MapMacros({ run, biomeIndex, biomeName }: {
     if (!advanced && run.macros.every((id) => id === null)) return null;
     return (
         <>
-            <h2 className="ranch-subhead">Macros</h2>
+            <h2 className="ranch-subhead">Draughts</h2>
             <div className="ranch-roster-grid">
                 {run.macros.map((macroId, slot) => {
                     const macro = getMacro(macroId);
@@ -521,7 +522,7 @@ function MapMacros({ run, biomeIndex, biomeName }: {
                     return (
                         <div key={slot} className="ranch-card">
                             <div className="ranch-card-name">{macro.name}</div>
-                            <div className="ranch-card-species">{macro.description}</div>
+                            <div className="ranch-card-species">{plain(macro.description)}</div>
                             {isMap && (
                                 <button
                                     type="button"

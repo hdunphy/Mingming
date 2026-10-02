@@ -10,6 +10,7 @@ import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { PlayedCardAnnouncement } from '../hooks/useBattleVfx';
 import { anchorFor, discardAnchor, handAnchor, revealAnchor } from '../vfx/emit';
 import { FLIGHT_MS } from '../vfx/useCastSequence';
+import { plain } from '../labels/labels';
 
 /**
  * PlayedCardReveal — the card that just resolved, held at centre stage.
@@ -276,7 +277,7 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                         <CardFace
                             face={{
                                 name: hasFace ? data!.name : '',
-                                description: hasFace ? data!.description ?? '' : '',
+                                description: hasFace ? plain(data!.description ?? '') : '',
                                 element: hasFace ? data!.element ?? 'None' : 'None',
                                 cost: hasFace ? numericBaseCost(data!.baseCost) : 0,
                             }}

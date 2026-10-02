@@ -54,6 +54,7 @@ import { GENERIC_HIT, GetMingmingData } from '../../engine/data/mingmingRegistry
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRunCard, IRunState } from '../../engine/runTypes';
+import { plain } from '../labels/labels';
 
 /**
  * `renderToStaticMarkup` escapes text, and card descriptions carry apostrophes and ampersands.
@@ -150,7 +151,7 @@ function render(
             <LoadoutEditor
                 run={run}
                 ranch={ranch}
-                context="WORKSHOP · NATURE BIOME · 143 SCRAP"
+                context="DEN · NATURE BIOME · 143 AMBER"
                 onClose={() => undefined}
                 initialPage={initialPage}
                 initialSwapping={initialSwapping}
@@ -193,7 +194,7 @@ describe('LoadoutEditor — the top bar', () => {
          */
         const markup = render(makeRun());
 
-        expect(markup).toContain('<span class="rs-ctx">WORKSHOP · NATURE BIOME · 143 SCRAP</span>');
+        expect(markup).toContain('<span class="rs-ctx">DEN · NATURE BIOME · 143 AMBER</span>');
         expect(markup).toContain('<span class="rs-title">LOADOUT</span>');
         expect(markup).toContain('>CONFIRM</button>');
     });
@@ -284,7 +285,7 @@ describe('LoadoutEditor — the roster strip', () => {
         const solo = render(makeRun());
 
         expect(solo).toContain('A party of one has nobody to bench');
-        expect(solo).toContain('a workshop is where the team grows');
+        expect(solo).toContain('a den is where the team grows');
         expect(solo).not.toContain('Click a party member to bench them');
         // Disabled, not merely unhelpful — the half a copy-only fix would leave broken.
         const chip = solo.split('<button').find((chunk) => chunk.includes('rs-mem'));
@@ -358,7 +359,7 @@ describe('LoadoutEditor — the run collection', () => {
             const data = ProgramRegistry[id];
             expect(data).toBeDefined();
             expect(markup).toContain(`<span class="rs-cnm">${escapeHtml(data.name)}</span>`);
-            expect(markup).toContain(`<span class="rs-desc">${escapeHtml(data.description)}</span>`);
+            expect(markup).toContain(`<span class="rs-desc">${escapeHtml(plain(data.description))}</span>`);
         }
         /*
          * TICKET 183c: the cost is the energy hexagon, and there is no type mark or pip rack on the
@@ -563,7 +564,7 @@ describe('LoadoutEditor — the active deck column', () => {
 
         const above = render(makeRun({ deck: [...run.deck, card('hydro_blast', 'mm1')] }));
         expect(buttonsOfClass(above, 'rs-row').filter((row) => row.includes('disabled=""')).length).toBe(0);
-        expect(above).toContain('click a row to send it back. Nothing here costs scrap.');
+        expect(above).toContain('click a row to send it back. Nothing here costs amber.');
         expect(above).not.toContain('At the floor');
     });
 });

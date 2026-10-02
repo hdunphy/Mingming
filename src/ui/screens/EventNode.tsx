@@ -53,6 +53,7 @@ import { UpgradeBench } from './UpgradeBench';
 import { cardFace, colorFor } from './runShell';
 import './runShell.css';
 import './EventNode.css';
+import { plain } from '../labels/labels';
 
 export interface EventNodeProps {
     readonly run: IRunState;
@@ -112,7 +113,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         [pick, node.id, node.visited, run.seed],
     );
 
-    const ctxLine = `${(biomeName ?? 'THIS').toUpperCase()} BIOME · ${run.scrap} SCRAP`;
+    const ctxLine = `${(biomeName ?? 'THIS').toUpperCase()} BIOME · ${run.scrap} AMBER`;
 
     const shell = (title: string, body: ReactNode, leave?: boolean): ReactNode => (
         <section className="ev rs-frame rs-fixed">
@@ -120,7 +121,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
                 <span className="rs-title">{title}</span>
                 <span className="rs-ctx">{ctxLine}</span>
                 <span className="rs-spacer" />
-                <span className="rs-scrap" aria-label="Scrap held">{run.scrap} <Icon name="scrap" size={12} /></span>
+                <span className="rs-scrap" aria-label="Amber held">{run.scrap} <Icon name="scrap" size={12} /></span>
                 {leave && (
                     <button type="button" className="rs-btn primary" onClick={() => { playSfx('uiClick'); onLeave(); }}>
                         LEAVE
@@ -157,7 +158,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
                         }}
                     >
                         <span className="ev-label">Salvage</span>
-                        <span className="ev-detail">+{EMPTY_RELAY_SCRAP} scrap</span>
+                        <span className="ev-detail">+{EMPTY_RELAY_SCRAP} amber</span>
                     </button>
                 </div>
             </>
@@ -207,7 +208,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         const upgradable = run.deck.filter((card) => hasUpgrade(card.dataId)).length;
         // Done once the allowance is spent, or when nothing is left to upgrade.
         const finished = used >= allowance || upgradable === 0;
-        return shell(event.name.toUpperCase(), (
+        return shell(plain(event.name).toUpperCase(), (
             <>
                 <p className="ev-text">Upgrade {allowance} cards. Pick them below.</p>
                 <UpgradeBench run={run} benchKey={benchKey} free allowance={allowance} heading="OVERCLOCK" />
@@ -238,7 +239,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
 
     // Every question but the card pick has its own small screen (`EventPickStep`).
     if (pick && pickedOutcome && pickedOutcome.type !== 'CARD_PICK') {
-        return shell(event.name.toUpperCase(), (
+        return shell(plain(event.name).toUpperCase(), (
             <EventPickStep
                 key={`${pick.choice.id}:${pick.outcomeIndex}`}
                 outcome={pickedOutcome}
@@ -257,7 +258,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
             if (selected === null) return;
             takePick({ cardId: selected, toCollection });
         };
-        return shell(event.name.toUpperCase(), (
+        return shell(plain(event.name).toUpperCase(), (
             <>
                 <p className="ev-text">Pick one card.</p>
                 <div className="ev-cards" style={TILE}>
@@ -298,9 +299,9 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         ));
     }
 
-    return shell(event.name.toUpperCase(), (
+    return shell(plain(event.name).toUpperCase(), (
         <>
-            <p className="ev-text">{event.text}</p>
+            <p className="ev-text">{plain(event.text)}</p>
             <div className="ev-choices">
                 {playableChoices(event).map((choice) => {
                     const blocked = choiceBlockedReason(choice, ctx);
@@ -312,9 +313,9 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
                             disabled={blocked !== null}
                             onClick={() => choose(choice)}
                         >
-                            <span className="ev-label">{choice.label}</span>
+                            <span className="ev-label">{plain(choice.label)}</span>
                             <span className="ev-detail">
-                                {blocked ?? choice.detail}
+                                {plain(blocked ?? choice.detail)}
                             </span>
                         </button>
                     );

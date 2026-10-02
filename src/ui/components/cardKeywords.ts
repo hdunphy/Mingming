@@ -23,7 +23,7 @@ export const KEYWORD_INFO = {
         description: 'Temporary card generated in battle; disappears afterward.'
     },
     DAEMON: {
-        label: 'DAEMON',
+        label: 'AURA',
         color: 'var(--panel-edge)',
         description: 'Installs on the unit for the rest of the battle; its effect stays active.'
     }

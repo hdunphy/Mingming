@@ -98,6 +98,7 @@ import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
 import { WORKSHOP_DUPLICATE_CLAUSE } from './partyRuleText';
+import { plain } from '../labels/labels';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
 export interface ReflashTarget {
@@ -129,13 +130,13 @@ export interface WorkshopNodeProps {
 function blockLabel(block: WorkshopBlock): string {
     switch (block) {
         case 'no-blueprint':
-            return 'no blueprints';
+            return 'no traces';
         case 'duplicate-build':
             // The clause, as Henry ruled it on 2026-09-05: the roster may hold ten krakens and the
             // team may field several — but not two running the SAME firmware, which is one idea with
             // two bodies. Said in those terms, because "illegal" explains nothing, and said about
             // the BUILD because the species is no longer what is refused.
-            return 'this OS already on the team';
+            return 'this instinct already on the team';
         case 'party-full':
             // Not a refusal any more: the bench takes the overflow, and ASSEMBLE → PARTY asks who
             // to swap out. Kept in the label table because `workshopSpecies` still reports it.
@@ -305,14 +306,14 @@ export default function WorkshopNode({
         <div className="rs-top">
             <span className="rs-title">
                 {reflash
-                    ? `WORKSHOP — REFLASH — ${(memberOf(reflash.memberId)
+                    ? `DEN — RETRAIN — ${(memberOf(reflash.memberId)
                         ? GetMingmingData(memberOf(reflash.memberId)!.definitionId).name
                         : reflash.memberId).toUpperCase()}`
-                    : 'WORKSHOP'}
+                    : 'DEN'}
             </span>
-            <span className="rs-ctx">{(biomeName ?? 'THIS').toUpperCase()} BIOME · ASSEMBLY BAY</span>
+            <span className="rs-ctx">{(biomeName ?? 'THIS').toUpperCase()} BIOME · SUMMON BAY</span>
             <span className="rs-spacer" />
-            <span className="rs-scrap" aria-label="Scrap held">{scrap} <Icon name="scrap" size={12} /></span>
+            <span className="rs-scrap" aria-label="Amber held">{scrap} <Icon name="scrap" size={12} /></span>
             <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onEditLoadout(); }}>
                 EDIT LOADOUT
             </button>
@@ -342,13 +343,13 @@ export default function WorkshopNode({
                 {topBar}
                 <div className="ws-body reflash">
                     <div className="rs-panel ws-cmpwrap">
-                        <h2>REFLASH — swaps the OS <b>and</b> its {RECRUIT_KIT_SIZE}-card engine in your deck</h2>
+                        <h2>RETRAIN — swaps the instinct <b>and</b> its {RECRUIT_KIT_SIZE}-card engine in your deck</h2>
                         <div className="ws-cmp">
                             <div
                                 className="ws-oscard current"
                                 // TICKET 182a: the current firmware's description is a hover; the one
                                 // paragraph on this view describes the firmware the player is choosing.
-                                title={(member && getOSBehavior(member.activeOS)?.description) ?? undefined}
+                                title={plain((member && getOSBehavior(member.activeOS)?.description) ?? undefined)}
                             >
                                 <h3>
                                     {member ? getOSBehavior(member.activeOS)?.name ?? member.activeOS : '—'}
@@ -364,10 +365,10 @@ export default function WorkshopNode({
                             <div className="ws-oscard offer">
                                 <h3>
                                     {getOSBehavior(targetOS)?.name ?? (targetOS || '—')}
-                                    <span className="ws-tagnew"> · AFTER REFLASH</span>
+                                    <span className="ws-tagnew"> · AFTER RETRAIN</span>
                                 </h3>
                                 <p className="ws-osdesc">
-                                    {getOSBehavior(targetOS)?.description ?? 'No firmware description.'}
+                                    {plain(getOSBehavior(targetOS)?.description ?? 'No instinct description.')}
                                 </p>
                                 {/* The reflash is the one screen where both grammars are visible at
                                     once, which is the comparison the ruling is for: a reflash that
@@ -402,7 +403,7 @@ export default function WorkshopNode({
                                 {RECRUIT_KIT_SIZE} for {RECRUIT_KIT_SIZE})
                             </span>
                             <span className="rs-chip">
-                                1 × {member ? GetMingmingData(member.definitionId).name.toUpperCase() : ''} BLUEPRINT
+                                1 × {member ? GetMingmingData(member.definitionId).name.toUpperCase() : ''} TRACE
                             </span>
                             <span className="rs-chip">{reflashPrice} <Icon name="scrap" size={11} /></span>
                             <button
@@ -411,7 +412,7 @@ export default function WorkshopNode({
                                 disabled={!plan || short > 0}
                                 onClick={() => doReflash({ memberId: reflash.memberId, targetOS })}
                             >
-                                {short > 0 ? `REFLASH — ${short} SHORT` : 'REFLASH'}
+                                {short > 0 ? `RETRAIN — ${short} SHORT` : 'RETRAIN'}
                             </button>
                         </div>
                     </div>
@@ -427,7 +428,7 @@ export default function WorkshopNode({
             {topBar}
             <div className="ws-body">
                 <div className="rs-panel">
-                    <h2 title="Blueprints are consumable - assembling spends one. Extra copies re-roll stats via re-assembly at the ranch.">BLUEPRINTS</h2>
+                    <h2 title="Traces are consumable - summoning spends one. Extra copies re-roll stats via re-summon at the ranch.">TRACES</h2>
                     <div className="ws-scroll">
                         {noRecruits && (
                             <span className="rs-hint">No Recruits is on: your party is set for this run.</span>
@@ -459,7 +460,7 @@ export default function WorkshopNode({
                                                 a species spent down to zero rather than hiding it,
                                                 because a rack that shows only what you can spend
                                                 cannot tell you what you have run out of. */}
-                                            {none ? 'no blueprints' : `blueprints ×${entry.blueprints}`}
+                                            {none ? 'no traces' : `Traces ×${entry.blueprints}`}
                                             {entry.block !== null && entry.block !== 'no-blueprint'
                                                 ? ` · ${blockLabel(entry.block)}`
                                                 : ''}
@@ -470,14 +471,14 @@ export default function WorkshopNode({
                         })}
                         {!noRecruits && species.length === 0 && (
                             <span className="rs-hint">
-                                No species in the registry offer blueprints yet.
+                                No species in the registry offer traces yet.
                             </span>
                         )}
                     </div>
                 </div>
 
                 <div className="ws-stage">
-                    <h2>{definition ? `ASSEMBLE — ${definition.name.toUpperCase()}` : 'SELECT A BLUEPRINT'}</h2>
+                    <h2>{definition ? `SUMMON — ${definition.name.toUpperCase()}` : 'SELECT A TRACE'}</h2>
 
                     <div
                         className={`ws-silhouette ${built ? '' : 'blank'}`}
@@ -499,7 +500,7 @@ export default function WorkshopNode({
                         role="status"
                         title={built
                             ? `${GetMingmingData(built.definitionId).name} is on your permanent roster - its stats are fixed for good.`
-                            : 'Stats roll at assembly and never change. They are not shown before you pay.'}
+                            : 'Stats roll at summon and never change. They are not shown before you pay.'}
                     >
                         {([
                             ['VIT', built?.hpIV],
@@ -517,7 +518,7 @@ export default function WorkshopNode({
                     {definition && (
                         <div className="ws-cols">
                             <div className="ws-col">
-                                <h3>OS — CHOOSE AT ASSEMBLY</h3>
+                                <h3>Instinct — CHOOSE AT SUMMON</h3>
                                 {/*
                                   * WHAT THE FIRMWARE DOES, ON THE ROW THAT CHOOSES IT.
                                   *
@@ -549,7 +550,7 @@ export default function WorkshopNode({
                                                     {id === chosenOS && <span className="rs-t">chosen</span>}
                                                 </span>
                                                 <span className="ws-osdesc">
-                                                    {os?.description ?? 'No firmware description.'}
+                                                    {plain(os?.description ?? 'No instinct description.')}
                                                 </span>
                                                 {/* TICKET 158-r1, Henry's §5.3 ruling: the row that
                                                     chooses an OS says what it banks, how fast it
@@ -575,7 +576,7 @@ export default function WorkshopNode({
 
                     {definition && (
                         <div className="ws-cost">
-                            <span className="rs-chip">1 × BLUEPRINT</span>
+                            <span className="rs-chip">1 × TRACE</span>
                             <span className="rs-chip">{assemblyPrice} <Icon name="scrap" size={11} /></span>
                             <button
                                 type="button"
@@ -593,10 +594,10 @@ export default function WorkshopNode({
                                 }}
                             >
                                 {assemblyBlock === 'duplicate-build'
-                                    ? 'THIS OS ALREADY ON THE TEAM'
+                                    ? 'THIS instinct ALREADY ON THE TEAM'
                                     : shortBy(assemblyPrice) > 0
-                                        ? `ASSEMBLE → PARTY — ${shortBy(assemblyPrice)} SHORT`
-                                        : partyFull ? 'ASSEMBLE → PARTY (SWAP)' : 'ASSEMBLE → PARTY'}
+                                        ? `SUMMON → PARTY — ${shortBy(assemblyPrice)} SHORT`
+                                        : partyFull ? 'SUMMON → PARTY (SWAP)' : 'SUMMON → PARTY'}
                             </button>
                             <button
                                 type="button"
@@ -609,13 +610,13 @@ export default function WorkshopNode({
                                 }
                                 onClick={() => { playSfx('uiClick'); assemble('bench'); }}
                             >
-                                ASSEMBLE → BENCH
+                                SUMMON → BENCH
                             </button>
                         </div>
                     )}
 
                     {!definition && !noRecruits && (
-                        <p className="rs-hint" title={`A blueprint and ${assemblyPrice} scrap. This is the only place the party grows.`}>
+                        <p className="rs-hint" title={`A trace and ${assemblyPrice} amber. This is the only place the party grows.`}>
                             Add a Mingming to your team.
                         </p>
                     )}
@@ -624,8 +625,8 @@ export default function WorkshopNode({
                 <div className="rs-panel">
                     <h2>
                         <span title={partyFull
-                            ? `Party is full — ASSEMBLE → PARTY asks who to bench. ${WORKSHOP_DUPLICATE_CLAUSE} Click a member to reflash: 1 blueprint + ${reflashPrice} scrap.`
-                            : `Click a member to reflash - 1 blueprint + ${reflashPrice} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
+                            ? `Party is full — SUMMON → PARTY asks who to bench. ${WORKSHOP_DUPLICATE_CLAUSE} Click a member to retrain: 1 trace + ${reflashPrice} amber.`
+                            : `Click a member to retrain - 1 trace + ${reflashPrice} amber, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the instinct.`}
                         >
                             PARTY {run.partyIds.length}/{PARTY_SIZE} · BENCH {bench.length}
                         </span>
@@ -652,7 +653,7 @@ export default function WorkshopNode({
                                         <span className="ws-bpct">
                                             {swappingOut
                                                 ? 'bench this one ⇄'
-                                                : `${getOSBehavior(member.activeOS)?.name ?? member.activeOS} · ${reflashBlockFor(member, ranch) === null ? 'reflash' : blockLabel('no-blueprint')}`}
+                                                : `${getOSBehavior(member.activeOS)?.name ?? member.activeOS} · ${reflashBlockFor(member, ranch) === null ? 'retrain' : blockLabel('no-blueprint')}`}
                                         </span>
                                     </span>
                                 </button>
@@ -675,7 +676,7 @@ export default function WorkshopNode({
                                     <span className="ws-bpdot">{data.name.charAt(0)}</span>
                                     <span className="ws-bptext">
                                         <span className="ws-bpnm">{member.nickname ?? data.name}</span>
-                                        <span className="ws-bpct">benched · reflash</span>
+                                        <span className="ws-bpct">benched · retrain</span>
                                     </span>
                                 </button>
                             );

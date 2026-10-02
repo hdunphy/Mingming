@@ -11,6 +11,7 @@ import { numericBaseCost, type ProgramData } from '../../engine/types';
 import { CardFace } from '../screens/CardChassis';
 import { colorFor } from '../screens/runShell';
 import { shortTargetLabel } from '../utils/targeting';
+import { plain } from '../labels/labels';
 
 const REWARD_TILE = { ['--cw' as string]: '164px', ['--ch' as string]: '214px', ['--ah' as string]: '48px' };
 
@@ -23,7 +24,7 @@ const RewardCardFace: React.FC<{ data: ProgramData; isSelected?: boolean }> = ({
         <CardFace
             face={{
                 name: data.name,
-                description: data.description ?? '',
+                description: plain(data.description ?? ''),
                 element: data.element ?? 'None',
                 cost: numericBaseCost(data.baseCost),
                 dataId: data.id,

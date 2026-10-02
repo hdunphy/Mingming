@@ -17,6 +17,7 @@ import { playSfx } from '../audio/AudioEngine';
 import type { GiveCardsResult } from '../events/outcomePicks';
 import { ElementMark } from './CardChassis';
 import { cardFace } from './runShell';
+import { plain } from '../labels/labels';
 
 export type CardPickerMode = 'give' | 'trade' | 'recompile' | 'copy';
 
@@ -83,7 +84,7 @@ export default function EventCardPicker({ ctx, mode, count, rarity, onTake, onBa
                                 <span className="rs-g">{face.cost}</span> <ElementMark element={face.element} compact /> {face.name}
                                 <span className="rs-t"> {pile}</span>
                             </span>
-                            <span className="ev-detail">{reason ?? face.description}</span>
+                            <span className="ev-detail">{plain(reason ?? face.description)}</span>
                         </button>
                     );
                 })}

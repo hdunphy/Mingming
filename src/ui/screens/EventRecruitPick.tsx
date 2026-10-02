@@ -46,7 +46,7 @@ export default function EventRecruitPick({ run, onTake, onBack }: EventRecruitPi
                         </button>
                     );
                 })}
-                {options.length === 0 && <p className="ev-detail">No blueprint you hold can be built right now.</p>}
+                {options.length === 0 && <p className="ev-detail">No trace you hold can be built right now.</p>}
             </div>
             <div className="ev-choices ev-row">
                 <button type="button" className="rs-btn primary" disabled={selected === null} onClick={() => selected !== null && onTake(selected)}>

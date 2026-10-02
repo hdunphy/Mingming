@@ -101,13 +101,13 @@ const bodyRow = (name: string): HTMLButtonElement | undefined => [...host.queryS
 const runOf = (store: Store): IRunState => store.getState().run.run!;
 const ranchOf = (store: Store): IRanchState => store.getState().game;
 
-describe('Firmware Reflash', () => {
-    it('says on the button that the OS changes and the cards do not', async () => {
+describe('Instinct Retrain', () => {
+    it('says on the button that the instinct changes and the cards do not', async () => {
         const store = makeStore(runWith([KRAKEN]), [KRAKEN]);
         await mount(store);
-        expect(host.textContent?.toLowerCase()).toContain('firmware reflash');
-        expect(byText('Reflash one body')).toBeTruthy();
-        expect(host.textContent).toContain('Its OS changes; its cards don\'t.');
+        expect(host.textContent?.toLowerCase()).toContain('instinct retrain');
+        expect(byText('Retrain one body')).toBeTruthy();
+        expect(host.textContent).toContain('Its instinct changes; its cards don\'t.');
     });
 
     it('switches the body for the run, and leaves the ranch member and the deck exactly as they were', async () => {
@@ -116,11 +116,11 @@ describe('Firmware Reflash', () => {
         const before = runOf(store);
         const ranchBefore = JSON.stringify(ranchOf(store).roster);
 
-        await click(byText('Reflash one body'));
+        await click(byText('Retrain one body'));
         await click(bodyRow('Kraken'));
         // Nothing has moved until the pick is confirmed.
         expect(runOf(store).osOverrides ?? {}).toEqual({});
-        await click(byText('REFLASH'));
+        await click(byText('RETRAIN'));
 
         const after = runOf(store);
         expect(after.osOverrides).toEqual({ mm1: 'kraken_v2' });
@@ -128,33 +128,33 @@ describe('Firmware Reflash', () => {
         expect(after.collection).toEqual(before.collection);
         expect(JSON.stringify(ranchOf(store).roster)).toBe(ranchBefore);
         expect(ranchOf(store).roster.find((m) => m.id === 'mm1')!.activeOS).toBe('kraken_v1');
-        expect(host.textContent).toContain('reflashed to');
+        expect(host.textContent).toContain('retrained to');
         expect(host.textContent).toContain('The relay is dark');
     });
 
     it('greys a patched body with the reason and cannot pick it; the unpatched body still can be', async () => {
         const store = makeStore(runWith([KRAKEN, FENRIR], { patches: { mm1: ['amplifier'] } }), [KRAKEN, FENRIR]);
         await mount(store);
-        await click(byText('Reflash one body'));
+        await click(byText('Retrain one body'));
 
         const patched = bodyRow('Kraken')!;
         expect(patched.disabled).toBe(true);
-        expect(patched.textContent).toContain('A patch is fitted to its firmware.');
+        expect(patched.textContent).toContain('A rune is fitted to its instinct.');
         expect(bodyRow('Fenrir')!.disabled).toBe(false);
 
         await click(patched);
-        expect(byText('REFLASH')!.disabled).toBe(true);
+        expect(byText('RETRAIN')!.disabled).toBe(true);
         await click(bodyRow('Fenrir'));
-        await click(byText('REFLASH'));
+        await click(byText('RETRAIN'));
         expect(runOf(store).osOverrides).toEqual({ mm2: 'fenrir_v2' });
     });
 
-    it('greys a body whose other OS the party already runs, rather than making a duplicate build', async () => {
+    it('greys a body whose other instinct the party already runs, rather than making a duplicate build', async () => {
         const kraken2 = body('mm3', 'kraken', 'kraken_v2');
         const party = [KRAKEN, kraken2, FENRIR];
         const store = makeStore(runWith(party), party);
         await mount(store);
-        await click(byText('Reflash one body'));
+        await click(byText('Retrain one body'));
         for (const name of ['Kraken']) {
             const rows = [...host.querySelectorAll('.ev-choice')].filter((row) => row.textContent?.startsWith(name)) as HTMLButtonElement[];
             expect(rows).toHaveLength(2);
@@ -166,20 +166,20 @@ describe('Firmware Reflash', () => {
         expect(bodyRow('Fenrir')!.disabled).toBe(false);
     });
 
-    it('greys the whole choice, with the reason, when no body can be reflashed', async () => {
+    it('greys the whole choice, with the reason, when no body can be retrained', async () => {
         const kraken2 = body('mm3', 'kraken', 'kraken_v2');
         const party = [KRAKEN, kraken2];
         const store = makeStore(runWith(party), party);
         await mount(store);
-        const choice = byText('Reflash one body')!;
+        const choice = byText('Retrain one body')!;
         expect(choice.disabled).toBe(true);
-        expect(choice.textContent).toContain('No body can be reflashed right now.');
+        expect(choice.textContent).toContain('No body can be retrained right now.');
     });
 
-    it('is not drawn when every body has a patch: the Empty Relay stands in', async () => {
+    it('is not drawn when every body has a rune: the Empty Relay stands in', async () => {
         const store = makeStore(runWith([KRAKEN], { patches: { mm1: ['amplifier'] } }), [KRAKEN]);
         await mount(store);
-        expect(host.textContent).not.toContain('Firmware Reflash');
+        expect(host.textContent).not.toContain('Instinct Retrain');
         expect(host.textContent).toContain('The relay is empty');
     });
 

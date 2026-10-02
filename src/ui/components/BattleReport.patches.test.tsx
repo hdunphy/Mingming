@@ -50,15 +50,15 @@ function render(heldPatches?: Readonly<Record<string, ReadonlyArray<string>>>) {
 }
 const holderLines = () => Array.from(host.querySelectorAll('[data-testid="patch-holder"]')).map(e => e.textContent ?? '');
 
-describe('167j — the patch offer says who already runs a patch', () => {
-    it('names the body that holds a patch, and the patch, inside the patch block', () => {
+describe('167j — the rune offer says who already runs a rune', () => {
+    it('names the body that holds a rune, and the rune, inside the rune block', () => {
         render({ m2: ['amplifier'] });
         const lines = holderLines();
         expect(lines).toHaveLength(1);
         expect(lines[0]).toContain('Skoll');
         expect(lines[0].toLowerCase()).toContain('amplifier');
         expect(lines[0]).toMatch(/Skoll\s+—\s+/);
-        expect(host.textContent).toContain('FIRMWARE PATCH');
+        expect(host.textContent).toContain('INSTINCT RUNE');
     });
 
     it('lists each holder once, in party order', () => {

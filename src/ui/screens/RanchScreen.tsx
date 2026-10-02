@@ -52,7 +52,6 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData, MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import { describeDriver } from '../../engine/data/driverRegistry';
 import { createRanchMember } from '../../engine/gameTypes';
 import type { IRanchMember } from '../../engine/runTypes';
 import { assembleMingming } from '../store/gameSlice';
@@ -69,6 +68,8 @@ import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
+import { plain } from '../labels/labels';
+import { driverText } from '../labels/driverText';
 
 
 type Section = 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex';
@@ -82,7 +83,7 @@ const EMPTY_TEMP_DRIVERS: ReadonlyArray<{ readonly driverId: string }> = [];
 const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: IconName }> = [
     { id: 'expedition', label: 'Expedition', icon: 'expedition' },
     { id: 'roster', label: 'Roster', icon: 'roster' },
-    { id: 'assembly', label: 'Assembly', icon: 'assembly' },
+    { id: 'assembly', label: 'Summon', icon: 'assembly' },
     { id: 'vault', label: 'Vault', icon: 'vault' },
     { id: 'codex', label: 'Codex', icon: 'codex' },
 ];
@@ -178,12 +179,12 @@ function RosterSection({
             <div className="ranch-section-head">
                 <h2>Roster ({roster.length})</h2>
                 <button type="button" className="ranch-button k-button" onClick={onOpenFirmware}>
-                    <Icon name="firmware" size={15} /> Firmware terminal
+                    <Icon name="firmware" size={15} /> Instinct terminal
                 </button>
             </div>
             {roster.length === 0 && (
                 <div className="ranch-empty">
-                    No mingmings yet. Spend a blueprint in <strong>Assembly</strong> to build one.
+                    No mingmings yet. Spend a trace in <strong>Summon</strong> to build one.
                 </div>
             )}
             <div className="ranch-roster-grid">
@@ -194,7 +195,7 @@ function RosterSection({
                         <StatRoll member={member} />
                         <div className="ranch-card-os">
                             <strong>{getOSBehavior(member.activeOS)?.name ?? member.activeOS}</strong>
-                            <span>{getOSBehavior(member.activeOS)?.description}</span>
+                            <span>{plain(getOSBehavior(member.activeOS)?.description)}</span>
                         </div>
                     </div>
                 ))}
@@ -211,7 +212,7 @@ function RosterSection({
  */
 function StatRoll({ member }: { member: IRanchMember }): ReactNode {
     return (
-        <div className="ranch-ivs" title="Stat roll — fixed at assembly, 0-31 each">
+        <div className="ranch-ivs" title="Stat roll — fixed at summon, 0-31 each">
             <span><Icon name="attack" size={12} /> {member.attackIV}</span>
             <span><Icon name="defense" size={12} /> {member.defenseIV}</span>
             <span><Icon name="hp" size={12} /> {member.hpIV}</span>
@@ -274,7 +275,7 @@ function AssemblySection({
     return (
         <section className="ranch-section">
             <div className="ranch-section-head">
-                <h2>Assembly bay</h2>
+                <h2>Summon bay</h2>
             </div>
 
             {/*
@@ -286,7 +287,7 @@ function AssemblySection({
 
             {held.length === 0 && (
                 <div className="ranch-empty">
-                    No blueprints. They drop from fights and from alpha nodes; each one builds exactly one
+                    No traces. They drop from fights and from alpha nodes; each one builds exactly one
                     mingming.
                 </div>
             )}
@@ -298,7 +299,7 @@ function AssemblySection({
                         <div key={speciesId} className="ranch-blueprint k-plate">
                             <div className="ranch-blueprint-head">
                                 <span className="ranch-blueprint-name">{definition?.name ?? speciesId}</span>
-                                <span className="ranch-blueprint-count" title="Blueprints held">×{count}</span>
+                                <span className="ranch-blueprint-count" title="Traces held">×{count}</span>
                             </div>
                             <div className="ranch-blueprint-element">{definition?.primaryElement ?? '—'}</div>
                             <button
@@ -306,7 +307,7 @@ function AssemblySection({
                                 className="ranch-button k-button"
                                 onClick={() => { playSfx('uiClick'); startAssembly(speciesId); }}
                             >
-                                Assemble (1 blueprint)
+                                Summon (1 trace)
                             </button>
                         </div>
                     );
@@ -326,11 +327,11 @@ function AssemblySection({
             {built && (
                 <div className="ranch-built k-plate" role="status">
                     <div className="ranch-built-title">
-                        Assembled {GetMingmingData(built.definitionId).name}
+                        Summoned {GetMingmingData(built.definitionId).name}
                     </div>
                     <StatRoll member={built} />
                     <div className="ranch-note">
-                        This roll is permanent. Another blueprint of the same species rolls again.
+                        This roll is permanent. Another trace of the same species rolls again.
                     </div>
                 </div>
             )}
@@ -363,11 +364,11 @@ function OsPicker({
 
     return (
         <div style={overlay} className="ranch-modal-backdrop">
-            <div className="ranch-modal k-plate" role="dialog" aria-modal="true" aria-label="Choose firmware">
-                <h3>Choose firmware for {GetMingmingData(speciesId).name}</h3>
+            <div className="ranch-modal k-plate" role="dialog" aria-modal="true" aria-label="Choose instinct">
+                <h3>Choose instinct for {GetMingmingData(speciesId).name}</h3>
                 <p className="ranch-note">
-                    The OS is active from the moment the individual joins a run. Reflashing it later costs
-                    another blueprint.
+                    The instinct is active from the moment the individual joins a run. Retraining it later costs
+                    another trace.
                 </p>
                 <div className="ranch-os-options">
                     {options.map((id) => (
@@ -379,14 +380,14 @@ function OsPicker({
                             aria-pressed={osId === id}
                         >
                             <strong>{getOSBehavior(id)?.name ?? id}</strong>
-                            <span>{getOSBehavior(id)?.description ?? 'No firmware description.'}</span>
+                            <span>{plain(getOSBehavior(id)?.description ?? 'No instinct description.')}</span>
                         </button>
                     ))}
                 </div>
                 <div className="ranch-modal-actions">
                     <button type="button" className="ranch-button k-button is-quiet subtle" onClick={onCancel}>Cancel</button>
                     <button type="button" className="ranch-button k-button" disabled={!osId} onClick={onConfirm}>
-                        Spend blueprint
+                        Spend trace
                     </button>
                 </div>
             </div>
@@ -407,21 +408,19 @@ function VaultSection({ drivers, tempDrivers }: {
                 <h2>Vault</h2>
             </div>
             <p className="ranch-note">
-                Drivers held by the run in progress — party-wide passives won from elites. Ticket 11 moved
-                them to <code>IRunState.drivers</code>, which is where ticket 06 rules they belong: a
-                driver dies with the run that won it, so there is nothing here to carry into the next one.
-                This section is a readout, not a loadout, and ticket 16 gives drivers their own surface.
+                Totems held by the run in progress: party-wide passives won from elites. A totem is lost
+                with the run that won it, so there is nothing here to carry into the next one.
             </p>
             {drivers.length === 0 && tempIds.length === 0 && (
                 <div className="ranch-empty">
-                    Nothing installed. Drivers are won from elites inside a run and are lost when it ends.
+                    Nothing installed. Totems are won from elites inside a run and are lost when it ends.
                 </div>
             )}
             <div className="ranch-driver-grid">
                 {drivers.map((driverId) => {
                     // `describeDriver` never throws: a run carrying a Driver that has since been
                     // renamed prints its id rather than taking the whole screen down with it.
-                    const { name, description } = describeDriver(driverId);
+                    const { name, description } = driverText(driverId);
                     return (
                         <div key={driverId} className="ranch-driver k-plate">
                             <div className="ranch-driver-name">{name}</div>
@@ -431,7 +430,7 @@ function VaultSection({ drivers, tempDrivers }: {
                 })}
                 {tempIds.map((driverId) => {
                     // Ticket 168b: an event's penalty, gone after the next fight.
-                    const { name, description } = describeDriver(driverId);
+                    const { name, description } = driverText(driverId);
                     return (
                         <div key={`temp:${driverId}`} className="ranch-driver k-plate" data-temporary="true">
                             <div className="ranch-driver-name">{name} · next fight</div>

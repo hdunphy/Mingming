@@ -121,7 +121,7 @@ export default function BoundaryAlert({
                                 modal cannot perform would send the player hunting for a control
                                 that is one screen away. */}
                             {bench.length === 0
-                                ? 'Nobody benched. A workshop is where the party grows.'
+                                ? 'Nobody benched. A den is where the party grows.'
                                 : 'EDIT LOADOUT swaps them: the benched engine goes into the deck and the other one comes back.'}
                         </p>
                     </div>

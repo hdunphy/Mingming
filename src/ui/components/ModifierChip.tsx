@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
+import { plain } from '../labels/labels';
 
 export interface ModifierChipProps {
     readonly name: string;
@@ -37,7 +38,7 @@ export default function ModifierChip({ name, description, on, disabled, onToggle
             onFocus={() => setHovered(true)}
             onBlur={() => setHovered(false)}
         >
-            {name}
+            {plain(name)}
             {hovered && rect !== null && createPortal(
                 <div
                     className="os-tooltip-portal"
@@ -50,8 +51,8 @@ export default function ModifierChip({ name, description, on, disabled, onToggle
                         zIndex: 10001,
                     }}
                 >
-                    <div className="os-tooltip-header">{name.toUpperCase()} · MODIFIER</div>
-                    <div className="os-tooltip-desc">{description}</div>
+                    <div className="os-tooltip-header">{plain(name).toUpperCase()} · MODIFIER</div>
+                    <div className="os-tooltip-desc">{plain(description)}</div>
                 </div>,
                 document.body,
             )}

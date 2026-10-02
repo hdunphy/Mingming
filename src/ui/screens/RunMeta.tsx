@@ -24,7 +24,7 @@ export default function RunMeta({
     return (
         <div className="ranch-run-meta">
             <span className="run-biome">{biomeName}</span>
-            <span className="run-scrap" title="Scrap"><Icon name="scrap" size={14} /> {run.scrap}</span>
+            <span className="run-scrap" title="Amber"><Icon name="scrap" size={14} /> {run.scrap}</span>
             {showTier && <span className="run-tier"><RunTierLabel run={run} /></span>}
         </div>
     );

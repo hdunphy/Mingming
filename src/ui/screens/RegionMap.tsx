@@ -37,7 +37,6 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 import type { IRegionNode } from '../../engine/runTypes';
-import { describeDriver } from '../../engine/data/driverRegistry';
 import {
     FIGHT_KINDS,
     NODE_LABEL,
@@ -52,6 +51,7 @@ import './RegionMap.css';
 import { Icon } from '../theme/Icon';
 import { iconPaths } from '../theme/icons';
 import { resolveDriverStake } from '../../engine/run/driverStakes';
+import { driverText } from '../labels/driverText';
 
 const ELEMENT_COLOR: Record<string, string> = {
     Fire: 'var(--el-fire)',
@@ -146,7 +146,7 @@ export default function RegionMap({
     partyElements = NO_ELEMENTS,
     onTravel,
 }: RegionMapProps): ReactNode {
-    const stakeName = (stake: string): string => describeDriver(resolveDriverStake(stake, partyElements)).name;
+    const stakeName = (stake: string): string => driverText(resolveDriverStake(stake, partyElements)).name;
     const layout = useMemo(
         () => layoutRegion(nodes, currentNodeId, revealedBiomes),
         [nodes, currentNodeId, revealedBiomes],
@@ -487,7 +487,7 @@ export default function RegionMap({
                                         cx={x} cy={y} r={R + 4}
                                         className="rm-node-stake-ring"
                                     >
-                                        <title>{`Driver at stake: ${stakeName(laid.node.driverStake)}`}</title>
+                                        <title>{`Totem at stake: ${stakeName(laid.node.driverStake)}`}</title>
                                     </circle>
                                 )}
                                 {laid.revealed && laid.node.scout && (
@@ -515,7 +515,7 @@ export default function RegionMap({
             {hasStakes && (
                 <div className="rm-legend">
                     <span className="rm-legend-stakes">
-                        a <strong>violet ring</strong> is a Driver at stake — win the fight, keep the Driver for the run;
+                        a <strong>violet ring</strong> is a Totem at stake — win the fight, keep the Totem for the run;
                         a red <strong>ambush</strong> outnumbers you and pays one as a bonus
                     </span>
                 </div>

@@ -245,7 +245,7 @@ describe('BoundaryAlert — the party column', () => {
          */
         const markup = render(makeRun({ collection: [card('ragnarok_edge', 'mm2')] }));
 
-        expect(markup).toContain('Nobody benched. A workshop is where the party grows.');
+        expect(markup).toContain('Nobody benched. A den is where the party grows.');
         expect(markup).not.toContain('class="ba-member benched"');
         expect(markup).toContain('class="ba-member "');
     });

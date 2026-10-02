@@ -124,20 +124,20 @@ describe('Tight Budget at the screens', () => {
 
     it('the stall refresh says 65 and charges 65', () => {
         const { store } = renderMarket(makeRun(100, ['tight_budget']));
-        expect(refreshButton().textContent).toBe('REFRESH STALL — 65 scrap');
+        expect(refreshButton().textContent).toBe('REFRESH STALL — 65 amber');
         act(() => refreshButton().click());
         expect(scrapOf(store)).toBe(100 - 65);
     });
 
-    it('the stall refresh is short at 60 scrap, and says by how much', () => {
+    it('the stall refresh is short at 60 amber, and says by how much', () => {
         renderMarket(makeRun(60, ['tight_budget']));
         expect(refreshButton().disabled).toBe(true);
-        expect(refreshButton().textContent).toBe('REFRESH 65 scrap — 5 SHORT');
+        expect(refreshButton().textContent).toBe('REFRESH 65 amber — 5 SHORT');
     });
 
     it('the stall refresh is unchanged without the modifier', () => {
         const { store } = renderMarket(makeRun(100, []));
-        expect(refreshButton().textContent).toBe('REFRESH STALL — 50 scrap');
+        expect(refreshButton().textContent).toBe('REFRESH STALL — 50 amber');
         act(() => refreshButton().click());
         expect(scrapOf(store)).toBe(50);
     });
@@ -164,7 +164,7 @@ describe('Tight Budget at the screens', () => {
                 </Provider>,
             );
         });
-        expect(host.textContent).toContain('60 scrap');
+        expect(host.textContent).toContain('60 amber');
         const row = host.querySelector('button.rs-row') as HTMLButtonElement;
         expect(row.textContent).toContain('−60');
         act(() => row.click());

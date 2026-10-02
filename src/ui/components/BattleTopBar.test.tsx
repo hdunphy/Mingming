@@ -106,20 +106,20 @@ describe('145c — and does not say what Henry cut', () => {
     });
 });
 
-describe('145c — the Drivers row (ticket 16: read off the battle, with the rule text as tooltip)', () => {
-    it('names each Driver, and says nothing when the party has none', () => {
+describe('145c — the Totems row (ticket 16: read off the battle, with the rule text as tooltip)', () => {
+    it('names each Totem, and says nothing when the party has none', () => {
         const run = { gymId: 'gym_rootfall', drivers: [], nodes: [], currentNodeId: '' } as unknown as IRunState;
         expect(render(battle({ activeDrivers: [] } as never), run)).not.toContain('battle-drivers');
 
         const markup = render(battle({ activeDrivers: ['driver_first_blood'] } as never), run);
         expect(markup).toContain('battle-drivers');
-        expect(markup).toContain('DRIVERS');
+        expect(markup).toContain('TOTEMS');
         expect(markup).toContain('FIRST BLOOD');
         // The tooltip is the rule — a chip with a name and no rule is a rule you cannot play around.
         expect(markup).toContain('title="The first attack card this side plays each turn deals 20% more damage."');
     });
 
-    it('shows the Drivers outside a run — a debug scenario fields them too', () => {
+    it('shows the Totems outside a run — a debug scenario fields them too', () => {
         // Until ticket 17 wires the elite drop, the scenario launcher is where a Driver gets tried;
         // a row keyed off `run.drivers` was blank there, which is the one place it was needed.
         const markup = render(battle({ activeDrivers: ['driver_antivenom'] } as never), null);

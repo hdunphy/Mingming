@@ -131,7 +131,7 @@ const CombatLog: React.FC<{ isOpen?: boolean; onOpenChange?: (open: boolean) => 
                                     className={`log-entry ${entry.isOS ? 'os-proc' : ''}`}
                                 >
                                     <span className="log-timestamp">{'>>'}</span>{' '}
-                                    {entry.isOS && <span className="log-os-chip">OS</span>}
+                                    {entry.isOS && <span className="log-os-chip">Instinct</span>}
                                     {entry.text}
                                 </motion.div>
                             ))}

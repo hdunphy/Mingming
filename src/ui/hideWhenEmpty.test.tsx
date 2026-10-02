@@ -97,13 +97,13 @@ describe('182b - the macro slots on the map', () => {
     });
     it('are drawn the moment a slot holds a macro', () => {
         const markup = map(['surge', null, null]);
-        expect(markup).toContain('>Macros<');
+        expect(markup).toContain('>Draughts<');
         expect(markup).toContain('Fires in battle');
     });
     it('are drawn empty with Show advanced content on', () => {
         advanced(true);
         const markup = map(EMPTY);
-        expect(markup).toContain('>Macros<');
+        expect(markup).toContain('>Draughts<');
         expect(markup).toContain('Slot 1');
     });
 });

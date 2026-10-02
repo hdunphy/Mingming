@@ -73,7 +73,7 @@ export const NODE_LABEL: Record<NodeKind, string> = {
     alpha: 'Alpha',
     ambush: 'Ambush',
     marketplace: 'Marketplace',
-    workshop: 'Workshop',
+    workshop: 'Den',
     event: 'Event',
     gym: 'Gym',
 };

@@ -26,6 +26,7 @@
 
 import type { ProgramConstraint, ProgramData } from '../../engine/types';
 import type { ConditionalReading } from './cardConditionals';
+import { plain } from '../labels/labels';
 
 /** A half-open character range `[start, end)` into the description. */
 export interface TextRange {
@@ -98,7 +99,7 @@ function clauseMatches(clause: string, c: ProgramConstraint, isElseBranch: boole
  * Returned in action order, parallel to `data.actions` filtered to the conditional ones.
  */
 export function clauseForEachConditional(data: ProgramData): Array<{ actionIndex: number; clause: TextRange | null }> {
-    const text = data.description ?? '';
+    const text = plain(data.description ?? '');
     const clauses = splitClauses(text);
     const conditional = (data.actions ?? [])
         .map((a, actionIndex) => ({ a, actionIndex }))

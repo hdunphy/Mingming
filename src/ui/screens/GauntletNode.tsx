@@ -66,6 +66,7 @@ import { PatchBench } from './PatchBench';
 import { introRules } from '../../engine/run/intro/introRules';
 import './GauntletNode.css';
 import { Icon } from '../theme/Icon';
+import { plain } from '../labels/labels';
 
 export interface GauntletNodeProps {
     readonly run: IRunState;
@@ -234,7 +235,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
             {rules.showMacros && (
             <>
             <div className="gn-section-head">
-                <h3>Macros</h3>
+                <h3>Draughts</h3>
                 <span className="gn-tag-note">single use · fired free on your turn</span>
             </div>
 
@@ -245,7 +246,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                         <li key={slot} className={`gn-row ${macro ? '' : 'empty-slot'}`}>
                             <div className="gn-row-card">
                                 <span className="gn-row-name">{macro?.name ?? `Slot ${slot + 1}`}</span>
-                                <span className="gn-row-meta">{macro?.description ?? 'empty'}</span>
+                                <span className="gn-row-meta">{plain(macro?.description ?? 'empty')}</span>
                             </div>
                             {/*
                               * Not a button. Every macro that matters here (Revive, Mend, Surge)
@@ -271,7 +272,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
 
             <div className="gn-section-head">
                 <h3 title={boss
-                    ? 'One drawn from each of the three biomes you walked, each running signature firmware. The region was the syllabus; this is the exam.'
+                    ? 'One drawn from each of the three biomes you walked, each running signature instinct. The region was the syllabus; this is the exam.'
                     : 'Recruited out of the region’s own species - the same pools the biomes you walked field.'}
                 >{boss ? 'The leader’s own team' : 'Next opponent'}</h3>
                 <span className="gn-tag-note">{opposing} of them, always</span>
@@ -281,7 +282,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                 {opponentElements.map((element, index) => (
                     <li key={index} className={`gn-enemy ${boss ? 'boss' : ''}`}>
                         <span className="gn-enemy-element">{element}</span>
-                        <span className="gn-enemy-meta">{boss ? 'signature firmware' : 'type known, name hidden'}</span>
+                        <span className="gn-enemy-meta">{boss ? 'signature instinct' : 'type known, name hidden'}</span>
                     </li>
                 ))}
             </ul>

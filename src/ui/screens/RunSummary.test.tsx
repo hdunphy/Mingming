@@ -88,11 +88,11 @@ function render(run: IRunState, endedAt = STARTED_AT + 42 * 60_000 + 13_000): st
  * stopped printing them.
  */
 describe('RunSummary — three large lines, led by what you kept', () => {
-    it('leads with the blueprints the run banked, with counts, as "You kept: ..."', () => {
+    it('leads with the traces the run banked, with counts, as "You kept: ..."', () => {
         const markup = render(ended('victory', {
             modifiers: ['reveal:biome:0', ...['kraken', 'kraken', 'fenrir'].map(blueprintBankedModifier)],
         }));
-        expect(markup).toContain('You kept: Kraken blueprint ×2, Fenrir blueprint');
+        expect(markup).toContain('You kept: Kraken trace ×2, Fenrir trace');
         // The kept line is the first of the lines, ahead of the others.
         expect(markup.indexOf('You kept')).toBeLessThan(markup.indexOf('Reached biome'));
     });

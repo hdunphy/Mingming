@@ -22,7 +22,7 @@ export default function EventGiveBlueprint({ blueprints, onTake, onBack }: Event
     const held = Object.entries(blueprints).filter(([, count]) => count >= 1);
     return (
         <>
-            <p className="ev-text">Choose the blueprint to give up.</p>
+            <p className="ev-text">Choose the trace to give up.</p>
             <div className="ev-choices">
                 {held.map(([speciesId, count]) => (
                     <button

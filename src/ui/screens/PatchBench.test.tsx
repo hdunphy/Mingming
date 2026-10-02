@@ -63,7 +63,7 @@ describe('166e — PatchBench at the gate', () => {
         host.remove();
     });
 
-    it('at the gate: fit one patch -> the rows are replaced by the "offers one" line', () => {
+    it('at the gate: fit one rune -> the rows are replaced by the "offers one" line', () => {
         const run = makeRun();
         const store = configureStore({
             reducer: { run: runReducer },
@@ -97,7 +97,7 @@ describe('166e — PatchBench at the gate', () => {
             root.render(<App />);
         });
 
-        expect(host.textContent).toContain('Patch fitted — the gate offers one.');
+        expect(host.textContent).toContain('Rune fitted — the gate offers one.');
         expect(host.querySelectorAll('button.rs-row').length).toBe(0);
     });
 

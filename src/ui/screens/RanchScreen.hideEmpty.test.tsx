@@ -37,12 +37,12 @@ describe('182b - ranch tabs', () => {
         expect(await tabs(withKraken)).toEqual(['Expedition', 'Roster']);
     });
 
-    it('a blueprint to build brings the Assembly tab', async () => {
-        expect(await tabs((s) => { withKraken(s); s.dispatch(addBlueprint('fenrir')); })).toEqual(['Expedition', 'Roster', 'Assembly']);
+    it('a trace to build brings the Summon tab', async () => {
+        expect(await tabs((s) => { withKraken(s); s.dispatch(addBlueprint('fenrir')); })).toEqual(['Expedition', 'Roster', 'Summon']);
     });
 
-    it('a new save holding only its starter blueprint shows Expedition and Assembly (no roster yet)', async () => {
-        expect(await tabs((s) => { s.dispatch(addBlueprint('kraken')); })).toEqual(['Expedition', 'Assembly']);
+    it('a new save holding only its starter trace shows Expedition and Summon (no roster yet)', async () => {
+        expect(await tabs((s) => { s.dispatch(addBlueprint('kraken')); })).toEqual(['Expedition', 'Summon']);
     });
 
     it('something in the codex brings the Codex tab', async () => {
@@ -63,10 +63,10 @@ describe('182b - ranch tabs', () => {
     });
 
     it('the open tab stays drawn even when its screen is empty', async () => {
-        expect(await tabs(withKraken, false, 'assembly')).toEqual(['Expedition', 'Roster', 'Assembly']);
+        expect(await tabs(withKraken, false, 'assembly')).toEqual(['Expedition', 'Roster', 'Summon']);
     });
 
     it('with Show advanced content on, all five are drawn', async () => {
-        expect(await tabs(withKraken, true)).toEqual(['Expedition', 'Roster', 'Assembly', 'Vault', 'Codex']);
+        expect(await tabs(withKraken, true)).toEqual(['Expedition', 'Roster', 'Summon', 'Vault', 'Codex']);
     });
 });

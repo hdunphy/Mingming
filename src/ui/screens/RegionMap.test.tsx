@@ -103,11 +103,11 @@ describe('17 — the stakes are said before the player commits', () => {
         n.id === elite.id ? { ...n, driverStake: 'driver_first_blood' }
             : n.id === ambush.id ? { ...n, driverStake: 'driver_antivenom' } : n));
 
-    it('names the Driver on an elite, and rings the node', () => {
+    it('names the Totem on an elite, and rings the node', () => {
         const markup = render(beside(elite.id), staked, RIVAL_ELEMENTS);
         expect(markup).toContain('stakes: FIRST BLOOD');
         expect(markup).toContain('rm-node-stake-ring');
-        expect(markup).toContain('Driver at stake: FIRST BLOOD');
+        expect(markup).toContain('Totem at stake: FIRST BLOOD');
         expect(markup).toContain('rm-legend-stakes');
     });
 

@@ -70,7 +70,7 @@ describe('Expedition (182a)', () => {
     });
 });
 
-describe('Assembly (182a)', () => {
+describe('Summon (182a)', () => {
     const holdingKraken = (store: ReturnType<typeof makeStore>): void => {
         store.dispatch(addBlueprint('kraken'));
     };
@@ -82,9 +82,9 @@ describe('Assembly (182a)', () => {
         expect(host.querySelectorAll('p')).toHaveLength(0);
     });
 
-    it('builds the starter on its v1 firmware at once, with no firmware modal', async () => {
+    it('builds the starter on its v1 instinct at once, with no instinct modal', async () => {
         const { store, host } = await ranch('assembly', holdingKraken);
-        await clickText(host, 'Assemble (1 blueprint)');
+        await clickText(host, 'Summon (1 trace)');
         expect(host.querySelector('[role="dialog"]')).toBeNull();
         const { roster, blueprints } = store.getState().game;
         expect(roster).toHaveLength(1);
@@ -92,14 +92,14 @@ describe('Assembly (182a)', () => {
         expect(blueprints.kraken).toBeUndefined();
     });
 
-    it('a later build keeps the firmware choice, with v1 picked by default', async () => {
+    it('a later build keeps the instinct choice, with v1 picked by default', async () => {
         const { store, host } = await ranch('assembly', (s) => { withKraken(s); holdingKraken(s); });
-        await clickText(host, 'Assemble (1 blueprint)');
+        await clickText(host, 'Summon (1 trace)');
         const dialog = host.querySelector('[role="dialog"]')!;
         expect(dialog).not.toBeNull();
         const options = [...dialog.querySelectorAll<HTMLElement>('.ranch-os-option')];
         expect(options.map((o) => o.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
-        await clickText(host, 'Spend blueprint');
+        await clickText(host, 'Spend trace');
         expect(store.getState().game.roster).toHaveLength(2);
         expect(store.getState().game.roster[1].activeOS).toBe('kraken_v1');
     });

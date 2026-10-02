@@ -5,6 +5,7 @@ import type { RootState } from '../store/store';
 import { swapOS } from '../store/gameSlice';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
+import { plain } from '../labels/labels';
 
 interface FirmwareTerminalProps {
     onClose: () => void;
@@ -84,7 +85,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
         <div className="firmware-terminal-overlay">
             <div className="terminal-window">
                 <div className="terminal-header">
-                    <span className="terminal-title">FIRMWARE TERMINAL // KERNEL-FLASH-UX</span>
+                    <span className="terminal-title">INSTINCT TERMINAL // KERNEL-FLASH-UX</span>
                     <button className="terminal-close" onClick={onClose}>[X]</button>
                 </div>
 
@@ -111,7 +112,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                         {!selectedMm ? (
                             <div className="empty-state">
                                 <div className="glitch-text" data-text="WAITING FOR CONNECTION...">WAITING FOR CONNECTION...</div>
-                                <p>Select a MingMing to begin firmware diagnostics.</p>
+                                <p>Select a MingMing to begin instinct diagnostics.</p>
                             </div>
                         ) : (
                             <div className="flash-ui">
@@ -130,7 +131,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                 </div>
 
                                 <div className="os-selector">
-                                    <h3>SELECT FIRMWARE IMAGE</h3>
+                                    <h3>SELECT INSTINCT IMAGE</h3>
                                     <div className="os-options">
                                         {availableOSVersions.map(opt => {
                                             const behavior = getOSBehavior(opt.id);
@@ -147,7 +148,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                                         <span className="os-version">{opt.version}</span>
                                                         <span className="os-name">{behavior?.name}</span>
                                                     </div>
-                                                    <p className="os-desc">{behavior?.description}</p>
+                                                    <p className="os-desc">{plain(behavior?.description)}</p>
                                                     {isCurrent && <div className="os-status-tag">ACTIVE_KERNEL</div>}
                                                 </div>
                                             );
@@ -157,7 +158,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
 
                                 <div className="flash-footer">
                                     <div className="flash-cost">
-                                        FLASH COST: <span className={!hasBlueprint ? 'insufficient' : ''}>1 BLUEPRINT</span>
+                                        FLASH COST: <span className={!hasBlueprint ? 'insufficient' : ''}>1 TRACE</span>
                                         <label>(HELD: {blueprintsHeld})</label>
                                     </div>
                                     <button

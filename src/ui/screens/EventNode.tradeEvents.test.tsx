@@ -201,21 +201,21 @@ describe('Recompiler', () => {
 });
 
 describe('The Toll', () => {
-    it('has no Leave, and paying takes 30 scrap', async () => {
+    it('has no Leave, and paying takes 30 amber', async () => {
         const store = makeStore(runWith('the_toll', { scrap: 50 }));
         await mount(store);
         expect(host.textContent).toContain('THE TOLL');
         expect(byText('Leave')).toBeUndefined();
-        await click(byText('Pay 30 scrap'));
+        await click(byText('Pay 30 amber'));
         expect(runOf(store).scrap).toBe(20);
         expect(host.textContent).toContain('The relay is dark');
     });
 
-    it('greys the payment under 30 scrap and takes a card instead, at no scrap', async () => {
+    it('greys the payment under 30 amber and takes a card instead, at no amber', async () => {
         const store = makeStore({ ...atFloor('the_toll', [card('col1', poolOf('Common')[0])]), scrap: 5 });
         await mount(store);
-        expect(byText('Pay 30 scrap')!.disabled).toBe(true);
-        expect(byText('Pay 30 scrap')!.textContent).toContain('Not enough scrap.');
+        expect(byText('Pay 30 amber')!.disabled).toBe(true);
+        expect(byText('Pay 30 amber')!.textContent).toContain('Not enough amber.');
 
         await click(byText('Give up a card'));
         await click(rowFor(' collection'));
@@ -226,12 +226,12 @@ describe('The Toll', () => {
     });
 });
 
-describe('Driver Shrine', () => {
-    it('takes two cards, grants a Driver first, and records the grant', async () => {
+describe('Totem Shrine', () => {
+    it('takes two cards, grants a Totem first, and records the grant', async () => {
         const store = makeStore(atFloor('driver_shrine', [card('col1', poolOf('Common')[0]), card('col2', poolOf('Common')[1])]));
         await mount(store);
-        expect(byText('Offer one blueprint')!.disabled).toBe(true);
-        expect(byText('Offer one blueprint')!.textContent).toContain('No blueprint to give.');
+        expect(byText('Offer one trace')!.disabled).toBe(true);
+        expect(byText('Offer one trace')!.textContent).toContain('No trace to give.');
 
         await click(byText('Offer two cards'));
         expect(byText('CONFIRM')!.disabled).toBe(true);
@@ -241,11 +241,11 @@ describe('Driver Shrine', () => {
         await click(byText('CONFIRM'));
 
         // The second question: the Driver.
-        expect(byText('TAKE DRIVER')!.disabled).toBe(true);
+        expect(byText('TAKE TOTEM')!.disabled).toBe(true);
         const choices = buttons().filter((b) => b.getAttribute('aria-pressed') === 'false');
         expect(choices).toHaveLength(2);
         await click(choices[0]);
-        await click(byText('TAKE DRIVER'));
+        await click(byText('TAKE TOTEM'));
 
         const after = runOf(store);
         expect(after.drivers.filter((id) => PLAYER_DRIVER_IDS.includes(id))).toHaveLength(1);
@@ -253,16 +253,16 @@ describe('Driver Shrine', () => {
         expect(after.eventHistory!.at(-1)).toMatchObject({ eventId: 'driver_shrine', grants: ['driver'] });
     });
 
-    it('takes one blueprint from the ranch for a Driver', async () => {
+    it('takes one trace from the ranch for a Totem', async () => {
         const store = makeStore(atFloor('driver_shrine', []), { fenrir: 1 });
         await mount(store);
         expect(byText('Offer two cards')!.disabled).toBe(true);
 
-        await click(byText('Offer one blueprint'));
+        await click(byText('Offer one trace'));
         await click(buttons().find((b) => b.textContent?.includes('You hold 1')));
         await click(byText('CONFIRM'));
         await click(buttons().find((b) => b.getAttribute('aria-pressed') === 'false'));
-        await click(byText('TAKE DRIVER'));
+        await click(byText('TAKE TOTEM'));
 
         expect(store.getState().game.blueprints.fenrir).toBeUndefined();
         expect(runOf(store).drivers.filter((id) => PLAYER_DRIVER_IDS.includes(id))).toHaveLength(1);
@@ -280,14 +280,14 @@ describe('Driver Shrine', () => {
     });
 });
 
-describe('Black-Market Patch', () => {
-    it('charges 30 and fits the body\'s best patch', async () => {
+describe('Black-Market Rune', () => {
+    it('charges 30 and fits the body\'s best rune', async () => {
         const store = makeStore(runWith('black_market_patch', { scrap: 100 }));
         await mount(store);
         await click(byText('Pay 30'));
         expect(runOf(store).scrap).toBe(100);
         await click(buttons().find((b) => b.getAttribute('aria-pressed') === 'false'));
-        await click(byText('FIT PATCH'));
+        await click(byText('FIT RUNE'));
 
         const after = runOf(store);
         expect(after.scrap).toBe(70);
@@ -295,7 +295,7 @@ describe('Black-Market Patch', () => {
         expect(after.eventHistory!.at(-1)).toMatchObject({ eventId: 'black_market_patch', grants: ['patch'] });
     });
 
-    it('fits a patch for a Rare card instead of scrap, and greys that option with no Rare to give', async () => {
+    it('fits a rune for a Rare card instead of amber, and greys that option with no Rare to give', async () => {
         const none = makeStore(atFloor('black_market_patch', [], { scrap: 100 }));
         await mount(none);
         expect(byText('Give up a Rare card')!.disabled).toBe(true);
@@ -311,7 +311,7 @@ describe('Black-Market Patch', () => {
         await click(rows()[0]);
         await click(byText('CONFIRM'));
         await click(buttons().find((b) => b.getAttribute('aria-pressed') === 'false'));
-        await click(byText('FIT PATCH'));
+        await click(byText('FIT RUNE'));
 
         const after = runOf(store);
         expect(after.scrap).toBe(100);

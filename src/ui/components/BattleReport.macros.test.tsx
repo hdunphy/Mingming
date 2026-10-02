@@ -33,7 +33,7 @@ afterEach(() => {
     host.remove();
 });
 
-describe('166d — BattleReport macro reward pick', () => {
+describe('166d — BattleReport draught reward pick', () => {
     const bundleWithMacros: IRewardBundle = {
         scraps: 0,
         blueprints: [],
@@ -55,7 +55,7 @@ describe('166d — BattleReport macro reward pick', () => {
         });
 
         // Heading exists
-        expect(host.textContent).toContain('MACRO — TAKE ONE');
+        expect(host.textContent).toContain('DRAUGHT — TAKE ONE');
 
         // Look for buttons corresponding to the three macros
         const buttons = Array.from(host.querySelectorAll('button'));

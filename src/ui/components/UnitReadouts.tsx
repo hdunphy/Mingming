@@ -42,6 +42,7 @@ import { SCALING_LABEL } from './scalingLabels';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import { CounterPip } from './CounterPip';
 import { readDaemonCounter, readFirmwareCounter } from '../counters/readCounter';
+import { plain } from '../labels/labels';
 
 /*
  * `SCALING_LABEL` and `formatMultiplier` are NOT redefined here. They already exist — the labels in
@@ -100,7 +101,7 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
               * of that answer. The tooltip below carries its rule, exactly as the OS's own text is
               * carried there and for the same reason — a chip has room for a word, not a sentence.
               */}
-            {patch && <span className="hud-os-patch" title={describePatchOn(entity.activeOS, patch.id)}>{patch.name.charAt(0)}</span>}
+            {patch && <span className="hud-os-patch" title={plain(describePatchOn(entity.activeOS, patch.id))}>{patch.name.charAt(0)}</span>}
             <CounterPip reading={counter} />
 
             {showOSTooltip && rect !== null && createPortal(
@@ -123,13 +124,13 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
                     </div>
                     <div className="tooltip-divider" />
                     <div className="tooltip-body">
-                        {behavior?.description}
+                        {plain(behavior?.description)}
                         {patch && (
                             // The MODIFIED reading, as §3 asks: the firmware's own sentence, then
                             // what the rider does to it. Ticket 184d (Henry, 2026-10-01): the second
                             // line is now written for THIS firmware (`patchText.ts`), because the
                             // generic sentence could not say what changed on this monster.
-                            <span className="tooltip-os-patch">{patch.name} — {describePatchOn(entity.activeOS, patch.id)}</span>
+                            <span className="tooltip-os-patch">{plain(patch.name)} — {plain(describePatchOn(entity.activeOS, patch.id))}</span>
                         )}
                         {counter && <span className="tooltip-os-counter">{counter.tooltip}</span>}
                     </div>
@@ -159,7 +160,7 @@ export const DaemonTags: React.FC<{ entity: IBattleEntity; className?: string; b
                     <div
                         key={daemon.id || `daemon-${idx}`}
                         className="hud-daemon-tag"
-                        title={data.description}
+                        title={plain(data.description)}
                     >
                         {/* The gear. `settings` is the closest shape in the closed set and it is the right
                             picture for a daemon — a passive that runs on its own. Named here rather than

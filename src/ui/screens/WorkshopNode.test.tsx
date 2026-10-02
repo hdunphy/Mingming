@@ -161,14 +161,14 @@ function expectedEngineRows(ids: ReadonlyArray<string>): Array<{ name: string; n
 }
 
 describe('WorkshopNode — the top bar', () => {
-    it('prints the scrap it is about to charge, labelled for a screen reader', () => {
+    it('prints the amber it is about to charge, labelled for a screen reader', () => {
         // The bay's whole proposition is "a blueprint AND scrap", and the scrap half is a number the
         // player has to be able to check against the chips on the stage without leaving the screen.
         // `aria-label` because the readout is an ICON since ticket 34 — it reads as nothing aloud, and
         // ticket 38 should inherit screens that already say what their numbers are.
         const markup = render(makeRun(140), makeRanch({}));
 
-        expect(markup).toContain('aria-label="Scrap held"');
+        expect(markup).toContain('aria-label="Amber held"');
         expect(markup).toContain('140 <svg');
     });
 
@@ -178,8 +178,8 @@ describe('WorkshopNode — the top bar', () => {
         // biome (a debug launch has no offer behind it), so the fallback is asserted too: a bay that
         // printed `UNDEFINED BIOME · ASSEMBLY BAY` would be a bug that only ever shipped to players.
         expect(render(makeRun(140), makeRanch({}), { biomeName: 'Ashfall' }))
-            .toContain('ASHFALL BIOME · ASSEMBLY BAY');
-        expect(render(makeRun(140), makeRanch({}))).toContain('THIS BIOME · ASSEMBLY BAY');
+            .toContain('ASHFALL BIOME · SUMMON BAY');
+        expect(render(makeRun(140), makeRanch({}))).toContain('THIS BIOME · SUMMON BAY');
         expect(render(makeRun(140), makeRanch({}))).not.toMatch(/UNDEFINED/i);
     });
 
@@ -214,7 +214,7 @@ describe('WorkshopNode — the top bar', () => {
     });
 });
 
-describe('WorkshopNode — the blueprint rack', () => {
+describe('WorkshopNode — the trace rack', () => {
     it('lists every held blueprint with its count', () => {
         // The rack is the shelf: what the run has picked up off alphas and wilds, in one column, so
         // the "spend it here or carry it home to the ranch" decision is made against what is actually
@@ -222,9 +222,9 @@ describe('WorkshopNode — the blueprint rack', () => {
         const markup = render(makeRun(400), makeRanch({ fenrir: 2, skoll: 1 }));
 
         expect(markup).toContain('>Fenrir</span>');
-        expect(markup).toContain('blueprints ×2');
+        expect(markup).toContain('Traces ×2');
         expect(markup).toContain('>Skoll</span>');
-        expect(markup).toContain('blueprints ×1');
+        expect(markup).toContain('Traces ×1');
     });
 
     it('shelves a species spent down to zero, greyed and dead — ticket 65\'s Skoll row', () => {
@@ -245,18 +245,18 @@ describe('WorkshopNode — the blueprint rack', () => {
         const markup = render(makeRun(400), makeRanch({ fenrir: 2, ymir: 0 }));
 
         expect(markup).toContain('>Fenrir</span>');
-        expect(markup).toContain('blueprints \u00d72');
+        expect(markup).toContain('Traces \u00d72');
 
         // Present, labelled, and dead — all three, in the one row.
         const ymirRow = markup
             .split('<button')
             .find((chunk) => chunk.includes('>Ymir</span>'));
         expect(ymirRow).toBeDefined();
-        expect(ymirRow).toContain('no blueprints');
+        expect(ymirRow).toContain('no traces');
         expect(ymirRow).toContain('disabled=""');
     });
 
-    it('shows a blueprint the duplicate clause refuses, with the reason rather than not at all', () => {
+    it('shows a trace the duplicate clause refuses, with the reason rather than not at all', () => {
         // A blueprint you are holding but cannot spend HERE is news, so it is listed with its
         // refusal. Said in the player's terms — *"this OS already on the team"* — because "illegal"
         // explains nothing (ticket 20).
@@ -274,7 +274,7 @@ describe('WorkshopNode — the blueprint rack', () => {
         const markup = render(bothKrakens, ranch);
 
         expect(markup).toContain('>Kraken</span>');
-        expect(markup).toContain('blueprints ×3 · this OS already on the team');
+        expect(markup).toContain('Traces ×3 · this instinct already on the team');
     });
 
     /**
@@ -284,11 +284,11 @@ describe('WorkshopNode — the blueprint rack', () => {
      * runs, so the rack offers the row and the stage's ASSEMBLE verbs answer to the OS picked
      * beside them.
      */
-    it('offers the species when a DIFFERENT firmware of it is still free', () => {
+    it('offers the species when a DIFFERENT instinct of it is still free', () => {
         const markup = render(makeRun(400), makeRanch({ kraken: 3 }));
 
         expect(markup).toContain('>Kraken</span>');
-        expect(markup).not.toContain('this OS already on the team');
+        expect(markup).not.toContain('this instinct already on the team');
     });
 
     it('says what an empty shelf means rather than going quiet', () => {
@@ -297,16 +297,16 @@ describe('WorkshopNode — the blueprint rack', () => {
         // players see first.
         const markup = render(makeRun(400), makeRanch({}));
 
-        expect(markup).toContain('No species in the registry offer blueprints yet.');
-        expect(markup).toContain('Blueprints are consumable');
+        expect(markup).toContain('No species in the registry offer traces yet.');
+        expect(markup).toContain('Traces are consumable');
         // And the stage says the same thing from its own side, priced, rather than sitting blank.
-        expect(markup).toContain('SELECT A BLUEPRINT');
+        expect(markup).toContain('SELECT A TRACE');
         expect(markup).toContain('This is the only place the party grows');
-        expect(markup).toContain(`${WORKSHOP_ASSEMBLY_SCRAP} scrap`);
+        expect(markup).toContain(`${WORKSHOP_ASSEMBLY_SCRAP} amber`);
     });
 });
 
-describe('WorkshopNode — the assembly stage', () => {
+describe('WorkshopNode — the summon stage', () => {
     it('prints BOTH halves of the price as its own chips', () => {
         // The standing law of 2026-08-21, and the one this file was originally opened for: the ranch
         // charges a blueprint, the road charges a blueprint AND scrap. Mid-run recruiting is supposed
@@ -314,10 +314,10 @@ describe('WorkshopNode — the assembly stage', () => {
         // only quotes the half the ranch also charges.
         const markup = render(makeRun(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
-        expect(markup).toContain('<span class="rs-chip">1 × BLUEPRINT</span>');
+        expect(markup).toContain('<span class="rs-chip">1 × TRACE</span>');
         expect(markup).toContain(`<span class="rs-chip">${WORKSHOP_ASSEMBLY_SCRAP} <svg`);
-        expect(markup).toContain('ASSEMBLE → PARTY');
-        expect(markup).toContain('ASSEMBLE → BENCH');
+        expect(markup).toContain('SUMMON → PARTY');
+        expect(markup).toContain('SUMMON → BENCH');
     });
 
     it('lists the whole 5-card engine, payoff first, duplicates collapsed to ×N', () => {
@@ -363,7 +363,7 @@ describe('WorkshopNode — the assembly stage', () => {
         expect(markup.match(/>payoff</g)?.length).toBe(1);
     });
 
-    it('offers every firmware the species has, inline, with exactly one marked chosen', () => {
+    it('offers every instinct the species has, inline, with exactly one marked chosen', () => {
         /*
          * The old `OsPicker` modal is gone: the choice is on the stage beside the engine it changes,
          * which is the whole of mockup I's argument for moving it. So "every OS the species offers"
@@ -400,7 +400,7 @@ describe('WorkshopNode — the assembly stage', () => {
      * Asserted against `getOSBehavior(...).description` rather than a literal, so a firmware whose
      * text is rewritten cannot leave this test passing on yesterday's sentence.
      */
-    it('prints what each firmware DOES, not just what it is called', () => {
+    it('prints what each instinct DOES, not just what it is called', () => {
         const definition = GetMingmingData('skoll');
         const markup = render(makeRun(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
@@ -435,7 +435,7 @@ describe('WorkshopNode — the assembly stage', () => {
         expect(markup).toContain('DEF');
     });
 
-    it('disables an assembly the purse cannot cover AND says what it is short', () => {
+    it('disables a summon the purse cannot cover AND says what it is short', () => {
         // Ticket 20's precedent, unchanged by the rebuild: a silently inert control is
         // indistinguishable from a bug, so the shortfall is on the button rather than in a tooltip.
         // Both destinations are refused, because both cost the same 25 — a bench recruit is not a
@@ -443,7 +443,7 @@ describe('WorkshopNode — the assembly stage', () => {
         const short = WORKSHOP_ASSEMBLY_SCRAP - 10;
         const markup = render(makeRun(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
-        expect(markup).toContain(`ASSEMBLE → PARTY — ${short} SHORT`);
+        expect(markup).toContain(`SUMMON → PARTY — ${short} SHORT`);
         /*
          * Two ASSEMBLE verbs plus every row of 163b's upgrade bench, which a 10-scrap purse also
          * cannot cover — the cheapest upgrade is 25. Spelled out rather than scoped away, because
@@ -453,7 +453,7 @@ describe('WorkshopNode — the assembly stage', () => {
         const poor = makeRun(10);
         const bench = new Set(poor.deck.filter((c) => hasUpgrade(c.dataId)).map((c) => c.dataId)).size;
         expect(markup.match(/<button[^>]* disabled=""/g)?.length).toBe(2 + bench);
-        expect(markup).toContain('<span class="rs-chip">1 × BLUEPRINT</span>');
+        expect(markup).toContain('<span class="rs-chip">1 × TRACE</span>');
     });
 
     it('refuses a duplicate species on the button, in the clause\'s own words', () => {
@@ -464,7 +464,7 @@ describe('WorkshopNode — the assembly stage', () => {
 
         expect(markup).toContain('ALREADY ON THE TEAM');
         expect(markup).toContain('disabled=""');
-        expect(markup).not.toContain('ASSEMBLE → PARTY —');
+        expect(markup).not.toContain('SUMMON → PARTY —');
     });
 
     it('asks who to bench instead of refusing a full party', () => {
@@ -484,14 +484,14 @@ describe('WorkshopNode — the assembly stage', () => {
         const markup = render(run, ranch, { initialSpeciesId: 'jormungandr' });
 
         expect(markup).toContain(`PARTY ${PARTY_SIZE}/${PARTY_SIZE}`);
-        expect(markup).toContain('ASSEMBLE → PARTY (SWAP)');
-        expect(markup).toContain('ASSEMBLE → PARTY asks who to bench');
+        expect(markup).toContain('SUMMON → PARTY (SWAP)');
+        expect(markup).toContain('SUMMON → PARTY asks who to bench');
         // Affordable and legal, so nothing on the stage is dead: the swap is a route, not a block.
         expect(markup).not.toContain('disabled=""');
     });
 });
 
-describe('WorkshopNode — the reflash comparison', () => {
+describe('WorkshopNode — the retrain comparison', () => {
     it('shows both engines side by side, and they are genuinely different decks', () => {
         /*
          * Mockup J's central point, and the reason the old `OsPicker` modal could not survive: a
@@ -562,7 +562,7 @@ describe('WorkshopNode — the reflash comparison', () => {
         expect(markup).toContain(escapeHtml(from!.description));
         expect(markup).toContain(escapeHtml(to!.description));
         expect(markup).toContain(' · CURRENT');
-        expect(markup).toContain(' · AFTER REFLASH');
+        expect(markup).toContain(' · AFTER RETRAIN');
         expect(markup).not.toContain('>kraken_v1<');
         expect(markup).not.toContain('>kraken_v2<');
     });
@@ -584,14 +584,14 @@ describe('WorkshopNode — the reflash comparison', () => {
             { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } },
         );
 
-        expect(markup).toContain('<span class="rs-chip">1 × KRAKEN BLUEPRINT</span>');
+        expect(markup).toContain('<span class="rs-chip">1 × KRAKEN TRACE</span>');
         expect(markup).toContain(`<span class="rs-chip">${WORKSHOP_REFLASH_SCRAP} <svg`);
         expect(markup).toContain('old engine cards → run collection');
         expect(markup).toContain(`${RECRUIT_KIT_SIZE} for ${RECRUIT_KIT_SIZE}`);
         expect(markup).toContain('floor unchanged');
     });
 
-    it('disables a reflash the purse cannot cover AND says what it is short', () => {
+    it('disables a retrain the purse cannot cover AND says what it is short', () => {
         // Ticket 20 again, at the second counter. The blueprint IS held here, so the shortfall the
         // button names is unambiguously the scrap — a case that gave the player neither would be
         // testing "the button is dead", which is the thing this precedent exists to forbid.
@@ -601,7 +601,7 @@ describe('WorkshopNode — the reflash comparison', () => {
             { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } },
         );
 
-        expect(markup).toContain(`REFLASH — ${WORKSHOP_REFLASH_SCRAP - 5} SHORT`);
+        expect(markup).toContain(`RETRAIN — ${WORKSHOP_REFLASH_SCRAP - 5} SHORT`);
         expect(markup).toContain('disabled=""');
     });
 
@@ -617,27 +617,27 @@ describe('WorkshopNode — the reflash comparison', () => {
 
         expect(markup).toContain('>BACK</button>');
         expect(markup).not.toContain('>LEAVE</button>');
-        expect(markup).toContain('WORKSHOP — REFLASH — KRAKEN');
+        expect(markup).toContain('DEN — RETRAIN — KRAKEN');
         // The bay is genuinely gone, not hidden behind it.
-        expect(markup).not.toContain('BLUEPRINTS</h2>');
-        expect(markup).not.toContain('ASSEMBLE → PARTY');
+        expect(markup).not.toContain('TRACES</h2>');
+        expect(markup).not.toContain('SUMMON → PARTY');
     });
 });
 
 describe('WorkshopNode — the party and bench column', () => {
-    it('offers a reflash on a party member, and says when the blueprint is missing', () => {
+    it('offers a retrain on a party member, and says when the trace is missing', () => {
         // The column is the reflash entry point now — there is no separate priced list — so the row
         // has to carry both what the member is running and whether this node can do anything about
         // it. `no blueprints` is the rack's label doing its live work here.
         const withBlueprint = render(makeRun(400), makeRanch({ kraken: 1 }));
-        expect(withBlueprint).toContain('ABYSSAL_INK_SYS · reflash');
-        expect(withBlueprint).toContain(`1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap`);
+        expect(withBlueprint).toContain('ABYSSAL_INK_SYS · retrain');
+        expect(withBlueprint).toContain(`1 trace + ${WORKSHOP_REFLASH_SCRAP} amber`);
 
         const without = render(makeRun(400), makeRanch({}));
-        expect(without).toContain('ABYSSAL_INK_SYS · no blueprints');
+        expect(without).toContain('ABYSSAL_INK_SYS · no traces');
     });
 
-    it('shows a benched member in the same column, and reflashes it too', () => {
+    it('shows a benched member in the same column, and retrains it too', () => {
         /*
          * Ticket 61 §3: *"a benched member is still yours"*. The bench is not a holding pen the
          * workshop declines to serve — a player who benched a Fenrir to make room and then found the
@@ -653,13 +653,13 @@ describe('WorkshopNode — the party and bench column', () => {
         const bay = render(run, ranch);
         expect(bay).toContain(`PARTY 1/${PARTY_SIZE} · BENCH 1`);
         expect(bay).toContain('ws-bpc benched');
-        expect(bay).toContain('benched · reflash');
+        expect(bay).toContain('benched · retrain');
         expect(bay).toContain('>Fenrir</span>');
 
         const view = render(run, ranch, { initialReflash: { memberId: 'mm2', targetOS: 'fenrir_v2' } });
-        expect(view).toContain('WORKSHOP — REFLASH — FENRIR');
-        expect(view).toContain('<span class="rs-chip">1 × FENRIR BLUEPRINT</span>');
-        expect(view).toContain('>REFLASH</button>');
+        expect(view).toContain('DEN — RETRAIN — FENRIR');
+        expect(view).toContain('<span class="rs-chip">1 × FENRIR TRACE</span>');
+        expect(view).toContain('>RETRAIN</button>');
         expect(view).not.toContain('disabled=""');
     });
 });
@@ -748,14 +748,14 @@ describe('WorkshopNode — the standing laws', () => {
 describe('Tight Budget (169g)', () => {
     const tight = (scrap: number): IRunState => makeRun(scrap, { modifiers: ['mod:tight_budget'] });
 
-    it('shows the assembly at 35, and its shortfall against 35', () => {
+    it('shows the summon at 35, and its shortfall against 35', () => {
         const markup = render(tight(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
         expect(markup).toContain(`<span class="rs-chip">35 `);
-        expect(markup).toContain('ASSEMBLE → PARTY — 25 SHORT');
+        expect(markup).toContain('SUMMON → PARTY — 25 SHORT');
     });
 
-    it('shows the reflash at 20, and its shortfall against 20', () => {
+    it('shows the retrain at 20, and its shortfall against 20', () => {
         const markup = render(
             tight(5),
             makeRanch({ kraken: 1 }),
@@ -763,7 +763,7 @@ describe('Tight Budget (169g)', () => {
         );
 
         expect(markup).toContain(`<span class="rs-chip">20 `);
-        expect(markup).toContain('REFLASH — 15 SHORT');
+        expect(markup).toContain('RETRAIN — 15 SHORT');
     });
 
     it('leaves the plain workshop at 25 and 15', () => {
@@ -785,28 +785,28 @@ describe('No Recruits (169h)', () => {
         const markup = render(off(400), makeRanch({ skoll: 1, fenrir: 1 }));
 
         expect(markup).toContain(SENTENCE);
-        expect(markup).not.toContain('blueprints ×');
+        expect(markup).not.toContain('Traces ×');
         expect(markup).not.toContain('ws-bpc sel');
     });
 
-    it('offers no assembly, even when a species was pre-selected', () => {
+    it('offers no summon, even when a species was pre-selected', () => {
         const markup = render(off(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
         expect(markup).toContain(SENTENCE);
         expect(markup).not.toContain('ASSEMBLE');
     });
 
-    it('still lists the party, and still reflashes', () => {
+    it('still lists the party, and still retrains', () => {
         const ranch = makeRanch({ kraken: 1 });
         expect(render(off(400), ranch)).toContain('PARTY 1/3');
         expect(render(off(400), ranch, { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } }))
-            .toContain('>REFLASH</button>');
+            .toContain('>RETRAIN</button>');
     });
 
     it('shows the species list, and not the sentence, without the modifier', () => {
         const markup = render(makeRun(400), makeRanch({ skoll: 1 }));
 
         expect(markup).not.toContain(SENTENCE);
-        expect(markup).toContain('blueprints ×1');
+        expect(markup).toContain('Traces ×1');
     });
 });

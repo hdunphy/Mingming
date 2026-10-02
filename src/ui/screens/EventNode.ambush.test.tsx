@@ -91,7 +91,7 @@ describe('Ambush Bait', () => {
         await mount(makeStore(runOnAmbush()));
         expect(host.textContent?.toLowerCase()).toContain('ambush bait');
         expect(byText('Fight it')).toBeTruthy();
-        expect(host.textContent).toContain('A wild fight for double scrap.');
+        expect(host.textContent).toContain('A wild fight for double amber.');
         expect(byText('Leave')).toBeTruthy();
     });
 

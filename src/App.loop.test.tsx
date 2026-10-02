@@ -47,7 +47,7 @@ async function pickStarter(host: HTMLElement, name: string): Promise<void> {
 
 async function assembleFirstBlueprint(host: HTMLElement): Promise<void> {
     // TICKET 182a (R3): the starter is built on its v1 firmware at once, with no firmware modal.
-    await clickText(host, 'Assemble (1 blueprint)');
+    await clickText(host, 'Summon (1 trace)');
 }
 
 async function beginRunWithFirstOffer(host: HTMLElement): Promise<void> {
@@ -110,7 +110,7 @@ async function inTheFirstFight(store: TestStore): Promise<HTMLElement> {
 }
 
 describe('the core loop, click by click', () => {
-    it('starter picked → the picker is gone and the blueprint is held', async () => {
+    it('starter picked → the picker is gone and the trace is held', async () => {
         const store = makeStore();
         const host = await mountApp(store);
         expect(host.textContent).toContain('Choose your starter');
@@ -119,10 +119,10 @@ describe('the core loop, click by click', () => {
 
         expect(store.getState().game.blueprints.kraken).toBe(1);
         expect(host.textContent).not.toContain('Choose your starter');
-        expect(host.textContent).toContain('Assembly bay');
+        expect(host.textContent).toContain('Summon bay');
     });
 
-    it('blueprint spent at the Assembly bay → the roster gains a member and the blueprint is gone', async () => {
+    it('Trace spent at the Summon bay → the roster gains a member and the trace is gone', async () => {
         const store = makeStore();
         const host = await mountApp(store);
         await pickStarter(host, 'KRAKEN');
@@ -134,7 +134,7 @@ describe('the core loop, click by click', () => {
         expect(roster).toHaveLength(1);
         expect(roster[0].definitionId).toBe('kraken');
         expect(blueprints.kraken).toBeUndefined();
-        expect(host.textContent).toContain('Assembled');
+        expect(host.textContent).toContain('Summoned');
     });
 
     it('a gym offer, a party, Begin run → a run exists with the chosen party, on the map', async () => {
@@ -242,7 +242,7 @@ describe('the core loop, click by click', () => {
         expect(host.querySelector('.rm-travel-button')).not.toBeNull();
     });
 
-    it('an ELITE won → the report shows the Driver the map promised, CONTINUE → the party holds it (ticket 17)', async () => {
+    it('an ELITE won → the report shows the Totem the map promised, CONTINUE → the party holds it (ticket 17)', async () => {
         /*
          * The stake is READ off the node, never rolled at the win, so the test plants one on the
          * first reachable node and asks whether it reaches the run. The node kind is changed too:

@@ -91,6 +91,7 @@ import { introRules } from '../../engine/run/intro/introRules';
 import { CardFace, ElementMark } from './CardChassis';
 import { CardPeek } from './CardPeek';
 import { useCardPeek } from '../hooks/useCardPeek';
+import { plain } from '../labels/labels';
 
 /**
  * Ticket 19's deck-band constants, re-exported because this module's readers and tests import them
@@ -263,7 +264,7 @@ export default function MarketplaceNode({
                     {(biomeName ?? 'THIS').toUpperCase()} BIOME · VISIT {node.visited} · this stock is fixed for the run
                 </span>
                 <span className="rs-spacer" />
-                <span className="rs-scrap" aria-label="Scrap held">{scrap} <Icon name="scrap" size={12} /></span>
+                <span className="rs-scrap" aria-label="Amber held">{scrap} <Icon name="scrap" size={12} /></span>
                 {marketRules.editLoadout && (
                     <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onEditLoadout(); }}>
                         EDIT LOADOUT
@@ -280,7 +281,7 @@ export default function MarketplaceNode({
                         <span className="mk-face" aria-hidden="true"><Icon name="roster" size={22} /></span>
                         <span className="mk-merchant-text">
                             <span className="mk-merchant-nm">SALVAGE BROKER v2.3</span>
-                            <span className="mk-say">&ldquo;Fresh firmware, honest prices. Mostly.&rdquo;</span>
+                            <span className="mk-say">&ldquo;Fresh instinct, honest prices. Mostly.&rdquo;</span>
                         </span>
                         <span className="rs-spacer" />
                         {/*
@@ -304,8 +305,8 @@ export default function MarketplaceNode({
                                 disabled={scrap < refreshPrice}
                             >
                                 {scrap < refreshPrice
-                                    ? `REFRESH ${refreshPrice} scrap — ${shortBy(refreshPrice)} SHORT`
-                                    : `REFRESH STALL — ${refreshPrice} scrap`}
+                                    ? `REFRESH ${refreshPrice} amber — ${shortBy(refreshPrice)} SHORT`
+                                    : `REFRESH STALL — ${refreshPrice} amber`}
                             </button>
                         )}
                     </div>
@@ -327,7 +328,7 @@ export default function MarketplaceNode({
                                 >
                                     <CardFace face={face} tags={offer.wildcard ? 'off-pool' : undefined} />
                                     <span className={`rs-price ${sold ? 'sold' : ''}`}>
-                                        {sold ? 'SOLD' : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
+                                        {sold ? 'SOLD' : short > 0 ? `${offer.price} amber · ${short} SHORT` : `${offer.price} amber`}
                                     </span>
                                 </button>
                             );
@@ -357,7 +358,7 @@ export default function MarketplaceNode({
                       */}
                     {marketRules.blueprint && blueprintOffer && (
                         <>
-                            <h2 className="mk-h">BLUEPRINT — one body, this route only</h2>
+                            <h2 className="mk-h">TRACE — one body, this route only</h2>
                             <div className="mk-grid" style={STALL_TILE}>
                                 <button
                                     type="button"
@@ -369,7 +370,7 @@ export default function MarketplaceNode({
                                     <CardFace
                                         face={{
                                             name: GetMingmingData(blueprintOffer.speciesId).name,
-                                            description: 'A blueprint. Spend it at a workshop or the ranch to assemble one.',
+                                            description: 'A trace. Spend it at a den or the ranch to summon one.',
                                             element: GetMingmingData(blueprintOffer.speciesId).primaryElement,
                                         }}
                                     />
@@ -377,8 +378,8 @@ export default function MarketplaceNode({
                                         {blueprintSold
                                             ? "SOLD"
                                             : shortBy(blueprintOffer.price) > 0
-                                                ? `${blueprintOffer.price} scrap · ${shortBy(blueprintOffer.price)} SHORT`
-                                                : `${blueprintOffer.price} scrap`}
+                                                ? `${blueprintOffer.price} amber · ${shortBy(blueprintOffer.price)} SHORT`
+                                                : `${blueprintOffer.price} amber`}
                                     </span>
                                 </button>
                             </div>
@@ -388,7 +389,7 @@ export default function MarketplaceNode({
                     {marketRules.macros && (
                     <>
                     <h2 className="mk-h">
-                        MACROS · {MACRO_SLOTS - macrosHeld}/{MACRO_SLOTS} slots free
+                        DRAUGHTS · {MACRO_SLOTS - macrosHeld}/{MACRO_SLOTS} slots free
                     </h2>
 
                     {/*
@@ -407,7 +408,7 @@ export default function MarketplaceNode({
                       * argument `MacroRack` makes for the battle rack: the empties are what tell you
                       * how much room you have, and they are where the next purchase visibly lands.
                       */}
-                    <ul className="mk-rack" aria-label="Your macro rack">
+                    <ul className="mk-rack" aria-label="Your draught rack">
                         {run.macros.map((macroId, slot) => {
                             const held = getMacro(macroId);
                             return (
@@ -469,9 +470,9 @@ export default function MarketplaceNode({
                                             ? 'SOLD'
                                             : block === 'rack-full'
                                                 ? 'RACK FULL'
-                                                : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
+                                                : short > 0 ? `${offer.price} amber · ${short} SHORT` : `${offer.price} amber`}
                                     </span>
-                                    <span className="mk-macro-desc">{macro.description}</span>
+                                    <span className="mk-macro-desc">{plain(macro.description)}</span>
                                     <span className="mk-macro-tags">
                                         {/* The two ruled facts (`macros-and-drivers.md`), printed
                                             rather than implied: no Energy, and it is gone after one
@@ -487,7 +488,7 @@ export default function MarketplaceNode({
                                 </button>
                             );
                         })}
-                        {macroStock.length === 0 && <span className="mk-empty">No macros this visit.</span>}
+                        {macroStock.length === 0 && <span className="mk-empty">No draughts this visit.</span>}
                     </div>
                     </>
                     )}

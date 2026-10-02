@@ -101,7 +101,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
         <div className="card-form-overlay">
             <div className="card-form-container">
                 <header className="form-header">
-                    <h2>NEW PROGRAM INITIALIZATION</h2>
+                    <h2>NEW CARD INITIALIZATION</h2>
                     <button className="close-btn" onClick={onCancel}>&times;</button>
                 </header>
 
@@ -109,7 +109,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
                     <div className="form-grid">
                         <section className="basic-info">
                             <div className="form-group">
-                                <label>Program ID</label>
+                                <label>Card ID</label>
                                 <input
                                     type="text"
                                     placeholder="e.g. thunder_strike"
@@ -305,7 +305,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
                             </div>
 
                             <div className="section-header" style={{ marginTop: '1.5rem' }}>
-                                <h3>Daemon Hooks</h3>
+                                <h3>Aura Hooks</h3>
                                 <button type="button" className="add-btn" onClick={addHook}>+ Add Hook</button>
                             </div>
                             <datalist id="available-hooks">
@@ -330,7 +330,7 @@ const CardForm: React.FC<CardFormProps> = ({ onSave, onCancel }) => {
 
                     <footer className="form-footer">
                         <button type="button" className="cancel-btn" onClick={onCancel}>ABORT</button>
-                        <button type="submit" className="save-btn">INITIALIZE PROGRAM</button>
+                        <button type="submit" className="save-btn">INITIALIZE CARD</button>
                     </footer>
                 </form>
             </div>

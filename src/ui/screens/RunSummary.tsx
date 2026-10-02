@@ -207,7 +207,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
         : bankedEntries
             .map(([speciesId, count]) => {
                 const name = MingmingRegistry[speciesId]?.name ?? speciesId;
-                return count > 1 ? `${name} blueprint ×${count}` : `${name} blueprint`;
+                return count > 1 ? `${name} trace ×${count}` : `${name} trace`;
             })
             .join(', ');
     const hasTier = run.tier > 0 || modifierNames.length > 0;
@@ -231,7 +231,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
                     <li
                         className="rs-big-line k-plate"
                         // The reassurance paragraph, as a hover: nothing here can be lost by closing the screen.
-                        title="Blueprints were banked at the ranch as they dropped, not now. Your roster, codex and cleared gyms are a separate save and were never at risk."
+                        title="Traces were banked at the ranch as they dropped, not now. Your roster, codex and cleared gyms are a separate save and were never at risk."
                     >
                         You kept: {kept}
                     </li>

@@ -6,12 +6,13 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getPatch } from '../../engine/data/patchRegistry';
 import { describePatchOn } from '../../engine/data/patchText';
-import { describeDriver } from '../../engine/data/driverRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { MacroRewardPick } from './MacroRewardPick';
 import PatchHolders from './PatchHolders';
+import { driverText } from '../labels/driverText';
+import { plain } from '../labels/labels';
 
 /**
  * The post-fight reward screen — refitted by ticket 12.
@@ -302,7 +303,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                     </div>
 
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginBottom: '15px', letterSpacing: '1px' }}>
-                        SELECT ONE PROGRAM TO EXTRACT
+                        SELECT ONE CARD TO EXTRACT
                     </div>
 
                     {/* Skipping is allowed but visually discouraged */}
@@ -375,7 +376,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                         <div className="report-summary-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                             <h3 style={{ margin: '0 0 12px', fontSize: '0.8rem', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Yield</h3>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ color: 'var(--text-dim)' }}>Scraps Recovered</span>
+                                <span style={{ color: 'var(--text-dim)' }}>Amber Recovered</span>
                                 <span style={{ color: 'var(--hp)', fontWeight: 'bold', fontSize: '1.2rem' }}>
                                     +<CountUp value={bundle.scraps} delayMs={SCRAP_COUNT_DELAY_MS} />
                                 </span>
@@ -401,11 +402,11 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                         quantity for the same reason the ranch stores one, and the
                                         "+1" says it stacked onto whatever was there. */}
                                     <div style={{ fontSize: '0.7rem', color: 'var(--select)', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
-                                        Blueprint Recovered
+                                        Trace Recovered
                                     </div>
                                     {bundle.blueprints.map((speciesId, i) => (
                                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ color: 'var(--text)', fontSize: '0.9rem', fontWeight: 'bold' }}>{GetMingmingData(speciesId).name} Blueprint</span>
+                                            <span style={{ color: 'var(--text)', fontSize: '0.9rem', fontWeight: 'bold' }}>{GetMingmingData(speciesId).name} Trace</span>
                                             <span style={{ color: 'var(--select)', fontWeight: '900', fontSize: '0.7rem' }}>+1</span>
                                         </div>
                                     ))}
@@ -433,10 +434,10 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                     }}
                                 >
                                     <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
-                                        Driver Installed
+                                        Totem Installed
                                     </div>
-                                    <div style={{ color: 'var(--text)', fontSize: '0.9rem', fontWeight: 'bold' }}>{describeDriver(bundle.driver).name}</div>
-                                    <div style={{ color: 'var(--text-mute)', fontSize: '0.75rem', lineHeight: '1.4', marginTop: '4px' }}>{describeDriver(bundle.driver).description}</div>
+                                    <div style={{ color: 'var(--text)', fontSize: '0.9rem', fontWeight: 'bold' }}>{driverText(bundle.driver).name}</div>
+                                    <div style={{ color: 'var(--text-mute)', fontSize: '0.75rem', lineHeight: '1.4', marginTop: '4px' }}>{driverText(bundle.driver).description}</div>
                                 </motion.div>
                             )}
 
@@ -447,7 +448,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                     {/* Right: Card Selections (the centerpiece — no nested scroller, the panel body scrolls) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--amber)', letterSpacing: '1px' }}>DECONSTRUCTED PROGRAMS</h3>
+                            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--amber)', letterSpacing: '1px' }}>DECONSTRUCTED CARDS</h3>
                             {totalChoices > 0 && (
                                 <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-faint)', letterSpacing: '1px' }}>PICK ONE PER DEFEATED UNIT</p>
                             )}
@@ -460,7 +461,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                 (`elitePatchOffer`), because a random patch is a no-op on most. */}
                             {patchOffers.length > 0 && (
                                 <div style={{ padding: '12px 14px', background: 'rgba(255,212,121,0.08)', borderRadius: '8px', border: '1px solid rgba(255,212,121,0.4)' }}>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--amber)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>FIRMWARE PATCH — FIT IT TO ONE BODY</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--amber)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>INSTINCT RUNE — FIT IT TO ONE BODY</div>
                                     <div style={{ fontSize: '0.7rem', color: 'var(--text-mute)', marginBottom: '10px' }}>One slot each, and it cannot be swapped later. Walking past it is allowed.</div>
                                     <PatchHolders winners={winners} heldPatches={heldPatches} />
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
@@ -481,8 +482,8 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                                     }}
                                                 >
                                                     <div style={{ color: 'var(--text)', fontWeight: 'bold', fontSize: '0.85rem' }}>{body?.name ?? offer.memberId}</div>
-                                                    <div style={{ color: 'var(--amber)', fontSize: '0.8rem', margin: '4px 0' }}>{patch?.name}</div>
-                                                    <div style={{ color: 'var(--text-mute)', fontSize: '0.72rem', lineHeight: '1.4' }}>{describePatchOn(body?.activeOS, offer.patchId)}</div>
+                                                    <div style={{ color: 'var(--amber)', fontSize: '0.8rem', margin: '4px 0' }}>{plain(patch?.name)}</div>
+                                                    <div style={{ color: 'var(--text-mute)', fontSize: '0.72rem', lineHeight: '1.4' }}>{plain(describePatchOn(body?.activeOS, offer.patchId))}</div>
                                                 </div>
                                             );
                                         })}
@@ -504,7 +505,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                             {draftRounds.length > 0 && (
                                 <div style={{ padding: '12px 14px', background: 'rgba(0, 255, 170, 0.05)', borderRadius: '8px', border: '1px solid rgba(0, 255, 170, 0.3)' }}>
                                     <div style={{ fontSize: '0.7rem', color: 'var(--hp)', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                        Draft Complete — {draftPicks.length}/{draftRounds.length} Programs Extracted
+                                        Draft Complete — {draftPicks.length}/{draftRounds.length} Cards Extracted
                                     </div>
                                     {draftPicks.length > 0 ? (
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>

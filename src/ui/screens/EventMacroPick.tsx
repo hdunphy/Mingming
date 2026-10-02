@@ -26,11 +26,11 @@ export default function EventMacroPick({ choices, rack, onTake, onBack }: EventM
     const ready = value !== null && (!rackFull || value.replaceSlot !== undefined);
     return (
         <>
-            <p className="ev-text">Pick one macro.</p>
+            <p className="ev-text">Pick one draught.</p>
             <MacroRewardPick choices={choices} rack={rack} value={value} onChange={setValue} />
             <div className="ev-choices ev-row">
                 <button type="button" className="rs-btn primary" disabled={!ready} onClick={() => value !== null && onTake(value)}>
-                    TAKE MACRO
+                    TAKE DRAUGHT
                 </button>
                 <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onBack(); }}>BACK</button>
             </div>

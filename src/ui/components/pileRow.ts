@@ -7,6 +7,7 @@
 
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { numericBaseCost } from '../../engine/types';
+import { plain } from '../labels/labels';
 
 export interface PileRow {
     /** React key. An instance id for a played card, a card id for a stacked row. */
@@ -30,7 +31,7 @@ export function cardFace(dataId: string): Pick<PileRow, 'dataId' | 'name' | 'des
     return {
         dataId,
         name: data?.name || dataId,
-        description: data?.description ?? '',
+        description: plain(data?.description ?? ''),
         element: data?.element ?? 'None',
         cost: data ? numericBaseCost(data.baseCost) : 0,
     };

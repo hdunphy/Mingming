@@ -112,7 +112,7 @@ describe('the tier picker', () => {
         await click(tierButton(1));
         expect(pressedTiers()).toEqual(['Tier 1']);
         expect(host.textContent).toContain('Armed Wilds');
-        expect(host.textContent).toContain('Wild Mingmings run their firmware.');
+        expect(host.textContent).toContain('Wild Mingmings run their instinct.');
     });
 
     it('clicking a locked tier does nothing', async () => {

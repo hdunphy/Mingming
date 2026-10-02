@@ -37,22 +37,22 @@ function reasonFor(outcome: EventOutcome, ctx: EventContext): string | null {
         case 'DUPLICATE':
             return heldCards(run).length > 0 ? null : 'No card to copy.';
         case 'GIVE_BLUEPRINT':
-            return Object.values(ctx.ranch.blueprints).some((count) => count >= 1) ? null : 'No blueprint to give.';
+            return Object.values(ctx.ranch.blueprints).some((count) => count >= 1) ? null : 'No trace to give.';
         case 'PATCH':
-            return patchOffers(ctx).length > 0 ? null : 'Every body already has a patch.';
+            return patchOffers(ctx).length > 0 ? null : 'Every body already has a rune.';
         case 'REFLASH':
-            return canReflashAny(ctx) ? null : 'No body can be reflashed right now.';
+            return canReflashAny(ctx) ? null : 'No body can be retrained right now.';
         case 'DRIVER_PICK':
-            return offerDrivers(ctx, 1, 'available').length > 0 ? null : 'No Driver to offer.';
+            return offerDrivers(ctx, 1, 'available').length > 0 ? null : 'No Totem to offer.';
         case 'RECRUIT':
-            return workshopWouldOfferARecruit(ctx) ? null : 'No blueprint you hold can be built right now.';
+            return workshopWouldOfferARecruit(ctx) ? null : 'No trace you hold can be summoned right now.';
         default:
             return null;
     }
 }
 
 export function choiceBlockedReason(choice: EventChoice, ctx: EventContext): string | null {
-    if (choiceScrapCost(choice) > ctx.run.scrap) return 'Not enough scrap.';
+    if (choiceScrapCost(choice) > ctx.run.scrap) return 'Not enough amber.';
     for (const outcome of choice.outcomes) {
         const reason = reasonFor(outcome, ctx);
         if (reason !== null) return reason;

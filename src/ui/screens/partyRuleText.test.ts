@@ -20,12 +20,12 @@ describe('the party text matches the party rules (ticket 171d)', () => {
         expect(minimumActiveDeck(3)).toBe(STARTER_GENERICS + 3 * START_KIT_SIZE);
     });
 
-    it('says the duplicate rule is species AND firmware, which is what partyBlockFor enforces', () => {
+    it('says the duplicate rule is species AND instinct, which is what partyBlockFor enforces', () => {
         const a = { id: 'a', definitionId: 'kraken', activeOS: 'kraken_v1' };
         expect(partyBlockFor({ id: 'b', definitionId: 'kraken', activeOS: 'kraken_v2' }, [a])).toBeNull();
         expect(partyBlockFor({ id: 'c', definitionId: 'kraken', activeOS: 'kraken_v1' }, [a])).toBe('duplicate-build');
         for (const text of [RUN_START_PARTY_TEXT, RANCH_PARTY_CLAUSE, WORKSHOP_DUPLICATE_CLAUSE]) {
-            expect(text).toMatch(/firmware/);
+            expect(text).toMatch(/instinct/);
         }
     });
 

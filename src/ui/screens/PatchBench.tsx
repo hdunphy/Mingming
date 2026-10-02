@@ -26,6 +26,7 @@ import { gatePatchChoices, offerablePatchIds, SHOP_STOCK_PATCH } from '../../eng
 import { effectiveOS } from '../../engine/run/effectiveOS';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
+import { plain } from '../labels/labels';
 
 /**
  * What the shop charges for a patch. **45 — tuned by ticket 163e, 2026-09-24.**
@@ -106,15 +107,15 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
         <div
             className="rs-panel mk-patch"
             // TICKET 182a: the foot paragraph is a hover on the whole bench.
-            title={`A patch rides your firmware - one slot per body, and it stays fitted for the run.${free ? ' Each body is offered the two that change the most about its own OS.' : ''}`}
+            title={`A rune rides your instinct - one slot per body, and it stays fitted for the run.${free ? ' Each body is offered the two that change the most about its own instinct.' : ''}`}
         >
             <h2>
-                {free ? 'Pick a bonus' : 'FIRMWARE PATCH'}
-                <span className="mk-sub">({free ? 'choice of two, free' : `${patchPrice} scrap`})</span>
+                {free ? 'Pick a bonus' : 'INSTINCT RUNE'}
+                <span className="mk-sub">({free ? 'choice of two, free' : `${patchPrice} amber`})</span>
             </h2>
             <div className="mk-rows">
                 {isGateUsed ? (
-                    <span className="mk-empty">Patch fitted — the gate offers one.</span>
+                    <span className="mk-empty">Rune fitted — the gate offers one.</span>
                 ) : (
                     <>
                         {rows.map(({ memberId, member, offers }) => offers.map((patchId) => {
@@ -135,8 +136,8 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                                         benchKey: free ? benchKey : undefined,
                                     }))}
                                 >
-                                    <span className="rs-rnm">{member.nickname ?? member.definitionId} · <b>{patch.name}</b></span>
-                                    <span className="rs-t">{describePatchOn(effectiveOS(run, member), patchId)}</span>
+                                    <span className="rs-rnm">{member.nickname ?? member.definitionId} · <b>{plain(patch.name)}</b></span>
+                                    <span className="rs-t">{plain(describePatchOn(effectiveOS(run, member), patchId))}</span>
                                     <span className="rs-sellp">
                                         {free ? 'FREE' : <>−{patchPrice} <Icon name="scrap" size={11} /></>}
                                     </span>
@@ -144,7 +145,7 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                             );
                         }))}
                         {rows.length === 0 && (
-                            <span className="mk-empty">Every body is already running a patch.</span>
+                            <span className="mk-empty">Every body is already running a rune.</span>
                         )}
                     </>
                 )}

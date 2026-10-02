@@ -302,6 +302,18 @@ Rename UI labels only, per D1's ruled list: a `labels.ts` map from internal id t
 
 ---
 
+### 183h built (2026-10-02)
+
+The words, ruled in D1: firmware / OS → **Instinct**, reflash → **Retrain**, blueprint → **Trace**, assembly → **Summon**, workshop → **Den**, daemon → **Aura**, macro → **Draught**, patch → **Rune**, driver → **Totem**, scrap → **Amber** (no plural), program → **Card**. `Mingming` stays, and an Instinct's own proper name (`UNBOUND_KERNEL`, `TIDAL_CRUSH_OS`) stays as the name.
+
+Only what a player reads changed. Ids, save schemas, registries, test ids, run-log kinds, the walker's output and CSS class names keep the old words, so no save and no balance run moves.
+
+- `src/ui/labels/labels.ts`: the one map (`LABELS`, `label()`), and `plain()`, the display-time rewrite for strings that live in a registry (card rules text starting `Daemon:`, Instinct descriptions, event and tier text, modifier text, patch text, the Codex lines). It keeps capitals, mends "a" / "an", never touches a word with an underscore, and turns the verb in the Mend draught ("Patch one ally back up") into "Heal one ally back up". `driverText()` is the same for a Totem's name and sentence.
+- About 50 component, screen and hook files print through the map or `plain()`; the lit-clause ranges on a card are now measured on the rewritten text so the green still lands on the right words.
+- Tests that pinned old words in expected text were updated (31 test files; only the words in the expected text changed). One test file changed in kind: `App.starterPicker.test.tsx` is rewritten for the real-button starter of 183f, so its Enter and Space key tests became "it is a real button" checks, because jsdom does not turn a key press on a button into a click; the click path is still covered.
+- Two sweeps keep it that way (`src/ui/labels/`): `sourceSweep.test.ts` reads every string a component can print and fails on an old word; `dataSweep.test.tsx` runs `plain()` over every card, draught, rune, Totem, event, modifier, tier, Instinct and Codex string and renders the big screens (menu, Ranch tabs, Settings, summary) and fails on a leftover.
+- Not renamed: Instinct proper names with `_OS` / `_KERNEL`, the dev-only panels, and the engine's own log lines.
+
 ## Art commissions
 
 - **Monster art (Moab, steam-release ticket 33):** the brief is updated to the animal-inspired direction (Henry, 2026-10-02; no AI images in it). Deliverables per species: a battle sprite that reads in a 150×120 box (drawn at 2×, 300×240, with headroom for the 190px cap), facing right (allies) with the enemy mirror done by the UI, on transparent; a square portrait for party faces and the map; a card-art crop at 134×36 ratio (3.7:1) for the hand card's art slot, or a wider band the UI crops.

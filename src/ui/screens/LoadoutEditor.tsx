@@ -374,7 +374,7 @@ export default function LoadoutEditor({
                     <span className="rs-hint led-bench-hint">
                         {canBench
                             ? 'Nobody benched. Click a party member to bench them — their five engine cards go to the collection with them.'
-                            : 'A party of one has nobody to bench — a workshop is where the team grows, and the bench opens with it.'}
+                            : 'A party of one has nobody to bench — a den is where the team grows, and the bench opens with it.'}
                     </span>
                 )}
             </div>
@@ -491,7 +491,7 @@ export default function LoadoutEditor({
                     <p className="rs-hint led-foot">
                         {atFloor
                             ? `At the floor — ${floor} is what your party itself brings. Bench a member or add cards before removing any.`
-                            : 'Click a card in the collection to add it · click a row to send it back. Nothing here costs scrap.'}
+                            : 'Click a card in the collection to add it · click a row to send it back. Nothing here costs amber.'}
                     </p>
                 </div>
             </div>

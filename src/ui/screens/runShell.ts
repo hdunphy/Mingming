@@ -23,6 +23,7 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { numericBaseCost } from '../../engine/types';
 import type { ProgramCategory } from '../../engine/types';
 import type { IRanchMember, IRunCard } from '../../engine/runTypes';
+import { plain } from '../labels/labels';
 
 export const ELEMENT_COLOR: Readonly<Record<string, string>> = {
     Fire: '#f25c2a',
@@ -79,7 +80,7 @@ export function cardFace(dataId: string): CardFace {
     return {
         dataId,
         name: data?.name ?? dataId,
-        description: data?.description ?? '',
+        description: plain(data?.description ?? ''),
         element: data?.element ?? 'None',
         cost: numericBaseCost(data?.baseCost ?? 0),
         banner: bannerFor(data?.category),
@@ -114,8 +115,8 @@ export interface DescriptionSegment {
 
 export function describeUpgrade(dataId: string): ReadonlyArray<DescriptionSegment> {
     const data = ProgramRegistry[dataId];
-    const text = data?.description ?? '';
-    const base = data?.upgradeOf ? ProgramRegistry[data.upgradeOf]?.description : undefined;
+    const text = plain(data?.description ?? '');
+    const base = data?.upgradeOf ? plain(ProgramRegistry[data.upgradeOf]?.description) : undefined;
     if (base === undefined) return [{ text, changed: false }];
 
     const NUM = /\d+(?:\.\d+)?/g;

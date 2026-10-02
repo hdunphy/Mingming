@@ -6,7 +6,6 @@
  * the outcomes that were applied (a gamble already resolved to its branch) and lists them.
  */
 
-import { describeDriver } from '../../engine/data/driverRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import type { EventChoice, EventOutcome } from '../../engine/run/events/eventSchema';
 import { getMacro } from '../../engine/data/macroRegistry';
@@ -22,6 +21,8 @@ import {
     isBlueprintPick, isCardPick, isDriverPick, isGivePick, isMacroPick, isPatchPick, isRecruitPick, isReflashPick,
 } from './outcomePicks';
 import type { OutcomePick } from './outcomePicks';
+import { driverText } from '../labels/driverText';
+import { plain } from '../labels/labels';
 
 const speciesName = (speciesId: string): string => MingmingRegistry[speciesId]?.name ?? speciesId;
 const cardName = (dataId: string): string => ProgramRegistry[dataId]?.name ?? dataId;
@@ -43,11 +44,11 @@ function describeOne(
         case 'SCRAP':
             // A price is taken as far as the run could pay it (`applyChoice`), so the line says so.
             return outcome.amount >= 0
-                ? `+${outcome.amount} scrap`
-                : `-${Math.min(-outcome.amount, scrapBefore)} scrap`;
+                ? `+${outcome.amount} amber`
+                : `-${Math.min(-outcome.amount, scrapBefore)} amber`;
         case 'JUNK': return 'Corrupted Data added to your deck';
         case 'MAP_REVEAL': return 'This biome is surveyed';
-        case 'TEMP_DRIVER': return `${describeDriver(outcome.driverId).name} for the next fight`;
+        case 'TEMP_DRIVER': return `${driverText(outcome.driverId).name} for the next fight`;
         case 'UPGRADE': return `${outcome.count} cards upgraded`;
         case 'CARD_PICK': {
             const pick = picks[index];
@@ -58,12 +59,12 @@ function describeOne(
         case 'BLUEPRINT_PICK': {
             const pick = picks[index];
             if (!pick || !isBlueprintPick(pick)) return null;
-            return `${speciesName(pick.speciesId)} blueprint banked to the ranch`;
+            return `${speciesName(pick.speciesId)} trace banked to the ranch`;
         }
         case 'MACRO_PICK': {
             const pick = picks[index];
             if (!pick || !isMacroPick(pick)) return null;
-            return `${getMacro(pick.macroId)?.name ?? pick.macroId} added to your rack`;
+            return `${plain(getMacro(pick.macroId)?.name ?? pick.macroId)} added to your rack`;
         }
         case 'RECRUIT': {
             const pick = picks[index];
@@ -79,7 +80,7 @@ function describeOne(
         case 'GIVE_BLUEPRINT': {
             const pick = picks[index];
             if (!pick || !isBlueprintPick(pick)) return null;
-            return `Gave up a ${speciesName(pick.speciesId)} blueprint`;
+            return `Gave up a ${speciesName(pick.speciesId)} trace`;
         }
         case 'TRADE_UP':
         case 'TRANSFORM': {
@@ -97,13 +98,13 @@ function describeOne(
         case 'DRIVER_PICK': {
             const pick = picks[index];
             if (!pick || !isDriverPick(pick)) return null;
-            return `${describeDriver(pick.driverId).name} Driver gained`;
+            return `${driverText(pick.driverId).name} Totem gained`;
         }
         case 'PATCH': {
             const pick = picks[index];
             if (!pick || !isPatchPick(pick) || !ctx) return null;
             const offer = patchOffers(ctx).find((row) => row.memberId === pick.memberId);
-            return offer ? `${getPatch(offer.patchId)?.name ?? offer.patchId} patch fitted` : null;
+            return offer ? `${plain(getPatch(offer.patchId)?.name ?? offer.patchId)} rune fitted` : null;
         }
         case 'REFLASH': {
             const pick = picks[index];
@@ -111,7 +112,7 @@ function describeOne(
             const osId = reflashTargetFor(ctx, pick.reflashMemberId);
             const body = ctx.ranch.roster.find((member) => member.id === pick.reflashMemberId);
             if (osId === null || !body) return null;
-            return `${speciesName(body.definitionId)} reflashed to ${getOSBehavior(osId)?.name ?? osId}`;
+            return `${speciesName(body.definitionId)} retrained to ${getOSBehavior(osId)?.name ?? osId}`;
         }
         default: return null;
     }

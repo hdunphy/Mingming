@@ -108,13 +108,13 @@ const MAP_TIPS: ReadonlyArray<Tip> = [
     },
     {
         id: 'map:workshop',
-        title: 'Workshops grow the team',
-        body: 'A workshop adds a mingming and its cards to your team.',
+        title: 'Dens grow the team',
+        body: 'A den adds a mingming and its cards to your team.',
     },
     {
         id: 'map:rival',
         title: 'A rival brings the other element',
-        body: 'Rivals field the element this road needs; beat one for its blueprint.',
+        body: 'Rivals field the element this road needs; beat one for its trace.',
     },
     {
         id: 'map:scout',
@@ -126,8 +126,8 @@ const MAP_TIPS: ReadonlyArray<Tip> = [
 const RANCH_TIPS: ReadonlyArray<Tip> = [
     {
         id: 'ranch:blueprints',
-        title: 'Blueprints are what you keep',
-        body: 'Blueprints are what you keep after a run, and what builds new mingmings.',
+        title: 'Traces are what you keep',
+        body: 'Traces are what you keep after a run, and what builds new mingmings.',
     },
 ];
 

@@ -54,8 +54,8 @@ export default function MacroRack({
     const advanced = useAdvancedContent();
     if (!advanced && macros.every((id) => id === null)) return null;
     return (
-        <div className="macro-rack" aria-label="Macros">
-            <div className="macro-rack-head k-display">MACROS</div>
+        <div className="macro-rack" aria-label="Draughts">
+            <div className="macro-rack-head k-display">DRAUGHTS</div>
             {macros.map((macroId, slot) => {
                 const macro = getMacro(macroId);
                 if (!macro) {

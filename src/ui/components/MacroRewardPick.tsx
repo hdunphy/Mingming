@@ -1,5 +1,6 @@
 import React from 'react';
 import { getMacro } from '../../engine/data/macroRegistry';
+import { plain } from '../labels/labels';
 
 export interface MacroRewardPickProps {
     readonly choices: ReadonlyArray<string>;          // bundle.macroChoices
@@ -51,7 +52,7 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
                     letterSpacing: '1px',
                 }}
             >
-                MACRO — TAKE ONE
+                DRAUGHT — TAKE ONE
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-mute)', marginBottom: '10px' }}>
                 Optional. Single use, fired from the rack in a fight.
@@ -95,7 +96,7 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
                                 )}
                             </div>
                             <div style={{ color: 'var(--text-mute)', fontSize: '0.72rem', lineHeight: '1.4', marginTop: '6px' }}>
-                                {macro?.description}
+                                {plain(macro?.description)}
                             </div>
                         </button>
                     );
@@ -109,7 +110,7 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
                     </div>
                     {value?.replaceSlot === undefined && (
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-mute)', marginBottom: '8px' }}>
-                            Nothing is dropped unless you pick one; the new macro is left behind.
+                            Nothing is dropped unless you pick one; the new draught is left behind.
                         </div>
                     )}
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

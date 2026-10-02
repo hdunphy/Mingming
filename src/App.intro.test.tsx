@@ -76,7 +76,7 @@ describe('182d the intro through the app', () => {
         expect(store.getState().game.runsCompleted ?? 0).toBe(0);
     });
 
-    it('with Skip intro ticked, the pick is the old path: blueprint, then the ranch', async () => {
+    it('with Skip intro ticked, the pick is the old path: Trace, then the ranch', async () => {
         const store = makeStore();
         const host = await mountApp(store);
         await click(findText(host, 'Skip intro', 'label').querySelector('input')!);
@@ -84,6 +84,6 @@ describe('182d the intro through the app', () => {
 
         expect(store.getState().run.run).toBeNull();
         expect(store.getState().game.blueprints.kraken).toBe(1);
-        expect(host.textContent).toContain('Assembly bay');
+        expect(host.textContent).toContain('Summon bay');
     });
 });

@@ -21,6 +21,7 @@ import { TypeChartPanel } from '../components/TypeChart';
 import { getElementIcon } from '../components/cardIcons';
 import './CodexScreen.css';
 import { Icon } from '../theme/Icon';
+import { plain } from '../labels/labels';
 import { StatusIcon } from '../theme/kit/StatusIcon';
 
 /**
@@ -63,7 +64,7 @@ const PAGES: ReadonlyArray<{ id: CodexPage; label: string }> = [
     { id: 'overview', label: 'Overview' },
     { id: 'cards', label: 'Cards' },
     { id: 'species', label: 'Species' },
-    { id: 'firmware', label: 'Firmware' },
+    { id: 'firmware', label: 'Instinct' },
     { id: 'statuses', label: 'Statuses' },
 ];
 
@@ -125,7 +126,7 @@ function Overview({
             <div className="codex-bars">
                 {lines.map((line) => (
                     <div key={line.id} className="codex-bar-row">
-                        <span className="codex-bar-label">{line.label}</span>
+                        <span className="codex-bar-label">{plain(line.label)}</span>
                         <span className="codex-bar-track">
                             <span
                                 className="codex-bar-fill"
@@ -156,14 +157,14 @@ function Overview({
                             <span className="codex-milestone-mark" aria-hidden="true">
                                 {done ? '★' : '☆'}
                             </span>
-                            <span className="codex-milestone-label">{milestone.label}</span>
+                            <span className="codex-milestone-label">{plain(milestone.label)}</span>
                         </li>
                     );
                 })}
             </ul>
             <p className="codex-note">
                 Milestones are recorded but <strong>pay nothing yet</strong>. What completion is worth
-                is an economy decision, and blueprints — the only thing a run leaves behind — are the
+                is an economy decision, and traces — the only thing a run leaves behind — are the
                 one currency a collection log must not hand out by accident.
             </p>
         </>
@@ -238,7 +239,7 @@ function Species({ codex }: { codex: ICodex }): ReactNode {
         <>
             <p className="codex-note">
                 <strong>Met</strong> means it stood on a battlefield, yours or the enemy&apos;s.{' '}
-                <strong>Built</strong> means you assembled one from a blueprint.
+                <strong>Built</strong> means you summoned one from a trace.
             </p>
             <ul className="codex-grid">
                 {ids.map((id) => {
@@ -278,7 +279,7 @@ function Firmware({ codex }: { codex: ICodex }): ReactNode {
     return (
         <>
             <p className="codex-note">
-                Firmware is recorded when you equip it — at assembly, or by reflashing. The three gym
+                Instinct is recorded when you equip it — at summon, or by retraining. The three gym
                 boss signatures are not counted: you can meet them, but never run them.
             </p>
             <ul className="codex-list">
@@ -291,7 +292,7 @@ function Firmware({ codex }: { codex: ICodex }): ReactNode {
                         <li key={id} className={`codex-row ${has ? 'found' : 'unknown'}`}>
                             <span className="codex-row-name">{has && os ? os.name : '— — —'}</span>
                             <span className="codex-row-desc">
-                                {has && os ? os.description : 'Not yet equipped.'}
+                                {has && os ? plain(os.description) : 'Not yet equipped.'}
                             </span>
                         </li>
                     );

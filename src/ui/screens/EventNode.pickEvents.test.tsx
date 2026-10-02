@@ -129,30 +129,30 @@ describe('Wild Tracks', () => {
         const store = makeStore(runWith(['wild_tracks']));
         await mount(store);
 
-        await click(byText('Pick 1 of 3 blueprints'));
+        await click(byText('Pick 1 of 3 traces'));
         const options = [...host.querySelectorAll('.ev-choice')];
         expect(options).toHaveLength(3);
-        expect(byText('TAKE BLUEPRINT')!.disabled).toBe(true);
+        expect(byText('TAKE TRACE')!.disabled).toBe(true);
         // Nothing is banked until TAKE.
         expect(store.getState().game.blueprints).toEqual({});
 
         await click(options[0]);
-        await click(byText('TAKE BLUEPRINT'));
+        await click(byText('TAKE TRACE'));
         const held = Object.entries(store.getState().game.blueprints);
         expect(held).toHaveLength(1);
         expect(held[0][1]).toBe(1);
         expect(bankedBlueprintsFrom(runOf(store).modifiers)).toEqual([held[0][0]]);
-        expect(host.textContent).toContain('blueprint banked to the ranch');
+        expect(host.textContent).toContain('trace banked to the ranch');
         expect(host.textContent).toContain('The relay is dark');
     });
 
     it('can be backed out of for free', async () => {
         const store = makeStore(runWith(['wild_tracks']));
         await mount(store);
-        await click(byText('Pick 1 of 3 blueprints'));
+        await click(byText('Pick 1 of 3 traces'));
         await click(byText('BACK'));
         expect(store.getState().game.blueprints).toEqual({});
-        expect(byText('Pick 1 of 3 blueprints')).toBeDefined();
+        expect(byText('Pick 1 of 3 traces')).toBeDefined();
     });
 });
 
@@ -173,17 +173,17 @@ describe('Rare Vault', () => {
     });
 });
 
-describe('Macro Crate', () => {
+describe('Draught Crate', () => {
     it('offers three macros and puts the picked one on the rack', async () => {
         const store = makeStore(runWith(['macro_crate']));
         await mount(store);
 
-        await click(byText('Pick 1 of 3 macros'));
-        expect(byText('TAKE MACRO')!.disabled).toBe(true);
+        await click(byText('Pick 1 of 3 draughts'));
+        expect(byText('TAKE DRAUGHT')!.disabled).toBe(true);
         const options = buttons().filter((b) => b.getAttribute('aria-pressed') !== null);
         expect(options).toHaveLength(3);
         await click(options[0]);
-        await click(byText('TAKE MACRO'));
+        await click(byText('TAKE DRAUGHT'));
 
         expect(runOf(store).macros.filter((m) => m !== null)).toHaveLength(1);
         expect(host.textContent).toContain('added to your rack');
@@ -194,16 +194,16 @@ describe('Macro Crate', () => {
         const store = makeStore(full);
         await mount(store);
 
-        await click(byText('Pick 1 of 3 macros'));
+        await click(byText('Pick 1 of 3 draughts'));
         const options = buttons().filter((b) => b.getAttribute('aria-pressed') !== null);
         await click(options[0]);
-        expect(byText('TAKE MACRO')!.disabled).toBe(true);
+        expect(byText('TAKE DRAUGHT')!.disabled).toBe(true);
         expect(host.textContent).toContain('Your rack is full');
 
         const drops = buttons().filter((b) => b.getAttribute('aria-pressed') !== null).slice(3);
         await click(drops[1]);
-        expect(byText('TAKE MACRO')!.disabled).toBe(false);
-        await click(byText('TAKE MACRO'));
+        expect(byText('TAKE DRAUGHT')!.disabled).toBe(false);
+        await click(byText('TAKE DRAUGHT'));
         expect(runOf(store).macros[1]).not.toBe('surge');
         expect(runOf(store).macros[0]).toBe('surge');
     });
@@ -248,7 +248,7 @@ describe('Data Broker', () => {
         const store = makeStore(runWith(['data_broker'], { scrap: 20 }));
         await mount(store);
         expect(byText('Pay 40')!.disabled).toBe(true);
-        expect(byText('Pay 40')!.textContent).toContain('Not enough scrap');
+        expect(byText('Pay 40')!.textContent).toContain('Not enough amber');
         expect(byText('Pay 15')!.disabled).toBe(false);
 
         await click(byText('Pay 15'));

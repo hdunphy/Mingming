@@ -15,6 +15,7 @@ import { CODEX_MILESTONES, codexCardIds, codexSpeciesIds } from '../../engine/co
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import type { ICodex } from '../../engine/runTypes';
+import { plain } from '../labels/labels';
 
 const empty: ICodex = { seen: [], played: [], species: [], assembled: [], os: [] };
 
@@ -77,7 +78,7 @@ describe('CodexScreen', () => {
     it('lists every milestone and marks only the fired ones', () => {
         const fired = [CODEX_MILESTONES[0].id];
         const markup = render({}, 'overview', fired);
-        for (const milestone of CODEX_MILESTONES) expect(markup).toContain(milestone.label);
+        for (const milestone of CODEX_MILESTONES) expect(markup).toContain(plain(milestone.label));
         expect(markup.match(/codex-milestone done/g) ?? []).toHaveLength(1);
     });
 

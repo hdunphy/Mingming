@@ -53,7 +53,7 @@ const VFX_SWITCHES: ReadonlyArray<{
     {
         key: 'vfx',
         label: 'Effects',
-        note: 'Flashes, trails, impacts, and the tells that say which status or program just fired.',
+        note: 'Flashes, trails, impacts, and the tells that say which status or card just fired.',
     },
     {
         key: 'animations',
@@ -190,7 +190,7 @@ export default function SettingsScreen(): ReactNode {
                     </div>
                     <p className="settings-note">
                         {settings.combatSounds
-                            ? 'On. Casts, impacts, status ticks, shields, firmware tells and the creature cries.'
+                            ? 'On. Casts, impacts, status ticks, shields, instinct tells and the creature cries.'
                             : `Off. The fight is quiet — but the interface still answers you, the turn
                                beats still play, and you still hear a win.`}
                     </p>
@@ -253,7 +253,7 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     </div>
                     <p className="settings-note">
-                        <strong>Follow system</strong> uses your OS setting, which is what the game did
+                        <strong>Follow system</strong> uses your instinct setting, which is what the game did
                         before this screen existed. The other two overrule it in either direction.
                     </p>
 
@@ -330,7 +330,7 @@ export default function SettingsScreen(): ReactNode {
                                of their deck. No targets and no damage figures: what they have, not
                                what they do with it.`
                             : `Off. The tab is gone and their cards are hidden, as they were before.
-                               Their plaques still show energy, statuses and firmware.`}
+                               Their plaques still show energy, statuses and instinct.`}
                     </p>
                 </section>
 
@@ -502,7 +502,7 @@ export default function SettingsScreen(): ReactNode {
                         {exported
                             ? `Saved as ${exported}. Attach it to your notes — it carries every node you
                                entered, every card you took, skipped, bought or removed, and where the
-                               scrap went.`
+                               amber went.`
                             : `A JSON transcript of your last ${RUN_LOG_RUNS} runs. It stays on this
                                machine until you send it somewhere.`}
                     </p>
@@ -578,7 +578,7 @@ export default function SettingsScreen(): ReactNode {
                     <h3>Save</h3>
                     {wiped ? (
                         <p className="settings-note settings-wiped">
-                            Wiped. Your roster, blueprints, codex, any run in progress and your run history
+                            Wiped. Your roster, traces, codex, any run in progress and your run history
                             are gone. Volume and these settings are not — they were never part of the save.
                         </p>
                     ) : (
@@ -624,7 +624,7 @@ export default function SettingsScreen(): ReactNode {
                                   * this codebase: a native modal in a game that draws its own UI, and
                                   * one no gamepad can reach (ticket 38).
                                   */}
-                                Deletes the roster, the blueprints, the codex and any run in progress.
+                                Deletes the roster, the traces, the codex and any run in progress.
                                 There is no undo and no backup.
                             </p>
                         </>
@@ -637,7 +637,7 @@ export default function SettingsScreen(): ReactNode {
                         <li>
                             <strong>Resolution and windowing</strong> — fullscreen is a control now
                             (Display, above). Choosing a RESOLUTION is still your browser's or the
-                            OS's: the game has no fixed one to choose, because it lays out fluidly
+                            instinct's: the game has no fixed one to choose, because it lays out fluidly
                             and was measured to hold from 1280×720 to 3440×1440 (ticket 37).
                         </li>
                         <li>

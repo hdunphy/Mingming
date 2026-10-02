@@ -17,7 +17,7 @@ import { START_KIT_SIZE, STARTER_GENERICS } from '../../engine/run/createRun';
 import { PARTY_SIZE } from '../../engine/party';
 
 /** The duplicate rule, as a clause. */
-export const DUPLICATE_RULE = 'the same species twice only on different firmware';
+export const DUPLICATE_RULE = 'the same species twice only on different instinct';
 
 /** RunStart's line under the roster. */
 export const RUN_START_PARTY_TEXT =
@@ -28,4 +28,4 @@ export const RUN_START_PARTY_TEXT =
 export const RANCH_PARTY_CLAUSE = `up to ${PARTY_SIZE}, ${DUPLICATE_RULE}`;
 
 /** The Workshop foot hint's clause. */
-export const WORKSHOP_DUPLICATE_CLAUSE = `No two members of the same species on the same firmware, across party and bench.`;
+export const WORKSHOP_DUPLICATE_CLAUSE = `No two members of the same species on the same instinct, across party and bench.`;

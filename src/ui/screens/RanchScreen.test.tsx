@@ -87,7 +87,7 @@ describe('RanchScreen', () => {
         expect(markup).not.toMatch(/deck builder/i);
     });
 
-    it('teaches blueprints on the assembly tab, once — ticket 24', () => {
+    it('teaches traces on the summon tab, once — ticket 24', () => {
         const fresh = render({ roster: [member('a1', 'kraken')], seenTips: [] }, 'assembly');
         expect(fresh).toContain(RANCH_BLUEPRINT_TIP.body);
         // 182a: a one-line toast with no buttons, so there is nothing to skip.
@@ -100,7 +100,7 @@ describe('RanchScreen', () => {
         );
         expect(taught).not.toContain(RANCH_BLUEPRINT_TIP.body);
         // The section itself is untouched by the tip being gone.
-        expect(taught).toContain('Assembly bay');
+        expect(taught).toContain('Summon bay');
     });
 
     it('does not put the blueprint tip on a tab it is not about', () => {

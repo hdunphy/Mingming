@@ -240,7 +240,7 @@ describe('EventNode', () => {
         // Under 25 scrap, the reroute is greyed and says why.
         const reroute = byText('Pay to reroute')!;
         expect(reroute.disabled).toBe(true);
-        expect(reroute.textContent).toContain('Not enough scrap');
+        expect(reroute.textContent).toContain('Not enough amber');
 
         await click(byText('Push through'));
         expect(store.getState().run.run!.tempDrivers).toEqual([{ driverId: 'driver_frayed_signal', fightsLeft: 1 }]);

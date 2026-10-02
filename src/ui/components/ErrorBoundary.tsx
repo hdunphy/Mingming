@@ -148,7 +148,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                 </p>
                 <p style={{ color: 'var(--text-mute)', margin: 0, maxWidth: '46ch', lineHeight: 1.5 }}>
                     A screen failed to draw. The run in progress may be lost, but your roster,
-                    blueprints and scrap are on disk exactly as they were.
+                    traces and amber are on disk exactly as they were.
                 </p>
 
                 <pre

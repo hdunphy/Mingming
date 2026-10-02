@@ -72,6 +72,7 @@ import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import type { IMingmingState } from '../../engine/types';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRunCard, IRunState } from '../../engine/runTypes';
+import { plain } from '../labels/labels';
 
 /**
  * `renderToStaticMarkup` escapes text, and several card descriptions carry apostrophes and
@@ -305,7 +306,7 @@ const byName = <T extends { name: string; pile?: string }>(rows: ReadonlyArray<T
     [...rows].sort((a, b) => `${a.pile ?? ''}${a.name}`.localeCompare(`${b.pile ?? ''}${b.name}`));
 
 describe('MarketplaceNode', () => {
-    it('shows the scrap balance and the deck floor, both readable at a glance', () => {
+    it('shows the amber balance and the deck floor, both readable at a glance', () => {
         // Two numbers, and the screen is illegible without either: scrap is the only currency here
         // and every button on the stall changes it, and the floor is the number that decides whether
         // a sell row is alive. The scrap readout carries `aria-label="Scrap held"` because the icon
@@ -317,7 +318,7 @@ describe('MarketplaceNode', () => {
         // Ticket 34: the scrap glyph is an inline SVG now (it was `\u26C1`, which is a tofu box on
         // several Linux font stacks). The `aria-label` matters MORE for the same reason it always
         // did — an icon reads as nothing aloud — so that is what this pins, plus a drawn icon.
-        expect(markup).toContain('<span class="rs-scrap" aria-label="Scrap held">140 <svg');
+        expect(markup).toContain('<span class="rs-scrap" aria-label="Amber held">140 <svg');
         expect(markup).toContain(`DECK <b>${run.deck.length}</b> / floor ${floor}`);
         // And the floor is READ from the party, not written down: `minimumActiveDeck` is 3 + 5 per
         // member, so a second member moves the pill to 13. A hard-coded 8 would pass the line above
@@ -387,7 +388,7 @@ describe('MarketplaceNode', () => {
         stock.offers.forEach((offer, i) => {
             const description = ProgramRegistry[offer.card.dataId]?.description ?? '';
             expect(description).not.toBe('');
-            expect([offer.card.dataId, tiles[i].description]).toEqual([offer.card.dataId, escapeHtml(description)]);
+            expect([offer.card.dataId, tiles[i].description]).toEqual([offer.card.dataId, escapeHtml(plain(description))]);
         });
     });
 
@@ -405,7 +406,7 @@ describe('MarketplaceNode', () => {
             // card with an apostrophe in it — Serpent's Coil — walked straight into a comparison
             // that had never met one. The fixture was narrow, not the assertion wrong.
             expect(tiles[i].name).toBe(escapeHtml(nameOf(offer.card.dataId)));
-            expect(tiles[i].plate).toBe(`${offer.price} scrap`);
+            expect(tiles[i].plate).toBe(`${offer.price} amber`);
             expect(tiles[i].disabled).toBe(false);
             expect(tiles[i].gem, 'every tile shows its energy cost in the hexagon').not.toBe('');
         });
@@ -432,13 +433,13 @@ describe('MarketplaceNode', () => {
         const tiles = tilesIn(markup);
 
         stock.offers.forEach((offer, i) => {
-            expect(tiles[i].plate).toBe(`${offer.price} scrap · ${offer.price} SHORT`);
+            expect(tiles[i].plate).toBe(`${offer.price} amber · ${offer.price} SHORT`);
             expect(tiles[i].disabled).toBe(true);
         });
         // The refresh owes the same explanation, and it is the one control on the screen that buys
         // nothing but a new set of choices, so a silent dead chip there is the easiest to miss.
-        expect(rerollChip(markup)).toBe(`REFRESH ${MARKET_REFRESH_PRICE} scrap — ${MARKET_REFRESH_PRICE} SHORT`);
-        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REFRESH ${MARKET_REFRESH_PRICE} scrap`);
+        expect(rerollChip(markup)).toBe(`REFRESH ${MARKET_REFRESH_PRICE} amber — ${MARKET_REFRESH_PRICE} SHORT`);
+        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REFRESH ${MARKET_REFRESH_PRICE} amber`);
         // The sell rows are the one thing on this screen a broke player can still use, and that is
         // the point of them: a sale is never short of anything. This line used to assert a disabled
         // `Remove (20) — 20 short`, which was the same screen charging the player to tidy up.
@@ -453,7 +454,7 @@ describe('MarketplaceNode', () => {
          * shortcut at all: it is the ONLY thing in the game that changes a shelf.
          */
         expect(rerollChip(render(makeRun(MARKET_REFRESH_PRICE))))
-            .toBe(`REFRESH STALL — ${MARKET_REFRESH_PRICE} scrap`);
+            .toBe(`REFRESH STALL — ${MARKET_REFRESH_PRICE} amber`);
     });
 
     it('leaves a sold offer on the shelf, greyed and reading SOLD, rather than letting it be bought twice', () => {
@@ -516,7 +517,7 @@ describe('MarketplaceNode', () => {
      * they are bought into `IRunState.macros`, never into the deck, so a tile that looked like a card
      * tile would be promising the wrong thing.
      */
-    it('stocks macros at the ruled price, one real tile each, banded apart from the cards', () => {
+    it('stocks draughts at the ruled price, one real tile each, banded apart from the cards', () => {
         const run = makeRun(400);
         const macros = macrosFor(run);
         const markup = render(run);
@@ -527,14 +528,14 @@ describe('MarketplaceNode', () => {
         macros.forEach((offer, i) => {
             expect(tiles[i].name).toBe(MacroRegistry[offer.macroId].name);
             expect(tiles[i].description).toBe(escapeHtml(MacroRegistry[offer.macroId].description));
-            expect(tiles[i].plate).toBe(`${offer.price} scrap`);
+            expect(tiles[i].plate).toBe(`${offer.price} amber`);
             expect(tiles[i].disabled).toBe(false);
             // The two facts that make it a macro rather than a card, printed on the face.
             expect(tiles[i].chips).toContain('SINGLE USE · FIRES FREE');
             expect(offer.price).toBe(macroPrice(offer.macroId));
         });
         // The rack is the brake on buying them, so the rack's state is on the shelf's own heading.
-        expect(markup).toContain(`MACROS · ${MACRO_SLOTS}/${MACRO_SLOTS} slots free`);
+        expect(markup).toContain(`DRAUGHTS · ${MACRO_SLOTS}/${MACRO_SLOTS} slots free`);
     });
 
     /**
@@ -550,7 +551,7 @@ describe('MarketplaceNode', () => {
      * the card chassis stays off this shelf, and the cheapest way to undo it is to reach for
      * `EnergyPips` again because the tile looked bare.
      */
-    it('draws macros as rack slots, with none of the card chassis on them', () => {
+    it('draws draughts as rack slots, with none of the card chassis on them', () => {
         const markup = render(makeRun(400));
         // The shelf ONLY — from the macro grid to the sell column. Slicing to the end of the
         // document would put the sell panel inside the assertion and make this case fail for
@@ -560,7 +561,7 @@ describe('MarketplaceNode', () => {
         expect(macroTilesIn(markup).length).toBeGreaterThan(0);
         expect(shelf).toContain('mk-macro');
         for (const chassis of ['rs-card', 'rs-pips', 'rs-art', 'rs-typ', 'rs-elbar', 'k-energy']) {
-            expect(shelf, `the macro shelf must not wear \`${chassis}\``).not.toContain(chassis);
+            expect(shelf, `the draught shelf must not wear \`${chassis}\``).not.toContain(chassis);
         }
     });
 
@@ -602,12 +603,12 @@ describe('MarketplaceNode', () => {
      * minted `instanceId` and goes SOLD; a macro has no instance, so holding one IS having bought it
      * (`macroOfferBlockFor`) — derived, and out of the save file for the same reason the card rule is.
      */
-    it('sells one of each: a macro you are carrying reads SOLD and cannot be bought again', () => {
+    it('sells one of each: a draught you are carrying reads SOLD and cannot be bought again', () => {
         const offered = macrosFor(makeRun(400))[0].macroId;
         const markup = render(makeRun(400, { macros: [offered, null, null] }));
         const tile = macroTilesIn(markup).find((t) => t.name === MacroRegistry[offered].name);
 
-        expect(tile, 'the sold macro stays on the shelf, greyed — a vanished row reads as a bug')
+        expect(tile, 'the sold draught stays on the shelf, greyed — a vanished row reads as a bug')
             .toBeDefined();
         expect(tile!.plate).toBe('SOLD');
         expect(tile!.disabled).toBe(true);
@@ -617,11 +618,11 @@ describe('MarketplaceNode', () => {
         // The OTHER offers on the same shelf are untouched — one slot sold out, not the shop.
         const others = macroTilesIn(markup).filter((t) => t.name !== MacroRegistry[offered].name);
         expect(others.length).toBeGreaterThan(0);
-        expect(others.every((t) => t.plate.endsWith('scrap'))).toBe(true);
+        expect(others.every((t) => t.plate.endsWith('amber'))).toBe(true);
         expect(others.every((t) => !t.disabled)).toBe(true);
     });
 
-    it('refuses a macro purchase with a REASON when the rack is full', () => {
+    it('refuses a draught purchase with a REASON when the rack is full', () => {
         // Ticket 15: *"a full rack must refuse a purchase with a reason, not silently drop it."* The
         // reducer's refusal is silent by the slice's convention — a reducer has no error channel —
         // so the sentence has to be here, on the dead tile itself, where the player is pressing.
@@ -632,7 +633,7 @@ describe('MarketplaceNode', () => {
         expect(tiles.length).toBeGreaterThan(0);
         expect(tiles.every((t) => t.plate === 'RACK FULL')).toBe(true);
         expect(tiles.every((t) => t.disabled)).toBe(true);
-        expect(markup).toContain(`MACROS · 0/${MACRO_SLOTS} slots free`);
+        expect(markup).toContain(`DRAUGHTS · 0/${MACRO_SLOTS} slots free`);
         // A full rack is also the one state where the drawn rack answers "why" without a sentence.
         expect(rackIn(markup)).toEqual([
             MacroRegistry.surge.name, MacroRegistry.mend.name, MacroRegistry.kindle.name,

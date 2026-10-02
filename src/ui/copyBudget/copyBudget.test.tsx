@@ -99,7 +99,7 @@ describe('the copy budget', () => {
  * One starter, one spare Fenrir blueprint, 100 scrap: the state a new player is in the first time
  * they reach each of these nodes.
  */
-describe('the copy budget - shops, workshop, event, gym gate, run summary', () => {
+describe('the copy budget - shops, den, event, gym gate, run summary', () => {
     const starter = createRanchMember('kraken', 'kraken_v1');
     const ranch = { ...createEmptyRanch(), roster: [starter], blueprints: { fenrir: 1 } };
     const member = {
@@ -128,26 +128,26 @@ describe('the copy budget - shops, workshop, event, gym gate, run summary', () =
         )).toBeNull();
     });
 
-    it('the workshop, with nothing picked', () => {
+    it('the den, with nothing picked', () => {
         const { run, node } = standingOn('workshop');
         const markup = render(<WorkshopNode run={run} node={node} ranch={ranch} onEditLoadout={() => {}} onLeave={() => {}} />, ranch);
         expect(budgetProblem(readCopy(markup))).toBeNull();
         expect(markup).toContain('Add a Mingming to your team.');
     });
 
-    it('the workshop, with a blueprint picked', () => {
+    it('the den, with a trace picked', () => {
         const { run, node } = standingOn('workshop');
         expect(problem(
             <WorkshopNode run={run} node={node} ranch={ranch} initialSpeciesId="fenrir" onEditLoadout={() => {}} onLeave={() => {}} />,
         )).toBeNull();
     });
 
-    it('the workshop, reflashing a member', () => {
+    it('the den, retraining a member', () => {
         const { run, node } = standingOn('workshop');
         const markup = render(
             <WorkshopNode run={run} node={node} ranch={ranch} initialReflash={{ memberId: starter.id, targetOS: 'kraken_v2' }}
                 onEditLoadout={() => {}} onLeave={() => {}} />, ranch);
-        expect(markup).toContain('REFLASH');
+        expect(markup).toContain('RETRAIN');
         expect(budgetProblem(readCopy(markup))).toBeNull();
     });
 

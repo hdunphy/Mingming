@@ -134,7 +134,7 @@ describe('182c the market', () => {
         const text = visible(host);
         expect(text).toContain('STOCK');
         expect(text).toContain('UPGRADE');
-        for (const gone of ['MACROS', 'BLUEPRINT', 'SELL', 'REFRESH', 'EDIT LOADOUT', 'PATCH']) {
+        for (const gone of ['DRAUGHTS', 'TRACE', 'SELL', 'REFRESH', 'EDIT LOADOUT', 'RUNE']) {
             expect(text, `the intro market shows "${gone}"`).not.toContain(gone);
         }
         expect(host.querySelector('.mk-rack')).toBeNull();
@@ -148,7 +148,7 @@ describe('182c the market', () => {
         store.dispatch(enterNode(market.id));
         const host = await mount(store, <MarketHarness />);
         const text = visible(host);
-        for (const here of ['STOCK', 'MACROS', 'SELL', 'REFRESH', 'EDIT LOADOUT']) {
+        for (const here of ['STOCK', 'DRAUGHTS', 'SELL', 'REFRESH', 'EDIT LOADOUT']) {
             expect(text, `the ordinary market lost "${here}"`).toContain(here);
         }
     });
@@ -164,7 +164,7 @@ describe('182c the leader\'s gate', () => {
         const text = visible(host);
         expect(text).toContain('Begin fight 1 of 1');
         expect(text).toContain('2 of them');
-        expect(text).not.toContain('Macros');
+        expect(text).not.toContain('Draughts');
         expect(text).not.toContain('PATCH');
         expect(text).toContain('ONE FREE UPGRADE');
     });
@@ -177,7 +177,7 @@ describe('182c the leader\'s gate', () => {
         const host = await mount(store, <GateHarness />);
         const text = visible(host);
         expect(text).toContain('Begin fight 1 of 3');
-        expect(text).toContain('Macros');
+        expect(text).toContain('Draughts');
         expect(text).toContain('3 of them');
     });
 });

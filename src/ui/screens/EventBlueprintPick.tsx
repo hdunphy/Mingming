@@ -22,7 +22,7 @@ export default function EventBlueprintPick({ species, onTake, onBack }: EventBlu
     const [selected, setSelected] = useState<string | null>(null);
     return (
         <>
-            <p className="ev-text">Pick one blueprint. It goes to the ranch at once.</p>
+            <p className="ev-text">Pick one trace. It goes to the ranch at once.</p>
             <div className="ev-choices">
                 {species.map((id) => (
                     <button
@@ -39,7 +39,7 @@ export default function EventBlueprintPick({ species, onTake, onBack }: EventBlu
             </div>
             <div className="ev-choices ev-row">
                 <button type="button" className="rs-btn primary" disabled={selected === null} onClick={() => selected !== null && onTake({ speciesId: selected })}>
-                    TAKE BLUEPRINT
+                    TAKE TRACE
                 </button>
                 <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onBack(); }}>BACK</button>
             </div>

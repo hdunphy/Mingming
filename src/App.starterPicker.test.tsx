@@ -43,7 +43,7 @@ describe('the starter picker', () => {
     it('shows each starter\'s three stats, in the slot a card keeps for its rules, and no alpha "starter card"', async () => {
         // TICKET 172 — Henry: "The text here like starter card and the descriptions don't make sense."
         // TICKET 183f: the card is a `CardFace` with the species' three stats; the instincts are
-        // chosen at the Assembly bay, not here (182c cut their text from the picker).
+        // chosen at the Summon bay, not here (182c cut their text from the picker).
         const host = await mountApp(makeStore());
         expect(host.textContent).not.toContain('STARTER CARD');
         for (const species of ['kraken', 'fenrir', 'ratatoskr']) {
@@ -54,7 +54,7 @@ describe('the starter picker', () => {
         }
     });
 
-    it('lets go of the screen when a starter is picked, and lands on the Assembly bay', async () => {
+    it('lets go of the screen when a starter is picked, and lands on the Summon bay', async () => {
         const store = makeStore();
         const host = await mountApp(store);
 
@@ -67,7 +67,7 @@ describe('the starter picker', () => {
         expect(store.getState().game.blueprints.kraken).toBe(1);
         // And it lands somewhere the blueprint can actually be spent, rather than on Expedition
         // telling the player to go and find it.
-        expect(host.textContent).toContain('Assembly bay');
+        expect(host.textContent).toContain('Summon bay');
     });
 
     it('does not come back for a player who holds a blueprint but has assembled nothing', async () => {

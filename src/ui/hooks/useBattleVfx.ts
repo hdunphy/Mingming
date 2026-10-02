@@ -11,10 +11,10 @@ import {
     isPlayerSide, shieldCue, statusCue, tickCue,
 } from '../audio/battleCues';
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
-import { describeDriver } from '../../engine/data/driverRegistry';
 import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
 import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '../vfx/hookStatusBeat';
 import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
+import { driverText } from '../labels/driverText';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -704,7 +704,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     // board as damage/heal/status floats of its own; what those floats cannot say
                     // is WHY, and the why is the Driver.
                     playSfx('driverProc');
-                    pushFloat(event.ownerId, 'proc', describeDriver(event.driverId).name, DRIVER_PROC_COLOR);
+                    pushFloat(event.ownerId, 'proc', driverText(event.driverId).name, DRIVER_PROC_COLOR);
                     return;
                 }
                 default:

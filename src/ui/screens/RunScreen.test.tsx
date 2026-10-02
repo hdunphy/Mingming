@@ -124,15 +124,15 @@ describe('RunScreen — a node that fired says so', () => {
         expect(render(standingOn('workshop'))).not.toContain('REROLL');
     });
 
-    it('gives the workshop the whole screen too (tickets 14, 65)', () => {
+    it('gives the den the whole screen too (tickets 14, 65)', () => {
         // Same inversion as the stall above, for the same reason: `workshop_I_bay.html` is three
         // columns around a lit assembly stage and does not fit beside a map either.
         const markup = render(standingOn('workshop'));
 
         expect(markup).not.toContain('nothing here yet');
         expect(markup).not.toContain('ticket 14');
-        expect(markup).toContain('WORKSHOP');
-        expect(markup).toContain('BLUEPRINTS');
+        expect(markup).toContain('DEN');
+        expect(markup).toContain('TRACES');
         expect(markup).toContain('LEAVE');
         expect(markup).toContain('EDIT LOADOUT');
         expect(markup).not.toContain('rm-canvas');
@@ -142,8 +142,8 @@ describe('RunScreen — a node that fired says so', () => {
         expect(markup).toContain('only place the party grows');
     });
 
-    it('does NOT open the workshop on any other kind of node', () => {
-        expect(render(standingOn('marketplace'))).not.toContain('BLUEPRINTS');
+    it('does NOT open the den on any other kind of node', () => {
+        expect(render(standingOn('marketplace'))).not.toContain('TRACES');
     });
 
     it('gives an event node the whole screen, with no placeholder (ticket 168)', () => {
@@ -257,7 +257,7 @@ describe('RunScreen — the gauntlet takes the screen', () => {
         expect(markup).toContain('revivable');
     });
 
-    it('shows the macro rack, and says which macros can fire here', () => {
+    it('shows the draught rack, and says which draughts can fire here', () => {
         const markup = render(inGauntlet({ macros: ['revive', 'ping_sweep', null] }));
 
         expect(markup).toContain('Revive');
@@ -284,7 +284,7 @@ describe('RunScreen — the gauntlet takes the screen', () => {
         for (const element of new Set(elements)) {
             expect(markup).toContain(element);
         }
-        expect(markup).toContain('signature firmware');
+        expect(markup).toContain('signature instinct');
     });
 
     it('does NOT draw the region map — there is no walking out of the exam', () => {
@@ -333,7 +333,7 @@ describe('RunScreen — the run is over', () => {
         expect(markup).toContain('separate save');
     });
 
-    it('says the blueprints were banked as they dropped, not by this screen', () => {
+    it('says the traces were banked as they dropped, not by this screen', () => {
         // The point of that sentence: a player who reads "you earned 3 blueprints" and then loses
         // them to a crash here would be right to be angry, and they cannot be, because ticket 12
         // paid them at drop time. Only the screen can tell them so.

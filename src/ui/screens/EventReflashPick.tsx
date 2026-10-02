@@ -13,6 +13,7 @@ import type { EventContext } from '../../engine/run/events/eventContext';
 import { REFLASH_BLOCK_REASON, reflashRows } from '../../engine/run/events/eventReflash';
 import { playSfx } from '../audio/AudioEngine';
 import type { ReflashPickResult } from '../events/outcomePicks';
+import { plain } from '../labels/labels';
 
 export interface EventReflashPickProps {
     readonly ctx: EventContext;
@@ -26,7 +27,7 @@ export default function EventReflashPick({ ctx, onTake, onBack }: EventReflashPi
     const [selected, setSelected] = useState<string | null>(null);
     return (
         <>
-            <p className="ev-text">Pick a body. Its OS changes for the rest of this run; its cards don&apos;t.</p>
+            <p className="ev-text">Pick a body. Its instinct changes for the rest of this run; its cards don&apos;t.</p>
             <div className="ev-choices">
                 {reflashRows(ctx).map((row) => (
                     <button
@@ -40,7 +41,7 @@ export default function EventReflashPick({ ctx, onTake, onBack }: EventReflashPi
                         <span className="ev-label">{MingmingRegistry[row.definitionId]?.name ?? row.memberId}</span>
                         <span className="ev-detail">
                             {row.blocked !== null
-                                ? `${osName(row.fromOS)} — ${REFLASH_BLOCK_REASON[row.blocked]}`
+                                ? `${osName(row.fromOS)} — ${plain(REFLASH_BLOCK_REASON[row.blocked])}`
                                 : `${osName(row.fromOS)} → ${osName(row.toOS)}`}
                         </span>
                     </button>
@@ -53,7 +54,7 @@ export default function EventReflashPick({ ctx, onTake, onBack }: EventReflashPi
                     disabled={selected === null}
                     onClick={() => selected !== null && onTake({ reflashMemberId: selected })}
                 >
-                    REFLASH
+                    RETRAIN
                 </button>
                 <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onBack(); }}>BACK</button>
             </div>

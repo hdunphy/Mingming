@@ -2,6 +2,7 @@ import React from 'react';
 
 import type { IBattleEntity } from '../../engine/types';
 import { getPatch } from '../../engine/data/patchRegistry';
+import { plain } from '../labels/labels';
 
 interface Props {
     /** The party, in party order; the names come from here. */
@@ -34,7 +35,7 @@ export const PatchHolders: React.FC<Props> = ({ winners, heldPatches }) => {
                     data-testid="patch-holder"
                     style={{ fontSize: '0.7rem', color: 'var(--amber)' }}
                 >
-                    {body.name} — {ids.map((id) => getPatch(id)?.name ?? id).join(', ')}
+                    {body.name} — {ids.map((id) => plain(getPatch(id)?.name ?? id)).join(', ')}
                 </div>
             ))}
         </div>

@@ -15,6 +15,7 @@ import { partyMembersOf } from '../../engine/run/events/eventContext';
 import { patchOffers } from '../../engine/run/events/eventPatch';
 import { playSfx } from '../audio/AudioEngine';
 import type { PatchPickResult } from '../events/outcomePicks';
+import { plain } from '../labels/labels';
 
 export interface EventPatchPickProps {
     readonly ctx: EventContext;
@@ -27,7 +28,7 @@ export default function EventPatchPick({ ctx, onTake, onBack }: EventPatchPickPr
     const members = partyMembersOf(ctx);
     return (
         <>
-            <p className="ev-text">Pick a body. It is fitted with its best patch.</p>
+            <p className="ev-text">Pick a body. It is fitted with its best rune.</p>
             <div className="ev-choices">
                 {patchOffers(ctx).map(({ memberId, patchId }) => {
                     const member = members.find((candidate) => candidate.id === memberId);
@@ -44,14 +45,14 @@ export default function EventPatchPick({ ctx, onTake, onBack }: EventPatchPickPr
                                 {MingmingRegistry[member?.definitionId ?? '']?.name ?? memberId}
                                 {member?.activeOS ? ` · ${getOSBehavior(member.activeOS)?.name ?? member.activeOS}` : ''}
                             </span>
-                            <span className="ev-detail">{patch ? `${patch.name}: ${describePatchOn(member?.activeOS, patchId)}` : patchId}</span>
+                            <span className="ev-detail">{patch ? plain(`${patch.name}: ${describePatchOn(member?.activeOS, patchId)}`) : patchId}</span>
                         </button>
                     );
                 })}
             </div>
             <div className="ev-choices ev-row">
                 <button type="button" className="rs-btn primary" disabled={selected === null} onClick={() => selected !== null && onTake({ memberId: selected })}>
-                    FIT PATCH
+                    FIT RUNE
                 </button>
                 <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onBack(); }}>BACK</button>
             </div>

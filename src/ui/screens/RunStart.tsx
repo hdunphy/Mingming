@@ -47,6 +47,7 @@ import ModifierChip from '../components/ModifierChip';
 import DraftStart from './DraftStart';
 import { RUN_START_PARTY_TEXT } from './partyRuleText';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
+import { plain } from '../labels/labels';
 
 /**
  * The offer screen is rolled ONCE per visit and held in component state.
@@ -68,11 +69,11 @@ function useOfferScreen(): ReadonlyArray<IGymOffer> {
  * and three biome names.
  */
 function offerHover(offer: IGymOffer, tier: number): string {
-    const lines = gymSignatures(offer.gym.id, offer.biomes).map((s) => `${s.name}: ${s.description}`);
+    const lines = gymSignatures(offer.gym.id, offer.biomes).map((s) => plain(`${s.name}: ${s.description}`));
     const tierLine = leaderDriverTierLine(tier);
     if (tierLine) lines.push(tierLine);
     lines.push(`Rivals field: ${pathElementsFor(offer.gym.element).join(' / ')}`);
-    return lines.join('\n');
+    return plain(lines.join('\n'));
 }
 
 export default function RunStart(): ReactNode {
@@ -191,7 +192,7 @@ export default function RunStart(): ReactNode {
             <section className="ranch-section">
                 <h2>No mingmings</h2>
                 <p className="ranch-note">
-                    A run needs at least one assembled mingming. Spend a blueprint in <strong>Assembly</strong>.
+                    A run needs at least one summoned mingming. Spend a trace in <strong>Summon</strong>.
                 </p>
             </section>
         );
@@ -244,8 +245,8 @@ export default function RunStart(): ReactNode {
                         {/* TICKET 182a: Tier 0 is "Standard — The game as it is." and says nothing. */}
                         {selectedTier > 0 && (
                             <div className="ranch-tier-blurb">
-                                <strong>{tierRule(selectedTier).name}</strong>
-                                <span>{tierRule(selectedTier).description}</span>
+                                <strong>{plain(tierRule(selectedTier).name)}</strong>
+                                <span>{plain(tierRule(selectedTier).description)}</span>
                             </div>
                         )}
                     </div>
@@ -317,7 +318,7 @@ export default function RunStart(): ReactNode {
                                     {picked && <div className="ranch-card-badge">Deploying</div>}
                                     {/* 2026-09-05: the clause is species + firmware, so the copy
                                         names the BUILD — a second kraken is welcome on another OS. */}
-                                    {block === 'duplicate-build' && <div className="ranch-card-block">Already fielding this OS</div>}
+                                    {block === 'duplicate-build' && <div className="ranch-card-block">Already fielding this instinct</div>}
                                     {block === 'party-full' && <div className="ranch-card-block">Party is full</div>}
                                 </button>
                             );
