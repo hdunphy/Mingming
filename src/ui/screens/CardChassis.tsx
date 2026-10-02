@@ -36,6 +36,8 @@
 
 import type { ReactElement, ReactNode } from 'react';
 
+import { Icon } from '../theme/Icon';
+import type { IconName } from '../theme/icons';
 import { describeUpgrade } from './runShell';
 import type { Banner } from './runShell';
 import { paintSegments } from './litSegments';
@@ -87,11 +89,33 @@ const ELEMENT_CODE: Readonly<Record<string, string>> = {
     Ice: 'ICE', Light: 'LGT', Dark: 'DRK', None: 'NEU',
 };
 
+/** TICKET 182a: the four elements with an icon today; the rest keep their word until they get one. */
+const ELEMENT_ICON: Readonly<Record<string, IconName | undefined>> = {
+    Fire: 'el-fire', Water: 'el-water', Nature: 'el-nature', None: 'el-none',
+};
+
+/** TICKET 182a: who a card aims at, as an icon. The label stays as the hover. */
+function targetIconOf(label: string): IconName | null {
+    if (label === 'SELF' || label === 'ALLY' || label === 'ALLIES') return 'target-self';
+    if (label === '—') return null;
+    return 'target-enemy'; // ENEMY, ENEMIES, ENEMY*, ANY
+}
+
 export function ElementMark({ element, compact = false }: {
     readonly element: string;
     /** True on a 27px row: the three-letter code rather than the word. */
     readonly compact?: boolean;
 }): ReactElement {
+    const icon = compact ? undefined : ELEMENT_ICON[element];
+    if (icon) {
+        // TICKET 182a (R4): the full-size mark is an ICON in the element colour, with the word as
+        // its hover and for screen readers. The compact row code below is untouched.
+        return (
+            <span className="rs-elw rs-elw-icon" title={`${element} element`} aria-label={ELEMENT_WORD[element]}>
+                <Icon name={icon} size={13} />
+            </span>
+        );
+    }
     const table = compact ? ELEMENT_CODE : ELEMENT_WORD;
     // An unknown element prints itself rather than an empty span: a card whose element is not in
     // the palette is a data bug, and it should be visible on the card that has it.
@@ -211,7 +235,11 @@ export function CardFace({ face, count, tags, target, readout, keywords, extras,
             <span className="rs-art" />
             <span className="rs-nmrow">
                 <span className="rs-cnm">{face.name}</span>
-                {target && <span className="rs-tgt">{target}</span>}
+                {target && targetIconOf(target) && (
+                    <span className="rs-tgt" title={`Targets: ${target.toLowerCase()}`} aria-label={`Targets: ${target.toLowerCase()}`}>
+                        <Icon name={targetIconOf(target)!} size={12} />
+                    </span>
+                )}
             </span>
             <span className="rs-desc">
                 {painted.map((seg, i) => {

@@ -56,9 +56,10 @@ describe('145c — nothing the three islands said was dropped', () => {
         expect(render(battle({ cardsPlayedThisTurn: 1 } as never))).toContain('is-live');
     });
 
-    it('says whose turn it is', () => {
-        expect(render(battle())).toContain('YOUR MOVE');
-        expect(render(battle({ activeSide: 'ENEMY' } as never))).toContain('ENEMY MOVE');
+    it('says whose turn it is - to screen readers only (182a cut the pill)', () => {
+        expect(render(battle())).toContain('<span class="sr-only" aria-live="polite">Your move</span>');
+        expect(render(battle({ activeSide: 'ENEMY' } as never))).toContain('>Enemy move<');
+        expect(render(battle())).not.toContain('YOUR MOVE');
     });
 
     it('keeps ticket 18s gauntlet progress, and names the LEADER fight', () => {
@@ -71,12 +72,13 @@ describe('145c — nothing the three islands said was dropped', () => {
         expect(render(battle(), last)).toContain('LEADER');
     });
 
-    it('names the gym and the rung outside a gauntlet', () => {
+    it('no longer names the gym and the rung outside a gauntlet (182a cut that pill)', () => {
         const run = { gymId: 'gym_rootfall', drivers: [], currentNodeId: 'n1',
             nodes: [{ id: 'n1', kind: 'elite' }] } as unknown as IRunState;
         const markup = render(battle(), run);
-        expect(markup).toContain('ROOTFALL');
-        expect(markup).toContain('ELITE');
+        expect(markup).not.toContain('ROOTFALL');
+        expect(markup).not.toContain('ELITE');
+        expect(markup).not.toContain('battle-topbar-place');
     });
 
     it('carries the latest log line and the chevron that opens the panel', () => {

@@ -412,8 +412,10 @@ describe('LoadoutEditor — the run collection', () => {
         expect(markup).toContain('<span class="rs-tg">generic</span>');
         expect(markup).toContain('<span class="rs-tg">pick</span>');
         // And the element it is: colour alone could not tell Water from Air, Ice or None.
-        expect(markup).toContain('<span class="rs-elw" title="Fire element">FIRE</span>');
-        expect(markup).toContain('<span class="rs-elw" title="None element">NEUTRAL</span>');
+        // TICKET 182a (R4): an icon, with the element's name as its hover and screen-reader label.
+        expect(markup).toContain('<span class="rs-elw rs-elw-icon" title="Fire element" aria-label="FIRE">');
+        expect(markup).toContain('<span class="rs-elw rs-elw-icon" title="None element" aria-label="NEUTRAL">');
+        expect(markup).not.toContain('>FIRE</span>');
         expect(markup).toContain('<span class="rs-elc" title="Water element">WTR</span>');
         expect(markup).toContain('class="rs-card payoff"');
         // Exactly one payoff among the four: the tag is a position in an engine, not an adjective.

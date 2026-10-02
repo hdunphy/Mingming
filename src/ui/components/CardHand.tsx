@@ -311,7 +311,6 @@ const CardHand: React.FC<{
                     <span className="pile-count">{drawPileCount}</span>
                 </span>
             </DrawPileViewer>
-            <span className="pile-formula">+{draw.total}/turn</span>
         </div>
     );
 
@@ -713,36 +712,18 @@ const CardHand: React.FC<{
               * hotkey strip were a `.hand-console-center` column between the piles, colliding with
               * the arch; the hotkeys were 8px type nobody could read. See `.hand-underline`.
               */}
-            <div className="hand-underline">
-                {/*
-                  * WHOSE NUMBERS THESE ARE. With one caster this was implicit; with three it is
-                  * the most load-bearing piece of state on the screen, because every figure in the
-                  * fan above is quoted for this unit.
-                  */}
-                <span data-testid="hand-caster-banner">
-                    {caster
-                        ? <>READING FOR <strong>{caster.name.toUpperCase()}</strong></>
-                        : <>NO CASTER — PRESS W / E / R</>}
-                </span>
-                {/*
-                  * TICKET 155, DEEP DIVE 4 — the key map behind a `?`.
-                  *
-                  * It was the full legend printed at 8px, in a column between the piles that the
-                  * fan drew over. Raised to a readable size it is simply too wide for one line and
-                  * ran under the macro rack, so it goes where the ticket's other option puts it:
-                  * a `?` that carries the whole map in its tooltip.
-                  *
-                  * A keyboard path nobody can discover is not a keyboard path — but one `?` beside
-                  * the caster line is discoverable, and eight point type is not.
-                  */}
-                <span
-                    className="hand-hotkeys-hint"
-                    title={keybindLegend()}
-                    aria-label={`Keyboard shortcuts: ${keybindLegend()}`}
-                    tabIndex={0}
-                >
-                    ?
-                </span>
+            {/*
+              * TICKET 182a — "NO CASTER — PRESS W / E / R" and the "?" are cut. The keys still work;
+              * their map is the hover on this strip. The "READING FOR" line stays only where it
+              * answers a question: with one monster there is nothing to tell apart, and 182a picks
+              * that monster for the player.
+              */}
+            <div className="hand-underline" title={keybindLegend()}>
+                {caster && playerParty.length > 1 && (
+                    <span data-testid="hand-caster-banner">
+                        READING FOR <strong>{caster.name.toUpperCase()}</strong>
+                    </span>
+                )}
             </div>
         </div>
     );

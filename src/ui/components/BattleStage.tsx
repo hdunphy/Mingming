@@ -307,12 +307,16 @@ const StageSlot: React.FC<SlotProps> = ({
                     </span>
                 </div>
                 <div className="stage-plaque-row">
-                    <span className="stage-plaque-pips">
+                    <span
+                        className="stage-plaque-pips"
+                        title={`${entity.currentEnergy}/${entity.maxEnergy} energy`}
+                        aria-label={`${entity.currentEnergy} of ${entity.maxEnergy} energy`}
+                    >
                         {Array.from({ length: pipCount }, (_, i) => (
                             <i key={i} className={i < entity.currentEnergy ? '' : 'off'} />
                         ))}
                     </span>
-                    <span className="stage-plaque-value">{entity.currentEnergy}/{entity.maxEnergy} EP</span>
+                    {/* TICKET 182a: pips only - the "N/N EP" text is cut (the hover keeps the number). */}
                 </div>
                 {/*
                   * TICKET 145b — the statuses come to the plaque. Same chip and same tooltip the

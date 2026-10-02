@@ -198,9 +198,10 @@ describe('CardHand reads for the SELECTED CASTER', () => {
         expect(hard).toBeLessThan(soft);
     });
 
-    it('says who it is reading for, and says so loudly when nobody is picked', () => {
-        expect(render({ source: 'blaze' })).toContain('BLAZE');
-        expect(render({ source: null })).toContain('NO CASTER');
+    it('says who it is reading for (with more than one monster), and never shouts "NO CASTER" (182a)', () => {
+        expect(render({ source: 'blaze' })).toContain('READING FOR <strong>BLAZE</strong>');
+        expect(render({ source: null })).not.toContain('NO CASTER');
+        expect(render({ source: null })).not.toContain('hand-hotkeys-hint');
     });
 
     it('states the reason a card cannot be cast rather than only greying it', () => {
@@ -253,7 +254,9 @@ describe('CardHand names where a card may land', () => {
         // TICKET 155e: the card carries the SHORT form as a tag on the name row — the long phrase
         // is two thirds of a 140px card's width and squeezed the names. The tooltip below still
         // spells it out, which the next assertion checks.
-        expect(markup).toContain('ENEMY');
+        // TICKET 182a: an icon now, with the label as its hover.
+        expect(markup).toContain('title="Targets: enemy"');
+        expect(markup).not.toContain('>ENEMY<');
         expect(markup).not.toContain('>Single<');
         // The long phrase lives in the hover tooltip, which `renderToStaticMarkup` does not open —
         // `targeting.test.ts` is where the phrasing itself is asserted.
@@ -268,7 +271,8 @@ describe('CardHand surfaces the draw formula', () => {
         const markup = render({ source: 'blaze' });
         expect(markup).toContain('BLAZE 3 + TRICKLE 3 + SPARK 3 − 2 = 7');
         expect(markup).toContain('Next refill draws 7 cards');
-        expect(markup).toContain('+7/turn');
+        // TICKET 182a: the "+7/turn" text is cut from the pile; the sum above lives on its hover.
+        expect(markup).not.toContain('+7/turn');
     });
 
     it('re-reads when a member falls — losing a body costs draw as well', () => {
@@ -276,7 +280,7 @@ describe('CardHand surfaces the draw formula', () => {
             playerParty: [PARTY[0], PARTY[1], unit('spark', { primaryElement: 'Fire' as Element, currentHp: 0 })],
         });
         expect(downed).toContain('BLAZE 3 + TRICKLE 3 − 1 = 5');
-        expect(downed).toContain('+5/turn');
+        expect(downed).not.toContain('+5/turn');
     });
 });
 

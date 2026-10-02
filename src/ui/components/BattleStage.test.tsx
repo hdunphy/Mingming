@@ -253,10 +253,10 @@ describe('145b — the plaque carries what the HUD card carried', () => {
      */
     it('names the firmware on the plaque', () => {
         const markup = render();
-        // FENRIR runs `fenrir_v1`, so the chip reads V1.
+        // TICKET 182a: the chip is the firmware icon; the "V1" balance label is cut.
         const plaque = markup.slice(markup.indexOf('stage-plaque-p1'), markup.indexOf('stage-slot-p2'));
         expect(plaque).toContain('hud-os-icon-container');
-        expect(plaque).toContain('V1');
+        expect(plaque).not.toContain('V1');
     });
 
     it('lists the daemons on the plaque, by name', () => {

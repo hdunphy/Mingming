@@ -270,6 +270,10 @@
  */
 .rs-tg::before { content: ' · '; color: #55606d; font-weight: 400; }
 
+/* 182a: the element as an icon - same colour and glow as the word it replaced. */
+.rs-elw-icon { display: inline-flex; vertical-align: middle; line-height: 0; }
+.rs-tgt { display: inline-flex; vertical-align: middle; line-height: 0; color: #9fb0c4; margin-left: 4px; }
+
 .rs-elc {
     flex: none;
     font-size: 8.5px;

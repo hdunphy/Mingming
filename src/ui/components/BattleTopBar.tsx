@@ -7,10 +7,9 @@ import { describeDriver } from '../../engine/data/driverRegistry';
 import { CounterPip } from './CounterPip';
 import { readDriverCounter } from '../counters/readCounter';
 import { globalBattleEventBus } from '../../engine/events';
-import { fightKindOf } from '../../engine/run/eventFight';
-import { GYM_REGISTRY } from '../../engine/run/gyms';
+
 import { Icon } from '../theme/Icon';
-import AudioControls from './AudioControls';
+
 
 /**
  * THE TOP BAR — ticket 145c. 44px, and everything a player used to hunt for.
@@ -98,10 +97,6 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
     }, []);
 
     const isPlayerTurn = battleState.activeSide === 'PLAYER';
-    const gym = run ? GYM_REGISTRY[run.gymId] : undefined;
-    const here = run?.nodes.find(n => n.id === run.currentNodeId);
-    // TICKET 168g: Ambush Bait's fight is labelled as the wild it is.
-    const nodeKind = run && here ? fightKindOf(run, here) : here?.kind;
 
     /*
      * The right-hand label. A gauntlet fight says WHICH fight, because ticket 18's reason still
@@ -109,20 +104,28 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
      * rather than spending it is a real decision. Everywhere else it is the gym and the rung, which
      * is what the mock shows: `ROOTFALL · ELITE`.
      */
+    /*
+     * TICKET 182a: the "EMBERFALL · WILD" pill is cut. Only a gauntlet keeps its label, because
+     * "which fight of the gauntlet is this" is not shown anywhere else and the last one is the
+     * leader's own team.
+     */
     const place = gauntlet
         ? `GAUNTLET ${Math.min(gauntlet.fightIndex + 1, gauntlet.totalFights)}/${gauntlet.totalFights}`
-        : gym?.name.toUpperCase() ?? '';
-    const grade = gauntlet
-        ? (gauntlet.fightIndex >= gauntlet.totalFights - 1 ? 'LEADER' : '')
-        : (nodeKind ?? '').toUpperCase();
+        : '';
+    const grade = gauntlet && gauntlet.fightIndex >= gauntlet.totalFights - 1 ? 'LEADER' : '';
 
     const latest = latestLogLine(battleState);
 
     return (
         <>
             <div className="battle-topbar" data-testid="battle-topbar">
-                <span className="pill">TURN <b>{battleState.turn}</b></span>
-                <span className="pill">{isPlayerTurn ? 'YOUR MOVE' : 'ENEMY MOVE'}</span>
+                <span className="pill battle-topbar-turn">TURN <b>{battleState.turn}</b></span>
+                {/*
+                  * TICKET 182a — the "YOUR MOVE / ENEMY MOVE" pill is gone from the screen: the hand
+                  * being playable already says it. Screen readers still get it, as a polite
+                  * announcement, because the hand's state is not something they can see.
+                  */}
+                <span className="sr-only" aria-live="polite">{isPlayerTurn ? 'Your move' : 'Enemy move'}</span>
                 {/*
                   * Ticket 90's counter, kept because `stampede` and `momentum_crash` scale on it and
                   * the deck's whole plan is invisible without it. Gold when it is above zero, so a
@@ -156,7 +159,7 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                     <span className="battle-topbar-chevron" aria-hidden="true">{logOpen ? '▴' : '▾'}</span>
                 </button>
 
-                <AudioControls inline />
+                {/* TICKET 182a: no volume slider here - volume lives in Settings (the gear, right). */}
                 {place && (
                     <span className="pill battle-topbar-place">
                         {place}{grade ? <> · <b>{grade}</b></> : null}

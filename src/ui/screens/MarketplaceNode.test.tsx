@@ -244,7 +244,9 @@ const tilesIn = (markup: string): Tile[] => {
         // Its own regex rather than `spanText`: the element word carries a `title` (the tooltip
         // that spells the element out in full), and `spanText` matches a class attribute that is
         // the span's LAST — it would read this one as empty.
-        element: (html.match(/class="rs-elw"[^>]*>([\s\S]*?)<\/span>/) ?? [])[1] ?? '',
+        // TICKET 182a (R4): the mark is an icon now, so the element is read off its hover title
+        // ("Water element") - which is also what the word used to be backed up by.
+        element: (html.match(/class="rs-elw[^"]*" title="([^"]*) element"/) ?? [])[1] ?? '',
         tags: spanText(html, 'rs-tg'),
         plate: spanText(html, 'rs-price[^"]*'),
         disabled: /<button[^>]*disabled=""/.test(html),

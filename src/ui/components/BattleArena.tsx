@@ -259,6 +259,18 @@ const BattleArena: React.FC = () => {
     }, [battleState, selectedSourceId, dispatch]);
 
     /*
+     * TICKET 182a — "NO CASTER — PRESS W / E / R" is cut, so the screen may never be left with no
+     * caster when there is only one candidate. One living monster is picked for the player (at the
+     * start, and again if it is the last one standing). With two or more the player still picks,
+     * by clicking a plate or pressing W / E / R, exactly as before.
+     */
+    useEffect(() => {
+        if (!battleState || selectedSourceId) return;
+        const living = battleState.playerParty.filter(p => p.currentHp > 0);
+        if (living.length === 1) dispatch(selectSource(living[0].id));
+    }, [battleState, selectedSourceId, dispatch]);
+
+    /*
      * TICKET 22 — KEYBOARD PARITY.
      *
      * The Done-when is that a 3v3 fight is *"fully playable by mouse and by keyboard"*, and before
@@ -1156,6 +1168,10 @@ const BattleArena: React.FC = () => {
 
         // Friendly = source (caster). Clicking an ally selects or switches the active caster (ticket 165b)
         if (!isEnemy) {
+            // TICKET 182a: with ONE living monster it is the caster, always - un-picking it would
+            // leave a hand that can play nothing and no text to say why.
+            const livingAllies = battleState?.playerParty.filter(p => p.currentHp > 0).length ?? 0;
+            if (livingAllies <= 1 && selectedSourceId === entity.id) return;
             dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
             return;
         }

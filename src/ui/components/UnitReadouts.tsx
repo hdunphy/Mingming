@@ -92,7 +92,7 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
             {/* Ticket 34's closed glyph set already had `firmware` — an emoji here ignores `color`,
                             so the chip could not take its element tint. */}
                         <Icon name="firmware" className="hud-os-icon" />
-            <span className="hud-os-version">{entity.activeOS.includes('_v2') ? 'V2' : 'V1'}</span>
+            {/* TICKET 182a: the "V1" / "V2" label is gone - it is a balance label, not a player's. */}
             {/*
               * TICKET 163c — THE PATCH CHIP, beside the OS name (§3). A patch is a rider on the
               * firmware, so it reads as a mark ON the firmware chip rather than as a badge of its
