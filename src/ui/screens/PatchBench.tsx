@@ -21,6 +21,7 @@ import { useDispatch } from 'react-redux';
 import { Icon } from '../theme/Icon';
 import { fitPatch } from '../store/runSlice';
 import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
+import { describePatchOn } from '../../engine/data/patchText';
 import { gatePatchChoices, offerablePatchIds, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
 import { effectiveOS } from '../../engine/run/effectiveOS';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
@@ -131,7 +132,7 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                                     }))}
                                 >
                                     <span className="rs-rnm">{member.nickname ?? member.definitionId} · <b>{patch.name}</b></span>
-                                    <span className="rs-t">{patch.text}</span>
+                                    <span className="rs-t">{describePatchOn(effectiveOS(run, member), patchId)}</span>
                                     <span className="rs-sellp">
                                         {free ? 'FREE' : <>−{patchPrice} <Icon name="scrap" size={11} /></>}
                                     </span>

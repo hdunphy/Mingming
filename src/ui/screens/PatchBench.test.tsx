@@ -7,6 +7,8 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 
 import { PatchBench } from './PatchBench';
+import { describePatchOn } from '../../engine/data/patchText';
+import { getPatch } from '../../engine/data/patchRegistry';
 import runReducer from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
@@ -97,5 +99,17 @@ describe('166e — PatchBench at the gate', () => {
 
         expect(host.textContent).toContain('Patch fitted — the gate offers one.');
         expect(host.querySelectorAll('button.rs-row').length).toBe(0);
+    });
+
+    it('184d: each row says what the patch does on THAT body, not the generic sentence', () => {
+        const run = makeRun();
+        const store = configureStore({ reducer: { run: runReducer }, preloadedState: { run: { run } } });
+        act(() => {
+            root.render(<Provider store={store}><PatchBench run={run} ranch={RANCH} venue="shop" /></Provider>);
+        });
+        const text = host.textContent ?? '';
+        expect(text).toContain(describePatchOn('kraken_v1', 'amplifier'));
+        expect(text).toContain(describePatchOn('fenrir_v1', 'amplifier'));
+        expect(text).not.toContain(getPatch('amplifier')!.text);
     });
 });

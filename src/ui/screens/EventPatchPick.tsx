@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getPatch } from '../../engine/data/patchRegistry';
+import { describePatchOn } from '../../engine/data/patchText';
 import type { EventContext } from '../../engine/run/events/eventContext';
 import { partyMembersOf } from '../../engine/run/events/eventContext';
 import { patchOffers } from '../../engine/run/events/eventPatch';
@@ -43,7 +44,7 @@ export default function EventPatchPick({ ctx, onTake, onBack }: EventPatchPickPr
                                 {MingmingRegistry[member?.definitionId ?? '']?.name ?? memberId}
                                 {member?.activeOS ? ` · ${getOSBehavior(member.activeOS)?.name ?? member.activeOS}` : ''}
                             </span>
-                            <span className="ev-detail">{patch ? `${patch.name}: ${patch.text}` : patchId}</span>
+                            <span className="ev-detail">{patch ? `${patch.name}: ${describePatchOn(member?.activeOS, patchId)}` : patchId}</span>
                         </button>
                     );
                 })}

@@ -5,6 +5,7 @@ import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getPatch } from '../../engine/data/patchRegistry';
+import { describePatchOn } from '../../engine/data/patchText';
 import { describeDriver } from '../../engine/data/driverRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
@@ -481,7 +482,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                                 >
                                                     <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }}>{body?.name ?? offer.memberId}</div>
                                                     <div style={{ color: '#ffd479', fontSize: '0.8rem', margin: '4px 0' }}>{patch?.name}</div>
-                                                    <div style={{ color: '#aaa', fontSize: '0.72rem', lineHeight: '1.4' }}>{patch?.text}</div>
+                                                    <div style={{ color: '#aaa', fontSize: '0.72rem', lineHeight: '1.4' }}>{describePatchOn(body?.activeOS, offer.patchId)}</div>
                                                 </div>
                                             );
                                         })}

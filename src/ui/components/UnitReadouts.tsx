@@ -31,6 +31,7 @@ import { createPortal } from 'react-dom';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { getPatch } from '../../engine/data/patchRegistry';
+import { describePatchOn } from '../../engine/data/patchText';
 import { statusChipText } from '../utils/statusOverflow';
 import { getElementAccent } from '../utils/contrastText';
 import { Icon } from '../theme/Icon';
@@ -99,7 +100,7 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
               * of that answer. The tooltip below carries its rule, exactly as the OS's own text is
               * carried there and for the same reason — a chip has room for a word, not a sentence.
               */}
-            {patch && <span className="hud-os-patch" title={patch.text}>{patch.name.charAt(0)}</span>}
+            {patch && <span className="hud-os-patch" title={describePatchOn(entity.activeOS, patch.id)}>{patch.name.charAt(0)}</span>}
             <CounterPip reading={counter} />
 
             {showOSTooltip && rect !== null && createPortal(
@@ -125,10 +126,10 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
                         {behavior?.description}
                         {patch && (
                             // The MODIFIED reading, as §3 asks: the firmware's own sentence, then
-                            // what the rider does to it. Two lines rather than a rewritten one,
-                            // because rewriting an OS's text per patch would be seventy-two
-                            // sentences — the authored table this whole row exists to avoid.
-                            <span className="tooltip-os-patch">{patch.name} — {patch.text}</span>
+                            // what the rider does to it. Ticket 184d (Henry, 2026-10-01): the second
+                            // line is now written for THIS firmware (`patchText.ts`), because the
+                            // generic sentence could not say what changed on this monster.
+                            <span className="tooltip-os-patch">{patch.name} — {describePatchOn(entity.activeOS, patch.id)}</span>
                         )}
                         {counter && <span className="tooltip-os-counter">{counter.tooltip}</span>}
                     </div>
