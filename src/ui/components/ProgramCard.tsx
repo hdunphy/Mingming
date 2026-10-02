@@ -187,7 +187,7 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                     {onRemove && (
                         <button
                             aria-label={`Remove ${data.name}`}
-                            style={hoverBtnStyle(removeDisabled, 'var(--hp-red)')}
+                            style={hoverBtnStyle(removeDisabled, 'var(--hp-low)')}
                             disabled={removeDisabled}
                             onClick={(e) => { e.stopPropagation(); if (!removeDisabled) onRemove(); }}
                             onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -198,7 +198,7 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                     {onAdd && (
                         <button
                             aria-label={`Add ${data.name}`}
-                            style={hoverBtnStyle(addDisabled, 'var(--hp-green)')}
+                            style={hoverBtnStyle(addDisabled, 'var(--hp)')}
                             disabled={addDisabled}
                             onClick={(e) => { e.stopPropagation(); if (!addDisabled) onAdd(); }}
                             onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}

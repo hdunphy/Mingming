@@ -1,9 +1,9 @@
 /**
  * TICKET 34 — the token vocabulary, and the one seam in it that can silently come apart.
  *
- * CSS custom properties and TypeScript constants cannot import from each other, so the nine element
- * colours exist twice: once in `tokens.css` as `--el-*` (for stylesheets) and once in
- * `screens/runShell.ts` as `ELEMENT_COLOR` (for the inline `style` attributes the ruled mockups
+ * CSS custom properties and TypeScript constants cannot import from each other, so the four element
+ * colours (ticket 183a cut the nine to four) exist twice: once in `tokens.css` as `--el-*` (for
+ * stylesheets) and once in `screens/runShell.ts` as `ELEMENT_COLOR` (for the inline `style` attributes the ruled mockups
  * use). Two copies of a palette is exactly the kind of thing that drifts one hex at a time until a
  * card frame and the badge on the card beside it disagree about what Fire looks like — and nothing
  * else in the suite would notice, because both halves are individually correct.
@@ -17,6 +17,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { ELEMENT_COLOR, colorFor } from '../screens/runShell';
+import { sourceFiles } from './scanSource';
 
 const TOKENS = readFileSync(resolve('src/ui/theme/tokens.css'), 'utf8');
 
@@ -54,31 +55,48 @@ describe('the theme tokens', () => {
         expect(colorFor('Plasma')).toBe(ELEMENT_COLOR.None);
     });
 
-    it('declares the whole vocabulary a screen sheet is told to reach for', () => {
+    it('declares the whole v2 vocabulary a screen sheet is told to reach for', () => {
         // The point of a token layer is that a stylesheet can rely on the names existing. A missing
-        // one does not throw — it resolves to nothing and the rule silently does not apply, which is
+        // one does not throw - it resolves to nothing and the rule silently does not apply, which is
         // the quietest possible styling bug.
         const required = [
-            '--surface-0', '--surface-1', '--surface-2', '--surface-3',
-            '--line-soft', '--line', '--line-strong',
-            '--ink', '--ink-dim', '--ink-label', '--ink-faint', '--ink-head',
-            '--fs-micro', '--fs-tiny', '--fs-small', '--fs-body', '--fs-lead', '--fs-head', '--fs-title',
-            '--track-wide', '--track-loose',
-            '--gap-hair', '--gap-tight', '--gap', '--gap-wide', '--gap-section',
-            '--radius-chip', '--radius-card', '--radius-panel',
-            '--glow-blur', '--shadow-panel', '--shadow-inset-top',
+            '--font-display', '--font-body',
+            '--page', '--panel', '--panel-edge', '--panel-2', '--hp-track', '--ink',
+            '--text', '--text-mute', '--select', '--energy',
+            '--hp', '--hp-hi', '--hp-mid', '--hp-mid-hi', '--hp-low', '--hp-low-hi', '--shield',
+            '--card-body', '--card-text', '--card-mute',
         ];
         for (const name of required) expect(tokens.has(name), `${name} is missing`).toBe(true);
     });
 
-    it('still declares every legacy name index.css was shipped reading', () => {
-        // The aliases are what make this pass a vocabulary addition rather than a restyle. Deleting
-        // one before its last reader is a screen that loses a colour with no error anywhere.
-        const legacy = [
-            '--bg-dark', '--bg-card', '--accent-primary', '--hp-green', '--hp-red',
-            '--energy-blue', '--glass-border', '--glass-bg', '--accent-secondary', '--premium-shadow',
-            '--fire', '--water', '--nature', '--earth', '--air', '--ice', '--light', '--dark',
+    it('has exactly the four ruled element colours (183a)', () => {
+        const els = [...tokens.keys()].filter((name) => name.startsWith('--el-')).sort();
+        expect(els).toEqual(['--el-fire', '--el-nature', '--el-none', '--el-water']);
+    });
+
+    it('has the one selection colour and makes energy the same yellow on purpose', () => {
+        expect(tokens.get('--select')).toBe(tokens.get('--energy'));
+    });
+
+    it('no longer declares any name ticket 183a deleted, and nothing reads one', () => {
+        // The legacy aliases had about a hundred readers; 183a re-pointed every one. A glow, a glass
+        // panel or a 48px blurred shadow cannot come back through a name that resolves to nothing.
+        const deleted = [
+            'bg-dark', 'bg-card', 'accent-primary', 'accent-secondary', 'hp-green', 'hp-red', 'energy-blue',
+            'glass-border', 'glass-bg', 'premium-shadow', 'shadow-panel', 'shadow-inset-top', 'glow-blur',
+            'fire', 'water', 'nature', 'earth', 'air', 'ice', 'light', 'dark',
+            'el-earth', 'el-air', 'el-ice', 'el-light', 'el-dark',
+            'surface-0', 'surface-1', 'surface-2', 'surface-3', 'line-soft', 'line', 'line-strong',
+            'ink-dim', 'ink-label', 'ink-faint', 'ink-head',
         ];
-        for (const name of legacy) expect(tokens.has(name), `${name} was dropped`).toBe(true);
+        for (const name of deleted) {
+            expect(tokens.has(`--${name}`), `--${name} is back in tokens.css`).toBe(false);
+        }
+        const reader = new RegExp(`var\\(--(${deleted.join('|')})[,)]`);
+        for (const file of sourceFiles()) {
+            if (file.path.endsWith('theme.test.ts')) continue;
+            const hit = reader.exec(file.text);
+            expect(hit, `${file.path} still reads var(--${hit?.[1]})`).toBeNull();
+        }
     });
 });

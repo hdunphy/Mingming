@@ -216,7 +216,7 @@
     text-align: left;
     background: rgba(0, 0, 0, 0.3);
     color: inherit;
-    font: 0.76rem/1.4 monospace;
+    font: 0.76rem/1.4 var(--font-body);
     border: 1px solid rgba(122, 92, 255, 0.35);
     border-radius: 5px;
     padding: 0.45rem 0.6rem;

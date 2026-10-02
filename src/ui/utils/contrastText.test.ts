@@ -53,6 +53,6 @@ describe('contrastText', () => {
 
     it('falls back safely for unknown elements and malformed input', () => {
         expect(getElementTextColor('???')).toBe(getElementTextColor('None'));
-        expect(readableTextOn('var(--ice)')).toBe(LIGHT_TEXT); // unparseable -> treated as dark bg
+        expect(readableTextOn('var(--el-water)')).toBe(LIGHT_TEXT); // unparseable -> treated as dark bg
     });
 });

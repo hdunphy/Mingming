@@ -23,6 +23,8 @@ import { createPortal } from 'react-dom';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
+import { displayStacks } from './displayStacks';
+import { StatusTooltipPortal } from './StatusTooltip';
 
 /** The HUD card's row is 195px wide. See `.hud-status-badges` in index.css for the fit. */
 export const HUD_STATUS_BUDGET = 6;
@@ -39,10 +41,8 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
     const { ref: badgeRef, rect } = useAnchoredRect<HTMLDivElement>(showTooltip);
     const info = statusGlossary[type];
     const color = STATUS_COLORS[type] ?? '#ccc';
-    // BarkShield stacks are now a %maxHp float (docs/power_curve_spec.md rev 3) that
-    // decays by a multiplicative 20%/turn, so it won't land on a whole number most
-    // turns — round just for display, the stored value stays precise.
-    const displayStacks = Math.round(stacks * 10) / 10;
+    // BarkShield stacks are a %maxHp float that decays 20% a turn - round for display only.
+    const shownStacks = displayStacks(stacks);
 
     return (
         <div
@@ -53,33 +53,10 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
             onMouseLeave={() => setShowTooltip(false)}
         >
             <span className="hud-status-icon">{info?.icon ?? '✦'}</span>
-            {stacks > 1 && <span className="hud-status-stacks">×{displayStacks}</span>}
+            {stacks > 1 && <span className="hud-status-stacks">×{shownStacks}</span>}
 
-            {showTooltip && info && rect !== null && createPortal(
-                <div
-                    className="os-tooltip-portal"
-                    style={(() => {
-                        const isRightSide = rect.left > window.innerWidth / 2;
-                        return {
-                            position: 'fixed' as const,
-                            left: isRightSide ? 'auto' : rect.right + 12,
-                            right: isRightSide ? (window.innerWidth - rect.left) + 12 : 'auto',
-                            top: rect.top,
-                            transform: 'translateY(-30%)',
-                            borderColor: color,
-                            boxShadow: `0 0 20px ${color}55`
-                        };
-                    })()}
-                >
-                    <div className="tooltip-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-                        <span className="tooltip-os-name" style={{ color }}>{info.name.toUpperCase()}</span>
-                        <span style={{ color, opacity: 0.85, fontSize: '0.7rem', fontWeight: 700 }}>×{displayStacks}</span>
-                    </div>
-                    <div className="tooltip-divider" />
-                    <div className="tooltip-body">{info.description}</div>
-                    <div className="tooltip-footer">STATUS READOUT</div>
-                </div>,
-                document.body
+            {showTooltip && info && rect !== null && (
+                <StatusTooltipPortal type={type} stacks={stacks} rect={rect} />
             )}
         </div>
     );

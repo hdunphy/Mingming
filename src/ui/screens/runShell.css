@@ -38,7 +38,7 @@
     min-height: 0;
     background: radial-gradient(1200px 500px at 60% -10%, #16202c 0%, #0c0e12 60%);
     color: #dfe4ea;
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: var(--font-body);
 }
 
 /* A screen that takes the whole window rather than sitting inside the map's section. */

@@ -39,9 +39,9 @@ export const getCategoryIcon = (cat: string): string => {
  */
 export const getElementColor = (el: string): string => {
     const map: Record<string, string> = {
-        Fire: 'var(--fire)', Water: 'var(--water)', Nature: 'var(--nature)',
-        Earth: 'var(--earth)', Air: 'var(--air)', Ice: 'var(--ice)',
-        Light: 'var(--light)', Dark: 'var(--dark)'
+        Fire: 'var(--el-fire)', Water: 'var(--el-water)', Nature: 'var(--el-nature)',
+        Earth: 'var(--el-none)', Air: 'var(--el-none)', Ice: 'var(--el-none)',
+        Light: 'var(--el-none)', Dark: 'var(--el-none)'
     };
     return map[el] ?? '#888';
 };

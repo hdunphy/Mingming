@@ -25,15 +25,10 @@ import type { ProgramCategory } from '../../engine/types';
 import type { IRanchMember, IRunCard } from '../../engine/runTypes';
 
 export const ELEMENT_COLOR: Readonly<Record<string, string>> = {
-    Fire: '#e05d43',
-    Water: '#3d9be0',
-    Nature: '#43b45f',
-    Earth: '#b08040',
-    Air: '#8fc7f5',
-    Ice: '#7fd6ff',
-    Light: '#e8d27a',
-    Dark: '#9a6fd0',
-    None: '#9aa3ad',
+    Fire: '#f25c2a',
+    Water: '#2f8fe0',
+    Nature: '#4cb04a',
+    None: '#8e97a8',
 };
 
 export const colorFor = (element: string): string => ELEMENT_COLOR[element] ?? ELEMENT_COLOR.None;

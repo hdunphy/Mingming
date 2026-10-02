@@ -38,7 +38,7 @@
     height: 1.3rem;
     border: 1px solid rgba(255, 204, 0, 0.35);
     border-radius: 50%;
-    font: 700 0.66rem/1 monospace;
+    font: 700 0.66rem/1 var(--font-body);
     opacity: 0.6;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .gn-section-head h3 { margin: 0; font-size: 0.82rem; letter-spacing: 0.06em; }
-.gn-tag-note { font: 0.7rem/1.3 monospace; opacity: 0.7; white-space: nowrap; }
+.gn-tag-note { font: 0.7rem/1.3 var(--font-body); opacity: 0.7; white-space: nowrap; }
 
 /* --- Rows --- */
 
@@ -85,7 +85,7 @@
 
 .gn-row-card { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.45rem; min-width: 0; }
 .gn-row-name { font-weight: 700; font-size: 0.84rem; }
-.gn-row-meta { font: 0.72rem/1.3 monospace; opacity: 0.72; }
+.gn-row-meta { font: 0.72rem/1.3 var(--font-body); opacity: 0.72; }
 
 .gn-tag {
     font-size: 0.62rem;
@@ -103,7 +103,7 @@
 /* --- HP: the number first, the bar second --- */
 
 .gn-hp { display: flex; align-items: center; gap: 0.45rem; }
-.gn-hp-figure { font: 700 0.78rem/1.2 monospace; color: #ffcc66; }
+.gn-hp-figure { font: 700 0.78rem/1.2 var(--font-body); color: #ffcc66; }
 
 .gn-hp-track {
     display: inline-block;
@@ -142,7 +142,7 @@
 
 .gn-enemy.boss { border-color: rgba(255, 80, 80, 0.55); background: rgba(255, 80, 80, 0.08); }
 .gn-enemy-element { font-weight: 700; font-size: 0.84rem; }
-.gn-enemy-meta { font: 0.66rem/1.3 monospace; opacity: 0.7; }
+.gn-enemy-meta { font: 0.66rem/1.3 var(--font-body); opacity: 0.7; }
 
 .gn-empty { font-size: 0.74rem; opacity: 0.7; padding: 0.3rem 0; }
 
@@ -153,7 +153,7 @@
     margin-top: 0.4rem;
     background: rgba(255, 204, 0, 0.16);
     color: inherit;
-    font: 0.8rem/1.3 monospace;
+    font: 0.8rem/1.3 var(--font-body);
     border: 1px solid rgba(255, 204, 0, 0.5);
     border-radius: 5px;
     padding: 0.45rem 0.9rem;

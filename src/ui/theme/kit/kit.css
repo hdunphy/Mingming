@@ -1,0 +1,245 @@
+/*
+ * THE KIT — ticket 183a. Two shape utilities and the rules of the seven components in this folder.
+ *
+ * Colours come from `tokens.css` and only from there: no hex literal in this file, and
+ * `noHex.test.ts` fails the build if one appears. Sizes are the ruled ones from ticket 183.
+ */
+
+/* ---- shapes ------------------------------------------------------------------------------- */
+
+/* The slanted parallelogram. `--k-cut` is the skew: 8px panels, 5px badges, 3px chips, 2px pips. */
+.k-slant {
+    --k-cut: 8px;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+    border-radius: 0;
+}
+
+/* The energy hexagon. */
+.k-hex {
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+/* Display type: names, numbers, buttons, labels. */
+.k-display {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ---- EnergyHex ---------------------------------------------------------------------------- */
+
+.k-energy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    background: var(--energy);
+    color: var(--ink);
+    line-height: 1;
+    font-style: normal;
+}
+
+.k-energy-max {
+    font-size: 9px;
+    opacity: 0.7;
+}
+
+/* ---- ElementMark and ElementBadge --------------------------------------------------------- */
+
+.k-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    border-radius: 50%;
+    background: var(--text);
+}
+
+.k-mark-glyph {
+    fill: var(--k-el);
+    stroke: var(--ink);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.k-badge {
+    --k-cut: 5px;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    height: 22px;
+    padding: 0 7px;
+    background: var(--k-el);
+    color: var(--text);
+    font-size: 12px;
+}
+
+.k-badge-glyph {
+    fill: var(--text);
+    stroke: var(--ink);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.k-badge-word {
+    margin-left: 4px;
+}
+
+/* ---- HpBar -------------------------------------------------------------------------------- */
+
+.k-hp {
+    --k-cut: 4px;
+    position: relative;
+    flex: none;
+    height: 14px;
+    overflow: hidden;
+    background: var(--hp-track);
+}
+
+.k-hp[data-step='hi'] { --k-fill: var(--hp); --k-band: var(--hp-hi); }
+.k-hp[data-step='mid'] { --k-fill: var(--hp-mid); --k-band: var(--hp-mid-hi); }
+.k-hp[data-step='low'] { --k-fill: var(--hp-low); --k-band: var(--hp-low-hi); }
+
+.k-hp-fill,
+.k-hp-band {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.k-hp-fill {
+    height: 100%;
+    background: var(--k-fill);
+}
+
+/* The 3px lighter band along the top of the fill. */
+.k-hp-band {
+    height: 3px;
+    background: var(--k-band);
+}
+
+/* Bark Shield: a brown band laid over the bar, with its HP as a small number on it. */
+.k-hp-shield {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 3px;
+    box-sizing: border-box;
+    background: var(--shield);
+    color: var(--ink);
+    font-size: 10px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* ---- StatusChip --------------------------------------------------------------------------- */
+
+.k-chip {
+    --k-cut: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+    height: 20px;
+    padding: 0 5px 0 3px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 12px;
+}
+
+.k-chip-icon {
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* ---- SlantPanel --------------------------------------------------------------------------- */
+
+/* The light edge is the outer shape; the navy body is the inner one, 2px in. */
+.k-panel {
+    position: relative;
+    padding: 2px;
+    box-sizing: border-box;
+    background: var(--panel-edge);
+}
+
+.k-panel-body {
+    position: relative;
+    box-sizing: border-box;
+    height: 100%;
+    background: var(--panel);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 600;
+}
+
+/* The element slash, on the face that looks at the monster. */
+.k-slash {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: var(--k-el);
+}
+
+.k-slash-left { left: 0; }
+.k-slash-right { right: 0; }
+
+/* ---- ReadoutStrip ------------------------------------------------------------------------- */
+
+.k-readout {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-sizing: border-box;
+    height: 22px;
+    padding: 0 6px;
+    overflow: hidden;
+    background: var(--panel);
+    color: var(--text);
+    border-top: 2px solid var(--k-el);
+}
+
+.k-readout-figure {
+    flex: none;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.k-readout-vs {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-mute);
+    font-size: 9px;
+}
+
+.k-readout-chips {
+    display: flex;
+    gap: 3px;
+    margin-left: auto;
+    flex: none;
+}
+
+.k-readout-chip {
+    --k-cut: 2px;
+    display: flex;
+    align-items: center;
+    height: 13px;
+    padding: 0 4px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+.k-readout-chip.is-super { background: var(--select); color: var(--ink); }
+.k-readout-chip.is-abs { background: var(--shield); color: var(--ink); }
+.k-readout-chip.is-lethal { background: var(--hp-low); color: var(--text); }

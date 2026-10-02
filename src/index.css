@@ -1,20 +1,20 @@
 /*
- * TICKET 34: the token block that used to sit here is now `ui/theme/tokens.css`, imported above
- * everything so a screen sheet can rely on the vocabulary being defined. Every name it declared is
- * still declared — see that file's LEGACY ALIASES block — so nothing below changed appearance when
- * it moved. New rules should reach for `--surface-*`, `--ink-*`, `--el-*`, `--fs-*` and `--gap-*`;
- * the old names are a migration path, not a second vocabulary to choose from.
+ * TICKET 34 moved the token block to `ui/theme/tokens.css`; TICKET 183a replaced that file with the
+ * v2 vocabulary (direction B, "Slant") and deleted every legacy alias this sheet used to read, so
+ * every `var(--...)` below names a token that exists. New rules reach for `--panel*`, `--text*`,
+ * `--select`, `--el-*`, `--hp*` and `--font-*`, and for the kit's components in `ui/theme/kit/`.
  */
 @import './ui/theme/tokens.css';
+@import './ui/theme/kit/kit.css';
 
 :root {
-  font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   line-height: 1.5;
-  font-weight: 400;
+  font-weight: 600;
 
   color-scheme: dark;
-  color: #f0f0f5;
-  background-color: #050508;
+  color: var(--text);
+  background-color: var(--page);
 }
 
 body {
@@ -25,7 +25,7 @@ body {
   min-height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: radial-gradient(circle at center, #1b1b3a 0%, #050508 100%);
+  background: var(--page);
 }
 
 #root {
@@ -102,7 +102,7 @@ body {
   align-items: flex-start;
   padding: 0 40px;
   position: relative;
-  background: radial-gradient(circle at center, #1b1b3a 0%, #050508 100%);
+  background: var(--page);
   box-shadow: inset 0 -20px 40px rgba(0, 0, 0, 0.5);
   z-index: 10;
 }
@@ -124,7 +124,7 @@ body {
   flex: 0 0 var(--console-h, 210px);
   min-height: 0;
   background: #0a0a0f;
-  border-top: 2px solid var(--glass-border);
+  border-top: 2px solid var(--panel-2);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -186,12 +186,12 @@ body {
 }
 
 .hud-card.hud-selected {
-  border-color: var(--accent-primary);
+  border-color: var(--select);
   box-shadow: 0 0 20px rgba(124, 58, 237, 0.5), 0 4px 20px rgba(0, 0, 0, 0.7);
 }
 
 .hud-card.hud-targeted {
-  border-color: var(--hp-red);
+  border-color: var(--hp-low);
   box-shadow: 0 0 16px rgba(239, 68, 68, 0.35), 0 4px 20px rgba(0, 0, 0, 0.7);
 }
 
@@ -657,7 +657,7 @@ body {
   position: absolute;
   top: 20%;
   left: 45%;
-  color: var(--hp-red);
+  color: var(--hp-low);
   font-weight: 900;
   font-size: 1.4rem;
   text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
@@ -691,7 +691,7 @@ body {
 
 .hp-bar {
   height: 100%;
-  background: var(--hp-green);
+  background: var(--hp);
   transition: width 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
@@ -820,8 +820,8 @@ body {
 .program-card {
   width: 180px;
   height: 255px;
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
   border-radius: 14px;
   padding: 12px 12px 10px;
   position: relative;
@@ -835,7 +835,7 @@ body {
 }
 
 .program-card:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--select);
   z-index: 100 !important;
 }
 
@@ -905,7 +905,7 @@ body {
   position: fixed;
   width: 240px;
   background: #1a1a2e;
-  border: 1px solid var(--accent-primary);
+  border: 1px solid var(--select);
   border-radius: 10px;
   padding: 15px;
   pointer-events: none;
@@ -945,7 +945,7 @@ body {
   /* 240, up from 190: it carries the status glossary lines now. */
   width: 240px;
   background: rgba(15, 15, 30, 0.95);
-  border: 1px solid var(--accent-primary);
+  border: 1px solid var(--select);
   border-radius: 10px;
   padding: 10px;
   pointer-events: none;
@@ -965,7 +965,7 @@ body {
   font-size: 0.55rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--accent-primary);
+  color: var(--text-mute);
   margin-bottom: 3px;
   font-weight: 700;
 }
@@ -1034,9 +1034,9 @@ body {
    absolutely positioned at the top of the stage has to add it by hand. */
 .combat-log-container {
   width: 280px;
-  background: var(--glass-bg);
+  background: var(--panel);
   backdrop-filter: blur(10px);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--panel-2);
   border-radius: 0 0 8px 8px;
   display: flex;
   flex-direction: column;
@@ -1062,8 +1062,8 @@ body {
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 1px;
-  border-bottom: 1px solid var(--glass-border);
-  color: var(--accent-secondary);
+  border-bottom: 1px solid var(--panel-2);
+  color: var(--text-mute);
 }
 
 .log-messages {
@@ -1107,35 +1107,35 @@ body {
 }
 
 .element-badge.fire {
-  background-color: var(--fire);
+  background-color: var(--el-fire);
 }
 
 .element-badge.water {
-  background-color: var(--water);
+  background-color: var(--el-water);
 }
 
 .element-badge.earth {
-  background-color: var(--earth);
+  background-color: var(--el-none);
 }
 
 .element-badge.air {
-  background-color: var(--air);
+  background-color: var(--el-none);
 }
 
 .element-badge.nature {
-  background-color: var(--nature);
+  background-color: var(--el-nature);
 }
 
 .element-badge.ice {
-  background-color: var(--ice);
+  background-color: var(--el-none);
 }
 
 .element-badge.light {
-  background-color: var(--light);
+  background-color: var(--el-none);
 }
 
 .element-badge.dark {
-  background-color: var(--dark);
+  background-color: var(--el-none);
 }
 
 .element-badge.none {
@@ -1247,7 +1247,7 @@ body {
 }
 
 .card-cost {
-  /* Deepened from var(--energy-blue) so white text clears WCAG AA (~5.2:1);
+  /* Deepened from var(--energy) so white text clears WCAG AA (~5.2:1);
      the neon read is kept via the glow. */
   background: #2563eb;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -1287,14 +1287,14 @@ body {
 }
 
 .action-button.play-button {
-  background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);
+  background: var(--select);
   padding: 12px 32px;
   font-size: 1.1rem;
 }
 
 .action-button {
-  background: var(--accent-primary);
-  color: white;
+  background: var(--select);
+  color: var(--ink);
   border: none;
   padding: 10px 24px;
   border-radius: 20px;
@@ -1319,7 +1319,7 @@ body {
   width: 240px;
   box-shadow: 0 0 25px rgba(0, 210, 255, 0.4);
   pointer-events: none;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-body);
 }
 
 .os-tooltip-header {
@@ -1388,7 +1388,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 40px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-body);
   color: #0f0;
   overflow: hidden;
 }
@@ -1535,7 +1535,7 @@ body {
 
 .action-button.end-turn {
   background: transparent;
-  border: 2px solid var(--accent-primary);
+  border: 2px solid var(--select);
 }
 
 /* TICKET 171h: END TURN pressed with Energy still spendable. The button flashes three times and
@@ -1742,7 +1742,7 @@ body {
   gap: 4px;
   padding: 6px 12px;
   background: rgba(10, 10, 18, 0.95);
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--panel-2);
   z-index: 200;
   flex-shrink: 0;
 }
@@ -1770,7 +1770,7 @@ body {
 .nav-tab.active {
   color: #fff;
   background: rgba(124, 58, 237, 0.2);
-  border-color: var(--accent-primary);
+  border-color: var(--select);
 }
 
 .nav-icon {
@@ -1833,7 +1833,7 @@ body {
 .valid-badge {
   margin-left: 8px;
   font-size: 14px;
-  color: var(--hp-green);
+  color: var(--hp);
 }
 
 .deck-terminal-body {
@@ -1843,8 +1843,8 @@ body {
 
 .deck-panel {
   flex: 1;
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
   border-radius: 12px;
   padding: 16px;
   backdrop-filter: blur(8px);
@@ -1865,7 +1865,7 @@ body {
   flex: 1;
   padding: 6px 8px;
   background: rgba(30, 30, 50, 0.8);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--panel-2);
   border-radius: 6px;
   color: #ccc;
   font-family: inherit;
@@ -1887,7 +1887,7 @@ body {
 
 .deck-card {
   background: rgba(20, 20, 35, 0.9);
-  border: 2px solid var(--glass-border);
+  border: 2px solid var(--panel-2);
   border-radius: 8px;
   padding: 8px;
   cursor: pointer;
@@ -1897,7 +1897,7 @@ body {
 
 .deck-card:hover {
   transform: translateY(-2px);
-  border-color: var(--accent-primary);
+  border-color: var(--select);
 }
 
 .deck-card.in-deck {
@@ -1908,7 +1908,7 @@ body {
   position: absolute;
   top: 4px;
   right: 6px;
-  color: var(--energy-blue);
+  color: var(--energy);
   font-weight: 700;
   font-size: 14px;
 }
@@ -1934,8 +1934,8 @@ body {
   bottom: 4px;
   right: 4px;
   font-size: 8px;
-  background: var(--accent-primary);
-  color: #fff;
+  background: var(--select);
+  color: var(--ink);
   padding: 1px 5px;
   border-radius: 4px;
   font-weight: 700;
@@ -1980,7 +1980,7 @@ body {
 }
 
 .deck-list-remove {
-  color: var(--hp-red);
+  color: var(--hp-low);
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -1992,7 +1992,7 @@ body {
 /* === Roster Terminal === */
 .party-counter {
   font-size: 16px;
-  color: var(--energy-blue);
+  color: var(--energy);
   font-weight: 600;
 }
 
@@ -2011,8 +2011,8 @@ body {
 .party-slot {
   flex: 1;
   min-height: 120px;
-  background: var(--bg-card);
-  border: 2px solid var(--glass-border);
+  background: var(--panel);
+  border: 2px solid var(--panel-2);
   border-radius: 12px;
   padding: 16px;
   text-align: center;
@@ -2021,11 +2021,11 @@ body {
 }
 
 .party-slot.filled {
-  border-color: var(--accent-primary);
+  border-color: var(--select);
 }
 
 .party-slot:hover {
-  border-color: var(--hp-red);
+  border-color: var(--hp-low);
 }
 
 .slot-name {
@@ -2036,7 +2036,7 @@ body {
 
 .slot-level {
   font-size: 14px;
-  color: var(--energy-blue);
+  color: var(--energy);
 }
 
 .slot-ivs {
@@ -2047,7 +2047,7 @@ body {
 
 .slot-action {
   font-size: 10px;
-  color: var(--hp-red);
+  color: var(--hp-low);
   opacity: 0;
   margin-top: 6px;
   transition: opacity 0.15s;
@@ -2070,8 +2070,8 @@ body {
 }
 
 .roster-card {
-  background: var(--bg-card);
-  border: 2px solid var(--glass-border);
+  background: var(--panel);
+  border: 2px solid var(--panel-2);
   border-radius: 10px;
   padding: 12px;
   cursor: pointer;
@@ -2080,12 +2080,12 @@ body {
 }
 
 .roster-card:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--select);
   transform: translateY(-2px);
 }
 
 .roster-card.active {
-  border-color: var(--hp-green);
+  border-color: var(--hp);
 }
 
 .roster-card-name {
@@ -2094,7 +2094,7 @@ body {
 }
 
 .roster-card-level {
-  color: var(--energy-blue);
+  color: var(--energy);
   font-size: 14px;
 }
 
@@ -2117,7 +2117,7 @@ body {
   top: 6px;
   right: 8px;
   font-size: 9px;
-  background: var(--hp-green);
+  background: var(--hp);
   color: #000;
   padding: 2px 6px;
   border-radius: 4px;
@@ -2150,8 +2150,8 @@ body {
 
 .synthesis-panel {
   flex: 1;
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
   border-radius: 12px;
   padding: 16px;
   backdrop-filter: blur(8px);
@@ -2169,11 +2169,11 @@ body {
 }
 
 .selected-scrap {
-  border-color: var(--hp-red) !important;
+  border-color: var(--hp-low) !important;
 }
 
 .scrap-badge {
-  background: var(--hp-red) !important;
+  background: var(--hp-low) !important;
 }
 
 .scrap-button {
@@ -2204,7 +2204,7 @@ body {
 
 .blueprint-card {
   background: rgba(25, 25, 40, 0.9);
-  border: 2px solid var(--glass-border);
+  border: 2px solid var(--panel-2);
   border-radius: 10px;
   padding: 16px;
   text-align: center;
@@ -2214,7 +2214,7 @@ body {
 }
 
 .blueprint-card.affordable {
-  border-color: var(--hp-green);
+  border-color: var(--hp);
 }
 
 .blueprint-card.affordable:hover {
@@ -2247,7 +2247,7 @@ body {
   border-radius: 10px;
   font-size: 18px;
   font-weight: 700;
-  color: var(--hp-green);
+  color: var(--hp);
   animation: fadeIn 0.3s ease;
 }
 
@@ -2729,11 +2729,11 @@ body {
   letter-spacing: 1px;
   padding: 5px 12px;
   border-radius: 999px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--panel-2);
   background: rgba(20, 20, 35, 0.8);
   color: #c2cad6;
   cursor: pointer;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-body);
   transition: all 0.12s ease;
 }
 
@@ -2744,8 +2744,8 @@ body {
 
 .type-chart-toggle.open {
   color: #fff;
-  border-color: var(--accent-primary);
-  background: color-mix(in srgb, var(--accent-primary) 22%, rgba(20, 20, 35, 0.8));
+  border-color: var(--select);
+  background: color-mix(in srgb, var(--select) 22%, var(--panel));
 }
 
 .type-chart {
@@ -2753,11 +2753,11 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--panel-2);
   border-radius: 12px;
   background: rgba(10, 10, 18, 0.75);
   backdrop-filter: blur(6px);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-body);
   max-width: 100%;
   overflow-x: auto;
 }
@@ -3659,7 +3659,7 @@ body {
 }
 
 .hand-caster-banner strong {
-  color: var(--accent-primary, #a78bfa);
+  color: var(--select);
   font-weight: 900;
 }
 

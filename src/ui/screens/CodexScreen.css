@@ -16,7 +16,7 @@
 
 .codex-tab {
     padding: 6px 14px;
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--panel-2);
     border-radius: 4px;
     background: transparent;
     color: rgba(240, 240, 245, 0.72);
@@ -31,7 +31,7 @@
 }
 
 .codex-tab.active {
-    border-color: var(--accent-primary);
+    border-color: var(--select);
     background: rgba(124, 58, 237, 0.22);
     color: #fff;
 }
@@ -49,7 +49,7 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent-primary);
+    color: var(--text-mute);
 }
 
 /* --- Progress bars --------------------------------------------------------------------------- */
@@ -77,7 +77,7 @@
 .codex-bar-fill {
     display: block;
     height: 100%;
-    background: var(--accent-primary);
+    background: var(--text-mute);
     /* No transition: the number is the point, and a bar that animates on mount reads as loading. */
 }
 
@@ -134,7 +134,7 @@
     align-items: baseline;
     gap: 6px;
     padding: 5px 8px;
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--panel-2);
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.02);
     font-size: 0.75rem;
@@ -193,7 +193,7 @@
     gap: 12px;
     align-items: baseline;
     padding: 5px 8px;
-    border-left: 2px solid var(--glass-border);
+    border-left: 2px solid var(--panel-2);
     font-size: 0.78rem;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .codex-row.found {
-    border-left-color: var(--accent-primary);
+    border-left-color: var(--select);
 }
 
 .codex-row-name {
