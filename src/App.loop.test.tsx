@@ -49,7 +49,7 @@ async function assembleFirstBlueprint(host: HTMLElement): Promise<void> {
 async function beginRunWithFirstOffer(host: HTMLElement): Promise<void> {
     await clickText(host, 'Expedition');
     await click(host.querySelector('.ranch-offer')!);
-    await click(host.querySelector('.ranch-card')!);
+    // TICKET 182b: one Mingming on the roster is the party - there is no picker to click.
     await clickText(host, 'Start run');
 }
 

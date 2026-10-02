@@ -9,6 +9,8 @@ import { readDriverCounter } from '../counters/readCounter';
 import { globalBattleEventBus } from '../../engine/events';
 
 import { Icon } from '../theme/Icon';
+import { useAdvancedContent } from '../settings/useAdvancedContent';
+import { deckScalesWithCardsPlayed } from '../utils/cardsPlayedScaling';
 
 
 /**
@@ -96,6 +98,7 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
         return unsubscribe;
     }, []);
 
+    const advanced = useAdvancedContent();
     const isPlayerTurn = battleState.activeSide === 'PLAYER';
 
     /*
@@ -131,12 +134,15 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                   * the deck's whole plan is invisible without it. Gold when it is above zero, so a
                   * player running a per-card scaler can read it without looking at it.
                   */}
-                <span
-                    className={`pill battle-topbar-played ${battleState.cardsPlayedThisTurn > 0 ? 'is-live' : ''}`}
-                    title="Cards you have played this turn — what stampede, momentum crash and the other per-card scalers multiply by."
-                >
-                    PLAYED <b>{battleState.cardsPlayedThisTurn}</b>
-                </span>
+                {/* TICKET 182b: drawn only when a card in the deck scales with it (or Show advanced content). */}
+                {(advanced || deckScalesWithCardsPlayed(battleState)) && (
+                    <span
+                        className={`pill battle-topbar-played ${battleState.cardsPlayedThisTurn > 0 ? 'is-live' : ''}`}
+                        title="Cards you have played this turn — what stampede, momentum crash and the other per-card scalers multiply by."
+                    >
+                        PLAYED <b>{battleState.cardsPlayedThisTurn}</b>
+                    </span>
+                )}
 
                 <button
                     type="button"

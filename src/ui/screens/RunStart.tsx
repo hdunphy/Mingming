@@ -46,6 +46,7 @@ import { Icon } from '../theme/Icon';
 import ModifierChip from '../components/ModifierChip';
 import DraftStart from './DraftStart';
 import { RUN_START_PARTY_TEXT } from './partyRuleText';
+import { useAdvancedContent } from '../settings/useAdvancedContent';
 
 /**
  * The offer screen is rolled ONCE per visit and held in component state.
@@ -81,6 +82,8 @@ export default function RunStart(): ReactNode {
     const [chosen, setChosen] = useState<IGymOffer | null>(null);
     const [partyIds, setPartyIds] = useState<string[]>([]);
     const ranch = useSelector((s: RootState) => s.game);
+    // TICKET 182b: each rule below is `empty && !advanced`.
+    const advanced = useAdvancedContent();
 
     /*
      * TICKET 169e — THE TIER PICKER. Tier 0 is always open; a clear at tier N opens tier N+1 for every
@@ -101,9 +104,18 @@ export default function RunStart(): ReactNode {
     const selectedTier =
         pickedTier !== null && unlocked.includes(pickedTier) ? pickedTier : unlocked[unlocked.length - 1];
 
+    // TICKET 182b: with ONE Mingming on the roster there is nothing to pick - it is the party.
+    const soloRoster = roster.length === 1 && !advanced;
+    const effectivePartyIds = useMemo(
+        () => (soloRoster ? roster.map((m) => m.id) : partyIds),
+        [soloRoster, roster, partyIds],
+    );
+    // TICKET 182b: nothing above tier 0 is unlocked (and so no modifiers either) until a gym is cleared.
+    const showTiers = advanced || unlocked.length > 1 || modifiersOpen;
+
     const party = useMemo(
-        () => partyIds.map((id) => roster.find((m) => m.id === id)).filter((m): m is IRanchMember => !!m),
-        [partyIds, roster],
+        () => effectivePartyIds.map((id) => roster.find((m) => m.id === id)).filter((m): m is IRanchMember => !!m),
+        [effectivePartyIds, roster],
     );
 
     const toggle = (memberId: string): void => {
@@ -202,7 +214,9 @@ export default function RunStart(): ReactNode {
                         rivals' elements are on each gym's hover, and the map's rival node explains
                         itself, 142c). */}
                     <p className="ranch-note">Beat the gym leader at the end of the road.</p>
-                    {/* Ticket 169e: the tier row. A locked tier is disabled and says how to open it. */}
+                    {/* Ticket 169e: the tier row. A locked tier is disabled and says how to open it.
+                        TICKET 182b: not drawn until a tier above 0 is unlocked. */}
+                    {showTiers && (
                     <div className="ranch-tier-picker" role="group" aria-label="Difficulty tier">
                         <div className="ranch-tier-row">
                             {TIERS.map((row) => {
@@ -235,6 +249,7 @@ export default function RunStart(): ReactNode {
                             </div>
                         )}
                     </div>
+                    )}
                     <div className="ranch-offer-grid">
                         {offers.map((offer) => (
                             <button
@@ -273,10 +288,11 @@ export default function RunStart(): ReactNode {
 
             {chosen && (
                 <>
-                    <p className="ranch-note">
+                    {/* TICKET 182b/a: one sentence; the party rule is its hover (and absent for a one-member roster). */}
+                    <p className="ranch-note" title={soloRoster ? undefined : RUN_START_PARTY_TEXT}>
                         Opening biome: <strong>{chosen.biomes[0].name} ({chosen.biomes[0].elements.join(' / ')})</strong>.
-                        {RUN_START_PARTY_TEXT}
                     </p>
+                    {!soloRoster && (
                     <div className="ranch-roster-grid">
                         {roster.map((member) => {
                             const picked = partyIds.includes(member.id);
@@ -307,8 +323,11 @@ export default function RunStart(): ReactNode {
                             );
                         })}
                     </div>
+                    )}
 
-                    {/* Ticket 169f: opt-in run modifiers. They earn nothing but a label. */}
+                    {/* Ticket 169f: opt-in run modifiers. They earn nothing but a label.
+                        TICKET 182b: not drawn until the first gym clear. */}
+                    {(advanced || modifiersOpen) && (
                     <div className="ranch-modifier-row" role="group" aria-label="Run modifiers">
                         <span className="ranch-modifier-title">Modifiers</span>
                         {MODIFIERS.map((modifier) => (
@@ -323,6 +342,7 @@ export default function RunStart(): ReactNode {
                         ))}
                         {!modifiersOpen && <span className="ranch-modifier-lock">Beat a gym to unlock modifiers.</span>}
                     </div>
+                    )}
 
                     <div className="ranch-modal-actions">
                         <button

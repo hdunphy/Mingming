@@ -63,7 +63,7 @@ describe('Expedition (182a)', () => {
     it('the run starts with "Start run", not "Begin run — 1 member, 8 cards"', async () => {
         const { host } = await ranch('expedition', withKraken);
         await click(host.querySelector('.ranch-offer')!);
-        await click(host.querySelector('.ranch-roster-grid button')!);
+        // TICKET 182b: with one Mingming on the roster there is no party picker - it is the party.
         const start = findText(host, 'Start run');
         expect(start.textContent?.trim()).toBe('Start run');
         expect(host.textContent).not.toContain('Begin run');

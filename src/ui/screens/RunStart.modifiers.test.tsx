@@ -19,6 +19,7 @@ import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import { MODIFIERS } from '../../engine/run/modifiers/modifierRegistry';
 import type { IRanchState } from '../../engine/runTypes';
+import { loadSettings, saveSettings } from '../settings/settings';
 
 declare global {
     var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -47,7 +48,12 @@ beforeEach(() => {
 afterEach(async () => {
     await act(async () => { root.unmount(); });
     host.remove();
+    localStorage.clear();
 });
+
+// TICKET 182b: the chips (and the party picker, for a one-member roster) are not drawn for a new
+// player, so the cases that look at the LOCKED row switch "Show advanced content" on first.
+const showAdvanced = (): void => saveSettings({ ...loadSettings(), showAdvancedContent: true });
 
 async function toPartyScreen(store: ReturnType<typeof makeStore>): Promise<void> {
     await act(async () => { root.render(<Provider store={store}><RunStart /></Provider>); });
@@ -66,6 +72,7 @@ async function click(el: Element): Promise<void> {
 
 describe('the modifier row', () => {
     it('is locked on a fresh ranch: every chip disabled, with the unlock line', async () => {
+        showAdvanced();
         await toPartyScreen(makeStore());
         expect(chips()).toHaveLength(MODIFIERS.length);
         for (const c of chips()) expect(c.disabled).toBe(true);
@@ -108,7 +115,10 @@ describe('the modifier row', () => {
 
 describe('launching with modifiers', () => {
     async function launch(): Promise<void> {
-        await click(host.querySelector('.ranch-roster-grid button')!);
+        // TICKET 182b: one Mingming on the roster is the party - there is no picker to click
+        // (unless Show advanced content has drawn it).
+        const picker = host.querySelector('.ranch-roster-grid button');
+        if (picker) await click(picker);
         await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run'))!);
     }
 
@@ -130,6 +140,7 @@ describe('launching with modifiers', () => {
     });
 
     it('a locked ranch launches with none, whatever was clicked', async () => {
+        showAdvanced();
         const store = makeStore();
         await toPartyScreen(store);
         await click(chip('Junk Start'));

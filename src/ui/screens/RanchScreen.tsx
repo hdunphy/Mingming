@@ -67,6 +67,7 @@ import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
+import { useAdvancedContent } from '../settings/useAdvancedContent';
 
 
 type Section = 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex';
@@ -106,12 +107,29 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
     const [section, setSection] = useState<Section>(initialSection);
     const [showFirmware, setShowFirmware] = useState(false);
 
+    /*
+     * TICKET 182b — a tab whose screen would be empty is not drawn. Expedition is what the ranch is
+     * for, so it is always there; the open tab is always there too, so finishing the last build does
+     * not pull the tab out from under its own confirmation. Show advanced content draws all five.
+     */
+    const advanced = useAdvancedContent();
+    const hasBlueprints = Object.values(blueprints).some((count) => count > 0);
+    const hasCodex = Object.values(codex).some((ledger) => ledger.length > 0) || codexMilestones.length > 0;
+    const emptyTab: Readonly<Record<Section, boolean>> = {
+        expedition: false,
+        roster: roster.length === 0,
+        assembly: !hasBlueprints,
+        vault: drivers.length === 0 && tempDrivers.length === 0,
+        codex: !hasCodex,
+    };
+    const visibleSections = SECTIONS.filter((s) => advanced || s.id === section || !emptyTab[s.id]);
+
     return (
         <div className="ranch-screen">
             <header className="ranch-header">
                 <h1><Icon name="ranch" size={20} /> Ranch</h1>
                 <nav className="ranch-nav" aria-label="Ranch sections">
-                    {SECTIONS.map((s) => (
+                    {visibleSections.map((s) => (
                         <button
                             key={s.id}
                             type="button"

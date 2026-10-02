@@ -166,7 +166,7 @@ describe('Draft Start through RunStart', () => {
     async function toDraft(store: ReturnType<typeof makeStore>): Promise<void> {
         await act(async () => { root.render(<Provider store={store}><RunStart /></Provider>); });
         await click(host.querySelector('.ranch-offer')!);
-        await click(host.querySelector('.ranch-roster-grid button')!);
+        // TICKET 182b: one Mingming on the roster is the party - there is no picker to click.
         await click(button('Draft Start'));
         await click(button('Start run'));
     }

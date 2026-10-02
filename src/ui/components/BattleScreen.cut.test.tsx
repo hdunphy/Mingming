@@ -154,3 +154,20 @@ describe('182a battle - the copy budget', () => {
         expect(budgetProblem(readCopy(host.innerHTML))).toBeNull();
     });
 });
+
+/*
+ * 182b: "closed by default, not hidden". These two were already closed when 182 began (stale rows);
+ * the cases pin it so the first battle never opens with a drawer or a panel in the way.
+ */
+describe('182b battle - closed by default', () => {
+    it('the combat log drawer is closed, and its button is there to open it', async () => {
+        const { host } = await open([FENRIR]);
+        expect(host.querySelector('.battle-topbar-log')?.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('the enemy-hand panel is closed, with only its tab showing', async () => {
+        const { host } = await open([FENRIR]);
+        const panel = host.querySelector('.ehp');
+        if (panel) expect(panel.classList.contains('open')).toBe(false);
+    });
+});

@@ -21,7 +21,9 @@ import type { IRunState } from '../../engine/runTypes';
 
 const battle = (over: Partial<IBattleState> = {}): IBattleState => ({
     playerParty: [], enemyParty: [], activeSide: 'PLAYER', turn: 3, phase: 'PLAYER_TURN',
-    playerDeck: { hand: [], drawpile: [], discard: [], exhaust: [] },
+    // TICKET 182b: the PLAYED pill is drawn only when a card in the deck scales with cards played,
+    // so the default board holds Stampede (the pill's own cases need it).
+    playerDeck: { hand: [{ id: 'c1', dataId: 'stampede', currentCost: 1, isPlayable: true }], drawpile: [], discard: [], exhaust: [] },
     enemyDeck: { hand: [], drawpile: [], discard: [], exhaust: [] },
     counters: {}, seed: 'x', logs: ['Fenrir casts War Pact'], cardsPlayedThisTurn: 2,
     ...over,

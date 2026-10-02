@@ -18,6 +18,7 @@ import RunStart from './RunStart';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import type { IRanchState } from '../../engine/runTypes';
+import { loadSettings, saveSettings } from '../settings/settings';
 
 declare global {
     var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -49,7 +50,15 @@ beforeEach(() => {
 afterEach(async () => {
     await act(async () => { root.unmount(); });
     host.remove();
+    localStorage.clear();
 });
+
+/*
+ * TICKET 182b: the tier row is not drawn until a gym has been cleared, so the cases that look at
+ * LOCKED tiers on a fresh ranch switch "Show advanced content" on first. (`RunStart.hideEmpty` has
+ * the cases for the hidden state itself.)
+ */
+const showAdvanced = (): void => saveSettings({ ...loadSettings(), showAdvancedContent: true });
 
 async function mount(store: ReturnType<typeof makeStore>): Promise<void> {
     await act(async () => {
@@ -76,6 +85,7 @@ async function click(button: Element | null | undefined): Promise<void> {
 
 describe('the tier picker', () => {
     it('with an empty ranch only Tier 0 is open, and it is the one selected', async () => {
+        showAdvanced();
         await mount(makeStore());
         expect(tierButton(0).disabled).toBe(false);
         for (const n of [1, 2, 3]) expect(tierButton(n).disabled, `Tier ${n}`).toBe(true);
@@ -83,6 +93,7 @@ describe('the tier picker', () => {
     });
 
     it('tells the player how to unlock a locked tier', async () => {
+        showAdvanced();
         await mount(makeStore());
         expect(host.textContent).toContain('Beat any gym on Tier 0 to unlock.');
         expect(host.textContent).toContain('Beat any gym on Tier 2 to unlock.');
@@ -105,6 +116,7 @@ describe('the tier picker', () => {
     });
 
     it('clicking a locked tier does nothing', async () => {
+        showAdvanced();
         await mount(makeStore());
         await click(tierButton(2));
         expect(pressedTiers()).toEqual(['Tier 0']);
@@ -145,7 +157,7 @@ describe('launching', () => {
         expect(pressedTiers()).toEqual(['Tier 2']);
 
         await click(host.querySelector('.ranch-offer'));
-        await click(host.querySelector('.ranch-roster-grid button'));
+        // TICKET 182b: one Mingming on the roster is the party - there is no picker to click.
         const begin = [...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run'));
         await click(begin);
 
@@ -156,7 +168,6 @@ describe('launching', () => {
         const store = makeStore();
         await mount(store);
         await click(host.querySelector('.ranch-offer'));
-        await click(host.querySelector('.ranch-roster-grid button'));
         await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run')));
         expect(store.getState().run.run?.tier).toBe(0);
     });
