@@ -1,6 +1,6 @@
 # Ticket 183: Art direction and UI kit
 
-**Type:** design, then UI. **Status:** RULED (Henry, 2026-10-02): direction **B, "Slant"**, built on the existing battle geometry, and all seven decisions answered (D1–D7 at the bottom). **Rows 183a–183e are buildable now, in order.** 183f and 183h wait on ticket 182 landing; 183g waits on 183a. One word is still open: the on-screen word for *assembly* (D1). **Ticket 176 (map and town redesign) stays blocked until 183a–183c ship; then 176c and 176e are drawn in this kit** (see "What this does to ticket 176").
+**Type:** design, then UI. **Status:** RULED (Henry, 2026-10-02): direction **B, "Slant"**, built on the existing battle geometry, and all seven decisions answered (D1–D7 at the bottom). **Rows 183a–183e are buildable now, in order.** 183f and 183h wait on ticket 182 landing; 183g waits on 183a.  **Ticket 176 (map and town redesign) stays blocked until 183a–183c ship; then 176c and 176e are drawn in this kit** (see "What this does to ticket 176").
 
 **Henry (2026-10-02), in his words:**
 
@@ -136,7 +136,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 | 183e | Rows centred by party size | 183b |
 | 183f | Ranch, starter, settings, run summary in the kit | 183a, 182 |
 | 183g | Node icon set and map/town components for 176 | 183a |
-| 183h | The naming pass | 182 (the text cut), and the *assembly* word |
+| 183h | The naming pass | 182 (the text cut) |
 
 ---
 
@@ -212,7 +212,7 @@ Rename UI labels only, per D1's ruled list: a `labels.ts` map from internal id t
 | firmware / OS | **Instinct** (kernel/OS proper names stay as the instinct's name) |
 | reflash | **Retrain** |
 | blueprint | **Trace** |
-| assembly | **open: not in Henry's list.** Default **Summon** until he says otherwise |
+| assembly | **Summon** |
 | workshop (map node) | **Den** |
 | daemon | **Aura** |
 | macro | **Draught** |
@@ -237,7 +237,7 @@ Rename UI labels only, per D1's ruled list: a `labels.ts` map from internal id t
 
 | # | Decision | Ruling |
 |---|---|---|
-| D1 | **Naming.** Rename the on-screen words; code, data ids and saves keep theirs. | **Yes.** The words: *Instinct, Retrain, Den, Aura, Trace, Draught, Rune, Totem, Amber, Card, Mingming* (the ruled column of the table below). *Assembly* was not in his list: **open**, default Summon. |
+| D1 | **Naming.** Rename the on-screen words; code, data ids and saves keep theirs. | **Yes.** The words: *Instinct, Retrain, Den, Aura, Trace, Draught, Rune, Totem, Amber, Card, Mingming* (the ruled column of the table below). *Assembly* → **Summon** (ruled separately, same day). |
 | D2 | **How far the card face goes.** 176 M7 said cards look as today, ruled against the cream pass. | **Everywhere the full card is shown:** hand, hover card, stall tile, reward pick, upgrade preview, deck/discard viewers, codex, town tabs. 176 M7's line is superseded for the look; its layout stands. |
 | D3 | **Type mark** (▲ ✦ ◆ ●). | **Delete it.** |
 | D4 | **Fonts.** Barlow Condensed + Barlow (OFL, bundled). | **Yes.** |
@@ -254,7 +254,7 @@ The left column was this ticket's proposal; the middle a second draft from the 1
 | firmware / OS | **Trait** | **Instinct** | **Instinct** | the per-monster build choice; kernel/OS proper names stay as the instinct's name. "Trait" is clear but generic; "Instinct" fits an animal |
 | reflash | **Retrain** | **Retrain** | **Retrain** | both drafts agree |
 | blueprint | keep | **Trace** or **Bond** | **Trace** | what you keep to recruit again; Henry chose Trace over Bond |
-| assembly | **Hatch** | — | **open** (default Summon) | spending a Trace to bring a monster in; not in Henry's list, ask |
+| assembly | **Hatch** | — | **Summon** | spending a Trace to bring a monster in |
 | workshop (map node) | — | **Den** | **Den** | the place where you Summon |
 | daemon | **Companion** | — | **Aura** | a card that stays in play; "Companion" sounds like a creature |
 | macro | keep | **Draught** | **Draught** | the single-use consumable (Spire's potion) |
