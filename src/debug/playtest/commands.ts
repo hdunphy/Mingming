@@ -11,6 +11,7 @@
 import { MingmingRegistry, LAUNCH_SPECIES } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { parsePrediction } from './expect/prediction';
+import { planNight } from './night/plan';
 import { cardLine } from './gameText';
 import { currentScreen } from './screen';
 import { renderScreen, screenJson } from './render';
@@ -201,6 +202,22 @@ export function cmdNote(root: string, args: ParsedArgs): CommandResult {
     }
 }
 
+/** `plan --date D [--runs N] [--card-runs N] [--turn-runs N]`: the night's sessions as JSON, for the nightly script. Touches no session. */
+export function cmdPlan(_root: string, args: ParsedArgs): CommandResult {
+    const date = text(args, 'date');
+    if (!date || !/^[A-Za-z0-9._-]+$/.test(date)) return refuse('--date <YYYY-MM-DD> is required.');
+    const count = (name: string): number | undefined => (text(args, name) === undefined ? undefined : Number(text(args, name)));
+    const options = { runs: count('runs'), cardRuns: count('card-runs'), turnRuns: count('turn-runs'), tier: count('tier') };
+    for (const [name, value] of Object.entries(options)) {
+        if (value !== undefined && (!Number.isInteger(value) || value < 0)) return refuse(`--${name === 'cardRuns' ? 'card-runs' : name === 'turnRuns' ? 'turn-runs' : name} must be a whole number.`);
+    }
+    try {
+        return ok(JSON.stringify(planNight(date, starterFirmwares(), options), null, 2));
+    } catch (error) {
+        return refuse(error instanceof Error ? error.message : String(error));
+    }
+}
+
 /** `replay --session s --to N`: the screen as it was after the first N moves. Read-only; the one-line reproduction a finding points at. */
 export function cmdReplay(root: string, args: ParsedArgs): CommandResult {
     const name = sessionName(args);
@@ -216,5 +233,5 @@ export function cmdReplay(root: string, args: ParsedArgs): CommandResult {
 }
 
 export const COMMANDS: Readonly<Record<string, (root: string, args: ParsedArgs) => CommandResult>> = {
-    new: cmdNew, state: cmdState, move: cmdMove, moves: cmdMoves, card: cmdCard, note: cmdNote, replay: cmdReplay,
+    new: cmdNew, state: cmdState, move: cmdMove, moves: cmdMoves, card: cmdCard, note: cmdNote, replay: cmdReplay, plan: cmdPlan,
 };

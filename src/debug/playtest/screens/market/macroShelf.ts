@@ -33,6 +33,7 @@ export function macroShelf(world: World): Section {
         moves.push({
             key: `market:macro:${offer.macroId}`,
             label: `Buy the macro ${macroName(offer.macroId)} (${offer.price} scrap)`,
+            about: { verb: 'buy', items: [macroName(offer.macroId)] },
             apply: (w) => {
                 if (dispatchChecked(w, buyMacro({ macroId: offer.macroId, price: offer.price }), 'buy macro')) {
                     w.view.news.push(`Bought the macro ${macroName(offer.macroId)}.`);

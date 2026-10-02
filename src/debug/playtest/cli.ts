@@ -7,7 +7,12 @@
  *   moves --session s1 <n,n,n> --why "..."
  *   card  --session s1 <card name>
  *   note  --session s1 "<text>"
+ *   plan  --date <YYYY-MM-DD> [--runs 10]   (the night's sessions as JSON; no --session)
  *   replay --session s1 --to <n>     (the screen after the first n moves; read-only)
+ *
+ * Sessions live under `results/playtest/` unless `--results <folder>` says otherwise (the nightly script points
+ * each night at `results/playtest/<date>/`). Not an environment variable: the repo's vite config empties
+ * `process.env` for everything vite-node runs, so one could never be read here.
  *
  * A thin shell over `commands.ts`: it parses argv, runs one command, prints, and sets the exit code.
  */

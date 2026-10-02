@@ -189,6 +189,18 @@ export interface Move {
     readonly key: string;
     readonly label: string;
     readonly apply: (world: World) => void;
+    /**
+     * What this move is about, for the morning report (180f): the kind of choice and the game's own
+     * names of the things it is between. Only the choices the report tallies carry one: a card taken,
+     * stored or passed over at a reward, a card or macro bought, a card upgraded.
+     */
+    readonly about?: MoveAbout;
+}
+
+export interface MoveAbout {
+    readonly verb: 'take' | 'store' | 'skip' | 'buy' | 'upgrade';
+    /** One name for take, store, buy and upgrade; every option on offer for skip. */
+    readonly items: ReadonlyArray<string>;
 }
 
 export interface Screen {

@@ -36,16 +36,19 @@ export function rewardScreen(world: World): Screen {
             key: `card:${decision.index}:take:${i}`,
             label: `Take option ${i + 1} (${cardName(option.dataId)}) into the deck`,
             apply: (w) => answerReward(w, { kind: 'card', picked: i, store: false }),
+            about: { verb: 'take', items: [cardName(option.dataId)] },
         }));
         choice.options.forEach((option, i) => moves.push({
             key: `card:${decision.index}:store:${i}`,
             label: `Send option ${i + 1} (${cardName(option.dataId)}) to the collection`,
             apply: (w) => answerReward(w, { kind: 'card', picked: i, store: true }),
+            about: { verb: 'store', items: [cardName(option.dataId)] },
         }));
         moves.push({
             key: `card:${decision.index}:skip`,
             label: 'Skip this choice',
             apply: (w) => answerReward(w, { kind: 'card', picked: null, store: false }),
+            about: { verb: 'skip', items: choice.options.map((option) => cardName(option.dataId)) },
         });
     } else if (decision.kind === 'patch') {
         const roster = world.store.getState().game.roster;

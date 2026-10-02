@@ -25,7 +25,9 @@
     "balance:drivers": "vite-node src/debug/balance/runDriverCanary.ts",
     "release-check": "node scripts/release-check.mjs",
     "canary:short": "vite-node src/debug/balance/runRunGate.ts -- --cells wild:biome0,elite:biome0 --iterations 60 --gate-structural",
-    "playtest": "vite-node src/debug/playtest/cli.ts"
+    "playtest": "vite-node src/debug/playtest/cli.ts",
+    "playtest:night": "node scripts/playtest-night.mjs",
+    "playtest:report": "vite-node src/debug/playtest/report/cli.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
