@@ -14,7 +14,7 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 
 | # | Ticket | State (2026-10-02) | Blocked by |
 |---|---|---|---|
-| 184 | [Playtest polish 3](tickets/184-playtest-polish-3.md): draw-pile viewer, Burn overflow text, counters, per-OS patch text | 184a–c built; 184d step 1 built; **step 2 waits on Henry's patch-text review and the OUROBOROS_LOOP ruling** | Henry |
+| 184 | [Playtest polish 3](tickets/184-playtest-polish-3.md): draw-pile viewer, Burn overflow text, counters, per-OS patch text | **Done** (184a–e, `53bcedc..85d5183`) | — |
 | 182 | [Text cut, hide-when-empty, intro run, two switches](tickets/182-text-cut-and-intro-run.md) | Ruled, not started | — |
 | 183 | [Art direction and UI kit](tickets/183-art-direction-and-ui-kit.md): direction B "Slant", rows 183a–h | Ruled (D1–D7), not started | 183f and 183h after 182 |
 | 181 | [Playtest round 2 (SOP)](tickets/181-friends-playtest-1.md) | 181a, 181b built; 181c waits on Henry's Google Form | 182, 183, 181c |
@@ -22,9 +22,11 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 | 175 | [Localization prep](tickets/175-localization-prep.md) | Ruled, not started. **Comes after everything else here, especially the text cut** (Henry, 2026-10-02) | 182, 183h |
 | 180 | [Agent playtester](tickets/180-agent-playtester.md) | Ruled (A1–A6), queued; **do not start until Henry says go** | Henry |
 
-**The frontier:** finish 184 → build 182 → build 183a–e → 183f–h → 181c once the form exists → release (181) → 176 → 175. 180 whenever Henry says go.
+**The frontier:** build 182 → build 183a–e → 183f–h → 181c once the form exists → release (181) → 176 → 175. 180 whenever Henry says go.
 
 ## Decisions so far
+
+- **DONE 2026-10-02 — [184 Playtest polish 3](tickets/184-playtest-polish-3.md):** the draw pile opens like the discard, Burn overflow reads "OVERFLOW", firmware/Driver/daemon counters, and per-OS patch text in the game after Henry's two sets of patch rulings (184e: SPLITTER no longer pays the host twice). Report: the Claude project doc "ticket-184-outcome".
 
 - **Direction ruled (2026-10-01/02):** moving away from the futuristic robot theme toward the nostalgic Pokémon feel, without crossing the "clone" line. UI: direction **B "Slant"** (183), Sword/Shield-style slanted navy panels on the existing battle geometry. The battle screen keeps its layout; it gets a colour-and-shape facelift.
 - **The intro run is the first-run gate (182):** a separate, removable mode outside the tier ladder, a hand-built 6-node map, a free recruit, a one-fight leader, no macros/patches/firmware choice. Plus hide-when-empty instead of an unlock ladder. Two separate switches: **Skip intro** and **Show advanced content**. The intro is mainly for round 2; it may be scrapped later or become the demo for early playtesters.

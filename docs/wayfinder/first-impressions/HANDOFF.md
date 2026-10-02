@@ -5,17 +5,16 @@
 ## Where things stand
 
 - **Branch `first-impressions`**, started from `main` after PR #13 merged `playtest-polish`. The two 184d commits that came after the merge were carried over (`5857fef`, `ef954a6`). `playtest-polish` is finished; don't commit to it.
-- **184** is the only ticket with work in flight: 184a–c and 184d step 1 are built. **184d step 2 waits on Henry**: he reviews the drafted per-OS patch text (`docs/balance/patch-text-184.md`) and rules on OUROBOROS_LOOP.
+- **184 is done** (184a–e, finished 2026-10-02 on this branch).
 - **182 is next to build.** It is fully ruled and has no blockers. Then **183a–e**, then 183f–h (183f and 183h after 182 lands).
 - **181** (playtest round 2) is the goal. It waits on 182, 183 and 181c (the "Tell Henry how it went" button, which needs Henry's Google Form first).
 - **176** is blocked until 183a–c ship. **175** comes after everything else. **180** waits for Henry's go.
 
 ## What Henry owes
 
-1. 184d: the patch-text review and the OUROBOROS_LOOP ruling.
-2. 181c: make the Google Form and its pre-filled link (181 §1.3a).
-3. When to start 180 (the agent playtester).
-4. On the other map: 170d, which walker fixes to build from 170c's ranked list.
+1. 181c: make the Google Form and its pre-filled link (181 §1.3a).
+2. When to start 180 (the agent playtester).
+3. On the other map: 170d, which walker fixes to build from 170c's ranked list.
 
 ## Traps on this machine
 
