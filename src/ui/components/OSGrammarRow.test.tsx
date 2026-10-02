@@ -50,9 +50,10 @@ describe('158-r1 — the partner mark is a fact about the field', () => {
         expect(markup).toContain('Weakens the attackers so the recoil deck survives');
     });
 
-    it('says plainly when none of them is, rather than showing an empty list', () => {
+    it('says nothing when none of them is - no "nobody" line, no empty list (182a hides the empty)', () => {
         const markup = render('fenrir_v1', ['kraken_v2']);
-        expect(markup).toContain('Nobody on the field is an authored partner');
+        expect(markup).not.toContain('Nobody on the field');
+        expect(markup).not.toContain('og-partners');
         expect(markup).not.toContain('already on the field');
     });
 

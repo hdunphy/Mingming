@@ -228,7 +228,7 @@ describe('RunScreen — the gauntlet takes the screen', () => {
 
         expect(markup).toContain('fight 1 of 3');
         expect(markup).not.toContain('No healing between these three fights');
-        expect(markup).toContain('repairs 30% of');
+        expect(markup).toContain('repair 30% of their max HP');
         expect(markup).toContain('Begin fight 1 of 3');
     });
 
@@ -312,8 +312,8 @@ describe('RunScreen — the run is over', () => {
         it(`routes a ${outcome} to the summary, with one way out`, () => {
             const markup = render(ended(outcome));
 
-            expect(markup).toContain('Return to the ranch');
-            expect(markup).toContain('Banked at the ranch');
+            expect(markup).toContain('Back to ranch');
+            expect(markup).toContain('You kept:');
             expect(markup).not.toContain('The full run summary is ticket 19');
         });
     }
@@ -329,6 +329,7 @@ describe('RunScreen — the run is over', () => {
         // to go with it: a defeat costs the run and never the ranch.
         const markup = render(ended('defeat'));
         expect(markup).not.toMatch(/DATA WIPED/i);
+        // 182a: the reassurance is the hover on the "You kept" line.
         expect(markup).toContain('separate save');
     });
 
@@ -336,7 +337,7 @@ describe('RunScreen — the run is over', () => {
         // The point of that sentence: a player who reads "you earned 3 blueprints" and then loses
         // them to a crash here would be right to be angry, and they cannot be, because ticket 12
         // paid them at drop time. Only the screen can tell them so.
-        expect(render(ended('defeat'))).toContain('banked as they dropped, not now');
+        expect(render(ended('defeat'))).toContain('banked at the ranch as they dropped, not now');
     });
 
     it('does not draw the map or the abandon button once the run has ended', () => {

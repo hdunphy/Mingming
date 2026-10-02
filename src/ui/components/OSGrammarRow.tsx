@@ -100,9 +100,7 @@ export function OSGrammarRow({ osId, partyOS, compact = false }: OSGrammarRowPro
                             </li>
                         ))}
                     </ul>
-                ) : (
-                    <p className="og-solo">Nobody on the field is an authored partner for this one.</p>
-                )
+                ) : null
             )}
 
             {compact && held.length > 0 && (

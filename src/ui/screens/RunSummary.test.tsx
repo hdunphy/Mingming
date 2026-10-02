@@ -28,7 +28,7 @@ import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
-import type { IRanchMember, IRunCard, IRunState, RunOutcome } from '../../engine/runTypes';
+import type { IRanchMember, IRunState, RunOutcome } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 
 const STARTED_AT = 1_700_000_000_000;
@@ -79,110 +79,72 @@ function render(run: IRunState, endedAt = STARTED_AT + 42 * 60_000 + 13_000): st
     );
 }
 
-const picked = (n: number): IRunCard[] => Array.from({ length: n }, (_, i) => ({
-    instanceId: `bought-${i}`,
-    dataId: `card_${i}`,
-    ownerId: null,
-}));
-
-describe('RunSummary — the modifiers a run was played with (ticket 169f)', () => {
-    it('prints their names next to the tier when there are any', () => {
-        const markup = render(ended('defeat', { modifiers: ['mod:junk_start', 'mod:tight_budget'] }));
-        expect(markup).toContain('Junk Start, Tight Budget');
-    });
-
-    it('prints nothing about modifiers on a run with none, and ignores map-reveal entries', () => {
-        expect(render(ended('defeat'))).not.toMatch(/Junk Start|Tight Budget|Elite Hunt|No Recruits|Draft Start/);
-        expect(render(ended('defeat', { modifiers: ['reveal:biome:1'] }))).not.toContain('reveal');
-    });
-});
-
-describe('RunSummary — the numbers match the run it is reporting', () => {
-    it('prints the run clock against the 35–45 minute target', () => {
-        const markup = render(ended('defeat'));
-        expect(markup).toContain('42m 13s');
-        expect(markup).toContain('35–45 min');
-    });
-
-    it('prints the fights resolved against the 10–13 target', () => {
-        const markup = render(ended('victory', { fightsResolved: 11 }));
-        expect(markup).toContain('>11<');
-        expect(markup).toContain('10–13');
-    });
-
-    it('prints the deck against the 20–25 target, split into kit and picked', () => {
-        // "Cards picked" IS the `ownerId: null` count — the deck-building track. The summary is the
-        // one place the player learns what that track was for, so the target has to be beside it.
-        const run = ended('victory', { deck: [...BASE.deck, ...picked(14)] });
-        const markup = render(run);
-
-        // Ticket 61 put the kit half back at 8 (5 tagged + 3 generics), so the same 14 picks land
-        // the deck on 22 — two inside the target where ticket 60's 6-card kit put it right on the
-        // floor at 20. The picked half is untouched by every one of these re-rulings, and that
-        // split is the whole screen: what you were given, and what you chose.
-        //
-        // `BASE` is a SOLO run, so the kit half is 8 here. The note beside it must not read
-        // "8/member" — per member is exactly what the number is not. The generics are the STARTER's
-        // allowance, so a second member adds 5 and not 8, and a player who multiplied the figure by
-        // their party size would read 24 off a deck of 13. The screen says what the figure is a
-        // figure OF instead.
-        expect(markup).toContain('22 cards');
-        expect(markup).toContain('20–25');
-        expect(markup).toContain('>14<');       // picked
-        expect(markup).toContain('+ 8 kit');    // the eight this solo party walked in with
-        expect(markup).toContain('a solo run opens at 8');
-        // The retired phrasing, barred by name: "/member" is the one claim on this screen that a
-        // party of two or three would make false, and it is a one-word edit away from returning.
-        expect(markup).not.toContain('/member');
-    });
-
-    it('calls the scrap figure a balance, never a spend', () => {
-        // `IRunState` keeps a balance and no ledger, so a spend total would be a number this screen
-        // invented. It says which one it is rather than letting the label imply the other.
-        const markup = render(ended('defeat', { scrap: 37 }));
-        expect(markup).toContain('>37<');
-        expect(markup).toContain('balance at the end, not a spend total');
-        expect(markup).not.toMatch(/scrap spent/i);
-    });
-
-    it('prints how far the run got, and the tier it was run at', () => {
-        const inBiomeTwo = BASE.nodes.find((n) => n.biomeIndex === 1)!;
-        const markup = render(ended('defeat', { currentNodeId: inBiomeTwo.id, tier: 2 }));
-
-        expect(markup).toContain('biome 2 of 3');
-        expect(markup).toContain(BASE.biomes[1].name);
-        expect(markup).toContain('tier 2');
-    });
-});
-
-describe('RunSummary — the receipt', () => {
-    it('lists the blueprints this run banked, with counts', () => {
+/*
+ * TICKET 182a — THE SUMMARY IS THREE LINES AND A BUTTON.
+ *
+ * The pacing grid (time, fights, deck and picked cards against their targets, the scrap balance) and
+ * the two explanatory paragraphs are cut: the player wants what they kept, how far they got, and what
+ * it unlocked. The run clock and the rest still reach the telemetry entry on mount - only the screen
+ * stopped printing them.
+ */
+describe('RunSummary — three large lines, led by what you kept', () => {
+    it('leads with the blueprints the run banked, with counts, as "You kept: ..."', () => {
         const markup = render(ended('victory', {
             modifiers: ['reveal:biome:0', ...['kraken', 'kraken', 'fenrir'].map(blueprintBankedModifier)],
         }));
-
-        expect(markup).toContain('×2');
-        // Species names rather than ids — the ledger stores ids, the player reads names.
-        expect(markup).toMatch(/Kraken|kraken/);
-        expect(markup).toMatch(/Fenrir|fenrir/);
+        expect(markup).toContain('You kept: Kraken blueprint ×2, Fenrir blueprint');
+        // The kept line is the first of the lines, ahead of the others.
+        expect(markup.indexOf('You kept')).toBeLessThan(markup.indexOf('Reached biome'));
     });
 
-    it('says "none this run" rather than showing an empty row', () => {
-        expect(render(ended('defeat'))).toContain('none this run');
+    it('says "nothing this time" rather than showing an empty row', () => {
+        expect(render(ended('defeat'))).toContain('You kept: nothing this time');
     });
 
-    it('counts the codex entries the run is about to write', () => {
-        const markup = render(ended('defeat'));
-        const distinct = new Set(BASE.deck.map((c) => c.dataId)).size;
-        expect(markup).toContain(`${distinct} card`);
-        expect(markup).toContain('recorded as seen');
+    it('prints how far the run got and how many fights it took', () => {
+        const inBiomeTwo = BASE.nodes.find((n) => n.biomeIndex === 1)!;
+        const markup = render(ended('defeat', { currentNodeId: inBiomeTwo.id, fightsResolved: 11 }));
+        expect(markup).toContain('Reached biome 2 of 3');
+        expect(markup).toContain('11 fights');
     });
 
-    it('says the gym is unlocked on a victory and explicitly not on the other two', () => {
+    it('says the gym is cleared on a victory and not cleared on the other two', () => {
         const gymName = GYM_REGISTRY[BASE.gymId]?.name ?? BASE.gymId;
+        expect(render(ended('victory', { tier: 1 }))).toContain(`${gymName} cleared · tier 1 unlocked`);
+        expect(render(ended('defeat'))).toContain(`${gymName} not cleared`);
+        expect(render(ended('abandoned'))).toContain(`${gymName} not cleared`);
+    });
 
-        expect(render(ended('victory', { tier: 1 }))).toContain(`${gymName} cleared`);
-        expect(render(ended('defeat'))).toContain('nothing unlocked');
-        expect(render(ended('abandoned'))).toContain('nothing unlocked');
+    it('has exactly three lines, whatever the outcome', () => {
+        for (const outcome of ['victory', 'defeat', 'abandoned'] as const) {
+            expect(render(ended(outcome)).match(/class="rs-big-line"/g)).toHaveLength(3);
+        }
+    });
+
+    it('is one button, "Back to ranch", and no paragraphs at all', () => {
+        const markup = render(ended('defeat'));
+        expect(markup.match(/<button/g)).toHaveLength(1);
+        expect(markup).toContain('Back to ranch');
+        expect(markup).not.toMatch(/<p[ >]/);
+    });
+
+    it('does not print the pacing grid, the receipt heading or the two notes any more', () => {
+        const markup = render(ended('victory', { fightsResolved: 11, scrap: 37 }));
+        for (const gone of ['rs-grid', 'Cards picked', 'Scrap left', 'target ', 'Banked at the ranch',
+            'What the run took with it', 'These were banked as they dropped', 'The deck, the scrap']) {
+            expect(markup, gone).not.toContain(gone);
+        }
+    });
+});
+
+describe('RunSummary — the tier and modifiers appear only when there are some (ticket 169f, kept)', () => {
+    it('names the tier and the modifiers on the "reached" line when there are any', () => {
+        const markup = render(ended('defeat', { tier: 2, modifiers: ['mod:junk_start', 'mod:tight_budget'] }));
+        expect(markup).toContain('tier 2');
+        expect(markup).toContain('Junk Start, Tight Budget');
+    });
+
+    it('says nothing about a tier on a plain tier-0 run', () => {
+        expect(render(ended('defeat'))).not.toMatch(/tier 0/);
     });
 });

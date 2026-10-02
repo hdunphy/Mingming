@@ -105,3 +105,20 @@
     align-self: flex-start;
     margin-top: 0.3rem;
 }
+
+/* --- TICKET 182a: three large lines and a button --- */
+
+.rs-big {
+    list-style: none;
+    margin: 0 0 1.4rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.rs-big-line {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.3;
+}

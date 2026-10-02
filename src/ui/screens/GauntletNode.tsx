@@ -187,17 +187,16 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                         </span>
                     ))}
                 </div>
+                {/* TICKET 182a: the one sentence on this screen. The rest is the hover on the party heading. */}
                 <p className="gn-note">
-                    <strong>Between fights, every member still standing repairs {GAUNTLET_HEAL_PERCENT}% of
-                    its max HP.</strong> The rest of the damage carries, and a member who falls stays
-                    down until a Revive brings them back.
+                    <strong>Between fights, survivors repair {GAUNTLET_HEAL_PERCENT}% of their max HP.</strong>
                 </p>
             </header>
 
             {/* --- The party: the resource being managed --- */}
 
             <div className="gn-section-head">
-                <h3>Party</h3>
+                <h3 title={`The rest of the damage carries, and a member who falls stays down until a Revive brings them back.${party.length < GAUNTLET_ENEMY_COUNT ? ` The gauntlet is always ${GAUNTLET_ENEMY_COUNT} strong, whatever you bring: you are fielding ${party.length}.` : ''}`}>Party</h3>
                 <span className="gn-tag-note">HP carries between fights · +{GAUNTLET_HEAL_PERCENT}% repair</span>
             </div>
 
@@ -263,22 +262,12 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
             {/* --- What is coming --- */}
 
             <div className="gn-section-head">
-                <h3>{boss ? 'The leader’s own team' : 'Next opponent'}</h3>
+                <h3 title={boss
+                    ? 'One drawn from each of the three biomes you walked, each running signature firmware. The region was the syllabus; this is the exam.'
+                    : 'Recruited out of the region’s own species - the same pools the biomes you walked field.'}
+                >{boss ? 'The leader’s own team' : 'Next opponent'}</h3>
                 <span className="gn-tag-note">{GAUNTLET_ENEMY_COUNT} of them, always</span>
             </div>
-            <p className="gn-note">
-                {boss
-                    ? `One drawn from each of the three biomes you walked, each running signature
-                       firmware. The region was the syllabus; this is the exam.`
-                    : `Recruited out of the region’s own species — the same pools the biomes you
-                       walked field.`}
-                {party.length < GAUNTLET_ENEMY_COUNT && (
-                    <>
-                        {' '}The gauntlet is always {GAUNTLET_ENEMY_COUNT} strong, whatever you bring:
-                        you are fielding {party.length}.
-                    </>
-                )}
-            </p>
 
             <ul className="gn-enemies">
                 {opponentElements.map((element, index) => (

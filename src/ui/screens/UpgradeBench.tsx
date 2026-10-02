@@ -81,7 +81,11 @@ export function UpgradeBench({ run, benchKey, free, heading, allowance = 1 }: Up
         : `${allowance} per visit${used > 0 && !spent ? ` · ${allowance - used} left` : ''}`;
 
     return (
-        <div className="rs-panel mk-upgrade">
+        <div
+            className="rs-panel mk-upgrade"
+            // TICKET 182a: the rule that was the foot paragraph is a hover on the bench.
+            title="Upgrades replace one copy in your active deck. One rung only; there is no second."
+        >
             <h2>{heading} <span className="mk-sub">({free === true ? (allowance > 1 ? `free, ${allowance} cards` : 'free, once') : paidNote})</span></h2>
             <div className="mk-rows">
                 {rows.map(({ stack, to }) => {
@@ -141,11 +145,7 @@ export function UpgradeBench({ run, benchKey, free, heading, allowance = 1 }: Up
                 )}
             </div>
             <CardPeek peek={peek} at={at} className="upg-peek" />
-            <p className="rs-hint mk-foot">
-                {spent
-                    ? 'Already used this visit — come back after a fight, or find another bench.'
-                    : 'Upgrades replace one copy in your active deck. One rung only; there is no second.'}
-            </p>
+            {spent && <span className="mk-empty">Already used this visit.</span>}
         </div>
     );
 }

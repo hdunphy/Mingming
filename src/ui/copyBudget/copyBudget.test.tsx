@@ -20,6 +20,11 @@ import type { ReactNode } from 'react';
 import MainMenuView from '../components/MainMenuView';
 import RanchScreen from '../screens/RanchScreen';
 import RunScreen from '../screens/RunScreen';
+import MarketplaceNode from '../screens/MarketplaceNode';
+import WorkshopNode from '../screens/WorkshopNode';
+import EventNode from '../screens/EventNode';
+import GauntletNode from '../screens/GauntletNode';
+import RunSummary from '../screens/RunSummary';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { ALL_TIP_IDS } from '../../engine/tips';
@@ -86,4 +91,97 @@ describe('the copy budget', () => {
         // Screen-reader-only text and hover text are not on screen.
         expect(budgetProblem(readCopy('<p>Seen.</p><p class="sr-only">Heard.</p><div title="a hover that is long"></div>'))).toBeNull();
     });
+});
+
+/*
+ * The shops, the workshop, an event, the gym gate and the run summary (182a, last row).
+ *
+ * One starter, one spare Fenrir blueprint, 100 scrap: the state a new player is in the first time
+ * they reach each of these nodes.
+ */
+describe('the copy budget - shops, workshop, event, gym gate, run summary', () => {
+    const starter = createRanchMember('kraken', 'kraken_v1');
+    const ranch = { ...createEmptyRanch(), roster: [starter], blueprints: { fenrir: 1 } };
+    const member = {
+        id: starter.id, definitionId: 'kraken', activeOS: 'kraken_v1',
+        blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10,
+    };
+    const base = createRun({ seed: 'shops-182a', offer: offerGyms('offer-seed')[0], party: [member], startedAt: 1 });
+
+    /** The run standing on a node of the given kind, one visit in, with 100 scrap. */
+    function standingOn(kind: string) {
+        const node = base.nodes.find((n) => n.kind === kind) ?? base.nodes.find((n) => n.id !== base.currentNodeId)!;
+        const run = {
+            ...base, scrap: 100, currentNodeId: node.id,
+            nodes: base.nodes.map((n) => (n.id === node.id ? { ...n, visited: n.visited + 1 } : n)),
+        };
+        return { run, node: run.nodes.find((n) => n.id === node.id)! };
+    }
+
+    const problem = (tree: ReactNode) => budgetProblem(readCopy(render(tree, ranch)));
+
+    it('the market', () => {
+        const { run, node } = standingOn('marketplace');
+        expect(problem(
+            <MarketplaceNode run={run} node={node} party={[{ definitionId: 'kraken', activeOS: 'kraken_v1' }]}
+                onEditLoadout={() => undefined} onLeave={() => undefined} />,
+        )).toBeNull();
+    });
+
+    it('the workshop, with nothing picked', () => {
+        const { run, node } = standingOn('workshop');
+        const markup = render(<WorkshopNode run={run} node={node} ranch={ranch} onEditLoadout={() => {}} onLeave={() => {}} />, ranch);
+        expect(budgetProblem(readCopy(markup))).toBeNull();
+        expect(markup).toContain('Add a Mingming to your team.');
+    });
+
+    it('the workshop, with a blueprint picked', () => {
+        const { run, node } = standingOn('workshop');
+        expect(problem(
+            <WorkshopNode run={run} node={node} ranch={ranch} initialSpeciesId="fenrir" onEditLoadout={() => {}} onLeave={() => {}} />,
+        )).toBeNull();
+    });
+
+    it('the workshop, reflashing a member', () => {
+        const { run, node } = standingOn('workshop');
+        const markup = render(
+            <WorkshopNode run={run} node={node} ranch={ranch} initialReflash={{ memberId: starter.id, targetOS: 'kraken_v2' }}
+                onEditLoadout={() => {}} onLeave={() => {}} />, ranch);
+        expect(markup).toContain('REFLASH');
+        expect(budgetProblem(readCopy(markup))).toBeNull();
+    });
+
+    it('an event', () => {
+        const { run, node } = standingOn('event');
+        expect(problem(
+            <EventNode run={run} node={node} ranch={{ roster: [{ id: starter.id, definitionId: 'kraken' }], blueprints: {} }} onLeave={() => {}} />,
+        )).toBeNull();
+    });
+
+    it('a spent event node', () => {
+        const { run, node } = standingOn('event');
+        const spent = { ...run, eventHistory: [{ nodeId: node.id, eventId: 'scrap_cache', choiceId: 'leave', grants: [] }] };
+        expect(problem(
+            <EventNode run={spent} node={node} ranch={{ roster: [{ id: starter.id, definitionId: 'kraken' }], blueprints: {} }} onLeave={() => {}} />,
+        )).toBeNull();
+    });
+
+    it('the gym gate: one short note, and the bonus is called "Pick a bonus"', () => {
+        const { run, node } = standingOn('gym');
+        const gate = {
+            ...run, phase: 'gauntlet' as const,
+            gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
+        };
+        const markup = render(<GauntletNode run={gate} node={node} ranch={ranch} onEditLoadout={() => {}} />, ranch);
+        expect(budgetProblem(readCopy(markup))).toBeNull();
+        expect(markup).toContain('Pick a bonus');
+        expect(markup).not.toMatch(/<h2>[^<]*PATCH/i);
+    });
+
+    for (const outcome of ['victory', 'defeat', 'abandoned'] as const) {
+        it(`the run summary after a ${outcome}`, () => {
+            const run = { ...base, phase: 'ended' as const, outcome };
+            expect(problem(<RunSummary run={run} endedAt={1} />)).toBeNull();
+        });
+    }
 });

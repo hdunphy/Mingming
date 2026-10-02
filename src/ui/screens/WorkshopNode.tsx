@@ -344,14 +344,16 @@ export default function WorkshopNode({
                     <div className="rs-panel ws-cmpwrap">
                         <h2>REFLASH — swaps the OS <b>and</b> its {RECRUIT_KIT_SIZE}-card engine in your deck</h2>
                         <div className="ws-cmp">
-                            <div className="ws-oscard current">
+                            <div
+                                className="ws-oscard current"
+                                // TICKET 182a: the current firmware's description is a hover; the one
+                                // paragraph on this view describes the firmware the player is choosing.
+                                title={(member && getOSBehavior(member.activeOS)?.description) ?? undefined}
+                            >
                                 <h3>
                                     {member ? getOSBehavior(member.activeOS)?.name ?? member.activeOS : '—'}
                                     <span className="ws-tagcur"> · CURRENT</span>
                                 </h3>
-                                <p className="ws-osdesc">
-                                    {(member && getOSBehavior(member.activeOS)?.description) ?? 'No firmware description.'}
-                                </p>
                                 {member && <OSGrammarRow osId={member.activeOS} partyOS={partyOS} />}
                                 <h4>ENGINE IN DECK NOW</h4>
                                 {member && <EngineRows ids={engineIdsFor(member)} />}
@@ -425,7 +427,7 @@ export default function WorkshopNode({
             {topBar}
             <div className="ws-body">
                 <div className="rs-panel">
-                    <h2>BLUEPRINTS</h2>
+                    <h2 title="Blueprints are consumable - assembling spends one. Extra copies re-roll stats via re-assembly at the ranch.">BLUEPRINTS</h2>
                     <div className="ws-scroll">
                         {noRecruits && (
                             <span className="rs-hint">No Recruits is on: your party is set for this run.</span>
@@ -472,10 +474,6 @@ export default function WorkshopNode({
                             </span>
                         )}
                     </div>
-                    <p className="rs-hint ws-foot">
-                        Blueprints are consumable — assembling spends one. Extra copies re-roll stats
-                        via re-assembly at the ranch.
-                    </p>
                 </div>
 
                 <div className="ws-stage">
@@ -496,7 +494,13 @@ export default function WorkshopNode({
                       * for why this is not a preview, and what the standing ruling in `planRecruit`
                       * is protecting by keeping it that way.
                       */}
-                    <div className="ws-roll" role="status">
+                    <div
+                        className="ws-roll"
+                        role="status"
+                        title={built
+                            ? `${GetMingmingData(built.definitionId).name} is on your permanent roster - its stats are fixed for good.`
+                            : 'Stats roll at assembly and never change. They are not shown before you pay.'}
+                    >
                         {([
                             ['VIT', built?.hpIV],
                             ['PWR', built?.attackIV],
@@ -508,11 +512,7 @@ export default function WorkshopNode({
                             </div>
                         ))}
                     </div>
-                    <p className="rs-hint">
-                        {built
-                            ? `${GetMingmingData(built.definitionId).name} is on your permanent roster — its stats are fixed for good.`
-                            : 'Stats roll at assembly and never change. They are not shown before you pay: walking away and back builds a different individual, at the price of the road in between.'}
-                    </p>
+                    {/* TICKET 182a: the two sentences under the stats are a hover on the stats. */}
 
                     {definition && (
                         <div className="ws-cols">
@@ -615,17 +615,20 @@ export default function WorkshopNode({
                     )}
 
                     {!definition && !noRecruits && (
-                        <p className="rs-hint">
-                            Pick a blueprint on the left. This is the only place the party grows — a
-                            blueprint <em>and</em> {assemblyPrice} scrap, so recruiting
-                            competes with the marketplace for the same purse.
+                        <p className="rs-hint" title={`A blueprint and ${assemblyPrice} scrap. This is the only place the party grows.`}>
+                            Add a Mingming to your team.
                         </p>
                     )}
                 </div>
 
                 <div className="rs-panel">
                     <h2>
-                        PARTY {run.partyIds.length}/{PARTY_SIZE} · BENCH {bench.length}
+                        <span title={partyFull
+                            ? `Party is full — ASSEMBLE → PARTY asks who to bench. ${WORKSHOP_DUPLICATE_CLAUSE} Click a member to reflash: 1 blueprint + ${reflashPrice} scrap.`
+                            : `Click a member to reflash - 1 blueprint + ${reflashPrice} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
+                        >
+                            PARTY {run.partyIds.length}/{PARTY_SIZE} · BENCH {bench.length}
+                        </span>
                     </h2>
                     <div className="ws-scroll">
                         {partyMembers.map((member) => {
@@ -679,13 +682,8 @@ export default function WorkshopNode({
                         })}
                     </div>
 
-                    <p className="rs-hint ws-foot">
-                        {swappingOut
-                            ? 'Pick who steps off the field. Their cards go to the collection with them, and the new engine takes their place in the deck.'
-                            : partyFull
-                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. ${WORKSHOP_DUPLICATE_CLAUSE} Click a member to reflash. 1 blueprint + ${reflashPrice} scrap.`
-                                : `Click a member to reflash — 1 blueprint + ${reflashPrice} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
-                    </p>
+                    {/* TICKET 182a: one sentence, and only while it is the question being asked. */}
+                    {swappingOut && <p className="rs-hint ws-foot">Pick who steps off the field.</p>}
                     <div className={`rs-pill ${deckReading.atFloor ? 'at-floor' : ''}`}>
                         DECK <b>{deckReading.counted}</b> / floor {floor}{junkNote(deckReading)}
                     </div>

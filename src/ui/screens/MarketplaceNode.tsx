@@ -549,14 +549,13 @@ export default function MarketplaceNode({
 
                     <CardPeek peek={peek} at={at} className="sell-peek" />
 
-                    <p className="rs-hint mk-foot">
-                        {atFloor
-                            ? `At the floor (${floor}) — deck rows are dead until you add cards or bench a member. Collection rows still sell.`
-                            : `Selling from the deck respects the floor (${floor}) — rows grey out at the limit.`}
-                        {' '}Sell {SELL_PRICE_BY_ENERGY.join('/')} by cost against buy{' '}
-                        {CARD_PRICE_BY_ENERGY.join('/')}; always less than buy, so there is no loop to farm.
-                    </p>
-                    <div className={`rs-pill mk-pill ${atFloor ? 'at-floor' : ''}`}>
+                    {/* TICKET 182a: the foot paragraph is the pill's hover - the pill already says DECK n / floor. */}
+                    <div
+                        className={`rs-pill mk-pill ${atFloor ? 'at-floor' : ''}`}
+                        title={`${atFloor
+                            ? `At the floor (${floor}) - deck rows are dead until you add cards or bench a member. Collection rows still sell.`
+                            : `Selling from the deck respects the floor (${floor}) - rows grey out at the limit.`} Sell ${SELL_PRICE_BY_ENERGY.join('/')} by cost against buy ${CARD_PRICE_BY_ENERGY.join('/')}.`}
+                    >
                         DECK <b>{reading.counted}</b> / floor {floor}{junkNote(reading)}
                     </div>
                 </div>

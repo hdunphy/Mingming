@@ -103,9 +103,13 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
     const affordable = free || run.scrap >= patchPrice;
 
     return (
-        <div className="rs-panel mk-patch">
+        <div
+            className="rs-panel mk-patch"
+            // TICKET 182a: the foot paragraph is a hover on the whole bench.
+            title={`A patch rides your firmware - one slot per body, and it stays fitted for the run.${free ? ' Each body is offered the two that change the most about its own OS.' : ''}`}
+        >
             <h2>
-                {free ? 'THE GATE — A PATCH FOR ONE BODY' : 'FIRMWARE PATCH'}
+                {free ? 'Pick a bonus' : 'FIRMWARE PATCH'}
                 <span className="mk-sub">({free ? 'choice of two, free' : `${patchPrice} scrap`})</span>
             </h2>
             <div className="mk-rows">
@@ -145,10 +149,7 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                     </>
                 )}
             </div>
-            <p className="rs-hint mk-foot">
-                A patch rides your firmware — one slot per body, and it stays fitted for the run.
-                {free && ' Each body is offered the two that change the most about its own OS.'}
-            </p>
+
         </div>
     );
 }

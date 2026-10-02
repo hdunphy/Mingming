@@ -135,7 +135,8 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
     if (resolved) {
         return shell('EVENT', (
             <>
-                {note !== '' && <p className="ev-note">{note}</p>}
+                {/* TICKET 182a: the result note is a line, not a paragraph - the screen's one <p> is the text below. */}
+                {note !== '' && <div className="ev-note">{note}</div>}
                 <p className="ev-text">The relay is dark. Nothing here now.</p>
             </>
         ), true);

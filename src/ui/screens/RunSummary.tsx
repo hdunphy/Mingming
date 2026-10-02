@@ -51,14 +51,7 @@ import type { ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
-import {
-    DECK_TARGET_MAX,
-    DECK_TARGET_MIN,
-    SOLO_START_DECK,
-    bankedBlueprintCounts,
-    formatRunDuration,
-    summarizeRun,
-} from '../../engine/run/runSummary';
+import { bankedBlueprintCounts, summarizeRun } from '../../engine/run/runSummary';
 import { findRunLog, runLogKeyFor } from '../../engine/run/runLog';
 import { recordRunEnd, runTelemetryEntryFor } from '../../engine/run/runTelemetry';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
@@ -71,21 +64,6 @@ import { teardownRun } from '../store/runTeardown';
 import './RunSummary.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
-
-/**
- * `exploration-map.md`'s run-length target, printed beside the clock.
- *
- * A duration with nothing to compare it against is a number nobody can act on, and the entire
- * reason ticket 19 records the clock at all is that ticket 25 has to find out whether this band
- * holds. Showing it to the player as well costs nothing and makes every run a data point they can
- * read themselves.
- */
-export const RUN_MINUTES_MIN = 35;
-export const RUN_MINUTES_MAX = 45;
-
-/** `exploration-map.md`: 8-10 battles plus the three-fight gauntlet. */
-export const RUN_FIGHTS_MIN = 10;
-export const RUN_FIGHTS_MAX = 13;
 
 export interface RunSummaryProps {
     /** The ended run — `phase: 'ended'`, with an outcome. Read, never written. */
@@ -101,7 +79,6 @@ export interface RunSummaryProps {
 interface HeadlineCopy {
     readonly icon: IconName;
     readonly title: string;
-    readonly lead: string;
 }
 
 /**
@@ -109,25 +86,22 @@ interface HeadlineCopy {
  * telemetry entry and the teardown are identical for all three, which is what stops the three
  * endings drifting apart.
  */
-function headlineFor(run: IRunState, gymName: string, biomeName: string): HeadlineCopy {
+function headlineFor(run: IRunState): HeadlineCopy {
     switch (run.outcome) {
         case 'victory':
             return {
                 icon: 'gym',
                 title: 'Gym cleared',
-                lead: `You beat ${gymName}. The clear and the tier are recorded at the ranch.`,
             };
         case 'abandoned':
             return {
                 icon: 'door',
                 title: 'Run abandoned',
-                lead: `You walked out of ${biomeName}. The run is over; everything you banked on the way is not.`,
             };
         default:
             return {
                 icon: 'skull',
                 title: 'Run over',
-                lead: `Your party fell in ${biomeName}. A defeat costs the run and only the run.`,
             };
     }
 }
@@ -205,7 +179,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
 
     const gym = GYM_REGISTRY[run.gymId];
     const gymName = gym?.name ?? run.gymId;
-    const headline = headlineFor(run, gymName, summary.biomeName);
+    const headline = headlineFor(run);
     const bankedEntries = Object.entries(banked);
 
     /**
@@ -218,6 +192,30 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
         teardownRun({ run, dispatch });
     };
 
+    /*
+     * TICKET 182a — THREE LARGE LINES AND ONE BUTTON.
+     *
+     * Line one is what the player kept, because that is what a run is for. Line two is how far it
+     * got (with the tier and modifiers only when there are some), line three is what it unlocked.
+     * The pacing grid and the two reassurance paragraphs are gone from the screen; the telemetry
+     * entry written on mount still carries the clock, the fights and the deck.
+     */
+    const kept = bankedEntries.length === 0
+        ? 'nothing this time'
+        : bankedEntries
+            .map(([speciesId, count]) => {
+                const name = MingmingRegistry[speciesId]?.name ?? speciesId;
+                return count > 1 ? `${name} blueprint ×${count}` : `${name} blueprint`;
+            })
+            .join(', ');
+    const hasTier = run.tier > 0 || modifierNames.length > 0;
+    const reached = `Reached biome ${summary.biomeReached} of ${run.biomes.length} · ${summary.fightsResolved} ${summary.fightsResolved === 1 ? 'fight' : 'fights'}`
+        + (hasTier ? ` · tier ${run.tier}` : '')
+        + (modifierNames.length > 0 ? ` · ${modifierNames.join(', ')}` : '');
+    const unlocked = run.outcome === 'victory'
+        ? `${gymName} cleared · tier ${run.tier} unlocked`
+        : `${gymName} not cleared`;
+
     return (
         <div className="ranch-screen">
             <header className="ranch-header">
@@ -225,129 +223,20 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
             </header>
 
             <section className="ranch-section ranch-section-wide">
-                <p className="rs-lead">{headline.lead}</p>
-
-                {/* --- The five numbers, each against the target it was aimed at --- */}
-
-                <div className="rs-grid">
-                    {/*
-                      * TICKET 156 §2. The headline is ACTIVE time when the log has it, because the
-                      * target is a pacing target and wall clock answers a different question:
-                      * Henry's three-fight run read *5h 01m* on a run left open overnight. Wall
-                      * clock stays underneath rather than being dropped — when the two differ by a
-                      * lot, that gap is itself worth seeing.
-                      */}
-                    <div className="rs-stat">
-                        <span className="rs-stat-label">Time</span>
-                        <span className="rs-stat-figure">
-                            {formatRunDuration(summary.activeMs > 0 ? summary.activeMs : summary.durationMs)}
-                        </span>
-                        <span className="rs-stat-note">
-                            {summary.activeMs > 0
-                                ? `playing · ${formatRunDuration(summary.durationMs)} elapsed`
-                                : `target ${RUN_MINUTES_MIN}–${RUN_MINUTES_MAX} min`}
-                        </span>
-                    </div>
-
-                    <div className="rs-stat">
-                        <span className="rs-stat-label">Fights</span>
-                        <span className="rs-stat-figure">{summary.fightsResolved}</span>
-                        <span className="rs-stat-note">target {RUN_FIGHTS_MIN}–{RUN_FIGHTS_MAX}</span>
-                    </div>
-
-                    <div className="rs-stat">
-                        <span className="rs-stat-label">Deck</span>
-                        <span className="rs-stat-figure">{summary.deckSize} cards</span>
-                        <span className="rs-stat-note">target {DECK_TARGET_MIN}–{DECK_TARGET_MAX}</span>
-                    </div>
-
-                    <div className="rs-stat">
-                        <span className="rs-stat-label">Cards picked</span>
-                        <span className="rs-stat-figure">{summary.pickedCards}</span>
-                        {/*
-                          * The other half of the deck, and the rule it started from. A solo run
-                          * opens at `SOLO_START_DECK`, and each further member adds its four tagged
-                          * cards — stated as the rule rather than multiplied out, because a party
-                          * that grew mid-run started smaller than it ended and `IRunState` does not
-                          * record where the boundary was. See `runSummary.ts`: the exact figures are
-                          * this split, not a guessed opening size.
-                          */}
-                        <span className="rs-stat-note">
-                            + {summary.kitCards} kit · a solo run opens at {SOLO_START_DECK}
-                        </span>
-                    </div>
-
-                    <div className="rs-stat">
-                        <span className="rs-stat-label">Scrap left</span>
-                        <span className="rs-stat-figure">{summary.scrapRemaining}</span>
-                        {/*
-                          * Not "scrap spent". `IRunState.scrap` is a balance and there is no ledger
-                          * behind it, so a spend total would be a number this screen made up. The
-                          * note says which one it is rather than letting the label imply the other.
-                          */}
-                        <span className="rs-stat-note">balance at the end, not a spend total</span>
-                    </div>
-
-                    <div className="rs-stat">
-                        <span className="rs-stat-label">Reached</span>
-                        <span className="rs-stat-figure">biome {summary.biomeReached} of {run.biomes.length}</span>
-                        <span className="rs-stat-note">{summary.biomeName} · tier {run.tier}{modifierNames.length > 0 && ` · ${modifierNames.join(', ')}`}</span>
-                    </div>
-                </div>
-
-                {/* --- What is already at the ranch --- */}
-
-                <h2 className="ranch-subhead">Banked at the ranch</h2>
-
-                <p className="rs-banked-note">
-                    <strong>These were banked as they dropped, not now.</strong> A blueprint is
-                    written to the ranch the moment it falls out of a fight, so a run that ended
-                    badly has already paid you and nothing on this screen can be lost by closing it.
-                    This is the receipt.
-                </p>
-
-                <ul className="rs-list">
-                    <li className="rs-row">
-                        <span className="rs-row-name">Blueprints</span>
-                        <span className="rs-row-value">
-                            {bankedEntries.length === 0
-                                ? 'none this run'
-                                : bankedEntries
-                                    .map(([speciesId, count]) => {
-                                        const name = MingmingRegistry[speciesId]?.name ?? speciesId;
-                                        return count > 1 ? `${name} ×${count}` : name;
-                                    })
-                                    .join(', ')}
-                        </span>
+                <ul className="rs-big">
+                    <li
+                        className="rs-big-line"
+                        // The reassurance paragraph, as a hover: nothing here can be lost by closing the screen.
+                        title="Blueprints were banked at the ranch as they dropped, not now. Your roster, codex and cleared gyms are a separate save and were never at risk."
+                    >
+                        You kept: {kept}
                     </li>
-                    <li className="rs-row">
-                        <span className="rs-row-name">Codex</span>
-                        <span className="rs-row-value">
-                            {summary.codexSeen.length} card{summary.codexSeen.length === 1 ? '' : 's'} recorded as seen
-                        </span>
-                    </li>
-                    <li className="rs-row">
-                        <span className="rs-row-name">Gym</span>
-                        <span className="rs-row-value">
-                            {run.outcome === 'victory'
-                                ? `${gymName} cleared · tier ${run.tier} unlocked`
-                                : `${gymName} not cleared — nothing unlocked`}
-                        </span>
-                    </li>
+                    <li className="rs-big-line">{reached}</li>
+                    <li className="rs-big-line">{unlocked}</li>
                 </ul>
 
-                {/* --- The line ticket 06 drew, restated where it matters most --- */}
-
-                <h2 className="ranch-subhead">What the run took with it</h2>
-                <p className="rs-lost-note">
-                    The deck, the scrap, the macros, the drivers and the region die with the run —
-                    that is what keeps the next one from starting rich. Your roster, your blueprints,
-                    your codex and every gym you have cleared are a separate save and were never at
-                    risk here.
-                </p>
-
                 <button type="button" className="ranch-button rs-leave" onClick={leave}>
-                    Return to the ranch
+                    Back to ranch
                 </button>
             </section>
         </div>
