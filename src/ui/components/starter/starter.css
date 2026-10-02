@@ -1,0 +1,108 @@
+/* ============================================================================================
+ * THE STARTER SCREEN — ticket 183f. Three `CardFace` starters on the page colour, a display-type
+ * title, and the two switches as small labels. No glow, no gradient, no radius.
+ * ============================================================================================ */
+
+.starter-screen {
+    height: 100vh;
+    width: 100vw;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    overflow-y: auto;
+    background: var(--page);
+    color: var(--text);
+}
+
+.starter-title { text-align: center; }
+
+.starter-title h1 {
+    margin: 0;
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: 6px;
+}
+
+/* One sentence under the title, in a slanted yellow bar: the screen's single line. */
+.starter-line {
+    --k-cut: 8px;
+    display: inline-block;
+    margin: 12px 0 0;
+    padding: 5px 22px;
+    background: var(--select);
+    color: var(--ink);
+    font-size: 16px;
+}
+
+.starter-row {
+    display: flex;
+    gap: 34px;
+    align-items: flex-start;
+}
+
+.starter-card { transition: transform 120ms; }
+.starter-card:hover,
+.starter-card:focus-visible { transform: translateY(-8px); outline: none; }
+.starter-card:focus-visible { --k-ring:
+    drop-shadow(4px 0 0 var(--select)) drop-shadow(-4px 0 0 var(--select))
+    drop-shadow(0 4px 0 var(--select)) drop-shadow(0 -4px 0 var(--select)); }
+
+/* The stats take the rules slot: three rows, label · bar · number. */
+.starter-stats {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 9px;
+    margin: 4px 14px 0;
+}
+
+.starter-stat {
+    display: grid;
+    grid-template-columns: 62px 1fr 34px;
+    align-items: center;
+    gap: 8px;
+}
+
+.starter-stat-label { font-size: 13px; }
+
+.starter-stat-track {
+    --k-cut: 4px;
+    display: block;
+    height: 12px;
+    background: color-mix(in srgb, var(--card-text) 14%, var(--card-body));
+    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.starter-stat-fill {
+    display: block;
+    height: 100%;
+    background: var(--el);
+}
+
+.starter-stat-value { font-size: 16px; text-align: right; }
+
+/* Switches: small display-type labels, the checkbox painted with the kit's yellow. */
+.starter-switches {
+    display: flex;
+    gap: 28px;
+    color: var(--text-mute);
+    font-size: 13px;
+}
+
+.starter-switch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.starter-switch input { accent-color: var(--select); width: 16px; height: 16px; margin: 0; }
+
+/* A starter's name is the point of the card: bigger header, bigger type, the flavour line readable. */
+.starter-card .rs-hd { height: 44px; gap: 8px; padding: 0 10px; }
+.starter-card .rs-cnm { font-size: 24px; }
+.starter-card .rs-tags { margin: 2px 12px 7px; font-size: 11px; }

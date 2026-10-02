@@ -28,7 +28,7 @@ export default function ModifierChip({ name, description, on, disabled, onToggle
         <button
             ref={ref}
             type="button"
-            className={`ranch-modifier-chip ${on ? 'on' : ''}`}
+            className={`ranch-modifier-chip k-button is-quiet ${on ? 'on is-on' : ''}`}
             aria-pressed={on}
             disabled={disabled}
             onClick={onToggle}

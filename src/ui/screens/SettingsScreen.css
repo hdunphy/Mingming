@@ -1,5 +1,10 @@
 /*
- * The settings overlay — ticket 36.
+ * The settings overlay — ticket 36, painted in the Slant kit by ticket 183f: a navy panel with the
+ * light edge, display-type headings, choices as slanted chips (`.k-button`, yellow when chosen).
+ * A flat tint behind it, square corners.
+ */
+/*
+ * Layout history — ticket 36.
  *
  * A fixed backdrop with a scrolling panel, following `RanchScreen`'s `.ranch-modal-backdrop`
  * precedent rather than a portal (portals in this repo are for hover tooltips only). z-index sits
@@ -15,8 +20,7 @@
     display: grid;
     place-items: center;
     padding: 24px;
-    background: rgba(2, 4, 10, 0.82);
-    backdrop-filter: blur(4px);
+    background: color-mix(in srgb, var(--page) 90%, transparent);
     overflow-y: auto;
 }
 
@@ -25,10 +29,8 @@
     max-height: 100%;
     overflow-y: auto;
     padding: 20px 24px 28px;
-    border: 1px solid var(--panel-2);
-    border-radius: 8px;
+    border: 2px solid var(--panel-edge);
     background: var(--panel);
-    box-shadow: none;
 }
 
 .settings-head {
@@ -38,34 +40,25 @@
     gap: 16px;
     margin-bottom: 8px;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--panel-2);
+    border-bottom: 2px solid var(--panel-2);
 }
 
 .settings-head h2 {
     margin: 0;
-    font-size: 1.4rem;
-    letter-spacing: 0.05em;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    font-size: 2rem;
+    letter-spacing: 0.04em;
 }
 
-.settings-close {
-    padding: 6px 16px;
-    border: 1px solid var(--panel-2);
-    border-radius: 4px;
-    background: transparent;
-    color: inherit;
-    font-family: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-
-.settings-close:hover {
-    border-color: var(--select);
-    color: var(--text);
-}
+/* Close, the choices and the buttons are `.k-button`s; only their sizes are ours. */
+.settings-close { height: 32px; }
 
 .settings-group {
     padding: 16px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 2px solid var(--panel-2);
 }
 
 .settings-group:last-child {
@@ -74,11 +67,13 @@
 
 .settings-group h3 {
     margin: 0 0 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text-mute);
+    color: var(--select);
 }
 
 .settings-row {
@@ -90,7 +85,8 @@
 }
 
 .settings-label {
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 .settings-control {
@@ -115,7 +111,7 @@
     margin: 10px 0 0;
     font-size: 0.78rem;
     line-height: 1.5;
-    color: rgba(240, 240, 245, 0.62);
+    color: var(--text-mute);
 }
 
 .settings-choices {
@@ -124,27 +120,7 @@
     flex-wrap: wrap;
 }
 
-.settings-choice {
-    padding: 6px 14px;
-    border: 1px solid var(--panel-2);
-    border-radius: 4px;
-    background: transparent;
-    color: rgba(240, 240, 245, 0.75);
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-}
-
-.settings-choice:hover {
-    color: var(--text);
-    border-color: rgba(255, 255, 255, 0.35);
-}
-
-.settings-choice.active {
-    border-color: var(--select);
-    background: rgba(124, 58, 237, 0.22);
-    color: var(--text);
-}
+.settings-choice { --k-cut: 4px; height: 30px; padding: 0 16px; font-size: 14px; }
 
 /* --- Keys ------------------------------------------------------------------------------------ */
 
@@ -165,13 +141,15 @@
 }
 
 .settings-kbd {
-    padding: 2px 6px;
-    border: 1px solid var(--panel-2);
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.05);
-    font-family: var(--font-body);
-    font-size: 0.75rem;
+    padding: 2px 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 0.85rem;
     text-align: center;
+    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
 }
 
 .settings-key-action {
@@ -179,7 +157,7 @@
 }
 
 .settings-key-detail {
-    color: rgba(240, 240, 245, 0.55);
+    color: var(--text-mute);
 }
 
 @media (max-width: 620px) {
@@ -198,33 +176,9 @@
     color: var(--hp-low);
 }
 
-.settings-wipe {
-    padding: 6px 14px;
-    border: 1px solid rgba(255, 68, 68, 0.5);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--hp-low);
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-}
-
-.settings-wipe:hover {
-    background: rgba(255, 68, 68, 0.14);
-    color: var(--text-dim);
-}
-
-.settings-wipe-confirm {
-    padding: 6px 14px;
-    border: 1px solid var(--hp-low);
-    border-radius: 4px;
-    background: rgba(255, 68, 68, 0.22);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-}
+/* The two wipe buttons are `.k-button.is-danger`. */
+.settings-wipe,
+.settings-wipe-confirm { height: 30px; }
 
 .settings-wiped {
     color: var(--hp-low);
@@ -235,9 +189,9 @@
     padding-left: 18px;
     font-size: 0.78rem;
     line-height: 1.6;
-    color: rgba(240, 240, 245, 0.62);
+    color: var(--text-mute);
 }
 
 .settings-pending strong {
-    color: rgba(240, 240, 245, 0.85);
+    color: var(--text-dim);
 }

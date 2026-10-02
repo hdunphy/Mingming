@@ -64,6 +64,7 @@ import Callout from '../components/Callout';
 import { RANCH_BLUEPRINT_TIP } from '../../engine/tips';
 import RunStart from './RunStart';
 import { playSfx } from '../audio/AudioEngine';
+import '../theme/kit/kit.css';
 import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
@@ -133,7 +134,7 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
                         <button
                             key={s.id}
                             type="button"
-                            className={`ranch-nav-tab ${section === s.id ? 'active' : ''}`}
+                            className={`ranch-nav-tab k-button is-quiet ${section === s.id ? 'active is-on' : ''}`}
                             aria-current={section === s.id ? 'page' : undefined}
                             onClick={() => { playSfx('uiClick'); setSection(s.id); }}
                         >
@@ -176,7 +177,7 @@ function RosterSection({
         <section className="ranch-section">
             <div className="ranch-section-head">
                 <h2>Roster ({roster.length})</h2>
-                <button type="button" className="ranch-button" onClick={onOpenFirmware}>
+                <button type="button" className="ranch-button k-button" onClick={onOpenFirmware}>
                     <Icon name="firmware" size={15} /> Firmware terminal
                 </button>
             </div>
@@ -187,7 +188,7 @@ function RosterSection({
             )}
             <div className="ranch-roster-grid">
                 {roster.map((member) => (
-                    <div key={member.id} className="ranch-card">
+                    <div key={member.id} className="ranch-card k-plate">
                         <div className="ranch-card-name">{member.nickname ?? GetMingmingData(member.definitionId).name}</div>
                         <div className="ranch-card-species">{GetMingmingData(member.definitionId).name}</div>
                         <StatRoll member={member} />
@@ -294,7 +295,7 @@ function AssemblySection({
                 {held.map(([speciesId, count]) => {
                     const definition = MingmingRegistry[speciesId];
                     return (
-                        <div key={speciesId} className="ranch-blueprint">
+                        <div key={speciesId} className="ranch-blueprint k-plate">
                             <div className="ranch-blueprint-head">
                                 <span className="ranch-blueprint-name">{definition?.name ?? speciesId}</span>
                                 <span className="ranch-blueprint-count" title="Blueprints held">×{count}</span>
@@ -302,7 +303,7 @@ function AssemblySection({
                             <div className="ranch-blueprint-element">{definition?.primaryElement ?? '—'}</div>
                             <button
                                 type="button"
-                                className="ranch-button"
+                                className="ranch-button k-button"
                                 onClick={() => { playSfx('uiClick'); startAssembly(speciesId); }}
                             >
                                 Assemble (1 blueprint)
@@ -323,7 +324,7 @@ function AssemblySection({
             )}
 
             {built && (
-                <div className="ranch-built" role="status">
+                <div className="ranch-built k-plate" role="status">
                     <div className="ranch-built-title">
                         Assembled {GetMingmingData(built.definitionId).name}
                     </div>
@@ -362,7 +363,7 @@ function OsPicker({
 
     return (
         <div style={overlay} className="ranch-modal-backdrop">
-            <div className="ranch-modal" role="dialog" aria-modal="true" aria-label="Choose firmware">
+            <div className="ranch-modal k-plate" role="dialog" aria-modal="true" aria-label="Choose firmware">
                 <h3>Choose firmware for {GetMingmingData(speciesId).name}</h3>
                 <p className="ranch-note">
                     The OS is active from the moment the individual joins a run. Reflashing it later costs
@@ -373,7 +374,7 @@ function OsPicker({
                         <button
                             key={id}
                             type="button"
-                            className={`ranch-os-option ${osId === id ? 'selected' : ''}`}
+                            className={`ranch-os-option k-plate ${osId === id ? 'selected is-on' : ''}`}
                             onClick={() => onPick(id)}
                             aria-pressed={osId === id}
                         >
@@ -383,8 +384,8 @@ function OsPicker({
                     ))}
                 </div>
                 <div className="ranch-modal-actions">
-                    <button type="button" className="ranch-button subtle" onClick={onCancel}>Cancel</button>
-                    <button type="button" className="ranch-button" disabled={!osId} onClick={onConfirm}>
+                    <button type="button" className="ranch-button k-button is-quiet subtle" onClick={onCancel}>Cancel</button>
+                    <button type="button" className="ranch-button k-button" disabled={!osId} onClick={onConfirm}>
                         Spend blueprint
                     </button>
                 </div>
@@ -422,7 +423,7 @@ function VaultSection({ drivers, tempDrivers }: {
                     // renamed prints its id rather than taking the whole screen down with it.
                     const { name, description } = describeDriver(driverId);
                     return (
-                        <div key={driverId} className="ranch-driver">
+                        <div key={driverId} className="ranch-driver k-plate">
                             <div className="ranch-driver-name">{name}</div>
                             <div className="ranch-driver-desc">{description}</div>
                         </div>
@@ -432,7 +433,7 @@ function VaultSection({ drivers, tempDrivers }: {
                     // Ticket 168b: an event's penalty, gone after the next fight.
                     const { name, description } = describeDriver(driverId);
                     return (
-                        <div key={`temp:${driverId}`} className="ranch-driver" data-temporary="true">
+                        <div key={`temp:${driverId}`} className="ranch-driver k-plate" data-temporary="true">
                             <div className="ranch-driver-name">{name} · next fight</div>
                             <div className="ranch-driver-desc">{description}</div>
                         </div>

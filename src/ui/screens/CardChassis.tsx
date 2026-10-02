@@ -117,7 +117,7 @@ export function ElementMark({ element, compact = false }: {
  * `.rs-body`, the clipped inner card. Anything that hangs OFF the card — the ×N badge, a price
  * plate — is a sibling of the body, not inside it, so the slant never clips it.
  */
-export function CardFace({ face, count, tags, target, readout, keywords, extras, lit }: {
+export function CardFace({ face, count, tags, target, readout, keywords, extras, lit, rules }: {
     readonly face: {
         readonly name: string;
         readonly description: string;
@@ -143,13 +143,18 @@ export function CardFace({ face, count, tags, target, readout, keywords, extras,
     readonly extras?: ReactNode;
     /** Ranges of the description to paint as TRUE RIGHT NOW — the fight's conditional read. */
     readonly lit?: ReadonlyArray<TextRange>;
+    /**
+     * TICKET 183f — what stands where the rules text goes, when the face is not a card: a starter
+     * shows the monster's three stats there (172's ruling). Absent, the description is printed.
+     */
+    readonly rules?: ReactNode;
 }): ReactElement {
     return (
         <>
             <span className="rs-body">
                 <CardHeader name={face.name} element={face.element} cost={face.cost} />
                 <span className="rs-art"><TargetTag target={target} /></span>
-                <CardRules description={face.description} dataId={face.dataId} lit={lit} />
+                {rules ?? <CardRules description={face.description} dataId={face.dataId} lit={lit} />}
                 {keywords}
                 {tags && (
                     <span className="rs-tags">

@@ -202,7 +202,7 @@ export default function RunStart(): ReactNode {
             <div className="ranch-section-head">
                 <h2>{chosen ? 'Choose your party' : 'Choose a gym'}</h2>
                 {chosen && (
-                    <button type="button" className="ranch-button subtle" onClick={() => { setChosen(null); playSfx('uiClick'); }}>
+                    <button type="button" className="ranch-button k-button is-quiet subtle" onClick={() => { setChosen(null); playSfx('uiClick'); }}>
                         ‹ Back to offers
                     </button>
                 )}
@@ -225,7 +225,7 @@ export default function RunStart(): ReactNode {
                                     <div key={row.tier} className="ranch-tier-slot">
                                         <button
                                             type="button"
-                                            className={`ranch-button ${selectedTier === row.tier ? '' : 'subtle'}`}
+                                            className={`ranch-button k-button ${selectedTier === row.tier ? '' : 'is-quiet subtle'}`}
                                             aria-pressed={selectedTier === row.tier}
                                             disabled={!open}
                                             onClick={() => { setPickedTier(row.tier); playSfx('uiClick'); }}
@@ -255,7 +255,7 @@ export default function RunStart(): ReactNode {
                             <button
                                 key={offer.gym.id}
                                 type="button"
-                                className="ranch-offer"
+                                className="ranch-offer k-plate"
                                 title={offerHover(offer, selectedTier)}
                                 onClick={() => { setChosen(offer); playSfx('uiClick'); }}
                             >
@@ -301,7 +301,7 @@ export default function RunStart(): ReactNode {
                                 <button
                                     key={member.id}
                                     type="button"
-                                    className={`ranch-card ${picked ? 'active' : ''} ${block ? 'blocked' : ''}`}
+                                    className={`ranch-card k-plate ${picked ? 'active is-on' : ''} ${block ? 'blocked' : ''}`}
                                     onClick={() => toggle(member.id)}
                                     aria-pressed={picked}
                                 >
@@ -347,7 +347,7 @@ export default function RunStart(): ReactNode {
                     <div className="ranch-modal-actions">
                         <button
                             type="button"
-                            className="ranch-button"
+                            className="ranch-button k-button"
                             disabled={party.length === 0}
                             onClick={launch}
                         >

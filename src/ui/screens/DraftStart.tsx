@@ -66,7 +66,7 @@ export default function DraftStart({ seed, party, onDone, onBack }: DraftStartPr
         <section className="ranch-section draft-start">
             <div className="ranch-section-head">
                 <h2>Draft: {GetMingmingData(member.definitionId).name}, pick {picks.length + 1} of {DRAFT_PICKS}</h2>
-                <button type="button" className="ranch-button subtle" onClick={() => { playSfx('uiClick'); onBack(); }}>
+                <button type="button" className="ranch-button k-button is-quiet subtle" onClick={() => { playSfx('uiClick'); onBack(); }}>
                     ‹ Back
                 </button>
             </div>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import type { IRanchMember } from '../../engine/runTypes';
@@ -8,8 +8,8 @@ import { colorFor } from './runShell';
  * TICKET 182a — the party as a row of faces in a corner of the map screen.
  *
  * It replaces the "Party" section that sat below the map (and below the fold): always visible, no HP
- * (HP is restored every fight), and the name is on hover. Until the art arrives (ticket 183) a face
- * is the species' initial in a ring of its element's colour.
+ * (HP is restored every fight), and the name is on hover. Until the art arrives a face is the
+ * species' initial on a hexagon in its element's colour.
  */
 export default function PartyFaces({ members }: { readonly members: ReadonlyArray<IRanchMember> }): ReactNode {
     return (
@@ -23,7 +23,7 @@ export default function PartyFaces({ members }: { readonly members: ReadonlyArra
                         role="listitem"
                         className="run-party-face"
                         title={name}
-                        style={{ borderColor: colorFor(species.primaryElement) }}
+                        style={{ ['--el' as string]: colorFor(species.primaryElement) } as CSSProperties}
                     >
                         {name.charAt(0).toUpperCase()}
                     </span>

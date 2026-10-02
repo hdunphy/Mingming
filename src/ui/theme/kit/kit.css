@@ -248,3 +248,67 @@
 .k-readout-chip.is-super { background: var(--select); color: var(--ink); }
 .k-readout-chip.is-abs { background: var(--shield); color: var(--ink); }
 .k-readout-chip.is-lethal { background: var(--hp-low); color: var(--text); }
+
+/* ---- Plate, button, tab, chip: the pieces the full screens are painted with (183f) ------------- */
+
+/* A navy plate with a light 2px edge, for anything that is not a SlantPanel because its DOM is
+   fixed (a roster card, a gym offer, a stat). The edge is the element, the body is `::before`. */
+.k-plate {
+    --k-cut: 8px;
+    position: relative;
+    isolation: isolate;
+    background: var(--k-plate-edge, var(--panel-edge));
+    color: var(--text);
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+}
+
+.k-plate::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    z-index: -1;
+    background: var(--k-plate-fill, var(--panel));
+    clip-path: polygon(calc(var(--k-cut) - 1px) 0, 100% 0, calc(100% - var(--k-cut) + 1px) 100%, 0 100%);
+}
+
+/* A plate you can press: the edge turns yellow. */
+button.k-plate:hover:not(:disabled),
+button.k-plate:focus-visible { --k-plate-edge: var(--select); outline: none; }
+
+/* The chosen one: a yellow edge and a lighter body. */
+.k-plate.is-on { --k-plate-edge: var(--select); --k-plate-fill: var(--panel-2); }
+
+/* The primary button: yellow, slanted, display type, ink text. */
+.k-button {
+    --k-cut: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: 34px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 0;
+    background: var(--select);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+}
+
+.k-button:hover:not(:disabled),
+.k-button:focus-visible { background: var(--text); outline: none; }
+.k-button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* The quiet button and the tab: a navy fill; the chosen one turns yellow like a primary. */
+.k-button.is-quiet { background: var(--panel-2); color: var(--text); }
+.k-button.is-quiet:hover:not(:disabled),
+.k-button.is-quiet:focus-visible { background: var(--panel-3); }
+.k-button.is-on { background: var(--select); color: var(--ink); }
+.k-button.is-danger { background: var(--hp-low); color: var(--text); }

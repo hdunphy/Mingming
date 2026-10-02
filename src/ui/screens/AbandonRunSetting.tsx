@@ -38,12 +38,12 @@ export default function AbandonRunSetting(): ReactNode {
                 <div className="settings-control">
                     {confirming ? (
                         <>
-                            <button type="button" className="settings-button" onClick={abandon}>
+                            <button type="button" className="settings-button k-button" onClick={abandon}>
                                 Abandon — the run is lost
                             </button>
                             <button
                                 type="button"
-                                className="settings-choice"
+                                className="settings-choice k-button is-quiet"
                                 onClick={() => { playSfx('uiClick'); setConfirming(false); }}
                             >
                                 Keep going
@@ -52,7 +52,7 @@ export default function AbandonRunSetting(): ReactNode {
                     ) : (
                         <button
                             type="button"
-                            className="settings-button"
+                            className="settings-button k-button"
                             onClick={() => { playSfx('uiClick'); setConfirming(true); }}
                         >
                             Abandon run

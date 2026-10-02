@@ -30,6 +30,7 @@ import { useFullscreen } from '../hooks/useFullscreen';
 import { BUILD_INFO, buildText } from '../buildInfo';
 import AbandonRunSetting from './AbandonRunSetting';
 import GameSwitches from './GameSwitches';
+import '../theme/kit/kit.css';
 import './SettingsScreen.css';
 
 /**
@@ -146,7 +147,7 @@ export default function SettingsScreen(): ReactNode {
             <div className="settings-panel">
                 <header className="settings-head">
                     <h2>Settings</h2>
-                    <button type="button" className="settings-close" onClick={close}>
+                    <button type="button" className="settings-close k-button is-quiet" onClick={close}>
                         Close
                     </button>
                 </header>
@@ -178,7 +179,7 @@ export default function SettingsScreen(): ReactNode {
                                 <button
                                     key={String(choice)}
                                     type="button"
-                                    className={`settings-choice ${settings.combatSounds === choice ? 'active' : ''}`}
+                                    className={`settings-choice k-button is-quiet ${settings.combatSounds === choice ? 'active is-on' : ''}`}
                                     aria-pressed={settings.combatSounds === choice}
                                     onClick={() => update({ ...settings, combatSounds: choice })}
                                 >
@@ -215,7 +216,7 @@ export default function SettingsScreen(): ReactNode {
                             <span className="settings-label">Fullscreen</span>
                             <button
                                 type="button"
-                                className="settings-button"
+                                className="settings-button k-button"
                                 aria-pressed={fullscreen.isFullscreen}
                                 onClick={() => {
                                     playSfx('uiClick');
@@ -242,7 +243,7 @@ export default function SettingsScreen(): ReactNode {
                                 <button
                                     key={choice}
                                     type="button"
-                                    className={`settings-choice ${settings.reducedMotion === choice ? 'active' : ''}`}
+                                    className={`settings-choice k-button is-quiet ${settings.reducedMotion === choice ? 'active is-on' : ''}`}
                                     aria-pressed={settings.reducedMotion === choice}
                                     onClick={() => update({ ...settings, reducedMotion: choice })}
                                 >
@@ -273,7 +274,7 @@ export default function SettingsScreen(): ReactNode {
                                     <button
                                         key={String(choice)}
                                         type="button"
-                                        className={`settings-choice ${settings[key] === choice ? 'active' : ''}`}
+                                        className={`settings-choice k-button is-quiet ${settings[key] === choice ? 'active is-on' : ''}`}
                                         aria-pressed={settings[key] === choice}
                                         onClick={() => update({ ...settings, [key]: choice })}
                                     >
@@ -313,7 +314,7 @@ export default function SettingsScreen(): ReactNode {
                                 <button
                                     key={String(choice)}
                                     type="button"
-                                    className={`settings-choice ${settings.showEnemyHand === choice ? 'active' : ''}`}
+                                    className={`settings-choice k-button is-quiet ${settings.showEnemyHand === choice ? 'active is-on' : ''}`}
                                     aria-pressed={settings.showEnemyHand === choice}
                                     onClick={() => update({ ...settings, showEnemyHand: choice })}
                                 >
@@ -342,7 +343,7 @@ export default function SettingsScreen(): ReactNode {
                                 <button
                                     key={scale}
                                     type="button"
-                                    className={`settings-choice ${settings.textScale === scale ? 'active' : ''}`}
+                                    className={`settings-choice k-button is-quiet ${settings.textScale === scale ? 'active is-on' : ''}`}
                                     aria-pressed={settings.textScale === scale}
                                     onClick={() => update({ ...settings, textScale: scale })}
                                 >
@@ -400,7 +401,7 @@ export default function SettingsScreen(): ReactNode {
                                 <button
                                     key={String(choice)}
                                     type="button"
-                                    className={`settings-choice ${settings.autoSaveRunLog === choice ? 'active' : ''}`}
+                                    className={`settings-choice k-button is-quiet ${settings.autoSaveRunLog === choice ? 'active is-on' : ''}`}
                                     aria-pressed={settings.autoSaveRunLog === choice}
                                     onClick={() => update({ ...settings, autoSaveRunLog: choice })}
                                 >
@@ -440,7 +441,7 @@ export default function SettingsScreen(): ReactNode {
                                 <button
                                     key={String(choice)}
                                     type="button"
-                                    className={`settings-choice ${settings.battleLogs === choice ? 'active' : ''}`}
+                                    className={`settings-choice k-button is-quiet ${settings.battleLogs === choice ? 'active is-on' : ''}`}
                                     aria-pressed={settings.battleLogs === choice}
                                     onClick={() => update({ ...settings, battleLogs: choice })}
                                 >
@@ -470,7 +471,7 @@ export default function SettingsScreen(): ReactNode {
                             <span className="settings-label">Run log folder</span>
                             <button
                                 type="button"
-                                className="settings-button"
+                                className="settings-button k-button"
                                 onClick={() => {
                                     playSfx('uiClick');
                                     revealRunLogDirectory();
@@ -485,7 +486,7 @@ export default function SettingsScreen(): ReactNode {
                         <span className="settings-label">Export run log</span>
                         <button
                             type="button"
-                            className="settings-button"
+                            className="settings-button k-button"
                             disabled={runLogCount === 0}
                             onClick={() => {
                                 playSfx('uiClick');
@@ -525,7 +526,7 @@ export default function SettingsScreen(): ReactNode {
                                     <>
                                         <button
                                             type="button"
-                                            className="settings-button"
+                                            className="settings-button k-button"
                                             onClick={() => {
                                                 playSfx('uiClick');
                                                 quitGame();
@@ -535,7 +536,7 @@ export default function SettingsScreen(): ReactNode {
                                         </button>
                                         <button
                                             type="button"
-                                            className="settings-choice"
+                                            className="settings-choice k-button is-quiet"
                                             onClick={() => {
                                                 playSfx('uiClick');
                                                 setQuitArmed(false);
@@ -547,7 +548,7 @@ export default function SettingsScreen(): ReactNode {
                                 ) : (
                                     <button
                                         type="button"
-                                        className="settings-button"
+                                        className="settings-button k-button"
                                         onClick={() => {
                                             playSfx('uiClick');
                                             setQuitArmed(true);
@@ -589,7 +590,7 @@ export default function SettingsScreen(): ReactNode {
                                         <>
                                             <button
                                                 type="button"
-                                                className="settings-wipe-confirm"
+                                                className="settings-wipe-confirm k-button is-danger"
                                                 onClick={() => {
                                                     wipeSave(dispatch);
                                                     setWipeArmed(false);
@@ -600,7 +601,7 @@ export default function SettingsScreen(): ReactNode {
                                             </button>
                                             <button
                                                 type="button"
-                                                className="settings-choice"
+                                                className="settings-choice k-button is-quiet"
                                                 onClick={() => setWipeArmed(false)}
                                             >
                                                 Cancel
@@ -609,7 +610,7 @@ export default function SettingsScreen(): ReactNode {
                                     ) : (
                                         <button
                                             type="button"
-                                            className="settings-wipe"
+                                            className="settings-wipe k-button is-danger"
                                             onClick={() => setWipeArmed(true)}
                                         >
                                             Wipe save

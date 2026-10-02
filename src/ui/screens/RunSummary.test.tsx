@@ -117,7 +117,7 @@ describe('RunSummary — three large lines, led by what you kept', () => {
 
     it('has exactly three lines, whatever the outcome', () => {
         for (const outcome of ['victory', 'defeat', 'abandoned'] as const) {
-            expect(render(ended(outcome)).match(/class="rs-big-line"/g)).toHaveLength(3);
+            expect(render(ended(outcome)).match(/class="rs-big-line[ "]/g)).toHaveLength(3);
         }
     });
 

@@ -32,7 +32,7 @@ export default function GameSwitches(): ReactNode {
                 <button
                     key={String(choice)}
                     type="button"
-                    className={`settings-choice ${value === choice ? 'active' : ''}`}
+                    className={`settings-choice k-button is-quiet ${value === choice ? 'active is-on' : ''}`}
                     aria-pressed={value === choice}
                     onClick={() => { playSfx('uiClick'); set(choice); }}
                 >

@@ -229,17 +229,17 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
             <section className="ranch-section ranch-section-wide">
                 <ul className="rs-big">
                     <li
-                        className="rs-big-line"
+                        className="rs-big-line k-plate"
                         // The reassurance paragraph, as a hover: nothing here can be lost by closing the screen.
                         title="Blueprints were banked at the ranch as they dropped, not now. Your roster, codex and cleared gyms are a separate save and were never at risk."
                     >
                         You kept: {kept}
                     </li>
-                    <li className="rs-big-line">{reached}</li>
-                    <li className="rs-big-line">{unlocked}</li>
+                    <li className="rs-big-line k-plate">{reached}</li>
+                    <li className="rs-big-line k-plate">{unlocked}</li>
                 </ul>
 
-                <button type="button" className="ranch-button rs-leave" onClick={leave}>
+                <button type="button" className="ranch-button k-button rs-leave" onClick={leave}>
                     Back to ranch
                 </button>
             </section>

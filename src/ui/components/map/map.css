@@ -1,0 +1,188 @@
+/* ============================================================================================
+ * THE MAP'S PIECES — ticket 183g: the node icon, the route line, the biome panel and the town
+ * button. Colours from `tokens.css` only; no gradient, no glow, no blur. Sizes are the mock's
+ * (`research/183-mocks/183-map.html` and `183-town-square.html`).
+ * ============================================================================================ */
+
+/* ---- NodeIcon: a disc in a ring ---------------------------------------------------------- */
+
+.k-node {
+    --k-ring: var(--k-el, var(--panel-edge));
+    position: relative;
+    flex: none;
+    box-sizing: border-box;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--k-ring);
+}
+
+.k-node-disc {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: var(--panel);
+}
+
+/* An elite gate or the gym fills its disc with its element, so the strongest fights are loudest. */
+.k-node[data-filled='true'] { --k-ring: var(--panel-edge); }
+.k-node[data-filled='true'] .k-node-disc { background: var(--k-el); }
+
+.k-node-glyph,
+.k-town-icon svg {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Selected: a 4px yellow ring outside the node. */
+.k-node[data-selected='true'] { box-shadow: 0 0 0 4px var(--select); }
+
+.k-node[data-faded='true'],
+.k-town-node[data-faded='true'] { opacity: 0.4; }
+
+/* ---- the in-map Town: a plate, not a disc ------------------------------------------------- */
+
+.k-town-node {
+    width: 150px;
+    height: 70px;
+    box-sizing: border-box;
+    padding: 2px;
+    background: var(--panel-edge);
+}
+
+.k-town-node[data-selected='true'] { background: var(--select); }
+
+.k-town-body {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: var(--panel);
+    color: var(--text);
+}
+
+.k-town-title { display: flex; align-items: center; gap: 6px; font-size: 17px; }
+.k-town-title svg { stroke: var(--select); }
+.k-town-sub { font-size: 11px; color: var(--text-mute); }
+
+/* ---- RouteLine ---------------------------------------------------------------------------- */
+
+.k-route { fill: none; stroke: var(--panel); }
+.k-route[data-element='fire'] { stroke: var(--el-fire); }
+.k-route[data-element='water'] { stroke: var(--el-water); }
+.k-route[data-element='nature'] { stroke: var(--el-nature); }
+.k-route[data-element='none'] { stroke: var(--el-none); }
+
+/* The gold path: the way the party has actually walked. */
+.k-route[data-state='taken'] { stroke: var(--select); }
+
+/* Passed by, or off the path. */
+.k-route[data-state='passed'] { stroke: var(--panel-3); opacity: 0.35; }
+.k-route[data-state='detour'] { stroke: var(--panel-3); opacity: 0.45; }
+
+/* ---- BiomePanel --------------------------------------------------------------------------- */
+
+.k-biome {
+    position: relative;
+    overflow: hidden;
+    flex: none;
+}
+
+.k-biome-label {
+    position: absolute;
+    left: 14px;
+    top: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    padding: 0 10px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* ---- TownButton --------------------------------------------------------------------------- */
+
+.k-town-button {
+    --k-cut: 12px;
+    display: block;
+    width: 580px;
+    height: 280px;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+/* The body's `::before` is the plate; the content sits over it. */
+.k-town-slash {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    bottom: 2px;
+    width: 10px;
+    background: var(--k-bld);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 1px) 100%, 0 100%);
+}
+
+.k-town-head {
+    position: absolute;
+    left: 28px;
+    top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.k-town-icon {
+    --k-cut: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: var(--k-bld);
+}
+
+.k-town-text { display: flex; flex-direction: column; gap: 4px; }
+.k-town-name { font-size: 30px; line-height: 1; }
+.k-town-status { font-size: 12px; color: var(--text-mute); }
+.k-town-button[data-ready='true'] .k-town-status { color: var(--select); }
+
+.k-town-ghost {
+    position: absolute;
+    left: 28px;
+    bottom: 22px;
+    fill: none;
+    stroke: var(--panel-3);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.k-town-ready {
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    height: 24px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    background: var(--select);
+    color: var(--ink);
+    font-size: 12px;
+}

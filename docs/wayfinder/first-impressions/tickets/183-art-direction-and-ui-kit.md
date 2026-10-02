@@ -253,11 +253,33 @@ The console's pieces are small components under `src/ui/components/console/` (`P
 
 After 182's text cut lands. `RanchScreen`, `RunStart`, `SettingsScreen`, `RunSummary`, the starter picker: `SlantPanel` tabs and buttons, the kit's type, the three starters as cards built from `CardFace` with the monster's three stats where the rules text goes (172's ruling). No new layout; this is paint. Screenshots per screen.
 
+### 183f built (2026-10-02)
+
+Paint only, no layout moved. The kit gained four rules in `kit.css` that every full screen shares: `.k-plate` (a navy plate with the 2px light edge, for elements whose markup is fixed), `.k-button` (the yellow slanted primary), `.k-button.is-quiet` (navy, for tabs, "Back" and the choice chips) and `.is-on` / `.is-danger`. `RanchScreen.css`, `RunSummary.css` and `SettingsScreen.css` are rewritten onto kit tokens and display type: no rgba tint, no radius, no blur behind the settings panel (it is a flat tint now), no purple, no glow. Screenshots: `research/183-screens/183f/`, taken from a new dev-only `screens.html` (`src/debug/screenSheet/`).
+
+- **Starter picker** is three `CardFace` cards (`src/ui/components/starter/`: `StarterCard`, `StarterStats`, `starterStats`, `starter.css`). `CardFace` gained one optional prop, `rules`, which replaces the rules text; the starter fills it with HP, Attack and Defense. The firmware text the 172 card carried is gone from this screen (182c: the intro is on v1 with no choice). The numbers are the species' base stats, not an individual's roll, because the roll is made at assembly and a starter has none yet. Each is a real `<button>` now, so Enter and Space work without the key handler the div needed.
+- **Ranch** tabs are `k-button`s (the open one yellow). Gym offers, roster cards, blueprint cards, drivers and the Instinct picker are plates; steps are hexagons; the party faces on the map screen are hexagons in the element's colour (`PartyFaces` passes `--el` instead of `borderColor`). The type chart (`index.css`) is a plate with flat strong/weak cells, and its toggle is a chip.
+- **Settings** choices are slanted chips, yellow when chosen; Close, Fullscreen and the export button are kit buttons, Wipe is the red one. `AudioControls` (the volume slider) lost its cyan border and glow: it is a navy chip.
+- **Run summary** is three navy plates in display type and a yellow "Back to ranch".
+- Two old tests matched exact class strings and were loosened (`RunSummary.test.tsx`'s `rs-big-line` count). New tests in `starter.test.tsx`.
+- Left alone on purpose: the Firmware terminal modal (`FirmwareTerminal`, a terminal-styled overlay in `index.css`), the Codex tab's own sheet, the type chart's emoji element tags, and Settings' long paragraphs (182 did not cut Settings; the copy-budget test covers only the screens it lists). 183h renames the words (Firmware, Assemble, Blueprint, Driver) that these screens still print.
+
 ## 183g: Map and town pieces for 176
 
 **Reference:** `research/183-mocks/183-map.html`, `183-town-square.html`, and the four tabs `183-town-shop.html`, `183-town-upgrades.html`, `183-town-den.html`, `183-town-loadout.html` (and their `.png`). They draw 176e's layout (16 columns at 144px, 110px rows, 30px node radius, biome panels, roads, gold path, faded passed nodes, dashed detour with "+1 fight", route labels) and 176c's M7 layout (square with four building buttons; rail 212 / main / dock 236) in the kit, with 183h's words. Where a mock and 176's text disagree on layout, 176 wins; on look, the mock wins.
 
 Ships the pieces 176 composes: `NodeIcon` (fight, town, elite, gym, event, detour, start; white symbol on a navy disc, element ring when the fight's element is known), `RouteLine` (element-coloured, 4px, flat), `BiomeBackdrop` reused at map scale, `TownButton` (the four buildings). 176e and 176c then build on these.
+
+### 183g built (2026-10-02)
+
+The pieces 176 needs, not the screens: nothing in `RegionMap` or the town screen calls them yet. All in `src/ui/components/map/`, each a small single-purpose component or data file, painted from the mocks (`research/183-mocks/183-map.html`, `183-town-square.html`). Screenshots at both sizes: `research/183-screens/183g/`, from `screens.html?view=map|town` (dev only).
+
+- `NodeIcon` (+ `nodeGlyphs.ts`): a white stroked symbol on a navy disc in a light ring, 60px (76px for an elite gate and the gym). The ring takes the fight's element when it is known; an elite or gym fills its disc with it. Selected is a 4px yellow ring, faded is 40%. The town is the slanted plate with the house and the word (`TownButton` is the bigger one on the square).
+- `RouteLine` (+ `routeStyle.ts`): one road as an SVG line, flat, round-capped. Gold path 8px, a road ahead 6px in its fight's colour, a passed road the same at 35%, a detour 5px dashed. The row said 4px; the mock draws these, so I followed the mock (decision in the report).
+- `BiomePanel`: the 183b backdrop at map size, in a slanted panel with the label chip and the element mark.
+- `TownButton` (+ `townBuildings.ts`): Shop, Upgrades, Den, Loadout as navy plates with a coloured slash, a slanted icon block, the name in display type, one status line and the symbol faint in the corner; READY is the yellow tag.
+- Two things of mine, because the mocks do not draw them: the gym's crown glyph, and `rival` as a node kind of its own (an `R`, with the plain fight ring).
+- Tests in `map.test.tsx` (sizes, rings, states, widths, every engine node kind mapped to a picture).
 
 ## 183h: The naming pass (D1)
 

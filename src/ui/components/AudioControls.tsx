@@ -3,8 +3,7 @@ import { getVolume, isMuted, playSfx, setMuted, setVolume } from '../audio/Audio
 import { Icon } from '../theme/Icon';
 
 /**
- * AudioControls — unobtrusive speaker toggle + volume slider, neon-terminal
- * styled. Lives in the App nav corner; `floating` renders a fixed top-right
+ * AudioControls — unobtrusive speaker toggle + volume slider, a navy slanted chip (183f). Lives in the App nav corner; `floating` renders a fixed top-right
  * variant for the battle screen (which replaces the nav entirely).
  *
  * The engine owns persistence (the 'mingming_audio' key, through the save-storage
@@ -44,10 +43,9 @@ const AudioControls: React.FC<{ floating?: boolean; inline?: boolean }> = ({ flo
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                border: '1px solid rgba(0, 210, 255, 0.25)',
-                background: 'rgba(0, 0, 0, 0.45)',
+                padding: '4px 14px',
+                background: 'var(--panel-2)',
+                clipPath: 'polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%)',
                 // Ticket 145c: `inline` sits in a flex row and positions nothing — the battle top
                 // bar owns its own layout, and a child that pins itself to the viewport cannot live
                 // in it.
@@ -80,8 +78,7 @@ const AudioControls: React.FC<{ floating?: boolean; inline?: boolean }> = ({ flo
                     fontSize: '1rem',
                     lineHeight: 1,
                     padding: '2px',
-                    color: muted ? 'var(--panel-3)' : 'var(--panel-edge)',
-                    textShadow: muted ? 'none' : '0 0 8px rgba(0, 210, 255, 0.6)',
+                    color: muted ? 'var(--text-faint)' : 'var(--text)',
                 }}
             >
                 <Icon name={muted ? 'sound-off' : 'sound-on'} size={15} title={muted ? 'Unmute' : 'Mute'} />
@@ -97,7 +94,7 @@ const AudioControls: React.FC<{ floating?: boolean; inline?: boolean }> = ({ flo
                 aria-label="Audio volume"
                 style={{
                     width: '72px',
-                    accentColor: muted ? 'var(--panel-3)' : 'var(--panel-edge)',
+                    accentColor: muted ? 'var(--panel-3)' : 'var(--select)',
                     cursor: muted ? 'default' : 'pointer',
                     opacity: muted ? 0.4 : 1,
                 }}
