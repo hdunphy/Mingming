@@ -1,5 +1,7 @@
 # Ticket 178: Search for the strongest teams and decks (MAP-Elites)
 
+> **PARKED 2026-10-01 (Henry).** Its premise was ticket 177's cheap AI, which missed its bar (24.8% wins against the lite AI's 37%). Re-plan before building; do not start.
+
 **Type:** balance tooling. **Status:** OPEN, **queued behind tickets 170 (rows 170a/170b) and 177; do not start until Henry says go.** Decisions S1–S4 below have recommended defaults; build those unless Henry rules otherwise.
 
 **Henry (2026-10-01):** *"Should we look to find OP deck combos with a genetic algorithm or some other algorithm? Instead of brute forcing everything, use some algorithm to figure out what card/Mingming/OS combination is best at beating each gym or completing a run."*
@@ -111,3 +113,7 @@
 - `runDeckSearch` runs overnight per gym, resumes after an interruption, and is deterministic.
 - `docs/balance/deck-search-178.md` lists, per gym, the best verified teams and decks, the overpowered suspects and the dead cards, with the numbers.
 - No game code or data changed.
+
+## Resolution
+
+_(parked, not closed)_

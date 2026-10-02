@@ -1,5 +1,7 @@
 # Ticket 172: Follow-ups from the 2026-09-30 Emberfall playtest
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 172a–172f (`9fd5f2e..8612c83`). The status line below is kept as history.
+
 **Type:** bug fixes, kit changes and one investigation. **Status:** RULED by Henry 2026-09-30, in progress.
 
 **Source.** Henry's answers to the ticket 171 report, plus three new notes at the end of `playtest-results/2026-29-09/firefall-kraken_v2/notes.md` (he reached the gym and lost in gauntlet fight 2).
@@ -55,3 +57,7 @@ The card drops the flavour line and "STARTER CARD: SQUIRT / SPICY BREATH / QUICK
 ## 172f: The gauntlet loss
 
 Replay of Henry's own gate state (party, IVs, firmware, patches, Drivers, 26-card deck) against the three fights his run rolls, HP carried between fights as the game does, no macros fired, at 0% and 10% heal between fights. Harness: `scratch/t172_gauntlet.ts`. Findings in `docs/balance/gauntlet-172.md`.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`9fd5f2e..8612c83`), merged to `main` in PR #13.

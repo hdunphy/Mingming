@@ -1,5 +1,7 @@
 # Ticket 165 — Hover shows the full card at the upgrade and sell lists; releasing a drag lets go of the card
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 165a–165b (`0122242..9f605e4`). The status line below is kept as history.
+
 **Type:** UI. **Status:** OPEN — **165b's two decisions RULED by Henry 2026-09-26 (see 165b); ready to build.** Asked by Henry on 2026-09-26, with a screenshot of the marketplace's UPGRADE and SELL panels: *"write up a ticket for these fixes, don't implement yet"*. There are two rows. Each is one commit, with a failing test first.
 
 ---
@@ -102,3 +104,7 @@ The first three fail on the parent.
 - **Screenshots:** check each row by eye in headless Chromium. A vite dev server on a small harness page works; see 145's write-back. Attach the before/after screenshots to the report.
 - **Line endings:** CRLF in `docs/wayfinder`; LF for tests, `src/debug` and JSON. Otherwise keep each file's existing endings.
 - **Report** in plain English, ending with the decisions Henry needs to make (none are open for 165b; 165a has none).
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`0122242..9f605e4`), merged to `main` in PR #13.

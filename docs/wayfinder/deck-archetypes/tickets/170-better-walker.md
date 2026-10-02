@@ -1,5 +1,7 @@
 # Ticket 170: A better walker, so Tier 3 can be measured
 
+> **2026-10-02: built except 170d.** 170a, 170b, 170c and 170e are built (`510efbc..398439e`). **170d waits on Henry naming the fixes** from 170c's ranked list (`docs/balance/`, "where the walker dies"). Stays open on this map.
+
 **Type:** balance tooling (walker and balance checks only). **Status:** OPEN, **do not start until Henry says go.** Henry asked for this on 2026-09-29, after the report on ticket 169j.
 
 **Why.** Ticket 169j added a balance check (`src/debug/balance/tierLadder.balance.ts`) that walks every EA starter at each tier and asserts that the mean number of fights won never goes up as the tier goes up. It passes, but it cannot say anything about Tier 3. The measured numbers (`docs/balance/tier-ladder-169.md`, 4 seeds per starter, 48 walks per tier):
@@ -149,3 +151,7 @@ Today's drafter (`chooseDraftPick` and `draftKitFor` in `runWalker.ts`) takes th
 - **Henry can read one line and know whether Tier 3 is harder than Tier 2**, and that line comes from a gauntlet that all 360 parties (12 starters x 30 seeds) in each tier actually reached.
 - `docs/balance/walker-deaths-170.md` says, in plain English, why the walker dies, so the next balance report can say how much of a result is the game and how much is the walker.
 - No file under `src/engine`, `src/ui` or any game data JSON was changed by this ticket.
+
+## Resolution
+
+_(open: 170d only)_

@@ -1,5 +1,7 @@
 # Ticket 179: One card pick per fight
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 179a–179b (`3baeec7..71d3f84`). The status line below is kept as history. Report: `docs/balance/card-picks-179.md`.
+
 **Type:** economy. **Status:** OPEN; small, and independent of 176, so it can be built before it. **Henry ruled P1–P3 yes on 2026-10-01.**
 
 **Henry (2026-10-01):**
@@ -71,3 +73,7 @@ Run 174's scrap walk (`npm run balance:scrap-walk`), parent vs 179, on the same 
 
 - Every fight offers one card pick, and blueprint drops and scrap are byte-identical to the parent for the same seeds.
 - `docs/balance/card-picks-179.md` shows the before/after scrap and deck growth.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`3baeec7..71d3f84`), merged to `main` in PR #13. Report: `docs/balance/card-picks-179.md`.

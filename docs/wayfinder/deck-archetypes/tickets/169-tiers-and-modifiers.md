@@ -1,5 +1,7 @@
 # Ticket 169: Tiers and run modifiers
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 169a–169j (`47dce56..6621b9c`). The status line below is kept as history.
+
 **Type:** content + run systems. **Status:** OPEN, **do not start until Henry says go.** He ruled to build this after ticket 168 is in and one playtest has checked run length and scrap on the new build. This is the build ticket for steam-release ticket 29 ("Difficulty tiers and opt-in run modifiers"), and it answers ticket 27's last open question (b): the launch modifier count is **5**.
 
 **Why.** The game has one difficulty. Most of the plumbing for more already exists, but none of it can be reached:
@@ -374,3 +376,7 @@ Build these as written.
 - All ten rows are committed, the gate is green, and `npm run balance` runs `tierLadder.balance.ts` green (or its failure is reported to Henry with the numbers).
 - A fresh save offers Tier 0 only, with modifiers locked. After one gym clear, Tier 1 and all five modifiers are open. The debug "Unlock all tiers" button opens Tier 3.
 - Steam-release ticket 29's "Done when" holds: tiers and modifiers are selectable and saved, and a test asserts no entity stat differs across tiers (169a).
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`47dce56..6621b9c`), merged to `main` in PR #13.

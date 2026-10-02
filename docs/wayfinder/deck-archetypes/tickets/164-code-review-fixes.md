@@ -1,5 +1,7 @@
 # Ticket 164 — Eight fixes from the 2026-09-26 code review
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 164a–164h (`4694b83..83b01b0`). The status line below is kept as history.
+
 **Type:** engine + AI + sim harness. **Status:** RULED by Henry on 2026-09-26: *"please create a handoff plan to fix these bugs"*. The eight bugs below are the ones to fix, and **only these eight**. The review found more (`research/code-review-2026-09-26.md`). Everything not listed here stays as it is, even where it sits in the same file you are editing:
 
 - the AI beam slice;
@@ -289,3 +291,7 @@ Promote the new baselines with one commit that names this ticket.
   - 164b: sleep chip per hit or per card;
   - 164h: the generator, if not mulberry32;
   - 164f: the patch price, after the re-measure.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`4694b83..83b01b0`), merged to `main` in PR #13.

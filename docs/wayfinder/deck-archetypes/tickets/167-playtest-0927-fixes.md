@@ -1,5 +1,7 @@
 # Ticket 167 — The 09-27 Tidewrack playtest: gauntlet teams, four card changes, and five UI fixes
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 167a–167j (`46ac0a7..b86cb5b`). The status line below is kept as history.
+
 **Type:** content + UI. **Status:** OPEN. Written 2026-09-28 from Henry's 09-27 playtest (`playtest-results/2026-27-09/tidalboss-rat_v2/notes.md` and `review.md`) and his rulings the same day:
 
 > *"The boss should vary its first fights. But pull just from the WWF mingmings."*
@@ -365,3 +367,7 @@ Rows 167a–167e change the balance. After 167e is committed, run the walker's p
 
 - **D1, Kraken v1's Slander:** replaced with a second Crushing Depths (built in 167d).
 - **G1, the enemy hand panel:** the enemies slide as far right as the panel allows, toward the middle when it opens, never into the reveal lane (built in 167g).
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`46ac0a7..b86cb5b`), merged to `main` in PR #13.

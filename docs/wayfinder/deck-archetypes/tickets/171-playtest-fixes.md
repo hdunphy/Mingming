@@ -1,5 +1,7 @@
 # Ticket 171: Fixes from the 2026-09-29 playtest (Emberfall, kraken_v2 starter)
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 171a–171h (`4ab71c8..234a8be`). The status line below is kept as history.
+
 **Type:** bug fixes and small features. **Status:** RULED by Henry 2026-09-30, in progress.
 
 **Source.** `playtest-results/2026-29-09/firefall-kraken_v2/notes.md`, the run save, the run log and the 11 fight logs. The review is in the project doc `playtest-2026-09-29-firefall-kraken-v2-review.md`.
@@ -69,3 +71,7 @@ EMBER_FUSE works (it fired 4, 4 and 2 times in the three fights Skoll played), b
 Henry's note: *"It would be great to highlight or alert the user if they can still make a play. Something noticeable but not intrusive like a popup or anything. Just like a flash on the button and then the card that is playable lights up."*
 
 Pressing END TURN while any card in hand can still be played by someone (enough energy, not blocked) flashes the button and lights the playable cards, and does not end the turn. A second press ends it. No popup.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`4ab71c8..234a8be`), merged to `main` in PR #13.

@@ -1,5 +1,7 @@
 # Ticket 177: A cheap battle AI, distilled from the full one
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 177a–177e (`62a6b1f..2f8c2f5`). The status line below is kept as history. The cheap AI was built and **missed its bar** (24.8% wins against the lite AI's 37%; see the Claude project doc "ticket-177-outcome"), so ticket 178 is parked.
+
 **Type:** AI and balance tooling. **Status:** OPEN, **queued behind ticket 170; do not start until Henry says go.** Decisions C1–C3 below have recommended defaults; build those unless Henry rules otherwise.
 
 **Henry (2026-10-01):** *"With some of those longer running balance algorithms, should we look to build a cheap AI for enemies that doesn't use brute force and follows an algorithm or set of rules to play cards? Can we use ML/RL AI here to create that rule set?"*
@@ -125,3 +127,7 @@
 - `cheap` is a selectable tier for simulations and the walker, and the shipped AI is unchanged.
 - `docs/balance/cheap-ai-177.md` gives agreement, win rate and speed against `full`, `lite` and `greedy`, and says whether C2's bar is met.
 - The fitted weights are committed and print as a readable table.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`62a6b1f..2f8c2f5`), merged to `main` in PR #13. The cheap AI was built and **missed its bar** (24.8% wins against the lite AI's 37%; see the Claude project doc "ticket-177-outcome"), so ticket 178 is parked.

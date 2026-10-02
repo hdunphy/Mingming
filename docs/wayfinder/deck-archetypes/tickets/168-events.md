@@ -1,5 +1,7 @@
 # Ticket 168 — Events: the node that does nothing becomes twenty events
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 168a–168g (`a8e3ed7..8382ff6`). The status line below is kept as history.
+
 **Type:** content + run systems. **Status:** OPEN. This is the build ticket for steam-release ticket 30 ("Events node system + the first event set"), and it answers ticket 27's open question (b), the launch event count: **20**.
 
 **Why.** About 14% of every biome's middle nodes are rolled as `event` (`regionGraph.ts`, `middleKindWeights.event: 14`), and nothing handles them: the node is drawn, the player walks onto it, and nothing happens. There is no event data anywhere in `src`.
@@ -280,3 +282,7 @@ Switch one body to its other OS (v1 ↔ v2) **for the rest of this run**. The ra
 ## After 168g: one measurement
 
 Run the walker on the parent of 168a and on 168g, same seeds (60 seeds × 12 starters, full runs), and report: how often each event was drawn, how many runs got a Driver or a patch from events (must be at most 1 of each per run), scrap held at the gym (mean), and the gym clear rate. Don't tune anything.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`a8e3ed7..8382ff6`), merged to `main` in PR #13.

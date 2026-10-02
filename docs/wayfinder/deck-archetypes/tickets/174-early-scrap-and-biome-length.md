@@ -1,5 +1,7 @@
 # Ticket 174: The early scrap squeeze and the late surplus
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 174a–174d (`ea4cd8b..44e8ba4`). The status line below is kept as history.
+
 **Type:** run economy. **Status:** OPEN, **ruled by Henry 2026-09-30, ready to build.**
 
 **Rulings:** D1 *"Yes, 45 scrap."* · D2 *"Leave as is."* · D3 *"Two per visit."* · D4 *"Let's add a new ticket for a map redesign; I don't love the current layout"* (ticket 176, so biome length is not changed here).
@@ -135,3 +137,7 @@ So every future playtest can be read the same way, without a one-off script. `ru
 - The report tool works on real playtest logs (174a).
 - Runs start with 45 scrap (174b), and the market and workshop each allow two paid upgrades per visit (174c).
 - `docs/balance/scrap-curve-174.md` shows biome 0's low point and the final biome's leftover scrap before and after (174d).
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`ea4cd8b..44e8ba4`), merged to `main` in PR #13.

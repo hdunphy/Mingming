@@ -1,5 +1,7 @@
 # Ticket 166 — The enemy turn stops freezing, status tells stop piling up, the gauntlet fields the gym's element, macros between gauntlet fights, fewer patches, and the AI's beam fixed
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 166a–166f (`d1a509f..3fc6447`). The status line below is kept as history.
+
 **Type:** feel + run economy. **Status:** OPEN. Written 2026-09-27 from Henry's 09-26 playtest notes (`playtest-results/2026-26-09/rootfall-fenrir_v2/notes.md` and his answers in `review.md`), and his message the same day:
 
 > *"Write ticket 166 now. Except there should be no patch limit. Just reduce the number of patch rewards offered. They felt very OP so make it only on the last elite you can win one. The others should give extra scrap or maybe a macro instead. Please investigate the stutter first then provide a detailed solution for the handoff to the implementation agent."*
@@ -936,3 +938,7 @@ Henry ruled the fallback in advance: *"If that doesn't help then add a 'thinking
 ## Not in this ticket
 
 - **The shop's Amplifier (45 scrap)** is left as it is. If patches still feel strong after 166e, the shop is the remaining door.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`d1a509f..3fc6447`), merged to `main` in PR #13.

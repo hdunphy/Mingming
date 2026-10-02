@@ -1,5 +1,7 @@
 # Ticket 173: A 30% repair between gauntlet fights
 
+> **CLOSED 2026-10-02 (housekeeping, at the move to `first-impressions`).** Every row is built: 173a–173b (`5287060..133e0db`). The status line below is kept as history.
+
 **Type:** game change and a balance-tool fix. **Status:** RULED by Henry 2026-09-30.
 
 **Source.** Henry's answers to the ticket 172 report, after 172f replayed his Emberfall gauntlet loss (`docs/balance/gauntlet-172.md`):
@@ -43,3 +45,7 @@ This moves the walker's gauntlet numbers once, on purpose. Nothing before the gy
 | After 173 (HP carries, 30% repair) | 5 | 0 |
 
 The five clears were fenrir_v2 (2), kraken_v1 (2) and kraken_v2 (1). With the game's real rules the walker clears none of them. The sample is small: 9 parties reached fight 2.
+
+## Resolution
+
+Closed 2026-10-02: all rows built on `playtest-polish` (`5287060..133e0db`), merged to `main` in PR #13.
