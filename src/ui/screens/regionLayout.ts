@@ -287,3 +287,14 @@ export function layoutRegion(
         byId: new Map(laid.map((n) => [n.node.id, n])),
     };
 }
+
+/**
+ * TICKET 186c: where one of several same-worded nodes of a column sits, top to bottom (`place` is
+ * 0-based). Used by the map's Travel list and hover, and by the text playtester's map screen, so the
+ * two say it the same way.
+ */
+export function positionWord(count: number, place: number): string {
+    if (count === 2) return ['upper', 'lower'][place];
+    if (count === 3) return ['upper', 'middle', 'lower'][place];
+    return `${place + 1} from the top`;
+}

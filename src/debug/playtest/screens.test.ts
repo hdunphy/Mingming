@@ -100,3 +100,13 @@ describe('180a — a fight and its rewards', () => {
         expect(seen).toBeGreaterThan(0);
     });
 });
+
+describe('186c — the map’s moves never read alike', () => {
+    it('no two steps from the same screen share a label, on any of twenty seeds, at the start', () => {
+        for (let i = 1; i <= 20; i += 1) {
+            const world = freshWorld({ seed: `ps${i}` });
+            const labels = currentScreen(world).moves.map((m) => m.label);
+            expect(new Set(labels).size, `ps${i}: ${labels.join(' | ')}`).toBe(labels.length);
+        }
+    });
+});

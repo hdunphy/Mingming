@@ -45,6 +45,7 @@ import {
     layoutRegion,
     nodeIconFor,
     nodeLabelFor,
+    positionWord,
     type LaidOutNode,
 } from './regionLayout';
 import './RegionMap.css';
@@ -239,7 +240,7 @@ export default function RegionMap({
         const own = biomeElements[node.biomeIndex];
         return own ? [own] : [];
     };
-    const describe = (laid: LaidOutNode): string => {
+    const baseDescribe = (laid: LaidOutNode): string => {
         const elements = elementsOf(laid.node);
         // Ticket 142c: the scout takes over an ordinary fight node rather than being its own kind,
         // so it has to be said rather than inferred from the icon. Before this, no UI file read the
@@ -271,6 +272,21 @@ export default function RegionMap({
         if (laid.node.pocket) parts.push('dead end');
         if (laid.node.visited > 0) parts.push(`visited ${laid.node.visited}×`);
         return parts.join(', ');
+    };
+
+    /**
+     * TICKET 186c: two nodes of one column can describe themselves with the very same words, and then
+     * the Travel list and the hover name two places alike. Identical words get where each sits in its
+     * column, top to bottom; a description that is already its own is left as it was.
+     */
+    const describe = (laid: LaidOutNode): string => {
+        const base = baseDescribe(laid);
+        const twins = layout.nodes
+            .filter((other) => other.column === laid.column && baseDescribe(other) === base)
+            .sort((a, b) => a.row - b.row);
+        if (twins.length < 2) return base;
+        const place = twins.indexOf(laid);
+        return `${base}, ${positionWord(twins.length, place)}`;
     };
 
     /**

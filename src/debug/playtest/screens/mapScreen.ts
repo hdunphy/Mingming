@@ -18,7 +18,7 @@ import { isMarketNode } from '../../../engine/run/marketplace';
 import { isWorkshopNode } from '../../../engine/run/workshop';
 import type { IRegionNode } from '../../../engine/runTypes';
 import { fireMapReveal } from '../../../ui/store/runSlice';
-import { layoutRegion, type LaidOutNode } from '../../../ui/screens/regionLayout';
+import { layoutRegion, positionWord, type LaidOutNode } from '../../../ui/screens/regionLayout';
 import { stepOnto } from '../arrive';
 import { driverName, nodeKindLabel, nodeLabel } from '../gameText';
 import { partyOf } from '../party';
@@ -50,6 +50,18 @@ export function describeNode(world: World, laid: LaidOutNode): string {
     return parts.join(', ');
 }
 
+/**
+ * `describeNode`, and where the node sits in its column when another node of the column reads the same
+ * (ticket 186c; the map screen's Travel list says it the same way, through `positionWord`).
+ */
+function describeWithPlace(world: World, laid: LaidOutNode, all: ReadonlyArray<LaidOutNode>): string {
+    const base = describeNode(world, laid);
+    const twins = all
+        .filter((other) => other.column === laid.column && describeNode(world, other) === base)
+        .sort((a, b) => a.row - b.row);
+    return twins.length < 2 ? base : `${base}, ${positionWord(twins.length, twins.indexOf(laid))}`;
+}
+
 export function mapScreen(world: World): Screen {
     const run = runOf(world);
     const revealedBiomes = revealedBiomesFrom(run.modifiers);
@@ -75,7 +87,7 @@ export function mapScreen(world: World): Screen {
 
     const moves: Move[] = reachable.map((laid) => ({
         key: `enter:${laid.node.id}`,
-        label: `Go to ${describeNode(world, laid)}`,
+        label: `Go to ${describeWithPlace(world, laid, layout.nodes)}`,
         apply: (w) => stepOnto(w, laid.node.id),
     }));
 
