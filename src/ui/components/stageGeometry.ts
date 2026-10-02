@@ -81,8 +81,21 @@ const ALLY_COLUMN_X = 270;
 const ENEMY_COLUMN_X = 850;
 const ENEMY_FRONT_STEP = 60;
 
-/** Frame y of row `index`'s sprite box, before scaling. Mock: 62, 232, 402. */
-export const rowY = (index: number): number => 62 + index * ROW_PITCH;
+/**
+ * Frame y of row `index`'s sprite box, before scaling. Mock: 62, 232, 402 for a party of three.
+ *
+ * TICKET 183e (D5, ruled): the rows are CENTRED on the stage by party size — each missing row moves
+ * the block down half a pitch — so a 1v1 stands on the middle row (232) and a 2v2 on 147 and 317.
+ * A party of three is the mock, pixel for pixel. `partySize` is the LARGER of the two sides at the
+ * start of the battle (`battleRowCount`), the same number all fight long, so a death never moves a
+ * row and §3's stability holds.
+ */
+export const rowY = (index: number, partySize = 3): number =>
+    62 + (3 - partySize) * (ROW_PITCH / 2) + index * ROW_PITCH;
+
+/** How many rows a battle is drawn on: the larger side, between one and three. Deaths stay in the array. */
+export const battleRowCount = (allies: number, enemies: number): number =>
+    Math.min(3, Math.max(1, allies, enemies));
 
 /**
  * The sprite box for one slot, in reference coordinates.
@@ -97,8 +110,10 @@ export const rowY = (index: number): number => 62 + index * ROW_PITCH;
  * hand, so §3's stability property holds: 146 reads the same rect until the panel is toggled or
  * the window is resized.
  */
-export function spriteRect(side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0): StageRect {
-    const y = rowY(index);
+export function spriteRect(
+    side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0, partySize = 3,
+): StageRect {
+    const y = rowY(index, partySize);
     if (side === 'ally') {
         const stepped = index === activeIndex ? ACTIVE_STEP : 0;
         return { x: ALLY_COLUMN_X + stepped, y, w: SPRITE_W, h: SPRITE_H };
@@ -112,8 +127,10 @@ export function spriteRect(side: StageSide, index: number, activeIndex = -1, ene
  * middle of the screen clear for the reveal lane. An ally's plaque sits to the LEFT of its sprite
  * and an enemy's to the RIGHT, so neither ever crosses the lane however far a sprite steps.
  */
-export function plaqueRect(side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0): StageRect {
-    const sprite = spriteRect(side, index, activeIndex, enemyShiftX);
+export function plaqueRect(
+    side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0, partySize = 3,
+): StageRect {
+    const sprite = spriteRect(side, index, activeIndex, enemyShiftX, partySize);
     const x = side === 'ally' ? sprite.x - PLAQUE_W - 8 : sprite.x + sprite.w + 8;
     return { x, y: sprite.y + PLAQUE_DY, w: PLAQUE_W, h: 0 };
 }

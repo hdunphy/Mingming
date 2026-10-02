@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import type { Tip } from '../../engine/tips';
 import { markTipSeen } from '../store/gameSlice';
 import { prefersReducedMotion } from '../utils/motionPrefs';
+import { useShowTips } from '../settings/useShowTips';
 import './Callout.css';
 
 /**
@@ -23,7 +24,8 @@ import './Callout.css';
  *   keeps the tip it is showing and takes the next only when this one has gone.
  * - **Its text is not a `<p>`.** A toast is transient, not screen copy, so it does not count against
  *   the copy budget (`copyBudget.test.tsx`).
- * - "Skip tips" is gone. A toast does not need skipping.
+ * - "Skip tips" is gone. A toast does not need skipping; the **Show tips** switch in Settings (183d)
+  turns the toasts off for good, and back on.
  *
  * Reduced motion is honoured by not animating at all (the entrance is a CSS transition, and the
  * class that carries it is dropped): `prefersReducedMotion` is the repo's existing gate.
@@ -41,6 +43,8 @@ export interface CalloutProps {
 
 const Callout: React.FC<CalloutProps> = ({ tip, placement = 'panel' }) => {
     const dispatch = useDispatch();
+    // TICKET 183d: Settings' "Show tips". Off, the toast is not drawn and no tip is marked seen.
+    const tipsOn = useShowTips();
     // Starts as the tip it was handed, so the very first render already shows it (a static render
     // runs no effects).
     const [shown, setShown] = useState<Tip | null>(tip);
@@ -51,7 +55,7 @@ const Callout: React.FC<CalloutProps> = ({ tip, placement = 'panel' }) => {
 
     // A tip on screen is a tip seen; and it leaves after a few seconds or on the next click.
     useEffect(() => {
-        if (shown === null) return undefined;
+        if (shown === null || !tipsOn) return undefined;
         dispatch(markTipSeen(shown.id));
         const timer = window.setTimeout(() => setShown(null), TOAST_MS);
         const onPointer = (): void => setShown(null);
@@ -60,9 +64,9 @@ const Callout: React.FC<CalloutProps> = ({ tip, placement = 'panel' }) => {
             window.clearTimeout(timer);
             document.removeEventListener('pointerdown', onPointer);
         };
-    }, [shown, dispatch]);
+    }, [shown, dispatch, tipsOn]);
 
-    if (!shown) return null;
+    if (!shown || !tipsOn) return null;
 
     const motionClass = prefersReducedMotion() ? '' : ' callout-enter';
 

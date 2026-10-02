@@ -15,3 +15,7 @@ To retake them: `npm run dev`, open `/Mingming/stage.html` (dev only, not a buil
 
 The ART PENDING blobs stand where commissioned sprites go. The Water and Fire band colours are mine
 (the mock only drew Nature) and are the first thing to judge.
+
+Retaken 2026-10-02 after Henry's review: the plaque now shows up to six statuses (Skoll carries six: three
+on the first line beside the energy hexagon, three on a second line), and the Water set is sampled from the
+183 map mock's Brinehollow panel (the only drawn Water backdrop). Fire is still mine: no mock draws it.

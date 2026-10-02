@@ -130,6 +130,23 @@ describe('183b — the plaque', () => {
         expect(html).toContain('data-status="Strengthened"');   // the chip
     });
 
+    it('shows up to six statuses as chips, and folds a seventh into a +k chip (Henry, 2026-10-02)', () => {
+        const kinds = ['Strengthened', 'Burn', 'Poison', 'Dazed', 'Weakened', 'Sharp', 'Regen'] as const;
+        const withStatuses = (n: number) => unit('p1', 'FENRIR', 'Fire', {
+            statusEffects: kinds.slice(0, n).map((type, i) => (
+                { id: `s${i}`, type, stacks: 2, duration: 2, sourceId: 'x' }
+            )) as never,
+        });
+        const chips = (html: string) => (html.match(/data-status="/g) ?? []).length;
+        const six = plaqueOf(render(state({}, [withStatuses(6), ALLIES[1], ALLIES[2]])), 'p1');
+        expect(chips(six)).toBe(6);
+        expect(six).not.toContain('+1');
+        const seven = plaqueOf(render(state({}, [withStatuses(7), ALLIES[1], ALLIES[2]])), 'p1');
+        // The +k chip costs a slot: five chips and a `+2` for the two folded away.
+        expect(chips(seven)).toBe(5);
+        expect(seven).toContain('+2');
+    });
+
     it('puts the element slash on the face that looks at the monster', () => {
         const markup = render();
         expect(plaqueOf(markup, 'p1')).toContain('k-slash-right');

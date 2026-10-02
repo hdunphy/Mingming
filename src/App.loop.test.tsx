@@ -192,10 +192,10 @@ describe('the core loop, click by click', () => {
         try {
             // TICKET 171h: the opening hand still has Energy to spend, so the first press only
             // nudges (the button flashes, the playable cards light) and the second ends the turn.
-            await clickText(host, 'END TURN');
+            await clickText(host, 'End turn');
             expect(store.getState().battle.battle!.activeSide).toBe('PLAYER');
             expect(store.getState().battle.endTurnNudge?.cardIds.length).toBeGreaterThan(0);
-            await clickText(host, 'END TURN');
+            await clickText(host, 'End turn');
             expect(store.getState().battle.battle!.activeSide).toBe('ENEMY');
 
             // The AI beats are 1.2 s each and a turn is a handful of them; cap the wait rather than

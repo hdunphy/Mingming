@@ -1458,25 +1458,6 @@ body {
   cursor: not-allowed;
 }
 
-.action-button.end-turn {
-  background: transparent;
-  border: 2px solid var(--select);
-}
-
-/* TICKET 171h: END TURN pressed with Energy still spendable. The button flashes three times and
-   the cards that could spend it glow gold; the second press ends the turn. No popup (Henry). */
-.action-button.end-turn.nudge {
-  border-color: var(--amber);
-  animation: end-turn-nudge 0.45s ease-in-out 3;
-}
-@keyframes end-turn-nudge {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 74, 0); }
-  50% { box-shadow: 0 0 0 5px rgba(255, 210, 74, 0.85); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .action-button.end-turn.nudge { animation: none; box-shadow: 0 0 0 3px rgba(255, 210, 74, 0.85); }
-}
-
 /* ── Pile Indicators ── */
 /* Ticket 145d: the console is macro stack · draw · fan · discard, and END TURN sits inside
    the discard column directly under its pile (§2c) rather than floating between them. */
@@ -1503,87 +1484,8 @@ body {
   padding: 0;
 }
 
-.pile-card {
-  position: relative;
-  width: 58px;
-  height: 80px;
-  border-radius: 6px;
-  border: 1px solid var(--panel-2);
-  /* The same diagonal hatch the mock's card backs use, over the shop chassis' gradient — so a
-     face-down card is legibly the BACK of the card the fan shows face-up. */
-  background:
-    repeating-linear-gradient(45deg, transparent 0 5px, rgba(255, 255, 255, 0.04) 5px 10px),
-    linear-gradient(180deg, var(--panel) 0%, var(--page) 100%);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
-}
+/* The pile backs, their count plate and the End Turn button live in `components/console/console.css` (183d). */
 
-/* A pile of one and a pile of thirty must not look identical. The number carries the precision;
-   the stack carries the glance. Two offset shadows rather than N real cards, because the count is
-   already exact three pixels away. */
-.pile-card-stacked::before,
-.pile-card-stacked::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 6px;
-  border: 1px solid var(--panel-2);
-  background: linear-gradient(180deg, var(--panel) 0%, var(--page) 100%);
-  z-index: -1;
-}
-
-.pile-card-stacked::before { transform: translate(3px, 3px); }
-.pile-card-stacked::after { transform: translate(6px, 6px); }
-
-/* ── TICKET 155f — THE COUNT ANCHORS TO THE CARD, NOT THE COLUMN.
-
-   `.pile-count` is absolute and its containing block was `.pile-indicator` —
-   the whole column, which holds the label, the card, the "+N/turn" line and
-   (on the discard) the End Turn button. So the discard count rendered on the
-   button and the draw count rendered over "+4/turn". Henry: *"the discard
-   count is on the End Turn button"*.
-
-   `.pile-stack` wraps only the card back, which is the thing the number was
-   always describing. */
-.pile-stack {
-  position: relative;
-  display: inline-flex;
-}
-
-.pile-count {
-  position: absolute;
-  right: -8px;
-  bottom: -6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--page);
-  background: var(--amber);
-  box-shadow: 0 0 0 2px var(--page);
-}
-
-.pile-label {
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
-  /*
-   * TICKET 38 — 0.45 → 0.52. axe measured the rendered ink at `#78787b` on `#0a0a0f` for a ratio of
-   * **4.48 against a required 4.5** — failing by two hundredths, which is the kind of miss no
-   * eyeball finds and no reviewer argues with. These are the DRAW / DISCARD / MACROS labels at
-   * 9.28px, so the small text is exactly where the margin had gone.
-   *
-   * It surfaced only after the macro slot's `opacity` came off in this same row: axe reports one
-   * contrast violation per distinct colour pair, and the louder failure was masking this one.
-   */
-  color: rgba(255, 255, 255, 0.52);
-  font-weight: 700;
-  text-transform: uppercase;
-}
 
 .draw-pile {
   gap: 6px;

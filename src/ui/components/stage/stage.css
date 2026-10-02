@@ -252,7 +252,7 @@
     gap: 6px;
 }
 
-.stage-plaque-lower { justify-content: space-between; }
+.stage-plaque-lower { justify-content: space-between; align-items: flex-start; }
 
 .stage-plaque-value {
     font-size: 13px;

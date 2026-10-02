@@ -1,0 +1,142 @@
+/*
+ * THE CONSOLE'S PIECES — ticket 183d: the pile backs and the End Turn button.
+ *
+ * Colours from `tokens.css` only. No gradient and no soft shadows: the old backs had a vertical
+ * gradient and a soft shadow, both gone. Shapes are the kit's slants.
+ */
+
+/* ---- the piles ---------------------------------------------------------------------------- */
+
+/* Wide enough for the three offset backs and tall enough for the count's overhang. */
+.pile-stack {
+    position: relative;
+    display: inline-block;
+    width: 64px;
+    height: 86px;
+}
+
+/* A navy card back with a `--panel-edge` frame: the frame is the element, the face an inset. */
+.pile-card {
+    --k-cut: 5px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 58px;
+    height: 80px;
+    background: var(--panel-edge);
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+}
+
+.pile-card::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: var(--panel);
+    clip-path: polygon(calc(var(--k-cut) - 1px) 0, 100% 0, calc(100% - var(--k-cut) + 1px) 100%, 0 100%);
+}
+
+/* The back of the stack is the lowest and the farthest right. */
+.pile-card-0 { transform: translate(6px, 6px); }
+.pile-card-1 { transform: translate(3px, 3px); }
+.pile-card-2 { transform: translate(0, 0); }
+
+/* The discard is a place, not a stock: a dashed slot. */
+.pile-slot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    box-sizing: border-box;
+    width: 58px;
+    height: 80px;
+    border: 2px dashed var(--panel-2);
+    background: transparent;
+}
+
+/* The count: a slanted plate on the corner it describes. Yellow on the draw pile, white on the
+   discard, so the two are told apart without a label. */
+.pile-count {
+    --k-cut: 4px;
+    position: absolute;
+    left: -8px;
+    bottom: -4px;
+    min-width: 28px;
+    height: 26px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--energy);
+}
+
+.pile-stack-discard .pile-count {
+    left: auto;
+    right: 0;
+    top: -6px;
+    bottom: auto;
+    background: var(--text);
+}
+
+.pile-label {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+}
+
+/* ---- END TURN ----------------------------------------------------------------------------- */
+
+.end-turn-button {
+    --k-cut: 12px;
+    width: 200px;
+    height: 50px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    background: var(--select);
+    color: var(--ink);
+    font-size: 24px;
+    line-height: 1;
+}
+
+.end-turn-button:disabled {
+    background: var(--panel-2);
+    color: var(--text-faint);
+    cursor: not-allowed;
+}
+
+.end-turn-button:focus-visible {
+    outline: none;
+    filter: drop-shadow(0 0 0 var(--text)) drop-shadow(3px 0 0 var(--text)) drop-shadow(-3px 0 0 var(--text));
+}
+
+/* TICKET 171h: pressed with Energy still spendable. Flashes three times (a white ring: a yellow one
+   around a yellow button would be nothing); the cards that could spend it wear the amber ring. */
+.end-turn-button.nudge {
+    animation: end-turn-nudge 0.45s steps(2, jump-none) 3;
+}
+
+@keyframes end-turn-nudge {
+    0%, 100% { filter: none; }
+    50% {
+        filter:
+            drop-shadow(3px 0 0 var(--text)) drop-shadow(-3px 0 0 var(--text))
+            drop-shadow(0 3px 0 var(--text)) drop-shadow(0 -3px 0 var(--text));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root:not([data-reduced-motion]) .end-turn-button.nudge { animation: none; filter: drop-shadow(3px 0 0 var(--text)) drop-shadow(-3px 0 0 var(--text)) drop-shadow(0 3px 0 var(--text)) drop-shadow(0 -3px 0 var(--text)); }
+}
+
+:root[data-reduced-motion="on"] .end-turn-button.nudge {
+    animation: none;
+    filter: drop-shadow(3px 0 0 var(--text)) drop-shadow(-3px 0 0 var(--text)) drop-shadow(0 3px 0 var(--text)) drop-shadow(0 -3px 0 var(--text));
+}

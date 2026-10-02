@@ -55,12 +55,12 @@ export default function MacroRack({
     if (!advanced && macros.every((id) => id === null)) return null;
     return (
         <div className="macro-rack" aria-label="Macros">
-            <div className="macro-rack-head">MACROS</div>
+            <div className="macro-rack-head k-display">MACROS</div>
             {macros.map((macroId, slot) => {
                 const macro = getMacro(macroId);
                 if (!macro) {
                     return (
-                        <div key={slot} className="macro-slot empty">
+                        <div key={slot} className="macro-slot empty k-slant">
                             <span className="macro-slot-index">{slot + 1}</span>
                             <span className="macro-slot-empty">empty</span>
                         </div>
@@ -82,7 +82,7 @@ export default function MacroRack({
                     <button
                         key={slot}
                         type="button"
-                        className={`macro-slot ${macro.rarity === 'Rare' ? 'rare' : ''} ${preview.ok ? '' : 'blocked'}`}
+                        className={`macro-slot k-slant ${macro.rarity === 'Rare' ? 'rare' : ''} ${preview.ok ? '' : 'blocked'}`}
                         disabled={!preview.ok}
                         // The tooltip carries the true number and the refusal, for the same reason
                         // `MarketplaceNode` prints what a player is short of: a silently inert
@@ -100,7 +100,7 @@ export default function MacroRack({
                     </button>
                 );
             })}
-            <div className="macro-rack-foot">free · single use</div>
+            <div className="macro-rack-foot k-display">free · single use</div>
         </div>
     );
 }

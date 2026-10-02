@@ -225,12 +225,29 @@ The stage is now `src/ui/components/stage/` (one small component per piece: `Bio
 3. End Turn: 200×50 yellow slant button, display 24. The 172 nudge (flash + light the playable card) keeps its behaviour and takes the yellow ring.
 4. `Callout` renders as the toast shape: navy bar, one sentence, no buttons; the "Got it / Skip tips" controls move to Settings as one "Show tips" switch (182 cut the copy; this moves the control).
 
+### 183d built (2026-10-02)
+
+The console's pieces are small components under `src/ui/components/console/` (`PileBacks`, `EndTurnButton`, `console.css`); `MacroRack.css` and `Callout.css` take the kit's shapes. Screenshots: `research/183-screens/183d/`. Where it differs from the row text above:
+
+- **Draw pile** is three navy backs with the `--panel-edge` frame and a yellow count plate on the corner; **discard** is a dashed slot with a white count plate, so the two tell apart without their labels.
+- **End Turn** is 200 x 50. The right-hand column was 96px and is now 200px wide, so the fan's room is 104px smaller (`CardHand` takes `END_TURN_COLUMN_PX`); the fan's overlap rule absorbs it. The nudge's flash is a ring of white hard shadows, because a yellow ring around a yellow button is nothing; the playable cards wear the amber ring from 183c.
+- **Macro chips** are 92 x 32, yellow (the energy yellow) when held, dim when blocked, dashed when empty. A rare macro has an ink bar along its foot. The macro's preview line (the true number, or why it is blocked) is kept as a second small line on the chip.
+- **The toast** (`Callout`) is a navy slanted bar with the light edge, one sentence, no border glow or shadow.
+- **Show tips** is the new switch in Settings beside "Show advanced content" (`showTips`, on by default, a setting about the person like the other). Off, the toast is not drawn and no tip is marked seen, so turning it back on resumes the lessons.
+- The words `MACROS` and `free · single use` are still the old ones; 183h renames them.
+
 ## 183e: Rows centred by party size (D5, ruled: build it)
 
 **Files:** `stageGeometry.ts`, `stageGeometry.test.ts`, `BattleStage.tsx`.
 
 1. `rowY(index, partySize)` = `62 + (3 − partySize) × 85 + index × 170`. `spriteRect` and `plaqueRect` take `partySize`; the stage passes the larger of the two sides at battle start and never changes it mid-battle, so §3's stability holds and 146's anchors stay valid.
 2. Tests: at 1280×800, 3v3 is pixel-identical to today; 1v1 puts both units on the middle row (y = 232); 2v2 at 147 and 317; a death does not move a row.
+
+### 183e built (2026-10-02)
+
+`rowY(index, partySize)` in `src/ui/components/stageGeometry.ts` is `62 + (3 - partySize) x 85 + index x 170`; `spriteRect` and `plaqueRect` take the same trailing `partySize` (default 3, so every old caller is unchanged). `useStageAnchors` passes `battleRowCount`, the larger side's size, so both sides share the same rows. Tests in `stageGeometry.test.ts` and `BattleStage.test.tsx`: 3v3 is pixel-identical, 1v1 is y=232, 2v2 is 147/317, and a death moves no row (the count is the size at the start of the fight, never the living count). Screenshots: `research/183-screens/183e/`, taken with the stage sheet's new `?party=N&foes=N`.
+
+- A lopsided fight (2 against 3) keeps three rows for both sides; the smaller side sits in the top rows rather than centring, so each row is a face-off. If you would rather each side centre on its own, say so: it is a change to what `battleRowCount` returns.
 
 ## 183f: The other screens
 

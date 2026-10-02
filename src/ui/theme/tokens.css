@@ -132,7 +132,7 @@
 /* -------------------------------------------------------------------------------------------
  * THE BIOME BACKDROP BANDS — ticket 183b. Sky, far hills, near hills, the ground, and the ground's
  * darker strips and horizon line. Three sets for the three shipped elements, plus Neutral.
- * Nature is the mock's own (Verdant Sprawl); Water is the Drowned Shelf's blues; Fire is the
+ * Nature is the battle mock's own (Verdant Sprawl); Water is sampled from the 183 map mock's Brinehollow panel; Fire is the
  * Slagfields' ochres. Platforms under the bodies are `--ground-2`, so they always sit on their
  * floor.
  * ---------------------------------------------------------------------------------------- */
@@ -154,11 +154,11 @@
 }
 
 [data-biome='water'] {
-    --sky: #9ccbe6;
-    --far: #7db0d2;
-    --near: #5b93bd;
-    --ground: #4f86a8;
-    --ground-2: #3f7190;
+    --sky: #9dbfd2;
+    --far: #6f98b0;
+    --near: #648aa6;
+    --ground: #5a82a0;
+    --ground-2: #4d7390;
 }
 
 [data-biome='fire'] {

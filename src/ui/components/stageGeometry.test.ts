@@ -17,7 +17,7 @@ import {
     ACTIVE_STEP, CONSOLE_H, EHP_OPEN_WIDTH, EHP_RIGHT_INSET, EHP_TAB_WIDTH, ENEMY_MIN_SHIFT,
     ENEMY_PANEL_GAP, PLAQUE_W, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, ROW_PITCH,
     SPRITE_H, SPRITE_MAX_W, SPRITE_W, STAGE_H, TOP_BAR_H,
-    consoleHeightAt, enemyShiftFor, place, plaqueRect, spriteRect, stageScale, spriteWidthAt,
+    battleRowCount, consoleHeightAt, enemyShiftFor, place, plaqueRect, rowY, spriteRect, stageScale, spriteWidthAt,
 } from './stageGeometry';
 
 /** Straight off the mock's final frame. ally 1 is the active one there, which is why it is at 330. */
@@ -270,5 +270,54 @@ describe('167g — enemyShiftFor', () => {
 
     it('survives a window too short to have a stage', () => {
         expect(Number.isFinite(enemyShiftFor(300, 20, false))).toBe(true);
+    });
+});
+
+describe('183e — the rows are centred by party size (D5, ruled)', () => {
+    it('a party of three is the mock, pixel for pixel, at 1280x800', () => {
+        expect([0, 1, 2].map((i) => rowY(i, 3))).toEqual([62, 232, 402]);
+        expect([0, 1, 2].map((i) => rowY(i))).toEqual([62, 232, 402]);
+        for (const side of ['ally', 'enemy'] as const) {
+            for (const i of [0, 1, 2]) {
+                expect(spriteRect(side, i, -1, 0, 3)).toEqual(spriteRect(side, i));
+                expect(place(spriteRect(side, i, -1, 0, 3), 1280, 800)).toEqual(place(spriteRect(side, i), 1280, 800));
+            }
+        }
+    });
+
+    it('a 1v1 puts both units on the middle row (y = 232)', () => {
+        expect(rowY(0, 1)).toBe(232);
+        expect(spriteRect('ally', 0, -1, 0, 1).y).toBe(232);
+        expect(spriteRect('enemy', 0, -1, 0, 1).y).toBe(232);
+        expect(plaqueRect('ally', 0, -1, 0, 1).y).toBe(232 + 48);
+    });
+
+    it('a 2v2 sits on 147 and 317', () => {
+        expect([0, 1].map((i) => rowY(i, 2))).toEqual([147, 317]);
+    });
+
+    it('keeps the pitch between rows whatever the size', () => {
+        for (const size of [1, 2, 3]) expect(rowY(1, size) - rowY(0, size)).toBe(ROW_PITCH);
+    });
+
+    it('is symmetric: the block is centred on the same line as the 3v3 block', () => {
+        const centre = (size: number): number => rowY(0, size) + ((size - 1) * ROW_PITCH) / 2;
+        expect(centre(1)).toBe(centre(3));
+        expect(centre(2)).toBe(centre(3));
+    });
+
+    it('rows move only in y: x is the mock\'s whatever the size', () => {
+        for (const size of [1, 2, 3]) {
+            expect(spriteRect('ally', 0, -1, 0, size).x).toBe(spriteRect('ally', 0).x);
+            expect(spriteRect('enemy', 0, -1, 0, size).x).toBe(spriteRect('enemy', 0).x);
+        }
+    });
+
+    it('draws the larger side\'s count, between one and three', () => {
+        expect(battleRowCount(1, 1)).toBe(1);
+        expect(battleRowCount(3, 1)).toBe(3);
+        expect(battleRowCount(1, 2)).toBe(2);
+        expect(battleRowCount(0, 0)).toBe(1);
+        expect(battleRowCount(5, 5)).toBe(3);
     });
 });

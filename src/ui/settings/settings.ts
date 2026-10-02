@@ -158,6 +158,15 @@ export interface ISettings {
      * OFF by default. Read it through `useAdvancedContent()`, never directly.
      */
     readonly showAdvancedContent: boolean;
+
+    /**
+     * ── SHOW TIPS — ticket 183d (it moves the control 182 cut off the toast). ──
+     *
+     * The one-line onboarding toasts (`Callout`). ON by default: a new player is the one they are
+     * for. Off draws none and marks none seen, so turning it back on resumes where they left off.
+     * About the PERSON, like Show advanced content. Read it through `useShowTips()`.
+     */
+    readonly showTips: boolean;
 }
 
 /**
@@ -190,12 +199,14 @@ export const SettingsSchema = z.object({
     showEnemyHand: z.boolean().default(true),
     // `.default(false)`: a blob written before 182 parses into the screens as a new player sees them.
     showAdvancedContent: z.boolean().default(false),
+    // `.default(true)`: a blob written before 183d parses into the behaviour that player had — tips on.
+    showTips: z.boolean().default(true),
 });
 
 export const DEFAULT_SETTINGS: ISettings = {
     reducedMotion: 'system', textScale: 1, autoSaveRunLog: false,
     particles: true, vfx: true, animations: true, battleLogs: true, combatSounds: true,
-    showEnemyHand: true, showAdvancedContent: false,
+    showEnemyHand: true, showAdvancedContent: false, showTips: true,
 };
 
 /** What `vfx` resolves to once reduced motion has had its say. */

@@ -24,96 +24,102 @@
     flex: 0 0 132px;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 6px;
     padding: 10px 8px;
     box-sizing: border-box;
-    border-right: 1px solid var(--panel-2);
-    background: rgba(0, 0, 0, 0.35);
 }
 
+/* TICKET 183d — the chips are the kit's: 92 x 32, display type, slanted. Yellow when a macro is
+   held (the energy yellow: it is a thing you can spend), a dim plate when the slot is empty. */
 .macro-rack-head,
 .macro-rack-foot {
-    font-size: 0.55rem;
-    font-weight: 900;
-    letter-spacing: 2px;
-    color: var(--text-faint);
-    text-align: center;
+    align-self: flex-start;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
 }
 
 .macro-slot {
+    --k-cut: 5px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-dim);
+    justify-content: center;
+    gap: 0;
+    box-sizing: border-box;
+    width: 92px;
+    height: 32px;
+    padding: 0 8px 0 10px;
+    border: none;
+    background: var(--energy);
+    color: var(--ink);
     font: inherit;
     text-align: left;
     cursor: pointer;
 }
 
+/* A rare macro is a heavier chip: a bar of ink along its foot. */
 .macro-slot.rare {
-    border-color: rgba(255, 204, 0, 0.45);
+    box-shadow: inset 0 -3px 0 var(--ink);
 }
 
 .macro-slot.empty {
-    /*
-     * TICKET 38 — THE OPACITY WENT, AND THE COLOURS SAY "EMPTY" INSTEAD.
-     *
-     * `opacity: 0.5` on the whole slot is why the first contrast fix here did nothing: axe measured
-     * the RENDERED colour at `#575552` when the sheet says `#a8a29a`, because a half-opaque element
-     * composites against the panel before anything reads it. Chasing that with a lighter ink cannot
-     * work — halving the contrast needs roughly four times the luminance, and the text was already
-     * past mid-grey.
-     *
-     * So the quietness is expressed in the colours themselves, which is also the more honest place
-     * for it: an empty slot should read as empty because of what it looks like, not because the
-     * whole element has been faded out along with its own border and its 9px label.
-     */
-    border-style: dashed;
-    border-color: rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.02);
+    background: transparent;
+    border: 2px dashed var(--panel-2);
     cursor: default;
 }
 
 .macro-slot.blocked,
 .macro-slot:disabled {
-    opacity: 0.5;
+    background: var(--panel-2);
+    color: var(--text-dim);
     cursor: not-allowed;
 }
 
+.macro-slot:focus-visible {
+    outline: none;
+    filter: drop-shadow(2px 0 0 var(--text)) drop-shadow(-2px 0 0 var(--text));
+}
+
 .macro-slot-index {
-    font-size: 0.5rem;
-    font-weight: 900;
-    letter-spacing: 1px;
-    color: var(--text-faint);
+    /* The slot number is the hotkey's answer; at 32px there is no room beside the name. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
 }
 
 .macro-slot-name {
-    font-size: 0.72rem;
+    font-family: var(--font-display);
     font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 14px;
+    line-height: 1;
+    white-space: nowrap;
 }
 
-.macro-slot-line,
-.macro-slot-empty {
-    font-size: 0.58rem;
-    color: var(--panel-edge);
-    line-height: 1.2;
+.macro-slot-line {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    font-size: 9px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .macro-slot-empty {
-    /*
-     * TICKET 38 — from `#8a837b`, which axe measured as a SERIOUS failure six times over (one per
-     * empty slot, per rack): the least important text on the screen, failing the most often, at
-     * 9.28px. It read as a rendering glitch rather than as a label.
-     *
-     * `#8d8880` against the rack's `#0b0b0f` clears 4.5:1 with the slot's `opacity` gone (see
-     * above — that opacity was the actual cause, and no ink could have out-run it). Still visibly
-     * quieter than `.macro-slot-line`'s cyan: an empty slot should recede, it just has to be
-     * legible while it does.
-     */
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    font-size: 12px;
     color: var(--text-faint);
 }

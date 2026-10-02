@@ -4,14 +4,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import { playSfx } from '../audio/AudioEngine';
 import { loadSettings, saveSettings } from '../settings/settings';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
+import { useShowTips } from '../settings/useShowTips';
 import {
-    SHOW_ADVANCED_HOVER, SHOW_ADVANCED_LABEL, SKIP_INTRO_HOVER, SKIP_INTRO_LABEL,
+    SHOW_ADVANCED_HOVER, SHOW_ADVANCED_LABEL, SHOW_TIPS_HOVER, SHOW_TIPS_LABEL,
+    SKIP_INTRO_HOVER, SKIP_INTRO_LABEL,
 } from '../settings/switches';
 import { setIntroDone } from '../store/gameSlice';
 import type { RootState } from '../store/store';
 
 /**
- * TICKET 182d — the two switches, in Settings (the starter screen of a new save has them too).
+ * TICKET 182d — the switches, in Settings (Show tips joined in 183d) (the starter screen of a new save has them too).
  *
  * **Skip intro** is about this save, so it is the ranch's `introDone`: shown only while the intro
  * has not been done, and turning it on sets it. **Show advanced content** is about the person, so
@@ -22,6 +24,7 @@ export default function GameSwitches(): ReactNode {
     const dispatch = useDispatch();
     const introDone = useSelector((state: RootState) => state.game.introDone ?? true);
     const advanced = useAdvancedContent();
+    const tips = useShowTips();
 
     const choices = (value: boolean, set: (next: boolean) => void): ReactNode => (
         <div className="settings-control settings-choices">
@@ -51,6 +54,10 @@ export default function GameSwitches(): ReactNode {
             <div className="settings-row" title={SHOW_ADVANCED_HOVER}>
                 <span className="settings-label">{SHOW_ADVANCED_LABEL}</span>
                 {choices(advanced, (next) => saveSettings({ ...loadSettings(), showAdvancedContent: next }))}
+            </div>
+            <div className="settings-row" title={SHOW_TIPS_HOVER}>
+                <span className="settings-label">{SHOW_TIPS_LABEL}</span>
+                {choices(tips, (next) => saveSettings({ ...loadSettings(), showTips: next }))}
             </div>
         </section>
     );

@@ -39,7 +39,7 @@ function unit(id: string, name: string, element: string, hp = 100): IBattleEntit
     } as unknown as IBattleEntity;
 }
 
-const TYPES = ['Dazed', 'Sharp', 'Burn', 'Poison', 'Strengthened', 'Weakened'] as const;
+const TYPES = ['Dazed', 'Sharp', 'Burn', 'Poison', 'Strengthened', 'Weakened', 'Regen', 'Asleep'] as const;
 /** n statuses with ascending stacks, so "which ones survive the budget" is decidable. */
 const statuses = (n: number) => Array.from({ length: n }, (_, i) => ({
     id: `s${i}`, type: TYPES[i], stacks: i + 2, duration: 3, sourceId: 'x',
@@ -81,6 +81,14 @@ function render(over: Over = {}, s: IBattleState = state()): string {
 }
 
 /** The inline `left:` of one slot or plaque, as rendered. */
+function topOf(markup: string, testId: string): number {
+    const at = markup.indexOf(`data-testid="${testId}"`);
+    expect(at, `${testId} is not on the stage`).toBeGreaterThan(-1);
+    const m = markup.slice(at, at + 400).match(/top:([0-9.]+)px/);
+    expect(m, `${testId} has no top`).not.toBeNull();
+    return Number(m![1]);
+}
+
 function leftOf(markup: string, testId: string): number {
     const at = markup.indexOf(`data-testid="${testId}"`);
     expect(at, `${testId} is not on the stage`).toBeGreaterThan(-1);
@@ -177,8 +185,8 @@ describe('145b — the plaque carries the statuses', () => {
 
     it('stops at the plaque budget and names the rest in a chip', () => {
         // The plaque's status row spends PLAQUE_CHIP_BUDGET plates; the `+k` chip is one of them, so
-        // six statuses show three and fold three.
-        const allies = [withStatuses(ALLIES[0], 6), ALLIES[1], ALLIES[2]];
+        // eight statuses show five and fold three.
+        const allies = [withStatuses(ALLIES[0], 8), ALLIES[1], ALLIES[2]];
         const markup = render({}, state(allies, ENEMIES));
         const plaque = markup.slice(
             markup.indexOf('data-testid="stage-plaque-p1"'),
@@ -186,16 +194,16 @@ describe('145b — the plaque carries the statuses', () => {
         );
         expect(plaque.match(/data-status="/g) ?? []).toHaveLength(PLAQUE_CHIP_BUDGET - 1);
         expect(plaque).toContain('hud-status-stacks');
-        expect(plaque).toContain(`+${6 - (PLAQUE_CHIP_BUDGET - 1)}`);
+        expect(plaque).toContain(`+${8 - (PLAQUE_CHIP_BUDGET - 1)}`);
     });
 
     it('keeps the DEEPEST piles when it has to hide any', () => {
         // The number a payoff card is waiting on must not be the one that falls off the end.
-        const allies = [withStatuses(ALLIES[0], 6), ALLIES[1], ALLIES[2]];
+        const allies = [withStatuses(ALLIES[0], 8), ALLIES[1], ALLIES[2]];
         const markup = render({}, state(allies, ENEMIES));
         const plaque = markup.slice(markup.indexOf('data-testid="stage-plaque-p1"'));
         const shown = plaque.slice(0, plaque.indexOf('hud-status-stacks'));
-        expect(shown).toContain('\u00d77');   // stacks 7, the deepest
+        expect(shown).toContain('\u00d79');   // stacks 9, the deepest
         expect(shown).not.toContain('\u00d72'); // stacks 2, the shallowest
     });
 
@@ -335,5 +343,42 @@ describe('monster art policy — no artwork while it is switched off', () => {
         const p2 = markup.slice(markup.indexOf('stage-plaque-p1'), markup.indexOf('stage-plaque-p2'));
         expect(p2).toContain('stage-platform is-active');
         expect(p2).toContain('monster-art-wip');
+    });
+});
+
+describe('183e — the rows are centred by party size', () => {
+    it('a 3v3 stands where the mock puts it', () => {
+        const markup = render();
+        expect([ 'p1', 'p2', 'p3' ].map((id) => topOf(markup, `stage-slot-${id}`))).toEqual([62, 232, 402]);
+        expect([ 'e1', 'e2', 'e3' ].map((id) => topOf(markup, `stage-slot-${id}`))).toEqual([62, 232, 402]);
+    });
+
+    it('a 1v1 stands on the middle row, both sides', () => {
+        const markup = render({}, state([ALLIES[0]], [ENEMIES[0]]));
+        expect(topOf(markup, 'stage-slot-p1')).toBe(232);
+        expect(topOf(markup, 'stage-slot-e1')).toBe(232);
+        expect(topOf(markup, 'stage-plaque-p1')).toBe(232 + 48);
+    });
+
+    it('a 2v2 stands on 147 and 317', () => {
+        const markup = render({}, state(ALLIES.slice(0, 2), ENEMIES.slice(0, 2)));
+        expect(topOf(markup, 'stage-slot-p1')).toBe(147);
+        expect(topOf(markup, 'stage-slot-p2')).toBe(317);
+        expect(topOf(markup, 'stage-slot-e1')).toBe(147);
+    });
+
+    it('a 3v1 keeps the three rows: the larger side sets the layout', () => {
+        const markup = render({}, state(ALLIES, [ENEMIES[0]]));
+        expect(topOf(markup, 'stage-slot-p1')).toBe(62);
+        expect(topOf(markup, 'stage-slot-e1')).toBe(62);
+    });
+
+    it('a death moves no row', () => {
+        const before = render({}, state(ALLIES, ENEMIES));
+        const dead = ENEMIES.map((e, i) => (i === 1 ? ({ ...e, currentHp: 0 } as IBattleEntity) : e));
+        const after = render({}, state(ALLIES, dead));
+        for (const id of ['p1', 'p2', 'p3', 'e1', 'e2', 'e3']) {
+            expect(topOf(after, `stage-slot-${id}`)).toBe(topOf(before, `stage-slot-${id}`));
+        }
     });
 });

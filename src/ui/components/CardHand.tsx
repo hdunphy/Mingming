@@ -20,6 +20,9 @@ import { useViewportSize } from '../hooks/useStageAnchors';
  * DOM read that would move the moment a count grew a digit.
  */
 const PILE_COLUMN_PX = 96;
+
+/** The right column is the End Turn button's width (183d: 200px), not the card back's. */
+const END_TURN_COLUMN_PX = 200;
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getEffectiveCardCost } from '../../engine/battleReducer';
 import { executeCostCalculated } from '../../engine/resolutionEngine';
@@ -31,6 +34,8 @@ import { describeLegalTargets } from '../utils/targeting';
 import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
 import HandCardFace from './HandCardFace';
+import { EndTurnButton } from './console/EndTurnButton';
+import { PileBacks } from './console/PileBacks';
 import DiscardPileViewer from './DiscardPileViewer';
 import DrawPileViewer from './DrawPileViewer';
 import { describeConditional, readCardConditionals } from '../utils/cardConditionals';
@@ -274,7 +279,7 @@ const CardHand: React.FC<{
     const [animate] = useState(() => resolveVfxGates(loadSettings()).animations);
     const cardSize = fanCardSize(scale);
     // The fan's share of the row: the console minus the two piles and the row's own padding.
-    const fanRoom = Math.max(320, viewport.width - 2 * (PILE_COLUMN_PX * scale) - 80);
+    const fanRoom = Math.max(320, viewport.width - (PILE_COLUMN_PX + END_TURN_COLUMN_PX) * scale - 80);
     const rowOverlap = fanOverlapFor(hand.length, cardSize.width, fanRoom);
 
     /*
@@ -307,10 +312,7 @@ const CardHand: React.FC<{
                 drawpile={battleState?.playerDeck.drawpile ?? []}
                 toggleTitle={drawTooltipLines(draw).join('\n')}
             >
-                <span className="pile-stack">
-                    <span className="pile-card pile-card-stacked" aria-hidden="true" />
-                    <span className="pile-count">{drawPileCount}</span>
-                </span>
+                <PileBacks kind="draw" count={drawPileCount} />
             </DrawPileViewer>
         </div>
     );
@@ -325,25 +327,17 @@ const CardHand: React.FC<{
               */}
             {/* 2026-09-25: the pile opens onto its cards - "what did the last card do". */}
             <DiscardPileViewer discard={battleState?.playerDeck.discard ?? []}>
-                <span className="pile-stack">
-                    <span className="pile-card" aria-hidden="true" />
-                    <span className="pile-count">{discardPileCount}</span>
-                </span>
+                <PileBacks kind="discard" count={discardPileCount} />
             </DiscardPileViewer>
             {/*
               * END TURN sits DIRECTLY UNDER THE DISCARD (§2c): the button and the pile it feeds
               * are one column rather than two things at opposite ends of the console.
               */}
-            <button
+            <EndTurnButton
                 disabled={!isOurTurn}
-                onClick={onEndTurn}
-                className={`action-button end-turn ${liveNudge ? 'nudge' : ''}`}
-                title={liveNudge
-                    ? `${liveNudge.cardIds.length} card${liveNudge.cardIds.length === 1 ? '' : 's'} can still be played — press again to end the turn`
-                    : undefined}
-            >
-                END TURN
-            </button>
+                onPress={onEndTurn}
+                nudgeCount={liveNudge ? liveNudge.cardIds.length : null}
+            />
         </div>
     );
 

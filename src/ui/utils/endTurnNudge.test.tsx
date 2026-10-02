@@ -108,7 +108,7 @@ describe('the slice and the hand', () => {
 
     it('flashes the button and lights only the playable card while nudged', () => {
         const markup = renderToStaticMarkup(<Provider store={storeWith({ turn: 3, cardIds: ['c1'] })}><CardHand /></Provider>);
-        expect(markup).toContain('action-button end-turn nudge');
+        expect(markup).toMatch(/class="end-turn-button [^"]*\bnudge\b/);
         expect(markup.match(/nudge-playable/g)).toHaveLength(1);   // the nudge on screen lit c1 only
         expect(markup).toContain('press again to end the turn');
 
