@@ -77,6 +77,7 @@ function makeRanch(overrides: Partial<IRanchState> = {}): IRanchState {
         seenTips: [],
         codexMilestones: [],
         runsCompleted: 0,
+        introDone: true,
         ...overrides,
     };
 }
@@ -295,6 +296,9 @@ describe('malformed persistent currency FAILS rather than emptying itself', () =
             seenTips: [],
             codexMilestones: [],
             runsCompleted: 0,
+            // Ticket 182c's added field, filled by its `.default(true)`: a save from before the
+            // intro existed is a player who already plays the normal game.
+            introDone: true,
         });
     });
 });

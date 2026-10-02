@@ -494,6 +494,16 @@ export interface IRunState {
     readonly eventFight?: boolean;
 
     /**
+     * TICKET 182c — which kind of run this is: the ordinary one, or the short hand-built intro a
+     * new player plays first. Add-only, `.default('normal')`, no version bump (the `seenTips`
+     * argument): a run saved before this field is an ordinary run, which is what the default says.
+     *
+     * The rest of the game never branches on this directly. It asks `introRules(run)`
+     * (`engine/run/intro/`), which is the single place that knows what an intro run allows.
+     */
+    readonly mode?: 'normal' | 'intro';
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -610,6 +620,16 @@ export interface IRanchState {
      * field is a player who has completed no runs, which is what the default says. No version bump.
      */
     readonly runsCompleted?: number;
+
+    /**
+     * TICKET 182c — has this save finished (or skipped) the intro run?
+     *
+     * `.default(true)`: a save written before this field is a player who already plays the normal
+     * game, so Henry's own save never sees the intro. A NEW save is created with `false`
+     * (`createEmptyRanch`). Ending the intro (win, lose or abandon) or switching "Skip intro" on
+     * sets it to `true`, and a save with `true` never sees the intro again.
+     */
+    readonly introDone?: boolean;
 }
 
 export interface IRanchMember {
@@ -723,6 +743,7 @@ export const RunStateSchema = z.object({
     patches: z.record(z.string(), z.array(z.string())).default({}),
     osOverrides: z.record(z.string(), z.string()).default({}),
     eventFight: z.boolean().default(false),
+    mode: z.enum(['normal', 'intro']).default('normal'),
     boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),
@@ -796,6 +817,7 @@ export const RanchStateSchema = z.object({
     codexMilestones: z.array(z.string()).default([]),
     // Ticket 59, same add-only shape as `seenTips` above: absent means zero completed runs.
     runsCompleted: z.number().int().min(0).default(0),
+    introDone: z.boolean().default(true),
 });
 
 /**

@@ -62,6 +62,7 @@ import { authoredBossFor } from './bosses';
 import { GYM_REGISTRY, gymCompElementPlan } from './gyms';
 import { nodeSeed } from './nodeSeed';
 import { gauntletDriversFor } from './tiers/gauntletDrivers';
+import { introRules } from './intro/introRules';
 
 // ---------------------------------------------------------------------------------------------
 // The shape of a gauntlet
@@ -350,6 +351,9 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
     const { run, node, fightIndex } = input;
 
     const seed = gauntletFightSeed(run, node, fightIndex);
+    // TICKET 182c: a run that authors its own leader (the intro) answers here, before the roster is drawn.
+    const authoredLeader = introRules(run).leader;
+    if (authoredLeader) return authoredLeader(run, node, seed);
     /*
      * ONE labelled stream, where `rollEncounter` forks two.
      *

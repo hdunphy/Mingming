@@ -18,6 +18,7 @@ import { PARTY_SIZE, partyBlockFor } from '../../party';
 import { recruitingBlocked } from '../modifiers/noRecruits';
 import { canGive, heldCards } from './eventGive';
 import { partyMembersOf } from './eventContext';
+import { introRules } from '../intro/introRules';
 import type { EventContext } from './eventContext';
 
 /** Cards from the party's reward pool of one rarity. */
@@ -46,6 +47,8 @@ export function workshopWouldOfferARecruit(ctx: EventContext): boolean {
     // TICKET 169h: this check never calls `planRecruit`, so No Recruits has to stop it here.
     if (recruitingBlocked(ctx.run)) return false;
     if (ctx.run.partyIds.length >= PARTY_SIZE) return false;
+    // TICKET 182c: a run that authors the recruit (the intro) offers it whatever the vault holds.
+    if (introRules(ctx.run).recruitOptions) return true;
     const party = partyMembersOf(ctx);
     return Object.entries(ctx.ranch.blueprints).some(([speciesId, count]) => count >= 1
         && (MingmingRegistry[speciesId]?.availableOS ?? []).some((osId) => (

@@ -22,6 +22,7 @@ import { nodeSeed } from '../nodeSeed';
 import type { IRegionNode, IRunState } from '../../runTypes';
 import { EVENTS } from './eventCatalogue';
 import { isEventEligible } from './eventEligibility';
+import { introRules } from '../intro/introRules';
 import { grantSpent, seenEventIds } from './eventState';
 import type { EventContext, EventRanchView } from './eventContext';
 import type { EventDefinition, EventRarity } from './eventSchema';
@@ -75,6 +76,10 @@ export function drawEvent(
     const built = options.built ?? BUILT_EVENTS;
     const eligible = options.isEligible ?? isEventEligible;
     const ctx: EventContext = { run, node, ranch };
+
+    // TICKET 182c: a run that authors its events (the intro's guaranteed recruit) skips the weighted draw.
+    const authored = introRules(run).eventFor?.(run, node);
+    if (authored) return authored;
 
     const seen = seenEventIds(run);
     const driverSpent = grantSpent(run, 'driver');
