@@ -5,12 +5,12 @@
  */
 import React from 'react';
 
-import { statusGlossary } from '../../../engine/data/statusGlossary';
 import type { StatusType } from '../../../engine/types';
 import { displayStacks } from '../../components/displayStacks';
 import { StatusTooltipPortal } from '../../components/StatusTooltip';
 import { useAnchoredRect } from '../../hooks/useAnchoredRect';
 import './kit.css';
+import { StatusIcon } from './StatusIcon';
 
 export interface StatusChipProps {
     readonly status: StatusType;
@@ -20,7 +20,6 @@ export interface StatusChipProps {
 export function StatusChip({ status, count }: StatusChipProps): React.ReactElement {
     const [hovered, setHovered] = React.useState(false);
     const { ref, rect } = useAnchoredRect<HTMLDivElement>(hovered);
-    const info = statusGlossary[status];
     const shown = displayStacks(count);
 
     return (
@@ -31,7 +30,7 @@ export function StatusChip({ status, count }: StatusChipProps): React.ReactEleme
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
-            <span className="k-chip-icon">{info?.icon ?? '✦'}</span>
+            <StatusIcon status={status} />
             {count > 1 && <span>×{shown}</span>}
             {hovered && rect !== null && <StatusTooltipPortal type={status} stacks={count} rect={rect} />}
         </div>

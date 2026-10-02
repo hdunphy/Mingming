@@ -78,10 +78,10 @@ describe('182a battle - the monster plate', () => {
         expect(host.querySelector('.stage-plaque .hud-os-version')).toBeNull();
     });
 
-    it('shows energy as pips, with no "N/N EP" text', async () => {
+    it('shows energy as a number in a hexagon, with no "N/N EP" text', async () => {
         const { host } = await open([FENRIR]);
         const plaque = host.querySelector('[data-testid="stage-plaque-p1"]')!;
-        expect(plaque.querySelector('.stage-plaque-pips')).not.toBeNull();
+        expect(plaque.querySelector('.k-energy[aria-label^="Energy"]')).not.toBeNull();
         expect(visible(plaque)).not.toMatch(/\bEP\b/);
     });
 });

@@ -178,6 +178,18 @@ Henry ruled a one-time sweep instead of a ratchet. About 600 hex colours in 38 f
 7. **Draw the 14 status icons** (Henry, 2026-10-02: "add it"). Today every status chip shows an emoji from `statusGlossary`, and emoji look different on every machine and ignore the kit's colours. Replace them with 14 flat single-colour SVG icons in one `statusIcons.tsx` file (one small component per icon, or one `StatusIcon({ type })` that picks), drawn on a 16×16 grid in `currentColor`, so a chip tints them. Same 14 statuses, same tooltips. Drawn as simple flat shapes in code, so the no-AI-pictures-to-artists rule above is not in play. Test: every `StatusType` that `statusGlossary` lists has an icon, and none renders an emoji.
 8. **Tests:** plaque renders every field for a 3v3 entity; a body with Bark Shield shows the band with its HP and no Bark Shield chip; tab shows N backs for N cards; backdrop picks the biome's set; `stageGeometry.test.ts` untouched.
 
+### 183b built (2026-10-02)
+
+The stage is now `src/ui/components/stage/` (one small component per piece: `BiomeBackdrop`, `Platform`, `CasterCursor`, `StageSprite`, `UnitPlaque`, `StatusChipRow`, `TargetFlag`, `StageSlot`) and the top band is `src/ui/components/topbar/` (`TurnChip`, `PlayedChip`, `BiomeSign`, `SettingsGear`). `BattleStage.tsx` keeps the anchors, the active ally and the enemy-hand shift. The 14 status icons (item 7 above) are drawn as `StatusIcon` and replace every status emoji on the plaque, the HUD badges and the chips. Screenshots: `research/183-screens/183b/`. Where it differs from the row text above:
+
+- The plaque stays **168px**, the width `stageGeometry` already publishes. 176 would be a geometry change, which is 183e's alone. The HP bar is 74px so `1110/1110` clears the slanted edge.
+- The plaque's element badge is the **symbol only**; the word is its hover text. Name, badge and gear do not fit with a word at 168px.
+- The chip row shows three chips, and a fourth status folds into a `+k` chip (its hover lists them). Four plates did not fit beside the energy hexagon.
+- Target feedback: a legal target the pointer is not over shows **nothing**; the hovered one shows the yellow cursor and the words. An illegal target shows "Can't target" with the reason as its hover.
+- The Water and Fire band sets are mine (the mock drew Nature only). Neutral and "no biome" share one grey-blue set.
+- Not in this row: the HUD sidebar cards (`MingmingUnit` HUD path), and the particle layer's own glow, still carry their old paint until a later row touches them.
+- `stage.html` (dev only, like `kit.html`) mounts a real battle for the screenshots.
+
 ## 183c: The card
 
 **Files:** `screens/CardChassis.tsx` (`CardFace`, `TypeMark`, `ElementMark` call sites), `components/HandCardFace.tsx`, `components/CardHand.tsx` (paint only), `index.css` (`.rs-*` rules), `CardPeek.tsx`.

@@ -1,0 +1,197 @@
+/*
+ * THE TOP BAR, IN THE SLANT KIT — ticket 183b. 44px of geometry (`TOP_BAR_H`), but nothing fills it:
+ * the turn chip sits at the left, the event toast takes the slack, the biome sign and the Settings
+ * button sit at the right, and the scene shows between them. Those parts overhang the 44px a little,
+ * as the mock does; the stage's geometry is unchanged.
+ *
+ * The bar is `position: absolute` and takes no room in the flow, so it OVERLAYS the stage: 145c's
+ * rule, kept. Colours are tokens only.
+ */
+
+.battle-topbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 6px 14px 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 1500;
+    color: var(--text);
+}
+
+/* The bar is a strip over the scene, not a surface: only its parts take the pointer. */
+.battle-topbar > * { pointer-events: auto; }
+
+.battle-topbar-turn { flex: none; width: 64px; height: 52px; }
+
+.battle-topbar-turn-body {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.battle-topbar-turn-label { font-size: 11px; color: var(--text-mute); }
+.battle-topbar-turn-body b { font-size: 28px; line-height: 1; font-weight: 800; }
+
+/* PLAYED n and the gauntlet label: small plates beside the turn chip. */
+.battle-topbar-played,
+.battle-topbar-place {
+    --k-cut: 5px;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    height: 28px;
+    margin-top: 4px;
+    padding: 0 12px;
+    background: var(--panel);
+    color: var(--text-mute);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.battle-topbar-played b,
+.battle-topbar-place b { color: var(--text); font-weight: 800; margin-left: 4px; }
+.battle-topbar-played.is-live { background: var(--panel-3); }
+
+/* The event line: a navy toast that takes the slack, so the plates keep their size and the
+   SENTENCE is what shortens on a narrow window. Pressing it opens the combat log. */
+.battle-topbar-log {
+    --k-cut: 8px;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    margin-top: 5px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 0;
+    background: var(--panel);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.battle-topbar-log-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.battle-topbar-chevron { color: var(--text-mute); flex: none; }
+.battle-topbar-log:hover .battle-topbar-chevron { color: var(--text); }
+
+.battle-topbar-biome { flex: none; width: 230px; height: 40px; margin-top: 4px; }
+
+.battle-topbar-biome-body {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    font-size: 16px;
+}
+
+.battle-topbar-gear-panel { flex: none; width: 48px; height: 48px; }
+
+.battle-topbar-gear {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.battle-topbar-gear:hover { color: var(--text-mute); }
+
+/* The bar swallowed AudioControls once; its own fixed positioning has to stop applying inside it. */
+.battle-topbar .audio-controls { position: static; flex: 0 0 auto; }
+
+/* ---- the Drivers row (145c section 2a) -----------------------------------------------------
+   A Driver is the gym leader's standing rule for the WHOLE run, and a rule you cannot see is a rule
+   you cannot play around. Each chip carries its rule text as the tooltip and flashes when it
+   procs. Not a unit's daemons, which live on its plaque. */
+.battle-drivers {
+    position: absolute;
+    top: 66px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 1400;
+}
+
+.battle-drivers-label {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.battle-driver-chip {
+    --k-cut: 5px;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
+    border-left: 3px solid var(--panel-edge);
+    box-sizing: border-box;
+    background: var(--panel);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: help;
+    white-space: nowrap;
+}
+
+.battle-driver-chip i {
+    width: 7px;
+    height: 7px;
+    flex: none;
+    background: var(--panel-edge);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+/* Ticket 16: the PROC-VISIBLE law's other half. `BattleTopBar` re-keys the chip on every
+   DRIVER_PROC it hears for that Driver, so the animation restarts even when two procs land in the
+   same second. Colour only: the float on the unit is the motion. */
+.battle-driver-chip.is-proc { animation: driver-chip-proc 900ms steps(4, end); }
+
+@keyframes driver-chip-proc {
+    0% { background: var(--panel-edge); color: var(--ink); }
+    100% { background: var(--panel); color: var(--text); }
+}
+
+/* Past three Drivers the chips go icon-only with the name on hover (section 2a): five named chips
+   is a second top bar. */
+.battle-drivers:has(.battle-driver-chip:nth-child(5)) .battle-driver-chip {
+    padding: 0 8px;
+    font-size: 0;
+    gap: 0;
+}

@@ -8,7 +8,7 @@ interface MonsterArtPlaceholderProps {
 }
 
 /**
- * The "art is not ready" block: a dashed box that says WIP, in the unit's own accent colour.
+ * The "art is not ready" block: a blob that says ART PENDING, in the unit's own accent colour.
  *
  * It draws nothing but the block. Whether to draw it instead of a sprite is
  * `MONSTER_ART_ENABLED`'s call, and what the surrounding frame does (animation, rim light, dead
@@ -16,8 +16,8 @@ interface MonsterArtPlaceholderProps {
  */
 const MonsterArtPlaceholder: React.FC<MonsterArtPlaceholderProps> = ({ className = '', style }) => (
     <div className={`wip-art-block ${className}`.trim()} style={style} data-testid="monster-art-wip" aria-label="Artwork in progress">
-        <span className="wip-art-tag">WIP</span>
-        <span className="wip-art-sub">ART</span>
+        <span className="wip-art-tag">ART</span>
+        <span className="wip-art-sub">PENDING</span>
     </div>
 );
 

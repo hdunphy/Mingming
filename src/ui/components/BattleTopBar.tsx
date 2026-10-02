@@ -8,7 +8,11 @@ import { CounterPip } from './CounterPip';
 import { readDriverCounter } from '../counters/readCounter';
 import { globalBattleEventBus } from '../../engine/events';
 
-import { Icon } from '../theme/Icon';
+import { BiomeSign } from './topbar/BiomeSign';
+import { PlayedChip } from './topbar/PlayedChip';
+import { SettingsGear } from './topbar/SettingsGear';
+import { TurnChip } from './topbar/TurnChip';
+import './topbar/topbar.css';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
 import { introRules } from '../../engine/run/intro/introRules';
 import { deckScalesWithCardsPlayed } from '../utils/cardsPlayedScaling';
@@ -123,7 +127,7 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
     return (
         <>
             <div className="battle-topbar" data-testid="battle-topbar">
-                <span className="pill battle-topbar-turn">TURN <b>{battleState.turn}</b></span>
+                <TurnChip turn={battleState.turn} />
                 {/*
                   * TICKET 182a — the "YOUR MOVE / ENEMY MOVE" pill is gone from the screen: the hand
                   * being playable already says it. Screen readers still get it, as a polite
@@ -137,12 +141,7 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                   */}
                 {/* TICKET 182b: drawn only when a card in the deck scales with it (or Show advanced content). */}
                 {(advanced || deckScalesWithCardsPlayed(battleState)) && (
-                    <span
-                        className={`pill battle-topbar-played ${battleState.cardsPlayedThisTurn > 0 ? 'is-live' : ''}`}
-                        title="Cards you have played this turn — what stampede, momentum crash and the other per-card scalers multiply by."
-                    >
-                        PLAYED <b>{battleState.cardsPlayedThisTurn}</b>
-                    </span>
+                    <PlayedChip played={battleState.cardsPlayedThisTurn} />
                 )}
 
                 {/* TICKET 182c: the intro has no combat log, so no chevron to open one. */}
@@ -171,9 +170,13 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
 
                 {/* TICKET 182a: no volume slider here - volume lives in Settings (the gear, right). */}
                 {place && (
-                    <span className="pill battle-topbar-place">
+                    <span className="k-slant k-display battle-topbar-place" style={{ ['--k-cut' as string]: '5px' }}>
                         {place}{grade ? <> · <b>{grade}</b></> : null}
                     </span>
+                )}
+                {/* TICKET 183b: the biome's name, said once, in words (it was a faint line on the backdrop). */}
+                {battleState.biomeName && (
+                    <BiomeSign name={battleState.biomeName} element={battleState.biomeElement ?? 'None'} />
                 )}
                 {/*
                   * TICKET 155, DEEP DIVE 3 — the gear was a `<span>` with no handler: a settings
@@ -181,15 +184,7 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                   * where a player reaches for the motion switches (146a's three), so it is worth
                   * more here than on any other screen.
                   */}
-                <button
-                    type="button"
-                    className="battle-topbar-gear"
-                    title="Settings"
-                    aria-label="Settings"
-                    onClick={onOpenSettings}
-                >
-                    <Icon name="settings" />
-                </button>
+                <SettingsGear onOpen={onOpenSettings} />
             </div>
 
             {/*

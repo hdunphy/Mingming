@@ -2,12 +2,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { StatusChip } from './StatusChip';
-import { statusGlossary } from '../../../engine/data/statusGlossary';
 
 describe('StatusChip (183a)', () => {
-    it('shows the glossary icon and the stack count past one', () => {
+    it('shows the status icon and the stack count past one', () => {
         const html = renderToStaticMarkup(<StatusChip status="Burn" count={4} />);
-        expect(html).toContain(statusGlossary.Burn.icon);
+        expect(html).toContain('data-status-icon="Burn"');
         expect(html).toContain('×4');
         expect(html).toContain('data-status="Burn"');
     });

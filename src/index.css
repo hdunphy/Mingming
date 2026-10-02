@@ -103,7 +103,6 @@ body {
   padding: 0 40px;
   position: relative;
   background: var(--page);
-  box-shadow: inset 0 -20px 40px rgba(0, 0, 0, 0.5);
   z-index: 10;
 }
 
@@ -2869,174 +2868,6 @@ body {
    what Henry cut from the bar, and 145d puts each count on the pile it counts.
    ═══════════════════════════════════════════════════ */
 
-.battle-topbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 14px;
-  background: rgba(5, 5, 8, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.69rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-mute);
-  z-index: 1500;
-}
-
-.battle-topbar .pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(18, 18, 24, 0.75);
-  color: var(--text-dim);
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-.battle-topbar .pill b { color: var(--panel-edge); font-weight: 600; }
-
-/* PLAYED n is a plain number, not pips, and §2a is precise rather than lazy about
-   it: draws mean there is no known maximum, so a pip row would draw a denominator
-   the game does not have. Ticket 22 chose pips for ENERGY for the mirror reason. */
-.battle-topbar-played b { color: var(--text-faint); }
-.battle-topbar-played.is-live { border-color: rgba(255, 204, 0, 0.45); }
-.battle-topbar-played.is-live b { color: var(--amber); }
-
-/* The log line takes the slack, so the pills keep their size and the SENTENCE is
-   what shortens on a narrow window. */
-.battle-topbar-log {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-dim);
-  font: inherit;
-  letter-spacing: 0;
-  text-transform: none;
-  font-size: 0.75rem;
-  padding: 0;
-}
-
-.battle-topbar-log-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.battle-topbar-chevron { opacity: 0.6; flex: 0 0 auto; }
-.battle-topbar-log:hover { color: var(--text); }
-.battle-topbar-log:hover .battle-topbar-chevron { opacity: 1; }
-
-.battle-topbar-place { letter-spacing: 0.12em; }
-
-.battle-topbar-gear {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(18, 18, 24, 0.75);
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-
-/* The bar swallowed AudioControls, so its own fixed positioning has to stop
-   applying inside the strip. */
-.battle-topbar .audio-controls { position: static; flex: 0 0 auto; }
-
-/* ── The Drivers row (§2a) ──
-   A Driver is the gym leader's standing rule for the WHOLE run. Ticket 68 ruling
-   4 put it on the offer screen because the route is irreversible; this is the
-   other half — it is still true while you are fighting, and a rule you cannot see
-   is a rule you cannot play around. Not a unit's daemons, which live on its
-   plaque. */
-.battle-drivers {
-  position: absolute;
-  top: 54px;
-  left: 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  z-index: 1400;
-}
-
-.battle-drivers-label {
-  font-size: 0.6rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.battle-driver-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(124, 58, 237, 0.55);
-  background: rgba(124, 58, 237, 0.12);
-  color: var(--text-dim);
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: help;
-  white-space: nowrap;
-}
-
-.battle-driver-chip i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--select);
-  box-shadow: 0 0 6px var(--select);
-}
-
-/* Ticket 16: the PROC-VISIBLE law's other half. `BattleTopBar` re-keys the chip on every
-   DRIVER_PROC it hears for that Driver, so the animation restarts even when two procs land in
-   the same second. Colour, not motion, for the chip itself — the float on the unit is the motion. */
-.battle-driver-chip.is-proc {
-  animation: driver-chip-proc 900ms ease-out;
-}
-
-.battle-driver-chip.is-proc i {
-  animation: driver-dot-proc 900ms ease-out;
-}
-
-@keyframes driver-chip-proc {
-  0%   { background: rgba(196, 181, 253, 0.85); border-color: var(--text); color: var(--panel); box-shadow: 0 0 18px rgba(167, 139, 250, 0.9); }
-  35%  { background: rgba(167, 139, 250, 0.45); border-color: var(--text-dim); color: var(--text); box-shadow: 0 0 12px rgba(167, 139, 250, 0.6); }
-  100% { background: rgba(124, 58, 237, 0.12); border-color: rgba(124, 58, 237, 0.55); color: var(--text-dim); box-shadow: none; }
-}
-
-@keyframes driver-dot-proc {
-  0%   { transform: scale(2.2); background: var(--text); box-shadow: 0 0 14px var(--text); }
-  100% { transform: scale(1); background: var(--select); box-shadow: 0 0 6px var(--select); }
-}
-
-/* Past three Drivers the chips go icon-only with the name on hover (§2a): five
-   named chips is a second top bar. */
-.battle-drivers:has(.battle-driver-chip:nth-child(5)) .battle-driver-chip {
-  padding: 0 8px;
-  font-size: 0;
-  gap: 0;
-}
-
 /* ═══════════════════════════════════════════════════
    BATTLE STAGE — the stagger stage (ticket 145a)
 
@@ -3053,68 +2884,6 @@ body {
    obvious fix in the same breath, *"we need vertical spacing for the
    Mingmings, otherwise the card draw becomes an issue."*
    ═══════════════════════════════════════════════════ */
-
-/* ── The backdrop (ticket 145f §2b) ──
-   The MINIMUM that makes the stage read as a place: the biome's name, three shafts of its light,
-   a haze at the foot and a ground line. Art is steam-release 33/34 and motion is 146; this is the
-   floor under both, and everything in it takes `--biome` so the thing that changes between biomes
-   is the thing the player already tracks. */
-.stage-backdrop {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.stage-shaft {
-  position: absolute;
-  top: -40px;
-  width: 140px;
-  height: 520px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--biome) 10%, transparent), transparent);
-  transform: skewX(-12deg);
-  filter: blur(6px);
-}
-
-.stage-haze {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 140px;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--biome) 8%, transparent));
-}
-
-.stage-ground {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--biome) 40%, transparent), transparent);
-}
-
-/* ── TICKET 155, DEEP DIVE 6 — CLEAR OF THE TOP BAR.
-
-   `.battle-topbar` is `position: absolute; top: 0` and therefore takes no room
-   in the flow, so `.stage-area` — and the backdrop inside it — starts at the
-   VIEWPORT top rather than under the bar. `top: 14px` put the biome's name on
-   the same line as the combat log.
-
-   `44px` is `TOP_BAR_H`, the same constant `stageGeometry` uses. Stated here
-   because the bar overlays rather than displaces: every other child of the
-   stage is placed by `place()`, which already adds it. */
-.stage-biome-name {
-  position: absolute;
-  left: 50%;
-  top: 58px;
-  transform: translateX(-50%);
-  font-size: 0.62rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--biome) 70%, transparent);
-}
 
 /* ── The reveal lane's card (ticket 145f §2b) ──
    148x196 at -4 degrees. The tilt is doing work: an upright card in the middle of an upright board
@@ -3242,263 +3011,6 @@ body {
   pointer-events: none;
   z-index: 61;
 }
-
-.stage-slot {
-  position: absolute;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  pointer-events: auto;
-  cursor: pointer;
-  user-select: none;
-}
-
-.stage-floor {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* ── The sprite frame: the relative box the shared FX overlays mount into.
-   Sized inline from the slot, because six of these exist at once now and the
-   cap at 190px (§4.1) is arithmetic, not a media query. ── */
-.stage-sprite-frame {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 2;
-}
-
-.stage-art {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-}
-
-/* The WIP block stands in for a monster's artwork (see monsterArtPolicy.ts). It keeps the old
-   fallback's footprint and inline state styling (accent, rim light, dead dimming), so a
-   placeholder unit still reads as acting or dead. */
-.wip-art-block {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border: 2px dashed currentColor;
-  border-radius: 10px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  user-select: none;
-  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 8px, transparent 8px 16px);
-}
-
-.wip-art-sub {
-  font-size: 0.45em;
-  font-weight: 700;
-  opacity: 0.7;
-}
-
-.stage-art-wip {
-  width: 78%;
-  aspect-ratio: 1;
-  font-size: 2.2rem;
-}
-
-/* TICKET 145b: the dead state is a filter on the ART, not an opacity on the frame — an opacity
-   here would fade the TERMINATED stamp with it, and ticket 34 settled that the stamp keeps its
-   neon red. §2b asks for a 40%-brightness silhouette; `StageSprite` applies it. This class stays
-   as the hook 146 will want for the death beat. */
-.stage-sprite-dead { }
-
-.stage-death-glitch { animation: stage-glitch 0.5s steps(2, end) 3; }
-
-@keyframes stage-glitch {
-  0% { transform: translateX(0); filter: none; }
-  50% { transform: translateX(-4px); filter: hue-rotate(90deg) saturate(3); }
-  100% { transform: translateX(0); filter: none; }
-}
-
-.stage-sprite-frame .hud-float-damage { font-size: 1.6rem; }
-.stage-sprite-frame .hud-float-crit { font-size: 2rem; }
-.stage-sprite-frame .hud-float-heal { font-size: 1.5rem; }
-.stage-sprite-frame .hud-float { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
-.stage-sprite-frame .hud-hit-flash,
-.stage-sprite-frame .hud-heal-pulse { border-radius: 50%; }
-.stage-sprite-frame .hud-status-ring { border-radius: 50%; }
-
-/* ── Plaque: `rgba(18,18,24,.85)` on a 1px hairline (§2b). Positioned by the
-   geometry module, sized by its content — a name is as long as it is. ── */
-.stage-plaque {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  background: rgba(18, 18, 24, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  backdrop-filter: blur(10px);
-  pointer-events: none;
-  z-index: 62;   /* see the ladder at .battle-stage */
-  box-sizing: border-box;
-}
-
-/* The active ally's border takes its element colour, set inline. On the plaque
-   rather than the sprite: it reads at a glance without touching the art. */
-.stage-plaque-active {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-
-.stage-plaque-dead { opacity: 0.45; }
-
-.stage-plaque-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: 0.83em;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.stage-plaque-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-}
-
-.stage-plaque-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.stage-plaque-value {
-  font-size: 0.83em;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-  margin-left: auto;
-  white-space: nowrap;
-}
-
-/* EP as PIPS, not a bar (§2b). Ticket 22 settled the argument on the HUD card:
-   "roughly two-thirds of a 6px bar" is not a number a player can plan a turn
-   with, and a countable pip is. */
-.stage-plaque-pips { display: flex; gap: 3px; }
-
-.stage-plaque-pips i {
-  width: 14px;
-  height: 6px;
-  border-radius: 2px;
-  background: var(--el-water);
-  display: block;
-}
-
-.stage-plaque-pips i.off { background: var(--panel); }
-
-/* The plaque's status row. The plaque is `pointer-events: none` so it can never eat a drag aimed
-   at the sprite behind it — but a badge whose tooltip cannot be hovered has stopped explaining
-   itself, so the row alone takes them back. */
-.stage-plaque-statuses {
-  pointer-events: auto;
-  margin-left: 0;
-  flex-shrink: 0;
-}
-
-/* TICKET 145b (second pass) — the three readouts Henry asked back onto the plaque.
-
-   The name row now carries the firmware chip, so the NAME is the item that gives up width: the
-   chip is a fixed 34px and a species name is as long as it is. */
-.stage-plaque-name-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.stage-plaque-name .hud-os-icon-container {
-  margin-left: auto;
-  pointer-events: auto;
-  flex: 0 0 auto;
-}
-
-/* Daemons get their own row: a daemon is NAMED, not iconified, and a word does not share 152px
-   with four status badges. Wraps rather than clips — two daemons is the shipped maximum. */
-.stage-plaque-daemons {
-  pointer-events: auto;
-  margin: 0;
-  flex-wrap: wrap;
-}
-
-/* THE PREVIEW IS OUT OF FLOW. Not cosmetic: it appears and disappears as the pointer crosses a
-   target, and a plaque that changed height on hover would move every row under it on a board
-   whose geometry ticket 145 3 promises holds still. Anchored under the plaque instead. */
-.stage-plaque-preview {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  pointer-events: none;
-  z-index: 7;
-}
-
-.stage-preview-row {
-  position: static;
-  transform: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-/* The damage the held card would do, inline in the HP readout — the same `(-N)` the HUD card
-   printed, in the same red. */
-.stage-plaque-preview-hp { color: var(--hp-low); }
-
-.stage-bar-track {
-  flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--panel);
-  overflow: hidden;
-  min-width: 0;
-}
-
-.stage-bar-fill { height: 100%; border-radius: 3px; }
-
-/* Ticket 22's before-you-commit verdict, unchanged in substance — it just has
-   six places to appear now instead of two. */
-.stage-slot-legal .stage-sprite-frame { filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.5)); }
-.stage-slot-illegal .stage-sprite-frame { opacity: 0.55; }
-.stage-slot-targeted .stage-sprite-frame { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.55)); }
-
-.stage-target-flag {
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  padding: 2px 8px;
-  border-radius: 4px;
-  z-index: 8;
-}
-
-.stage-target-flag.legal { background: rgba(34, 197, 94, 0.85); color: color-mix(in srgb, var(--hp) 25%, var(--panel)); }
-.stage-target-flag.illegal { background: rgba(239, 68, 68, 0.85); color: var(--text); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TICKET 22 — 3v3 GAME-SIDE COMPLETION
@@ -3697,49 +3209,6 @@ body {
 
 .draw-pile {
   cursor: help;
-}
-
-/* Stage spotlights carry the same verdict as the sidebar cards (ticket 22). The
-   spotlight is a drop surface, so it owes the same answer.
-
-   `.stage-spot` is deliberately NOT re-declared here. It is already
-   `position: absolute` (see ~line 2345), which is a containing block, and a later
-   `position: relative` at equal specificity would silently drop both spotlights out
-   of their `left: 17%` / `right: 13%` placement and collapse the stage into flow.
-   The flag anchors off the existing absolute box. */
-.stage-spot-illegal .stage-sprite-frame {
-  opacity: 0.5;
-  filter: saturate(0.3);
-}
-
-.stage-target-flag {
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 90%;
-  padding: 3px 9px;
-  border-radius: 4px;
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  line-height: 1.35;
-  text-align: center;
-  pointer-events: none;
-  z-index: 40;
-}
-
-.stage-target-flag.legal {
-  color: var(--hp);
-  background: rgba(6, 26, 14, 0.92);
-  border: 1px solid rgba(34, 197, 94, 0.6);
-}
-
-.stage-target-flag.illegal {
-  color: var(--text-dim);
-  background: rgba(30, 8, 8, 0.94);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  font-weight: 600;
 }
 
 /* ============================================================================================
@@ -3964,28 +3433,46 @@ body {
   left: -1px;
   top: -1px;
   width: 34px;
-  height: 150px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 6px 0 0 6px;
-  background: var(--page);
+  min-height: 150px;
+  box-sizing: border-box;
+  padding: 8px 0;
+  border: 0;
+  border-left: 2px solid var(--panel-edge);
+  border-radius: 0;
+  background: var(--panel);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   cursor: pointer;
 }
-.ehp-tab span {
-  /* Rotated rather than `writing-mode`: the mock's, and it keeps the count upright beside the
-     label instead of standing every digit on its side. */
-  transform: rotate(-90deg);
+.ehp-tab-label {
+  /* The mock's vertical label: it runs bottom to top, and the count stays upright with it. */
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
   white-space: nowrap;
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-mute);
 }
-.ehp-tab b { color: var(--amber); margin-left: 6px; }
-.ehp-tab:hover span,
-.ehp-tab:focus-visible span { color: var(--text); }
+.ehp-tab b { color: var(--text); margin-bottom: 4px; }
+.ehp-tab:hover .ehp-tab-label,
+.ehp-tab:focus-visible .ehp-tab-label { color: var(--text); }
+
+/* One small element-coloured card back per card in the enemy's hand (183b, D6). */
+.ehp-backs { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ehp-back {
+  --k-cut: 3px;
+  display: block;
+  width: 18px;
+  height: 24px;
+  background: var(--k-el);
+  clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+}
 
 /* The panel's content clears the tab that is sitting on its left edge. */
 .ehp-inner {
@@ -4024,3 +3511,25 @@ body {
    overlay updates the fight underneath it immediately rather than at the next fight. */
 :root[data-enemy-hand='off'] .ehp { display: none; }
 .ehp-unknown .rs-g { background: var(--panel-2); color: var(--text-mute); }
+
+/* ART PENDING (shared base): the block a commissioned sprite replaces. The stage's flat version
+   overrides the look in `stage/stage.css`; the HUD card still draws this one. */
+.wip-art-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 2px dashed currentColor;
+  border-radius: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  user-select: none;
+}
+
+.wip-art-sub {
+  font-size: 0.45em;
+  font-weight: 700;
+  opacity: 0.7;
+}

@@ -279,3 +279,35 @@ describe('159b — the enemy hand panel', () => {
         expect(text).not.toMatch(/\btarget/i);
     });
 });
+
+describe('183b — the closed tab draws the hand as card backs (D6)', () => {
+    const backs = () => [...container.querySelectorAll('.ehp-tab .ehp-back')] as HTMLElement[];
+
+    it('shows one back per card in the hand, coloured by its element', () => {
+        render(board([...card('ignite'), ...card('growth'), ...card('ignite')]));
+        const els = backs().map((b) => b.style.getPropertyValue('--k-el'));
+        expect(els).toHaveLength(3);
+        // Two copies of one card and one of another: two colours, one of them twice.
+        const counts = Object.values(els.reduce<Record<string, number>>((m, e) => ({ ...m, [e]: (m[e] ?? 0) + 1 }), {}));
+        expect(counts.sort()).toEqual([1, 2]);
+        for (const e of els) expect(e).toMatch(/^var\(--el-(fire|water|nature|none)\)$/);
+    });
+
+    it('draws a Neutral back for a card whose identity is not known yet, so the backs add up to the count', () => {
+        render(previewBoard(card('ignite', 1), card('growth', 4)));
+        const label = container.querySelector('.ehp-tab-label')!.textContent!;
+        const total = Number(label.match(/(\d+)\s*$/)![1]);
+        expect(backs()).toHaveLength(total);
+    });
+
+    it('caps the backs at eight, and the number on the tab is still the whole count', () => {
+        render(board(card('ignite', 11)));
+        expect(backs()).toHaveLength(8);
+        expect(container.querySelector('.ehp-tab')!.textContent).toContain('11');
+    });
+
+    it('draws no backs for an empty hand', () => {
+        render(board([]));
+        expect(backs()).toHaveLength(0);
+    });
+});

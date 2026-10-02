@@ -154,9 +154,14 @@
     font-size: 12px;
 }
 
-.k-chip-icon {
-    font-size: 12px;
-    line-height: 1;
+/* The status glyphs (`StatusIcon`): strokes in the chip's own colour. */
+.k-status-icon {
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 /* ---- SlantPanel --------------------------------------------------------------------------- */

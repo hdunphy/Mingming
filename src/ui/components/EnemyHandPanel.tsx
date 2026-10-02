@@ -43,6 +43,7 @@ import { CardPeek } from '../screens/CardPeek';
 import { useCardPeek } from '../hooks/useCardPeek';
 import { colorFor } from '../screens/runShell';
 import { playSfx } from '../audio/AudioEngine';
+import { EnemyHandBacks } from './EnemyHandBacks';
 import { enemyHandView, stackHand } from './enemyHand';
 
 interface Props {
@@ -84,6 +85,11 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState, open, onToggle }) => {
      */
     if (!battleState || battleState.enemyMode !== 'CARDS') return null;
 
+    // One back per card, coloured by its element; the reshuffle tail (identity unknown) and any card
+    // the registry no longer knows are Neutral, so the backs always add up to the tab's count.
+    const known = stacks.flatMap((stack) => Array.from({ length: stack.count }, () => stack.element));
+    const backs = [...known, ...Array.from({ length: Math.max(0, total - known.length) }, () => 'None')];
+
     const previewing = view.source === 'PREVIEW';
     const label = previewing && total > 0 ? 'ENEMY DRAWS' : 'ENEMY HAND';
 
@@ -119,7 +125,8 @@ const EnemyHandPanel: React.FC<Props> = ({ battleState, open, onToggle }) => {
                 aria-controls="enemy-hand-panel"
                 onClick={() => { playSfx('uiClick'); onToggle(); }}
             >
-                <span>{label} <b>{total}</b></span>
+                <span className="ehp-tab-label">{label} <b>{total}</b></span>
+                <EnemyHandBacks elements={backs} />
             </button>
 
             <div className="rs-panel ehp-inner" id="enemy-hand-panel" inert={!open}>

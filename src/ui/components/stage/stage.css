@@ -1,0 +1,371 @@
+/*
+ * THE BATTLE STAGE, IN THE SLANT KIT — ticket 183b. This file owns LOOK, not position: every
+ * rectangle comes from `stageGeometry.ts` and is applied inline (ticket 145 §3).
+ *
+ * Colours come from `tokens.css` and only from there. No gradient, no glow, no blur: the one
+ * shadow on a body is a hard 3px offset, the way the mock draws it.
+ *
+ * THE BOARD'S STACKING LADDER (the stage root is not a stacking context):
+ *     0   .stage-backdrop      the room
+ *     1   .stage-platform      under the bodies
+ *     2   .stage-sprite-frame  the bodies
+ *     3   .stage-caster-cursor
+ *     60  .reveal-card         the card that was just played (PlayedCardReveal)
+ *     61  .stage-particles     146c's trail crosses IN FRONT of the lane card
+ *     62  .stage-plaque        a number the player has to read is never behind FX
+ *     63  .ehp                 the enemy hand slides over the plaques
+ */
+
+/* ---- the backdrop: five flat bands from the biome's token set --------------------------- */
+
+.stage-backdrop {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.stage-backdrop svg { display: block; }
+.bd-sky { fill: var(--sky); }
+.bd-far { fill: var(--far); }
+.bd-near { fill: var(--near); }
+.bd-ground { fill: var(--ground); }
+.bd-horizon,
+.bd-strip { fill: var(--ground-2); }
+
+/* ---- platforms and the caster cursor ----------------------------------------------------- */
+
+.stage-platform {
+    position: absolute;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--ground-2) 75%, transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* The acting ally's: the selection yellow, with the ground showing through its middle. */
+.stage-platform.is-active { background: var(--select); }
+
+.stage-platform-inner {
+    position: absolute;
+    left: 3.5%;
+    top: 15%;
+    width: 93%;
+    height: 70%;
+    border-radius: 50%;
+    background: var(--ground-2);
+}
+
+.stage-caster-cursor {
+    position: absolute;
+    background: var(--select);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* ---- the slot, the sprite frame and the art ---------------------------------------------- */
+
+.stage-slot {
+    position: absolute;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: auto;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* The relative box the shared FX overlays mount into. Sized inline from the slot, because six of
+   these exist at once and the cap at 190px (145 §4.1) is arithmetic, not a media query. */
+.stage-sprite-frame {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 2;
+}
+
+.stage-art {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    /* The one shadow on a body: hard, offset, no blur. */
+    filter: drop-shadow(0 3px 0 color-mix(in srgb, var(--ink) 45%, transparent));
+}
+
+/* ART PENDING: a flat blob in the body's element colour, where a commissioned sprite goes. Keeps
+   the old fallback's footprint so a placeholder unit still reads as acting or dead. */
+.wip-art-block.stage-art-wip {
+    width: 66%;
+    aspect-ratio: 1;
+    border: 0;
+    border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+    background: var(--k-el);
+    background-image: none;
+    color: var(--text);
+    opacity: 0.85;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.wip-art-block.stage-art-wip .wip-art-sub {
+    font-size: 1em;
+    font-weight: 800;
+    opacity: 1;
+}
+
+/* TICKET 145b: the dead state is a filter on the ART, not an opacity on the frame: an opacity here
+   would fade the TERMINATED stamp with it, and ticket 34 settled that the stamp keeps its colour. */
+.stage-sprite-dead .stage-art,
+.stage-sprite-dead .stage-art-wip {
+    filter: brightness(0.4) saturate(0.35);
+}
+
+.stage-death-glitch { animation: stage-glitch 0.5s steps(2, end) 3; }
+
+@keyframes stage-glitch {
+    0% { transform: translateX(0); filter: none; }
+    50% { transform: translateX(-4px); filter: hue-rotate(90deg) saturate(3); }
+    100% { transform: translateX(0); filter: none; }
+}
+
+.stage-sprite-frame .hud-float-damage { font-size: 1.6rem; }
+.stage-sprite-frame .hud-float-crit { font-size: 2rem; }
+.stage-sprite-frame .hud-float-heal { font-size: 1.5rem; }
+.stage-sprite-frame .hud-float { text-shadow: 0 2px 0 var(--page); }
+.stage-sprite-frame .hud-hit-flash,
+.stage-sprite-frame .hud-heal-pulse { border-radius: 50%; }
+.stage-sprite-frame .hud-status-ring { border-radius: 50%; }
+
+/* Ticket 22's before-you-commit verdict: a unit the held card cannot land on is dimmed, and says
+   so under its feet (`TargetFlag`). A legal one is left alone. */
+.stage-slot-illegal .stage-sprite-frame { opacity: 0.55; }
+
+/* ---- the target feedback ------------------------------------------------------------------ */
+
+.stage-target-flag {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 8;
+}
+
+.stage-target-flag.is-illegal {
+    --k-cut: 5px;
+    margin-top: 4px;
+    height: 20px;
+    padding: 0 9px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: var(--panel-2);
+    color: var(--text-mute);
+    font-size: 12px;
+    pointer-events: auto;
+}
+
+/* The yellow cursor points up at the target from under its feet. */
+.stage-target-cursor {
+    width: 18px;
+    height: 13px;
+    background: var(--select);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.stage-target-words {
+    --k-cut: 5px;
+    display: flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 9px;
+    font-size: 13px;
+}
+
+.stage-target-words.is-super { background: var(--select); color: var(--ink); }
+.stage-target-words.is-weak { background: var(--panel); color: var(--text); }
+
+/* ---- the plaque ---------------------------------------------------------------------------- */
+
+/* Positioned by the geometry module; laid out at the reference 168px and scaled from its top-left
+   corner, so every pixel size below is a reference-scale number. The plaque is inert so it can
+   never eat a drag aimed at the sprite behind it; the parts that explain themselves on hover opt
+   back in. */
+.stage-plaque {
+    position: absolute;
+    transform-origin: 0 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 62;
+}
+
+.stage-plaque-dead { opacity: 0.45; }
+
+.stage-plaque-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 6px 14px 6px 8px;
+}
+
+.stage-plaque.is-enemy .stage-plaque-body { padding: 6px 8px 6px 14px; }
+
+.stage-plaque-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+/* The name is the item that gives up width: it ellipses so the badge and the gear never leave. */
+.stage-plaque-name-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+}
+
+.stage-plaque-marks {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+}
+
+.stage-plaque-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.stage-plaque-lower { justify-content: space-between; }
+
+.stage-plaque-value {
+    font-size: 13px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.stage-plaque-max { color: var(--text-mute); }
+
+/* The damage the held card would do, inline in the HP readout. */
+.stage-plaque-preview-hp { color: var(--hp-low-hi); }
+
+/* The status chips: icon x N, on slanted plates. The row alone takes the pointer back, because a
+   chip whose tooltip cannot be hovered has stopped explaining itself. */
+.stage-plaque-statuses {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    min-width: 0;
+    pointer-events: auto;
+}
+
+/* The firmware chip, in the kit's shape: a 22px gear on a slanted plate. */
+.stage-plaque .hud-os-icon-container {
+    --k-cut: 4px;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+    min-width: 22px;
+    height: 22px;
+    margin: 0;
+    padding: 0 3px;
+    gap: 0;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    background: var(--panel-2);
+    color: var(--text-mute);
+    box-shadow: none;
+    transition: none;
+    pointer-events: auto;
+}
+
+.stage-plaque .hud-os-icon-container:hover { background: var(--panel-3); }
+.stage-plaque .hud-os-icon { filter: none; }
+
+/* Daemons are NAMED, not iconified, and a word does not share a row with the chips. */
+.stage-plaque-daemons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    pointer-events: auto;
+}
+
+.stage-plaque .hud-daemon-tag {
+    --k-cut: 3px;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+    height: 18px;
+    padding: 0 7px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 11px;
+}
+
+/* THE PREVIEW IS OUT OF FLOW. It appears and disappears as the pointer crosses a target, and a
+   plaque that changed height on hover would move every row under it on a board whose geometry
+   holds still (145 section 3). Anchored under the plaque instead. */
+.stage-plaque-preview {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    pointer-events: none;
+    z-index: 7;
+}
+
+.stage-preview-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.stage-plaque .hud-preview-chip {
+    --k-cut: 3px;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+    display: flex;
+    align-items: center;
+    height: 16px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 11px;
+    line-height: 1;
+    text-shadow: none;
+}
+
+.stage-plaque .hud-preview-chip-super { background: var(--select); color: var(--ink); }
+.stage-plaque .hud-preview-chip-weak { background: var(--panel-3); color: var(--text); }
+.stage-plaque .hud-preview-chip-lethal { background: var(--hp-low); color: var(--text); }

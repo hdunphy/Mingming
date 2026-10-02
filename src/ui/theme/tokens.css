@@ -24,9 +24,10 @@
  * them (the six Early Access species are Fire, Water and Nature), so a body of one of those
  * elements draws as Neutral: grey colour, the neutral dot, and its own element WORD on the badge.
  *
- * NOT HERE YET: the five biome backdrop tokens (`--sky`, `--far`, `--near`, `--ground`,
- * `--ground-2`). Ticket 183b owns them, because their values are per biome and nothing reads them
- * until the stage is rebuilt.
+ * THE BIOME BACKDROP (ticket 183b): five flat bands per biome (`--sky`, `--far`, `--near`,
+ * `--ground`, `--ground-2`), set under `[data-biome]` at the end of this file. The default set is
+ * the Neutral one, so a fight outside a run, or in an element with no set of its own, still has a
+ * floor. `BiomeBackdrop` stamps the attribute and draws the bands; nothing else reads these.
  */
 
 /* Bundled, not fetched: the desktop build is offline. Barlow and Barlow Condensed are SIL OFL;
@@ -126,4 +127,44 @@
     --card-body: #f4f6f9;
     --card-text: #1a2130;
     --card-mute: #5e6a80;
+}
+
+/* -------------------------------------------------------------------------------------------
+ * THE BIOME BACKDROP BANDS — ticket 183b. Sky, far hills, near hills, the ground, and the ground's
+ * darker strips and horizon line. Three sets for the three shipped elements, plus Neutral.
+ * Nature is the mock's own (Verdant Sprawl); Water is the Drowned Shelf's blues; Fire is the
+ * Slagfields' ochres. Platforms under the bodies are `--ground-2`, so they always sit on their
+ * floor.
+ * ---------------------------------------------------------------------------------------- */
+:root,
+[data-biome='none'] {
+    --sky: #a7b4c4;
+    --far: #8b9aad;
+    --near: #6c7d92;
+    --ground: #7a8899;
+    --ground-2: #65717f;
+}
+
+[data-biome='nature'] {
+    --sky: #a9c9d6;
+    --far: #8db3a2;
+    --near: #5e8e72;
+    --ground: #7fa66b;
+    --ground-2: #6c9359;
+}
+
+[data-biome='water'] {
+    --sky: #9ccbe6;
+    --far: #7db0d2;
+    --near: #5b93bd;
+    --ground: #4f86a8;
+    --ground-2: #3f7190;
+}
+
+[data-biome='fire'] {
+    --sky: #e8b98c;
+    --far: #c98f62;
+    --near: #a8694a;
+    --ground: #b87a4a;
+    --ground-2: #9c6240;
 }

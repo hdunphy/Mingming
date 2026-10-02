@@ -23,9 +23,11 @@ import { createPortal } from 'react-dom';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
 import { JS_COLOR } from '../theme/jsColors';
+import { StatusIcon } from '../theme/kit/StatusIcon';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import { displayStacks } from './displayStacks';
 import { StatusTooltipPortal } from './StatusTooltip';
+import { visibleStatuses } from './statusRanking';
 
 /** The HUD card's row is 195px wide. See `.hud-status-badges` in index.css for the fit. */
 export const HUD_STATUS_BUDGET = 6;
@@ -53,7 +55,7 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
         >
-            <span className="hud-status-icon">{info?.icon ?? '✦'}</span>
+            <span className="hud-status-icon"><StatusIcon status={type} size={14} /></span>
             {stacks > 1 && <span className="hud-status-stacks">×{shownStacks}</span>}
 
             {showTooltip && info && rect !== null && (
@@ -68,14 +70,18 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
  * pattern as `StatusBadge` so the list it carries is never clipped by the row that made it
  * necessary.
  */
-const StatusOverflowBadge: React.FC<{ hidden: ReadonlyArray<{ type: StatusType; stacks: number }> }> = ({ hidden }) => {
+export const StatusOverflowBadge: React.FC<{
+    hidden: ReadonlyArray<{ type: StatusType; stacks: number }>;
+    /** The chip row of the stage plaque (183b) draws this in the kit's chip shape. */
+    className?: string;
+}> = ({ hidden, className = 'hud-status-badge hud-status-more' }) => {
     const [showTooltip, setShowTooltip] = React.useState(false);
     const { ref: badgeRef, rect } = useAnchoredRect<HTMLDivElement>(showTooltip);
 
     return (
         <div
             ref={badgeRef}
-            className="hud-status-badge hud-status-more"
+            className={className}
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
         >
@@ -99,7 +105,7 @@ const StatusOverflowBadge: React.FC<{ hidden: ReadonlyArray<{ type: StatusType; 
                     <div className="tooltip-title">ALSO ACTIVE</div>
                     {hidden.map(se => (
                         <div key={se.type} style={{ color: STATUS_COLORS[se.type] ?? JS_COLOR.textDim }}>
-                            {statusGlossary[se.type]?.icon ?? '\u2726'} {se.type}
+                            <StatusIcon status={se.type} size={12} /> {se.type}
                             {se.stacks > 1 ? ` \u00d7${Math.round(se.stacks * 10) / 10}` : ''}
                         </div>
                     ))}
@@ -109,33 +115,6 @@ const StatusOverflowBadge: React.FC<{ hidden: ReadonlyArray<{ type: StatusType; 
         </div>
     );
 };
-
-/**
- * The badges a surface shows, deepest pile first, and the ones it hides.
- *
- * Sorted by STACKS rather than by application order. That matters only past the budget — but that
- * is exactly where it matters: `Dazed x7`, the number a player is deciding a `slander` on, must not
- * be the one that fell off the end. Ties keep their original order (`Array.sort` is stable), so a
- * board of 1-stack statuses does not shuffle itself every turn.
- */
-/* Not exported: `react-refresh/only-export-components` allows a constant beside a component but
-   not a function, and the only caller is the row below — the same shape `combatLogModel` took
-   when this rule bit there. */
-function visibleStatuses<T extends { stacks: number }>(
-    all: ReadonlyArray<T>,
-    budget: number,
-    chipCostsSlot: boolean,
-): { shown: T[]; hidden: T[] } {
-    const ranked = [...all].sort((a, b) => b.stacks - a.stacks);
-    if (ranked.length <= budget) return { shown: ranked, hidden: [] };
-    // WHETHER THE CHIP COSTS A SLOT IS PER SURFACE, because it is a width question and the two
-    // surfaces are different widths. On the HUD card's 195px row six badges are 185px and fit, but
-    // six plus an 18px chip are 203px and do not — so it drops to five. The plaque's four are 118px
-    // of its 152px, which leaves room for the chip beside them. Passing this rather than assuming
-    // it is what stops one surface's arithmetic quietly governing the other.
-    const room = chipCostsSlot ? budget - 1 : budget;
-    return { shown: ranked.slice(0, room), hidden: ranked.slice(room) };
-}
 
 /** One row of badges with its overflow chip. Both surfaces render exactly this. */
 export const StatusBadgeRow: React.FC<{
