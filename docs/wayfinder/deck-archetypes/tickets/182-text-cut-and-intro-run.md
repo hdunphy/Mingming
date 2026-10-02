@@ -257,7 +257,7 @@ Two **separate** switches (R9). Both appear on the **starter screen of a new sav
 - Skip intro and Show advanced content work separately, on the starter screen and in Settings.
 - The report says how to remove the intro.
 
-## Small calls made while writing this (Henry can change any)
+## Small calls made while writing this (confirmed by Henry, 2026-10-02)
 
 1. **The intro biome** is the one the starter beats, and the recruit is one of the two starters you did not pick.
 2. **Skip intro is saved per save; Show advanced content is saved per person** (it carries over to a new save slot).
