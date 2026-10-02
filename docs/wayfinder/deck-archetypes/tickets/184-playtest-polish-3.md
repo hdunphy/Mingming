@@ -1,6 +1,6 @@
 # Ticket 184: Draw pile viewer, Burn overflow text, OS counters, per-OS patch text
 
-**Type:** UI fixes, plus one written table. **Status:** 184a, 184b and 184c BUILT (2026-10-01). 184d step 1 BUILT: no-op patches are hidden, and the per-OS text is drafted in `docs/balance/patch-text-184.md`. **184d step 2 waits on Henry:** his review of that draft, and a ruling on three patches that switch Jörmungandr v1's firmware off.
+**Type:** UI fixes, plus one written table. **Status:** DONE (2026-10-01). 184a–184e all built. Henry ruled the patch findings (second set of rulings at the bottom), and the per-OS patch text is in the game.
 
 **Henry (2026-10-01), in his words:**
 
@@ -19,7 +19,8 @@ One commit per row, test first, authored by Henry, no push. CRLF in `docs/wayfin
 | 184a | Click the draw pile to see what is in it, the way the discard already works |
 | 184b | A Burn overflow says "overflow", never a negative Burn number |
 | 184c | Firmware with a counter shows it next to the OS chip (Jörmungandr v1 first) |
-| 184d | Patch text written per OS. Step 1 is a draft table for Henry. Step 2 ships it after he rules |
+| 184d | Patch text written per OS. Step 1 hid the no-ops and drafted the text; step 2 put it on every patch screen |
+| 184e | Henry's per-firmware patch rulings (Jörmungandr v1, Ratatoskr v1, Fenrir v1 RELAY) and SPLITTER no longer pays the host twice |
 
 ---
 
@@ -135,3 +136,19 @@ Also known: huldra_v2 is hand-written code with no hook data (`CustomFirmware.ts
 4. **Patches that do nothing on a body:** *"Hide them I think."* Never offered for that body.
 
 **Next step:** the agent builds 184a and 184b, then 184c, and in parallel drafts the 184d table for Henry's review.
+
+## Henry's rulings on the 184d findings (2026-10-01, second set)
+
+> *"1. amplifier -> draw 2 cards, repeater -> draw cards on the 3rd and 5th water cards, splitter -> any element not just water*
+> *2. Fenrir_V1 Relay should be ignored. Splitter doesn't double up on Fenrir_V1, he stays the same allies just gain the stacks too. same for Fenrir_v2 splitter and skoll_v1 splitter. Rat_v1 go to 12 power.*
+> *3. Yes"*
+
+1. **OUROBOROS_LOOP (Jörmungandr v1):**
+   - AMPLIFIER: the 5th Water card draws 2.
+   - REPEATER: the 3rd and the 5th Water card both draw.
+   - SPLITTER: any card counts, not just Water.
+   - Built in 184e as hand-written per-firmware effects (`src/engine/data/patchOverrides.ts`).
+2. **Fenrir v1 RELAY** is never offered. **SPLITTER** now gives the rest of the side the stacks and leaves the host unchanged (new hook target `OTHER_ALLIES`). **Ratatoskr v1 AMPLIFIER** heals at 12 power (3%).
+3. The four things without a counter pip stay as they are.
+
+The patch sentences shipped as drafted, with these rulings applied (`src/engine/data/patchText.ts`, recorded in `docs/balance/patch-text-184.md`).
