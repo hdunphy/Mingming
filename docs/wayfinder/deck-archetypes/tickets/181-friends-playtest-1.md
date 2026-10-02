@@ -1,6 +1,6 @@
 # Ticket 181: Playtest round 2 (friends and family) — prep and release (SOP)
 
-**Type:** release procedure, plus three small build changes. **Status:** OPEN; 179, 181a and 181b are built (181b was amended, see its row), 181c waits on the form. **Owner:** Henry. The agent builds only the code rows (181a, 181b, 181c), once Henry rules on the decisions below.
+**Type:** release procedure, plus three small build changes. **Status:** OPEN, **waiting on ticket 182** (the text cut, hide-when-empty and the intro run) **and ticket 183** (the art direction and UI rework). Henry, 2026-10-02: *"The playtest can wait on 182"*, and the UI is reworked before the playtest. Release nothing until both are built. 179, 181a and 181b are built (181b was amended, see its row); 181c waits on the form. **Owner:** Henry. The agent builds only the code rows (181a, 181b, 181c), once Henry rules on the decisions below.
 
 **Round 1** was Henry's brother. **Round 2** is this one.
 
@@ -59,9 +59,9 @@ Each decision has a recommended default. Mark each one **yes** or write your cho
 | D1 | **Privacy of the game link.** Pages can't be password-protected. Options: (a) Pages, and simply don't post the link anywhere public ("unlisted", not private); (b) an itch.io page set to *restricted* with a password, which hosts browser games free and is private; (c) a private repo (needs a paid GitHub plan, and the Pages site is still public anyway). | **(a) Pages, unlisted**, as you asked, plus a "please don't share the link" line in the invite. Move to (b) if you ever need real privacy. | |
 | D2 | **What triggers a deploy.** Every push to `main` redeploys. | **Keep it** (Henry, 2026-10-01: deploy from `main`, no separate release branch). So merging to `main` *is* releasing. Merge the round's build when you're ready, and **during the test merge nothing to `main` except a blocker hotfix**; keep other work on branches until the round closes. | |
 | D3 | **What's in the build.** | Today's `playtest-polish` (171–174 built) **plus ticket 179** (one card pick per fight). Not 175 (localization) or 176 (map and towns). | |
-| D4 | **First-run experience.** The Tier 0 cut list (the Claude project doc "Tier 0 cut list + UI direction") has three layers: (1) **cut the text**: one sentence of copy per screen, tips as short toasts instead of "Got it / Skip tips" panels; (2) **hide systems until first use** (macros, firmware, patches, tiers); (3) **the new visual style**. | **Do layer 1 before release (ticket 182, to be written from the cut list).** It's mostly copy, it's what makes the game read as "AI slop", and 9 of 13 testers are new to the genre. Layer 2 only if 182 comes in quick. **Layer 3 waits for the UI rework.** | |
+| D4 | **First-run experience.** The Tier 0 cut list (the Claude project doc "Tier 0 cut list + UI direction") has three layers: (1) **cut the text**: one sentence of copy per screen, tips as short toasts instead of "Got it / Skip tips" panels; (2) **hide systems until first use** (macros, firmware, patches, tiers); (3) **the new visual style**. | **Do layer 1 before release (ticket 182, to be written from the cut list).** It's mostly copy, it's what makes the game read as "AI slop", and 9 of 13 testers are new to the genre. Layer 2 only if 182 comes in quick. **Layer 3 waits for the UI rework.** | **Ruled 2026-10-02: all three layers before release.** Ticket 182 does layers 1 and 2 (the text cut, and hide-when-empty), plus a short **intro run** for new saves, with two switches, "Skip intro" and "Show advanced content". **Layer 3 is ticket 183** (the UI rework), and the playtest waits for it too. |
 | D5 | **Testers.** | **Henry's list of about 13** (friends, cousins, Dad). A **personal message to each** (§4.1, two versions). **Keep the names out of this repo:** it's public, so the list lives in your own notes, and logs and reports use first initials. Expect about half to play; that's normal for a favour. | |
-| D6 | **Test window and the ask.** | **2 weeks.** The ask is **one run (about 30–45 minutes)**; a second is welcome. The 3–4 deckbuilder players are asked for **two or more**, because their balance feedback is the part the others can't give. | |
+| D6 | **Test window and the ask.** | **2 weeks.** The ask is **one run (about 30–45 minutes)**; a second is welcome. *(Since 182: a new save starts with the intro run, about 15–20 minutes. So the ask becomes "the intro, then one full run if you enjoyed it", see §4.1. Confirm or change.)* The 3–4 deckbuilder players are asked for **two or more**, because their balance feedback is the part the others can't give. | |
 | D7 | **Builds during the test.** | **At most one hotfix**, for blockers only (crashes, soft-locks, lost saves), and **no balance changes mid-test**, so everyone's feedback is about the same game. Because `main` publishes (D2), the hotfix is the only thing merged to `main` while the test runs. | |
 | D8 | **Where feedback goes.** | **The form is part of the game (181c):** when a run ends, the run summary shows **"Tell Henry how it went"**, which opens the short Google Form with the build, starter and how far they got already filled in. Settings has the same button. **Discord** is for bugs, chat and anything longer. One form per run is fine now, because it's one click from the game, not something to remember. | |
 | D9 | **Run logs.** | **Optional.** "If you can, export the run log after a run and drop it in `#run-logs`; it helps a lot." Never required. | |
@@ -115,6 +115,7 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
    - `{starter}`: the starter's species name
    - `{reached}`: "area 1 / 2 / 3 / gym / beat the gym", from the ended run
    - `{run}`: the ranch's completed-run count
+   - **For the intro run (182c):** `{reached}` is "intro (won)" or "intro (lost)", and `{run}` is "intro" (the intro does not count as a completed run)
    It returns `null` when the env var isn't set, and **the buttons then don't render** (local and dev builds show nothing).
 3. **Run summary** (`RunSummary.tsx`): a button **"Tell Henry how it went"** next to the existing leave button. It opens the URL in a new tab (`window.open(url, '_blank', 'noopener')`). It's the most prominent thing after the result, but it never blocks leaving.
 4. **Settings** (`SettingsScreen.tsx`): the same button, without run details (build only), beside **Export run log**.
@@ -133,10 +134,11 @@ Do these in order and tick them off. Rough times are in brackets.
 ### Phase 1: Freeze the build (about 1–2 hours, mostly your own run)
 
 - [ ] **1.1** Rule on D1–D15 above.
-- [ ] **1.2** If D4 is yes: Claude writes **ticket 182** (the text cut) from the cut list, and you rule on it.
+- [ ] **1.0** **Wait for tickets 182 and 183 to be built.** 182 is written and ruled (2026-10-02). 183 is still a placeholder: the art direction and UI kit get chosen first, then built.
+- [x] **1.2** Claude wrote **ticket 182** (the text cut, hide-when-empty, the intro run, the two switches) and you ruled on it (2026-10-02).
 - [ ] **1.3a** Make the **Google Form** (§4.4) and its pre-filled link. Paste the link template (from 181c) into the `VITE_FEEDBACK_FORM_URL` line of `.github/workflows/deploy.yml`. The label there already says `PLAYTEST 2`. **Nothing to set in GitHub.**
-- [ ] **1.3b** **179, 181a and 181b are built** (reports: `docs/balance/card-picks-179.md` and the commit messages). The agent still builds **181c** (once the form exists) and, if ruled, **182**. Check the reports.
-- [ ] **1.3c** Play **one full run yourself** on the build (the 174 check from `playtest-results/2026-10-01/playtest-strategy.md`). Anything that blocks a run gets fixed before you continue.
+- [ ] **1.3b** **179, 181a and 181b are built** (reports: `docs/balance/card-picks-179.md` and the commit messages). The agent still builds **181c** (once the form exists), **182** and **183**. Check the reports, including `docs/balance/intro-run-182.md` (the intro's win rate and estimated length).
+- [ ] **1.3c** On a **new save slot**, play **the intro** and **time it** (target 15–20 minutes; 182c only estimates it). Then play **one full run yourself** on the build (the 174 check from `playtest-results/2026-10-01/playtest-strategy.md`). Anything that blocks a run gets fixed before you continue.
 - [ ] **1.4** Run `npm run release-check`. It must be green: all gates, no debug toolkit in the build, plus the asset weight.
 - [ ] **1.5** Check that no AI-generated image ships. Search the built `dist/` for the species art files and confirm none are referenced. Monster art is switched off, but files can still be bundled.
 - [ ] **1.6** Push the work branch: `git push origin playtest-polish`.
@@ -148,7 +150,8 @@ Do these in order and tick them off. Rough times are in brackets.
 
 - [ ] **2.1** The deploy finished (it started when you merged): GitHub → Actions → "Deploy to GitHub Pages" is green.
 - [ ] **2.2** Open `https://hdunphy.github.io/Mingming/` in a **private window** (a fresh browser, like a tester's). The main menu shows `PLAYTEST 2 · <commit>`.
-- [ ] **2.3** In that window, play: pick a starter, assembly, choose a gym, the map, the first fight, rewards, a shop visit, and one more fight.
+- [ ] **2.3** In that window, play: pick a starter (both switches off), **the intro run to the end**, then back at the ranch choose a gym, the map, the first fight, rewards, a shop visit, and one more fight.
+- [ ] **2.3b** In a second private window, pick a starter with **Skip intro** on: it goes straight to the ranch. Turn **Show advanced content** on in Settings: the empty macro slots and other hidden panels appear.
 - [ ] **2.4** **Reload the page mid-run.** The run resumes where you were.
 - [ ] **2.5** Settings → **Export run log**. A `.json` file downloads, and it contains `build`.
 - [ ] **2.5b** Lose or abandon a run. On the run summary, **"Tell Henry how it went"** opens the form with build, starter and how far already filled in. Submit a test answer, then delete it from the responses.
@@ -216,7 +219,7 @@ Do these in order and tick them off. Rough times are in brackets.
   - would they play again
   - what to change before round 3
   - deckbuilder players and new players reported separately
-- [ ] **6.4** Decide round 3's scope (likely after 176 and the UI rework, on a desktop build through Steam Playtest) and the devlog video's timing (D14).
+- [ ] **6.4** Decide round 3's scope (likely after 176, on a desktop build through Steam Playtest), whether the intro stays, is scrapped, or becomes the demo (182, R10), and the devlog video's timing (D14).
 
 ---
 
@@ -230,9 +233,9 @@ Write a line of your own at the top for each person; that's what gets the reply.
 
 **Version A (most people, new to this kind of game):**
 
-> Hey [name]! Favour to ask. I've been making a video game in my spare time, **Mingming: Midgard Circuit**. You collect monsters from Norse myth and battle with a deck of cards (think Pokémon, but the moves are cards). It's early and the art is placeholder, but it's playable.
+> Hey [name]! Favour to ask. I've been making a video game in my spare time, **Mingming: Midgard Circuit**. You collect monsters from Norse myth and battle with a deck of cards (think Pokémon, but the moves are cards). It's early, but it's playable.
 >
-> Would you play **one run** (about 30–45 minutes) in the next two weeks? It runs in a web browser on a computer, not a phone: [game link]
+> Would you play **the intro** (about 15–20 minutes), and **one full run** after it if you enjoy it, in the next two weeks? It runs in a web browser on a computer, not a phone: [game link]
 > When the run ends, the game has a button to tell me how it went. That's all I need.
 > If you want to chat or report anything weird, here's my Discord: [invite link]
 >
@@ -240,7 +243,7 @@ Write a line of your own at the top for each person; that's what gets the reply.
 
 **Version B (the 3–4 deckbuilder players):**
 
-> Hey [name]! I've been building a roguelike deckbuilder: **Slay the Spire dressed as Pokémon**, with Norse-myth monsters you recruit into a three-monster team that shares one deck. It's early (placeholder art, the UI is getting reworked), but the systems are all in, and I'd love feedback from someone who knows the genre.
+> Hey [name]! I've been building a roguelike deckbuilder: **Slay the Spire dressed as Pokémon**, with Norse-myth monsters you recruit into a three-monster team that shares one deck. It's early (the monster art is placeholder), but the systems are all in, and I'd love feedback from someone who knows the genre.
 >
 > If you can, play **two or three runs** over the next two weeks: [game link] (desktop browser)
 > The game asks for quick feedback when a run ends, and the Discord has a bug forum: [invite link]. Balance opinions are gold: which monsters and cards felt broken or useless, and why.
@@ -265,6 +268,7 @@ Write a line of your own at the top for each person; that's what gets the reply.
 
 Keep this short; part of the test is whether the game explains itself.
 
+> - Your first run is a **short intro** (about 15–20 minutes). After that, the full game opens.
 > - You start with one Mingming and its cards. Win fights to earn **scrap**, **cards** and **blueprints** (new Mingmings).
 > - Each card costs **energy**. Elements beat elements (**Fire > Nature > Water > Fire**).
 > - Walk the map through three areas to the **gym**: three fights in a row with no full heal between them.
@@ -314,7 +318,7 @@ Keep this short; part of the test is whether the game explains itself.
 ### 4.8 Roadmap (pinned in `#announcements`, no dates)
 
 > 1. **Now:** friends-and-family playtest (that's you, thank you!)
-> 2. **Next:** a new look (real monster art, a friendlier UI) and a redesigned map with towns and routes
+> 2. **Next:** real monster art, and a redesigned map with towns and routes
 > 3. **Then:** a Steam page and a short devlog video
 > 4. **Later:** a bigger playtest on Steam, then Early Access
 
@@ -322,7 +326,7 @@ Keep this short; part of the test is whether the game explains itself.
 
 ## Done when
 
-- D1–D15 are ruled, and 179, 181a, 181b, 181c and (if ruled) 182 are built.
+- D1–D15 are ruled, and 179, 181a, 181b, 181c, **182 and 183** are built.
 - `main` deploys `PLAYTEST 2 · <commit>` to Pages, and it passed the §3 Phase 2 checks.
 - The Discord is set up as in Phase 3, testers are invited, and the form opens pre-filled from the game.
 - At the end, `playtest-results/round-2-friends/` holds the bugs, the logs, the survey and the summary.
