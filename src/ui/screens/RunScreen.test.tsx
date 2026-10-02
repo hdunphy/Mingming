@@ -345,30 +345,26 @@ describe('RunScreen — the run is over', () => {
     });
 });
 
-describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
-    it('shows the first step on the map', () => {
-        // `window.confirm` is gone (ticket 19): a native modal in a game that draws its own UI,
-        // unstyleable, unreachable by gamepad (ticket 38), and untestable. The first step is what
-        // stands between one stray click and forty minutes.
-        //
-        // On a plain node, because the stall and the bay take the whole screen since tickets 63 and
-        // 65 and neither of their ruled top bars carries an abandon. Quitting is still always
-        // allowed — it is LEAVE and then this button, one click further away than it was.
+describe('RunScreen — abandoning moved to Settings (182a, R5)', () => {
+    /*
+     * Ticket 19 made abandon a two-step instead of a native dialog; ticket 182a moved the whole
+     * thing to Settings (`SettingsScreen.abandon.test.tsx` holds the two steps and the teardown).
+     * What stays true of the run screen is that quitting is still reachable from it: a small
+     * Settings button, on the map and in the gauntlet.
+     */
+    it('the map has no Abandon run button, and has a Settings button', () => {
         const markup = render(standingOn('wild'));
-        expect(markup).toContain('Abandon run');
-        // The second step's wording appears only after that click, so a confirm that ships both
-        // states at once is not a confirm.
-        expect(markup).not.toContain('the run is lost');
+        expect(markup).not.toContain('Abandon run');
+        expect(markup).toContain('aria-label="Settings"');
     });
 
-    it('keeps the way out available inside the gauntlet too', () => {
-        // Quitting is always allowed; the gauntlet being a node you cannot walk *out of* is a
-        // different thing from a run you cannot quit.
+    it('the gauntlet has the Settings button too', () => {
         const markup = render(standingOn('gym', {
             phase: 'gauntlet',
             gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
         }));
-        expect(markup).toContain('Abandon run');
+        expect(markup).not.toContain('Abandon run');
+        expect(markup).toContain('aria-label="Settings"');
     });
 });
 

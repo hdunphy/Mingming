@@ -85,10 +85,11 @@ import type { IRegionNode } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import { startBattle } from '../store/battleSlice';
-import { beginGauntlet, dismissBoundaryAlert, endRun, enterNode, fireMapReveal } from '../store/runSlice';
+import { beginGauntlet, dismissBoundaryAlert, enterNode, fireMapReveal } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
 import BoundaryAlert from './BoundaryAlert';
+import SettingsButton from '../components/SettingsButton';
 import GauntletNode from './GauntletNode';
 import LoadoutEditor from './LoadoutEditor';
 import MarketplaceNode from './MarketplaceNode';
@@ -111,17 +112,8 @@ export default function RunScreen(): ReactNode {
     const roster = ranch.roster;
 
     /**
-     * Whether the abandon button is showing its second step (ticket 19). Component state rather
-     * than run state on purpose: this is a half-pressed button, not a fact about the run, and
-     * writing it into `IRunState` would persist a UI hesitation into the save file.
-     *
-     * Declared above the early return, as hooks must be.
-     */
-    const [confirmingAbandon, setConfirmingAbandon] = useState(false);
-
-    /**
      * Which node's stall or bay the player has closed with LEAVE. Component state rather than run
-     * state for `confirmingAbandon`'s reason: it is a window the player shut, not a fact about the
+     * state: it is a window the player shut, not a fact about the
      * run, and persisting it would resume a run with a shop mysteriously closed. Keyed on the node
      * id so that walking anywhere else — or walking back — opens the next one normally.
      */
@@ -260,61 +252,11 @@ export default function RunScreen(): ReactNode {
         playSfx('uiClick');
     };
 
-    /**
-     * Abandon — **ticket 19 routed it through the same teardown as the other two endings.**
-     *
-     * It used to be `clearRun()` behind a `window.confirm`, which was two problems. The first is the
-     * one the ticket names: a third way out of a run that unwinds by itself is a third way out that
-     * drifts from the other two — it skipped the codex merge, and it would have skipped anything a
-     * later ticket adds to teardown. It now does exactly what a defeat does: `endRun('abandoned')`,
-     * which marks the run ended without clearing it, and the summary takes over from there.
-     *
-     * # AND THE CONFIRM
-     *
-     * `window.confirm` is gone, replaced by a two-step inline confirm. The ticket asks whether a
-     * confirm is still right when the summary is the confirmation, and the answer is that **the
-     * summary is not a confirmation** — by the time it renders the run has already ended, and there
-     * is no button on it that puts you back on the map. So something still has to stand between one
-     * stray click and forty minutes.
-     *
-     * What that something should not be is `window.confirm`: it is a native modal in a game that
-     * draws its own UI, it blocks the whole renderer, it cannot be styled or reached by a gamepad
-     * (ticket 38), and it cannot be tested. The two-step below is the same protection expressed as
-     * ordinary buttons — the second one names the consequence, and "Keep going" is right beside it.
+    /*
+     * TICKET 182a (R5): "Abandon run" moved to Settings (`AbandonRunSetting`), which keeps ticket 19's
+     * two-step confirm and its teardown (`endRun('abandoned')`, the same ending a defeat takes). The
+     * map header carries a small Settings button instead (`SettingsButton`).
      */
-    const abandon = (): void => {
-        setConfirmingAbandon(false);
-        dispatch(endRun('abandoned'));
-        playSfx('uiError');
-    };
-
-    /**
-     * The abandon control, in whichever of its two states it is in. Rendered in both the map header
-     * and the gauntlet header, which is why it is a local function rather than duplicated markup:
-     * quitting a run is always allowed, and the two headers must offer the identical affordance.
-     */
-    const abandonControl = (): ReactNode => (confirmingAbandon ? (
-        <span className="ranch-run-abandon">
-            <button type="button" className="ranch-button subtle" onClick={abandon}>
-                Abandon — the run is lost
-            </button>
-            <button
-                type="button"
-                className="ranch-button subtle"
-                onClick={() => { setConfirmingAbandon(false); playSfx('uiClick'); }}
-            >
-                Keep going
-            </button>
-        </span>
-    ) : (
-        <button
-            type="button"
-            className="ranch-button subtle"
-            onClick={() => { setConfirmingAbandon(true); playSfx('uiClick'); }}
-        >
-            Abandon run
-        </button>
-    ));
 
     /**
      * The run is over — victory, defeat or abandon, all three land here.
@@ -404,8 +346,8 @@ export default function RunScreen(): ReactNode {
      * Not a panel over the map like the shop and the bench, because the gauntlet is the one node you
      * cannot walk away from: `exploration-map.md` makes the gym three fights with no healing
      * between them, and a live map underneath would offer a walk that has no rule behind it. The
-     * header stays (which gym, how far in, how much scrap) and so does **Abandon run** — quitting a
-     * run is always allowed, it just costs the run.
+     * header stays (which gym, how far in, how much scrap) and so does the Settings button — quitting a
+     * run (Settings → Abandon run) is always allowed, it just costs the run.
      */
     if (run.phase === 'gauntlet') {
         return (
@@ -416,7 +358,7 @@ export default function RunScreen(): ReactNode {
                         Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
                         {' '}<RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
                     </div>
-                    {abandonControl()}
+                    <SettingsButton />
                 </header>
 
                 <section className="ranch-section ranch-section-wide">
@@ -443,7 +385,7 @@ export default function RunScreen(): ReactNode {
                     Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
                     layer {current.layer} · <RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
                 </div>
-                <button type="button" className="ranch-button subtle" onClick={abandon}>Abandon run</button>
+                <SettingsButton />
             </header>
 
             <section className="ranch-section ranch-section-wide">

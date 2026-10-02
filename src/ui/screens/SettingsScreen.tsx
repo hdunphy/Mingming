@@ -28,6 +28,7 @@ import { FIGHT_LOG_CAP } from '../../engine/run/fightLog';
 import { playSfx } from '../audio/AudioEngine';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { BUILD_INFO, buildText } from '../buildInfo';
+import AbandonRunSetting from './AbandonRunSetting';
 import './SettingsScreen.css';
 
 /**
@@ -508,6 +509,9 @@ export default function SettingsScreen(): ReactNode {
                         Build: {buildText(BUILD_INFO)}
                     </p>
                 </section>
+
+                {/* TICKET 182a (R5): Abandon run lives here, only while a run is in progress. */}
+                <AbandonRunSetting />
 
                 {quitAvailable && (
                     <section className="settings-group">
