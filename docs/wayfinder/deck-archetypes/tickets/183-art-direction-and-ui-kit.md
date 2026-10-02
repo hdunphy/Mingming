@@ -1,6 +1,6 @@
 # Ticket 183: Art direction and UI kit
 
-**Type:** design, then UI. **Status:** DIRECTION RULED (Henry, 2026-10-02): direction **B, "Slant"**, built on the existing battle geometry. Rows 183a–183e are buildable in order. 183f–183h wait on the decisions at the bottom. **Ticket 176 (map and town redesign) stays blocked until 183a–183c ship; then 176c and 176e are drawn in this kit** (see "What this does to ticket 176").
+**Type:** design, then UI. **Status:** RULED (Henry, 2026-10-02): direction **B, "Slant"**, built on the existing battle geometry, and all seven decisions answered (D1–D7 at the bottom). **Rows 183a–183e are buildable now, in order.** 183f and 183h wait on ticket 182 landing; 183g waits on 183a. One word is still open: the on-screen word for *assembly* (D1). **Ticket 176 (map and town redesign) stays blocked until 183a–183c ship; then 176c and 176e are drawn in this kit** (see "What this does to ticket 176").
 
 **Henry (2026-10-02), in his words:**
 
@@ -80,7 +80,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 | Piece | Shape |
 |---|---|
 | **Plaque** (176px, outside its column as today) | name · element badge · firmware gear chip / HP bar + `cur/max` / energy hexagon `n/max` · status chips (icon ×N, rule on hover). Element slash on the sprite-facing edge. |
-| **Card** (`CardFace`, 150×190 in the fan at scale 1) | header: element mark · name · **energy hexagon** / art slot / target tag / rules text with lit clause / readout strip (22px) or element bar / type mark faint bottom-right |
+| **Card** (`CardFace`, 150×190 in the fan at scale 1) | header: element mark · name · **energy hexagon** / art slot / target tag / rules text with lit clause / readout strip (22px) or element bar. No type mark (D3). |
 | **Readout strip** | the true figure big ("142", "+15"), "vs Huldra" small, chips right-aligned: SUPER ×1.5, RESIST ×0.5, ×N HITS, ABS n, LETHAL (red). Scan the figures along the hand to compare. |
 | **STAB** | no tag. The frame turns the element colour (3px) and the header gets a 2px light inner edge. Hover: *"STAB: Same Type Attack Bonus. This card matches the caster's element: ×1.5 power."* (`STAB_BONUS = 1.5` in `combatUtils.ts`; read it, never type it.) |
 | **Selected card** | yellow 4px ring, 10px lift. Means selected and nothing else. |
@@ -133,10 +133,10 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 | 183b | The battle stage: backdrop bands per biome, platforms, plaques, top band, enemy-hand tab | 183a |
 | 183c | The card: `CardFace` in B, readout strip, STAB frame + tooltip, energy hexagon | 183a |
 | 183d | The console: macros, piles, End Turn, toasts | 183a |
-| 183e | Rows centred by party size | 183b, D5 |
+| 183e | Rows centred by party size | 183b |
 | 183f | Ranch, starter, settings, run summary in the kit | 183a, 182 |
-| 183g | Node icon set and map/town components for 176 | 183a, D2 |
-| 183h | The naming pass | D1 |
+| 183g | Node icon set and map/town components for 176 | 183a |
+| 183h | The naming pass | 182 (the text cut), and the *assembly* word |
 
 ---
 
@@ -173,10 +173,10 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 
 **Files:** `screens/CardChassis.tsx` (`CardFace`, `TypeMark`, `ElementMark` call sites), `components/HandCardFace.tsx`, `components/CardHand.tsx` (paint only), `index.css` (`.rs-*` rules), `CardPeek.tsx`.
 
-1. `CardFace` order becomes: header (`ElementMark` · name · `EnergyHex`) → art slot → target tag → description (lit clauses in `--select`) → `ReadoutStrip` or 5px element bar → faint `TypeMark` bottom-right. The energy pips component is retired from the card.
+1. `CardFace` order becomes: header (`ElementMark` · name · `EnergyHex`) → art slot → target tag → description (lit clauses in `--select`) → `ReadoutStrip` or 5px element bar. **The type mark is deleted (D3, ruled):** `TypeMark` and the `banner` field leave `CardFace`; `bannerFor` stays in `runShell.ts` only if something other than the card face reads it, else it goes too. The energy pips component is retired from the card.
 2. **STAB:** `CardHand` already knows the caster match; it sets `data-stab` on the card, and the stylesheet turns the frame the element colour and adds the header's inner edge. The card's `title` reads the STAB sentence with `STAB_BONUS` formatted (`×1.5`).
 3. **Selected:** yellow ring via `data-selected`, the existing lift.
-4. `CardPeek` (the hover card) takes the same face at its larger size. The stall tile and list row wait for D2.
+4. **Everywhere the full card is shown takes this face (D2, ruled):** `CardPeek` (the hover card), the stall tile (`rs-card`), the reward pick, the upgrade preview (now → upgraded, side by side), the deck and discard viewers, the codex, and 176c's town tabs. The compact list row (`rs-row`) is not a full card and keeps its row shape, restyled to the kit's type and colours only.
 5. **Tests:** a fire card with a fire caster has the STAB frame and the tooltip; a non-match has the ink frame; the readout shows the figure, the vs-name and every chip the preview carries; `fanGeometry.test.ts` untouched.
 
 ## 183d: The console and toasts
@@ -188,7 +188,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 3. End Turn: 200×50 yellow slant button, display 24. The 172 nudge (flash + light the playable card) keeps its behaviour and takes the yellow ring.
 4. `Callout` renders as the toast shape: navy bar, one sentence, no buttons; the "Got it / Skip tips" controls move to Settings as one "Show tips" switch (182 cut the copy; this moves the control).
 
-## 183e: Rows centred by party size (D5)
+## 183e: Rows centred by party size (D5, ruled: build it)
 
 **Files:** `stageGeometry.ts`, `stageGeometry.test.ts`, `BattleStage.tsx`.
 
@@ -205,7 +205,22 @@ Ships the pieces 176 composes: `NodeIcon` (fight, town, elite, gym, event, detou
 
 ## 183h: The naming pass (D1)
 
-Rename UI labels only, per D1's table once ruled: a `labels.ts` map from internal id to on-screen word, used by every component that prints one. Data ids, save schemas and the registry do not change.
+Rename UI labels only, per D1's ruled list: a `labels.ts` map from internal id to on-screen word, used by every component that prints one. Data ids, save schemas, the registry, test ids and the walker's output do not change. Build it **after 182** lands (the text cut removes most of the sentences these words sit in), and grep `src/ui` for every old word (firmware, OS, reflash, blueprint, assemble/assembly, workshop, daemon, macro, patch, driver, scrap, program) so none survives on screen; a test renders every screen and fails on any of them. Tips (`engine/tips.ts`) and the codex glossary are UI text and are renamed too.
+
+| In code | On screen (ruled) |
+|---|---|
+| firmware / OS | **Instinct** (kernel/OS proper names stay as the instinct's name) |
+| reflash | **Retrain** |
+| blueprint | **Trace** |
+| assembly | **open: not in Henry's list.** Default **Summon** until he says otherwise |
+| workshop (map node) | **Den** |
+| daemon | **Aura** |
+| macro | **Draught** |
+| patch | **Rune** |
+| driver | **Totem** |
+| scrap | **Amber** |
+| program | **Card** |
+| Mingming | **Mingming** |
 
 ---
 
@@ -218,28 +233,28 @@ Rename UI labels only, per D1's table once ruled: a `labels.ts` map from interna
 
 ---
 
-## Decisions Henry owes
+## Decisions (all ruled by Henry, 2026-10-02)
 
-| # | Decision | Default if unanswered |
+| # | Decision | Ruling |
 |---|---|---|
-| D1 | **Naming. Ruled in principle (Henry, 2026-10-02): yes, rename the on-screen words; code, data ids and saves keep theirs. Henry still picks the words, per row of the table under this one.** The robot layer: firmware / OS / kernel / reflash / blueprint / macro / patch / daemon / assembly / Mingming. Which words stay, which get an on-screen label from `labels.ts`? Proposed: keep *Mingming, blueprint, macro, patch*; show *firmware* as **Trait**, *reflash* as **Retrain**, *assembly* as **Hatch**, *daemon* as **Companion**; kernel/OS names stay as the trait's proper name. | No rename; 183h does not run. |
-| D2 | **How far the card face goes.** 176 M7 said cards look as today, ruled against the cream pass. Does B's card face also become the stall tile (`rs-card`), the list row (`rs-row`) and the hover card? | Hand card and hover card only. |
-| D3 | **Type mark.** Keep the faint ▲ ✦ ◆ ● bottom-right, or delete it? Nothing in the engine reads the category on the card face. | Keep, faint. |
-| D4 | **Fonts.** Barlow Condensed + Barlow (OFL, bundled). Yes, or name another condensed face. | Barlow. |
-| D5 | **Rows centred by party size** (183e). A geometry change; 1v1 and 2v2 stop hugging the top of the stage. | Build it. |
-| D6 | **The enemy-hand tab's coloured backs.** In, or leave the tab blank as today. | In. |
-| D7 | **Screenshot sizes.** 1280×800 and 1920×1080, or add Steam Deck 1280×800 at 16:10 only. | Both listed. |
+| D1 | **Naming.** Rename the on-screen words; code, data ids and saves keep theirs. | **Yes.** The words: *Instinct, Retrain, Den, Aura, Trace, Draught, Rune, Totem, Amber, Card, Mingming* (the ruled column of the table below). *Assembly* was not in his list: **open**, default Summon. |
+| D2 | **How far the card face goes.** 176 M7 said cards look as today, ruled against the cream pass. | **Everywhere the full card is shown:** hand, hover card, stall tile, reward pick, upgrade preview, deck/discard viewers, codex, town tabs. 176 M7's line is superseded for the look; its layout stands. |
+| D3 | **Type mark** (▲ ✦ ◆ ●). | **Delete it.** |
+| D4 | **Fonts.** Barlow Condensed + Barlow (OFL, bundled). | **Yes.** |
+| D5 | **Rows centred by party size** (183e). | **Yes, build it.** |
+| D6 | **The enemy-hand tab's coloured backs.** | **In.** |
+| D7 | **Screenshot sizes.** | **Both:** 1280×800 and 1920×1080. |
 
-### D1: words to pick (two drafts side by side)
+### D1: the words (ruled 2026-10-02; the right column is what ships)
 
-The left column is this ticket's proposal; the right is a second draft from the 182 session (2026-10-02). Henry picks one per row, or writes his own. Do it **after 182** lands, since the text cut removes most of the sentences these words sit in. Wait for the Fenrir brief's fur-or-metal answer too (see "Art commissions"): if the monsters stay metal-plated, more of the tech words can stay.
+The left column was this ticket's proposal; the middle a second draft from the 182 session; Henry picked from the recommended column and swapped *Bond* for *Trace*. The right column is what ships. Build it **after 182** lands, since the text cut removes most of the sentences these words sit in.
 
-| In code | Draft A (this ticket) | Draft B (182 session) | **Recommended (one list to approve)** | Notes |
+| In code | Draft A (this ticket) | Draft B (182 session) | **Ruled (ships)** | Notes |
 |---|---|---|---|---|
 | firmware / OS | **Trait** | **Instinct** | **Instinct** | the per-monster build choice; kernel/OS proper names stay as the instinct's name. "Trait" is clear but generic; "Instinct" fits an animal |
 | reflash | **Retrain** | **Retrain** | **Retrain** | both drafts agree |
-| blueprint | keep | **Trace** or **Bond** | **Bond** | what you keep to recruit again; avoid "Egg" (too close to Pokémon) |
-| assembly | **Hatch** | — | **Summon** | spending a Bond to bring a monster in; "Hatch" needs eggs |
+| blueprint | keep | **Trace** or **Bond** | **Trace** | what you keep to recruit again; Henry chose Trace over Bond |
+| assembly | **Hatch** | — | **open** (default Summon) | spending a Trace to bring a monster in; not in Henry's list, ask |
 | workshop (map node) | — | **Den** | **Den** | the place where you Summon |
 | daemon | **Companion** | — | **Aura** | a card that stays in play; "Companion" sounds like a creature |
 | macro | keep | **Draught** | **Draught** | the single-use consumable (Spire's potion) |
