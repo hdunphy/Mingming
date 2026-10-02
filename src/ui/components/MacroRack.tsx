@@ -31,6 +31,7 @@ import type { IBattleState } from '../../engine/types';
 import { computeMacroPreview } from '../utils/macroPreview';
 import { playSfx } from '../audio/AudioEngine';
 import './MacroRack.css';
+import { useAdvancedContent } from '../settings/useAdvancedContent';
 import { macroTargetId } from '../utils/macroTarget';
 
 export interface MacroRackProps {
@@ -49,6 +50,9 @@ export default function MacroRack({
     selectedTargetId,
     onFire,
 }: MacroRackProps): ReactNode {
+    // TICKET 182b: a rack with nothing in it is not drawn (Show advanced content draws it anyway).
+    const advanced = useAdvancedContent();
+    if (!advanced && macros.every((id) => id === null)) return null;
     return (
         <div className="macro-rack" aria-label="Macros">
             <div className="macro-rack-head">MACROS</div>

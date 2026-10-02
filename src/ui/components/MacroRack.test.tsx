@@ -144,7 +144,8 @@ describe('MacroRack', () => {
     });
 
     it('says what a macro is: free and single use', () => {
-        expect(render([null, null, null])).toContain('free · single use');
+        // TICKET 182b: an all-empty rack is not drawn, so the sentence is read off a held macro.
+        expect(render(['surge', null, null])).toContain('free · single use');
     });
 });
 

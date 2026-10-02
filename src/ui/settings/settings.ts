@@ -148,6 +148,16 @@ export interface ISettings {
      * different decision made on their behalf. This one is theirs alone.
      */
     readonly showEnemyHand: boolean;
+
+    /**
+     * ── SHOW ADVANCED CONTENT — ticket 182b/d. ──────────────────────────────
+     *
+     * Every hide-when-empty rule (an empty macro rack, a tier row nobody has unlocked, a party
+     * picker with one Mingming...) is switched off by this: the screen looks as it did before 182.
+     * About the PERSON rather than the save, like text size, so it carries to a new save slot.
+     * OFF by default. Read it through `useAdvancedContent()`, never directly.
+     */
+    readonly showAdvancedContent: boolean;
 }
 
 /**
@@ -178,12 +188,14 @@ export const SettingsSchema = z.object({
     // `.default(true)` as above: a blob written before this field parses into the behaviour that
     // player already had — 159b shipped the tab on.
     showEnemyHand: z.boolean().default(true),
+    // `.default(false)`: a blob written before 182 parses into the screens as a new player sees them.
+    showAdvancedContent: z.boolean().default(false),
 });
 
 export const DEFAULT_SETTINGS: ISettings = {
     reducedMotion: 'system', textScale: 1, autoSaveRunLog: false,
     particles: true, vfx: true, animations: true, battleLogs: true, combatSounds: true,
-    showEnemyHand: true,
+    showEnemyHand: true, showAdvancedContent: false,
 };
 
 /** What `vfx` resolves to once reduced motion has had its say. */
@@ -258,6 +270,16 @@ export function saveSettings(settings: ISettings, storage: SettingsStorage = def
     } catch {
         // Deliberately silent — see the docblock.
     }
+    // Tell anything that mirrors a setting (`useAdvancedContent`) to read it again.
+    for (const listener of [...settingsListeners]) listener();
+}
+
+const settingsListeners = new Set<() => void>();
+
+/** Subscribe to saves. Returns the unsubscribe. For `useSyncExternalStore`; nothing else needs it. */
+export function subscribeSettings(listener: () => void): () => void {
+    settingsListeners.add(listener);
+    return () => { settingsListeners.delete(listener); };
 }
 
 /** The root font size a scale implies, in px. Exported so a test can assert the arithmetic. */

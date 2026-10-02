@@ -81,9 +81,10 @@ import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { PARTY_SIZE } from '../../engine/party';
-import type { IRegionNode } from '../../engine/runTypes';
+import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
+import { useAdvancedContent } from '../settings/useAdvancedContent';
 import { startBattle } from '../store/battleSlice';
 import { beginGauntlet, dismissBoundaryAlert, enterNode, fireMapReveal } from '../store/runSlice';
 import type { RootState } from '../store/store';
@@ -425,44 +426,7 @@ export default function RunScreen(): ReactNode {
                   * player cannot see is a consumable they forget they bought — the same argument
                   * behind naming the pending node's ticket above.
                   */}
-                <h2 className="ranch-subhead">Macros</h2>
-                <div className="ranch-roster-grid">
-                    {run.macros.map((macroId, slot) => {
-                        const macro = getMacro(macroId);
-                        if (!macro) {
-                            return (
-                                <div key={slot} className="ranch-card">
-                                    <div className="ranch-card-name">Slot {slot + 1}</div>
-                                    <div className="ranch-card-species">empty</div>
-                                </div>
-                            );
-                        }
-                        const isMap = macro.targeting === 'MAP';
-                        const alreadySurveyed = isMap && isBiomeRevealed(run, current.biomeIndex);
-                        return (
-                            <div key={slot} className="ranch-card">
-                                <div className="ranch-card-name">{macro.name}</div>
-                                <div className="ranch-card-species">{macro.description}</div>
-                                {isMap && (
-                                    <button
-                                        type="button"
-                                        className="ranch-button"
-                                        disabled={alreadySurveyed}
-                                        onClick={() => {
-                                            dispatch(fireMapReveal(slot));
-                                            playSfx('rewardClaim');
-                                        }}
-                                    >
-                                        {alreadySurveyed
-                                            ? 'This biome is already surveyed'
-                                            : `Survey ${biome?.name ?? 'this biome'}`}
-                                    </button>
-                                )}
-                                {!isMap && <div className="ranch-card-species">Fires in battle.</div>}
-                            </div>
-                        );
-                    })}
-                </div>
+                <MapMacros run={run} biomeIndex={current.biomeIndex} biomeName={biome?.name} />
 
                 {/*
                   * ONBOARDING — ticket 24. Above the map rather than inside it: `RegionMap` takes
@@ -524,3 +488,61 @@ export default function RunScreen(): ReactNode {
         </div>
     );
 }
+
+/**
+ * TICKET 182b — the macro slots on the map. Not drawn while all three are empty (a rack with
+ * nothing in it is a panel with nothing to say); Show advanced content draws it anyway. A component
+ * of its own so the hook is not called after one of `RunScreen`'s early returns.
+ */
+function MapMacros({ run, biomeIndex, biomeName }: {
+    readonly run: IRunState;
+    readonly biomeIndex: number;
+    readonly biomeName: string | undefined;
+}): ReactNode {
+    const dispatch = useDispatch();
+    const advanced = useAdvancedContent();
+    if (!advanced && run.macros.every((id) => id === null)) return null;
+    return (
+        <>
+            <h2 className="ranch-subhead">Macros</h2>
+            <div className="ranch-roster-grid">
+                {run.macros.map((macroId, slot) => {
+                    const macro = getMacro(macroId);
+                    if (!macro) {
+                        return (
+                            <div key={slot} className="ranch-card">
+                                <div className="ranch-card-name">Slot {slot + 1}</div>
+                                <div className="ranch-card-species">empty</div>
+                            </div>
+                        );
+                    }
+                    const isMap = macro.targeting === 'MAP';
+                    const alreadySurveyed = isMap && isBiomeRevealed(run, biomeIndex);
+                    return (
+                        <div key={slot} className="ranch-card">
+                            <div className="ranch-card-name">{macro.name}</div>
+                            <div className="ranch-card-species">{macro.description}</div>
+                            {isMap && (
+                                <button
+                                    type="button"
+                                    className="ranch-button"
+                                    disabled={alreadySurveyed}
+                                    onClick={() => {
+                                        dispatch(fireMapReveal(slot));
+                                        playSfx('rewardClaim');
+                                    }}
+                                >
+                                    {alreadySurveyed
+                                        ? 'This biome is already surveyed'
+                                        : `Survey ${biomeName ?? 'this biome'}`}
+                                </button>
+                            )}
+                            {!isMap && <div className="ranch-card-species">Fires in battle.</div>}
+                        </div>
+                    );
+                })}
+            </div>
+        </>
+    );
+}
+
