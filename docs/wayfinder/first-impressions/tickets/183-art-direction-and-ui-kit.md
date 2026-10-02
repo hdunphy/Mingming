@@ -19,7 +19,7 @@
 - `B · Battle 3v3`, `B · Battle 2v2`, `B · Battle 1v1`: the battle screen in the kit, drawn on the real `stageGeometry.ts` numbers.
 - `B · Kit and card anatomy`: the card at 2× with callouts, the plaque at 2×, colours, element marks, HP steps, chips.
 - `B · Map (176e)`, `B · Town square (176c)`, `B · Town — inside the Shop (176c)`: ticket 176's screens in the kit (second row of the canvas).
-- **In the repo, self-contained (fonts and placeholder art beside them, nothing fetched):** `docs/wayfinder/first-impressions/research/183-mocks/` — `183-battle-3v3/2v2/1v1.html`, `183-kit.html`, `183-map.html`, `183-town-square.html`, `183-town-shop.html`, each with a 1280×800 `.png` next to it, and a `README.md` saying what each shows and which row it serves. Open the `.html` in a browser for the real thing; the `.png` is the review copy.
+- **In the repo, self-contained (fonts and placeholder art beside them, nothing fetched):** `docs/wayfinder/first-impressions/research/183-mocks/` — `183-battle-3v3/2v2/1v1.html`, `183-kit.html`, `183-map.html`, `183-town-square.html`, `183-town-shop.html`, `183-town-upgrades.html`, `183-town-den.html`, `183-town-loadout.html`, each with a 1280×800 `.png` next to it, and a `README.md` saying what each shows and which row it serves. Open the `.html` in a browser for the real thing; the `.png` is the review copy.
 - The second row of the canvas (chunky cream, "Forge") is superseded and kept for comparison only.
 - **Monster art direction:** the commission brief to Champion Moab (vgen.co/ChampionMoab), updated by Henry 2026-10-02: an animal-based fakemon, an upright werewolf, carved rune-like glowing markings that say Fire, some armour, a chain (Fenrir bound), flames or a flame cannon only if they fit. Henry also drafted an upright-wolf picture with AI: **internal only, never sent to the artist, never shipped.** Its register is the brief for the UI: clean cel shading, hard dark outlines, saturated glow only on the markings and fire. The UI borrows the outline weight and the restraint, not softness.
 - **Rule (Henry, 2026-10-02): no AI-generated picture is ever sent to an artist.** References for artists are human-made only. AI drafts stay internal.
@@ -109,7 +109,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 176 stays **blocked** until 183a, 183b and 183c are merged. Then:
 
 - **176e (the map screen)** is drawn with the kit: navy node discs with a white symbol (fight, town, elite, gym, event, detour), roads on a painted biome backdrop at M6's 1.5× size. 183 ships the node icon set and the backdrop bands (183b) so 176e composes rather than invents. **Mock: `research/183-mocks/183-map.html`.**
-- **176c step 3 (the town screen: square, rail, dock, tabs)** is built from `.k-slant` panels and the kit's buttons. The "Town Screen Prototypes" canvas stays the layout; the look is this ticket's. **Mocks: `research/183-mocks/183-town-square.html` and `183-town-shop.html`.**
+- **176c step 3 (the town screen: square, rail, dock, tabs)** is built from `.k-slant` panels and the kit's buttons. The "Town Screen Prototypes" canvas stays the layout; the look is this ticket's. **Mocks: `research/183-mocks/183-town-square.html`, then `183-town-shop.html`, `183-town-upgrades.html`, `183-town-den.html`, `183-town-loadout.html` — one per tab.**
 - **176 M7's line "cards look the way they do in the game today (Henry didn't like a restyle)"** was ruled against the chunky cream pass, not against B. Decision **D2** below settles whether the stall tile, list row and hover card take B's card face. Until ruled, 176c builds against the B hand card only.
 - A note is added to the top of 176 pointing here, and the "BLOCKED" status is lifted by Henry, not by the agent.
 
@@ -205,7 +205,7 @@ After 182's text cut lands. `RanchScreen`, `RunStart`, `SettingsScreen`, `RunSum
 
 ## 183g: Map and town pieces for 176
 
-**Reference:** `research/183-mocks/183-map.html`, `183-town-square.html`, `183-town-shop.html` (and their `.png`). They draw 176e's layout (16 columns at 144px, 110px rows, 30px node radius, biome panels, roads, gold path, faded passed nodes, dashed detour with "+1 fight", route labels) and 176c's M7 layout (square with four building buttons; rail 212 / main / dock 236) in the kit, with 183h's words. Where a mock and 176's text disagree on layout, 176 wins; on look, the mock wins.
+**Reference:** `research/183-mocks/183-map.html`, `183-town-square.html`, and the four tabs `183-town-shop.html`, `183-town-upgrades.html`, `183-town-den.html`, `183-town-loadout.html` (and their `.png`). They draw 176e's layout (16 columns at 144px, 110px rows, 30px node radius, biome panels, roads, gold path, faded passed nodes, dashed detour with "+1 fight", route labels) and 176c's M7 layout (square with four building buttons; rail 212 / main / dock 236) in the kit, with 183h's words. Where a mock and 176's text disagree on layout, 176 wins; on look, the mock wins.
 
 Ships the pieces 176 composes: `NodeIcon` (fight, town, elite, gym, event, detour, start; white symbol on a navy disc, element ring when the fight's element is known), `RouteLine` (element-coloured, 4px, flat), `BiomeBackdrop` reused at map scale, `TownButton` (the four buildings). 176e and 176c then build on these.
 

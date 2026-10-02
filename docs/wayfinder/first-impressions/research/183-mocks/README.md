@@ -10,6 +10,9 @@ Open any `.html` in a browser (they are self-contained: fonts and placeholder ar
 | `183-map` | 176e's map: biome panels as painted bands, roads, the gold path taken, faded passed nodes, a dashed detour, route labels, the party strip (no HP: restored every fight) | 176e, 183g |
 | `183-town-square` | 176c's town square: four building buttons with status lines, Leave town | 176c, 183g |
 | `183-town-shop` | 176c inside a building: rail / main / dock, the Shop tab with Buy/Sell, stock as B card faces with price plates, the Trace with its two Instincts, Draughts, Runes | 176c, 183g |
+| `183-town-upgrades` | The Upgrades tab: your deck as compact rows grouped by member with the price per row and the visit's allowance, and the preview as two full cards, now → upgraded, with the changed text lit | 176c, 183g |
+| `183-town-den` | The Den tab: Traces, the party with Retrain buttons, and Summon — pick an Instinct, each shown with its blurb and its engine cards as rows | 176c, 183g |
+| `183-town-loadout` | The Loadout tab (dock hidden): bigger portraits in the team row, the run collection as B card faces with filters, the active deck as rows | 176c, 183g |
 
 Words are 183h's ruled list (Instinct, Retrain, Trace, Summon, Den, Aura, Draught, Rune, Totem, Amber, Card). Monster art is the AI placeholder set already in `src/assets` and is never shipped (steam ticket 33). "ART PENDING" blobs stand where commissioned sprites go.
 
