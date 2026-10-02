@@ -38,16 +38,6 @@ const inBattle = (over: Parameters<typeof freshWorld>[0] = {}): World => {
     return world;
 };
 
-/** A state as JSON text with every random id (a UUID, or the tool's own `tok_n`) renamed by order of appearance. */
-const withIdsByAppearance = (state: unknown): unknown => {
-    const seen = new Map<string, string>();
-    const text = JSON.stringify(state).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|tok_\d+/g, (id) => {
-        if (!seen.has(id)) seen.set(id, `#${seen.size}`);
-        return seen.get(id)!;
-    });
-    return JSON.parse(text);
-};
-
 const battleOf = (world: World) => world.view.battle!;
 const keysOf = (screen: Screen): string[] => screen.moves.map((m) => m.key);
 
@@ -147,9 +137,8 @@ describe('180d — the same moves as the reducer', () => {
             applyMove(world, { key: battleKeyOf(action), why: 'test' });
         }
         const played = battleOf(world).state;
-        // The engine names statuses and generated cards with random UUIDs; the tool renames them
-        // (`stableIds.ts`). Compare with both sides' ids renamed by order of appearance.
-        expect(withIdsByAppearance(played)).toEqual(withIdsByAppearance(direct));
+        // Ticket 186a: the engine's ids come from the state now, so the two states are equal as they stand.
+        expect(played).toEqual(direct);
     });
 
     it('END TURN hands the turn to the enemy AI and back', () => {

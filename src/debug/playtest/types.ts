@@ -137,8 +137,6 @@ export interface BattleFlow {
     /** The node the fight counts as (`fightNodeFor`): the encounter's kind and its reward. */
     readonly fought: IRegionNode;
     readonly state: IBattleState;
-    /** How many of the engine's random ids have been given repeatable names (`battle/stableIds.ts`). */
-    readonly minted: number;
     /** Every hit of the fight so far, merged by source, target and card. */
     readonly hits: ReadonlyArray<HitTotal>;
 }

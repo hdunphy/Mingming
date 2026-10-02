@@ -21,7 +21,6 @@ import type { IRegionNode } from '../../engine/runTypes';
 import type { IBattleState } from '../../engine/types';
 import { setupFor, withCarriedHp } from '../balance/runWalker';
 import { autoPlay, openBattle, type AutoResult } from './battleSim';
-import { stabilizeIds } from './battle/stableIds';
 import { failFight, settleFight, type FightPlace } from './fightSettle';
 import { partyOf } from './party';
 import type { World } from './types';
@@ -53,8 +52,7 @@ export function startFight(
     try {
         const opening = buildFight(world, encounter, carriedHp);
         if (world.header.mode !== 'run') {
-            const named = stabilizeIds(opening, 0);
-            world.view.battle = { ...place, state: named.state, minted: named.minted, hits: [] };
+            world.view.battle = { ...place, state: opening, hits: [] };
             return;
         }
         const result: AutoResult = autoPlay(opening);

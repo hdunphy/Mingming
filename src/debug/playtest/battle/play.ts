@@ -22,7 +22,6 @@ import { battleKeyOf } from './keys';
 import type { BattleFlow, World } from '../types';
 import { runOf } from '../types';
 import { runEnemyTurn } from './enemyTurn';
-import { stabilizeIds } from './stableIds';
 import { downedLines, hitLines } from './news';
 
 const nameIn = (state: IBattleState, id: string): string =>
@@ -58,10 +57,9 @@ function applyAction(world: World, flow: BattleFlow, action: BattleAction, said:
         flag(world, 'move-refused', `the battle offered "${battleKeyOf(action)}" and the reducer refused it`);
         return false;
     }
-    const named = stabilizeIds(moved.state, flow.minted);
-    world.lastPlay = { action, before: flow.state, after: named.state, hits: moved.hits };
-    world.view.news.push(said, ...hitLines(moved.hits), ...downedLines(flow.state, named.state));
-    advance(world, { ...flow, minted: named.minted }, named.state, mergedInto(flow.hits, moved.hits));
+    world.lastPlay = { action, before: flow.state, after: moved.state, hits: moved.hits };
+    world.view.news.push(said, ...hitLines(moved.hits), ...downedLines(flow.state, moved.state));
+    advance(world, flow, moved.state, mergedInto(flow.hits, moved.hits));
     return true;
 }
 
@@ -119,13 +117,12 @@ export function endTurn(world: World): void {
             finish(world, flow, flow.state, flow.hits, true);
             return;
         }
-        const named = stabilizeIds(ended.state, flow.minted);
-        const enemy = runEnemyTurn(named.state, named.minted);
+        const enemy = runEnemyTurn(ended.state);
         const turn = enemy.hits.length > 0
             ? ['The enemy took its turn:', ...hitLines(enemy.hits)]
             : ['The enemy took its turn without hitting anyone.'];
         world.view.news.push(...turn, ...downedLines(flow.state, enemy.state));
-        advance(world, { ...flow, minted: enemy.minted }, enemy.state, mergedInto(flow.hits, [...ended.hits, ...enemy.hits]), enemy.truncated);
+        advance(world, flow, enemy.state, mergedInto(flow.hits, [...ended.hits, ...enemy.hits]), enemy.truncated);
     } catch (error) {
         failFight(world, error);
     }

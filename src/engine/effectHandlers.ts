@@ -42,7 +42,7 @@ export type EffectPayloads = {
          * It is threaded from the CALLER rather than inferred here because the caller is the only
          * one who knows. Every non-attack price in the game resolves through this same handler: a
          * recoil is an ATTACK with `percentMaxHp`, and hel's blood toll is an HP mutation that
-         * `applyMutations` turns into an ATTACK with a `damageOverride` and `sourceId: 'SYSTEM'`.
+         * `applyMutations` turns into an ATTACK with a `damageOverride`.
          * From in here they are all indistinguishable from a sword, which is exactly the confusion
          * 146f has to undo.
          *
@@ -747,8 +747,13 @@ function handleGenerateCard(state: IBattleState, payload: EffectPayloads['GENERA
         return addLog(state, `  ⚠️ Hand full, cannot generate ${dataId}`);
     }
 
+    // Ticket 186a: the id comes from the state, not a random source: `gen_<card>_<n>`, the smallest n
+    // that no card in any pile of this deck already holds. The same battle always makes the same ids.
+    const held = new Set([...deck.drawpile, ...deck.hand, ...deck.discard, ...deck.exhaust].map((c) => c.id));
+    let n = 1;
+    while (held.has(`gen_${dataId}_${n}`)) n += 1;
     const newCard = {
-        id: crypto.randomUUID(),
+        id: `gen_${dataId}_${n}`,
         dataId: dataId,
         currentCost: 0, // Generated tokens are usually 0 cost
         isPlayable: true

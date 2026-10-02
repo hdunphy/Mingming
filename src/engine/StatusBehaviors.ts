@@ -102,10 +102,18 @@ export abstract class StatusBehavior {
         return { damage: currentDamage, updatedInstances: instances, logs: [] };
     }
 
-    /** Create a fresh instance */
-    protected createInstance(stacks: number): StatusEffectInstance {
+    /**
+     * Create a fresh instance. Its id is `<Type>#<n>`, the smallest n no instance of that status on this
+     * entity already holds, so the same battle always makes the same ids (ticket 186a: this used to be
+     * `crypto.randomUUID()`, and two plays of one fight differed in those ids alone). An id only has to
+     * be distinct among one entity's own effects.
+     */
+    protected createInstance(stacks: number, existing: ReadonlyArray<StatusEffectInstance>): StatusEffectInstance {
+        const taken = new Set(existing.map((effect) => effect.id));
+        let n = 1;
+        while (taken.has(`${this.type}#${n}`)) n += 1;
         return {
-            id: crypto.randomUUID(),
+            id: `${this.type}#${n}`,
             type: this.type,
             stacks
         };
@@ -136,7 +144,7 @@ class PermanentStatusBehavior extends StatusBehavior {
             const existing = effects[existingIdx];
             effects[existingIdx] = { ...existing, stacks: existing.stacks + incomingStacks };
         } else {
-            effects.push(this.createInstance(incomingStacks));
+            effects.push(this.createInstance(incomingStacks, effects));
         }
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
@@ -333,7 +341,7 @@ class BurnBehavior extends StatusBehavior {
         if (existingIdx !== -1) {
             effects[existingIdx] = { ...effects[existingIdx], stacks: finalStacks };
         } else {
-            effects.push(this.createInstance(finalStacks));
+            effects.push(this.createInstance(finalStacks, effects));
         }
 
         return {
@@ -392,7 +400,7 @@ class PoisonBehavior extends StatusBehavior {
             const existing = effects[existingIdx];
             effects[existingIdx] = { ...existing, stacks: existing.stacks + finalStacks };
         } else {
-            effects.push(this.createInstance(finalStacks));
+            effects.push(this.createInstance(finalStacks, effects));
         }
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
@@ -460,7 +468,7 @@ class AsleepBehavior extends StatusBehavior {
             // away, so a hard-CC chain always yields the board back.
             return { updatedEffects: currentEffects, immediateDamage: 0, logs: [`  💤 ${target.name} is already asleep.`] };
         }
-        effects.push(this.createInstance(ASLEEP_INITIAL_STACKS));
+        effects.push(this.createInstance(ASLEEP_INITIAL_STACKS, effects));
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
     }
@@ -497,7 +505,7 @@ class StunnedBehavior extends StatusBehavior {
 
         if (existingIdx === -1) {
             // Boolean — always 1 stack
-            effects.push(this.createInstance(1));
+            effects.push(this.createInstance(1, effects));
         }
         // If already stunned, no-op (don't stack)
 
@@ -531,7 +539,7 @@ class RegenBehavior extends StatusBehavior {
             const existing = effects[existingIdx];
             effects[existingIdx] = { ...existing, stacks: existing.stacks + incomingStacks };
         } else {
-            effects.push(this.createInstance(incomingStacks));
+            effects.push(this.createInstance(incomingStacks, effects));
         }
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
@@ -580,7 +588,7 @@ class EnergizedBehavior extends StatusBehavior {
             const existing = effects[existingIdx];
             effects[existingIdx] = { ...existing, stacks: existing.stacks + incomingStacks };
         } else {
-            effects.push(this.createInstance(incomingStacks));
+            effects.push(this.createInstance(incomingStacks, effects));
         }
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
@@ -602,7 +610,7 @@ class StableOSBehavior extends StatusBehavior {
         const existingIdx = effects.findIndex(s => s.type === 'StableOS');
 
         if (existingIdx === -1) {
-            effects.push(this.createInstance(1));
+            effects.push(this.createInstance(1, effects));
         }
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
@@ -653,7 +661,7 @@ class BarkShieldBehavior extends StatusBehavior {
             const existing = effects[existingIdx];
             effects[existingIdx] = { ...existing, stacks: existing.stacks + incomingStacks };
         } else {
-            effects.push(this.createInstance(incomingStacks));
+            effects.push(this.createInstance(incomingStacks, effects));
         }
 
         return { updatedEffects: effects, immediateDamage: 0, logs: [] };
@@ -728,7 +736,7 @@ class StanceBehavior extends StatusBehavior {
 
         // Cap at 1 stack — re-entering the same stance is a no-op.
         if (!effects.some(s => s.type === this.type)) {
-            effects.push(this.createInstance(1));
+            effects.push(this.createInstance(1, effects));
         }
 
         return { updatedEffects: effects, immediateDamage: 0, logs };
