@@ -19,7 +19,7 @@
  * written."*
  */
 import { patchScoreDelta, type HookRecord } from '../../debug/balance/powerscale';
-import { PATCHES, PATCH_IDS, patchTouchCount, type PatchDefinition, type PatchId } from './patchRegistry';
+import { PATCHES, PATCH_IDS, patchDoesNothing, patchTouchCount, type PatchDefinition, type PatchId } from './patchRegistry';
 import type { DataHookDefinition, ModifierDataHookDefinition } from '../core/HookTypes';
 
 type AnyHook = DataHookDefinition | ModifierDataHookDefinition;
@@ -72,9 +72,15 @@ export function patchScoreDeltaFor(patch: PatchDefinition, hooks: ReadonlyArray<
  * firmware and a re-roll is a re-roll rather than a coin flip.
  */
 export function bestPatchFor(hooks: ReadonlyArray<AnyHook>): PatchDefinition {
-    return [...PATCH_IDS]
-        .map((id) => PATCHES[id])
-        .reduce((best, patch) => (rankKey(patch, hooks) > rankKey(best, hooks) ? patch : best), PATCHES.amplifier);
+    // 184d: a patch that does nothing here is not a candidate. OVERCLOCK (a body patch) always is,
+    // so the list is never empty.
+    const candidates = offerablePatchIds(hooks).map((id) => PATCHES[id]);
+    return candidates.reduce((best, patch) => (rankKey(patch, hooks) > rankKey(best, hooks) ? patch : best), candidates[0]);
+}
+
+/** TICKET 184d: the patches this firmware can use, in declaration order — the no-ops hidden. */
+export function offerablePatchIds(hooks: ReadonlyArray<AnyHook>): PatchId[] {
+    return PATCH_IDS.filter((id) => !patchDoesNothing(PATCHES[id], hooks));
 }
 
 /**
@@ -122,9 +128,11 @@ export const SHOP_STOCK_PATCH: PatchId = 'amplifier';
  * unreachable; it is written because "currently" is a fact about the table, not about this rule.
  */
 export function gatePatchChoices(hooks: ReadonlyArray<AnyHook>, held: ReadonlyArray<string>): PatchId[] {
-    const ranked = PATCH_IDS
+    const ranked = offerablePatchIds(hooks)
         .filter((id) => !held.includes(id))
         .sort((a, b) => rankKey(PATCHES[b], hooks) - rankKey(PATCHES[a], hooks));
+    // 184d: with the no-ops hidden this IS reachable — huldra_v2 has no hook data, so OVERCLOCK is
+    // the only patch she can use, and she is offered that one rather than a no-op beside it.
     if (ranked.length < 2) return ranked.slice(0, 2);
 
     const first = ranked[0];

@@ -269,8 +269,16 @@ describe('163g — the gate offers two different KINDS', () => {
         // Henry, 2026-09-25: *"the gate's two offers must be two different KINDS."* Ranked on value
         // alone the top two are often two ways of doing the same thing — a firmware that rewards
         // one `amount` patch rewards the other — and then the choice is a choice in form only.
+        //
+        // Ticket 184d (Henry, 2026-10-01, "Hide them"): a patch that does nothing on the firmware is
+        // never offered, so a firmware that can use only one patch is offered only that one —
+        // huldra_v2 has no hook data, and OVERCLOCK is the one patch that is not a hook change.
         for (const osId of osIds) {
             const offers = gatePatchChoices(rawFirmwareHooks(osId), []);
+            if (osId === 'huldra_v2') {
+                expect(offers, osId).toEqual(['overclock']);
+                continue;
+            }
             expect(offers, osId).toHaveLength(2);
             const kinds = offers.map((id) => PATCHES[id].field);
             expect(kinds[0], `${osId}: ${offers.join(' + ')}`).not.toBe(kinds[1]);

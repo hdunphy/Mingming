@@ -70,6 +70,13 @@ export interface PatchDefinition {
      * id so the scorer and the plaque can group patches without knowing what each one is called.
      */
     readonly field: 'amount' | 'triggers' | 'actor' | 'target' | 'stacks' | 'drawback';
+    /**
+     * TICKET 184d: what the patch acts on. `firmware` patches transform the OS's hook data, so
+     * whether they do anything is a fact about the firmware (`patchDoesNothing`). OVERCLOCK is
+     * `body`: it changes what a card's scaler counts on the member, not any hook, so no firmware
+     * can make it a no-op.
+     */
+    readonly reach: 'firmware' | 'body';
     /** Hook data in, hook data out. Returns the SAME object when there is nothing to change. */
     readonly apply: (hook: AnyHook) => AnyHook;
 }
@@ -124,6 +131,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
         name: 'AMPLIFIER',
         text: 'Your firmware\'s number goes up: one more stack, or half again as much.',
         field: 'amount',
+        reach: 'firmware',
         apply: (hook) => {
             const next = asPatchable(clone(hook));
             let touched = false;
@@ -166,6 +174,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
         name: 'REPEATER',
         text: 'A firmware that holds itself to once a turn gets one more.',
         field: 'triggers',
+        reach: 'firmware',
         apply: (hook) => {
             const gates = [
                 ...(hook.when?.counter ? [hook.when.counter] : []),
@@ -199,6 +208,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
         name: 'RELAY',
         text: 'Firmware that only watches you now watches your whole side.',
         field: 'actor',
+        reach: 'firmware',
         apply: (hook) => {
             if (hook.when?.source !== 'SELF') return hook;
             const next = clone(hook);
@@ -220,6 +230,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
         name: 'SPLITTER',
         text: 'What your firmware gives you, it also gives your side.',
         field: 'target',
+        reach: 'firmware',
         apply: (hook) => {
             const selfward = (asPatchable(hook).do ?? []).filter((a: HookAction) => a.target === 'SELF' && !isDrawback(a));
             if (selfward.length === 0) return hook;
@@ -247,6 +258,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
         name: 'OVERCLOCK',
         text: 'Every stack you hold counts for one more when a card cashes it.',
         field: 'stacks',
+        reach: 'body',
         apply: (hook) => hook,
     },
 
@@ -263,6 +275,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
         name: 'FAILSAFE',
         text: 'Whatever your firmware costs you, it stops costing.',
         field: 'drawback',
+        reach: 'firmware',
         apply: (hook) => {
             const kept = (asPatchable(hook).do ?? []).filter((a: HookAction) => !isDrawback(a));
             if (kept.length === (asPatchable(hook).do ?? []).length) return hook;
@@ -289,6 +302,18 @@ export function getPatch(id: string): PatchDefinition | undefined {
  */
 export function patchTouchCount(patch: PatchDefinition, hooks: ReadonlyArray<AnyHook>): number {
     return hooks.reduce((n: number, hook: AnyHook) => n + (patch.apply(hook) === hook ? 0 : 1), 0);
+}
+
+/**
+ * TICKET 184d — **a patch that changes nothing on this firmware is never offered for it.**
+ *
+ * Henry, 2026-10-01, on patches that do nothing on a body: *"Hide them I think."* A `firmware`
+ * patch that finds nothing to change in any of the OS's hooks is a prize the body cannot use — and
+ * a hand-written firmware (`CustomFirmware`, e.g. huldra_v2) has no hook data at all, so every
+ * firmware patch is a no-op on it. A `body` patch (OVERCLOCK) is never a no-op by this test.
+ */
+export function patchDoesNothing(patch: PatchDefinition, hooks: ReadonlyArray<AnyHook>): boolean {
+    return patch.reach === 'firmware' && patchTouchCount(patch, hooks) === 0;
 }
 
 /*
