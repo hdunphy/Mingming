@@ -18,12 +18,12 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 | 184 | [Playtest polish 3](tickets/184-playtest-polish-3.md): draw-pile viewer, Burn overflow text, counters, per-OS patch text | **Done** (184a–e, `53bcedc..85d5183`) | — |
 | 182 | [Text cut, hide-when-empty, intro run, two switches](tickets/182-text-cut-and-intro-run.md) | Ruled, not started | — |
 | 183 | [Art direction and UI kit](tickets/183-art-direction-and-ui-kit.md): direction B "Slant", rows 183a–h | Ruled (D1–D7), not started | 183f and 183h after 182 |
-| 181 | [Playtest round 2 (SOP)](tickets/181-friends-playtest-1.md) | 181a, 181b built; 181c waits on Henry's Google Form | 182, 183, 181c |
+| 181 | [Playtest round 2 (SOP)](tickets/181-friends-playtest-1.md) | 181a, 181b built. 181c ready (the form exists). **181d** (deploy to a restricted itch.io page) and **181e** (a version number per release) added 2026-10-02 | 182, 183, **176**, 181c–e |
 | 176 | [Map redesign: towns and branching routes](tickets/176-map-redesign.md) | **Blocked** | 183a–c |
 | 175 | [Localization prep](tickets/175-localization-prep.md) | Ruled, not started. **Comes after everything else here, especially the text cut** (Henry, 2026-10-02) | 182, 183h |
 | 180 | [Agent playtester](tickets/180-agent-playtester.md) | Ruled (A1–A6), queued; **do not start until Henry says go** | Henry |
 
-**The frontier:** build 182 → build 183a–e → 183f–h → 181c once the form exists → release (181) → 176 → 175. 180 whenever Henry says go. **185** (balance and rewards) runs alongside 182/183 — it shares no files with them except 185f's `RunSummary.tsx`, which waits for 182.
+**The frontier:** build 182 → build 183a–e → 183f–h → 181c–e → 176 (after 183a–c) → release (181) → 175. **176 is in the playtest build** (Henry, 2026-10-02, 181 D3). 180 whenever Henry says go. **185** (balance and rewards) runs alongside 182/183 — it shares no files with them except 185f's `RunSummary.tsx`, which waits for 182.
 
 ## Decisions so far
 
@@ -33,7 +33,7 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 - **Direction ruled (2026-10-01/02):** moving away from the futuristic robot theme toward the nostalgic Pokémon feel, without crossing the "clone" line. UI: direction **B "Slant"** (183), Sword/Shield-style slanted navy panels on the existing battle geometry. The battle screen keeps its layout; it gets a colour-and-shape facelift.
 - **The intro run is the first-run gate (182):** a separate, removable mode outside the tier ladder, a hand-built 6-node map, a free recruit, a one-fight leader, no macros/patches/firmware choice. Plus hide-when-empty instead of an unlock ladder. Two separate switches: **Skip intro** and **Show advanced content**. The intro is mainly for round 2; it may be scrapped later or become the demo for early playtesters.
 - **On-screen words (183 D1, 183h):** firmware/OS → **Instinct**, reflash → **Retrain**, blueprint → **Trace**, assembly → **Summon**, workshop → **Den**, daemon → **Aura**, macro → **Draught**, patch → **Rune**, driver → **Totem**, scrap → **Amber**, program → **Card**, Mingming stays. Code, data ids and saves keep the old words. Built after 182.
-- **The playtest waits on 182 and 183** (181 D4, D15 changed). The ask: the intro, then one full run if they enjoyed it. Deploys come from `main`: **merging to `main` publishes to GitHub Pages.**
+- **The playtest waits on 182, 183 and 176** (181 D3, D4; D15 changed). It runs on a **restricted itch.io page**, deployed by the workflow on every merge to `main`; GitHub Pages is switched off (181 D1, D2, row 181d). Every release carries a `major.minor.patch` version and a tag (181e; V1 pending). The ask: the intro, then one full run if they enjoyed it. **Merging to `main` publishes the game** (to itch once 181d lands; to GitHub Pages until then).
 - **No AI-generated picture is ever sent to an artist** (Henry, 2026-10-02). The Fenrir commission is the test piece only (one design, PNG + PSD, one sketch round); portraits and card-art crops come in a later booking if Henry likes the test.
 - **A longer run is an opt-in "Long Road" modifier after 176**, not a tier (recorded at the end of 176).
 

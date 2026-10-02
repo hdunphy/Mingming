@@ -1,6 +1,6 @@
 # Ticket 181: Playtest round 2 (friends and family) — prep and release (SOP)
 
-**Type:** release procedure, plus three small build changes. **Status:** OPEN, **waiting on ticket 182** (the text cut, hide-when-empty and the intro run) **and ticket 183** (the art direction and UI rework). Henry, 2026-10-02: *"The playtest can wait on 182"*, and the UI is reworked before the playtest. Release nothing until both are built. 179, 181a and 181b are built (181b was amended, see its row); 181c waits on the form. **Owner:** Henry. The agent builds only the code rows (181a, 181b, 181c), once Henry rules on the decisions below.
+**Type:** release procedure, plus three small build changes. **Status:** OPEN, **waiting on ticket 182** (the text cut, hide-when-empty and the intro run) **and ticket 183** (the art direction and UI rework). Henry, 2026-10-02: *"The playtest can wait on 182"*, and the UI is reworked before the playtest. **Henry, 2026-10-02 (D3): ticket 176 (the map redesign) is in this build too**, so the release also waits on 176, which itself waits on 183a–c. **The test runs on a restricted itch.io page, not GitHub Pages** (D1, D2: rows 181d and 181e). Release nothing until 182, 183 and 176 are built. 179, 181a and 181b are built (181b was amended, see its row); 181c waits on the form. **Owner:** Henry. The agent builds only the code rows (181a, 181b, 181c), once Henry rules on the decisions below.
 
 **Round 1** was Henry's brother. **Round 2** is this one.
 
@@ -26,7 +26,7 @@
 
 **This is the last browser-based round.** Later rounds move to a desktop build (Steam Playtest or similar). Henry's rule for this round: **the least friction for testers** (a link to play and Discord to talk), so every ask of testers is kept as small as possible.
 
-**This is not a public test.** Section 1, D1 covers what "not public" can and can't mean with GitHub Pages.
+**This is not a public test.** D1 (ruled 2026-10-02) moves it to a password-protected itch.io page.
 
 ---
 
@@ -56,23 +56,37 @@ Each decision has a recommended default. Mark each one **yes** or write your cho
 
 | # | Decision | Recommended default | Your call |
 |---|---|---|---|
-| D1 | **Privacy of the game link.** Pages can't be password-protected. Options: (a) Pages, and simply don't post the link anywhere public ("unlisted", not private); (b) an itch.io page set to *restricted* with a password, which hosts browser games free and is private; (c) a private repo (needs a paid GitHub plan, and the Pages site is still public anyway). | **(a) Pages, unlisted**, as you asked, plus a "please don't share the link" line in the invite. Move to (b) if you ever need real privacy. | |
-| D2 | **What triggers a deploy.** Every push to `main` redeploys. | **Keep it** (Henry, 2026-10-01: deploy from `main`, no separate release branch). So merging to `main` *is* releasing. Merge the round's build when you're ready, and **during the test merge nothing to `main` except a blocker hotfix**; keep other work on branches until the round closes. | |
-| D3 | **What's in the build.** | Today's `playtest-polish` (171–174 built) **plus ticket 179** (one card pick per fight). Not 175 (localization) or 176 (map and towns). | |
+| D1 | **Privacy of the game link.** Pages can't be password-protected. Options: (a) Pages, and simply don't post the link anywhere public ("unlisted", not private); (b) an itch.io page set to *restricted* with a password, which hosts browser games free and is private; (c) a private repo (needs a paid GitHub plan, and the Pages site is still public anyway). | **(a) Pages, unlisted**, as you asked, plus a "please don't share the link" line in the invite. Move to (b) if you ever need real privacy. | I think we move this to an itch.io page. I already have an itch account. |
+| D2 | **What triggers a deploy.** Every push to `main` redeploys. | **Keep it** (Henry, 2026-10-01: deploy from `main`, no separate release branch). So merging to `main` *is* releasing. Merge the round's build when you're ready, and **during the test merge nothing to `main` except a blocker hotfix**; keep other work on branches until the round closes. | can we retarget this to itch? Otherwise I'll have to upload when I'm ready. Each main merge counts as a new release and we should make sure we are updating the major version. Not sure how we are currently handling versions. Should do something like ##.##.## with major.minor.bugfixes |
+| D3 | **What's in the build.** | Today's `playtest-polish` (171–174 built) **plus ticket 179** (one card pick per fight). Not 175 (localization) or 176 (map and towns). | Not 175. I would like 176 in there. |
 | D4 | **First-run experience.** The Tier 0 cut list (the Claude project doc "Tier 0 cut list + UI direction") has three layers: (1) **cut the text**: one sentence of copy per screen, tips as short toasts instead of "Got it / Skip tips" panels; (2) **hide systems until first use** (macros, firmware, patches, tiers); (3) **the new visual style**. | **Do layer 1 before release (ticket 182, to be written from the cut list).** It's mostly copy, it's what makes the game read as "AI slop", and 9 of 13 testers are new to the genre. Layer 2 only if 182 comes in quick. **Layer 3 waits for the UI rework.** | **Ruled 2026-10-02: all three layers before release.** Ticket 182 does layers 1 and 2 (the text cut, and hide-when-empty), plus a short **intro run** for new saves, with two switches, "Skip intro" and "Show advanced content". **Layer 3 is ticket 183** (the UI rework), and the playtest waits for it too. |
-| D5 | **Testers.** | **Henry's list of about 13** (friends, cousins, Dad). A **personal message to each** (§4.1, two versions). **Keep the names out of this repo:** it's public, so the list lives in your own notes, and logs and reports use first initials. Expect about half to play; that's normal for a favour. | |
+| D5 | **Testers.** | **Henry's list of about 13** (friends, cousins, Dad). A **personal message to each** (§4.1, two versions). **Keep the names out of this repo:** it's public, so the list lives in your own notes, and logs and reports use first initials. Expect about half to play; that's normal for a favour. | Agree with default |
 | D6 | **Test window and the ask.** | **2 weeks.** The ask is **one run (about 30–45 minutes)**; a second is welcome. *(Since 182: a new save starts with the intro run, about 15–20 minutes. So the ask becomes "the intro, then one full run if you enjoyed it", see §4.1.)* The 3–4 deckbuilder players are asked for **two or more**, because their balance feedback is the part the others can't give. | **Confirmed 2026-10-02:** the intro, then one full run if they enjoyed it. |
-| D7 | **Builds during the test.** | **At most one hotfix**, for blockers only (crashes, soft-locks, lost saves), and **no balance changes mid-test**, so everyone's feedback is about the same game. Because `main` publishes (D2), the hotfix is the only thing merged to `main` while the test runs. | |
-| D8 | **Where feedback goes.** | **The form is part of the game (181c):** when a run ends, the run summary shows **"Tell Henry how it went"**, which opens the short Google Form with the build, starter and how far they got already filled in. Settings has the same button. **Discord** is for bugs, chat and anything longer. One form per run is fine now, because it's one click from the game, not something to remember. | |
-| D9 | **Run logs.** | **Optional.** "If you can, export the run log after a run and drop it in `#run-logs`; it helps a lot." Never required. | |
-| D10 | **Confidentiality.** | A plain request ("please don't share the link or post screenshots publicly yet"), not an NDA. | |
-| D11 | **Supported setup.** | Desktop or laptop browser (Chrome, Edge or Firefox), window at least 1280×800. **Phones and tablets not supported**; say so up front. | |
-| D12 | **Build label.** | **181a:** the main menu and Settings show `PLAYTEST 2 · <commit>` (the short git hash at build time), so every bug report names the build. The label is a literal in `deploy.yml`, so **nothing has to be set in GitHub**; bump it in the commit that ships a hotfix. | |
-| D13 | **What goes in the Discord.** | Keep it short, since most testers won't read much: **welcome + how to start** (§4.2), a **3-line vision** (§4.7), **gameplay basics** (§4.3), and a **5-line roadmap** without dates (§4.8). **Bestiary / Pokédex: not this round.** The art is placeholder and the theme is moving, so it would need rewriting; point to the in-game **Codex** instead. | |
-| D14 | **Video devlog.** | **Not part of this round.** As you said: after the UI rework, as the first piece of public marketing (Steam wishlists). Friends and family come in through your personal message, not a video. | |
-| D15 | **Theme words this round.** | **Changed by Henry, 2026-10-02: rename the on-screen words in ticket 183 (row 183h, decision D1), before this release,** since the playtest now waits on the UI rework anyway. Testers learn one vocabulary. Code names, data ids and saves keep the old words. *(Was: don't rename anything for this round.)* The vision post (§4.7) sells the new direction ("Slay the Spire dressed as Pokémon", Norse monsters) and not robots, so testers aren't told one thing now and another later. | |
+| D7 | **Builds during the test.** | **At most one hotfix**, for blockers only (crashes, soft-locks, lost saves), and **no balance changes mid-test**, so everyone's feedback is about the same game. Because `main` publishes (D2), the hotfix is the only thing merged to `main` while the test runs. | Agree with default |
+| D8 | **Where feedback goes.** | **The form is part of the game (181c):** when a run ends, the run summary shows **"Tell Henry how it went"**, which opens the short Google Form with the build, starter and how far they got already filled in. Settings has the same button. **Discord** is for bugs, chat and anything longer. One form per run is fine now, because it's one click from the game, not something to remember. | Agree with default. |
+| D9 | **Run logs.** | **Optional.** "If you can, export the run log after a run and drop it in `#run-logs`; it helps a lot." Never required. | Yes, optional. |
+| D10 | **Confidentiality.** | A plain request ("please don't share the link or post screenshots publicly yet"), not an NDA. | Don't think I need to say this with this group. |
+| D11 | **Supported setup.** | Desktop or laptop browser (Chrome, Edge or Firefox), window at least 1280×800. **Phones and tablets not supported**; say so up front. | Agree with default. |
+| D12 | **Build label.** | **181a:** the main menu and Settings show `PLAYTEST 2 · <commit>` (the short git hash at build time), so every bug report names the build. The label is a literal in `deploy.yml`, so **nothing has to be set in GitHub**; bump it in the commit that ships a hotfix. | Agree with default. |
+| D13 | **What goes in the Discord.** | Keep it short, since most testers won't read much: **welcome + how to start** (§4.2), a **3-line vision** (§4.7), **gameplay basics** (§4.3), and a **5-line roadmap** without dates (§4.8). **Bestiary / Pokédex: not this round.** The art is placeholder and the theme is moving, so it would need rewriting; point to the in-game **Codex** instead. | Agree with default |
+| D14 | **Video devlog.** | **Not part of this round.** As you said: after the UI rework, as the first piece of public marketing (Steam wishlists). Friends and family come in through your personal message, not a video. | Agree with default, after I send it out, I'll work on the devlog. |
+| D15 | **Theme words this round.** | **Changed by Henry, 2026-10-02: rename the on-screen words in ticket 183 (row 183h, decision D1), before this release,** since the playtest now waits on the UI rework anyway. Testers learn one vocabulary. Code names, data ids and saves keep the old words. *(Was: don't rename anything for this round.)* The vision post (§4.7) sells the new direction ("Slay the Spire dressed as Pokémon", Norse monsters) and not robots, so testers aren't told one thing now and another later. | Yes move over to the new theme, no robots, but Norse Pokemon playing STS |
 
 ---
+
+### What Henry's 2026-10-02 rulings change
+
+- **D1, D2 → itch.io.** The game is published to a **restricted (password) itch.io page**, by the deploy workflow on every merge to `main`, instead of GitHub Pages. New row **181d**. The Pages site is switched off so no open copy stays up.
+- **D2 → version numbers.** Every merge to `main` is a release and carries a new `major.minor.patch` version. New row **181e**, and decision **V1** below.
+- **D3 → 176 is in.** The release waits on ticket 176 (the map redesign) as well as 182 and 183.
+- **D10 → no confidentiality line.** The "please don't share the link" lines are gone from the invites and the welcome post; the itch password does that job.
+- **D14:** the devlog starts after the invites go out.
+- **D15:** the vision and every post sell the new theme: Norse Pokémon playing Slay the Spire, no robots.
+
+| # | Decision | Recommended default | Your call |
+|---|---|---|---|
+| V1 | **Which number goes up on a release.** You said "major". | **Before 1.0, a release to `main` bumps the MINOR number** (0.4.0, 0.5.0…) and a hotfix bumps the PATCH (0.4.1). **1.0.0 is the Steam launch.** Bumping the major number every merge reaches 12.0.0 before launch, which reads as a mature game. This round ships as **0.4.0** (the old hard-coded label said v0.3.5). | |
+| V2 | **The itch page's address** (`<itch user>/<game>`). | Whatever you create in Phase 1, step 1.5b. The agent leaves a placeholder that fails the deploy until you fill it in. | |
 
 ## 2. Build changes (agent rows)
 
@@ -83,6 +97,8 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
 | 181a | A build label from the commit |
 | 181b | The build label comes from the deploy workflow (amended: deploy stays on `main`) |
 | 181c | "Tell Henry how it went": the feedback form, one click from the end of a run |
+| 181d | Deploy to a restricted itch.io page instead of GitHub Pages (D1, D2) |
+| 181e | A version number on every release (D2, V1) |
 
 ### 181a: A build label from the commit
 
@@ -109,21 +125,49 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
 
 ### 181c: "Tell Henry how it went", one click from the end of a run
 
-1. **Henry makes the form first** (§4.4) and uses Google Forms' **Get pre-filled link** to find the field ids for: build, starter, how far, and run number.
-2. **`src/ui/feedback/feedbackLink.ts`** (new, small): `feedbackUrl(run | null): string | null` builds the form URL from `import.meta.env.VITE_FEEDBACK_FORM_URL`. The env var is a template with `{build}`, `{starter}`, `{reached}` and `{run}` placeholders. Each value is URL-encoded:
+1. **The form exists** (Henry, 2026-10-02: `https://forms.gle/XSnrVrcADbyTkruA9`). Its pre-filled link template, with the five field ids, is:
+
+   ```
+   https://docs.google.com/forms/d/e/1FAIpQLSfvGC1R9ZI6xhuUW1E2gCW9f_3moH2Iys9wnVlB9lzPWpB-1A/viewform?usp=pp_url&entry.266049503={build}&entry.1050293904={starter}&entry.563433886={reached}&entry.1982475832={run}&entry.219225348={minutes}
+   ```
+
+   Field ids: build `entry.266049503`, starter `entry.1050293904`, how far `entry.563433886`, run number `entry.1982475832`, run length in minutes `entry.219225348`.
+2. **`src/ui/feedback/feedbackLink.ts`** (new, small): `feedbackUrl(run | null): string | null` builds the form URL from `import.meta.env.VITE_FEEDBACK_FORM_URL`. The env var is a template with `{build}`, `{starter}`, `{reached}`, `{run}` and `{minutes}` placeholders. Each value is URL-encoded:
    - `{build}`: 181a's label and commit
    - `{starter}`: the starter's species name
    - `{reached}`: "area 1 / 2 / 3 / gym / beat the gym", from the ended run
    - `{run}`: the ranch's completed-run count
+   - `{minutes}`: the run's length in whole minutes, from its start time to the moment it ended (blank in Settings)
    - **For the intro run (182c):** `{reached}` is "intro (won)" or "intro (lost)", and `{run}` is "intro" (the intro does not count as a completed run)
    It returns `null` when the env var isn't set, and **the buttons then don't render** (local and dev builds show nothing).
 3. **Run summary** (`RunSummary.tsx`): a button **"Tell Henry how it went"** next to the existing leave button. It opens the URL in a new tab (`window.open(url, '_blank', 'noopener')`). It's the most prominent thing after the result, but it never blocks leaving.
 4. **Settings** (`SettingsScreen.tsx`): the same button, without run details (build only), beside **Export run log**.
-5. **Deploy** (the same step that sets the label): pass `VITE_FEEDBACK_FORM_URL` as a literal in `deploy.yml`, with `vars.FEEDBACK_FORM_URL` as an optional override, the same pattern as the label. Henry pastes the form link template into that line; nothing needs setting in GitHub. (The link ends up in the public bundle either way, so a variable would not keep it private.)
+5. **Deploy** (the same step that sets the label): pass `VITE_FEEDBACK_FORM_URL` as a literal in `deploy.yml`, with `vars.FEEDBACK_FORM_URL` as an optional override, the same pattern as the label. **Use the template in step 1 exactly**; nothing needs setting in GitHub. (The link ends up in the public bundle either way, so a variable would not keep it private.)
 6. **Tests:**
    - the URL fills each placeholder, encoded
    - no env var: no button on either screen
    - the run summary shows the button for both a win and a loss
+   - `{minutes}` is filled from the run's start and end times, and an intro run fills `{run}` with "intro"
+
+### 181d: Deploy to a restricted itch.io page (D1, D2)
+
+**Henry first** (Phase 1, step 1.5b): the itch project exists, set to HTML, **Restricted** with a password, and a GitHub repository secret **`BUTLER_API_KEY`** holds an itch API key. That secret is the one GitHub setting this needs; a key cannot live in a public repo.
+
+1. **`vite.config.ts`:** the web build uses a **relative base (`./`)**, as the desktop build already does (ticket 42), because itch serves the game from its own CDN folder, not `/Mingming/`. Update the comment that explains the base. Check that fonts, sounds and images still load (anything built from `import.meta.env.BASE_URL` keeps working).
+2. **`scripts/assert-relative-base.mjs`** (new, small), added to `npm run build` after `assert-no-debug`: fails if `dist/index.html` loads anything from an absolute path (`src="/` or `href="/`).
+3. **`.github/workflows/deploy.yml`:** rename it "Deploy to itch.io". Keep the trigger (`main`), the CI gate and the build step. **Remove** the Pages artifact and deploy steps (`upload-pages-artifact`, `deploy-pages`, the `github-pages` environment, the `pages`/`id-token` permissions). **Add** two steps:
+   - download butler from itch's official URL (`https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default`), unzip, make it executable;
+   - `butler push dist <itch target>:html5 --userversion <version>`, with `BUTLER_API_KEY` from secrets. The target is a literal in the workflow, `${{ vars.ITCH_TARGET || 'CHANGE-ME/mingming' }}`, the same pattern as the label; the step **fails with a clear message** if the target is still `CHANGE-ME` or the secret is missing. It never skips silently.
+4. **Saves:** itch plays HTML5 games inside an iframe from its own domain. Every save key is already prefixed `mingming_`. Phase 2, step 2.4 (reload mid-run) is the check that saves survive there.
+5. **Tests:** the relative-base assertion runs in every build. Workflow files can't be tested; both must parse as YAML.
+
+### 181e: A version number on every release (D2, V1)
+
+1. **`package.json` `version`** is the game's version, `major.minor.patch` (currently `0.0.0`; this round ships **0.4.0**, per V1's default). It is the only place the number is written.
+2. **`vite.config.ts`:** a third build constant, `__GAME_VERSION__`, read from `package.json`. The label everywhere (main menu, Settings, run logs, the form's `{build}`) reads **`PLAYTEST 2 · v0.4.0 · <commit>`**. Run logs carry `build.version`.
+3. **`deploy.yml`:** before pushing, the job **fails if the tag `v<version>` already exists**, so a merge to `main` without a version bump can't ship. After a successful itch push it creates and pushes the tag `v<version>` (the job needs `contents: write`). butler's `--userversion` is the same number. This replaces Phase 1, step 1.9's hand-made `playtest-2` tag.
+4. **How to bump:** `npm version minor --no-git-tag-version` (or `patch` for a hotfix) in the release commit. Write that one line into `docs/wayfinder/first-impressions/HANDOFF.md`.
+5. **Tests:** the label shows the version; an exported run log carries `build.version`.
 
 ---
 
@@ -133,28 +177,30 @@ Do these in order and tick them off. Rough times are in brackets.
 
 ### Phase 1: Freeze the build (about 1–2 hours, mostly your own run)
 
-- [ ] **1.1** Rule on D1–D15 above.
-- [ ] **1.0** **Wait for tickets 182 and 183 to be built.** 182 is written and ruled (2026-10-02). 183 is still a placeholder: the art direction and UI kit get chosen first, then built.
+- [x] **1.1** Rule on D1–D15 above.
+- [ ] **1.0** **Wait for tickets 182, 183 and 176 to be built** (176 joined the build on 2026-10-02, D3), plus 181c–e.
 - [x] **1.2** Claude wrote **ticket 182** (the text cut, hide-when-empty, the intro run, the two switches) and you ruled on it (2026-10-02).
-- [ ] **1.3a** Make the **Google Form** (§4.4) and its pre-filled link. Paste the link template (from 181c) into the `VITE_FEEDBACK_FORM_URL` line of `.github/workflows/deploy.yml`. The label there already says `PLAYTEST 2`. **Nothing to set in GitHub.**
+- [x] **1.3a** Make the **Google Form** (§4.4) and its pre-filled link. **Done 2026-10-02**; the link template is in 181c, and the agent puts it in `deploy.yml`. The label there already says `PLAYTEST 2`. **Nothing to set in GitHub.**
+- [ ] **1.3a-2** **Fix the form** (found 2026-10-02): it has no sections, so everyone sees every question. Add a section "First impressions" after question 7 and a section "The run" after question 13; on question 7 turn on *Go to section based on answer* (Yes → First impressions, No → The run). Make **First name** required, and make "What did the game look like?" and "Did the intro teach you enough?" optional. In Settings: no email collection, no sign-in, more than one response allowed. The field ids don't change.
 - [ ] **1.3b** **179, 181a and 181b are built** (reports: `docs/balance/card-picks-179.md` and the commit messages). The agent still builds **181c** (once the form exists), **182** and **183**. Check the reports, including `docs/balance/intro-run-182.md` (the intro's win rate and estimated length).
 - [ ] **1.3c** On a **new save slot**, play **the intro** and **time it** (target 15–20 minutes; 182c only estimates it). Then play **one full run yourself** on the build (the 174 check from `playtest-results/2026-10-01/playtest-strategy.md`). Anything that blocks a run gets fixed before you continue.
 - [ ] **1.4** Run `npm run release-check`. It must be green: all gates, no debug toolkit in the build, plus the asset weight.
 - [ ] **1.5** Check that no AI-generated image ships. Search the built `dist/` for the species art files and confirm none are referenced. Monster art is switched off, but files can still be bundled.
-- [ ] **1.6** Push the work branch: `git push origin playtest-polish`.
-- [ ] **1.7** Open a pull request `playtest-polish` into `main` (CI runs on it). **Before you merge,** check that `.github/workflows/deploy.yml` says `PLAYTEST 2` and, once 181c is built, carries the form link. Steps 1.3c to 1.5 must be done: the merge publishes.
-- [ ] **1.8** **Merge the pull request. This publishes the build:** the deploy runs on every push to `main`, after the full CI gate.
-- [ ] **1.9** Tag the release commit, so you can always find what testers played: `git checkout main && git pull && git tag playtest-2 && git push origin playtest-2`.
+- [ ] **1.5b** **Set up itch.io (181d):** create the project (Kind: HTML; Visibility: **Restricted**, with a password; embed size 1280×800 with the fullscreen button; not mobile-friendly). Create an API key (itch → Settings → API keys) and add it to GitHub as the repository secret **`BUTLER_API_KEY`**. Put the project's `<itch user>/<game>` into the `ITCH_TARGET` literal in `deploy.yml` (V2). After the first deploy, tick **"This file will be played in the browser"** on the html5 upload in the itch dashboard (once). Then switch GitHub Pages off (repo Settings → Pages → Unpublish), so no open copy stays up.
+- [ ] **1.6** Push the work branch: `git push origin first-impressions`.
+- [ ] **1.7** Open a pull request `first-impressions` into `main` (CI runs on it). **Before you merge,** check that `.github/workflows/deploy.yml` says `PLAYTEST 2` and, once 181c is built, carries the form link. Steps 1.3c to 1.5 must be done: the merge publishes.
+- [ ] **1.8** **Merge the pull request. This publishes the build to the itch page:** the deploy runs on every push to `main`, after the full CI gate, and fails if the version wasn't bumped (181e).
+- [ ] **1.9** The deploy tags the release itself (`v0.4.0`, 181e), so you can always find what testers played. Check the tag is on GitHub.
 
 ### Phase 2: Check the live site (about 45 minutes)
 
-- [ ] **2.1** The deploy finished (it started when you merged): GitHub → Actions → "Deploy to GitHub Pages" is green.
-- [ ] **2.2** Open `https://hdunphy.github.io/Mingming/` in a **private window** (a fresh browser, like a tester's). The main menu shows `PLAYTEST 2 · <commit>`.
+- [ ] **2.1** The deploy finished (it started when you merged): GitHub → Actions → "Deploy to itch.io" is green.
+- [ ] **2.2** Open the itch page in a **private window** (a fresh browser, like a tester's) and enter the password. The main menu shows `PLAYTEST 2 · v0.4.0 · <commit>`.
 - [ ] **2.3** In that window, play: pick a starter (both switches off), **the intro run to the end**, then back at the ranch choose a gym, the map, the first fight, rewards, a shop visit, and one more fight.
 - [ ] **2.3b** In a second private window, pick a starter with **Skip intro** on: it goes straight to the ranch. Turn **Show advanced content** on in Settings: the empty macro slots and other hidden panels appear.
 - [ ] **2.4** **Reload the page mid-run.** The run resumes where you were.
 - [ ] **2.5** Settings → **Export run log**. A `.json` file downloads, and it contains `build`.
-- [ ] **2.5b** Lose or abandon a run. On the run summary, **"Tell Henry how it went"** opens the form with build, starter and how far already filled in. Submit a test answer, then delete it from the responses.
+- [ ] **2.5b** Lose or abandon a run. On the run summary, **"Tell Henry how it went"** opens the form with build, starter, how far, run number and minutes already filled in, and question 7's answer sends you to the right section. Submit a test answer, then delete it from the responses.
 - [ ] **2.6** Open the browser console (F12). There should be no red errors during 2.3–2.5.
 - [ ] **2.7** Repeat 2.2–2.3 quickly in a **second browser** (Edge if you used Chrome, or Firefox).
 - [ ] **2.8** Try a **1280×800 window**: nothing important is cut off.
@@ -235,26 +281,26 @@ Write a line of your own at the top for each person; that's what gets the reply.
 
 > Hey [name]! Favour to ask. I've been making a video game in my spare time, **Mingming: Midgard Circuit**. You collect monsters from Norse myth and battle with a deck of cards (think Pokémon, but the moves are cards). It's early, but it's playable.
 >
-> Would you play **the intro** (about 15–20 minutes), and **one full run** after it if you enjoy it, in the next two weeks? It runs in a web browser on a computer, not a phone: [game link]
+> Would you play **the intro** (about 15–20 minutes), and **one full run** after it if you enjoy it, in the next two weeks? It runs in a web browser on a computer, not a phone: [game link] (password: [password])
 > When the run ends, the game has a button to tell me how it went. That's all I need.
 > If you want to chat or report anything weird, here's my Discord: [invite link]
 >
-> Please don't share the link yet. Thank you, it really helps!
+> Thank you, it really helps!
 
 **Version B (the 3–4 deckbuilder players):**
 
 > Hey [name]! I've been building a roguelike deckbuilder: **Slay the Spire dressed as Pokémon**, with Norse-myth monsters you recruit into a three-monster team that shares one deck. It's early (the monster art is placeholder), but the systems are all in, and I'd love feedback from someone who knows the genre.
 >
-> If you can, play **two or three runs** over the next two weeks: [game link] (desktop browser)
+> If you can, play **two or three runs** over the next two weeks: [game link] (password: [password]) (desktop browser)
 > The game asks for quick feedback when a run ends, and the Discord has a bug forum: [invite link]. Balance opinions are gold: which monsters and cards felt broken or useless, and why.
 >
-> Please don't share the link yet. Thanks!
+> Thanks!
 
 ### 4.2 `#welcome` (pinned)
 
 > **Welcome to the Mingming playtest!** Thanks for helping.
 >
-> **Play:** [game link] (desktop browser, Chrome/Edge/Firefox, window at least 1280×800)
+> **Play:** [game link] (password: [password]) (desktop browser, Chrome/Edge/Firefox, window at least 1280×800)
 > **When a run ends:** press **"Tell Henry how it went"** on the summary screen (about 3 minutes). Or use this link: [form link]
 > **One run is all I'm asking.** More is a bonus.
 > **Optional, but it helps a lot:** after a run, Settings → **Export run log**, then drop the file in #run-logs
@@ -262,7 +308,6 @@ Write a line of your own at the top for each person; that's what gets the reply.
 > **Anything else:** #feedback
 >
 > Your save lives in your browser, so don't clear browsing data or use a private window, or you'll lose progress.
-> This is private for now: please don't share the link or screenshots publicly.
 
 ### 4.3 `#how-to-play` (pinned)
 
@@ -327,6 +372,6 @@ Keep this short; part of the test is whether the game explains itself.
 ## Done when
 
 - D1–D15 are ruled, and 179, 181a, 181b, 181c, **182 and 183** are built.
-- `main` deploys `PLAYTEST 2 · <commit>` to Pages, and it passed the §3 Phase 2 checks.
+- `main` deploys `PLAYTEST 2 · v0.4.0 · <commit>` to the restricted itch page, tagged `v0.4.0`, and it passed the §3 Phase 2 checks.
 - The Discord is set up as in Phase 3, testers are invited, and the form opens pre-filled from the game.
 - At the end, `playtest-results/round-2-friends/` holds the bugs, the logs, the survey and the summary.
