@@ -45,7 +45,10 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                     // id off `activeRelics`. The relics are deleted; a Driver that wants this shape
                     // is a hook (`onHpThresholdCrossed` is how BULWARK REFLEX does it).
                     newState = effectHandlers['ATTACK'](newState, {
-                        sourceId: 'SYSTEM',
+                        // Ticket 186e: the mutation's own source, like the heal above. `SYSTEM` only when
+                        // nobody is named, so the ledger says who dealt the damage. (With a
+                        // `damageOverride` the handler never reads the source, so nothing else changes.)
+                        sourceId: mutation.sourceId || 'SYSTEM',
                         targetId: mutation.targetId,
                         power: 0,
                         // Ticket 16 removed the `buffer_cache` branch that used to bind `amount` as
