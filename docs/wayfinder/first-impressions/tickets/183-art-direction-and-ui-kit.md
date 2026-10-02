@@ -152,6 +152,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
    - `ElementMark({ element, size })`: white disc, symbol in element colour, `aria-label` = element.
    - `ElementBadge({ element, label? })`: plate with symbol and optional word.
    - `HpBar({ cur, max, width })`: track + fill + 3px band, colour step at 50% and 20% of max.
+   - `HpBar` also takes `shield?: number` (HP points): Bark Shield drawn as a brown band (`--shield`, the existing `#b58d4c` Bark Shield colour) laid over the bar from the right end of the fill, with the shield's HP as a small number on it. Hover: the existing Bark Shield glossary text. See *Bark Shield on the HP bar* below.
    - `StatusChip({ status, count })`: icon ×N, uses the existing `StatusBadge` tooltip.
    - `SlantPanel({ cut, slash?: 'left' | 'right', element? })`: the panel with its optional element slash.
    - `ReadoutStrip({ preview, element })`: the 22px strip, built from `HandCardPreviewFace`.
@@ -164,10 +165,11 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 1. **Backdrop:** a `BiomeBackdrop` component drawing five flat bands (sky, far hills, near hills, ground, ground-2) from the biome's token set. Three sets: Water (Drowned Shelf blues), Fire (Slagfields ochres), Nature (Verdant Sprawl greens). Flat polygons, no gradient. The console tray sits under it at `CONSOLE_H`.
 2. **Platforms:** an ellipse under every sprite box, 170×40 at scale 1, `--ground-2` at 75%; the active ally's turns `--select` with a `--ground-2` inner ellipse; the caster cursor is a yellow triangle 18px above the sprite.
 3. **Plaques:** rebuild the plaque path of `MingmingUnit` on `SlantPanel` with `ElementBadge`, `HpBar`, `EnergyHex`, `StatusChip` and the existing `FirmwareChip`. Same 176px, same `PLAQUE_DY`, same tooltips, same test ids. Slash on the sprite-facing edge.
+   - **Bark Shield is on the HP bar, not in the status row** (Henry, 2026-10-02). The plaque passes `shield = floor(BarkShield stacks × maxHp ÷ 100)` (stacks are percent of max HP, `StatusBehaviors.ts`) to `HpBar` and leaves `BarkShield` out of its `StatusChip`s. Enemies get the same.
 4. **Top band:** turn in a small slant panel ("Turn" + number), the event line as a toast, the biome sign, the Settings button (182 R5). The volume slider and theme toggle leave the battle screen (182 R5).
 5. **Enemy hand tab:** when closed, render one 18×24 element-coloured back per card in the enemy's hand inside the 34px tab. `enemyShiftFor` is unchanged.
 6. **Target feedback:** the `hud-target-flag` becomes a yellow cursor plus the words "Super effective" / "Not very effective" / "Can't target" from the existing verdict.
-7. **Tests:** plaque renders every field for a 3v3 entity; tab shows N backs for N cards; backdrop picks the biome's set; `stageGeometry.test.ts` untouched.
+7. **Tests:** plaque renders every field for a 3v3 entity; a body with Bark Shield shows the band with its HP and no Bark Shield chip; tab shows N backs for N cards; backdrop picks the biome's set; `stageGeometry.test.ts` untouched.
 
 ## 183c: The card
 
@@ -232,6 +234,12 @@ Rename UI labels only, per D1's ruled list: a `labels.ts` map from internal id t
 - **UI art:** none required. The kit is CSS. If a drawn panel frame is wanted later, the `SlantPanel` component is the one place it plugs in.
 
 ---
+
+### Bark Shield on the HP bar (added 2026-10-02, from the Rootfall playtest)
+
+> *"barksheild should be a brown bar over the health bar. It doesn't read well as a status icon."* — Henry's playtest notes, 2026-10-02. Confirmed for this ticket the same day ("Yes, add that to the UI rework ticket"), from the review that also produced ticket 185.
+
+Built in 183a (`HpBar`'s `shield` prop) and 183b (the plaque passes it and drops the chip). Like Slay the Spire's Block, the shield is read off the bar it protects. The status row keeps every other status.
 
 ## Decisions (all ruled by Henry, 2026-10-02)
 
