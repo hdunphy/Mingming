@@ -1,6 +1,6 @@
 # Ticket 180: An agent playtester — the game as text, played by an AI overnight
 
-**Type:** tooling (playtest and bug finding). **Status:** OPEN, **queued; do not start until Henry says go.** Decisions A1–A6 below have recommended defaults; build those unless Henry rules otherwise.
+**Type:** tooling (playtest and bug finding). **Status:** 180a–180f BUILT and committed on `first-impressions` (2026-10-02). **180g (the pilot) is not started: it spends real tokens and needs Henry's go.** Decisions A1–A6 were ruled yes (the recommended defaults). See *Progress* below and [HANDOFF-180.md](HANDOFF-180.md).
 
 **Henry (2026-10-01):**
 
@@ -61,6 +61,43 @@
 | 180e | Expectations, surprises and invariant checks |
 | 180f | The player brief, the nightly runner and the morning report |
 | 180g | The pilot: one seed, two models, measured |
+
+## Progress (2026-10-02)
+
+| Row | Commit | Notes |
+|---|---|---|
+| 180a | `f081a09` | session, CLI, map, reward and auto-fight screens |
+| 180b | `ef390fb` | market, workshop, upgrades and patches |
+| 180c | `18e1dbb` | events, gauntlet, biome boundary, loadout editor, engine-error path |
+| 180d | `2bf88fd` | battles played by the agent (`turn` and `card` modes), turn cap, decision budget |
+| 180e | `4001f52` | `--expect` predictions, surprises, invariant checks, `replay --to` |
+| 180f | `a20a47e` | player brief, `playtest:night`, `playtest:report`, `plan` command |
+| 180g | not started | needs Henry's go (it spends real tokens) |
+
+Each row was test-first, with the new tests shown failing on the parent commit, and the full gate green before the commit.
+
+**Where the rows differ from the text above:**
+
+- **The results folder is a flag.** The repo's vite config empties `process.env` for everything vite-node runs, so an environment variable cannot be read. Every command takes `--results <folder>`; the nightly script tells each agent which folder to use.
+- **The decision budget counts calls, not moves.** A `moves` list is one decision. Past the budget the run ends as `abandoned` with outcome `budget`. Default 400; `new --budget N` sets another.
+- **Over the turn cap is a draw,** recorded as a defeat flagged `truncated`. The cap (60) is a copy of the walker's `WALK_MAX_TURNS`, which is private there; a test reads the walker's source and fails if they drift apart.
+- **`stabilizeIds`** renames the engine's random UUIDs (statuses, generated cards) to `tok_<n>`, so a replay is exact. Without it two replays of one session differ.
+- **`card` mode takes one move per call.** A `moves` list of more than one is refused there.
+- **`--expect`:** `hits` counts hits on enemies only; `status` and `self` are compared whole (a status change the agent did not list is a miss). An unknown key is refused.
+- **The invariants** found in the tool are named: run-schema, duplicate-card-id, hp-range, energy-negative, card-vanished, turn-cap, soft-lock, engine-error, move-refused, fight-truncated, screen-error. A check that throws is itself logged as `screen-error`.
+- **Nothing pins on-screen wording.** Text is printed from the game's own modules; the brief and the tests carry none of it.
+
+**Things that look like game bugs (not fixed: rule 3):**
+
+- The engine and the AI throw mid-fight on some seeds (seen on `ps2`, `ps12`: a status tick hands a stub card to a Driver's hook condition). The tool ends such a run as `abandoned` and keeps the error.
+- Random UUIDs in status instances and generated cards (`StatusBehaviors.ts` around line 108, `effectHandlers.ts` around line 751) make a battle non-repeatable on its own.
+- Wild enemies carry a placeholder firmware id (`run-gate:no-firmware`).
+- The first map screen shows three identical "Wild, Nature, biome 1, layer 1" labels, so the player cannot tell the nodes apart.
+- `legalPlays` can list plays the reducer then refuses (177a documents this). The tool logs each one as `move-refused`.
+- Fenrir's firmware adds Strengthened beyond what the card text says (a card printing 1 gave 3).
+- The damage ledger credits some damage to a `SYSTEM` source.
+
+**Henry owes:** the go for 180g and the pilot starter; whether the A1 driver flags stand (they are unverified until the pilot); the nightly default model and when to start the nightly runs; whether the random-UUID and firmware-placeholder quirks are worth an engine ticket; and whether `hits` and `status` mean what he wants. Details in [HANDOFF-180.md](HANDOFF-180.md).
 
 ---
 
