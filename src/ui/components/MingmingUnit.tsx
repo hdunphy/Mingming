@@ -19,15 +19,15 @@ import { MONSTER_ART_ENABLED } from './monsterArtPolicy';
 
 /** Maps element names to neon accent colors */
 const ELEMENT_COLORS: Record<string, string> = {
-    fire: '#ff3333',
-    water: '#3399ff',
-    nature: '#33cc33',
-    earth: '#996633',
-    air: '#87ceeb',
-    ice: '#00ffff',
-    light: '#ffff80',
-    dark: '#8000ff',
-    none: '#888888',
+    fire: 'var(--hp-low)',
+    water: 'var(--el-water)',
+    nature: 'var(--hp)',
+    earth: 'var(--amber)',
+    air: 'var(--el-water)',
+    ice: 'var(--panel-edge)',
+    light: 'var(--amber)',
+    dark: 'var(--select)',
+    none: 'var(--text-faint)',
 };
 
 interface MingmingUnitProps {
@@ -172,8 +172,8 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     // When overflowing, the track represents currentEnergy: a normal segment up to
     // maxEnergy plus a bright "energized" overflow segment for the surplus.
     const overEnergy = entity.currentEnergy > entity.maxEnergy;
-    const ENERGY_COLOR = '#ffcc00'; // gold — normal energy
-    const OVERFLOW_COLOR = '#00e5ff'; // energized cyan — overflow portion
+    const ENERGY_COLOR = 'var(--amber)'; // gold — normal energy
+    const OVERFLOW_COLOR = 'var(--panel-edge)'; // energized cyan — overflow portion
     const energyBasePercent = overEnergy
         ? (entity.maxEnergy / entity.currentEnergy) * 100
         : (entity.currentEnergy / entity.maxEnergy) * 100;
@@ -241,9 +241,9 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
     const HP_SEGMENTS = 5;
 
     const getHpColor = (percent: number) => {
-        if (percent < 25) return '#ef4444';
-        if (percent < 50) return '#ff8c00';
-        return '#22c55e';
+        if (percent < 25) return 'var(--hp-low)';
+        if (percent < 50) return 'var(--amber)';
+        return 'var(--hp)';
     };
 
     return (
@@ -333,7 +333,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                         entity.currentIntent.intentType === 'Defend' ? '🛡️' :
                                             entity.currentIntent.intentType === 'Debuff' ? '🧪' : '🌟'
                                 }</span>
-                                {predictedDamage > 0 && <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '1.1rem', textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' }}>{predictedDamage}</span>}
+                                {predictedDamage > 0 && <span style={{ color: 'var(--hp-low)', fontWeight: 'bold', fontSize: '1.1rem', textShadow: '-1px -1px 0 var(--page), 1px -1px 0 var(--page), -1px 1px 0 var(--page), 1px 1px 0 var(--page)' }}>{predictedDamage}</span>}
                             </motion.div>
 
                             {showIntentTooltip && createPortal(
@@ -362,7 +362,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                             if (act.type === 'HEAL') return <div key={idx}>Heals for {act.power}.</div>;
                                             return null;
                                         })}
-                                        <div style={{ marginTop: '0.5rem', color: '#888', fontStyle: 'italic' }}>
+                                        <div style={{ marginTop: '0.5rem', color: 'var(--text-faint)', fontStyle: 'italic' }}>
                                             Targeting: {targetName}
                                         </div>
                                     </div>
@@ -421,7 +421,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                             style={{ backgroundColor: getHpColor(hpPercent) }}
                         />
                     </div>
-                    <span className="hud-hp-text">{entity.currentHp}/{entity.maxHp} HP {previewDamage > 0 && <span style={{ color: '#ff4444' }}>(-{previewDamage})</span>}</span>
+                    <span className="hud-hp-text">{entity.currentHp}/{entity.maxHp} HP {previewDamage > 0 && <span style={{ color: 'var(--hp-low)' }}>(-{previewDamage})</span>}</span>
                 </div>
 
                 {/* TICKET 125: what this card will do to the target's STATUSES.

@@ -1,30 +1,23 @@
 /**
- * Text-contrast utilities for element-colored UI (cost badges, gems, chips).
+ * Text-contrast utilities for element-coloured UI (cost badges, gems, chips).
  *
- * The element palette lives in src/index.css (--fire, --ice, ...). CSS vars
- * can't be parsed cheaply at render time, so the same hex values are mirrored
- * here and per-element text/badge colors are precomputed once at module load
- * using WCAG relative luminance — deterministic, no runtime DOM reads.
+ * The element palette lives in `ui/theme/tokens.css` (`--el-*`) and is mirrored as hex in
+ * `screens/runShell.ts` (`ELEMENT_COLOR`), which this file reads. CSS vars cannot be parsed cheaply
+ * at render time, so per-element text/badge colours are precomputed once at module load using WCAG
+ * relative luminance - deterministic, no runtime DOM reads. This is a colour-MATH file, so it keeps
+ * a few hex constants of its own and is exempt from the no-hex test (ticket 183a).
  */
+
+import { ELEMENT_COLOR } from '../screens/runShell';
 
 export const DARK_TEXT = '#0b0e14';
 export const LIGHT_TEXT = '#ffffff';
 
-/** Reference dark backdrop of the terminal UI (panels / cards). */
-const DARK_UI_BG = '#0d0d14';
+/** Reference dark backdrop of the UI (the panel colour), for the accent-on-dark contrast steps. */
+const DARK_UI_BG = '#1e2638';
 
-/** Mirrors the element CSS vars in src/index.css (plus the None gray). */
-export const ELEMENT_HEX: Record<string, string> = {
-    Fire: '#ff3333',
-    Water: '#3399ff',
-    Nature: '#33cc33',
-    Earth: '#996633',
-    Air: '#87ceeb',
-    Ice: '#00ffff',
-    Light: '#ffff80',
-    Dark: '#8000ff',
-    None: '#8a8a99',
-};
+/** The four element colours (ticket 183a cut the nine to four; the rest draw as None). */
+export const ELEMENT_HEX: Record<string, string> = { ...ELEMENT_COLOR };
 
 function parseHex(hex: string): [number, number, number] {
     let h = hex.trim().replace(/^#/, '');

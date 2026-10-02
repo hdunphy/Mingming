@@ -32,7 +32,7 @@ export const PatchHolders: React.FC<Props> = ({ winners, heldPatches }) => {
                 <div
                     key={body.id}
                     data-testid="patch-holder"
-                    style={{ fontSize: '0.7rem', color: '#c9b37a' }}
+                    style={{ fontSize: '0.7rem', color: 'var(--amber)' }}
                 >
                     {body.name} — {ids.map((id) => getPatch(id)?.name ?? id).join(', ')}
                 </div>

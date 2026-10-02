@@ -80,7 +80,7 @@ const AudioControls: React.FC<{ floating?: boolean; inline?: boolean }> = ({ flo
                     fontSize: '1rem',
                     lineHeight: 1,
                     padding: '2px',
-                    color: muted ? '#556' : '#00d2ff',
+                    color: muted ? 'var(--panel-3)' : 'var(--panel-edge)',
                     textShadow: muted ? 'none' : '0 0 8px rgba(0, 210, 255, 0.6)',
                 }}
             >
@@ -97,7 +97,7 @@ const AudioControls: React.FC<{ floating?: boolean; inline?: boolean }> = ({ flo
                 aria-label="Audio volume"
                 style={{
                     width: '72px',
-                    accentColor: muted ? '#445' : '#00d2ff',
+                    accentColor: muted ? 'var(--panel-3)' : 'var(--panel-edge)',
                     cursor: muted ? 'default' : 'pointer',
                     opacity: muted ? 0.4 : 1,
                 }}

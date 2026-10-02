@@ -38,14 +38,14 @@
 .form-header h2 {
     margin: 0;
     font-size: 1.25rem;
-    color: #60a5fa;
+    color: var(--el-water);
     letter-spacing: 2px;
 }
 
 .close-btn {
     background: none;
     border: none;
-    color: #94a3b8;
+    color: var(--text-mute);
     font-size: 2rem;
     cursor: pointer;
     line-height: 1;
@@ -78,7 +78,7 @@
 label {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--text-mute);
     margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -90,7 +90,7 @@ select,
 textarea {
     background: rgba(15, 23, 42, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
+    color: var(--text);
     padding: 0.75rem;
     border-radius: 8px;
     font-size: 0.875rem;
@@ -101,7 +101,7 @@ input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-color: #60a5fa;
+    border-color: var(--el-water);
     box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }
 
@@ -129,12 +129,12 @@ textarea {
 .section-header h3 {
     margin: 0;
     font-size: 1rem;
-    color: #cbd5e1;
+    color: var(--text-dim);
 }
 
 .add-btn {
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    color: var(--hp);
     border: 1px solid rgba(16, 185, 129, 0.2);
     padding: 0.4rem 0.8rem;
     border-radius: 6px;
@@ -183,7 +183,7 @@ textarea {
 
 .delete-btn {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--hp-low);
     border: 1px solid rgba(239, 68, 68, 0.2);
     width: 32px;
     height: 32px;
@@ -207,7 +207,7 @@ textarea {
 .cancel-btn {
     background: none;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #94a3b8;
+    color: var(--text-mute);
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     font-weight: 600;
@@ -215,8 +215,8 @@ textarea {
 }
 
 .save-btn {
-    background: #60a5fa;
-    color: #0f172a;
+    background: var(--el-water);
+    color: var(--panel);
     border: none;
     padding: 0.75rem 2rem;
     border-radius: 8px;

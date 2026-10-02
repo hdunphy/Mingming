@@ -44,7 +44,7 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
             <div
                 style={{
                     fontSize: '0.75rem',
-                    color: '#00d2ff',
+                    color: 'var(--panel-edge)',
                     fontWeight: 'bold',
                     marginBottom: '4px',
                     textTransform: 'uppercase',
@@ -53,7 +53,7 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
             >
                 MACRO — TAKE ONE
             </div>
-            <div style={{ fontSize: '0.7rem', color: '#9aa3ad', marginBottom: '10px' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-mute)', marginBottom: '10px' }}>
                 Optional. Single use, fired from the rack in a fight.
             </div>
 
@@ -77,7 +77,7 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
                                 textAlign: 'left',
                                 padding: '12px',
                                 background: isSelected ? 'rgba(0, 210, 255, 0.25)' : 'rgba(0, 0, 0, 0.4)',
-                                border: `2px solid ${isSelected ? '#00d2ff' : 'rgba(255, 255, 255, 0.1)'}`,
+                                border: `2px solid ${isSelected ? 'var(--panel-edge)' : 'rgba(255, 255, 255, 0.1)'}`,
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 color: 'inherit',
@@ -85,16 +85,16 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                <div style={{ color: 'var(--text)', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                     {macro?.name ?? macroId}
                                 </div>
                                 {macro?.rarity && (
-                                    <div style={{ color: '#00d2ff', fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                                    <div style={{ color: 'var(--panel-edge)', fontSize: '0.7rem', textTransform: 'uppercase' }}>
                                         {macro.rarity}
                                     </div>
                                 )}
                             </div>
-                            <div style={{ color: '#aaa', fontSize: '0.72rem', lineHeight: '1.4', marginTop: '6px' }}>
+                            <div style={{ color: 'var(--text-mute)', fontSize: '0.72rem', lineHeight: '1.4', marginTop: '6px' }}>
                                 {macro?.description}
                             </div>
                         </button>
@@ -104,11 +104,11 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
 
             {isRackFull && selectedMacroId && (
                 <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#ffd479', fontWeight: 'bold', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--amber)', fontWeight: 'bold', marginBottom: '4px' }}>
                         Your rack is full — drop one to make room:
                     </div>
                     {value?.replaceSlot === undefined && (
-                        <div style={{ fontSize: '0.7rem', color: '#9aa3ad', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-mute)', marginBottom: '8px' }}>
                             Nothing is dropped unless you pick one; the new macro is left behind.
                         </div>
                     )}
@@ -126,10 +126,10 @@ export const MacroRewardPick: React.FC<MacroRewardPickProps> = ({
                                     style={{
                                         padding: '8px 12px',
                                         background: isChosenDrop ? 'rgba(255, 75, 75, 0.25)' : 'rgba(0, 0, 0, 0.4)',
-                                        border: `2px solid ${isChosenDrop ? '#ff4b4b' : 'rgba(255, 255, 255, 0.1)'}`,
+                                        border: `2px solid ${isChosenDrop ? 'var(--hp-low)' : 'rgba(255, 255, 255, 0.1)'}`,
                                         borderRadius: '6px',
                                         cursor: 'pointer',
-                                        color: isChosenDrop ? '#ff4b4b' : '#fff',
+                                        color: isChosenDrop ? 'var(--hp-low)' : 'var(--text)',
                                         fontWeight: 'bold',
                                         fontSize: '0.8rem',
                                     }}

@@ -253,7 +253,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                         width: '100%',
                         maxWidth: 'min(720px, 90vw)',
                         maxHeight: '92vh',
-                        background: 'linear-gradient(135deg, #151520 0%, #0a0a10 100%)',
+                        background: 'linear-gradient(135deg, var(--panel) 0%, var(--page) 100%)',
                         borderRadius: '12px',
                         padding: '24px 32px 20px',
                         border: '1px solid rgba(0, 210, 255, 0.25)',
@@ -261,14 +261,14 @@ const BattleReport: React.FC<BattleReportProps> = ({
                         textAlign: 'center'
                     }}
                 >
-                    <div style={{ fontSize: '0.75rem', color: '#ffcc00', fontWeight: 900, letterSpacing: '4px', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--amber)', fontWeight: 900, letterSpacing: '4px', marginBottom: '6px' }}>
                         FIREWALL BREACHED
                     </div>
-                    <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900, color: '#fff', letterSpacing: '2px' }}>
+                    <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '2px' }}>
                         BREACH SPOILS
                     </h1>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '10px 0 20px' }}>
-                        <span style={{ color: '#00d2ff', fontSize: '0.85rem', fontWeight: 900, letterSpacing: '2px' }}>
+                        <span style={{ color: 'var(--panel-edge)', fontSize: '0.85rem', fontWeight: 900, letterSpacing: '2px' }}>
                             DRAFT {draftIndex + 1}/{draftRounds.length}
                         </span>
                         <span style={{ display: 'flex', gap: '5px' }}>
@@ -279,8 +279,8 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                         width: '18px',
                                         height: '4px',
                                         borderRadius: '2px',
-                                        background: i < draftIndex ? '#00ffaa' : i === draftIndex ? '#00d2ff' : '#2a2a3a',
-                                        boxShadow: i === draftIndex ? '0 0 6px #00d2ff' : 'none'
+                                        background: i < draftIndex ? 'var(--hp)' : i === draftIndex ? 'var(--panel-edge)' : 'var(--panel)',
+                                        boxShadow: i === draftIndex ? '0 0 6px var(--panel-edge)' : 'none'
                                     }}
                                 />
                             ))}
@@ -301,7 +301,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                         ))}
                     </div>
 
-                    <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '15px', letterSpacing: '1px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginBottom: '15px', letterSpacing: '1px' }}>
                         SELECT ONE PROGRAM TO EXTRACT
                     </div>
 
@@ -312,7 +312,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                         style={{
                             background: 'none',
                             border: '1px solid rgba(255,255,255,0.12)',
-                            color: '#555',
+                            color: 'var(--panel-3)',
                             padding: '6px 18px',
                             borderRadius: '4px',
                             fontSize: '0.7rem',
@@ -355,17 +355,17 @@ const BattleReport: React.FC<BattleReportProps> = ({
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
-                    background: 'linear-gradient(135deg, #151520 0%, #0a0a10 100%)',
+                    background: 'linear-gradient(135deg, var(--panel) 0%, var(--page) 100%)',
                     borderRadius: '12px',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(0, 210, 255, 0.05)'
                 }}
             >
                 <div style={{ textAlign: 'center', padding: '20px 28px 14px', flexShrink: 0 }}>
-                    <h1 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 900, color: '#fff', letterSpacing: '2px' }}>
+                    <h1 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '2px' }}>
                         BATTLE ANALYSIS COMPLETE
                     </h1>
-                    <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #00d2ff, transparent)', width: '70%', margin: '10px auto 0' }} />
+                    <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, var(--panel-edge), transparent)', width: '70%', margin: '10px auto 0' }} />
                 </div>
 
                 <div className="report-body report-columns" style={{ flex: '1 1 auto', padding: '6px 28px 12px' }}>
@@ -373,10 +373,10 @@ const BattleReport: React.FC<BattleReportProps> = ({
                         deleted levelling and ticket 12 removed the field from the bundle. */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         <div className="report-summary-box" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <h3 style={{ margin: '0 0 12px', fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Yield</h3>
+                            <h3 style={{ margin: '0 0 12px', fontSize: '0.8rem', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Yield</h3>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ color: '#ccc' }}>Scraps Recovered</span>
-                                <span style={{ color: '#00ffaa', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                                <span style={{ color: 'var(--text-dim)' }}>Scraps Recovered</span>
+                                <span style={{ color: 'var(--hp)', fontWeight: 'bold', fontSize: '1.2rem' }}>
                                     +<CountUp value={bundle.scraps} delayMs={SCRAP_COUNT_DELAY_MS} />
                                 </span>
                             </div>
@@ -390,7 +390,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                         marginTop: '12px',
                                         padding: '12px',
                                         background: 'rgba(255, 0, 255, 0.1)',
-                                        border: '1px solid #ff00ff',
+                                        border: '1px solid var(--select)',
                                         borderRadius: '6px'
                                     }}
                                 >
@@ -400,13 +400,13 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                         re-roll grind rather than a mistake. The line reads as a
                                         quantity for the same reason the ranch stores one, and the
                                         "+1" says it stacked onto whatever was there. */}
-                                    <div style={{ fontSize: '0.7rem', color: '#ff00ff', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--select)', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
                                         Blueprint Recovered
                                     </div>
                                     {bundle.blueprints.map((speciesId, i) => (
                                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{GetMingmingData(speciesId).name} Blueprint</span>
-                                            <span style={{ color: '#ff00ff', fontWeight: '900', fontSize: '0.7rem' }}>+1</span>
+                                            <span style={{ color: 'var(--text)', fontSize: '0.9rem', fontWeight: 'bold' }}>{GetMingmingData(speciesId).name} Blueprint</span>
+                                            <span style={{ color: 'var(--select)', fontWeight: '900', fontSize: '0.7rem' }}>+1</span>
                                         </div>
                                     ))}
                                 </motion.div>
@@ -428,15 +428,15 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                         marginTop: '12px',
                                         padding: '12px',
                                         background: 'rgba(124, 58, 237, 0.12)',
-                                        border: '1px solid #a78bfa',
+                                        border: '1px solid var(--select)',
                                         borderRadius: '6px'
                                     }}
                                 >
-                                    <div style={{ fontSize: '0.7rem', color: '#c4b5fd', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
                                         Driver Installed
                                     </div>
-                                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{describeDriver(bundle.driver).name}</div>
-                                    <div style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: '1.4', marginTop: '4px' }}>{describeDriver(bundle.driver).description}</div>
+                                    <div style={{ color: 'var(--text)', fontSize: '0.9rem', fontWeight: 'bold' }}>{describeDriver(bundle.driver).name}</div>
+                                    <div style={{ color: 'var(--text-mute)', fontSize: '0.75rem', lineHeight: '1.4', marginTop: '4px' }}>{describeDriver(bundle.driver).description}</div>
                                 </motion.div>
                             )}
 
@@ -447,9 +447,9 @@ const BattleReport: React.FC<BattleReportProps> = ({
                     {/* Right: Card Selections (the centerpiece — no nested scroller, the panel body scrolls) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffcc00', letterSpacing: '1px' }}>DECONSTRUCTED PROGRAMS</h3>
+                            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--amber)', letterSpacing: '1px' }}>DECONSTRUCTED PROGRAMS</h3>
                             {totalChoices > 0 && (
-                                <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#666', letterSpacing: '1px' }}>PICK ONE PER DEFEATED UNIT</p>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-faint)', letterSpacing: '1px' }}>PICK ONE PER DEFEATED UNIT</p>
                             )}
                         </div>
 
@@ -460,8 +460,8 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                 (`elitePatchOffer`), because a random patch is a no-op on most. */}
                             {patchOffers.length > 0 && (
                                 <div style={{ padding: '12px 14px', background: 'rgba(255,212,121,0.08)', borderRadius: '8px', border: '1px solid rgba(255,212,121,0.4)' }}>
-                                    <div style={{ fontSize: '0.75rem', color: '#ffd479', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>FIRMWARE PATCH — FIT IT TO ONE BODY</div>
-                                    <div style={{ fontSize: '0.7rem', color: '#9aa3ad', marginBottom: '10px' }}>One slot each, and it cannot be swapped later. Walking past it is allowed.</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--amber)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>FIRMWARE PATCH — FIT IT TO ONE BODY</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-mute)', marginBottom: '10px' }}>One slot each, and it cannot be swapped later. Walking past it is allowed.</div>
                                     <PatchHolders winners={winners} heldPatches={heldPatches} />
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
                                         {patchOffers.map((offer) => {
@@ -475,14 +475,14 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                                     style={{
                                                         padding: '12px',
                                                         background: isSelected ? 'rgba(255,212,121,0.25)' : 'rgba(0,0,0,0.4)',
-                                                        border: `2px solid ${isSelected ? '#ffd479' : 'rgba(255,255,255,0.1)'}`,
+                                                        border: `2px solid ${isSelected ? 'var(--amber)' : 'rgba(255,255,255,0.1)'}`,
                                                         borderRadius: '8px',
                                                         cursor: 'pointer',
                                                     }}
                                                 >
-                                                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }}>{body?.name ?? offer.memberId}</div>
-                                                    <div style={{ color: '#ffd479', fontSize: '0.8rem', margin: '4px 0' }}>{patch?.name}</div>
-                                                    <div style={{ color: '#aaa', fontSize: '0.72rem', lineHeight: '1.4' }}>{describePatchOn(body?.activeOS, offer.patchId)}</div>
+                                                    <div style={{ color: 'var(--text)', fontWeight: 'bold', fontSize: '0.85rem' }}>{body?.name ?? offer.memberId}</div>
+                                                    <div style={{ color: 'var(--amber)', fontSize: '0.8rem', margin: '4px 0' }}>{patch?.name}</div>
+                                                    <div style={{ color: 'var(--text-mute)', fontSize: '0.72rem', lineHeight: '1.4' }}>{describePatchOn(body?.activeOS, offer.patchId)}</div>
                                                 </div>
                                             );
                                         })}
@@ -503,7 +503,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                             {/* Gym-clear draft summary (draft already resolved above) */}
                             {draftRounds.length > 0 && (
                                 <div style={{ padding: '12px 14px', background: 'rgba(0, 255, 170, 0.05)', borderRadius: '8px', border: '1px solid rgba(0, 255, 170, 0.3)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#00ffaa', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--hp)', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                                         Draft Complete — {draftPicks.length}/{draftRounds.length} Programs Extracted
                                     </div>
                                     {draftPicks.length > 0 ? (
@@ -516,7 +516,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                                         borderRadius: '4px',
                                                         background: 'rgba(0,0,0,0.4)',
                                                         border: '1px solid rgba(0, 255, 170, 0.4)',
-                                                        color: '#d6ffef',
+                                                        color: 'var(--text)',
                                                         fontSize: '0.75rem',
                                                         fontWeight: 700
                                                     }}
@@ -526,7 +526,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                             ))}
                                         </div>
                                     ) : (
-                                        <div style={{ color: '#667', fontSize: '0.8rem' }}>All rounds skipped.</div>
+                                        <div style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>All rounds skipped.</div>
                                     )}
                                 </div>
                             )}
@@ -538,7 +538,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                     style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(0, 210, 255, 0.15)', opacity: skipped[choiceIdx] ? 0.55 : 1 }}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
-                                        <div style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Source: {choice.sourceEntityName}</div>
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Source: {choice.sourceEntityName}</div>
                                         {/*
                                           * Ruling 4. Visually quiet — a skip is a legitimate play
                                           * (a lean deck is the whole point of a removal costing 20)
@@ -613,7 +613,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '12px 28px 18px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', flexShrink: 0 }}>
                     {!canContinue && totalChoices > 0 && (
-                        <div style={{ color: '#ff4444', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '2px' }}>
+                        <div style={{ color: 'var(--hp-low)', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '2px' }}>
                             UNRESOLVED CHOICES REMAINING
                         </div>
                     )}
@@ -626,8 +626,8 @@ const BattleReport: React.FC<BattleReportProps> = ({
                             fontSize: '1.25rem',
                             fontWeight: '900',
                             letterSpacing: '1px',
-                            background: canContinue ? '#00d2ff' : '#333',
-                            color: canContinue ? '#000' : '#666',
+                            background: canContinue ? 'var(--panel-edge)' : 'var(--panel-2)',
+                            color: canContinue ? 'var(--page)' : 'var(--text-faint)',
                             border: 'none',
                             borderRadius: '6px',
                             cursor: canContinue ? 'pointer' : 'not-allowed',

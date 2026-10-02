@@ -51,9 +51,9 @@ import { computeDamagePreview } from '../utils/damagePreview';
  */
 
 const getHpColor = (percent: number) => {
-    if (percent < 25) return '#ef4444';
-    if (percent < 50) return '#ff8c00';
-    return '#22c55e';
+    if (percent < 25) return 'var(--hp-low)';
+    if (percent < 50) return 'var(--amber)';
+    return 'var(--hp)';
 };
 
 /** Slim HP bar. The plaque is 168px wide at the reference size and the bar is 6px tall (§2b). */
@@ -250,7 +250,7 @@ const StageSlot: React.FC<SlotProps> = ({
                     top: rect.y + rect.h * (94 / SPRITE_H),
                     width: rect.w * (195 / SPRITE_W),
                     height: rect.h * (26 / SPRITE_H),
-                    background: `radial-gradient(ellipse at center, ${isEnemy ? accent : '#7c3aed'}44, transparent 70%)`,
+                    background: `radial-gradient(ellipse at center, ${isEnemy ? accent : 'var(--select)'}44, transparent 70%)`,
                 }}
             />
             <div

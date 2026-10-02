@@ -43,5 +43,5 @@ export const getElementColor = (el: string): string => {
         Earth: 'var(--el-none)', Air: 'var(--el-none)', Ice: 'var(--el-none)',
         Light: 'var(--el-none)', Dark: 'var(--el-none)'
     };
-    return map[el] ?? '#888';
+    return map[el] ?? 'var(--text-faint)';
 };

@@ -42,17 +42,17 @@ const StarterCard: React.FC<{
     const isFire = id === 'fenrir';
     const isNature = id === 'ratatoskr';
 
-    let borderColor = '#0088ff';
-    if (isFire) borderColor = '#ff4400';
-    if (isNature) borderColor = '#00ffaa';
+    let borderColor = 'var(--el-water)';
+    if (isFire) borderColor = 'var(--el-fire)';
+    if (isNature) borderColor = 'var(--hp)';
 
     let glowColor = 'rgba(0,136,255,0.2)';
     if (isFire) glowColor = 'rgba(255,68,0,0.2)';
     if (isNature) glowColor = 'rgba(0,255,170,0.2)';
 
-    let titleColor = '#00ccff';
-    if (isFire) titleColor = '#ff8800';
-    if (isNature) titleColor = '#00ffa3';
+    let titleColor = 'var(--panel-edge)';
+    if (isFire) titleColor = 'var(--amber)';
+    if (isNature) titleColor = 'var(--hp)';
 
     return (
         <motion.div
@@ -60,7 +60,7 @@ const StarterCard: React.FC<{
             whileTap={{ scale: 0.95 }}
             style={{
                 width: '300px',
-                background: '#1a1a1a',
+                background: 'var(--panel)',
                 borderRadius: '15px',
                 padding: '20px 22px',
                 border: `2px solid ${borderColor}`,
@@ -104,19 +104,19 @@ const StarterCard: React.FC<{
             </div>
             <h2 style={{ fontSize: '2rem', margin: '4px 0', letterSpacing: '2px' }}>{name}</h2>
             {/* TICKET 182a: one short line of flavour. A div, not a paragraph: it is a label on a card. */}
-            <div style={{ color: '#aaa', fontSize: '0.85rem', fontStyle: 'italic', margin: '2px 0 6px' }}>
+            <div style={{ color: 'var(--text-mute)', fontSize: '0.85rem', fontStyle: 'italic', margin: '2px 0 6px' }}>
                 {STARTER_FLAVOUR[id]}
             </div>
-            <div style={{ color: '#666', fontSize: '0.7rem', letterSpacing: '1px', margin: '8px 0 4px' }}>
+            <div style={{ color: 'var(--text-faint)', fontSize: '0.7rem', letterSpacing: '1px', margin: '8px 0 4px' }}>
                 FIRMWARE — YOU PICK ONE WHEN YOU ASSEMBLE IT
             </div>
             {firmwareOf(id).map((os) => (
                 <div
                     key={os.id}
-                    style={{ textAlign: 'left', marginTop: '8px', padding: '10px', background: '#222', borderRadius: '8px' }}
+                    style={{ textAlign: 'left', marginTop: '8px', padding: '10px', background: 'var(--panel)', borderRadius: '8px' }}
                 >
                     <div style={{ color: titleColor, fontSize: '0.85rem', fontWeight: 'bold' }}>{os.name}</div>
-                    <div style={{ color: '#aaa', fontSize: '0.8rem', marginTop: '4px', lineHeight: 1.4 }}>{os.description}</div>
+                    <div style={{ color: 'var(--text-mute)', fontSize: '0.8rem', marginTop: '4px', lineHeight: 1.4 }}>{os.description}</div>
                 </div>
             ))}
         </motion.div>
@@ -137,7 +137,7 @@ const Switches: React.FC = () => {
     const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' };
     return (
         <div
-            style={{ display: 'flex', gap: '28px', marginTop: '22px', color: '#888', fontSize: '0.78rem' }}
+            style={{ display: 'flex', gap: '28px', marginTop: '22px', color: 'var(--text-faint)', fontSize: '0.78rem' }}
             data-testid="starter-switches"
         >
             <label style={row} title={SKIP_INTRO_HOVER}>
@@ -177,12 +177,12 @@ const MainMenuView: React.FC = () => {
         <div className="main-menu" style={{
             height: '100vh',
             width: '100vw',
-            background: 'radial-gradient(circle at center, #111 0%, #000 100%)',
+            background: 'radial-gradient(circle at center, var(--page) 0%, var(--page) 100%)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
+            color: 'var(--text)',
             overflowY: 'auto'
         }}>
             <motion.div
@@ -191,8 +191,8 @@ const MainMenuView: React.FC = () => {
                 style={{ textAlign: 'center', marginBottom: '28px' }}
             >
                 {/* TICKET 182a: the game's name. The drawn logo comes with 183. */}
-                <h1 style={{ fontSize: '3.4rem', fontWeight: '900', letterSpacing: '10px', margin: 0, color: '#00ffaa' }}>Mingming</h1>
-                <p style={{ color: '#777', marginTop: '10px', fontSize: '1.1rem' }}>Choose your starter</p>
+                <h1 style={{ fontSize: '3.4rem', fontWeight: '900', letterSpacing: '10px', margin: 0, color: 'var(--hp)' }}>Mingming</h1>
+                <p style={{ color: 'var(--text-faint)', marginTop: '10px', fontSize: '1.1rem' }}>Choose your starter</p>
             </motion.div>
 
             <motion.div

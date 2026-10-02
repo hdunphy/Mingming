@@ -20,6 +20,7 @@
 
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
+import { JS_COLOR } from '../theme/jsColors';
 import { anchorFor, emit, plaqueFor, type EmitAt } from './emit';
 
 interface Rgb { r: number; g: number; b: number }
@@ -30,7 +31,7 @@ const hexToRgb = (hex: string): Rgb => {
 };
 
 /** The status's own colour, the one the plaque badge already uses. */
-export const statusColor = (status: StatusType): Rgb => hexToRgb(STATUS_COLORS[status] ?? '#cccccc');
+export const statusColor = (status: StatusType): Rgb => hexToRgb(STATUS_COLORS[status] ?? JS_COLOR.textDim);
 
 /** What a removal looks like: grey, because the thing that had a colour is gone. */
 const GREY: Rgb = { r: 150, g: 155, b: 162 };

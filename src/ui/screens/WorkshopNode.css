@@ -28,9 +28,9 @@
 
 .ws-bpc {
     display: flex; gap: 8px; align-items: center;
-    border: 1px solid #2c3745;
+    border: 1px solid var(--panel-2);
     border-radius: 5px;
-    background: #11161e;
+    background: var(--page);
     padding: 7px 9px;
     color: inherit;
     font: inherit;
@@ -45,14 +45,14 @@
 .ws-bpdot {
     width: 32px; height: 32px;
     border-radius: 5px;
-    background: linear-gradient(135deg, var(--el), #0c0e12 160%);
+    background: linear-gradient(135deg, var(--el), var(--page) 160%);
     display: flex; align-items: center; justify-content: center;
-    font-weight: 800; color: #fff;
+    font-weight: 800; color: var(--text);
     flex: none;
 }
 .ws-bptext { display: flex; flex-direction: column; min-width: 0; }
 .ws-bpnm { font-size: 12.5px; font-weight: 700; }
-.ws-bpct { font-size: 10px; color: #8fa0b3; }
+.ws-bpct { font-size: 10px; color: var(--text-mute); }
 
 .ws-scroll { display: flex; flex-direction: column; gap: 4px; overflow: auto; flex: 1; min-height: 0; }
 .ws-foot { margin-top: 8px; flex: none; }
@@ -60,9 +60,9 @@
 /* --- the assembly stage --- */
 
 .ws-stage {
-    border: 1px solid #2c3745;
+    border: 1px solid var(--panel-2);
     border-radius: 8px;
-    background: radial-gradient(400px 200px at 50% 20%, #1b2634, #0d1117 70%);
+    background: radial-gradient(400px 200px at 50% 20%, var(--panel), var(--page) 70%);
     padding: 14px;
     display: flex;
     flex-direction: column;
@@ -72,34 +72,34 @@
     overflow: auto;
 }
 .ws-stage h2 {
-    letter-spacing: 2px; color: #9fb4c8; font-size: 11px;
+    letter-spacing: 2px; color: var(--text-mute); font-size: 11px;
     margin: 0; font-weight: 600; flex: none;
 }
 
 .ws-silhouette {
     width: 110px; height: 110px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--el), #0c0e12 170%);
+    background: linear-gradient(135deg, var(--el), var(--page) 170%);
     opacity: 0.9;
     display: flex; align-items: center; justify-content: center;
-    font-size: 44px; font-weight: 800; color: #fff;
-    box-shadow: 0 0 40px var(--glow, #43b45f44);
+    font-size: 44px; font-weight: 800; color: var(--text);
+    box-shadow: 0 0 40px var(--glow, color-mix(in srgb, var(--hp) 27%, transparent));
     flex: none;
 }
 /* Nothing assembled yet: the chassis is a blank, not a preview of one. */
-.ws-silhouette.blank { background: linear-gradient(135deg, #2c3745, #0c0e12 170%); box-shadow: none; }
+.ws-silhouette.blank { background: linear-gradient(135deg, var(--panel-2), var(--page) 170%); box-shadow: none; }
 
 .ws-roll { display: flex; gap: 10px; flex: none; }
 .ws-stat {
-    border: 1px solid #2c3745;
+    border: 1px solid var(--panel-2);
     border-radius: 5px;
-    background: #10151d;
+    background: var(--page);
     padding: 6px 12px;
     text-align: center;
 }
-.ws-stat-v { font-size: 17px; font-weight: 800; color: #7fd6a4; display: block; }
-.ws-stat.unrolled .ws-stat-v { color: #4d5866; }
-.ws-stat-k { font-size: 9px; color: #8fa0b3; letter-spacing: 1px; display: block; }
+.ws-stat-v { font-size: 17px; font-weight: 800; color: var(--hp); display: block; }
+.ws-stat.unrolled .ws-stat-v { color: var(--panel-3); }
+.ws-stat-k { font-size: 9px; color: var(--text-mute); letter-spacing: 1px; display: block; }
 
 /*
  * The OS choices (2026-09-05 playtest). A left rail in the species' element, the name, and the
@@ -114,22 +114,22 @@
     display: flex; flex-direction: column; gap: 3px;
     text-align: left;
     padding: 7px 9px;
-    border: 1px solid #2b3441;
+    border: 1px solid var(--panel-2);
     border-left: 4px solid var(--el);
     border-radius: 3px;
-    background: #12141c;
+    background: var(--page);
     color: inherit; font: inherit;
     cursor: pointer;
 }
 .ws-oschoice:hover { border-color: var(--el); }
-.ws-oschoice.on { background: #171d27; box-shadow: 0 0 0 1px var(--el); }
+.ws-oschoice.on { background: var(--panel); box-shadow: 0 0 0 1px var(--el); }
 .ws-oshead { display: flex; align-items: center; gap: 7px; }
-.ws-oschoice .ws-osdesc { font-size: 10px; color: #aeb9c6; line-height: 1.35; margin: 0; }
+.ws-oschoice .ws-osdesc { font-size: 10px; color: var(--text-dim); line-height: 1.35; margin: 0; }
 
 .ws-cols { display: flex; gap: 14px; width: 100%; justify-content: center; flex-wrap: wrap; }
 .ws-col { width: 260px; }
 .ws-col h3 {
-    font-size: 10px; letter-spacing: 2px; color: #9fb4c8;
+    font-size: 10px; letter-spacing: 2px; color: var(--text-mute);
     margin: 0 0 4px; font-weight: 600;
 }
 
@@ -141,22 +141,22 @@
 
 .ws-oscard {
     flex: 1;
-    border: 1px solid #2c3745;
+    border: 1px solid var(--panel-2);
     border-radius: 7px;
-    background: #0f141c;
+    background: var(--page);
     padding: 12px;
     min-width: 0;
     overflow: auto;
 }
-.ws-oscard.current { border-color: #3d9be0; }
-.ws-oscard.offer { border-color: #e05d43; }
+.ws-oscard.current { border-color: var(--el-water); }
+.ws-oscard.offer { border-color: var(--el-fire); }
 .ws-oscard h3 { font-size: 12.5px; letter-spacing: 1px; margin: 0 0 2px; }
-.ws-oscard h4 { font-size: 9.5px; letter-spacing: 2px; color: #9fb4c8; margin: 0 0 4px; font-weight: 600; }
-.ws-osdesc { font-size: 10.5px; color: #aeb9c6; margin: 0 0 8px; line-height: 1.4; }
-.ws-tagcur { color: #3d9be0; font-size: 9px; }
-.ws-tagnew { color: #e05d43; font-size: 9px; }
+.ws-oscard h4 { font-size: 9.5px; letter-spacing: 2px; color: var(--text-mute); margin: 0 0 4px; font-weight: 600; }
+.ws-osdesc { font-size: 10.5px; color: var(--text-dim); margin: 0 0 8px; line-height: 1.4; }
+.ws-tagcur { color: var(--el-water); font-size: 9px; }
+.ws-tagnew { color: var(--el-fire); font-size: 9px; }
 
-.ws-vs { align-self: center; font-size: 16px; font-weight: 800; color: #5f6b7a; padding: 0 6px; }
+.ws-vs { align-self: center; font-size: 16px; font-weight: 800; color: var(--text-faint); padding: 0 6px; }
 
 .ws-actions {
     display: flex; gap: 10px; align-items: center; justify-content: flex-end;

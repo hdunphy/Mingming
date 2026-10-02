@@ -55,23 +55,23 @@ export default function SaveHealthBanner() {
                 right: 0,
                 zIndex: 9998,
                 padding: '10px 16px',
-                background: '#3a1414',
-                borderBottom: '1px solid #c06a6a',
-                color: '#f0dede',
+                background: 'color-mix(in srgb, var(--hp-low) 25%, var(--panel))',
+                borderBottom: '1px solid var(--hp-low)',
+                color: 'var(--text)',
                 fontSize: '0.85rem',
                 lineHeight: 1.45,
                 textAlign: 'center',
             }}
         >
             <strong style={{ letterSpacing: '2px' }}>⚠ {words.headline}</strong>
-            <div style={{ marginTop: '4px', color: '#d6b8b8' }}>{words.detail}</div>
+            <div style={{ marginTop: '4px', color: 'var(--text-dim)' }}>{words.detail}</div>
             {health.failureCount > 1 && (
-                <div style={{ marginTop: '4px', color: '#a08080', fontSize: '0.75rem' }}>
+                <div style={{ marginTop: '4px', color: 'var(--text-mute)', fontSize: '0.75rem' }}>
                     {health.failureCount} consecutive failed writes.
                 </div>
             )}
             {health.error && (
-                <details style={{ marginTop: '6px', color: '#a08080', fontSize: '0.75rem' }}>
+                <details style={{ marginTop: '6px', color: 'var(--text-mute)', fontSize: '0.75rem' }}>
                     <summary style={{ cursor: 'pointer' }}>Details</summary>
                     <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left', margin: '6px 0 0' }}>
                         {health.error}

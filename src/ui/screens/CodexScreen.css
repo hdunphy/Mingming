@@ -26,14 +26,14 @@
 }
 
 .codex-tab:hover {
-    color: #fff;
+    color: var(--text);
     border-color: rgba(255, 255, 255, 0.35);
 }
 
 .codex-tab.active {
     border-color: var(--select);
     background: rgba(124, 58, 237, 0.22);
-    color: #fff;
+    color: var(--text);
 }
 
 .codex-note {
@@ -106,7 +106,7 @@
 }
 
 .codex-milestone.done {
-    color: #f0f0f5;
+    color: var(--text);
 }
 
 .codex-milestone-mark {
@@ -114,7 +114,7 @@
 }
 
 .codex-milestone.done .codex-milestone-mark {
-    color: #ffcc00;
+    color: var(--amber);
 }
 
 /* --- The grid -------------------------------------------------------------------------------- */
@@ -168,7 +168,7 @@
     font-size: 0.6rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #00ffcc;
+    color: var(--panel-edge);
 }
 
 .codex-cell-note {

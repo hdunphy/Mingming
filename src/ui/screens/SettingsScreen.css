@@ -60,7 +60,7 @@
 
 .settings-close:hover {
     border-color: var(--select);
-    color: #fff;
+    color: var(--text);
 }
 
 .settings-group {
@@ -136,14 +136,14 @@
 }
 
 .settings-choice:hover {
-    color: #fff;
+    color: var(--text);
     border-color: rgba(255, 255, 255, 0.35);
 }
 
 .settings-choice.active {
     border-color: var(--select);
     background: rgba(124, 58, 237, 0.22);
-    color: #fff;
+    color: var(--text);
 }
 
 /* --- Keys ------------------------------------------------------------------------------------ */
@@ -203,7 +203,7 @@
     border: 1px solid rgba(255, 68, 68, 0.5);
     border-radius: 4px;
     background: transparent;
-    color: #ff8888;
+    color: var(--hp-low);
     font-family: inherit;
     font-size: 0.8rem;
     cursor: pointer;
@@ -211,15 +211,15 @@
 
 .settings-wipe:hover {
     background: rgba(255, 68, 68, 0.14);
-    color: #ffbbbb;
+    color: var(--text-dim);
 }
 
 .settings-wipe-confirm {
     padding: 6px 14px;
-    border: 1px solid #ff4444;
+    border: 1px solid var(--hp-low);
     border-radius: 4px;
     background: rgba(255, 68, 68, 0.22);
-    color: #ffdddd;
+    color: var(--text);
     font-family: inherit;
     font-size: 0.8rem;
     font-weight: 700;
@@ -227,7 +227,7 @@
 }
 
 .settings-wiped {
-    color: #ff8888;
+    color: var(--hp-low);
 }
 
 .settings-pending {

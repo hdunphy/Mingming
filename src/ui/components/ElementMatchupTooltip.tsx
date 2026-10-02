@@ -62,12 +62,12 @@ export const ElementMatchupHover: React.FC<{
                         ) : (
                             <>
                                 {strong.map(g => (
-                                    <div key={`s${g.mult}`} style={{ color: '#4dff88' }}>
+                                    <div key={`s${g.mult}`} style={{ color: 'var(--hp)' }}>
                                         Strong vs {g.targets.join(', ')} (×{formatMultiplier(g.mult)})
                                     </div>
                                 ))}
                                 {weak.map(g => (
-                                    <div key={`w${g.mult}`} style={{ color: '#c98080' }}>
+                                    <div key={`w${g.mult}`} style={{ color: 'var(--hp-low)' }}>
                                         Weak vs {g.targets.join(', ')} (×{formatMultiplier(g.mult)})
                                     </div>
                                 ))}

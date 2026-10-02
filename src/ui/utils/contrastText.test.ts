@@ -32,9 +32,15 @@ describe('contrastText', () => {
         expect(relativeLuminance('#00ffff')).toBeGreaterThan(relativeLuminance('#ff3333'));
     });
 
-    it('the reported bug: Ice cost badges no longer get white text', () => {
-        expect(getElementTextColor('Ice')).toBe(DARK_TEXT);
-        expect(badgeTextShadow(getElementTextColor('Ice'))).toBe('none');
+    it('the reported bug: a bright badge fill does not get white text (and so no light-text shadow)', () => {
+        expect(readableTextOn('#00ffff')).toBe(DARK_TEXT);
+        expect(badgeTextShadow(DARK_TEXT)).toBe('none');
+        expect(badgeTextShadow(LIGHT_TEXT)).not.toBe('none');
+    });
+
+    it('draws an element with no colour of its own (Ice, Dark, ...) as None', () => {
+        expect(getElementTextColor('Ice')).toBe(getElementTextColor('None'));
+        expect(getElementBadgeBg('Dark')).toBe(getElementBadgeBg('None'));
     });
 
     it('every element badge fill meets WCAG AA (>= 4.5:1) with its text', () => {

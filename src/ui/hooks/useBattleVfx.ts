@@ -3,6 +3,7 @@ import { globalBattleEventBus } from '../../engine/events';
 import type { IBattleEntity, IBattleState, StatusType } from '../../engine/types';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { GetProgramData } from '../../engine/data/programRegistry';
+import { JS_COLOR } from '../theme/jsColors';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
 import {
@@ -131,7 +132,7 @@ export const EMPTY_UNIT_FX: UnitFx = {
     hitIntensity: 0,
     healKey: 0,
     statusKey: 0,
-    statusColor: '#ffffff',
+    statusColor: JS_COLOR.text,
     lungeKey: 0,
 };
 
@@ -145,10 +146,10 @@ const MAX_FLOATS_PER_UNIT = 8;
 const FLOAT_LIFETIME_MS = 2000;
 const FLOAT_SLOTS = 6;
 
-const HEAL_COLOR = '#4ade80';
+const HEAL_COLOR = JS_COLOR.hp;
 /** The Driver chip's violet (`.battle-driver-chip`), so the float and the chip read as one event. */
-const DRIVER_PROC_COLOR = '#c4b5fd';
-const ABSORB_COLOR = '#9aa0ae';
+const DRIVER_PROC_COLOR = JS_COLOR.edge;
+const ABSORB_COLOR = JS_COLOR.textMute;
 
 /**
  * Small stable hash → pitch multiplier so each status type gets its own glitch
@@ -213,7 +214,7 @@ function stacksOf(target: IBattleEntity | undefined, status: StatusType | undefi
     return target.statusEffects.find((effect) => effect.type === status)?.stacks ?? 0;
 }
 
-const NEUTRAL_DAMAGE_COLOR = '#ff5a5a';
+const NEUTRAL_DAMAGE_COLOR = JS_COLOR.hpLow;
 
 interface VfxState {
     unitFx: Record<string, UnitFx>;
@@ -363,7 +364,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
 
             // One ring bump per body, coloured by the last status that body received.
             const ringColour = new Map<string, string>();
-            for (const entry of entries) ringColour.set(entry.targetId, STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+            for (const entry of entries) ringColour.set(entry.targetId, STATUS_COLORS[entry.status as StatusType] ?? JS_COLOR.textDim);
             setVfx(prev => {
                 const unitFx = { ...prev.unitFx };
                 for (const [targetId, colour] of ringColour) {
@@ -380,7 +381,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 const text = entry.overflow !== undefined
                     ? overflowText(entry.status, entry.overflow)
                     : statusFloatText(entry.status, entry.stacks);
-                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status as StatusType] ?? JS_COLOR.textDim);
             }
         };
 
@@ -395,7 +396,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 for (const entry of entries) {
                     const unit = unitFx[entry.targetId] ?? EMPTY_UNIT_FX;
                     unitFx[entry.targetId] = {
-                        ...unit, statusKey: unit.statusKey + 1, statusColor: STATUS_COLORS[entry.status] ?? '#cccccc',
+                        ...unit, statusKey: unit.statusKey + 1, statusColor: STATUS_COLORS[entry.status] ?? JS_COLOR.textDim,
                     };
                 }
                 return { ...prev, unitFx };
@@ -405,7 +406,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 const text = entry.overflow !== undefined
                     ? [overflowText(entry.status, entry.overflow), label].filter(Boolean).join(' · ')
                     : hookFloatText(entry.status, entry.stacks, label);
-                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status] ?? '#cccccc');
+                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status] ?? JS_COLOR.textDim);
             }
         };
 

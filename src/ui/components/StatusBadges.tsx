@@ -22,6 +22,7 @@ import { createPortal } from 'react-dom';
 
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
+import { JS_COLOR } from '../theme/jsColors';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import { displayStacks } from './displayStacks';
 import { StatusTooltipPortal } from './StatusTooltip';
@@ -40,7 +41,7 @@ const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, sta
     // Ticket 55: measured after layout rather than read during render — see `useAnchoredRect`.
     const { ref: badgeRef, rect } = useAnchoredRect<HTMLDivElement>(showTooltip);
     const info = statusGlossary[type];
-    const color = STATUS_COLORS[type] ?? '#ccc';
+    const color = STATUS_COLORS[type] ?? JS_COLOR.textDim;
     // BarkShield stacks are a %maxHp float that decays 20% a turn - round for display only.
     const shownStacks = displayStacks(stacks);
 
@@ -97,7 +98,7 @@ const StatusOverflowBadge: React.FC<{ hidden: ReadonlyArray<{ type: StatusType; 
                 >
                     <div className="tooltip-title">ALSO ACTIVE</div>
                     {hidden.map(se => (
-                        <div key={se.type} style={{ color: STATUS_COLORS[se.type] ?? '#ccc' }}>
+                        <div key={se.type} style={{ color: STATUS_COLORS[se.type] ?? JS_COLOR.textDim }}>
                             {statusGlossary[se.type]?.icon ?? '\u2726'} {se.type}
                             {se.stacks > 1 ? ` \u00d7${Math.round(se.stacks * 10) / 10}` : ''}
                         </div>

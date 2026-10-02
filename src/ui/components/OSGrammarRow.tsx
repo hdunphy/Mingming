@@ -50,7 +50,7 @@ const CURRENCY_STATUS: Record<string, StatusType> = {
     Energy: 'Energized',
 };
 
-const NEUTRAL = '#8fa0b3';
+const NEUTRAL = 'var(--text-mute)';
 
 const colourFor = (token: string): string => {
     const status = CURRENCY_STATUS[token];

@@ -54,9 +54,9 @@ import { iconPaths } from '../theme/icons';
 import { resolveDriverStake } from '../../engine/run/driverStakes';
 
 const ELEMENT_COLOR: Record<string, string> = {
-    Fire: '#e8734a',
-    Water: '#4aa3e8',
-    Nature: '#5fc27e',
+    Fire: 'var(--el-fire)',
+    Water: 'var(--el-water)',
+    Nature: 'var(--hp)',
 };
 
 // Geometry, in viewBox units. Relative sizing lives in the stylesheet.
@@ -337,9 +337,9 @@ export default function RegionMap({
                     <defs>
                         {bands.map((band) => (
                             <linearGradient key={band.biomeIndex} id={`rm-biome-${band.biomeIndex}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={ELEMENT_COLOR[band.element] ?? '#7a5cff'} stopOpacity={0.16} />
-                                <stop offset="70%" stopColor={ELEMENT_COLOR[band.element] ?? '#7a5cff'} stopOpacity={0.03} />
-                                <stop offset="100%" stopColor={ELEMENT_COLOR[band.element] ?? '#7a5cff'} stopOpacity={0} />
+                                <stop offset="0%" stopColor={ELEMENT_COLOR[band.element] ?? 'var(--el-water)'} stopOpacity={0.16} />
+                                <stop offset="70%" stopColor={ELEMENT_COLOR[band.element] ?? 'var(--el-water)'} stopOpacity={0.03} />
+                                <stop offset="100%" stopColor={ELEMENT_COLOR[band.element] ?? 'var(--el-water)'} stopOpacity={0} />
                             </linearGradient>
                         ))}
                     </defs>
@@ -356,7 +356,7 @@ export default function RegionMap({
                                 width={band.width - 6} height={height - BAND_INSET_Y * 2}
                                 rx={16}
                                 fill={`url(#rm-biome-${band.biomeIndex})`}
-                                stroke={ELEMENT_COLOR[band.element] ?? '#7a5cff'}
+                                stroke={ELEMENT_COLOR[band.element] ?? 'var(--el-water)'}
                             />
                             <text
                                 className={`rm-band-label ${band.biomeIndex === currentBiome ? 'here' : ''}`}
@@ -372,7 +372,7 @@ export default function RegionMap({
                             key={`seam-${band.biomeIndex}`}
                             className="rm-biome-seam"
                             x1={band.x} y1={BAND_INSET_Y} x2={band.x} y2={height - BAND_INSET_Y}
-                            stroke={ELEMENT_COLOR[band.element] ?? '#7a5cff'}
+                            stroke={ELEMENT_COLOR[band.element] ?? 'var(--el-water)'}
                         />
                     ))}
                     {/*

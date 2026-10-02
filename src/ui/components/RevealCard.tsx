@@ -130,7 +130,7 @@ const RevealCard: React.FC<RevealCardProps> = ({
                             border: '1px solid rgba(0, 210, 255, 0.6)',
                             background:
                                 'repeating-linear-gradient(0deg, rgba(0, 210, 255, 0.05) 0px, rgba(0, 210, 255, 0.05) 1px, transparent 1px, transparent 4px), ' +
-                                'linear-gradient(145deg, #10131d 0%, #070910 100%)',
+                                'linear-gradient(145deg, var(--page) 0%, var(--page) 100%)',
                             boxShadow: 'inset 0 0 18px rgba(0, 210, 255, 0.08), 0 0 10px rgba(0, 210, 255, 0.2)',
                             display: 'flex',
                             flexDirection: 'column',
@@ -141,8 +141,8 @@ const RevealCard: React.FC<RevealCardProps> = ({
                     >
                         <div style={{
                             fontSize: '2rem',
-                            color: '#00d2ff',
-                            textShadow: '0 0 12px #00d2ff'
+                            color: 'var(--panel-edge)',
+                            textShadow: '0 0 12px var(--panel-edge)'
                         }}>
                             ◈
                         </div>

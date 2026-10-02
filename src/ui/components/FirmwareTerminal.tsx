@@ -124,7 +124,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                         </div>
                                         <div className="diag-item">
                                             <label>SECTOR STATUS:</label>
-                                            <span style={{ color: '#00ff00' }}>ONLINE</span>
+                                            <span style={{ color: 'var(--hp)' }}>ONLINE</span>
                                         </div>
                                     </div>
                                 </div>
@@ -189,7 +189,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                     {flashProgress > 40 && <div>[SYS] WIPING SECTOR 0...</div>}
                                     {flashProgress > 60 && <div>[SYS] WRITING ADDRESS 0x{Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase()}</div>}
                                     {flashProgress > 80 && <div>[SYS] VERIFYING CHECKSUM...</div>}
-                                    {flashProgress === 100 && <div style={{ color: '#00ff00' }}>[SYS] FLASH COMPLETE!</div>}
+                                    {flashProgress === 100 && <div style={{ color: 'var(--hp)' }}>[SYS] FLASH COMPLETE!</div>}
                                 </div>
                                 <div className="progress-bar-container">
                                     <div className="progress-bar-fill" style={{ width: `${flashProgress}%` }} />

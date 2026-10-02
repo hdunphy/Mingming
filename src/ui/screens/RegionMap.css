@@ -91,7 +91,7 @@
  * dashes, so the trail reads as footsteps rather than as a dashed border.
  */
 .rm-edge {
-    stroke: #4a5462;
+    stroke: var(--panel-3);
     stroke-width: 2.5;
     stroke-dasharray: 1 6;
     stroke-linecap: round;
@@ -99,26 +99,26 @@
 
 /* A trail with a fogged node at one end. Information, not decoration: the difference between a
  * route you can plan and one you can only see the start of. */
-.rm-edge.faded { stroke: #242b34; }
+.rm-edge.faded { stroke: var(--panel); }
 
 .rm-node-disc {
-    fill: #191430;
+    fill: var(--panel);
     stroke: rgba(160, 150, 210, 0.5);
     stroke-width: 2;
 }
 
 .rm-node-icon {
     font-size: 19px;
-    fill: #e6e0ff;
+    fill: var(--text);
     /* Ticket 34: the glyphs are inline SVG now, not emoji, so the font stack that kept an emoji
      * from inheriting a clipping monospace metric is gone with them. `color` is what a revealed
      * node's icon reads — see the nested `<svg>` in `RegionMap.tsx`. */
-    color: #e6e0ff;
+    color: var(--text);
 }
 
 .rm-node-visits { pointer-events: none; }
 
-.rm-node.fogged .rm-node-disc { fill: #0e0b18; stroke: rgba(160, 150, 210, 0.22); }
+.rm-node.fogged .rm-node-disc { fill: var(--page); stroke: rgba(160, 150, 210, 0.22); }
 .rm-node.fogged .rm-node-icon { fill: rgba(230, 224, 255, 0.35); }
 .rm-node.pocket .rm-node-disc { stroke-dasharray: 4 3; }
 
@@ -127,7 +127,7 @@
    hovering. Ringed in the map's own background rather than left bare, so it stays a distinct mark
    over a node that happens to share its colour. */
 .rm-node-second-element {
-    stroke: #0e0b18;
+    stroke: var(--page);
     stroke-width: 1.5;
 }
 
@@ -148,7 +148,7 @@
    ring on the map and the chip in the fight are the same word. */
 .rm-node-stake-ring {
     fill: none;
-    stroke: #a78bfa;
+    stroke: var(--select);
     stroke-width: 2;
     filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.7));
 }
@@ -156,16 +156,16 @@
 /* Ticket 17: the ambush is marked HIGH RISK — their 3 vs your 2 — with a red disc fill rather than a
    red stroke, because the stroke is the element and must keep saying so. */
 .rm-node.risk .rm-node-disc { fill: rgba(190, 30, 45, 0.45); }
-.rm-node.risk.reachable .rm-node-disc { stroke: #ff5a5a; }
+.rm-node.risk.reachable .rm-node-disc { stroke: var(--hp-low); }
 
 .rm-node.reachable { cursor: pointer; }
-.rm-node.reachable .rm-node-disc { stroke: #7a5cff; stroke-width: 3; }
-.rm-node.reachable:hover .rm-node-disc { fill: #241c46; }
+.rm-node.reachable .rm-node-disc { stroke: var(--el-water); stroke-width: 3; }
+.rm-node.reachable:hover .rm-node-disc { fill: var(--panel); }
 
 .rm-node.current .rm-node-disc {
-    stroke: #6ee7a8;
+    stroke: var(--hp);
     stroke-width: 4;
-    fill: #12291f;
+    fill: color-mix(in srgb, var(--hp) 25%, var(--panel));
 }
 
 /* --- Legend and travel --- */
@@ -226,8 +226,8 @@
     gap: 0.5rem;
 }
 
-.rm-travel-button:hover { border-color: #7a5cff; background: rgba(122, 92, 255, 0.15); }
-.rm-travel-button:focus-visible { outline: 2px solid #6ee7a8; outline-offset: 2px; }
+.rm-travel-button:hover { border-color: var(--el-water); background: rgba(122, 92, 255, 0.15); }
+.rm-travel-button:focus-visible { outline: 2px solid var(--hp); outline-offset: 2px; }
 .rm-travel-icon { font-size: 1rem; }
 .rm-travel-empty { font-size: 0.76rem; opacity: 0.6; }
 
@@ -238,13 +238,13 @@
  * has been two DIFFERENT fights, so this is a small piece of run history rather than a counter.
  */
 .rm-visit-disc {
-    fill: #ffd479;
-    stroke: #0c0e12;
+    fill: var(--amber);
+    stroke: var(--page);
     stroke-width: 2;
 }
 
 .rm-visit-count {
-    fill: #0c0e12;
+    fill: var(--page);
     font-size: 10px;
     font-weight: 800;
     pointer-events: none;

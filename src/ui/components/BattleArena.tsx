@@ -128,7 +128,7 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => vo
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
                 style={{
                     fontSize: '5rem',
-                    color: result === 'WIN' ? '#00ffaa' : '#ff4444',
+                    color: result === 'WIN' ? 'var(--hp)' : 'var(--hp-low)',
                     textShadow: '0 0 30px currentColor'
                 }}
             >
@@ -139,7 +139,7 @@ const WinLossOverlay: React.FC<{ result: 'WIN' | 'LOSS', onShowReport?: () => vo
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.45, duration: 0.3 }}
-                    style={{ color: '#ff8888', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}
+                    style={{ color: 'var(--hp-low)', marginTop: '-10px', fontSize: '1.2rem', fontWeight: 'bold' }}
                 >
                     {/* Ticket 11: this said "RUN TERMINATED. DATA WIPED." and the code underneath
                         it made that true by calling deleteSave(). Both are gone. A defeat costs the

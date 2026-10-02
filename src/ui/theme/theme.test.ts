@@ -17,6 +17,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { ELEMENT_COLOR, colorFor } from '../screens/runShell';
+import { JS_COLOR, JS_COLOR_TOKEN } from './jsColors';
 import { sourceFiles } from './scanSource';
 
 const TOKENS = readFileSync(resolve('src/ui/theme/tokens.css'), 'utf8');
@@ -61,12 +62,20 @@ describe('the theme tokens', () => {
         // the quietest possible styling bug.
         const required = [
             '--font-display', '--font-body',
-            '--page', '--panel', '--panel-edge', '--panel-2', '--hp-track', '--ink',
-            '--text', '--text-mute', '--select', '--energy',
+            '--page', '--panel', '--panel-edge', '--panel-2', '--panel-3', '--hp-track', '--ink',
+            '--text', '--text-dim', '--text-mute', '--text-faint', '--select', '--energy', '--amber',
             '--hp', '--hp-hi', '--hp-mid', '--hp-mid-hi', '--hp-low', '--hp-low-hi', '--shield',
             '--card-body', '--card-text', '--card-mute',
         ];
         for (const name of required) expect(tokens.has(name), `${name} is missing`).toBe(true);
+    });
+
+    it('mirrors every JS colour in jsColors.ts from its token', () => {
+        for (const key of Object.keys(JS_COLOR) as Array<keyof typeof JS_COLOR>) {
+            const name = JS_COLOR_TOKEN[key];
+            expect(tokens.get(name), `${name} is missing from tokens.css`).toBeDefined();
+            expect(tokens.get(name)!.toLowerCase(), `JS_COLOR.${key} disagrees with ${name}`).toBe(JS_COLOR[key]);
+        }
     });
 
     it('has exactly the four ruled element colours (183a)', () => {

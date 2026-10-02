@@ -304,7 +304,7 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                   * the two things the card face cannot: WHO cast it, which at 3v3 is a real
                   * question, and who it landed on.
                   */}
-                <div className="reveal-caption" style={{ color: shown?.fromPlayer ? '#8fe3ff' : '#ff9d9d' }}>
+                <div className="reveal-caption" style={{ color: shown?.fromPlayer ? 'var(--text-dim)' : 'var(--text-dim)' }}>
                     {hasFace && shown ? (
                         <>
                             {shown.sourceName} casts {data!.name}

@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom';
 
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
+import { JS_COLOR } from '../theme/jsColors';
 import type { AnchoredRect } from '../hooks/useAnchoredRect';
 import { displayStacks } from './displayStacks';
 
@@ -21,7 +22,7 @@ export const StatusTooltipPortal: React.FC<{
 }> = ({ type, stacks, rect }) => {
     const info = statusGlossary[type];
     if (!info) return null;
-    const color = STATUS_COLORS[type] ?? '#ccc';
+    const color = STATUS_COLORS[type] ?? JS_COLOR.textDim;
     const isRightSide = rect.left > window.innerWidth / 2;
     return createPortal(
         <div

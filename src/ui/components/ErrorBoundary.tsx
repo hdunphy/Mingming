@@ -59,8 +59,8 @@ const panelStyle: React.CSSProperties = {
     gap: '18px',
     padding: '40px',
     textAlign: 'center',
-    background: 'radial-gradient(circle at center, #1a1a2e 0%, #050508 100%)',
-    color: '#e6e6f0',
+    background: 'radial-gradient(circle at center, var(--panel) 0%, var(--page) 100%)',
+    color: 'var(--text)',
     fontFamily: 'inherit',
     overflowY: 'auto',
 };
@@ -68,8 +68,8 @@ const panelStyle: React.CSSProperties = {
 const buttonStyle: React.CSSProperties = {
     padding: '12px 22px',
     background: 'transparent',
-    color: '#7fe3d0',
-    border: '1px solid #7fe3d0',
+    color: 'var(--panel-edge)',
+    border: '1px solid var(--panel-edge)',
     borderRadius: '2px',
     letterSpacing: '2px',
     cursor: 'pointer',
@@ -143,10 +143,10 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         return (
             <div style={panelStyle} role="alert">
                 <h1 style={{ fontSize: '2rem', letterSpacing: '4px', margin: 0 }}>SOMETHING BROKE</h1>
-                <p style={{ color: '#7fe3d0', margin: 0, fontSize: '1.05rem' }}>
+                <p style={{ color: 'var(--panel-edge)', margin: 0, fontSize: '1.05rem' }}>
                     Your save is safe. Nothing was written over.
                 </p>
-                <p style={{ color: '#8a8aa0', margin: 0, maxWidth: '46ch', lineHeight: 1.5 }}>
+                <p style={{ color: 'var(--text-mute)', margin: 0, maxWidth: '46ch', lineHeight: 1.5 }}>
                     A screen failed to draw. The run in progress may be lost, but your roster,
                     blueprints and scrap are on disk exactly as they were.
                 </p>
@@ -159,9 +159,9 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                         padding: '10px 14px',
                         margin: 0,
                         textAlign: 'left',
-                        background: '#0b0b14',
-                        border: '1px solid #2a2a3e',
-                        color: '#c06a6a',
+                        background: 'var(--page)',
+                        border: '1px solid var(--panel-2)',
+                        color: 'var(--hp-low)',
                         fontSize: '0.8rem',
                         whiteSpace: 'pre-wrap',
                     }}
@@ -182,14 +182,14 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                     </button>
                     <button
                         type="button"
-                        style={{ ...buttonStyle, color: '#8a8aa0', borderColor: '#3a3a4e' }}
+                        style={{ ...buttonStyle, color: 'var(--text-mute)', borderColor: 'var(--panel-2)' }}
                         onClick={this.handleReload}
                     >
                         RELOAD
                     </button>
                 </div>
 
-                <p style={{ color: '#55556a', margin: 0, fontSize: '0.8rem', maxWidth: '52ch' }}>
+                <p style={{ color: 'var(--panel-3)', margin: 0, fontSize: '0.8rem', maxWidth: '52ch' }}>
                     The crash report is JSON — paste it into a bug report. It contains your game
                     state and nothing else.
                 </p>

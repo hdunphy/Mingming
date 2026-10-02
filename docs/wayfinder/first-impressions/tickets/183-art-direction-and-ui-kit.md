@@ -71,7 +71,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 
 - **Panel:** `clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)`, `--panel-edge` behind, `--panel` inset 2px. One CSS class, `.k-slant`, with `--k-cut` for the skew (8px panels, 5px badges, 3px chips, 2px pips).
 - **Card:** 2px ink frame, body inset, header band clipped `polygon(0 0, 100% 0, 100% 78%, 0 100%)`.
-- **Energy hexagon:** `polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%)`, 22px tall on cards, 20px on plaques, number in display type.
+- **Energy hexagon:** `polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%)`, 22px tall on cards, 20px on plaques, number in display type. *(Ruled 2026-10-02: the written sizes stand. The hand-drawn mock had them the other way round, 20px on the card and 22px on the plaque. If the plaque reads too small once 183b is on screen, that swap is a one-line change in `kit.css`.)*
 - **Element mark:** an 18px white disc with the element's symbol drawn in the element colour (flame, drop, leaf; a dot for neutral). This is 182's R4 "element icon", so 182 and 183 ship the same component.
 - **Element badge:** element-colour plate, symbol + word, white text. On plaques.
 - **Platforms:** flat ellipses under sprites, `--ground-2`; the active ally's is `--select`.
@@ -123,7 +123,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 
 1. **Read the whole row first.** Search for quoted names; line numbers drift.
 2. **No geometry changes except 183e.** `stageGeometry.test.ts` and `fanGeometry.test.ts` stay green and unedited through 183a–183d.
-3. **Tokens only.** No hex literal in a screen stylesheet or a component after 183a; a test greps for `#[0-9a-f]{6}` outside `tokens.css` and `runShell.ts` and fails on any hit.
+3. **Tokens only.** No hex literal in a screen stylesheet or a component; `noHex.test.ts` is a flat ban and fails on any hit outside `tokens.css`, `runShell.ts`, `jsColors.ts`, `contrastText.ts`, `src/engine/`, `src/debug/` and tests. (Henry ruled 2026-10-02: one sweep of all the old literals in 183a rather than a shrinking baseline. Done: see "183a sweep" below.)
 4. **One component per piece, small.** `EnergyHex`, `ElementMark`, `ElementBadge`, `HpBar`, `StatusChip`, `SlantPanel`, `ReadoutStrip`. Compose them; do not grow `MingmingUnit.tsx` (526 lines) or `BattleArena.tsx` (1,360 lines).
 5. **Screenshots are the review.** Every row ends with a Playwright capture at 1280×800 and 1920×1080 into `docs/wayfinder/first-impressions/research/183-screens/<row>/`, committed with the row. Henry reviews pictures, not diffs.
 6. **Gate:** `npm run gate` green before each commit. Commits authored as Henry (`git -c user.name='Henry Dunphy' -c user.email='hdunphy15@gmail.com' commit ...`), no Co-Authored-By, last line `HANDOFF: <one sentence>`. One commit per row. **Do not push.**
@@ -160,6 +160,10 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
    - `ReadoutStrip({ preview, element })`: the 22px strip, built from `HandCardPreviewFace`.
 5. The no-hex test (rule 3) and a `tokens.test.ts` that every `--el-*` has a mark glyph in `ElementMark`.
 
+### 183a sweep (done, 2026-10-02)
+
+Henry ruled a one-time sweep instead of a ratchet. About 600 hex colours in 38 files were moved onto tokens, and four tokens were added for the shades the old screens already used: `--panel-3`, `--text-dim`, `--text-faint`, `--amber`. JavaScript that needs a real hex string (inline styles with a transparency suffix, colour maths) reads `src/ui/theme/jsColors.ts`, which `theme.test.ts` checks against the tokens. The earth, air, ice, light and dark element colours are not drawn yet; those bodies draw as Neutral until Henry says to build them.
+
 ## 183b: The battle stage
 
 **Files:** `BattleStage.tsx`, `UnitReadouts.tsx`, `MingmingUnit.tsx` (plaque path only), `BattleTopBar.tsx`, `EnemyHandPanel.tsx`, `index.css` (`.ehp`, stage rules), `BattleArena.tsx` (the backdrop mount only).
@@ -171,7 +175,8 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 4. **Top band:** turn in a small slant panel ("Turn" + number), the event line as a toast, the biome sign, the Settings button (182 R5). The volume slider and theme toggle leave the battle screen (182 R5).
 5. **Enemy hand tab:** when closed, render one 18×24 element-coloured back per card in the enemy's hand inside the 34px tab. `enemyShiftFor` is unchanged.
 6. **Target feedback:** the `hud-target-flag` becomes a yellow cursor plus the words "Super effective" / "Not very effective" / "Can't target" from the existing verdict.
-7. **Tests:** plaque renders every field for a 3v3 entity; a body with Bark Shield shows the band with its HP and no Bark Shield chip; tab shows N backs for N cards; backdrop picks the biome's set; `stageGeometry.test.ts` untouched.
+7. **Draw the 14 status icons** (Henry, 2026-10-02: "add it"). Today every status chip shows an emoji from `statusGlossary`, and emoji look different on every machine and ignore the kit's colours. Replace them with 14 flat single-colour SVG icons in one `statusIcons.tsx` file (one small component per icon, or one `StatusIcon({ type })` that picks), drawn on a 16×16 grid in `currentColor`, so a chip tints them. Same 14 statuses, same tooltips. Drawn as simple flat shapes in code, so the no-AI-pictures-to-artists rule above is not in play. Test: every `StatusType` that `statusGlossary` lists has an icon, and none renders an emoji.
+8. **Tests:** plaque renders every field for a 3v3 entity; a body with Bark Shield shows the band with its HP and no Bark Shield chip; tab shows N backs for N cards; backdrop picks the biome's set; `stageGeometry.test.ts` untouched.
 
 ## 183c: The card
 

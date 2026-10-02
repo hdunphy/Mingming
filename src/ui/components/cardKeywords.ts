@@ -14,17 +14,17 @@ import { statusGlossary } from '../../engine/data/statusGlossary';
 export const KEYWORD_INFO = {
     EXHAUST: {
         label: 'EXHAUST',
-        color: '#ff9944',
+        color: 'var(--el-fire)',
         description: 'Removed to the exhaust pile after playing — not shuffled back this battle.'
     },
     TOKEN: {
         label: 'TOKEN',
-        color: '#8888ff',
+        color: 'var(--el-water)',
         description: 'Temporary card generated in battle; disappears afterward.'
     },
     DAEMON: {
         label: 'DAEMON',
-        color: '#00d2ff',
+        color: 'var(--panel-edge)',
         description: 'Installs on the unit for the rest of the battle; its effect stays active.'
     }
 } as const;

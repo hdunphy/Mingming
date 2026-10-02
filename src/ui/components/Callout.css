@@ -14,10 +14,10 @@
     box-sizing: border-box;
     padding: 8px 14px;
     border: 1px solid rgba(0, 255, 204, 0.45);
-    border-left: 3px solid #00ffcc;
+    border-left: 3px solid var(--panel-edge);
     border-radius: 4px;
     background: rgba(6, 22, 26, 0.94);
-    color: #d8fff7;
+    color: var(--text);
     font-size: 0.78rem;
     line-height: 1.4;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);

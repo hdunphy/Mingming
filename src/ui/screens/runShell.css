@@ -36,8 +36,8 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    background: radial-gradient(1200px 500px at 60% -10%, #16202c 0%, #0c0e12 60%);
-    color: #dfe4ea;
+    background: radial-gradient(1200px 500px at 60% -10%, var(--panel) 0%, var(--page) 60%);
+    color: var(--text-dim);
     font-family: var(--font-body);
 }
 
@@ -56,73 +56,73 @@
     align-items: center;
     gap: 14px;
     padding: 0 18px;
-    border-bottom: 1px solid #232a35;
-    background: #10141b;
+    border-bottom: 1px solid var(--panel);
+    background: var(--page);
     flex: none;
 }
 
-.rs-title { font-size: 14px; letter-spacing: 2px; color: #9fb4c8; font-weight: 600; }
-.rs-ctx { font-size: 11.5px; color: #5f6b7a; letter-spacing: 1px; }
+.rs-title { font-size: 14px; letter-spacing: 2px; color: var(--text-mute); font-weight: 600; }
+.rs-ctx { font-size: 11.5px; color: var(--text-faint); letter-spacing: 1px; }
 .rs-spacer { flex: 1; }
-.rs-scrap { font-size: 15px; color: #ffd479; font-weight: 700; letter-spacing: 1px; }
+.rs-scrap { font-size: 15px; color: var(--amber); font-weight: 700; letter-spacing: 1px; }
 
 /* --- controls -------------------------------------------------------------------------------- */
 
 .rs-btn {
-    border: 1px solid #3a4a5e;
-    background: #1a2330;
+    border: 1px solid var(--panel-3);
+    background: var(--panel);
     border-radius: 3px;
     padding: 6px 16px;
     font-size: 12px;
     letter-spacing: 1px;
-    color: #dfe4ea;
+    color: var(--text-dim);
     cursor: pointer;
     flex: none;
 }
-.rs-btn.primary { background: #245a8c; border-color: #3d7ab5; }
+.rs-btn.primary { background: var(--el-water); border-color: var(--text-faint); }
 /* Ticket 20's precedent: a dead control still says what it is short of, so it is dimmed and
    readable rather than hidden. */
 .rs-btn:disabled { opacity: 0.45; cursor: default; }
 
 .rs-pill {
-    border: 1px solid #2c6e49;
+    border: 1px solid var(--hp);
     border-radius: 3px;
     padding: 4px 12px;
     font-size: 12px;
-    color: #7fd6a4;
-    background: #151b24;
+    color: var(--hp);
+    background: var(--panel);
     flex: none;
 }
-.rs-pill b { color: #fff; }
+.rs-pill b { color: var(--text); }
 /* At the floor the pill stops being reassurance and becomes the reason a row is dead. */
-.rs-pill.at-floor { border-color: #8a6d3b; color: #ffd479; }
+.rs-pill.at-floor { border-color: var(--amber); color: var(--amber); }
 
 .rs-f {
-    border: 1px solid #2c3745;
+    border: 1px solid var(--panel-2);
     border-radius: 12px;
     padding: 3px 11px;
     font-size: 10.5px;
-    color: #8fa0b3;
-    background: #12171f;
+    color: var(--text-mute);
+    background: var(--page);
     cursor: pointer;
 }
-.rs-f.on { border-color: #3d9be0; color: #fff; }
+.rs-f.on { border-color: var(--el-water); color: var(--text); }
 
 .rs-search {
-    border: 1px solid #2c3745;
+    border: 1px solid var(--panel-2);
     border-radius: 12px;
     padding: 3px 11px;
     font-size: 10.5px;
-    color: #dfe4ea;
-    background: #12171f;
+    color: var(--text-dim);
+    background: var(--page);
     width: 130px;
 }
 
 .rs-chip {
-    border: 1px solid #8a6c2f;
+    border: 1px solid var(--amber);
     border-radius: 3px;
-    background: #1b1710;
-    color: #ffd479;
+    background: color-mix(in srgb, var(--amber) 25%, var(--panel));
+    color: var(--amber);
     font-size: 11.5px;
     padding: 3px 10px;
     flex: none;
@@ -131,9 +131,9 @@
 /* --- panel ----------------------------------------------------------------------------------- */
 
 .rs-panel {
-    border: 1px solid #232a35;
+    border: 1px solid var(--panel);
     border-radius: 6px;
-    background: #0f131a;
+    background: var(--page);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
@@ -142,27 +142,27 @@
 .rs-panel h2 {
     font-size: 10.5px;
     letter-spacing: 2px;
-    color: #9fb4c8;
+    color: var(--text-mute);
     margin: 0 0 8px;
     flex: none;
     font-weight: 600;
 }
 
-.rs-hint { font-size: 10px; color: #4d5866; font-style: italic; line-height: 1.4; }
+.rs-hint { font-size: 10px; color: var(--panel-3); font-style: italic; line-height: 1.4; }
 
 /* --- the big card tile ----------------------------------------------------------------------- */
 
 .rs-card {
     width: var(--cw, 152px);
     height: var(--ch, 200px);
-    border: 1px solid #303a48;
+    border: 1px solid var(--panel-2);
     border-radius: 8px;
-    background: linear-gradient(180deg, #171d27 0%, #10151d 100%);
+    background: linear-gradient(180deg, var(--panel) 0%, var(--page) 100%);
     position: relative;
     padding: 8px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 3px 10px #0007;
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--page) 47%, transparent);
     color: inherit;
     font: inherit;
     text-align: center;
@@ -175,7 +175,7 @@
  * a payoff cue. Renaming it is what makes the ruling checkable — there is now no class called
  * `payoff` on any card face.
  */
-.rs-card.rare { border-color: var(--el); box-shadow: 0 0 0 1px var(--el), 0 3px 12px #0008; }
+.rs-card.rare { border-color: var(--el); box-shadow: 0 0 0 1px var(--el), 0 3px 12px color-mix(in srgb, var(--page) 53%, transparent); }
 .rs-card:disabled { cursor: default; }
 
 /*
@@ -200,17 +200,17 @@
 
 /* An unfilled slot: a 0-cost card racks ONE of these rather than nothing, so "free" reads as a
    deliberate empty slot instead of as a corner that failed to render. */
-.rs-pips i.off { background: #2a323d; box-shadow: none; }
+.rs-pips i.off { background: var(--panel-2); box-shadow: none; }
 
 .rs-typ {
     position: absolute; top: 2px; right: 7px;
     font-size: 15px; line-height: 1;
     text-shadow: 0 0 6px currentColor;
 }
-.rs-typ.ATTACK { color: #ff9d8f; }
-.rs-typ.SKILL { color: #8fc7f5; }
-.rs-typ.DAEMON { color: #c9a2f0; }
-.rs-typ.MACRO { color: #ffd479; }
+.rs-typ.ATTACK { color: var(--text-dim); }
+.rs-typ.SKILL { color: var(--el-water); }
+.rs-typ.DAEMON { color: var(--text-dim); }
+.rs-typ.MACRO { color: var(--amber); }
 
 /* Placeholder until ticket 33's art pass — the mockup's own gradient, so the swap is one rule. */
 .rs-art {
@@ -223,14 +223,14 @@
        line under the price plate. */
     margin: 16px 0 6px;
     background:
-        repeating-linear-gradient(45deg, transparent 0 6px, #ffffff08 6px 12px),
-        linear-gradient(135deg, var(--el) 0%, #0c0e12 130%);
+        repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--text) 3%, transparent) 6px 12px),
+        linear-gradient(135deg, var(--el) 0%, var(--page) 130%);
     opacity: 0.85;
     flex: none;
 }
 
 .rs-cnm { font-size: 12.5px; font-weight: 700; margin-bottom: 4px; line-height: 1.1; }
-.rs-desc { font-size: 10px; color: #aeb9c6; line-height: 1.35; flex: 1; overflow: hidden; }
+.rs-desc { font-size: 10px; color: var(--text-dim); line-height: 1.35; flex: 1; overflow: hidden; }
 /*
  * `padding-right` is the ×N badge's room, and it is a fix for a collision the 2026-08-30 element
  * word created: `.rs-nbadge` hangs off the bottom-right corner, and the tag line is the last thing
@@ -243,7 +243,7 @@
  * plate, for the same reason — two things that both want the bottom of a tile.
  */
 .rs-tags {
-    font-size: 8.5px; color: #7d8ea1; letter-spacing: 0.5px;
+    font-size: 8.5px; color: var(--text-mute); letter-spacing: 0.5px;
     min-height: 11px;
     padding-right: 26px;
 }
@@ -268,11 +268,11 @@
  * one, so a card with no tag cannot end up with a dangling middot. (`:only-child` could not do this
  * job - a bare text node is not a child element, so it would have read "WATERoff-pool".)
  */
-.rs-tg::before { content: ' · '; color: #55606d; font-weight: 400; }
+.rs-tg::before { content: ' · '; color: var(--panel-3); font-weight: 400; }
 
 /* 182a: the element as an icon - same colour and glow as the word it replaced. */
 .rs-elw-icon { display: inline-flex; vertical-align: middle; line-height: 0; }
-.rs-tgt { display: inline-flex; vertical-align: middle; line-height: 0; color: #9fb0c4; margin-left: 4px; }
+.rs-tgt { display: inline-flex; vertical-align: middle; line-height: 0; color: var(--text-mute); margin-left: 4px; }
 
 .rs-elc {
     flex: none;
@@ -286,10 +286,10 @@
     position: absolute; bottom: -10px; right: -8px;
     /* Above the tag line it shares a corner with — see `.rs-tags`, which also reserves the room. */
     z-index: 1;
-    background: #ffd479; color: #0c0e12;
+    background: var(--amber); color: var(--page);
     font-weight: 800; font-size: 12px;
     border-radius: 11px; padding: 2px 8px;
-    border: 2px solid #0c0e12;
+    border: 2px solid var(--page);
 }
 
 .rs-elbar {
@@ -301,15 +301,15 @@
 .rs-price {
     position: absolute; bottom: 10px; left: 50%;
     transform: translateX(-50%);
-    background: #ffd479; color: #0c0e12;
+    background: var(--amber); color: var(--page);
     font-weight: 800; font-size: 12.5px;
     border-radius: 3px; padding: 2px 10px;
-    border: 2px solid #0c0e12;
+    border: 2px solid var(--page);
     white-space: nowrap;
 }
 /* A sold card STAYS on the shelf, greyed. Ticket 63: the gap it leaves is what tells you the
    stock was finite, and a vanished card reads as a bug. */
-.rs-price.sold { background: #3a4351; color: #8fa0b3; }
+.rs-price.sold { background: var(--panel-2); color: var(--text-mute); }
 .rs-card.sold { opacity: 0.55; }
 
 /* --- the 27px deck row ------------------------------------------------------------------------ */
@@ -321,10 +321,10 @@
        WorkshopNode's static rows, and 159b's reshuffle row — does not, and came out 8px wider
        and 15px taller than the buttons beside it. Stated here so the two forms cannot disagree. */
     box-sizing: border-box;
-    border: 1px solid #2b3441;
+    border: 1px solid var(--panel-2);
     border-left: 4px solid var(--el);
     border-radius: 3px;
-    background: #131820;
+    background: var(--panel);
     padding: 3px 7px;
     height: 27px;
     font-size: 11.5px;
@@ -336,7 +336,7 @@
 }
 .rs-row:disabled { opacity: 0.45; cursor: default; }
 .rs-row.static { cursor: default; }
-.rs-row.on { border-color: #3d9be0; box-shadow: 0 0 0 1px #3d9be0; }
+.rs-row.on { border-color: var(--el-water); box-shadow: 0 0 0 1px var(--el-water); }
 
 /* Ticket 165a: Row wrapper and card peek */
 .rs-wrap {
@@ -347,8 +347,8 @@
 }
 
 .rs-wrap:focus-visible .rs-row {
-    border-color: #3d9be0;
-    box-shadow: 0 0 0 1px #3d9be0;
+    border-color: var(--el-water);
+    box-shadow: 0 0 0 1px var(--el-water);
 }
 
 .card-peek {
@@ -364,7 +364,7 @@
     z-index: 10001;
     transform-origin: top left;
     pointer-events: none;
-    box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
+    box-shadow: 0 10px 34px color-mix(in srgb, var(--page) 80%, transparent), 0 0 0 1px var(--el);
     animation: card-peek-in 0.12s ease-out;
 }
 
@@ -376,14 +376,14 @@
 
 .rs-g {
     width: 17px; height: 17px; border-radius: 50%;
-    background: var(--el); color: #0c0e12;
+    background: var(--el); color: var(--page);
     font-weight: 700; font-size: 10.5px;
     display: flex; align-items: center; justify-content: center; flex: none;
 }
 .rs-rnm { flex: 1; white-space: nowrap; overflow: hidden; text-align: left; }
-.rs-x { color: #ffd479; font-weight: 700; font-size: 11px; flex: none; }
-.rs-t { font-size: 8.5px; color: #7d8ea1; flex: none; }
-.rs-sellp { color: #7fd6a4; font-weight: 700; font-size: 11px; flex: none; }
+.rs-x { color: var(--amber); font-weight: 700; font-size: 11px; flex: none; }
+.rs-t { font-size: 8.5px; color: var(--text-mute); flex: none; }
+.rs-sellp { color: var(--hp); font-weight: 700; font-size: 11px; flex: none; }
 
 /* --- the roster chip -------------------------------------------------------------------------- */
 
@@ -391,9 +391,9 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    border: 1px solid #2c3745;
+    border: 1px solid var(--panel-2);
     border-radius: 5px;
-    background: #11161e;
+    background: var(--page);
     padding: 6px 10px;
     color: inherit;
     font: inherit;
@@ -408,15 +408,15 @@
 .rs-dot {
     width: 34px; height: 34px;
     border-radius: 5px;
-    background: linear-gradient(135deg, var(--el), #0c0e12 160%);
+    background: linear-gradient(135deg, var(--el), var(--page) 160%);
     display: flex; align-items: center; justify-content: center;
-    font-weight: 800; color: #fff; font-size: 15px;
+    font-weight: 800; color: var(--text); font-size: 15px;
     flex: none;
 }
 .rs-mem-text { display: flex; flex-direction: column; min-width: 0; }
 .rs-mnm { font-size: 12.5px; font-weight: 700; }
-.rs-os { font-size: 9px; color: #8fa0b3; letter-spacing: 1px; }
-.rs-meta { font-size: 10px; color: #ffd479; margin-left: 6px; flex: none; }
+.rs-os { font-size: 9px; color: var(--text-mute); letter-spacing: 1px; }
+.rs-meta { font-size: 10px; color: var(--amber); margin-left: 6px; flex: none; }
 
 /* A column of rows or chips — the mockups' `.cards`. */
 .rs-cards { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
@@ -437,15 +437,15 @@
 /* ── TICKET 158-r1 — the OS grammar readout (currency · tempo · partners on the field) ────────── */
 .os-gram { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; }
 .og-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
-.og-label { font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: #6d7d8f; }
+.og-label { font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); }
 .og-tempo-label { margin-left: 4px; }
 .og-chip {
     display: inline-flex; align-items: center; padding: 0 6px; border-radius: 999px;
     border: 1px solid var(--og); color: var(--og); background: rgba(0, 0, 0, .35);
     font-size: 10px; font-weight: 800; letter-spacing: .04em; line-height: 1.6; cursor: help;
 }
-.og-tempo { font-size: 10.5px; color: #c6ccd4; letter-spacing: .06em; cursor: help; }
-.og-partners { margin: 2px 0 0; padding-left: 15px; font-size: 11px; line-height: 1.45; color: #9fb4c8; }
-.og-partners b { color: #d8e2ec; }
-.og-solo { margin: 2px 0 0; font-size: 11px; color: #6d7d8f; }
-.og-mark { font-size: 10px; color: #6fd3a0; letter-spacing: .04em; cursor: help; }
+.og-tempo { font-size: 10.5px; color: var(--text-dim); letter-spacing: .06em; cursor: help; }
+.og-partners { margin: 2px 0 0; padding-left: 15px; font-size: 11px; line-height: 1.45; color: var(--text-mute); }
+.og-partners b { color: var(--text-dim); }
+.og-solo { margin: 2px 0 0; font-size: 11px; color: var(--text-faint); }
+.og-mark { font-size: 10px; color: var(--hp); letter-spacing: .04em; cursor: help; }

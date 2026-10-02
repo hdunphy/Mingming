@@ -34,7 +34,7 @@
 
 .led-roster { display: flex; gap: 10px; padding: 10px 18px 0; flex: none; flex-wrap: wrap; }
 /* Every party chip is a landing site while a benched member is picked up. */
-.led-target { border-color: #3d7ab5; }
+.led-target { border-color: var(--text-faint); }
 .led-bench-hint { align-self: center; max-width: 42ch; }
 
 /* --- body --- */
@@ -57,14 +57,14 @@
     flex: 1;
     min-height: 0;
 }
-.led-empty { grid-column: 1 / -1; text-align: center; color: #5f6b7a; font-size: 12px; }
+.led-empty { grid-column: 1 / -1; text-align: center; color: var(--text-faint); font-size: 12px; }
 
 .led-pager {
     display: flex; justify-content: center; gap: 14px; align-items: center;
-    flex: none; color: #8fa0b3; font-size: 12px;
+    flex: none; color: var(--text-mute); font-size: 12px;
 }
 .led-page-btn {
-    border: 1px solid #2c3745; background: #12171f; color: #8fa0b3;
+    border: 1px solid var(--panel-2); background: var(--page); color: var(--text-mute);
     border-radius: 3px; padding: 2px 10px; cursor: pointer; font-size: 12px;
 }
 .led-page-btn:disabled { opacity: 0.35; cursor: default; }
@@ -90,4 +90,4 @@
 /* TICKET 171a: an open party slot, and the note CONFIRM shows while a bench pick is pending. */
 .led-slot-open { border-style: dashed; opacity: 0.7; justify-content: center; }
 .led-slot-open.led-target { opacity: 1; }
-.led-confirm-warn { color: #e0b050; font-size: 12px; font-style: normal; padding: 4px 12px; }
+.led-confirm-warn { color: var(--amber); font-size: 12px; font-style: normal; padding: 4px 12px; }

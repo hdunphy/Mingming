@@ -10,7 +10,7 @@ export default function BuildLabel(): ReactNode {
     return (
         <div
             data-testid="build-label"
-            style={{ position: 'fixed', right: '10px', bottom: '8px', color: '#333', fontSize: '0.65rem' }}
+            style={{ position: 'fixed', right: '10px', bottom: '8px', color: 'var(--panel-2)', fontSize: '0.65rem' }}
         >
             {buildText(BUILD_INFO)}
         </div>

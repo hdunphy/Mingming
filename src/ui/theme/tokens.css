@@ -73,6 +73,8 @@
     --panel-edge: #e8eef5;
     /* Status chips, draw-pile backs, empty slots. */
     --panel-2: #2b3446;
+    /* A step lighter than the panel: borders and hover fills on screens that are not plaques. */
+    --panel-3: #3a455a;
     /* The empty part of an HP bar. */
     --hp-track: #0f1420;
     /* Card frames (non-STAB), and text that sits on yellow. */
@@ -82,7 +84,9 @@
      * TEXT
      * ---------------------------------------------------------------------------------- */
     --text: #ffffff;
+    --text-dim: #c9d3e0;
     --text-mute: #9aa6b8;
+    --text-faint: #6b778c;
 
     /* -------------------------------------------------------------------------------------
      * SELECTION AND ENERGY — the same yellow on purpose: energy is the thing you select with.
@@ -91,6 +95,8 @@
      * ---------------------------------------------------------------------------------- */
     --select: #ffd500;
     --energy: #ffd500;
+    /* Amber, the currency (and prices and warnings). Deliberately not the selection yellow. */
+    --amber: #f0a030;
 
     /* -------------------------------------------------------------------------------------
      * ELEMENTS — the four. Mirrored in `runShell.ts` (`ELEMENT_COLOR`).

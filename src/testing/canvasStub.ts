@@ -45,8 +45,8 @@ function makeContext(): CanvasRenderingContext2D {
     const ctx: Record<string, unknown> = {
         globalAlpha: 1,
         globalCompositeOperation: 'source-over',
-        fillStyle: '#000',
-        strokeStyle: '#000',
+        fillStyle: 'black',
+        strokeStyle: 'black',
         lineWidth: 1,
     };
     for (const name of METHODS) ctx[name] = () => undefined;

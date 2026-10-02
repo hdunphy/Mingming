@@ -49,7 +49,7 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
         borderRadius: '6px',
         border: `1px solid ${disabled ? 'rgba(255,255,255,0.15)' : color}`,
         background: disabled ? 'rgba(20,20,30,0.85)' : 'rgba(10,10,18,0.92)',
-        color: disabled ? '#555' : color,
+        color: disabled ? 'var(--panel-3)' : color,
         fontSize: '1rem',
         lineHeight: 1,
         fontWeight: 'bold',
@@ -73,7 +73,7 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                 position: 'relative',
                 padding: '12px',
                 background: 'rgba(255,255,255,0.03)',
-                border: `1px solid ${getElementColor(data.element)}44`,
+                border: `1px solid color-mix(in srgb, ${getElementColor(data.element)} 27%, transparent)`,
                 borderRadius: '8px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
@@ -98,11 +98,11 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                 </ElementMatchupHover>
             </div>
 
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f2f5fa', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', marginBottom: '4px' }}>
                 {data.name} {count && count > 1 ? `x${count}` : ''}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px', color: '#aab4c4' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px', color: 'var(--text-mute)' }}>
                 <span>{getCategoryIcon(data.category)}</span>
                 <span>{data.category.toUpperCase()}</span>
                 {/* ×1.5 STAB hint: initial dots for party members whose element matches this card */}
@@ -161,7 +161,7 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                     position: 'absolute',
                     top: '-10px',
                     right: '-10px',
-                    background: '#7c3aed',
+                    background: 'var(--select)',
                     color: 'white',
                     padding: '2px 8px',
                     borderRadius: '10px',

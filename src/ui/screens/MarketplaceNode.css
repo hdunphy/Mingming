@@ -29,19 +29,19 @@
 .mk-face {
     width: 38px; height: 38px;
     border-radius: 6px;
-    background: linear-gradient(135deg, #8a6c2f, #0c0e12 160%);
+    background: linear-gradient(135deg, var(--amber), var(--page) 160%);
     display: flex; align-items: center; justify-content: center;
     font-size: 19px;
     flex: none;
 }
 .mk-merchant-text { display: flex; flex-direction: column; }
 .mk-merchant-nm { font-size: 12.5px; font-weight: 700; }
-.mk-say { font-size: 11px; color: #c9b27a; font-style: italic; }
+.mk-say { font-size: 11px; color: var(--amber); font-style: italic; }
 
 /* --- the shelves --- */
 
 .mk-h {
-    font-size: 10.5px; letter-spacing: 2px; color: #9fb4c8;
+    font-size: 10.5px; letter-spacing: 2px; color: var(--text-mute);
     margin: 8px 0 0; flex: none; font-weight: 600;
 }
 
@@ -114,24 +114,24 @@
     row-gap: 4px;
     text-align: left;
     padding: 10px 12px;
-    border: 1px solid #3a3050;
+    border: 1px solid var(--panel-2);
     /* The rail, not a frame: a slot has an edge it plugs into, a card has a border all round. */
-    border-left: 4px solid #c9a2f0;
+    border-left: 4px solid var(--text-dim);
     border-radius: 4px;
-    background: linear-gradient(90deg, #1b1626 0%, #12141c 60%);
+    background: linear-gradient(90deg, var(--panel) 0%, var(--page) 60%);
     color: inherit;
     font: inherit;
     cursor: pointer;
 }
-.mk-macro:hover:not(:disabled) { border-color: #c9a2f0; background: linear-gradient(90deg, #241d33 0%, #141722 60%); }
+.mk-macro:hover:not(:disabled) { border-color: var(--text-dim); background: linear-gradient(90deg, var(--panel) 0%, var(--panel) 60%); }
 .mk-macro:disabled { cursor: default; opacity: 0.5; }
 /*
  * A SOLD slot stays on the shelf, greyed — `.rs-card.sold`'s argument, which ticket 63 made about
  * cards and Henry's 2026-09-04 ruling extends to macros: the gap it leaves is what tells you the
  * stock was finite, and a vanished row reads as a bug.
  */
-.mk-macro.sold { opacity: 0.55; border-left-color: #5b4f72; }
-.mk-macro.rare { box-shadow: 0 0 0 1px #c9a2f0, 0 3px 12px #0008; }
+.mk-macro.sold { opacity: 0.55; border-left-color: var(--select); }
+.mk-macro.rare { box-shadow: 0 0 0 1px var(--text-dim), 0 3px 12px color-mix(in srgb, var(--page) 53%, transparent); }
 
 .mk-macro-mark {
     grid-area: mark;
@@ -139,13 +139,13 @@
        is set by however long the description runs. */
     align-self: start;
     font-size: 20px; line-height: 1.1;
-    color: #c9a2f0;
+    color: var(--text-dim);
     text-shadow: 0 0 8px currentColor;
     text-align: center;
 }
 
 .mk-macro-nm { grid-area: name; font-size: 12.5px; font-weight: 700; min-width: 0; }
-.mk-macro-desc { grid-area: desc; font-size: 10.5px; color: #aeb9c6; line-height: 1.4; }
+.mk-macro-desc { grid-area: desc; font-size: 10.5px; color: var(--text-dim); line-height: 1.4; }
 
 .mk-macro-tags {
     grid-area: tags;
@@ -154,7 +154,7 @@
 }
 
 /* The rule, not decoration: these two facts are what separate a macro from every card on the shelf. */
-.mk-macro-use { color: #8f7fb0; }
+.mk-macro-use { color: var(--select); }
 
 /*
  * The two OPTIONAL chips wear a border, and that is legibility rather than ornament: unpilled, they
@@ -168,9 +168,9 @@
     border-radius: 2px;
     line-height: 1.4;
 }
-.mk-macro-rare { color: #ffd479; }
+.mk-macro-rare { color: var(--amber); }
 /* What the 2026-09-04 playtest was missing: proof that the last purchase landed. */
-.mk-macro-held { color: #7fe3d0; }
+.mk-macro-held { color: var(--panel-edge); }
 
 /*
  * The price plate does NOT ride over the face here. On a card tile it does, because the tile is a
@@ -181,12 +181,12 @@
     grid-area: price;
     justify-self: end;
     align-self: start;
-    background: #ffd479; color: #0c0e12;
+    background: var(--amber); color: var(--page);
     font-weight: 800; font-size: 11.5px;
     border-radius: 3px; padding: 3px 9px;
     white-space: nowrap;
 }
-.mk-macro:disabled .mk-macro-price { background: #3a4351; color: #8fa0b3; }
+.mk-macro:disabled .mk-macro-price { background: var(--panel-2); color: var(--text-mute); }
 
 /* --- your rack, drawn on the shelf you buy from --- */
 
@@ -200,14 +200,14 @@
     display: flex; align-items: center; gap: 6px;
     min-width: 110px;
     padding: 4px 8px;
-    border: 1px solid #2b3441;
+    border: 1px solid var(--panel-2);
     border-radius: 3px;
     font-size: 10.5px;
-    background: #12141c;
+    background: var(--page);
 }
-.mk-rack-slot.full { border-color: #c9a2f0; color: #e6e9ef; }
-.mk-rack-slot.empty { border-style: dashed; color: #5f6b7a; font-style: italic; }
-.mk-rack-i { font-size: 9px; font-weight: 800; color: #7d8ea1; }
+.mk-rack-slot.full { border-color: var(--text-dim); color: var(--text); }
+.mk-rack-slot.empty { border-style: dashed; color: var(--text-faint); font-style: italic; }
+.mk-rack-i { font-size: 9px; font-weight: 800; color: var(--text-mute); }
 .mk-rack-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /*
@@ -221,11 +221,11 @@
  */
 .mk-tags { margin-bottom: 32px; }
 
-.mk-empty { grid-column: 1 / -1; text-align: center; color: #5f6b7a; font-size: 12px; }
+.mk-empty { grid-column: 1 / -1; text-align: center; color: var(--text-faint); font-size: 12px; }
 
 /* --- the sell column --- */
 
-.mk-sub { color: #5f6b7a; }
+.mk-sub { color: var(--text-faint); }
 .mk-rows { display: flex; flex-direction: column; gap: 3px; overflow: auto; flex: 1; }
 .mk-foot { margin-top: 8px; flex: none; }
 .mk-pill { margin-top: 6px; text-align: center; }
