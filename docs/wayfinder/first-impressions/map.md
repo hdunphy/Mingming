@@ -14,7 +14,7 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 
 | # | Ticket | State (2026-10-02) | Blocked by |
 |---|---|---|---|
-| 185 | [Strength nerf and reward weighting](tickets/185-strength-nerf-and-reward-weighting.md): Forage stops feeding fenrir_v1, TREACHERY needs real HP loss, Sun Devourer halved, Core Overclock to flat power, rewards remember and weight, the tier-unlocked line | Ruled 2026-10-02; 185a–c, 185e buildable | 185d: decision 1 · 185f: 182 |
+| 185 | [Strength nerf and reward weighting](tickets/185-strength-nerf-and-reward-weighting.md): Forage stops feeding fenrir_v1, TREACHERY needs real HP loss, Sun Devourer halved, Core Overclock to flat power, rewards remember and weight, the tier-unlocked line | Ruled 2026-10-02, all decisions answered; 185a–e buildable | 185f: 182 |
 | 184 | [Playtest polish 3](tickets/184-playtest-polish-3.md): draw-pile viewer, Burn overflow text, counters, per-OS patch text | **Done** (184a–e, `53bcedc..85d5183`) | — |
 | 182 | [Text cut, hide-when-empty, intro run, two switches](tickets/182-text-cut-and-intro-run.md) | Ruled, not started | — |
 | 183 | [Art direction and UI kit](tickets/183-art-direction-and-ui-kit.md): direction B "Slant", rows 183a–h | Ruled (D1–D7), not started | 183f and 183h after 182 |
@@ -27,7 +27,7 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 
 ## Decisions so far
 
-- **RULED 2026-10-02 — [185 Strength nerf and reward weighting](tickets/185-strength-nerf-and-reward-weighting.md)** (from the Rootfall/fenrir_v1 playtest): Forage is not an attack for UNBOUND_KERNEL; TREACHERY fires only "if an ally gets damaged by an enemy"; Sun Devourer halved now; Core Overclock nerfed to flat power (rate open); rewards stop repeating the last two picks, weight toward the party's currencies, and boost payoffs when the deck has none for a currency; Bark Shield goes on the HP bar (in 183). Standing: **the 1v1 grid no longer gates card changes, except at the start of a run.**
+- **RULED 2026-10-02 — [185 Strength nerf and reward weighting](tickets/185-strength-nerf-and-reward-weighting.md)** (from the Rootfall/fenrir_v1 playtest): Forage is not an attack for UNBOUND_KERNEL; TREACHERY fires only "if an ally gets damaged by an enemy"; Sun Devourer halved now; Core Overclock nerfed to flat power (+1 per 2 Strength, +1 per Strength upgraded); rewards stop repeating the last two picks, weight toward the party's currencies, and boost payoffs when the deck has none for a currency (×2 synergy, ×3 missing payoff, to retune after play); Bark Shield goes on the HP bar (in 183). Standing: **the 1v1 grid no longer gates card changes, except at the start of a run.**
 - **DONE 2026-10-02 — [184 Playtest polish 3](tickets/184-playtest-polish-3.md):** the draw pile opens like the discard, Burn overflow reads "OVERFLOW", firmware/Driver/daemon counters, and per-OS patch text in the game after Henry's two sets of patch rulings (184e: SPLITTER no longer pays the host twice). Report: the Claude project doc "ticket-184-outcome".
 
 - **Direction ruled (2026-10-01/02):** moving away from the futuristic robot theme toward the nostalgic Pokémon feel, without crossing the "clone" line. UI: direction **B "Slant"** (183), Sword/Shield-style slanted navy panels on the existing battle geometry. The battle screen keeps its layout; it gets a colour-and-shape facelift.

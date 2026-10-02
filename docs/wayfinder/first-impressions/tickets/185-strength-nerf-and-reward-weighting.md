@@ -1,6 +1,6 @@
 # Ticket 185: The Strength engine nerf, and rewards that know your deck
 
-**Type:** balance (card and firmware data), reward economy, one text fix. **Status:** RULED (Henry, 2026-10-02), rows 185a–185f defined. **185a, 185b, 185c and 185e are buildable now. 185d waits on decision 1, and 185e's multipliers wait on decision 2.** 185f touches `RunSummary.tsx`, so it waits until ticket 182 has finished with that file.
+**Type:** balance (card and firmware data), reward economy, one text fix. **Status:** RULED (Henry, 2026-10-02), and all three decisions were answered the same day (see the bottom). **185a–185e are buildable now.** 185f touches `RunSummary.tsx`, so it waits until ticket 182 has finished with that file.
 
 **Where this comes from.** Henry's Rootfall run on 2026-10-02 (`playtest-results/2026-10-02/rootfall-fenrir_v1/`), started with fenrir_v1 and later joined by skoll_v1 and huldra_v2, all three with AMPLIFIER. The run won the gym at tier 0 in 13 fights. Every fight after the first ended in 1–3 turns, and each of the gym's three fights took 2. The review is the Claude project doc "playtest-2026-10-02-rootfall-fenrir-v1-review". In short, four things stacked:
 
@@ -29,8 +29,8 @@ Answer 6 (Bark Shield drawn as a brown band over the HP bar) went into ticket 18
 | 185a | Only Attack cards feed fenrir_v1's UNBOUND_KERNEL (Forage no longer does) | — |
 | 185b | skoll_v1's TREACHERY fires only when an ally actually loses HP to an enemy | — |
 | 185c | Sun Devourer halved: 30 → 15 power a stack, the `+` version 40 → 20 | — |
-| 185d | Core Overclock becomes flat power per Strength, not a percentage per stack | Decision 1 |
-| 185e | Reward offers: no repeats from the last two picks, synergy weighting, and the missing-payoff boost | Decision 2 (the multipliers only) |
+| 185d | Core Overclock becomes flat power per Strength: +1 power per 2 Strength, +1 per Strength for the `+` version | — |
+| 185e | Reward offers: no repeats from the last two picks, synergy weighting (×2), and the missing-payoff boost (×3) | — |
 | 185f | The run summary says the tier you UNLOCKED, not the one you cleared | 182 finished with `RunSummary.tsx` |
 
 ---
@@ -67,8 +67,8 @@ Answer 6 (Bark Shield drawn as a brown band over the HP bar) went into ticket 18
 - At the three per-hit sites, record how much HP the target actually lost to that action (HP before the executor minus HP after, so Bark Shield is already accounted for), and put it on the hit context.
 - Add a hook condition that passes only when that number is above 0. Name it something like `hpLost: true`, and document it in `HookTypes.ts` beside `isAttack`.
 - Add the condition to `skoll_v1_hook`. Keep `target: ALLY`, which already includes Sköll herself.
-- **Burn and Poison ticks do not count** (proposed, see decision 3). They happen at the end of a turn, not as an enemy action, and today they do not trigger it either. Keep it that way.
-- **Text:** "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength." Henry reviews the wording (decision 3). Change it in `collection.py` and `hooks.json`, and check that the patch text table (`patchText.ts`) still reads right for skoll_v1.
+- **Burn and Poison ticks do not count** (ruled, decision 3). They happen at the end of a turn, not as an enemy action, and today they do not trigger it either. Keep it that way.
+- **Text (ruled, decision 3):** "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength." Change it in `collection.py` and `hooks.json`, and check that the patch text table (`patchText.ts`) still reads right for skoll_v1.
 
 **Tests.** No Strength when a hit is fully absorbed by Bark Shield. +1 when a hit is partly absorbed. No Strength from an enemy card that only applies a status. +1 when an enemy hits Sköll herself. +2 with AMPLIFIER. A Burn tick on an ally gives nothing.
 
@@ -103,15 +103,15 @@ Answer 6 (Bark Shield drawn as a brown band over the HP bar) went into ticket 18
 
 (Values are raw power, the number the damage formula starts from. Ratios between columns hold through the formula.)
 
-So "1 per 3" is a nerf of roughly 85% at 21 Strength, and it leaves a 2-energy Rare worth about +15% on each hit. Decision 1 picks the rate.
+So "1 per 3" is a nerf of roughly 85% at 21 Strength, and it leaves a 2-energy Rare worth about +15% on each hit. **Decision 1 (ruled): +1 power per 2 Strength for `core_overclock`, +1 power per Strength for `core_overclock+`.**
 
-**Build (once decision 1 is answered).**
+**Build.**
 
-- Move both hooks from `onDamageCalculated` to `onPowerCalculated` (ticket 150b's power-side twin, which lands where Strength itself lands). The bonus is `floor(Strength ÷ N)` power, with N per version. It is still uncapped, and it applies on every hit of a multi-hit card, the same way Strength does.
-- Text, e.g. "Daemon (exhaust): +1 power for every 2 Strength you hold." in `collection.py`, the upgrades source and `hooks.json`.
+- Move both hooks from `onDamageCalculated` to `onPowerCalculated` (ticket 150b's power-side twin, which lands where Strength itself lands). The bonus is `floor(Strength ÷ 2)` power for `core_overclock` and `Strength` power for `core_overclock+`. It is still uncapped, and it applies on every hit of a multi-hit card, the same way Strength does.
+- Text: "Daemon (exhaust): +1 power for every 2 Strength you hold." and, for `+`, "Daemon (exhaust): +1 power for every Strength you hold." Change both in `collection.py`, the upgrades source and `hooks.json`.
 - Update the comment in `HookFactory.ts` (`STRENGTH_STACKS`) that argues for a cap on the old multiplier, because nothing will read that path any more.
 
-**Tests.** The bonus at 0, 2, 3, 6 and 21 Strength for both versions. It applies per hit on Pack Tactics+. It no longer changes with Sharp, Dazed or STAB in any way beyond what plain power already does.
+**Tests.** The bonus at 0, 1, 2, 3, 6 and 21 Strength for both versions (base: 0, 0, 1, 1, 3, 10; `+`: 0, 1, 2, 3, 6, 21). It applies per hit on Pack Tactics+. It no longer changes with Sharp, Dazed or STAB in any way beyond what plain power already does.
 
 ---
 
@@ -130,7 +130,7 @@ So "1 per 3" is a nerf of roughly 85% at 21 Strength, and it leaves a 2-energy R
 3. **A — no repeats from the last two picks.** The run remembers the cards shown in its last two reward picks (fight and event card picks), saved with the run. Those cards are left out of the next pick. If the pool cannot fill three distinct options without them, let them back in, oldest first. Distinct-within-one-pick stays as it is.
 4. **C — synergy.** A card whose `cur` matches a currency of any party member's firmware gets the synergy multiplier.
 5. **The missing-payoff boost.** For each currency the party's firmware use: if the run's cards (the deck plus any cards held for benched members) include **no** payoff of that currency, then the payoffs of that currency get the payoff multiplier instead of the synergy one. The boost turns off as soon as one such payoff is owned.
-6. **Multipliers (decision 2):** proposed synergy **×2**, missing payoff **×3**. Both are named constants beside `RARITY_WEIGHTS`.
+6. **Multipliers (decision 2, ruled "lets start with that"):** synergy **×2**, missing payoff **×3**. Both are named constants beside `RARITY_WEIGHTS`, so they can be retuned after play.
 7. **Seeds move once.** The draw sequence changes, so every walker and reward baseline moves. The commit says so. This is a game change, not an instrument change.
 
 **Tests.** All multipliers at 1: each card's odds equal today's, over the exact weights rather than a sample. The last two picks' cards never reappear, unless the pool is too small. A fenrir_v1 deck with no Strength payoff sees Strength payoffs more often than baseline over 1,000 seeded rolls, and at baseline once Sun Devourer is in the deck. The save round-trips the recent-offers list. Event picks go through the same function.
@@ -147,8 +147,14 @@ So "1 per 3" is a nerf of roughly 85% at 21 Strength, and it leaves a 2-energy R
 
 ---
 
-## Decisions
+## Decisions (all answered by Henry, 2026-10-02)
 
-1. **Core Overclock's rate** (185d). Option 1, Henry's suggestion: +1 power per 3 Strength, and per 2 for the `+` version. That is about +15% per hit at 21 Strength and likely too weak to pick. Option 2: per 2 Strength, and per 1 for the `+` version, which is a real nerf (336 → 67 at 21 Strength on Fury Strike) but still a card. **Recommended: option 2.**
-2. **Reward multipliers** (185e): synergy ×2 and missing payoff ×3, or other numbers?
-3. **Sköll's text and ticks** (185b): "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength." Burn and Poison ticks do not count. OK?
+> *"1. Agree, go with 1 per 2 and 1 per 1 upgraded*
+> *2. Sure lets start with that*
+> *3. Yes agree"*
+
+1. **Core Overclock's rate (185d):** +1 power per 2 Strength; `core_overclock+` +1 power per Strength. (Option 2. Henry's first suggestion, 1 per 3, measured out at about +15% per hit at 21 Strength.)
+2. **Reward multipliers (185e):** synergy ×2, missing payoff ×3, as a starting point to retune after play.
+3. **Sköll's text and ticks (185b):** "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength." Burn and Poison ticks do not count.
+
+**Next step:** an agent builds 185a–185e in order, one commit per row, and reports the fight-one reads for the fenrir_v1 and skoll_v1 starters. 185f follows once 182 is done with `RunSummary.tsx`.
