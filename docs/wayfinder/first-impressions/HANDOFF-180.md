@@ -1,6 +1,6 @@
 # HANDOFF-180 — the agent playtester (ticket 180)
 
-*Last updated: 2026-10-02, after 180f. Owned by the playtester agent; the screens agent never edits it, and this file never edits `HANDOFF.md` or `map.md`.*
+*Last updated: 2026-10-02, after 180f and the tonight checklist. Owned by the playtester agent; the screens agent never edits it, and this file never edits `HANDOFF.md` or `map.md`.*
 
 ## Where things stand
 
@@ -10,6 +10,7 @@
 
 ## How to use it
 
+- **First real night:** follow [docs/playtest/run-tonight.md](../../playtest/run-tonight.md). It starts with a one-session trial and says what to look at before the full night.
 - **Play by hand:** `npm run playtest -- new --session s1 --seed ps1 --starter <firmware> --gym 0 --mode run`, then `state`, `move <n> --why "..."`, `moves <n,n> --why "..."`, `card <name>`, `note "..."`, `replay --to <n>`. Modes: `run` (the game's AI fights), `turn` (the agent plays whole turns), `card` (one card per call, with `--expect`).
 - **Results folder:** a session lives under `results/playtest/` (not committed). Any other folder is `--results <folder>`. It is a flag, not an environment variable, because vite-node empties `process.env` here.
 - **A night:** `npm run playtest:night` (10 sessions, tonight's date, model `haiku`, 25 minutes each). `-- --dry-run` prints the plan and each driver command and starts nothing. `-- --runs 2 --model sonnet --date 2026-10-02` are the other flags.
@@ -18,7 +19,7 @@
 
 ## Not yet verified
 
-- **The driver command** (A1): `claude -p --output-format json --model <m> --max-turns 600 --allowedTools 'Bash(npm run playtest -- *)'`, the prompt on stdin. The night script is tested end to end with a stand-in `claude`, but those flags have never run against the real thing. The pilot is where they are first used.
+- **The driver command** (A1): `claude -p --output-format json --model <m> --max-turns 600 --max-budget-usd 3 --tools Bash --permission-mode dontAsk --allowedTools 'Bash(npm run playtest -- *)'`, the prompt on stdin. The night script is tested end to end with a stand-in `claude`, but those flags have never run against the real thing. The pilot is where they are first used.
 - **Windows:** the script quotes arguments for `.cmd` shims and kills the whole process tree on timeout, but it was built and tested on Linux.
 
 ## What Henry owes
@@ -26,18 +27,12 @@
 1. **The go for 180g,** and which starter the pilot uses (gym 0, tier 0). It costs real tokens: four runs (`run` and `card` mode, small and stronger model).
 2. **The A1 flags** stand or change once the pilot has run them.
 3. **The nightly default:** the small model (`haiku`) at ten runs a night, and when to start scheduling it. Nothing is scheduled.
-4. **Whether to open an engine ticket** for two quirks this tool works around: random UUIDs in status instances and generated cards (a battle is not repeatable without the tool's renaming), and the placeholder firmware id on wild enemies.
+4. **Rulings on ticket 186** (the five items the tool found in the game). 186a, the random ids, is the one that touches the engine.
 5. **Whether the report's definitions are what he wants:** `hits` counts hits on enemies only, and `status` and `self` predictions are compared whole (a status the agent forgot to list counts as a miss).
 
-## Things that look like game bugs (not fixed; ticket 180 rule 3)
+## What the tool found in the game
 
-- Engine and AI throws mid-fight on some seeds (`ps2`, `ps12`): a status tick hands a stub card to a Driver's hook condition. The tool ends the run as `abandoned` and keeps the error.
-- Random UUIDs in `StatusBehaviors.ts` (about line 108) and `effectHandlers.ts` (about line 751).
-- Wild enemies carry the placeholder firmware id `run-gate:no-firmware`.
-- The first map screen shows three identical "Wild, Nature, biome 1, layer 1" labels.
-- `legalPlays` lists plays the reducer can refuse (177a documents it); the tool logs each as `move-refused`.
-- Fenrir's firmware adds Strengthened beyond the card text.
-- The damage ledger credits some damage to a `SYSTEM` source.
+Written up as [ticket 186](tickets/186-playtester-findings.md): random ids in the battle engine (a battle is not repeatable without the tool's renaming), map nodes with identical names, card text that leaves out what a firmware adds, and damage credited to `SYSTEM`. A fight crash seen once on seed `ps2` could not be reproduced again, and the nightly run will catch it if it comes back. Two things first listed here (the wild-enemy firmware id, and plays the reducer can refuse) turned out to be by design; 186 says so.
 
 ## Notes for whoever touches this next
 
