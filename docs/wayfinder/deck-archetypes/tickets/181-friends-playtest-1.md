@@ -1,6 +1,6 @@
 # Ticket 181: Playtest round 2 (friends and family) — prep and release (SOP)
 
-**Type:** release procedure, plus three small build changes. **Status:** OPEN. **Owner:** Henry. The agent builds only the code rows (181a, 181b, 181c), once Henry rules on the decisions below.
+**Type:** release procedure, plus three small build changes. **Status:** OPEN; 179, 181a and 181b are built (181b was amended, see its row), 181c waits on the form. **Owner:** Henry. The agent builds only the code rows (181a, 181b, 181c), once Henry rules on the decisions below.
 
 **Round 1** was Henry's brother. **Round 2** is this one.
 
@@ -57,17 +57,17 @@ Each decision has a recommended default. Mark each one **yes** or write your cho
 | # | Decision | Recommended default | Your call |
 |---|---|---|---|
 | D1 | **Privacy of the game link.** Pages can't be password-protected. Options: (a) Pages, and simply don't post the link anywhere public ("unlisted", not private); (b) an itch.io page set to *restricted* with a password, which hosts browser games free and is private; (c) a private repo (needs a paid GitHub plan, and the Pages site is still public anyway). | **(a) Pages, unlisted**, as you asked, plus a "please don't share the link" line in the invite. Move to (b) if you ever need real privacy. | |
-| D2 | **What triggers a deploy.** Today every push to `main` redeploys. | **181b:** deploy only from a branch named `playtest`. `main` keeps running CI but no longer publishes, so testers only see a new build when you push to `playtest` on purpose. | |
+| D2 | **What triggers a deploy.** Every push to `main` redeploys. | **Keep it** (Henry, 2026-10-01: deploy from `main`, no separate release branch). So merging to `main` *is* releasing. Merge the round's build when you're ready, and **during the test merge nothing to `main` except a blocker hotfix**; keep other work on branches until the round closes. | |
 | D3 | **What's in the build.** | Today's `playtest-polish` (171–174 built) **plus ticket 179** (one card pick per fight). Not 175 (localization) or 176 (map and towns). | |
 | D4 | **First-run experience.** The Tier 0 cut list (the Claude project doc "Tier 0 cut list + UI direction") has three layers: (1) **cut the text**: one sentence of copy per screen, tips as short toasts instead of "Got it / Skip tips" panels; (2) **hide systems until first use** (macros, firmware, patches, tiers); (3) **the new visual style**. | **Do layer 1 before release (ticket 182, to be written from the cut list).** It's mostly copy, it's what makes the game read as "AI slop", and 9 of 13 testers are new to the genre. Layer 2 only if 182 comes in quick. **Layer 3 waits for the UI rework.** | |
 | D5 | **Testers.** | **Henry's list of about 13** (friends, cousins, Dad). A **personal message to each** (§4.1, two versions). **Keep the names out of this repo:** it's public, so the list lives in your own notes, and logs and reports use first initials. Expect about half to play; that's normal for a favour. | |
 | D6 | **Test window and the ask.** | **2 weeks.** The ask is **one run (about 30–45 minutes)**; a second is welcome. The 3–4 deckbuilder players are asked for **two or more**, because their balance feedback is the part the others can't give. | |
-| D7 | **Builds during the test.** | **At most one hotfix**, for blockers only (crashes, soft-locks, lost saves), and **no balance changes mid-test**, so everyone's feedback is about the same game. | |
+| D7 | **Builds during the test.** | **At most one hotfix**, for blockers only (crashes, soft-locks, lost saves), and **no balance changes mid-test**, so everyone's feedback is about the same game. Because `main` publishes (D2), the hotfix is the only thing merged to `main` while the test runs. | |
 | D8 | **Where feedback goes.** | **The form is part of the game (181c):** when a run ends, the run summary shows **"Tell Henry how it went"**, which opens the short Google Form with the build, starter and how far they got already filled in. Settings has the same button. **Discord** is for bugs, chat and anything longer. One form per run is fine now, because it's one click from the game, not something to remember. | |
 | D9 | **Run logs.** | **Optional.** "If you can, export the run log after a run and drop it in `#run-logs`; it helps a lot." Never required. | |
 | D10 | **Confidentiality.** | A plain request ("please don't share the link or post screenshots publicly yet"), not an NDA. | |
 | D11 | **Supported setup.** | Desktop or laptop browser (Chrome, Edge or Firefox), window at least 1280×800. **Phones and tablets not supported**; say so up front. | |
-| D12 | **Build label.** | **181a:** the main menu and Settings show `PLAYTEST 2 · <commit>` (the short git hash at build time), so every bug report names the build. | |
+| D12 | **Build label.** | **181a:** the main menu and Settings show `PLAYTEST 2 · <commit>` (the short git hash at build time), so every bug report names the build. The label is a literal in `deploy.yml`, so **nothing has to be set in GitHub**; bump it in the commit that ships a hotfix. | |
 | D13 | **What goes in the Discord.** | Keep it short, since most testers won't read much: **welcome + how to start** (§4.2), a **3-line vision** (§4.7), **gameplay basics** (§4.3), and a **5-line roadmap** without dates (§4.8). **Bestiary / Pokédex: not this round.** The art is placeholder and the theme is moving, so it would need rewriting; point to the in-game **Codex** instead. | |
 | D14 | **Video devlog.** | **Not part of this round.** As you said: after the UI rework, as the first piece of public marketing (Steam wishlists). Friends and family come in through your personal message, not a video. | |
 | D15 | **Theme words this round.** | The game still says firmware, OS and kernel. **Don't rename anything for this round.** But the vision post (§4.7) sells the new direction ("Slay the Spire dressed as Pokémon", Norse monsters) and not robots, so testers aren't told one thing now and another later. | |
@@ -81,7 +81,7 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
 | Row | What |
 |---|---|
 | 181a | A build label from the commit |
-| 181b | Publish to Pages only from the `playtest` branch |
+| 181b | The build label comes from the deploy workflow (amended: deploy stays on `main`) |
 | 181c | "Tell Henry how it went": the feedback form, one click from the end of a run |
 
 ### 181a: A build label from the commit
@@ -97,12 +97,15 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
    - an exported log carries `build`
    - with no env var the label reads `dev`
 
-### 181b: Publish to Pages only from the `playtest` branch
+### 181b: The build label comes from the deploy workflow (amended: deploy stays on `main`)
 
-1. `.github/workflows/deploy.yml`: change the trigger from `branches: [ main ]` to `branches: [ playtest ]`, and set `VITE_BUILD_LABEL` for the build step from a repository variable (`vars.PLAYTEST_LABEL`, default `PLAYTEST`).
-2. `.github/workflows/ci.yml`: it currently skips `main` (`branches-ignore: [ main ]`) because deploy used to call it. Remove `main` from `branches-ignore`, so `main` still gets the full gate on every push, and add `playtest` there instead (deploy calls CI for it).
-3. Update the comments in both files to say why: *"Ticket 181: testers only get a new build when Henry pushes to `playtest` on purpose."*
-4. **No test is possible for workflow files.** Instead, the commit message lists the exact `on:` blocks before and after.
+**Built twice.** 181b first moved the deploy to a `playtest` branch (commit 491d7cb). On 2026-10-01 Henry switched it back to `main` and asked for the label to set itself with no GitHub setting (commit a009ceb). That is the version that stands:
+
+1. `.github/workflows/deploy.yml`: the trigger is `branches: [ main ]`, as it always was. The build step sets `VITE_BUILD_LABEL: ${{ vars.PLAYTEST_LABEL || 'PLAYTEST 2' }}`. The literal `PLAYTEST 2` is the label; to change it (a hotfix, round 3), edit it in the commit that ships the build. A repository variable `PLAYTEST_LABEL` would override it, but nothing needs to be set.
+2. `.github/workflows/ci.yml`: unchanged from before 181 (`branches-ignore: [ main ]`, because deploy calls it for `main`).
+3. **No test is possible for workflow files.** Both files parse as YAML and the `on:` blocks are the pre-181 ones.
+
+**Cost of staying on `main`:** every merge to `main` changes what testers play. That is why D2 and D7 say to merge nothing else to `main` while the test runs.
 
 ### 181c: "Tell Henry how it went", one click from the end of a run
 
@@ -115,7 +118,7 @@ Usual rules: test first, see it fail on the parent, `npm run gate` green, commit
    It returns `null` when the env var isn't set, and **the buttons then don't render** (local and dev builds show nothing).
 3. **Run summary** (`RunSummary.tsx`): a button **"Tell Henry how it went"** next to the existing leave button. It opens the URL in a new tab (`window.open(url, '_blank', 'noopener')`). It's the most prominent thing after the result, but it never blocks leaving.
 4. **Settings** (`SettingsScreen.tsx`): the same button, without run details (build only), beside **Export run log**.
-5. **Deploy** (181b's workflow): pass `VITE_FEEDBACK_FORM_URL` from a repository variable `vars.FEEDBACK_FORM_URL`, so the form link isn't written into the repo.
+5. **Deploy** (the same step that sets the label): pass `VITE_FEEDBACK_FORM_URL` as a literal in `deploy.yml`, with `vars.FEEDBACK_FORM_URL` as an optional override, the same pattern as the label. Henry pastes the form link template into that line; nothing needs setting in GitHub. (The link ends up in the public bundle either way, so a variable would not keep it private.)
 6. **Tests:**
    - the URL fills each placeholder, encoded
    - no env var: no button on either screen
@@ -131,20 +134,19 @@ Do these in order and tick them off. Rough times are in brackets.
 
 - [ ] **1.1** Rule on D1–D15 above.
 - [ ] **1.2** If D4 is yes: Claude writes **ticket 182** (the text cut) from the cut list, and you rule on it.
-- [ ] **1.3a** Make the **Google Form** (§4.4) and its pre-filled link. Set the repository variables `FEEDBACK_FORM_URL` (the template from 181c) and `PLAYTEST_LABEL` (`PLAYTEST 2`).
-- [ ] **1.3b** The agent builds **179**, **181a**, **181b**, **181c** and, if ruled, **182**. Check the reports.
+- [ ] **1.3a** Make the **Google Form** (§4.4) and its pre-filled link. Paste the link template (from 181c) into the `VITE_FEEDBACK_FORM_URL` line of `.github/workflows/deploy.yml`. The label there already says `PLAYTEST 2`. **Nothing to set in GitHub.**
+- [ ] **1.3b** **179, 181a and 181b are built** (reports: `docs/balance/card-picks-179.md` and the commit messages). The agent still builds **181c** (once the form exists) and, if ruled, **182**. Check the reports.
 - [ ] **1.3c** Play **one full run yourself** on the build (the 174 check from `playtest-results/2026-10-01/playtest-strategy.md`). Anything that blocks a run gets fixed before you continue.
 - [ ] **1.4** Run `npm run release-check`. It must be green: all gates, no debug toolkit in the build, plus the asset weight.
 - [ ] **1.5** Check that no AI-generated image ships. Search the built `dist/` for the species art files and confirm none are referenced. Monster art is switched off, but files can still be bundled.
 - [ ] **1.6** Push the work branch: `git push origin playtest-polish`.
-- [ ] **1.7** Merge `playtest-polish` into `main` through a pull request (CI runs on it).
-- [ ] **1.8** Tag the release commit: `git tag playtest-2 && git push origin playtest-2`.
-- [ ] **1.9** Check the two repository variables from 1.3a are set (GitHub → Settings → Secrets and variables → Actions → Variables), so the first deploy carries the label and the form link.
-- [ ] **1.10** Create the release branch from the tag and push it. **This publishes the build:** `git branch playtest playtest-2 && git push origin playtest`.
+- [ ] **1.7** Open a pull request `playtest-polish` into `main` (CI runs on it). **Before you merge,** check that `.github/workflows/deploy.yml` says `PLAYTEST 2` and, once 181c is built, carries the form link. Steps 1.3c to 1.5 must be done: the merge publishes.
+- [ ] **1.8** **Merge the pull request. This publishes the build:** the deploy runs on every push to `main`, after the full CI gate.
+- [ ] **1.9** Tag the release commit, so you can always find what testers played: `git checkout main && git pull && git tag playtest-2 && git push origin playtest-2`.
 
 ### Phase 2: Check the live site (about 45 minutes)
 
-- [ ] **2.1** The deploy finished: GitHub → Actions → "Deploy to GitHub Pages" is green.
+- [ ] **2.1** The deploy finished (it started when you merged): GitHub → Actions → "Deploy to GitHub Pages" is green.
 - [ ] **2.2** Open `https://hdunphy.github.io/Mingming/` in a **private window** (a fresh browser, like a tester's). The main menu shows `PLAYTEST 2 · <commit>`.
 - [ ] **2.3** In that window, play: pick a starter, assembly, choose a gym, the map, the first fight, rewards, a shop visit, and one more fight.
 - [ ] **2.4** **Reload the page mid-run.** The run resumes where you were.
@@ -193,12 +195,13 @@ Do these in order and tick them off. Rough times are in brackets.
 
 ### Phase 5: During the test (about 10 minutes a day)
 
+- [ ] **5.0** **Merge nothing to `main` except a blocker hotfix until the round closes** (D2, D7): every merge to `main` publishes.
 - [ ] **5.1** **Daily triage** of `#bug-reports`:
   - reply to each new post (even just "got it")
   - add the `confirmed` or `need info` tag
   - move confirmed bugs to a ticket list in `playtest-results/round-2-friends/bugs.md`
 - [ ] **5.2** Save run logs from `#run-logs` into `playtest-results/round-2-friends/logs/<initial>/` (download each file).
-- [ ] **5.3** **Hotfix rule (D7):** blockers only. Fix on a branch, merge to `main`, then push `playtest` to the fix (`git push origin <fix>:playtest`). Bump `PLAYTEST_LABEL` to `PLAYTEST 2.1` first, and announce it.
+- [ ] **5.3** **Hotfix rule (D7):** blockers only. Fix on a branch, and in the same commit bump the label in `deploy.yml` to `PLAYTEST 2.1`. Merge to `main` (that publishes it), then announce it.
 - [ ] **5.4** Mid-test nudge (around day 7): a short **personal** follow-up to anyone who hasn't played yet. No pressure; it's a favour.
 - [ ] **5.5** Bring Claude the logs and form answers whenever there's a batch. Ask for the same write-up as your own playtests: the scrap curve and fight table from the logs, plus a summary of the survey answers and bug list.
 
@@ -320,6 +323,6 @@ Keep this short; part of the test is whether the game explains itself.
 ## Done when
 
 - D1–D15 are ruled, and 179, 181a, 181b, 181c and (if ruled) 182 are built.
-- `playtest` deploys `PLAYTEST 2 · <commit>` to Pages, and it passed the §3 Phase 2 checks.
+- `main` deploys `PLAYTEST 2 · <commit>` to Pages, and it passed the §3 Phase 2 checks.
 - The Discord is set up as in Phase 3, testers are invited, and the form opens pre-filled from the game.
 - At the end, `playtest-results/round-2-friends/` holds the bugs, the logs, the survey and the summary.
