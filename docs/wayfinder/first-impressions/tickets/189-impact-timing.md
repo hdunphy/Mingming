@@ -1,6 +1,6 @@
 # Ticket 189: Hits land when they land (the battle clock and impact timing)
 
-**Type:** battle presentation (UI timing only). Nothing under `src/engine` changes, so no balance number, grid or walker read moves. **Status:** RULED (Henry, 2026-10-02), not started. **Blocked by:** see D1 at the bottom. 189a and 189b touch no file that ticket 183 touches. 189c–e touch the plaque and HP bar that 183b rewrites.
+**Type:** battle presentation (UI timing only). Nothing under `src/engine` changes, so no balance number, grid or walker read moves. **Status:** RULED (Henry, 2026-10-02), all decisions answered, not started. **In the playtest round 2 build** (it blocks 181). **Blocked by:** 189a and 189b by nothing (they touch no file 183 touches); 189c–e by **183b** (D1 answered: *"After"*).
 
 **Where this comes from.** Henry, 2026-10-02: *"I'm not happy with the current VFX and game juice."* That started a research pass and a playable prototype:
 - the **Battle Juice Lab** artifact (https://claude.ai/artifact/QzDRnvRLHquCYnwNPHtm4p);
@@ -52,7 +52,7 @@ In the lab, tick **Compare with today** and play a heavy Flame Column. The timel
 |---|---|---|
 | 189a | The battle clock: game time, waits, hit-stop that freezes it, Instant, one rAF driver | — |
 | 189b | One ordered presenter queue for everything the board shows | 189a |
-| 189c | The displayed board: HP, Bark and knocked-out state change at impact, not at play | 189b, and D1 |
+| 189c | The displayed board: HP, Bark and knocked-out state change at impact, not at play | 189b, 183b |
 | 189d | The number, sounds, hit-stop and shake move to the impact; target-only shake for small hits | 189c |
 | 189e | Pacing: the card leaves when its sequence ends, the enemy card hovers 1 s first, battle end waits | 189b, 189d |
 
@@ -203,9 +203,7 @@ Recoil, toll and DoT ticks keep their own sounds and floats, as their own queued
 
 ---
 
-## Decisions for Henry
+## Decisions (answered by Henry, 2026-10-02)
 
-1. **D1, order against ticket 183.** 189c–e change the plaque and HP bar, and 183b rewrites them. My suggestion:
-   - build 189a and 189b any time, since they share no files with 183;
-   - build 189c–e **after 183b**, so the new plaque reads the displayed board from the start and nobody rebases a half-finished plaque.
-2. **D2, playtest round 2.** Should 189 (and 190) be in the round-2 build? That would make them blockers of ticket 181. My suggestion: 189 yes, because it is most of the "feels off". 190 if it's ready in time.
+1. **D1, order against ticket 183: "After".** 189c–e are built after 183b, so the new plaque reads the displayed board from the start. 189a and 189b share no files with 183 and may start any time.
+2. **D2, playtest round 2: "Both before playtesting".** 189 and 190 are in the round-2 build and block ticket 181. 190h stays parked.

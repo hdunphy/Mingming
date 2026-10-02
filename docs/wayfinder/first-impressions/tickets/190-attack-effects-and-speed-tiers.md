@@ -1,6 +1,6 @@
 # Ticket 190: The new attack effects and the five speed tiers
 
-**Type:** battle presentation and settings. Nothing under `src/engine` changes. **Status:** RULED (Henry, 2026-10-02), not started. **Blocked by:** [189](189-impact-timing.md) for every row. 190a also waits for 183f, which restyles the settings screen. 190e also waits for 183b, which builds the plaques that show the HP ghost chunk.
+**Type:** battle presentation and settings. Nothing under `src/engine` changes. **Status:** RULED (Henry, 2026-10-02), all decisions answered, not started. **In the playtest round 2 build** (it blocks 181; 190h stays parked). **Blocked by:** [189](189-impact-timing.md) for every row. 190a also waits for 183f, which restyles the settings screen. 190e also waits for 183b, which builds the plaques that show the HP ghost chunk.
 
 **Where this comes from.** This is the same research pass as 189:
 - the **Battle Juice Lab** artifact (https://claude.ai/artifact/QzDRnvRLHquCYnwNPHtm4p);
@@ -32,7 +32,7 @@ The lab's code is checked in as [`../research/battle-juice-lab.js`](../research/
 
 | Row | What | Blocked by |
 |---|---|---|
-| 190a | Settings: the five-tier battle speed (default Showy), shake slider (60%), hit-stop, flashes, catch-up (on), hold-to-fast-forward | 189a, 183f, D1, D2 |
+| 190a | Settings: the five-tier battle speed (default Showy), shake slider (60%), hit-stop, flashes, catch-up (on), hold Shift to fast-forward; Effects and Animations switches retired | 189a, 183f |
 | 190b | The tier profiles: one data table of every timing, read by the clock and the choreography | 189a |
 | 190c | Choreography: crouch, lunge and hold, contact cards dash in, return; status-only wiggle and orb | 190b |
 | 190d | The element attacks: flame beam, water jet, vine; fire wall, tidal wave, pollen cloud. Length grows with damage | 190c |
@@ -53,9 +53,9 @@ The lab's code is checked in as [`../research/battle-juice-lab.js`](../research/
 - **`hitStop`**: on/off, default on.
 - **`flashes`**: on/off, default on. It covers hit flashes and the big-move dim. Keep it under WCAG's limit of no more than 3 flashes a second.
 - **`catchUp`**: on/off, default **on** (ruled). When cards are queued, the clock runs ×(1 + 0.2·min(queued, 3)), so a long AI turn tops out at 1.6×.
-- **Hold to fast-forward**: ×3 while held. **The key is D2:** Space is already End Turn (`END_TURN_KEY` in `keybinds.ts`). It goes in the keybind list and the Steam Input template (`steamInputTemplate.test.ts`).
+- **Hold Shift to fast-forward** (D2 answered): ×3 while held. Space stays End Turn (`END_TURN_KEY` in `keybinds.ts`). Shift goes in the keybind list and the Steam Input template (`steamInputTemplate.test.ts`).
 - **`particles`** and **`reducedMotion`** stay as they are. Reduced motion still outranks everything: no movement, no shake, no hit-stop, a colour flash and the numbers only.
-- **D1:** the old `vfx` and `animations` switches.
+- **The old `vfx` and `animations` switches are retired** (D1 answered).
 - Migration: an old save with `animations: false` gets `battleSpeed: instant`.
 
 **Tests.**
@@ -202,11 +202,9 @@ For drawing our own, Krita fits the HD art better than Aseprite.
 
 ---
 
-## Decisions for Henry
+## Decisions (answered by Henry, 2026-10-02)
 
-1. **D1: the old Effects and Animations switches.** Today Settings has `vfx` ("what things look like") and `animations` ("what moves"). With the five tiers plus Particles, Flashes and Reduced motion, my suggestion is to **retire both**:
-   - Animations off becomes **Instant**;
-   - Effects off is covered by Particles and Flashes.
+1. **D1, the old Effects and Animations switches: "Retire".** Both `vfx` and `animations` are removed from Settings. A save with `animations: false` migrates to `battleSpeed: instant`. Effects are covered by Particles and Flashes. Remove the `data-vfx`/`data-animations` attributes and their CSS, and keep `resolveVfxGates`' reduced-motion behaviour on the switches that remain.
+2. **D2, the fast-forward key: "Shift works".** Hold **Shift** for ×3. Add it to the keybind list (`keybinds.ts`) and the Steam Input template. Space stays End Turn.
 
-   Keep them, or retire them?
-2. **D2: the fast-forward key.** Space is End Turn. My suggestion: **hold Shift**, or hold the mouse button anywhere on the stage, both doing the same thing. The other option is "hold Space while something is animating", but a held Space would then end your turn the moment the animation finishes, so I'd avoid it.
+Also ruled: **190 is in the playtest round 2 build** (*"Both before playtesting"*), except 190h, which stays parked.
