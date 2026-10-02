@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest';
 
 import { addBlueprint, addToRoster } from './ui/store/gameSlice';
 import { createRanchMember } from './engine/gameTypes';
-import { click, makeStore, mountApp, pressKey } from './testing/interaction';
+import { click, findText, makeStore, mountApp, pressKey } from './testing/interaction';
 import { GetMingmingData } from './engine/data/mingmingRegistry';
 import { getOSBehavior } from './engine/data/firmwareRegistry';
 
@@ -58,6 +58,8 @@ describe('the starter picker', () => {
         const store = makeStore();
         const host = await mountApp(store);
 
+        // TICKET 182d: a new save plays the intro first (App.intro.test.tsx); this is the other path.
+        await click(findText(host, 'Skip intro', 'label').querySelector('input')!);
         await click(starterCard(host, 'KRAKEN'));
 
         // The regression: this used to still say Choose your starter.

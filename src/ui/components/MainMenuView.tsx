@@ -1,7 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useDispatch } from 'react-redux';
-import { addBlueprint } from '../store/gameSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { addBlueprint, setIntroDone } from '../store/gameSlice';
+import type { RootState } from '../store/store';
+import { loadSettings, saveSettings } from '../settings/settings';
+import { useAdvancedContent } from '../settings/useAdvancedContent';
+import {
+    SHOW_ADVANCED_HOVER, SHOW_ADVANCED_LABEL, SKIP_INTRO_HOVER, SKIP_INTRO_LABEL,
+} from '../settings/switches';
+import { startIntroRun } from '../intro/startIntroRun';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import BuildLabel from './BuildLabel';
@@ -116,8 +123,55 @@ const StarterCard: React.FC<{
     );
 };
 
+/**
+ * TICKET 182d — the two switches, one line each, small, under the three starters. They are labels
+ * (not paragraphs), so the screen's one sentence is still the line under the title.
+ *
+ * "Skip intro" is this save's `introDone`; "Show advanced content" is the person's setting. A pick
+ * reads them at click time, so changing either before choosing is all it takes.
+ */
+const Switches: React.FC = () => {
+    const dispatch = useDispatch();
+    const skipIntro = useSelector((state: RootState) => state.game.introDone ?? true);
+    const advanced = useAdvancedContent();
+    const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' };
+    return (
+        <div
+            style={{ display: 'flex', gap: '28px', marginTop: '22px', color: '#888', fontSize: '0.78rem' }}
+            data-testid="starter-switches"
+        >
+            <label style={row} title={SKIP_INTRO_HOVER}>
+                <input
+                    type="checkbox"
+                    checked={skipIntro}
+                    onChange={(event) => dispatch(setIntroDone(event.target.checked))}
+                />
+                {SKIP_INTRO_LABEL}
+            </label>
+            <label style={row} title={SHOW_ADVANCED_HOVER}>
+                <input
+                    type="checkbox"
+                    checked={advanced}
+                    onChange={(event) => saveSettings({ ...loadSettings(), showAdvancedContent: event.target.checked })}
+                />
+                {SHOW_ADVANCED_LABEL}
+            </label>
+        </div>
+    );
+};
+
 const MainMenuView: React.FC = () => {
     const dispatch = useDispatch();
+    const introDone = useSelector((state: RootState) => state.game.introDone ?? true);
+
+    /**
+     * TICKET 182c: with the intro on, a pick builds the starter on v1 and starts the intro at once
+     * (no ranch visit). With "Skip intro" on, it is the old path: the blueprint, then the ranch.
+     */
+    const choose = (speciesId: 'kraken' | 'fenrir' | 'ratatoskr'): void => {
+        if (introDone) dispatch(addBlueprint(speciesId));
+        else startIntroRun(dispatch, speciesId);
+    };
 
     return (
         <div className="main-menu" style={{
@@ -151,21 +205,24 @@ const MainMenuView: React.FC = () => {
                     id="kraken"
                     name="KRAKEN"
                     element="Water"
-                    onSelect={() => dispatch(addBlueprint('kraken'))}
+                    onSelect={() => choose('kraken')}
                 />
                 <StarterCard
                     id="fenrir"
                     name="FENRIR"
                     element="Fire"
-                    onSelect={() => dispatch(addBlueprint('fenrir'))}
+                    onSelect={() => choose('fenrir')}
                 />
                 <StarterCard
                     id="ratatoskr"
                     name="RATATOSKR"
                     element="Nature"
-                    onSelect={() => dispatch(addBlueprint('ratatoskr'))}
+                    onSelect={() => choose('ratatoskr')}
                 />
             </motion.div>
+
+            {/* TICKET 182d: the two switches, under the starters. */}
+            <Switches />
 
             {/* TICKET 181a: the build, so a bug report can name it. 182a: small, in a corner. */}
             <BuildLabel />

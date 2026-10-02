@@ -29,6 +29,7 @@ import { playSfx } from '../audio/AudioEngine';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { BUILD_INFO, buildText } from '../buildInfo';
 import AbandonRunSetting from './AbandonRunSetting';
+import GameSwitches from './GameSwitches';
 import './SettingsScreen.css';
 
 /**
@@ -511,6 +512,7 @@ export default function SettingsScreen(): ReactNode {
                 </section>
 
                 {/* TICKET 182a (R5): Abandon run lives here, only while a run is in progress. */}
+                <GameSwitches />
                 <AbandonRunSetting />
 
                 {quitAvailable && (

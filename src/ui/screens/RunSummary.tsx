@@ -61,6 +61,7 @@ import { playSfx } from '../audio/AudioEngine';
 import { autoSaveRunLog } from '../settings/exportRunLog';
 import { loadSettings } from '../settings/settings';
 import { teardownRun } from '../store/runTeardown';
+import { introRules } from '../../engine/run/intro/introRules';
 import './RunSummary.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
@@ -91,7 +92,8 @@ function headlineFor(run: IRunState): HeadlineCopy {
         case 'victory':
             return {
                 icon: 'gym',
-                title: 'Gym cleared',
+                // TICKET 182: the intro run is a warm-up, not a gym, so it claims no gym.
+                title: introRules(run).intro ? 'Intro complete' : 'Gym cleared',
             };
         case 'abandoned':
             return {
@@ -212,9 +214,11 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
     const reached = `Reached biome ${summary.biomeReached} of ${run.biomes.length} · ${summary.fightsResolved} ${summary.fightsResolved === 1 ? 'fight' : 'fights'}`
         + (hasTier ? ` · tier ${run.tier}` : '')
         + (modifierNames.length > 0 ? ` · ${modifierNames.join(', ')}` : '');
-    const unlocked = run.outcome === 'victory'
-        ? `${gymName} cleared · tier ${run.tier} unlocked`
-        : `${gymName} not cleared`;
+    const unlocked = introRules(run).intro
+        ? (run.outcome === 'victory' ? 'The real gyms are open' : 'The real gyms are still open to you')
+        : run.outcome === 'victory'
+            ? `${gymName} cleared · tier ${run.tier} unlocked`
+            : `${gymName} not cleared`;
 
     return (
         <div className="ranch-screen">

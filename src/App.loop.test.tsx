@@ -18,7 +18,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 
-import { makeStore, mountApp, click, clickText, fire, flush } from './testing/interaction';
+import { makeStore, mountApp, click, clickText, findText, fire, flush } from './testing/interaction';
 import type { TestStore } from './testing/interaction';
 import { setBattleState } from './ui/store/battleSlice';
 import { setRun } from './ui/store/runSlice';
@@ -35,6 +35,10 @@ vi.mock('./engine/core/SeedStream', async (importOriginal) => ({
 
 /** The starter cards are `motion.div`s, not buttons, so they are found by their test id. */
 async function pickStarter(host: HTMLElement, name: string): Promise<void> {
+    // TICKET 182d: a new save plays the intro first; these tests walk the ordinary loop, so they
+    // tick "Skip intro" before choosing (App.intro.test.tsx walks the intro itself).
+    const skip = findText(host, 'Skip intro', 'label').querySelector<HTMLInputElement>('input')!;
+    if (!skip.checked) await click(skip);
     // TICKET 172: the card no longer prints a "starter card"; it is found by its test id.
     const card = host.querySelector<HTMLElement>(`[data-testid="starter-${name.toLowerCase()}"]`);
     if (!card) throw new Error(`no starter card for ${name}`);
