@@ -1,6 +1,6 @@
 # Ticket 170: A better walker, so Tier 3 can be measured
 
-> **2026-10-02: built except 170d.** 170a, 170b, 170c and 170e are built (`510efbc..398439e`). **170d waits on Henry naming the fixes** from 170c's ranked list (`docs/balance/`, "where the walker dies"). Stays open on this map.
+> **2026-10-02: built except 170d.** 170a, 170b, 170c and 170e are built (`510efbc..398439e`). **170d waits on Henry naming the fixes** from 170c's ranked list (`docs/balance/`, "where the walker dies"). Stays open on this map. **2026-10-02 (later):** Henry wants a picture-led deep dive on why the walker fails before he names the fixes: [ticket 187](187-walker-deep-dive.md), parked, saved for later. 170d waits on it.
 
 **Type:** balance tooling (walker and balance checks only). **Status:** OPEN, **do not start until Henry says go.** Henry asked for this on 2026-09-29, after the report on ticket 169j.
 
