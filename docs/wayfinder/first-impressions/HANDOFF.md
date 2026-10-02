@@ -1,12 +1,12 @@
 # HANDOFF — first-impressions map (keep this current every session)
 
-*Last updated: 2026-10-02, after building ticket 182.*
+*Last updated: 2026-10-02, after closing ticket 182.*
 
 ## Where things stand
 
 - **Branch `first-impressions`**, started from `main` after PR #13 merged `playtest-polish`. The two 184d commits that came after the merge were carried over (`5857fef`, `ef954a6`). `playtest-polish` is finished; don't commit to it.
 - **184 is done** (184a–e, finished 2026-10-02 on this branch).
-- **182 is built** (182a–d on this branch, not pushed; see its Resolution). **Stopped for Henry's report.** Next is **183a–e** (stop after 183c), then 183f–h, then 181c. Do not start 183 until Henry says go.
+- **182 is done and closed** (182a–d on this branch, last commit `507a824`, not pushed; see its Resolution). Next is **183a–e** (stop after 183c), then 183f–h, then 181c. Do not start 183 until Henry says go.
 - **181** (playtest round 2) is the goal. It waits on 182, 183 and 181c (the "Tell Henry how it went" button, which needs Henry's Google Form first).
 - **176** is blocked until 183a–c ship. **175** comes after everything else. **180** waits for Henry's go.
 
@@ -32,7 +32,7 @@ Two agents work at once **in this one folder, on branch `first-impressions`** (H
 
 ## What Henry owes
 
-0. The 182 report's three calls: the intro is about 3 to 4 minutes (target 15 to 20, add a fight or a third leader enemy?); the Fire and Water leaders are two of one species; screenshots by hand or skip.
+0. Nothing open from 182. (Not blocking: the Fire and Water leaders are two of one species; Ratatoskr clears the intro 70% of the time. His own intro timing comes from 181 Phase 1.)
 1. 181c: make the Google Form and its pre-filled link (181 §1.3a).
 2. When to start 180 (the agent playtester).
 3. On the other map: 170d, which walker fixes to build from 170c's ranked list.
