@@ -10,7 +10,9 @@ import { addBlueprint } from '../../ui/store/gameSlice';
 import { addRunScrap, spendRunScrap } from '../../ui/store/runSlice';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import { isBlueprintSlotSold, rollBlueprintOffer } from '../../engine/run/marketplace';
+import { getBestAction } from '../../engine/ai/TacticalAI';
 import { stepOnto } from './arrive';
+import { END_TURN_KEY, battleKeyOf } from './battle/keys';
 import { freshWorld } from './testKit';
 import { currentScreen } from './screen';
 import type { Screen, World } from './types';
@@ -50,7 +52,7 @@ export function settleRewards(world: World): void {
  * look in a stall and leave, close an editor, ignore the boundary, answer an event with its first
  * choice, begin each gauntlet fight. `tried` stops a multi-step screen repeating one move forever.
  */
-export function routineMove(screen: Screen, tried: ReadonlySet<string> = new Set()): string {
+export function routineMove(screen: Screen, tried: ReadonlySet<string> = new Set(), world?: World): string {
     const keys = screen.moves.map((m) => m.key);
     const by = (test: (key: string) => boolean): string | undefined => keys.find((k) => test(k) && !tried.has(k));
     switch (screen.id) {
@@ -58,10 +60,17 @@ export function routineMove(screen: Screen, tried: ReadonlySet<string> = new Set
         case 'loadout': return 'loadout:confirm';
         case 'boundary': return 'boundary:ignore';
         case 'gauntlet': return by((k) => k === 'gauntlet:begin') ?? keys[0];
+        case 'battle': return world ? aiBattleKey(world, keys) : keys[keys.length - 1];
         case 'reward': return by((k) => k.includes(':take:')) ?? by((k) => k.endsWith(':skip')) ?? keys[0];
         case 'event': return by((k) => k === 'event:confirm') ?? by((k) => k !== 'event:back') ?? keys[0];
         default: return by((k) => k.startsWith('enter:')) ?? keys[0];
     }
+}
+
+/** In a battle, the move the game's own AI would make for the player (END TURN when it is not on offer). */
+export function aiBattleKey(world: World, offered: ReadonlyArray<string>): string {
+    const key = battleKeyOf(getBestAction(world.view.battle!.state));
+    return offered.includes(key) ? key : END_TURN_KEY;
 }
 
 /** Walk to the nearest node of `kind` by real moves. False when the run ends or no route exists. */
@@ -72,7 +81,7 @@ export function walkTo(world: World, kind: NodeKind, maxMoves = 60): boolean {
         const here = run.nodes.find((n) => n.id === run.currentNodeId)!;
         const screen = currentScreen(world);
         if (here.kind === kind && here.visited > 0 && screen.id !== 'map' && screen.id !== 'reward') return true;
-        if (screen.id !== 'map') { applyMove(world, { key: routineMove(screen), why: 'test' }); continue; }
+        if (screen.id !== 'map') { applyMove(world, { key: routineMove(screen, new Set(), world), why: 'test' }); continue; }
         const step = firstStepToward(world, kind);
         const move = step === null ? undefined : screen.moves.find((m) => m.key === `enter:${step}`);
         if (!move) return false;

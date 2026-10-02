@@ -14,7 +14,7 @@ import { cardLine } from './gameText';
 import { currentScreen } from './screen';
 import { renderScreen, screenJson } from './render';
 import { readSession, sessionExists, writeSession } from './sessionFile';
-import { IllegalMoveError, applyMove, createWorld, replayWorld } from './world';
+import { IllegalMoveError, applyMove, createWorld, enforceBudget, replayWorld } from './world';
 import type { ParsedArgs } from './args';
 import type { LoggedMove, PlaytestMode, SessionFile, SessionHeader, World } from './types';
 
@@ -71,7 +71,10 @@ export function cmdNew(root: string, args: ParsedArgs): CommandResult {
     if (!Number.isInteger(tier) || tier < 0) return refuse('--tier must be a whole number.');
     const modifiers = (text(args, 'modifiers') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
-    const header: SessionHeader = { seed, starter, gymIndex, mode, tier, modifiers };
+    const budget = text(args, 'budget') === undefined ? undefined : Number(text(args, 'budget'));
+    if (budget !== undefined && (!Number.isInteger(budget) || budget < 1)) return refuse('--budget must be a whole number of decisions, 1 or more.');
+
+    const header: SessionHeader = { seed, starter, gymIndex, mode, tier, modifiers, ...(budget === undefined ? {} : { budget }) };
     let world: World;
     try {
         world = createWorld(header);
@@ -120,6 +123,10 @@ function applyNumbered(root: string, args: ParsedArgs, numbers: ReadonlyArray<nu
         return refuse(error instanceof Error ? error.message : String(error));
     }
 
+    if (numbers.length > 1 && session.mode === 'card') {
+        return refuse('card mode takes one move per call: use "move", not "moves". Nothing was changed.');
+    }
+
     // Numbers address the screen as it is NOW. They are turned into keys up front, so a later number
     // in a list still means the move the agent saw, even though the screen changes as the list runs.
     const screen = currentScreen(world);
@@ -132,13 +139,14 @@ function applyNumbered(root: string, args: ParsedArgs, numbers: ReadonlyArray<nu
 
     const applied: LoggedMove[] = [];
     for (const [i, key] of keys.entries()) {
-        const move: LoggedMove = { key, why, ...(expect !== undefined && i === 0 ? { expect } : {}) };
+        const move: LoggedMove = { key, why, ...(expect !== undefined && i === 0 ? { expect } : {}), ...(i > 0 ? { chained: true as const } : {}) };
         try {
-            applyMove(world, move);
+            applyMove(world, move, i < keys.length - 1);
         } catch (error) {
             if (!(error instanceof IllegalMoveError)) throw error;
             if (applied.length === 0) return refuse(`${error.message}. Nothing was changed.`);
             // The list stopped at the first illegal move; what came before it stands.
+            enforceBudget(world);
             writeSession(root, name, { ...session, moves: [...session.moves, ...applied] });
             return refuse(`Stopped at move ${i + 1} of ${keys.length}: ${error.message}. The ${applied.length} before it were applied.\n\n${renderScreen(world)}`);
         }

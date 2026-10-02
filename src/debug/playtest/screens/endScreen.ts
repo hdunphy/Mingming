@@ -10,7 +10,8 @@ export function endScreen(world: World): Screen {
     const here = run.nodes.find((n) => n.id === run.currentNodeId);
     const body: string[] = [];
     if (world.view.fight) body.push(...fightReportLines(world.view.fight));
-    body.push(`RUN OVER: ${run.outcome ?? 'ended'}. ${run.fightsResolved} fights won, ${countedDeckSize(run.deck)} cards in the deck, ${run.scrap} scrap left${here ? `, ended at ${nodeLabel(here)}` : ''}.`);
+    const outcome = world.view.cutShort ?? run.outcome ?? 'ended';
+    body.push(`RUN OVER: ${outcome}${world.view.cutShort ? ' (the session\'s decision budget ran out)' : ''}. ${run.fightsResolved} fights won, ${countedDeckSize(run.deck)} cards in the deck, ${run.scrap} scrap left${here ? `, ended at ${nodeLabel(here)}` : ''}.`);
     if (world.view.engineError) body.push(`ENGINE ERROR: the game's own code threw during the last fight (${world.view.engineError}). The run was cut short; this is a game bug to report.`);
     return { id: 'end', body, moves: [] };
 }

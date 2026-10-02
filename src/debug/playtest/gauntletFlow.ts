@@ -1,15 +1,14 @@
 /**
- * TICKET 180c — ONE GAUNTLET FIGHT, in `run` mode.
+ * TICKET 180c — ONE GAUNTLET FIGHT.
  *
  * `GauntletNode`'s "Begin fight N of M": roll the gauntlet's own encounter (`rollGauntletFight`),
- * build the party with the HP the gauntlet carried (`persistedHp`, a downed member at 0), and play
- * it with the game's AI on both sides. A win rolls its pay and carries each member's HP to the
- * claim, which advances the gauntlet (`rewards.ts`); a loss ends the run.
+ * build the party with the HP the gauntlet carried (`persistedHp`, a downed member at 0), and start
+ * it: the game's AI plays it in `run` mode, the agent in `turn` and `card` mode (180d). A win rolls
+ * its pay and carries each member's HP to the claim, which advances the gauntlet (`rewards.ts`); a
+ * loss ends the run.
  */
 import { rollGauntletFight } from '../../engine/run/gauntlet';
-import { endRun } from '../../ui/store/runSlice';
-import { fightEncounter, reportFor } from './fightFlow';
-import { startRewards } from './rewards';
+import { startFight } from './fightFlow';
 import type { World } from './types';
 import { runOf } from './types';
 
@@ -18,12 +17,5 @@ export function playGauntletFight(world: World): void {
     const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
     const gauntlet = run.gauntlet!;
     const encounter = rollGauntletFight({ run, node, fightIndex: gauntlet.fightIndex });
-    const result = fightEncounter(world, encounter, gauntlet.persistedHp);
-    if (!result) return;
-    const won = result.winner === 'PLAYER';
-    world.view.fight = reportFor(node, result.state, won, result.turns, result.truncated, result.hits);
-
-    if (!won) { world.store.dispatch(endRun('defeat')); return; }
-    const carried = result.state.playerParty.map((p) => ({ memberId: p.id, hp: p.currentHp, maxHp: p.maxHp }));
-    startRewards(world, node, result.state, carried);
+    startFight(world, { context: 'gauntlet', nodeId: node.id, fought: node }, encounter, gauntlet.persistedHp);
 }

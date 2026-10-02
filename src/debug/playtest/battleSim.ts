@@ -16,6 +16,7 @@
 import { battleReducer, type BattleAction } from '../../engine/battleReducer';
 import { battleOutcome, type BattleOutcome } from '../../engine/battleOutcome';
 import { getBestAction, type AiTier } from '../../engine/ai/TacticalAI';
+import { getMacro } from '../../engine/data/macroRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import type { IBattleState } from '../../engine/types';
 import { buildScenarioState } from '../scenarios/buildScenarioState';
@@ -30,7 +31,7 @@ import { applyStatJitter } from '../balance/runBatch';
 export const PLAYTEST_MAX_TURNS = 60;
 
 /** `runBatch`'s own guard against a turn that never ends. */
-const MAX_ACTIONS_PER_TURN = 250;
+export const MAX_ACTIONS_PER_TURN = 250;
 
 export interface OpenBattleInput {
     readonly setup: ComposedSetup;
@@ -85,15 +86,16 @@ const sideOf = (state: IBattleState, id: string): 'PLAYER' | 'ENEMY' =>
 function dealerOf(state: IBattleState, recordSource: string, action: BattleAction): { id: string; name: string; side: 'PLAYER' | 'ENEMY' } {
     const known = [...state.playerParty, ...state.enemyParty].some((e) => e.id === recordSource);
     if (known) return { id: recordSource, name: nameOf(state, recordSource), side: sideOf(state, recordSource) };
-    if (action.type === 'PLAY_PROGRAM') {
+    if (action.type === 'PLAY_PROGRAM' || action.type === 'FIRE_MACRO') {
         const caster = action.payload.sourceId;
         return { id: caster, name: nameOf(state, caster), side: sideOf(state, caster) };
     }
     return { id: recordSource, name: 'a status effect', side: state.activeSide };
 }
 
-/** The printed name of the card an action plays, read from the hand BEFORE the action. */
+/** The printed name of the card (or macro) an action plays, read from the hand BEFORE the action. */
 export function cardNameFor(state: IBattleState, action: BattleAction): string | null {
+    if (action.type === 'FIRE_MACRO') return getMacro(action.payload.macroId)?.name ?? action.payload.macroId;
     if (action.type !== 'PLAY_PROGRAM') return null;
     const deck = state.activeSide === 'PLAYER' ? state.playerDeck : state.enemyDeck;
     const card = deck.hand.find((c) => c.id === action.payload.programId);

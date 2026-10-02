@@ -8,6 +8,7 @@
  */
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
+import { battleScreen } from './screens/battleScreen';
 import { endScreen } from './screens/endScreen';
 import { mapScreen } from './screens/mapScreen';
 import { rewardScreen } from './screens/rewardScreen';
@@ -24,6 +25,7 @@ import { runOf } from './types';
 export function currentScreen(world: World): Screen {
     const run = runOf(world);
     if (run.phase === 'ended') return endScreen(world);
+    if (world.view.battle) return battleScreen(world);
     if (world.view.reward) return rewardScreen(world);
     if (world.view.editor) return loadoutScreen(world);
 

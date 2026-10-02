@@ -14,7 +14,7 @@ import { createHash } from 'node:crypto';
 import { configureStore } from '@reduxjs/toolkit';
 
 import gameReducer, { createEmptyRanch } from '../../ui/store/gameSlice';
-import runReducer, { startRun } from '../../ui/store/runSlice';
+import runReducer, { endRun, startRun } from '../../ui/store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms, speciesOwningFirmware } from '../../engine/run/gyms';
 import { toMingmingState } from '../../engine/run/battleSetup';
@@ -29,7 +29,7 @@ const STARTED_AT = 1_700_000_000_000;
 /** Modifiers the playtester cannot play yet. Draft Start needs a drafting screen of its own. */
 const UNSUPPORTED_MODIFIERS: ReadonlyArray<string> = ['draft_start'];
 
-export const emptyView = (): View => ({ news: [], fight: null, reward: null, closedStall: null, leftEvent: null, event: null, editor: null, engineError: null });
+export const emptyView = (): View => ({ news: [], fight: null, reward: null, closedStall: null, leftEvent: null, event: null, editor: null, battle: null, cutShort: null, engineError: null });
 
 export function createWorld(header: SessionHeader): World {
     for (const id of header.modifiers) {
@@ -60,6 +60,12 @@ export function createWorld(header: SessionHeader): World {
     return { header, store, view: emptyView(), log: [] };
 }
 
+/** How many decisions a run may take before the session is stopped with outcome `budget` (ticket 180d). */
+export const DEFAULT_BUDGET = 400;
+
+/** A decision is one call: the first move of a `moves` list, or a lone `move`. The rest of a list are chained to it. */
+export const decisionsIn = (log: ReadonlyArray<LoggedMove>): number => log.filter((m) => m.chained !== true).length;
+
 export class IllegalMoveError extends Error {
     constructor(message: string) {
         super(message);
@@ -72,7 +78,7 @@ export class IllegalMoveError extends Error {
  * and changes nothing. The news and the fight report from the previous move are cleared first, so
  * what a screen shows above its body is always about the move that produced it.
  */
-export function applyMove(world: World, move: LoggedMove): void {
+export function applyMove(world: World, move: LoggedMove, more = false): void {
     const screen = currentScreen(world);
     const found = screen.moves.find((m) => m.key === move.key);
     if (!found) throw new IllegalMoveError(`"${move.key}" is not a legal move on this screen`);
@@ -80,11 +86,26 @@ export function applyMove(world: World, move: LoggedMove): void {
     world.view.fight = null;
     found.apply(world);
     world.log.push(move);
+    if (!more) enforceBudget(world);
+}
+
+/**
+ * Stop the session when its decisions are used up. Called after each call's last move (`more` is
+ * false), never in the middle of a `moves` list, so a list is never cut in half by the budget.
+ * The run ends as abandoned and `view.cutShort` says why; the end screen reports outcome `budget`.
+ */
+export function enforceBudget(world: World): void {
+    const run = world.store.getState().run.run!;
+    if (run.phase === 'ended') return;
+    if (decisionsIn(world.log) < (world.header.budget ?? DEFAULT_BUDGET)) return;
+    world.view.battle = null;
+    world.view.cutShort = 'budget';
+    world.store.dispatch(endRun('abandoned'));
 }
 
 export function replayWorld(header: SessionHeader, moves: ReadonlyArray<LoggedMove>): World {
     const world = createWorld(header);
-    for (const move of moves) applyMove(world, move);
+    moves.forEach((move, i) => applyMove(world, move, moves[i + 1]?.chained === true));
     return world;
 }
 

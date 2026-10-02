@@ -15,8 +15,8 @@ import { applyMove, replayWorld, stateHash } from './world';
 import type { World } from './types';
 import { runOf } from './types';
 
-const KNOWN_SCREENS = new Set(['map', 'reward', 'end', 'market', 'workshop', 'event', 'gauntlet', 'boundary', 'loadout']);
-const MOVE_BUDGET = 700;
+const KNOWN_SCREENS = new Set(['map', 'reward', 'end', 'market', 'workshop', 'event', 'gauntlet', 'boundary', 'loadout', 'battle']);
+const MOVE_BUDGET = 3000;
 
 function playToTheEnd(world: World): { screens: Set<string>; moves: number } {
     const screens = new Set<string>();
@@ -27,7 +27,7 @@ function playToTheEnd(world: World): { screens: Set<string>; moves: number } {
         screens.add(screen.id);
         expect(KNOWN_SCREENS.has(screen.id), `unknown screen "${screen.id}"`).toBe(true);
         expect(screen.moves.length, `a "${screen.id}" screen with no legal move`).toBeGreaterThan(0);
-        const key = routineMove(screen, tried);
+        const key = routineMove(screen, tried, world);
         // A step that repeats itself (a stall that will not let us go) must not spin forever.
         if (screen.id === 'event' || screen.id === 'reward') tried.add(key);
         else tried.clear();
@@ -54,6 +54,22 @@ describe('180c — a whole run, start to end', () => {
             for (const id of screens) seen.add(id);
             expect(runOf(world).phase, `still going after ${moves} moves`).toBe('ended');
             expect(currentScreen(world).id).toBe('end');
+        });
+    }
+
+    // 180d: the same walk with the agent in the fight (the game's own AI choosing the player's moves).
+    for (const [mode, seed] of [['turn', 'ps22'], ['card', 'ps26']] as const) {
+        it(`${mode} mode, seed ${seed}: plays its own battles to the end of the run, no unknown screen`, () => {
+            const world = freshWorld({ seed, mode, budget: 100_000 });
+            for (const kind of TOUR) {
+                if (!walkTo(world, kind, 3000)) break;
+            }
+            const { screens, moves } = playToTheEnd(world);
+            expect(screens.has('battle') || runOf(world).phase === 'ended').toBe(true);
+            expect(runOf(world).phase, `still going after ${moves} moves`).toBe('ended');
+            expect(currentScreen(world).id).toBe('end');
+            // every battle move, its generated cards and its random ids included, replays to the same state
+            expect(stateHash(replayWorld(world.header, world.log))).toBe(stateHash(world));
         });
     }
 

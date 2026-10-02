@@ -11,7 +11,8 @@
  */
 import type { EnhancedStore } from '@reduxjs/toolkit';
 
-import type { IRanchState, IRunState, NodeKind } from '../../engine/runTypes';
+import type { IRanchState, IRegionNode, IRunState, NodeKind } from '../../engine/runTypes';
+import type { IBattleState } from '../../engine/types';
 import type { RunSliceState } from '../../ui/store/runSlice';
 import type { EventDefinition } from '../../engine/run/events/eventSchema';
 import type { OutcomePick } from '../../ui/events/outcomePicks';
@@ -28,6 +29,8 @@ export interface SessionHeader {
     readonly mode: PlaytestMode;
     readonly tier: number;
     readonly modifiers: ReadonlyArray<string>;
+    /** How many decisions a run may take before the session stops with outcome `budget`. Left out, `DEFAULT_BUDGET`. */
+    readonly budget?: number;
 }
 
 /** One applied move: its stable key, the agent's one-sentence reason, and an optional prediction. */
@@ -35,6 +38,11 @@ export interface LoggedMove {
     readonly key: string;
     readonly why: string;
     readonly expect?: unknown;
+    /**
+     * True on the second and later moves of one `moves` call. A decision is a call, not a move: a
+     * whole battle turn sent as a list is one decision, and only unchained moves count against the budget.
+     */
+    readonly chained?: true;
 }
 
 /** A free-form note, pinned to how many moves had been made when it was written. */
@@ -115,6 +123,24 @@ export interface EditorState {
     readonly confirmWarned: boolean;
 }
 
+/**
+ * A battle the agent is playing (`turn` and `card` mode). The state lives here, in the view, because
+ * the run slice holds no battle; a replay rebuilds it by playing the log again.
+ */
+export interface BattleFlow {
+    /** A gauntlet fight is claimed differently from a node's (HP carried, then `advanceGauntlet`). */
+    readonly context: 'node' | 'gauntlet';
+    /** The node the party is standing on (an event node, for an Ambush Bait fight). */
+    readonly nodeId: string;
+    /** The node the fight counts as (`fightNodeFor`): the encounter's kind and its reward. */
+    readonly fought: IRegionNode;
+    readonly state: IBattleState;
+    /** How many of the engine's random ids have been given repeatable names (`battle/stableIds.ts`). */
+    readonly minted: number;
+    /** Every hit of the fight so far, merged by source, target and card. */
+    readonly hits: ReadonlyArray<HitTotal>;
+}
+
 export interface View {
     /** Lines about what the last move did, shown above the next screen and cleared by the move after. */
     news: string[];
@@ -131,6 +157,10 @@ export interface View {
     leftEvent: string | null;
     event: EventFlow | null;
     editor: EditorState | null;
+    /** The battle in progress, in `turn` and `card` mode. */
+    battle: BattleFlow | null;
+    /** Why the session was stopped by the tool rather than by the game (`budget`: the decision budget ran out). */
+    cutShort: 'budget' | null;
     /** Set when the game's own code threw during a fight. The run is cut short and the message is kept for the report. */
     engineError: string | null;
 }
