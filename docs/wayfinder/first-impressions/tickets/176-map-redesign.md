@@ -284,6 +284,10 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
 
 ---
 
+## Note from ticket 186c (2026-10-02): same-worded nodes
+
+The old map could show two reachable nodes with exactly the same words ("Wild, Nature, biome 1, layer 1"), so the Travel list and the hover named two different places alike. Ticket 186c (`304786f`) fixed that on the old map: `RegionMap.tsx`'s `describe()` adds where a node sits in its column when another node of the column reads the same, using `positionWord()` in `regionLayout.ts` (the text playtester's map screen uses it too). **176e redraws this screen:** keep some way of telling same-worded nodes apart in the accessible Travel list and the hover, and keep `src/ui/screens/RegionMap.labels.test.tsx` passing or replace it with an equivalent. If 176 makes every node distinct by name (a town's own name, say), the helper can go.
+
 ## Done when
 
 - A run is three biomes of towns joined by branching, one-way routes (M1). Every node type is visible, paths never cross, and each biome has one optional detour.

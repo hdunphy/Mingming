@@ -1,6 +1,6 @@
 # Ticket 186: What the agent playtester's tool found in the game
 
-**Type:** bugs and wording (small). **Status:** OPEN. Written 2026-10-02 by the playtester agent (ticket 180, rows a–f). **Nothing here is fixed.** Ticket 180's rule 3 says the playtester never changes game code, so each item is reported here for Henry to rule on.
+**Type:** bugs and wording (small). **Status:** DONE 2026-10-02 except 186b, which waits for a night's evidence. Written by the playtester agent (ticket 180, rows a–f); Henry ruled "I want all of these" and the rows were built the same day. Commits: 186e `5af792d`, 186a `83b444d`, 186c `304786f`, 186d `d72aa2e`.
 
 **Where it comes from.** Building the playtester meant playing the game through a text tool, hundreds of times, and replaying every session. This ticket lists what looked wrong. Each item says how sure it is, because some of these were looked at again and turned out to be by design.
 
@@ -15,13 +15,13 @@
 3. **One commit per row,** gate green first. The screens agent and the playtester agent share this folder and branch: follow `HANDOFF.md` ("Two agents in parallel"), stage explicit paths only, and don't push.
 4. **Rows 186a and 186b are engine changes. Rows 186c–186e are UI or wording.** Check 186c against ticket 176 (the map redesign) before building it; 176 may remove the problem.
 
-| Row | What | How sure |
+| Row | What | Result |
 |---|---|---|
-| 186a | The battle engine makes random ids that cannot be replayed | Sure (two lines of code) |
-| 186b | A fight crashed on seed `ps2` | Seen once, not reproducible now |
-| 186c | Map nodes with the same name cannot be told apart | Sure (seen on screen) |
-| 186d | Card text understates what Fenrir's firmware adds | Probably by design; wording to rule on |
-| 186e | Damage with no named source is credited to `SYSTEM` | Not measured; needs a look |
+| 186a | The battle engine makes random ids that cannot be replayed | **Done** (`83b444d`) |
+| 186b | A fight crashed on seed `ps2` | **Watch.** Not reproducible; the nightly run will catch it |
+| 186c | Map nodes with the same name cannot be told apart | **Done** (`304786f`) |
+| 186d | Firmware effects not visible to a player of the text tool | **Done** (`d72aa2e`). Ruled: card text stays clean, the log reports it |
+| 186e | Damage credited to `SYSTEM` | **Done** (`5af792d`). Measured: 96% of ledger damage |
 
 ---
 
@@ -74,3 +74,13 @@ These were first noted as game bugs and then looked at again. They are here so n
 - 186a is fixed and the playtester's `stableIds.ts` is gone, or Henry rules that the renaming stays.
 - 186b is either reproduced by a night's session file and fixed, or closed after a quiet week.
 - 186c, 186d and 186e each have a ruling (build, wording only, or close).
+
+---
+
+## What was built (2026-10-02)
+
+- **186a.** A status instance's id is now `<Type>#<n>` (the smallest n free on that entity) and a generated card's is `gen_<card>_<n>` (the smallest n free in that deck), so the same battle always makes the same ids. Test: `src/engine/deterministicIds.test.ts`. The playtester's `stableIds.ts` renaming is deleted, and its scripted-turn test now compares the two states with no renaming at all.
+- **186e.** Measured over 96 fights (8 seeds, 12 starters): **96% of the ledger's damage was credited to `SYSTEM`**, nearly all of it plain card attacks (cause `attack`), because `applyMutations` wrote `sourceId: 'SYSTEM'` on every HP mutation. Nothing in the game reads that field (the previews filter by target), so the fix is one line: use the mutation's own source, and keep `SYSTEM` for damage with nobody named. Test: `src/engine/ledgerSource.test.ts`.
+- **186c.** When two nodes of one column read the same, the map's Travel list and node hover add where each sits (`upper` / `lower`, `upper` / `middle` / `lower`, or `N from the top`), through `positionWord` in `regionLayout.ts`. The text tool's map screen uses the same word. Tests: `RegionMap.labels.test.tsx` and `screens.test.ts`. **Ticket 176 redraws this map:** see the note added to 176.
+- **186d.** Henry's ruling: card text stays clean; the UI or the combat log reports what a firmware adds. It does: the log says, in the game's own words, that the unit pushes its core to the limit, gains the Strengthened, and pays the HP. The gap was in the text tool, which never printed the combat log, so the agent could not see any of it. It now prints the game's own log lines after every play and after END TURN (cut to 12 lines, 24 for END TURN, with a count of the rest), and the player brief says firmware effects come through the log. Tests in `battle.test.ts`.
+- **186b.** Nothing built. `engine-error` in the morning report is the signal.

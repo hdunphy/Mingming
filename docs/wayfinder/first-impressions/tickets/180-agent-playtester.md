@@ -87,11 +87,11 @@ Each row was test-first, with the new tests shown failing on the parent commit, 
 - **The invariants** found in the tool are named: run-schema, duplicate-card-id, hp-range, energy-negative, card-vanished, turn-cap, soft-lock, engine-error, move-refused, fight-truncated, screen-error. A check that throws is itself logged as `screen-error`.
 - **Nothing pins on-screen wording.** Text is printed from the game's own modules; the brief and the tests carry none of it.
 
-**Things that looked like game bugs (not fixed: rule 3) are now ticket 186.** After a second look two of the first list were not bugs (the wild-enemy firmware id is a deliberate marker in the balance tool, and `legalPlays` listing plays the reducer may refuse is documented behaviour). The engine crash on seed `ps2` could not be reproduced again. What is left: random ids in the battle engine (186a), map nodes with identical names (186c), card text that leaves out what the firmware adds (186d), and damage credited to `SYSTEM` (186e).
+**What the tool found in the game is ticket 186, and it is built** (Henry: "I want all of these"): random ids in the battle engine (186a), damage credited to `SYSTEM` (186e), same-worded map nodes (186c), and the combat log, which now shows firmware effects to the text tool (186d). The crash on seed `ps2` could not be reproduced and is on watch (186b). The playtester's `stableIds.ts` renaming went away with 186a.
 
 **Running it:** [docs/playtest/run-tonight.md](../../../playtest/run-tonight.md) is the checklist for the first real night. After 180f the driver command was tightened (`--tools Bash`, `--permission-mode dontAsk`, `--max-budget-usd`), because read-only tools like Read and Grep need no permission in a headless run, so allowing one command was not enough to keep the agent out of `src/` (A4).
 
-**Henry owes:** the go for 180g and the pilot starter; whether the A1 driver flags stand (they are unverified until the pilot); the nightly default model and when to start the nightly runs; the rulings on ticket 186; and whether `hits` and `status` mean what he wants. Details in [HANDOFF-180.md](HANDOFF-180.md).
+**The pilot starter is `kraken_v1`** (Henry, 2026-10-02). **Henry owes:** the go for 180g; whether the A1 driver flags stand (they are unverified until the pilot); the nightly default model and when to start the nightly runs;  and whether `hits` and `status` mean what he wants. Details in [HANDOFF-180.md](HANDOFF-180.md).
 
 ---
 

@@ -24,19 +24,19 @@
 
 ## What Henry owes
 
-1. **The go for 180g,** and which starter the pilot uses (gym 0, tier 0). It costs real tokens: four runs (`run` and `card` mode, small and stronger model).
+1. **The go for 180g.** The starter is ruled: `kraken_v1` (gym 0, tier 0). It costs real tokens: four runs (`run` and `card` mode, small and stronger model).
 2. **The A1 flags** stand or change once the pilot has run them.
 3. **The nightly default:** the small model (`haiku`) at ten runs a night, and when to start scheduling it. Nothing is scheduled.
-4. **Rulings on ticket 186** (the five items the tool found in the game). 186a, the random ids, is the one that touches the engine.
+4. **Nothing on ticket 186:** all of it is built except 186b, which waits for evidence.
 5. **Whether the report's definitions are what he wants:** `hits` counts hits on enemies only, and `status` and `self` predictions are compared whole (a status the agent forgot to list counts as a miss).
 
 ## What the tool found in the game
 
-Written up as [ticket 186](tickets/186-playtester-findings.md): random ids in the battle engine (a battle is not repeatable without the tool's renaming), map nodes with identical names, card text that leaves out what a firmware adds, and damage credited to `SYSTEM`. A fight crash seen once on seed `ps2` could not be reproduced again, and the nightly run will catch it if it comes back. Two things first listed here (the wild-enemy firmware id, and plays the reducer can refuse) turned out to be by design; 186 says so.
+Ticket [186](tickets/186-playtester-findings.md), built the same day at Henry's word: random ids in the battle engine (186a), damage credited to `SYSTEM` (186e), same-worded map nodes (186c), and the text tool not showing the game's combat log (186d). The crash seen once on seed `ps2` is on watch: the nightly run will flag it as an `engine-error` if it returns. These changed game files (engine: `StatusBehaviors.ts`, `effectHandlers.ts`, `resolutionEngine.ts`; UI: `RegionMap.tsx`, `regionLayout.ts`), by Henry's ruling, with tests.
 
 ## Notes for whoever touches this next
 
 - **No on-screen wording is pinned** in tests or in the brief. The screens agent is rewriting copy (182) and renaming words (183h); the tool prints what the game's own modules produce. If a test starts failing after a copy change, it is a bug in the test.
 - `PLAYTEST_MAX_TURNS` (60) copies the walker's private `WALK_MAX_TURNS`; a test reads the walker's source and fails if they drift.
-- `stabilizeIds` (`battle/stableIds.ts`) renames engine UUIDs to `tok_<n>` so replays are exact. Take it out and the replay hash test fails.
+- Engine ids are repeatable since 186a (the old `stabilizeIds` renaming is gone). The replay-hash and scripted-turn tests would fail if a random id came back.
 - This machine's git quirks (lock and temp files that cannot be unlinked) are in `HANDOFF.md`, "Traps on this machine".
