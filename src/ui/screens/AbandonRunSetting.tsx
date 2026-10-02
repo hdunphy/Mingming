@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { playSfx } from '../audio/AudioEngine';
-import { endRun } from '../store/runSlice';
+import { endRunAction } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { closeSettings } from '../store/uiSlice';
 
@@ -18,13 +18,14 @@ import { closeSettings } from '../store/uiSlice';
 export default function AbandonRunSetting(): ReactNode {
     const dispatch = useDispatch();
     const inProgress = useSelector((s: RootState) => s.run.run !== null && s.run.run.phase !== 'ended');
+    const run = useSelector((s: RootState) => s.run.run);
     const [confirming, setConfirming] = useState(false);
 
     if (!inProgress) return null;
 
     const abandon = (): void => {
         setConfirming(false);
-        dispatch(endRun('abandoned'));
+        dispatch(endRunAction(run, 'abandoned'));
         dispatch(closeSettings());
         playSfx('uiError');
     };

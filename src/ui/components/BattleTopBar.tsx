@@ -10,6 +10,7 @@ import { globalBattleEventBus } from '../../engine/events';
 
 import { Icon } from '../theme/Icon';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
+import { introRules } from '../../engine/run/intro/introRules';
 import { deckScalesWithCardsPlayed } from '../utils/cardsPlayedScaling';
 
 
@@ -144,6 +145,8 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                     </span>
                 )}
 
+                {/* TICKET 182c: the intro has no combat log, so no chevron to open one. */}
+                {introRules(run).showBattleLogs && (
                 <button
                     type="button"
                     className="battle-topbar-log"
@@ -164,6 +167,7 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                         most players will find. */}
                     <span className="battle-topbar-chevron" aria-hidden="true">{logOpen ? '▴' : '▾'}</span>
                 </button>
+                )}
 
                 {/* TICKET 182a: no volume slider here - volume lives in Settings (the gear, right). */}
                 {place && (

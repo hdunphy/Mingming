@@ -51,7 +51,6 @@ import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup'
 import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import { RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import {
-    GAUNTLET_ENEMY_COUNT,
     gauntletOpponentElements,
     isBossFight,
     rollGauntletFight,
@@ -64,6 +63,7 @@ import { playSfx } from '../audio/AudioEngine';
 import { startBattle } from '../store/battleSlice';
 import { UpgradeBench } from './UpgradeBench';
 import { PatchBench } from './PatchBench';
+import { introRules } from '../../engine/run/intro/introRules';
 import './GauntletNode.css';
 import { Icon } from '../theme/Icon';
 
@@ -144,6 +144,10 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
     const fightNumber = gauntlet.fightIndex + 1;
     const boss = isBossFight(gauntlet.fightIndex, gauntlet.totalFights);
     const everyoneDown = party.length > 0 && party.every((m) => m.down);
+    // TICKET 182c: the intro's gate has no macro list and no patch bench.
+    const rules = introRules(run);
+    // How many the leader fields: three in the gauntlet, two in the intro.
+    const opposing = opponentElements.length;
 
     /**
      * Start the fight the run is standing in front of.
@@ -196,7 +200,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
             {/* --- The party: the resource being managed --- */}
 
             <div className="gn-section-head">
-                <h3 title={`The rest of the damage carries, and a member who falls stays down until a Revive brings them back.${party.length < GAUNTLET_ENEMY_COUNT ? ` The gauntlet is always ${GAUNTLET_ENEMY_COUNT} strong, whatever you bring: you are fielding ${party.length}.` : ''}`}>Party</h3>
+                <h3 title={`The rest of the damage carries, and a member who falls stays down until a Revive brings them back.${party.length < opposing ? ` The gauntlet is always ${opposing} strong, whatever you bring: you are fielding ${party.length}.` : ''}`}>Party</h3>
                 <span className="gn-tag-note">HP carries between fights · +{GAUNTLET_HEAL_PERCENT}% repair</span>
             </div>
 
@@ -227,6 +231,8 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
 
             {/* --- The rack --- */}
 
+            {rules.showMacros && (
+            <>
             <div className="gn-section-head">
                 <h3>Macros</h3>
                 <span className="gn-tag-note">single use · fired free on your turn</span>
@@ -258,6 +264,8 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                     );
                 })}
             </ul>
+            </>
+            )}
 
             {/* --- What is coming --- */}
 
@@ -266,7 +274,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                     ? 'One drawn from each of the three biomes you walked, each running signature firmware. The region was the syllabus; this is the exam.'
                     : 'Recruited out of the region’s own species - the same pools the biomes you walked field.'}
                 >{boss ? 'The leader’s own team' : 'Next opponent'}</h3>
-                <span className="gn-tag-note">{GAUNTLET_ENEMY_COUNT} of them, always</span>
+                <span className="gn-tag-note">{opposing} of them, always</span>
             </div>
 
             <ul className="gn-enemies">
@@ -306,7 +314,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                   * which is the half a render cannot enforce.
                   */}
                 {/* TICKET 163d/166e — the gate's CHOICE OF TWO (163 §3), one patch total per visit (166e). */}
-                {gauntlet.fightIndex === 0 && <PatchBench run={run} ranch={ranch} venue="gate" benchKey={`patch:${node.id}:${node.visited}`} />}
+                {gauntlet.fightIndex === 0 && rules.showPatches && <PatchBench run={run} ranch={ranch} venue="gate" benchKey={`patch:${node.id}:${node.visited}`} />}
                 {gauntlet.fightIndex === 0 && (
                     <UpgradeBench
                         run={run}

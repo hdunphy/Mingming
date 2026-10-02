@@ -87,6 +87,7 @@ import './MarketplaceNode.css';
 import { Icon } from '../theme/Icon';
 import { UpgradeBench } from './UpgradeBench';
 import { PatchBench } from './PatchBench';
+import { introRules } from '../../engine/run/intro/introRules';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
 import { CardPeek } from './CardPeek';
 import { useCardPeek } from '../hooks/useCardPeek';
@@ -160,6 +161,8 @@ export default function MarketplaceNode({
     // and refreshes with the rest of the stall.
     const blueprintOffer = useMemo(() => rollBlueprintOffer(run, node), [run, node]);
     const blueprintSold = isBlueprintSlotSold(run, node);
+    // TICKET 182c: what this run's market shows. The card stall and the upgrade bench are in every market.
+    const marketRules = introRules(run).market;
 
     const scrap = run.scrap;
     const reading = readDeckFloor(run);
@@ -261,9 +264,11 @@ export default function MarketplaceNode({
                 </span>
                 <span className="rs-spacer" />
                 <span className="rs-scrap" aria-label="Scrap held">{scrap} <Icon name="scrap" size={12} /></span>
-                <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onEditLoadout(); }}>
-                    EDIT LOADOUT
-                </button>
+                {marketRules.editLoadout && (
+                    <button type="button" className="rs-btn" onClick={() => { playSfx('uiClick'); onEditLoadout(); }}>
+                        EDIT LOADOUT
+                    </button>
+                )}
                 <button type="button" className="rs-btn primary" onClick={() => { playSfx('uiClick'); onLeave(); }}>
                     LEAVE
                 </button>
@@ -291,16 +296,18 @@ export default function MarketplaceNode({
                           * LEAVE. At 50 it costs more than the dearest card, which is the point:
                           * it should read as an alternative to a purchase, not as a free look.
                           */}
-                        <button
-                            type="button"
-                            className="rs-f"
-                            onClick={reroll}
-                            disabled={scrap < refreshPrice}
-                        >
-                            {scrap < refreshPrice
-                                ? `REFRESH ${refreshPrice} scrap — ${shortBy(refreshPrice)} SHORT`
-                                : `REFRESH STALL — ${refreshPrice} scrap`}
-                        </button>
+                        {marketRules.refresh && (
+                            <button
+                                type="button"
+                                className="rs-f"
+                                onClick={reroll}
+                                disabled={scrap < refreshPrice}
+                            >
+                                {scrap < refreshPrice
+                                    ? `REFRESH ${refreshPrice} scrap — ${shortBy(refreshPrice)} SHORT`
+                                    : `REFRESH STALL — ${refreshPrice} scrap`}
+                            </button>
+                        )}
                     </div>
 
                     <h2 className="mk-h">STOCK — CARDS (your elements + one off-pool)</h2>
@@ -357,7 +364,7 @@ export default function MarketplaceNode({
                       * non-card body. Absent entirely on a route that can recruit nothing, rather
                       * than drawn as a dead slot - an empty heading is a bug report waiting.
                       */}
-                    {blueprintOffer && (
+                    {marketRules.blueprint && blueprintOffer && (
                         <>
                             <h2 className="mk-h">BLUEPRINT — one body, this route only</h2>
                             <div className="mk-grid" style={STALL_TILE}>
@@ -389,6 +396,8 @@ export default function MarketplaceNode({
                         </>
                     )}
 
+                    {marketRules.macros && (
+                    <>
                     <h2 className="mk-h">
                         MACROS · {MACRO_SLOTS - macrosHeld}/{MACRO_SLOTS} slots free
                     </h2>
@@ -491,6 +500,8 @@ export default function MarketplaceNode({
                         })}
                         {macroStock.length === 0 && <span className="mk-empty">No macros this visit.</span>}
                     </div>
+                    </>
+                    )}
                 </div>
 
                 {/*
@@ -502,7 +513,7 @@ export default function MarketplaceNode({
                   */}
                 {/* TICKET 163d — the stall stocks AMPLIFIER (163 §3: "the boring one every OS can
                     take and the workshop's default stock"). One rider, every body, for scrap. */}
-                {ranch && <PatchBench run={run} ranch={ranch} venue="shop" />}
+                {ranch && marketRules.patchBench && <PatchBench run={run} ranch={ranch} venue="shop" />}
 
                 <UpgradeBench
                     run={run}
@@ -511,6 +522,7 @@ export default function MarketplaceNode({
                     heading="UPGRADE — UP TO TWO CARDS IN YOUR DECK"
                 />
 
+                {marketRules.sell && (
                 <div className="rs-panel mk-sell">
                     <h2>SELL — YOUR CARDS <span className="mk-sub">(deck + collection)</span></h2>
                     <div className="mk-rows">
@@ -559,6 +571,7 @@ export default function MarketplaceNode({
                         DECK <b>{reading.counted}</b> / floor {floor}{junkNote(reading)}
                     </div>
                 </div>
+                )}
             </div>
         </section>
     );

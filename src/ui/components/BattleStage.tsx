@@ -368,6 +368,8 @@ interface BattleStageProps {
     onEntityClick: (entity: IBattleEntity, isEnemy: boolean) => void;
     onEntityPointerUp: (entity: IBattleEntity, isEnemy: boolean) => void;
     onEnemyHoverChange: (entityId: string | null) => void;
+    /** TICKET 182c: the intro has no enemy-hand tab. Absent, not just closed. */
+    hideEnemyHand?: boolean;
 }
 
 const BattleStage: React.FC<BattleStageProps> = ({
@@ -381,6 +383,7 @@ const BattleStage: React.FC<BattleStageProps> = ({
     onEntityClick,
     onEntityPointerUp,
     onEnemyHoverChange,
+    hideEnemyHand = false,
 }) => {
     const { playerParty, enemyParty } = battleState;
 
@@ -422,7 +425,7 @@ const BattleStage: React.FC<BattleStageProps> = ({
      */
     const [enemyHandOpen, setEnemyHandOpen] = React.useState(false);
     const viewport = useViewportSize();
-    const enemyHasDeck = battleState.enemyMode === 'CARDS';
+    const enemyHasDeck = battleState.enemyMode === 'CARDS' && !hideEnemyHand;
     const enemyShiftX = enemyShiftFor(viewport.width, viewport.height, enemyHandOpen && enemyHasDeck);
     const anchors = useStageAnchors(battleState, activeAllyIndex, enemyShiftX);
     const spriteW = spriteWidthAt(anchors.scale);
@@ -525,11 +528,13 @@ const BattleStage: React.FC<BattleStageProps> = ({
               * Nothing is predicted here: no targets, no order — see the component's header for
               * why that line is the whole design.
               */}
-            <EnemyHandPanel
-                battleState={battleState}
-                open={enemyHandOpen}
-                onToggle={() => setEnemyHandOpen((open) => !open)}
-            />
+            {!hideEnemyHand && (
+                <EnemyHandPanel
+                    battleState={battleState}
+                    open={enemyHandOpen}
+                    onToggle={() => setEnemyHandOpen((open) => !open)}
+                />
+            )}
         </div>
     );
 };

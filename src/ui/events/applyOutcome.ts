@@ -21,6 +21,7 @@ import { resolveGambles } from '../../engine/run/events/eventGamble';
 import { choiceGrants, choiceScrapCost } from '../../engine/run/events/eventSchema';
 import type { EventChoice, EventDefinition, EventOutcome } from '../../engine/run/events/eventSchema';
 import { planRecruit } from '../../engine/run/workshop';
+import { introRules } from '../../engine/run/intro/introRules';
 import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { addBlueprint, assembleMingming } from '../store/gameSlice';
 import {
@@ -132,8 +133,19 @@ function applyMacroPick(dispatch: OutcomeDispatch, pick: MacroPickResult): void 
  */
 function applyRecruit(dispatch: OutcomeDispatch, ctx: OutcomeContext, pick: RecruitPickResult): void {
     if (!ctx.ranch || !ctx.rosterHas) return;
-    const plan = planRecruit({ ranch: ctx.ranch, run: ctx.run, node: ctx.node, speciesId: pick.speciesId, osId: pick.osId });
+    /*
+     * TICKET 182c: the intro's recruit grants the chosen species' blueprint at the moment it is
+     * built, so the vault ends where it started (assembling spends the blueprint straight away).
+     * The plan is checked against a ranch that already holds it, because the workshop's own legality
+     * check wants one.
+     */
+    const grants = introRules(ctx.run).grantsRecruitBlueprint;
+    const ranch = grants
+        ? { ...ctx.ranch, blueprints: { ...ctx.ranch.blueprints, [pick.speciesId]: (ctx.ranch.blueprints[pick.speciesId] ?? 0) + 1 } }
+        : ctx.ranch;
+    const plan = planRecruit({ ranch, run: ctx.run, node: ctx.node, speciesId: pick.speciesId, osId: pick.osId });
     if (!plan) return;
+    if (grants) dispatch(addBlueprint(pick.speciesId));
     dispatch(assembleMingming(plan.member));
     if (!ctx.rosterHas(plan.member.id)) return;
     dispatch(recruitIntoParty({ memberId: plan.member.id, cards: plan.cards, price: 0 }));

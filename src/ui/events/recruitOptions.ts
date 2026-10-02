@@ -4,11 +4,15 @@
 
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { workshopBlockFor } from '../../engine/run/workshop';
+import { introRules } from '../../engine/run/intro/introRules';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 import type { RecruitPickResult } from './outcomePicks';
 
 /** Every (species, firmware) the workshop would let the player build right now. */
 export function recruitOptions(ranch: IRanchState, run: IRunState): RecruitPickResult[] {
+    // TICKET 182c: a run that authors the recruit (the intro) names its own options; the vault is not asked.
+    const authored = introRules(run).recruitOptions;
+    if (authored) return authored(run).map((option) => ({ ...option }));
     return Object.keys(ranch.blueprints).flatMap((speciesId) => (
         (MingmingRegistry[speciesId]?.availableOS ?? [])
             .filter((osId) => workshopBlockFor(speciesId, ranch, run, osId) === null)

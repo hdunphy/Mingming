@@ -35,6 +35,7 @@ import { authoredBossFor } from '../../engine/run/bosses';
 import { partyElementsOf, paysDriver, resolveDriverStake } from '../../engine/run/driverStakes';
 import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFight';
 import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
+import { introRules } from '../../engine/run/intro/introRules';
 import BattleReport from './BattleReport';
 import { addBlueprint, markGymCleared, recordGymTierClear, recordTierCleared } from '../store/gameSlice';
 import { openSettings } from '../store/uiSlice';
@@ -47,7 +48,7 @@ import {
     advanceGauntlet,
     consumeMacro,
     takeRewardMacro,
-    endRun,
+    endRunAction,
     finishGauntlet,
     recordBankedBlueprint,
     recordFightBlueprintOutcome,
@@ -916,7 +917,7 @@ const BattleArena: React.FC = () => {
      * run (a debug scenario) has nothing to end, so it simply closes.
      */
     const handleDefeat = () => {
-        if (run) dispatch(endRun('defeat'));
+        if (run) dispatch(endRunAction(run, 'defeat'));
         dispatch(setBattleState(null));
     };
 
@@ -1098,20 +1099,23 @@ const BattleArena: React.FC = () => {
              * loses the app has beaten the leader.** `recordBankedBlueprint` keeps the pity counter
              * honest exactly as the per-fight path does.
              */
-            for (const speciesId of gymClearBlueprints(
-                (authoredBossFor(run.gymId)?.members ?? []).map((m) => m.species),
-            )) {
-                dispatch(addBlueprint(speciesId));
-                dispatch(recordBankedBlueprint(speciesId));
-            }
+            // TICKET 182c: the intro's leader pays no gym clear, no tier clear and no blueprints.
+            if (introRules(run).countsAsProgress) {
+                for (const speciesId of gymClearBlueprints(
+                    (authoredBossFor(run.gymId)?.members ?? []).map((m) => m.species),
+                )) {
+                    dispatch(addBlueprint(speciesId));
+                    dispatch(recordBankedBlueprint(speciesId));
+                }
 
-            dispatch(markGymCleared(run.gymId));
-            dispatch(recordTierCleared(run.tier));
-            // Ticket 169d: which gym, at which tier. This is what unlocks the next tier for every gym.
-            dispatch(recordGymTierClear({ gymId: run.gymId, tier: run.tier }));
+                dispatch(markGymCleared(run.gymId));
+                dispatch(recordTierCleared(run.tier));
+                // Ticket 169d: which gym, at which tier. This is what unlocks the next tier for every gym.
+                dispatch(recordGymTierClear({ gymId: run.gymId, tier: run.tier }));
+            }
             // Ordered after `finishGauntlet`, which sets the phase back to 'map': the run is over,
             // not back on the map, and `endRun` is what says so. `RunSummary` reads it from there.
-            dispatch(endRun('victory'));
+            dispatch(endRunAction(run, 'victory'));
         }
 
         dispatch(setBattleState(null));
@@ -1316,6 +1320,7 @@ const BattleArena: React.FC = () => {
                     onEntityClick={handleEntityClick}
                     onEntityPointerUp={handleEntityPointerUp}
                     onEnemyHoverChange={setHoveredEntityId}
+                    hideEnemyHand={!introRules(run).showBattleLogs}
                 />
 
                 {/*
@@ -1326,7 +1331,8 @@ const BattleArena: React.FC = () => {
                 <PlayedCardReveal played={vfx.playedCard} />
 
 
-                <CombatLog isOpen={logOpen} onOpenChange={setLogOpen} />
+                {/* TICKET 182c: the intro has no combat log (absent, not just closed). */}
+                {introRules(run).showBattleLogs && <CombatLog isOpen={logOpen} onOpenChange={setLogOpen} />}
 
             </motion.div>
 
