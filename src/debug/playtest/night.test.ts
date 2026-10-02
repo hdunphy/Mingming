@@ -68,6 +68,15 @@ describe('180f — the plan command', () => {
         expect(plan.every((e) => e.mode === 'run' && e.starter.length > 0)).toBe(true);
     });
 
+    it('--starter plays every session with that one starter, and refuses one that is not a starter', () => {
+        const plan = JSON.parse(run(`plan --date ${DATE} --runs 4 --starter kraken_v1`).out) as NightEntry[];
+        expect(plan.map((e) => e.starter)).toEqual(Array(4).fill('kraken_v1'));
+        expect(plan.map((e) => e.gym)).toEqual([0, 1, 2, 0]);
+        const bad = run(`plan --date ${DATE} --starter nobody`);
+        expect(bad.code).toBe(1);
+        expect(bad.out).toContain('kraken_v1');
+    });
+
     it('refuses a missing date and a bad number', () => {
         expect(run('plan').code).toBe(1);
         expect(run(`plan --date ${DATE} --runs two`).code).toBe(1);
@@ -79,7 +88,7 @@ describe('180f — the plan command', () => {
 
 interface NightScript {
     DEFAULTS: { runs: number; model: string; maxUsd: number; resultsRoot: string };
-    parseNightArgs(argv: string[], today?: string): Record<string, unknown> & { date: string; runs: number; model: string; minutes: number; maxUsd: number; dryRun: boolean; report: boolean; cardRuns: number; turnRuns: number };
+    parseNightArgs(argv: string[], today?: string): Record<string, unknown> & { date: string; runs: number; model: string; minutes: number; maxUsd: number; starter?: string; dryRun: boolean; report: boolean; cardRuns: number; turnRuns: number };
     driverCommand(entry: NightEntry, options: Record<string, unknown>): { command: string; args: string[]; stdin: string };
     promptFor(entry: NightEntry, brief: string, resultsDir: string): string;
     readUsage(stdout: string): { tokens?: number; costUsd?: number; turns?: number };
@@ -125,6 +134,12 @@ describe('180f — the night script: arguments and the driver command', () => {
         expect(parseNightArgs(['--runs', '1'], DATE).cardRuns).toBe(0);
         expect(parseNightArgs(['--runs', '1', '--card-runs', '1'], DATE).cardRuns).toBe(1);
         expect(parseNightArgs(['--runs', '4'], DATE).cardRuns).toBe(1);
+    });
+
+    it('--starter is passed along as a string, and absent by default', async () => {
+        const { parseNightArgs } = await loadScript();
+        expect(parseNightArgs([], DATE).starter).toBeUndefined();
+        expect(parseNightArgs(['--starter', 'kraken_v1'], DATE).starter).toBe('kraken_v1');
     });
 
     it('reads the flags, and refuses a number that is not one', async () => {

@@ -17,6 +17,13 @@ Use the date as a flag (`--date 2026-10-02`) so the night keeps one folder even 
    changes between the night and the morning, an old session can replay differently. Leave the screens
    work alone until the report is written, or run the report first thing.
 4. **The PC stays awake and plugged in.** Turn off sleep for the night. Sessions run one after another.
+5. **It runs on your Claude subscription, not on money.** `claude -p` signs in the way the app does, so the
+   tokens count against your plan's usage. The one way it would bill an account is an `ANTHROPIC_API_KEY`
+   set on this PC, which makes Claude Code use the API instead. In PowerShell, `echo $env:ANTHROPIC_API_KEY`
+   should print nothing; if it prints a key, clear it for this window with `Remove-Item Env:ANTHROPIC_API_KEY`.
+   The dollar amounts below are Claude Code's own estimate of how big a session was. They are a
+   yardstick (and what `--max-usd` caps), not a charge. A long night can use up a lot of your plan's
+   usage, which is the reason for the trial first.
 
 ## Step 1: look at the plan (free, takes seconds)
 
@@ -25,15 +32,15 @@ Use the date as a flag (`--date 2026-10-02`) so the night keeps one folder even 
 It prints three sessions (seed, starter, gym, mode) and the exact command it would run for each. It
 starts nothing. Check the command ends with `--tools Bash --permission-mode dontAsk --allowedTools ...`.
 
-## Step 2: one small trial (a few cents to a few dollars)
+## Step 2: one small trial
 
-    npm run playtest:night -- --runs 1 --minutes 15 --max-usd 1 --date 2026-10-02 --no-report
+    npm run playtest:night -- --runs 1 --minutes 15 --max-usd 1 --starter kraken_v1 --date 2026-10-02 --no-report
 
 One session in `run` mode (the game's own AI plays the fights; the agent makes the choices). When it
 ends, look at what it left in `results/playtest/2026-10-02/r01/`:
 
-- `driver.json`: `exitCode` should be 0, and it shows minutes, tokens and cost. **Write the cost down:**
-  it sizes the full night.
+- `driver.json`: `exitCode` should be 0, and it shows minutes, tokens and the cost estimate. **Write them down:**
+  they size the full night.
 - `session.json`: the moves with the agent's one-sentence reasons and its notes.
 - Read the story it played: `npm run playtest -- state --session r01 --results results/playtest/2026-10-02`
 
@@ -65,9 +72,9 @@ mode and one in `card` mode, where the agent predicts every card and so finds wo
 
     npm run playtest:night -- --date 2026-10-02
 
-Sizing, from the trial: sessions are capped at 25 minutes each and `--max-usd 3` each, so ten sessions
-can take about four hours and cost up to $30 at the worst. If the trial's cost was higher than you like,
-start smaller: `--runs 5 --max-usd 2`. The `card` session is much longer than the others (500 to 700 calls
+Sizing, from the trial: sessions are capped at 25 minutes each and an estimated `--max-usd 3` each, so ten
+sessions can take about four hours. If the trial used more of your plan than you like, start smaller:
+`--runs 5 --max-usd 2`. The night plays all twelve starters in turn; add `--starter kraken_v1` to play one. The `card` session is much longer than the others (500 to 700 calls
 against 50 to 80), so give it room or leave it out with `--card-runs 0`.
 
 To stop, press Ctrl+C. To pick up again, run **the same command with the same `--date`**. A session that
@@ -93,5 +100,5 @@ Nothing here is committed for you. `results/playtest/` is ignored by git; the re
 
 ## What to tell the next session
 
-Send back the report plus the cost and time from the trial. Those are the numbers ticket 180g (the
+Send back the report plus the tokens and time from the trial. Those are the numbers ticket 180g (the
 pilot) needs to settle the driver, the model and how many runs a night.

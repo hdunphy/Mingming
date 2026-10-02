@@ -20,6 +20,7 @@
  *   npm run playtest:night                        ten sessions, tonight's date, the small model
  *   npm run playtest:night -- --runs 2 --minutes 15
  *   npm run playtest:night -- --model sonnet       another model (A3's pilot compares them)
+ *   npm run playtest:night -- --starter kraken_v1  every session plays this starter (default: all twelve in turn)
  *   npm run playtest:night -- --max-usd 1          a dollar cap per session (default 3)
  *   npm run playtest:night -- --date 2026-10-02    resume or redo a particular night
  *   npm run playtest:night -- --dry-run            print the plan and each driver command, run nothing
@@ -74,6 +75,7 @@ export function parseNightArgs(argv, today = todayLocal()) {
         minutes: number('minutes', DEFAULTS.minutes),
         maxTurns: number('max-turns', DEFAULTS.maxTurns),
         maxUsd: number('max-usd', DEFAULTS.maxUsd),
+        starter: typeof flags.starter === 'string' ? flags.starter : undefined,
         // one session is a trial: play it in run mode, the cheap one, unless card mode is asked for
         cardRuns: number('card-runs', runs > 1 ? DEFAULTS.cardRuns : 0),
         turnRuns: number('turn-runs', DEFAULTS.turnRuns),
@@ -177,7 +179,7 @@ function playtest(args) {
 
 export const realDeps = (options) => ({
     plan: () => {
-        const result = playtest(['plan', '--date', options.date, '--runs', String(options.runs), '--card-runs', String(options.cardRuns), '--turn-runs', String(options.turnRuns)]);
+        const result = playtest(['plan', '--date', options.date, '--runs', String(options.runs), '--card-runs', String(options.cardRuns), '--turn-runs', String(options.turnRuns), ...(options.starter ? ['--starter', options.starter] : [])]);
         if (result.code !== 0) throw new Error(`could not plan the night: ${result.out}`);
         return JSON.parse(result.out);
     },

@@ -202,7 +202,7 @@ export function cmdNote(root: string, args: ParsedArgs): CommandResult {
     }
 }
 
-/** `plan --date D [--runs N] [--card-runs N] [--turn-runs N]`: the night's sessions as JSON, for the nightly script. Touches no session. */
+/** `plan --date D [--runs N] [--card-runs N] [--turn-runs N] [--starter F]`: the night's sessions as JSON, for the nightly script. Touches no session. */
 export function cmdPlan(_root: string, args: ParsedArgs): CommandResult {
     const date = text(args, 'date');
     if (!date || !/^[A-Za-z0-9._-]+$/.test(date)) return refuse('--date <YYYY-MM-DD> is required.');
@@ -211,8 +211,10 @@ export function cmdPlan(_root: string, args: ParsedArgs): CommandResult {
     for (const [name, value] of Object.entries(options)) {
         if (value !== undefined && (!Number.isInteger(value) || value < 0)) return refuse(`--${name === 'cardRuns' ? 'card-runs' : name === 'turnRuns' ? 'turn-runs' : name} must be a whole number.`);
     }
+    const only = text(args, 'starter');
+    if (only !== undefined && !starterFirmwares().includes(only)) return refuse(`"${only}" is not a starter. One of: ${starterFirmwares().join(', ')}`);
     try {
-        return ok(JSON.stringify(planNight(date, starterFirmwares(), options), null, 2));
+        return ok(JSON.stringify(planNight(date, only === undefined ? starterFirmwares() : [only], options), null, 2));
     } catch (error) {
         return refuse(error instanceof Error ? error.message : String(error));
     }
