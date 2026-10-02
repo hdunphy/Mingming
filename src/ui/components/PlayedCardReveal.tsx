@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useAnimationControls } from 'framer-motion';
 import { CardFace } from '../screens/CardChassis';
-import { bannerFor } from '../screens/runShell';
 import { shortTargetLabel } from '../utils/targeting';
 import { numericBaseCost } from '../../engine/types';
 import CardKeywordChips from './CardKeywordChips';
@@ -252,14 +251,7 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                   * The tilt is doing work: an upright card in the middle of an upright board reads
                   * as a modal, and this is not one — the fight continues behind it.
                   */}
-                <div
-                    className="reveal-card"
-                    style={{
-                        // The glow is the only thing that scales with the card's element; the face
-                        // itself is untouched so it matches the hand exactly.
-                        filter: `drop-shadow(0 0 14px ${accent}) drop-shadow(0 6px 18px rgba(0,0,0,0.8))`,
-                    }}
-                >
+                <div className="reveal-card">
                     {/*
                       * TICKET 155e — the lane joins the one face.
                       *
@@ -287,12 +279,6 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                                 description: hasFace ? data!.description ?? '' : '',
                                 element: hasFace ? data!.element ?? 'None' : 'None',
                                 cost: hasFace ? numericBaseCost(data!.baseCost) : 0,
-                                /*
-                                 * `Banner` has no empty member and should not gain one for this:
-                                 * the idle face is never read, and SKILL is the least loaded of
-                                 * the four — no element bar, no macro chrome.
-                                 */
-                                banner: hasFace ? bannerFor(data!.category) : 'SKILL',
                             }}
                             target={hasFace ? shortTargetLabel(data!) : undefined}
                             keywords={hasFace ? <CardKeywordChips data={data!} /> : null}

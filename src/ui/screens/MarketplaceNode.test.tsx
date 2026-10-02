@@ -165,7 +165,6 @@ function macrosFor(run: IRunState) {
 interface Tile {
     readonly html: string;
     readonly gem: string;
-    readonly banner: string;
     readonly name: string;
     readonly description: string;
     /** The element WORD the tile prints (2026-08-30 playtest) — `WATER`, `NEUTRAL`, … */
@@ -231,22 +230,13 @@ const tilesIn = (markup: string): Tile[] => {
     // blueprint cases, which assert it directly.
     return [...scoped.matchAll(/<button[^>]*class="rs-card(?! mk-bp)[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
         html,
-        // Ticket 66: the cost gem is an energy PIP rack now. The rack's `aria-label` is the
-        // machine-readable cost, which is what this parser wants — a count of `<i>` would be the
-        // same number for 0 and 1 (a 0-cost card racks one UNFILLED pip).
-        gem: (html.match(/class="rs-pips" aria-label="([^"]*)"/) ?? [])[1] ?? '',
-        banner: (html.match(/class="rs-typ ([A-Z]+)"/) ?? [])[1] ?? '',
+        // TICKET 183c: the cost is the energy hexagon; its `aria-label` ("Energy 2") is the
+        // machine-readable cost. (Ticket 66's pip rack and type mark are gone with D3.)
+        gem: (html.match(/class="k-hex k-energy k-display" role="img" aria-label="Energy ([^"]*)"/) ?? [])[1] ?? '',
         name: spanText(html, 'rs-cnm'),
         description: spanText(html, 'rs-desc'),
-        // `rs-tags` is a CONTAINER since the element word joined it, and `spanText` is
-        // non-greedy — reading it would return half of the nested span. Its two children are read
-        // separately instead, which is also how a case can assert one without the other.
-        // Its own regex rather than `spanText`: the element word carries a `title` (the tooltip
-        // that spells the element out in full), and `spanText` matches a class attribute that is
-        // the span's LAST — it would read this one as empty.
-        // TICKET 182a (R4): the mark is an icon now, so the element is read off its hover title
-        // ("Water element") - which is also what the word used to be backed up by.
-        element: (html.match(/class="rs-elw[^"]*" title="([^"]*) element"/) ?? [])[1] ?? '',
+        // TICKET 183c: the element is the kit's mark in the header; its `aria-label` is the name.
+        element: (html.match(/class="k-mark" role="img" aria-label="([^"]*)"/) ?? [])[1] ?? '',
         tags: spanText(html, 'rs-tg'),
         plate: spanText(html, 'rs-price[^"]*'),
         disabled: /<button[^>]*disabled=""/.test(html),
@@ -417,7 +407,7 @@ describe('MarketplaceNode', () => {
             expect(tiles[i].name).toBe(escapeHtml(nameOf(offer.card.dataId)));
             expect(tiles[i].plate).toBe(`${offer.price} scrap`);
             expect(tiles[i].disabled).toBe(false);
-            expect(['ATTACK', 'SKILL', 'DAEMON']).toContain(tiles[i].banner);
+            expect(tiles[i].gem, 'every tile shows its energy cost in the hexagon').not.toBe('');
         });
         // The off-pool slot is the one row with news in it (`MARKET_WILDCARD_SLOTS`): the player is
         // meant to SEE something arrive from outside their party's lists, so the tag is counted
@@ -569,7 +559,7 @@ describe('MarketplaceNode', () => {
 
         expect(macroTilesIn(markup).length).toBeGreaterThan(0);
         expect(shelf).toContain('mk-macro');
-        for (const chassis of ['rs-card', 'rs-pips', 'rs-art', 'rs-typ', 'rs-elbar', 'energy']) {
+        for (const chassis of ['rs-card', 'rs-pips', 'rs-art', 'rs-typ', 'rs-elbar', 'k-energy']) {
             expect(shelf, `the macro shelf must not wear \`${chassis}\``).not.toContain(chassis);
         }
     });

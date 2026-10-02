@@ -32,6 +32,7 @@ import battleSliceReducer from '../store/battleSlice';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
+import { STAB_BONUS } from '../../engine/combatUtils';
 
 /**
  * `fire_punch_v2`: one ATTACK action, no scaling, no multi-hit, Fire, 1 Energy. Chosen because every
@@ -130,10 +131,10 @@ function render(
     );
 }
 
-/** The true-damage figure the card face prints, e.g. `<span ...>37 DMG</span>` → 37. */
+/** The true figure the card's readout strip prints, e.g. `<div class="k-readout-figure">37</div>` → 37. */
 function trueDamage(markup: string): number {
-    const m = markup.match(/([0-9]+) DMG/);
-    expect(m, `no true-damage readout in:\n${markup}`).not.toBeNull();
+    const m = markup.match(/k-readout-figure">([0-9]+)</);
+    expect(m, 'no true-damage readout on the card').not.toBeNull();
     return Number(m![1]);
 }
 
@@ -162,18 +163,49 @@ describe('CardHand reads for the SELECTED CASTER', () => {
 
     it('shows the STAB signal only for the caster it applies to', () => {
         /*
-         * Matched on `--stab-color` rather than on the string "×1.5": the SUPER chip legitimately
-         * prints the same multiplier, and an assertion that cannot tell the two apart would pass on
-         * a hand that had lost STAB entirely.
-         *
-         * TICKET 155e moved what this matches. It used to be `card-stab-pip`, the class on a `×1.5`
-         * pip printed on the face — which ticket 66 had already ruled out and which had grown back.
-         * The cue is the element GLOW on the card wrapper, set from `--stab-color`, so that is what
-         * the test reads now. The requirement is unchanged: this caster gets the signal, that one
-         * does not.
+         * TICKET 183c: STAB has no tag and no text on the face. The hand sets `data-stab` on the
+         * card, the stylesheet turns the frame the element's colour, and the card's `title` says
+         * why. Matched on the attribute rather than on "×1.5": the SUPER chip legitimately prints
+         * the same multiplier, and an assertion that cannot tell the two apart would pass on a hand
+         * that had lost STAB entirely. This caster gets the signal, that one does not.
          */
-        expect(render({ source: 'blaze' })).toContain('--stab-color');
-        expect(render({ source: 'trickle' })).not.toContain('--stab-color');
+        expect(render({ source: 'blaze' })).toContain('data-stab="true"');
+        expect(render({ source: 'trickle' })).not.toContain('data-stab');
+    });
+
+    it('explains STAB in the card title, with the multiplier read from STAB_BONUS', () => {
+        const markup = render({ source: 'blaze' });
+        expect(markup).toContain(
+            `title="STAB: Same Type Attack Bonus. This card matches the caster&#x27;s element: ×${STAB_BONUS} power."`,
+        );
+        // A non-matching caster's card carries no STAB sentence at all.
+        expect(render({ source: 'trickle' })).not.toContain('STAB: Same Type Attack Bonus');
+    });
+
+    it('draws the readout strip with the figure, the vs-name and the chips the preview carries', () => {
+        const markup = render({ source: 'blaze' });
+        expect(markup).toContain('data-testid="readout-strip"');
+        expect(markup).toMatch(/k-readout-figure">[0-9]+</);
+        expect(markup).toContain('k-readout-vs">vs SPROUT<');
+        expect(markup).toContain('is-super">SUPER ×1.5<');
+    });
+
+    it('draws the 5px element bar instead when there is no caster to read for', () => {
+        const markup = render({ source: null });
+        expect(markup).not.toContain('data-testid="readout-strip"');
+        expect(markup).toContain('class="rs-elbar"');
+    });
+
+    it('has no type mark and no energy pips on the face (D3), only the hexagon', () => {
+        const markup = render({ source: 'blaze' });
+        expect(markup).not.toContain('rs-typ');
+        expect(markup).not.toContain('rs-pips');
+        expect(markup).toContain('aria-label="Energy 1"');
+    });
+
+    it('marks the selected card with data-selected, for the yellow ring', () => {
+        expect(render({ source: 'blaze', card: 'c1' })).toContain('data-selected="true"');
+        expect(render({ source: 'blaze' })).not.toContain('data-selected');
     });
 
     it('shows the element matchup against the enemy the numbers are quoted for', () => {

@@ -789,60 +789,18 @@ body {
   min-height: 14px;
 }
 
-.hand-row .program-card {
-  margin-left: -70px;
-}
 
 .hand-row>*:first-child {
   margin-left: 0;
 }
 
 /* Battle-hand text scales with the bigger card face. */
-.hand-row .program-card .card-name {
-  font-size: 1rem;
-}
 
-.hand-row .program-card .card-description {
-  font-size: 0.75rem;
-}
 
-.hand-row .program-card .card-target {
-  font-size: 0.66rem;
-}
 
-.hand-row .program-card .card-cost {
-  width: 32px;
-  height: 32px;
-  font-size: 1.05rem;
-}
 
-.program-card {
-  width: 180px;
-  height: 255px;
-  background: var(--panel);
-  border: 1px solid var(--panel-2);
-  border-radius: 14px;
-  padding: 12px 12px 10px;
-  position: relative;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  cursor: pointer;
-  user-select: none;
-  backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  overflow: visible;
-}
 
-.program-card:hover {
-  border-color: var(--select);
-  z-index: 100 !important;
-}
 
-.program-card.selected {
-  border: 3px solid var(--text);
-  transform: translateY(-20px) scale(1.05);
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
-}
 
 .card-header {
   display: flex;
@@ -891,14 +849,6 @@ body {
 }
 
 /* ProgramCard Polish */
-.program-card-container:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-  z-index: 100;
-  /* Ensure hovered card pops above headers */
-}
 
 .card-hover-preview {
   position: fixed;
@@ -1216,34 +1166,10 @@ body {
    Applied when the selected source unit's primary/secondary element
    matches the card's element (×1.5 STAB). Pure class toggle; the color
    arrives via the --stab-color/--stab-glow custom properties. */
-.program-card.stab-match {
-  border-color: var(--stab-color, var(--text));
-  box-shadow: 0 0 14px var(--stab-glow, rgba(255, 255, 255, 0.4)), 0 4px 15px rgba(0, 0, 0, 0.5);
-}
 
 /* Keep the white selection signal on top of the element glow. */
-.program-card.stab-match.selected {
-  border-color: var(--text);
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4), 0 0 14px var(--stab-glow, rgba(255, 255, 255, 0.4));
-}
 
 /* Tiny ×1.5 pip next to the cost badge on element-matched cards */
-.card-stab-pip {
-  position: absolute;
-  top: 13px;
-  left: 42px;
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  line-height: 1.4;
-  padding: 0 4px;
-  border-radius: 4px;
-  color: var(--stab-color, var(--text));
-  border: 1px solid var(--stab-glow, rgba(255, 255, 255, 0.4));
-  background: rgba(5, 5, 10, 0.85);
-  pointer-events: none;
-  z-index: 2;
-}
 
 .card-cost {
   /* Deepened from var(--energy) so white text clears WCAG AA (~5.2:1);
@@ -1546,10 +1472,6 @@ body {
 @keyframes end-turn-nudge {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 74, 0); }
   50% { box-shadow: 0 0 0 5px rgba(255, 210, 74, 0.85); }
-}
-.rs-card.hand-card.nudge-playable {
-  border-color: var(--amber);
-  box-shadow: 0 0 0 2px var(--amber), 0 0 18px 4px rgba(255, 210, 74, 0.6);
 }
 @media (prefers-reduced-motion: reduce) {
   .action-button.end-turn.nudge { animation: none; box-shadow: 0 0 0 3px rgba(255, 210, 74, 0.85); }
@@ -2518,9 +2440,7 @@ body {
   }
 }
 
-/* Reward card tiles: fixed comfortable width, centered in their panel.
-   ProgramCard is content-box (min-width 140 + 24px padding + 2px border),
-   so it must be forced to border-box here to fit the 164px tile exactly. */
+/* Reward card tiles: fixed comfortable width, centered in their panel. */
 .reward-card-row {
   display: flex;
   flex-wrap: wrap;
@@ -2532,14 +2452,9 @@ body {
   width: 164px;
 }
 
-.reward-card-row .program-card-container {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-}
 
 /* First-synthesis celebration: 10 full-size cards in a 5+5 two-row arc.
-   Faces are the real ProgramCards (shared RevealCard flip), sized to match the
+   Faces are the one CardFace (shared RevealCard flip), sized to match the
    battle-report reward row so names/costs/categories stay readable. */
 .celebration-deck-grid {
   display: grid;
@@ -2554,11 +2469,6 @@ body {
   width: 158px;
 }
 
-.celebration-deck-grid .program-card-container {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-}
 
 /* Cap the celebration so the whole beat (name slam → grid → caption) fits a
    1280×720 viewport without clipping; scale down slightly when tight. */
@@ -3212,170 +3122,22 @@ body {
 }
 
 /* ============================================================================================
- * THE HAND CARD, ON TICKET 66'S CHASSIS — Henry, 2026-09-11:
- * *"I want them to use the same style as the card shop."*
+ * THE HAND CARD — the shop's chassis at the fan's size. Henry, 2026-09-11: *"I want them to use
+ * the same style as the card shop."* Everything about the face lives in `screens/card/card.css`
+ * (ticket 183c); the hand only sets the size, and only as a FALLBACK.
  *
- * `HandCardFace` draws the shop's own markup, so everything below is SIZE and the two rows the
- * shop does not have. The chassis' variables are the whole mechanism: `.rs-card` reads `--cw` and
- * `--ch`, so a bigger fight card is two custom properties rather than a second set of rules.
+ * ── TICKET 155b — THE SIZE COMES FROM THE FAN, NOT FROM HERE. `fanGeometry` sets the wrapper's
+ * width and height and `CardHand` hands the same pair to the face as `--cw` / `--ch`, plus `--ah`
+ * for the art band, which rides the same scale: an art band that stayed 36px on a 140px card is a
+ * different card. These are the reference-scale values, for any caller that renders a `.hand-card`
+ * outside the fan.
  * ============================================================================================ */
 
 .hand-card {
-  /* ── TICKET 155b — THE SIZE COMES FROM THE FAN, NOT FROM HERE.
-
-     These were hardcoded `180px / 255px`, and that is how the card stayed big
-     after `fanGeometry` was changed: the fan set the WRAPPER's width and height
-     while `.rs-card` sized itself from these variables, so the two disagreed and
-     the face won. The fallbacks are the reference-scale pair, for any caller
-     that renders a `.hand-card` outside the fan.
-
-     `--ah` is the art band. It rides the same scale: an art band that stayed 44px
-     on a 140px card is a different card. */
   --cw: 140px;
   --ch: 176px;
-  --ah: 44px;
-  text-align: left;
-  /*
-   * BORDER-BOX, and it is not a tidy-up. `.rs-card` sizes content-box, so `--ch: 255px` plus its
-   * own 8px padding and 1px border renders a 273px tile — 18px taller than the height the fan
-   * reserves for it, which the readout row pays for by hanging out of the bottom of the card.
-   * The shop never noticed because its tiles sit in a grid that grows; a fan cannot.
-   */
-  box-sizing: border-box;
+  --ah: 36px;
 }
-
-/* The shop centres its tiles; a hand is read down the left edge, one card after another. */
-.hand-card .rs-cnm { text-align: left; font-size: 12.5px; }
-
-/* ── TICKET 155e — THE ROW BUDGET, so the description survives.
-
-   A fixed-height card is a fixed budget, and the description is the only row
-   with `flex: 1` — so it pays for everything else. Measured on the live hand
-   before this block: three of four cards clipped, and `war_pact` was down to
-   6px of a 41px description. Henry's 2026-09-10 complaint was exactly this, and
-   it is what the 180x255 card was papering over.
-
-   Three caps, so the text gets a floor rather than the remainder:
-
-   1. The NAME takes at most two lines. "Ragnarok Edge" wrapped to three and
-      took 33px off the card's most important row.
-   2. The CHIPS take at most one. Three statuses wrapped to three rows, which is
-      how a card with a rich description ended up with none of it visible.
-   3. The DESCRIPTION has a floor of about three lines, which is what the
-      registry's text actually needs. */
-.hand-card .rs-cnm {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.hand-card .rs-desc {
-  text-align: left;
-  font-size: 10px;
-  line-height: 1.35;
-  min-height: 40px;
-}
-
-/* ── THE DESCRIPTION WAS A HOVER READ (Henry, 2026-09-20: hide it, the next
-   card covers its right half at a wide hand) — REVERSED 2026-09-25 — Henry: *"I don't like that the descriptions are
-   hidden while in hand. The statuses that show on the bottom should just be in
-   the tooltip."* The description is always painted now, and the keyword/status
-   chip row is gone from the hand card (it lives in `.card-tooltip`), so the
-   description also gets that row's height back. At a wide hand the next card
-   still covers the right side of this one; hover lifts it clear, as before. */
-
-/* A conditional that is TRUE for this caster and target — same green as a legal
-   drop target (`.stage-target-flag`), so "this will happen" reads one way. */
-.hand-card .rs-lit {
-  color: var(--hp);
-  background: rgba(34, 197, 94, 0.14);
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
-  font-weight: 700;
-}
-
-.hand-card.selected { border-color: var(--text); box-shadow: 0 0 26px rgba(255, 255, 255, 0.45); }
-.hand-card.grayscale { filter: grayscale(0.6); }
-.hand-card.stab-match { border-color: var(--stab-color, var(--el)); box-shadow: 0 0 14px var(--stab-glow, transparent); }
-
-/* The printed cost, kept beside the live pips so a discount reads as a change. */
-.hc-cost-was {
-  position: absolute; top: 6px; left: 34px;
-  font-size: 9px; font-weight: 700; color: var(--text-faint);
-  text-decoration: line-through;
-}
-.hc-cost-blocked { position: absolute; top: 5px; left: 34px; font-size: 11px; color: var(--hp-low); font-weight: 900; }
-
-/* ── TICKET 155e — THE NAME ROW CARRIES THE TARGET ──
-
-   `.hc-stab` is gone with the `×1.5` text it painted: ticket 66 ruled no STAB
-   text and 155e restates it. The `--el` glow on the wrapper is the cue.
-
-   The target moved off its own row and onto the name's. It was costing the
-   description a full line — and the description is the only flexing row on the
-   tile, which is how `brute_force` came to clip mid-sentence in Henry's
-   screenshot. As a tag beside the name it costs nothing and reads better: the
-   name and where it can land are one thought. */
-.rs-nmrow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 5px;
-  margin-bottom: 4px;
-}
-.rs-nmrow .rs-cnm { margin-bottom: 0; flex: 1 1 auto; min-width: 0; }
-
-.rs-tgt {
-  flex: 0 0 auto;
-  font-size: 7.5px;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-mute);
-  background: color-mix(in srgb, var(--text) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: 3px;
-  padding: 1px 3px;
-  white-space: nowrap;
-}
-
-.hc-replay { font-size: 9px; color: var(--panel-edge); margin-top: 3px; flex: none; }
-
-/*
- * THE READOUT RIDES THE TAG LINE — ticket 155e.
- *
- * It used to BE the last row, replacing the chassis' `FIRE · pick`. Now it sits inside that row
- * after the element word: `FIRE · 96 DMG vs SKOLL`. Two reasons. The element word was a ruled
- * decision (four of the nine hues are blues; the word is what settles the colour), and taking the
- * row outright meant the fight's card and the shop's card had different last lines — which is the
- * divergence Henry was reporting.
- *
- * `inline-flex`, so it flows after the element word rather than starting a line of its own.
- */
-.rs-tags .hc-readout {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 3px;
-  margin-left: 4px;
-  letter-spacing: 0;
-}
-.hc-figure { font-size: 10.5px; font-weight: 900; color: var(--hp-low); text-shadow: 0 0 8px color-mix(in srgb, var(--hp-low) 33%, transparent); }
-.hc-readout.is-lethal .hc-figure { color: var(--amber); text-shadow: 0 0 10px color-mix(in srgb, var(--amber) 40%, transparent); }
-.hc-vs { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; color: var(--text-mute); text-transform: uppercase; }
-.hc-chip {
-  font-size: 7.5px; font-weight: 800; letter-spacing: 0.05em;
-  padding: 1px 3px; border-radius: 3px;
-  background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text-dim); text-transform: uppercase;
-}
-.hc-chip.is-super { background: var(--hp); color: var(--text-dim); }
-.hc-chip.is-weak { background: var(--panel-3); color: var(--text-dim); }
-.hc-chip.is-lethal { background: color-mix(in srgb, var(--amber) 25%, var(--panel)); color: var(--text-dim); }
-.hc-chip.is-shielded { background: var(--panel-2); color: var(--text-dim); }
-/* The no-damage row: what the card PUTS ON something. `↺` is on the caster, `→` outward. */
-.hc-chip.is-status { background: var(--panel-2); color: var(--text-dim); font-size: 8px; }
-.hc-chip.is-status.is-self { background: var(--panel-2); color: var(--text-dim); }
 
 /* ── TICKET 159b — THE ENEMY HAND: AN EDGE TAB THAT SLIDES A PANEL OVER THE PLAQUES ──────────
 

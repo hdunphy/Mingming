@@ -1,61 +1,45 @@
 /**
- * THE CARD CHASSIS — ticket 34 part two, built to ticket 66's ruled reference
- * (`research/66-frames-proto/frames_chassis_final.html`).
+ * THE CARD CHASSIS — ticket 34 part two, redrawn in the Slant kit by ticket 183c.
  *
- * That file is a *spec*, not a mood board, and it says four things in its own subtitle:
+ * One face for every full card in the game: the hand, the hover card, the stall tile, the reward
+ * pick, the upgrade preview, the pile viewers and the codex (183 D2). The compact 27px deck row is
+ * not a full card and keeps its own shape; its element code and colours are the kit's.
  *
- * > Ruled: Chassis direction · energy PIPS top-left (cost as capacity) · TYPE ICON top-right
- * > (▲ attack · ✦ skill · ◆ daemon · ● macro) replaces the text banner · no STAB text · no payoff
- * > glow (payoff = tag in editor contexts only) · descriptions present at BOTH scales.
+ * # THE FACE, TOP TO BOTTOM (ticket 183 "The pieces")
  *
- * Two of those four are what this file is: the pips and the mark. (The STAB text was already gone,
- * and descriptions already print at both scales — `runShell.cardFace`'s header is the argument for
- * why.)
+ *   header      element mark · name · energy hexagon, on a band in the element's colour
+ *   art slot    the hatch placeholder until the art pass (the one gradient the kit allows)
+ *   target tag  where the card may land, as an icon on a small navy plate
+ *   rules text  with the clauses that are true right now lit in the selection yellow
+ *   foot        the readout strip when the fight has a figure for it, else a 5px element bar
  *
- * # WHY PIPS INSTEAD OF A NUMBER, AND WHY "AS CAPACITY"
+ * There is no type mark (D3, ruled) and no energy pips: the energy hexagon is the one cost symbol
+ * in the game, and the header's colour is the element's. The old chassis' history is kept where it
+ * still explains a decision below.
  *
- * The corner used to hold a big blue gem with a numeral in it. A numeral is a *price* — you read it,
- * then you do arithmetic against your energy. Pips are a *quantity*: three pips against two energy
- * is a comparison you make by looking, without counting either side. That is the whole of "cost as
- * capacity", and it is worth more in this game than in most because a turn is 2 energy, so almost
- * every decision is "can I afford this AND that".
+ * # STAB AND SELECTION ARE PAINTED BY THE CALLER'S ATTRIBUTES
  *
- * **A 0-cost card shows ONE UNFILLED pip, not zero pips**, which is the reference's own convention
- * (`Water Slap` and `Healing Mist` both draw a single `off` pip). An empty rack says "free" much
- * better than an empty corner does — an empty corner just looks like something failed to render.
+ * The face carries no state. The hand sets `data-stab` and `data-selected` on the element that
+ * holds the face, and `runShell.css` turns them into the element-coloured frame and the yellow
+ * ring. That keeps the face a pure function of its props and gives every other surface the same
+ * two states for free.
  *
- * # WHY A GLYPH FOR THE TYPE AND NOT AN ICON FROM `theme/Icon`
+ * # WHY AN ICON FOR THE ELEMENT AND NOT A WORD (still true)
  *
- * Ticket 34 part one replaced the game's emoji with drawn SVG, and the reason was font coverage and
- * colour: an emoji is picked by the player's system and ignores `color`. These four are neither —
- * `▲ ✦ ◆ ●` are plain geometric marks present in every UI font, they take `color` and `text-shadow`
- * like any character, and the reference specifies them AS characters with a glow that only works on
- * text. They are in the same class as the `✓` in a button and the `★` in a progress row, which
- * `Icon.test.tsx`'s sweep already allows by name.
+ * Ticket 34's playtest note: four of the old nine hues were blues, so colour alone could not say
+ * Water from Air. The mark says it by symbol (drop, flame, leaf, dot) and by colour, and its hover
+ * and screen-reader text are the word.
  */
 
 import type { ReactElement, ReactNode } from 'react';
 
 import { Icon } from '../theme/Icon';
+import './card/card.css';
 import type { IconName } from '../theme/icons';
-import { describeUpgrade } from './runShell';
-import type { Banner } from './runShell';
-import { paintSegments } from './litSegments';
 import type { TextRange } from '../utils/conditionalClauses';
-
-/**
- * The type mark, top-right. Replaces the coloured text banner the tiles used to carry.
- *
- * The banner said `ATTACK` in a red pill — eight characters and a background to say one bit of
- * information, on a tile 142px wide at hand scale. The mark says it in one character and leaves the
- * width for the card's name.
- */
-const TYPE_MARK: Readonly<Record<Banner, string>> = {
-    ATTACK: '▲',
-    SKILL: '✦',
-    DAEMON: '◆',
-    MACRO: '●',
-};
+import { CardHeader, CostExtras } from './card/CardHeader';
+import { CardRules } from './card/CardRules';
+import { TargetTag } from './card/TargetTag';
 
 /**
  * THE ELEMENT, IN WORDS — the 2026-08-30 playtest.
@@ -94,13 +78,6 @@ const ELEMENT_ICON: Readonly<Record<string, IconName | undefined>> = {
     Fire: 'el-fire', Water: 'el-water', Nature: 'el-nature', None: 'el-none',
 };
 
-/** TICKET 182a: who a card aims at, as an icon. The label stays as the hover. */
-function targetIconOf(label: string): IconName | null {
-    if (label === 'SELF' || label === 'ALLY' || label === 'ALLIES') return 'target-self';
-    if (label === '—') return null;
-    return 'target-enemy'; // ENEMY, ENEMIES, ENEMY*, ANY
-}
-
 export function ElementMark({ element, compact = false }: {
     readonly element: string;
     /** True on a 27px row: the three-letter code rather than the word. */
@@ -127,144 +104,62 @@ export function ElementMark({ element, compact = false }: {
     );
 }
 
-export function TypeMark({ banner }: { readonly banner: Banner }): ReactElement {
-    // `title` rather than visually-hidden text: the mark is a shorthand for a word the card's own
-    // description already implies, so it earns a tooltip and not a line of layout.
-    return <span className={`rs-typ ${banner}`} title={banner}>{TYPE_MARK[banner]}</span>;
-}
-
 /**
- * The energy rack, top-left. `cost` filled pips, or one unfilled pip at zero.
+ * THE ONE CARD FACE — ticket 155e, redrawn by 183c.
  *
- * X-cost cards arrive here already resolved through `numericBaseCost` (the shared 3-energy static
- * budget, ticket 22), so an X card racks as the expensive card it plays as rather than as a special
- * case this component would have to know about.
- */
-export function EnergyPips({ cost }: { readonly cost: number }): ReactElement {
-    const slots = Math.max(cost, 1);
-    return (
-        <span className="rs-pips" aria-label={`${cost} energy`}>
-            {Array.from({ length: slots }, (_, i) => (
-                // `undefined` rather than `''` for a filled pip: React renders an empty string as
-                // `class=""`, and a filled pip is the default state — it should carry no attribute.
-                <i key={i} className={i < cost ? undefined : 'off'} />
-            ))}
-        </span>
-    );
-}
-
-/**
- * THE WHOLE TILE — the face the shop and the collection draw, as one component.
+ * Henry, 2026-09-19: the hand cards *"don't look like the shop cards"*. The fix then, and still the
+ * rule, is that every caller renders THIS: not "make them look similar" but "make them the same
+ * component", so the next divergence has nowhere to live. The shop, the editor, the hand, the
+ * reveal lane, the pile viewers, the upgrade bench and the codex all pass a face to it.
  *
- * Henry, 2026-09-11: *"on hover of the Edit Loadout screen you should see what the active deck
- * cards look like. I need to see the full card that I would see from the shop or card collection
- * when I hover."*
- *
- * The active deck is a list of 27px rows — cost, element code, name — which is the right shape for
- * a list you are editing and the wrong shape for deciding whether to cut a card. The hover answer
- * has to be the SAME card the collection shows, not a second rendering that could drift from it,
- * so the tile stops being markup inlined at each call site and becomes this.
- *
- * Pure and prop-driven: the grid tile is a `<button>` that adds a card, the hover preview is a
- * floating `<div>`, and neither behaviour belongs in the face. The caller supplies the element.
- */
-/**
- * THE ONE CARD FACE — ticket 155e.
- *
- * Henry, 2026-09-19: the hand cards *"don't look like the shop cards"*. They were supposed to since
- * ticket 145d, and the reason they did not is that `HandCardFace` adopted the chassis' CLASSES and
- * then added three rows of its own — a target chip, a keyword strip and a readout — to a tile whose
- * description is the only flexing row. Three extra rows is three rows the description gives up, and
- * in a 176px card it clipped mid-sentence.
- *
- * So there is now one face, and the fight's extras go where they cost nothing:
- *
- *   - the TARGET rides on the name row as a small tag, not a row of its own;
- *   - the READOUT rides inside the existing tag line beside the element word
- *     (`FIRE · 96 DMG vs SKOLL`), which is the row the shop already spends on metadata;
- *   - the keyword chips carry their stacks, so the separate status summary is gone.
- *
- * Every caller — shop, loadout editor, hand, reveal lane — renders this. That is the property the
- * ticket is really asking for: not "make them look similar" but "make them the same component", so
- * the next divergence has nowhere to live.
- *
- * NO STAB TEXT. Ticket 66 ruled it out and `HandCardFace` had grown a `×1.5` pip anyway; the `--el`
- * glow is the cue, and 155e says so in as many words.
+ * It renders into whatever element the caller provides (a `<button>` in a shop, a `<div>` in the
+ * fan) and paints in two layers: the frame behind (`::before` of the caller's `.rs-card`) and
+ * `.rs-body`, the clipped inner card. Anything that hangs OFF the card — the ×N badge, a price
+ * plate — is a sibling of the body, not inside it, so the slant never clips it.
  */
 export function CardFace({ face, count, tags, target, readout, keywords, extras, lit }: {
     readonly face: {
         readonly name: string;
         readonly description: string;
         readonly element: string;
-        readonly cost: number;
-        readonly banner: Banner;
+        /** Absent on a body that is not a card (a blueprint). */
+        readonly cost?: number;
         /**
          * TICKET 163b — when the face knows which card it is, an UPGRADED card's moved numbers
-         * are picked out in the element colour (§4). Optional because several callers build a face
-         * by hand from a stack or an offer and have nothing to look up; those render plain text,
-         * which is what they rendered before.
+         * are picked out (§4). Optional because several callers build a face by hand from a stack
+         * or an offer and have nothing to look up; those render plain text.
          */
         readonly dataId?: string;
     };
     readonly count?: number;
     readonly tags?: string;
-    /** Where this card may land. A tag on the name row in every mode — it is a shopping question too. */
+    /** Where this card may land. A tag under the art in every mode — it is a shopping question too. */
     readonly target?: string;
-    /** The fight's preview, rendered inside the tag line after the element word. */
+    /** The fight's readout (`ReadoutStrip`). Absent, the foot is the 5px element bar. */
     readonly readout?: ReactNode;
     /** Keyword chips, which carry their own stack counts. */
     readonly keywords?: ReactNode;
-    /** Cost-was, cannot-pay, replay — things that hang off the pips rather than taking a row. */
+    /** Cost-was, cannot-pay, replay — things that hang off the energy hexagon. */
     readonly extras?: ReactNode;
-    /**
-     * Ranges of the description to paint as TRUE RIGHT NOW — the fight's conditional read
-     * (Henry, 2026-09-25: *"if dazed draw one card ... should highlight green"*). Only the hand
-     * passes it; every other caller renders exactly what it rendered before.
-     */
+    /** Ranges of the description to paint as TRUE RIGHT NOW — the fight's conditional read. */
     readonly lit?: ReadonlyArray<TextRange>;
 }): ReactElement {
-    const segments = face.dataId === undefined
-        ? [{ text: face.description, changed: false }]
-        : describeUpgrade(face.dataId);
-    const painted = paintSegments(segments, lit ?? []);
     return (
         <>
-            <EnergyPips cost={face.cost} />
-            {extras}
-            <TypeMark banner={face.banner} />
-            <span className="rs-art" />
-            <span className="rs-nmrow">
-                <span className="rs-cnm">{face.name}</span>
-                {target && targetIconOf(target) && (
-                    <span className="rs-tgt" title={`Targets: ${target.toLowerCase()}`} aria-label={`Targets: ${target.toLowerCase()}`}>
-                        <Icon name={targetIconOf(target)!} size={12} />
+            <span className="rs-body">
+                <CardHeader name={face.name} element={face.element} cost={face.cost} />
+                <span className="rs-art"><TargetTag target={target} /></span>
+                <CardRules description={face.description} dataId={face.dataId} lit={lit} />
+                {keywords}
+                {tags && (
+                    <span className="rs-tags">
+                        <span className="rs-tg">{tags}</span>
                     </span>
                 )}
+                {readout ?? <span className="rs-elbar" />}
             </span>
-            <span className="rs-desc">
-                {painted.map((seg, i) => {
-                    /*
-                     * Unchanged, unlit text is the RAW STRING, not a wrapped span. A card with no
-                     * upgrade and nothing lit comes back as one plain segment, so this renders
-                     * byte-for-byte what `{face.description}` rendered before 163b — which is what
-                     * keeps a highlight for ninety-eight cards from being a DOM change for all 268.
-                     *
-                     * Index keys: the segments are a pure function of one immutable string and the
-                     * lit ranges, so the list cannot reorder and there is no identity to preserve.
-                     */
-                    if (!seg.changed && !seg.lit) return seg.text;
-                    const cls = [seg.changed ? 'rs-upn' : '', seg.lit ? 'rs-lit' : ''].filter(Boolean).join(' ');
-                    return <span key={i} className={cls}>{seg.text}</span>;
-                })}
-            </span>
-            {keywords}
-            <span className="rs-tags">
-                <ElementMark element={face.element} />
-                {readout}
-                {tags && <span className="rs-tg">{tags}</span>}
-            </span>
+            <CostExtras>{extras}</CostExtras>
             {count !== undefined && count > 1 && <span className="rs-nbadge">×{count}</span>}
-            <span className="rs-elbar" />
         </>
     );
 }
@@ -279,13 +174,6 @@ export function CardTileFace({ face, count, tags }: {
         readonly description: string;
         readonly element: string;
         readonly cost: number;
-        readonly banner: Banner;
-        /**
-         * TICKET 163b — when the face knows which card it is, an UPGRADED card's moved numbers
-         * are picked out in the element colour (§4). Optional because several callers build a face
-         * by hand from a stack or an offer and have nothing to look up; those render plain text,
-         * which is what they rendered before.
-         */
         readonly dataId?: string;
     };
     /** Copies held. Prints the ×N badge above 1, exactly as the collection grid does. */

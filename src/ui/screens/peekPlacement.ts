@@ -13,6 +13,9 @@
 export const PEEK_TILE_W = 152;
 export const PEEK_TILE_H = 200;
 
+/** The upgrade preview draws two tiles with an arrow between them. */
+export const PEEK_PAIR_GAP = 28;
+
 /** Gap between the pointer and the tile's near edge, and how far up the tile starts. */
 export const PEEK_GAP_X = 18;
 export const PEEK_LIFT_Y = 40;
@@ -39,8 +42,15 @@ const clamp = (value: number, low: number, high: number): number => Math.max(low
  * inside the window. `scale` is the game's stage scale, applied to the tile's drawn size — the
  * flip and the clamps are done on the SCALED size, which is what actually lands on screen.
  */
-export function placePeek(at: PeekPoint, viewportWidth: number, viewportHeight: number, scale: number): PeekPlacement {
-    const width = PEEK_TILE_W * scale;
+export function placePeek(
+    at: PeekPoint,
+    viewportWidth: number,
+    viewportHeight: number,
+    scale: number,
+    /** 2 for the upgrade preview (now → upgraded); 1 for every other peek. */
+    tiles: 1 | 2 = 1,
+): PeekPlacement {
+    const width = (tiles === 2 ? PEEK_TILE_W * 2 + PEEK_PAIR_GAP : PEEK_TILE_W) * scale;
     const height = PEEK_TILE_H * scale;
 
     const rightSide = at.x + PEEK_GAP_X;

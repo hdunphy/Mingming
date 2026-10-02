@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    PEEK_EDGE_MARGIN, PEEK_GAP_X, PEEK_LIFT_Y, PEEK_TILE_H, PEEK_TILE_W, placePeek,
+    PEEK_EDGE_MARGIN, PEEK_GAP_X, PEEK_LIFT_Y, PEEK_PAIR_GAP, PEEK_TILE_H, PEEK_TILE_W, placePeek,
 } from './peekPlacement';
 
 const W = 1280;
@@ -56,5 +56,21 @@ describe('placePeek', () => {
         expect(p.flipped).toBe(true);
         expect(p.left).toBe(x - PEEK_GAP_X - width);
         expect(p.top).toBe(H - height - PEEK_EDGE_MARGIN);
+    });
+});
+
+describe('placePeek with two tiles (183c: the upgrade preview)', () => {
+    it('flips on the PAIR\'s width, which is two tiles and the arrow', () => {
+        const pair = PEEK_TILE_W * 2 + PEEK_PAIR_GAP;
+        // Room for one tile to the right but not for two: the pair goes left of the pointer.
+        const x = W - PEEK_EDGE_MARGIN - PEEK_GAP_X - PEEK_TILE_W - 4;
+        expect(placePeek({ x, y: 400 }, W, H, 1).flipped).toBe(false);
+        const p = placePeek({ x, y: 400 }, W, H, 1, 2);
+        expect(p.flipped).toBe(true);
+        expect(p.left).toBe(x - PEEK_GAP_X - pair);
+    });
+
+    it('defaults to one tile, exactly as before', () => {
+        expect(placePeek({ x: 300, y: 400 }, W, H, 1)).toEqual(placePeek({ x: 300, y: 400 }, W, H, 1, 1));
     });
 });

@@ -130,11 +130,12 @@ describe('182a battle - the hand', () => {
 describe('182a battle - the card face', () => {
     it('shows the element as an icon, not a word', async () => {
         const { host } = await open([FENRIR]);
-        const mark = host.querySelector('.hand-card .rs-elw')!;
+        // TICKET 183c: the kit's element mark, a disc with the symbol; the word is its hover.
+        const mark = host.querySelector('.hand-card .k-mark')!;
         expect(mark).not.toBeNull();
         expect(mark.querySelector('svg')).not.toBeNull();
         expect(visible(mark)).toBe('');
-        expect(mark.getAttribute('title')).toMatch(/element/i);
+        expect(mark.getAttribute('title')).toMatch(/fire|water|nature|none/i);
     });
 
     it('shows the target as an icon, not "ENEMY" / "SELF"', async () => {

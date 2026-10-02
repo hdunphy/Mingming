@@ -211,15 +211,12 @@
 .mk-rack-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /*
- * The price plate sits OVER the bottom of the face, so the tag line has to stop short of it.
- *
- * 22px was not enough and the overlap was invisible until ticket 34's screenshots showed a stall
- * with an off-pool tag on it: the plate is ~21px of type plus padding and border, pinned 10px up,
- * so it occupies the last ~31px of the card and a 22px gap put the tag underneath it. This is the
- * plate's full height plus a hairline — the two must not touch, because the only card that carries
- * BOTH a tag and a plate is the off-pool slot, which is the one row on the shelf with news in it.
+ * The price plate sits OVER the bottom of the face, so the rules text has to stop short of it:
+ * the plate is ~22px tall, pinned 12px up, so it covers the last ~34px of the card. The reserved
+ * margin is the plate's full height plus a hairline. (Before 183c this was a margin on the tag
+ * line; the tag line is inside the card body now, and the rules text is what the plate would hide.)
  */
-.mk-tags { margin-bottom: 32px; }
+.mk-grid .rs-desc { margin-bottom: 34px; }
 
 .mk-empty { grid-column: 1 / -1; text-align: center; color: var(--text-faint); font-size: 12px; }
 

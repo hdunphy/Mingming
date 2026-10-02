@@ -88,7 +88,7 @@ import { Icon } from '../theme/Icon';
 import { UpgradeBench } from './UpgradeBench';
 import { PatchBench } from './PatchBench';
 import { introRules } from '../../engine/run/intro/introRules';
-import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
+import { CardFace, ElementMark } from './CardChassis';
 import { CardPeek } from './CardPeek';
 import { useCardPeek } from '../hooks/useCardPeek';
 
@@ -325,19 +325,10 @@ export default function MarketplaceNode({
                                     disabled={sold || short > 0}
                                     onClick={() => buy(offer)}
                                 >
-                                    <EnergyPips cost={face.cost} />
-                                    <TypeMark banner={face.banner} />
-                                    <span className="rs-art" />
-                                    <span className="rs-cnm">{face.name}</span>
-                                    <span className="rs-desc">{face.description}</span>
-                                    <span className="rs-tags mk-tags">
-                                        <ElementMark element={face.element} />
-                                        {offer.wildcard && <span className="rs-tg">off-pool</span>}
-                                    </span>
+                                    <CardFace face={face} tags={offer.wildcard ? 'off-pool' : undefined} />
                                     <span className={`rs-price ${sold ? 'sold' : ''}`}>
                                         {sold ? 'SOLD' : short > 0 ? `${offer.price} scrap · ${short} SHORT` : `${offer.price} scrap`}
                                     </span>
-                                    <span className="rs-elbar" />
                                 </button>
                             );
                         })}
@@ -375,14 +366,13 @@ export default function MarketplaceNode({
                                     disabled={blueprintSold || shortBy(blueprintOffer.price) > 0}
                                     onClick={() => purchaseBlueprint(blueprintOffer)}
                                 >
-                                    <span className="rs-art" />
-                                    <span className="rs-cnm">{GetMingmingData(blueprintOffer.speciesId).name}</span>
-                                    <span className="rs-desc">
-                                        A blueprint. Spend it at a workshop or the ranch to assemble one.
-                                    </span>
-                                    <span className="rs-tags mk-tags">
-                                        <ElementMark element={GetMingmingData(blueprintOffer.speciesId).primaryElement} />
-                                    </span>
+                                    <CardFace
+                                        face={{
+                                            name: GetMingmingData(blueprintOffer.speciesId).name,
+                                            description: 'A blueprint. Spend it at a workshop or the ranch to assemble one.',
+                                            element: GetMingmingData(blueprintOffer.speciesId).primaryElement,
+                                        }}
+                                    />
                                     <span className={`rs-price ${blueprintSold ? "sold" : ""}`}>
                                         {blueprintSold
                                             ? "SOLD"
@@ -390,7 +380,6 @@ export default function MarketplaceNode({
                                                 ? `${blueprintOffer.price} scrap · ${shortBy(blueprintOffer.price)} SHORT`
                                                 : `${blueprintOffer.price} scrap`}
                                     </span>
-                                    <span className="rs-elbar" />
                                 </button>
                             </div>
                         </>

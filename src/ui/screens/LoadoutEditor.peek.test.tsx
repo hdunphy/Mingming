@@ -60,10 +60,11 @@ describe('LoadoutEditor — hovering a deck row shows the collection card', () =
         await flush();
 
         const peek = peekTile()!;
-        expect(peek.classList.contains('rs-card')).toBe(true);
+        // 183c: the peek is a fixed holder around the collection's own `.rs-card` tile.
+        expect(peek.querySelectorAll(':scope > .rs-card')).toHaveLength(1);
         expect(peek.querySelector('.rs-desc'), 'the description is the point').not.toBeNull();
         expect(peek.querySelector('.rs-art'), 'the art block').not.toBeNull();
-        expect(peek.querySelector('.rs-pips'), 'cost as pips, not a numeral').not.toBeNull();
+        expect(peek.querySelector('.k-energy'), 'cost in the energy hexagon').not.toBeNull();
         expect(peek.querySelector('.rs-cnm')?.textContent).toBeTruthy();
     });
 

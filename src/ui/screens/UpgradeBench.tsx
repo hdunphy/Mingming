@@ -99,7 +99,7 @@ export function UpgradeBench({ run, benchKey, free, heading, allowance = 1 }: Up
                             key={stack.dataId}
                             className="rs-wrap"
                             tabIndex={blocked ? 0 : undefined}
-                            {...peekHandlers({ face: plus, count: stack.instances.length })}
+                            {...peekHandlers({ before: face, face: plus, count: stack.instances.length })}
                         >
                             <button
                                 type="button"

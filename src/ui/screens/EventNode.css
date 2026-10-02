@@ -38,7 +38,7 @@
     gap: 14px;
     justify-content: center;
 }
-.ev-cards .rs-card.picked { outline: 2px solid var(--amber); outline-offset: 2px; }
+/* The picked card wears the same yellow ring as a selected card in a hand (`card/card.css`). */
 
 .ev-destination { display: flex; gap: 8px; justify-content: center; }
 .ev-destination .rs-f[aria-pressed='true'] { color: var(--amber); border-color: var(--amber); }

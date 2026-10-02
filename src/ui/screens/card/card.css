@@ -1,0 +1,268 @@
+/* ============================================================================================
+ * THE CARD — ticket 183c. One face for every full card: a white parallelogram in a 3px frame, a
+ * header band in the element's colour, an art slot, rules text, and a navy foot.
+ *
+ * The caller's element (`.rs-card`, a <button> or a <div>) owns the SIZE (`--cw`, `--ch`, `--ah`)
+ * and the ELEMENT (`--el`) and the two states (`data-stab`, `data-selected`). The face is two
+ * layers: `::before` is the frame, `.rs-body` is the clipped inner card. Things that hang off the
+ * card (the x N badge, a price plate, the cost extras) are siblings of the body, so the slant never
+ * clips them.
+ *
+ * No gradient but the art slot's hatch, no blur, no glow, no radius.
+ * ============================================================================================ */
+
+.rs-card {
+    --frame: var(--ink);
+    --k-shadow: drop-shadow(0 4px 0 color-mix(in srgb, var(--ink) 45%, transparent));
+    width: var(--cw, 150px);
+    height: var(--ch, 190px);
+    box-sizing: border-box;
+    position: relative;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--card-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    /* Grey first, ring second, the hard shadow last: each is a variable so states compose. */
+    filter: var(--k-gray, ) var(--k-ring, ) var(--k-shadow);
+}
+
+.rs-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--frame);
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.rs-card:disabled { cursor: default; }
+.rs-card.sold { opacity: 0.55; }
+
+/* STAB: the frame turns the element's colour, and the header gets a light inner edge. No tag. */
+.rs-card[data-stab] { --frame: var(--el); }
+.rs-card[data-stab] .rs-hd { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text) 55%, transparent); }
+
+/* A rare macro on a stall: the same frame, for the same reason (rarity, not payoff). */
+.rs-card.rare { --frame: var(--el); }
+
+/* Selected: a 4px yellow ring, drawn as four hard shadows so it follows the slant. It means
+   selected and nothing else. */
+.rs-card[data-selected] {
+    --k-ring:
+        drop-shadow(4px 0 0 var(--select)) drop-shadow(-4px 0 0 var(--select))
+        drop-shadow(0 4px 0 var(--select)) drop-shadow(0 -4px 0 var(--select));
+}
+
+/* The end-turn nudge: the cards that could spend the leftover energy, in the amber, thinner. */
+.rs-card.nudge-playable {
+    --k-ring:
+        drop-shadow(3px 0 0 var(--amber)) drop-shadow(-3px 0 0 var(--amber))
+        drop-shadow(0 3px 0 var(--amber)) drop-shadow(0 -3px 0 var(--amber));
+}
+
+.rs-card.grayscale { --k-gray: grayscale(0.6); }
+
+/* ---- the inner card ---------------------------------------------------------------------- */
+
+.rs-body {
+    position: absolute;
+    inset: 3px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--card-body);
+    clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.rs-hd {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: none;
+    height: 30px;
+    box-sizing: border-box;
+    padding: 0 5px 0 6px;
+    background: var(--el);
+    color: var(--text);
+    clip-path: polygon(0 0, 100% 0, 100% 78%, 0 100%);
+}
+
+.rs-cnm {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 13px;
+    line-height: 1.05;
+    /* Two lines, then stop: a long name wraps rather than losing its end. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* The art slot. The hatch is the one gradient the kit allows, and it is a placeholder. */
+.rs-art {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    flex: none;
+    box-sizing: border-box;
+    height: var(--ah, 36px);
+    margin: 4px 6px 0;
+    padding: 3px 4px;
+    background: repeating-linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--card-text) 11%, var(--card-body)) 0 6px,
+        color-mix(in srgb, var(--card-text) 4%, var(--card-body)) 6px 12px
+    );
+    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+/* The target tag sits on the art slot's lower edge: a plate with an icon, the words on hover. */
+.rs-tgtrow { display: flex; }
+
+.rs-tgt {
+    --k-cut: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px;
+    padding: 0 6px 0 5px;
+    background: var(--panel);
+    color: var(--text);
+}
+
+.rs-desc {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 4px 7px 0;
+    overflow: hidden;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    line-height: 1.25;
+    color: var(--card-text);
+}
+
+/* A clause that is true right now, and on an upgrade the numbers that moved: yellow behind ink. */
+.rs-lit,
+.rs-upn {
+    padding: 0 2px;
+    background: var(--select);
+    color: var(--ink);
+}
+
+/* `pick`, `benched`, `off-pool`, a rarity: the collection's own word for where a card sits. */
+.rs-tags {
+    flex: none;
+    margin: 2px 7px 3px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--card-mute);
+}
+
+/* The foot of a card with no figure to read: five flat pixels of the element's colour. */
+.rs-elbar {
+    flex: none;
+    height: 5px;
+    background: var(--el);
+}
+
+/* Cost extras hang off the energy hexagon, over the art slot's top-right corner. */
+.rs-extras {
+    position: absolute;
+    top: 32px;
+    right: 8px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.hc-cost-was,
+.hc-cost-blocked,
+.hc-replay {
+    display: inline-flex;
+    align-items: center;
+    height: 14px;
+    padding: 0 5px;
+    clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+    background: var(--panel);
+    color: var(--text);
+    white-space: nowrap;
+}
+
+/* The printed cost, kept beside the live hexagon so a discount reads as a change. */
+.hc-cost-was { color: var(--text-mute); text-decoration: line-through; }
+.hc-cost-blocked { background: var(--hp-low); }
+
+/* The x N copies badge hangs off the bottom-right corner, over the frame. */
+.rs-nbadge {
+    --k-cut: 3px;
+    clip-path: polygon(var(--k-cut) 0, 100% 0, calc(100% - var(--k-cut)) 100%, 0 100%);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    position: absolute;
+    bottom: -8px;
+    right: -6px;
+    z-index: 2;
+    padding: 1px 8px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13px;
+}
+
+/* ---- the reward card's back (RevealCard): a navy plate in a light frame ---------------------- */
+
+.reward-card-back-body {
+    --k-cut: 6px;
+    position: absolute;
+    inset: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel);
+    color: var(--text-mute);
+    font-size: 12px;
+    letter-spacing: 3px;
+}
+
+/* ---- keyword and status chips, where a card shows them (the reveal lane) --------------------- */
+
+.rs-chips { flex: none; margin: 3px 7px 0; }
+
+.rs-kwchip {
+    --k-cut: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 16px;
+    padding: 0 6px;
+    background: var(--panel);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: help;
+}

@@ -21,6 +21,7 @@ import { TypeChartPanel } from '../components/TypeChart';
 import { getElementIcon } from '../components/cardIcons';
 import './CodexScreen.css';
 import { Icon } from '../theme/Icon';
+import { StatusIcon } from '../theme/kit/StatusIcon';
 
 /**
  * THE CODEX SCREEN — ticket 31.
@@ -316,8 +317,7 @@ function Statuses(): ReactNode {
                 {entries.map(([type, entry]) => (
                     <li key={type} className="codex-row found">
                         <span className="codex-row-name" style={{ color: STATUS_COLORS[type] }}>
-                            {entry.icon ? `${entry.icon} ` : ''}
-                            {entry.name}
+                            <StatusIcon status={type} size={13} /> {entry.name}
                         </span>
                         <span className="codex-row-desc">{entry.description}</span>
                     </li>

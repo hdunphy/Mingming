@@ -21,7 +21,7 @@ import { CardTileFace } from './CardChassis';
 import { colorFor } from './runShell';
 import { PEEK_TILE_H, PEEK_TILE_W, placePeek, type PeekPoint } from './peekPlacement';
 import { stageScale } from '../components/stageGeometry';
-import type { CardPeekTarget } from '../hooks/useCardPeek';
+import type { CardPeekTarget, PeekFace } from '../hooks/useCardPeek';
 
 export interface CardPeekProps {
     readonly peek: CardPeekTarget | null;
@@ -30,21 +30,33 @@ export interface CardPeekProps {
     readonly className?: string;
 }
 
+function PeekTile({ face, count, tags }: { readonly face: PeekFace; readonly count?: number; readonly tags?: string }): ReactNode {
+    return (
+        <div
+            className="rs-card"
+            style={{
+                ['--el' as string]: colorFor(face.element),
+                ['--cw' as string]: `${PEEK_TILE_W}px`,
+                ['--ch' as string]: `${PEEK_TILE_H}px`,
+            } as React.CSSProperties}
+        >
+            <CardTileFace face={face} count={count} tags={tags} />
+        </div>
+    );
+}
+
 export function CardPeek({ peek, at, className }: CardPeekProps): ReactNode {
     if (!peek || !at) return null;
 
     const width = window.innerWidth;
     const height = window.innerHeight;
     const scale = stageScale(width, height);
-    const { left, top } = placePeek(at, width, height, scale);
+    const { left, top } = placePeek(at, width, height, scale, peek.before ? 2 : 1);
 
     return createPortal(
         <div
-            className={`rs-card card-peek ${className ?? ''}`.trim()}
+            className={`card-peek ${className ?? ''}`.trim()}
             style={{
-                ['--el' as string]: colorFor(peek.face.element),
-                ['--cw' as string]: `${PEEK_TILE_W}px`,
-                ['--ch' as string]: `${PEEK_TILE_H}px`,
                 left,
                 top,
                 transform: `scale(${scale})`,
@@ -54,7 +66,13 @@ export function CardPeek({ peek, at, className }: CardPeekProps): ReactNode {
             } as React.CSSProperties}
             aria-hidden="true"
         >
-            <CardTileFace face={peek.face} count={peek.count} tags={peek.tags} />
+            {peek.before && (
+                <>
+                    <PeekTile face={peek.before} />
+                    <span className="card-peek-arrow k-display">→</span>
+                </>
+            )}
+            <PeekTile face={peek.face} count={peek.count} tags={peek.tags} />
         </div>,
         document.body,
     );

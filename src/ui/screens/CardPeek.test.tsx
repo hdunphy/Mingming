@@ -73,8 +73,14 @@ describe('Ticket 165a — row hover card peek', () => {
         // 167f: outside every container, as a child of the page body.
         expect(peek!.parentElement).toBe(document.body);
         expect(host.contains(peek)).toBe(false);
-        expect(peek!.querySelector('.rs-cnm')?.textContent).toContain('+');
-        expect(peek!.querySelector('.rs-upn'), 'Changed numbers must be marked with .rs-upn').not.toBeNull();
+        // TICKET 183c (D2): the upgrade preview is TWO full cards, now → upgraded.
+        const tiles = peek!.querySelectorAll('.rs-card');
+        expect(tiles.length, 'the upgrade preview draws now and upgraded side by side').toBe(2);
+        expect(tiles[0].querySelector('.rs-cnm')?.textContent).not.toContain('+');
+        expect(tiles[1].querySelector('.rs-cnm')?.textContent).toContain('+');
+        expect(peek!.querySelector('.card-peek-arrow'), 'an arrow between them').not.toBeNull();
+        expect(tiles[1].querySelector('.rs-upn'), 'Changed numbers must be marked with .rs-upn').not.toBeNull();
+        expect(tiles[0].querySelector('.rs-upn'), 'the "now" card marks nothing').toBeNull();
     });
 
     it('2. Hovering a sell row shows that card', async () => {
@@ -105,6 +111,7 @@ describe('Ticket 165a — row hover card peek', () => {
         expect(peek, 'Hovering a sell row should show .card-peek').not.toBeNull();
         expect(peek!.parentElement).toBe(document.body);
         expect(sellPanel!.contains(peek)).toBe(false);
+        expect(peek!.querySelectorAll('.rs-card')).toHaveLength(1);
         expect(peek!.querySelector('.rs-cnm')?.textContent).toBeTruthy();
         expect(peek!.querySelector('.rs-desc')?.textContent).toBeTruthy();
     });

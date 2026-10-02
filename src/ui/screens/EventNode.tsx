@@ -48,7 +48,7 @@ import { describeApplied } from '../events/describeOutcome';
 import type { OutcomePick } from '../events/outcomePicks';
 import EventPickStep from './EventPickStep';
 import { Icon } from '../theme/Icon';
-import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
+import { CardFace } from './CardChassis';
 import { UpgradeBench } from './UpgradeBench';
 import { cardFace, colorFor } from './runShell';
 import './runShell.css';
@@ -268,20 +268,12 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
                                 key={cardId}
                                 type="button"
                                 className={`rs-card ${selected === cardId ? 'picked' : ''}`}
+                                data-selected={selected === cardId ? 'true' : undefined}
                                 style={{ ['--el' as string]: colorFor(face.element) }}
                                 aria-pressed={selected === cardId}
                                 onClick={() => { playSfx('uiClick'); setSelected(cardId); }}
                             >
-                                <EnergyPips cost={face.cost} />
-                                <TypeMark banner={face.banner} />
-                                <span className="rs-art" />
-                                <span className="rs-cnm">{face.name}</span>
-                                <span className="rs-desc">{face.description}</span>
-                                <span className="rs-tags">
-                                    <ElementMark element={face.element} />
-                                    <span className="rs-tg">{ProgramRegistry[cardId]?.rarity}</span>
-                                </span>
-                                <span className="rs-elbar" />
+                                <CardFace face={face} tags={ProgramRegistry[cardId]?.rarity} />
                             </button>
                         );
                     })}

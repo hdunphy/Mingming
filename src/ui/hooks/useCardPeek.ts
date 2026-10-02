@@ -9,19 +9,26 @@
  * focus has no pointer, so it anchors to the row's right edge.
  */
 import { useEffect, useRef, useState } from 'react';
-import type { Banner, CardFace } from '../screens/runShell';
+import type { CardFace } from '../screens/runShell';
 import type { PeekPoint } from '../screens/peekPlacement';
 import { FrameCoalescer } from './frameCoalescer';
 
+/** What a peek draws: the fields `CardFace` needs, and nothing about who owns the card. */
+export type PeekFace = CardFace | {
+    readonly name: string;
+    readonly description: string;
+    readonly element: string;
+    readonly cost: number;
+    readonly dataId?: string;
+};
+
 export interface CardPeekTarget {
-    readonly face: CardFace | {
-        readonly name: string;
-        readonly description: string;
-        readonly element: string;
-        readonly cost: number;
-        readonly banner: Banner;
-        readonly dataId?: string;
-    };
+    readonly face: PeekFace;
+    /**
+     * TICKET 183c (D2): the card as it is NOW, for the upgrade preview. When present the peek draws
+     * two full cards side by side, now → upgraded, with the changed text lit on the second.
+     */
+    readonly before?: PeekFace;
     readonly count?: number;
     readonly tags?: string;
 }

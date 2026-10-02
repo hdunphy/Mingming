@@ -335,7 +335,7 @@ describe('LoadoutEditor — the run collection', () => {
         expect(markup).not.toContain('×1<');
     });
 
-    it('prints cost, banner and the FULL card text on every tile', () => {
+    it('prints cost and the FULL card text on every tile', () => {
         /*
          * Henry's 2026-08-23 amendment and its 2026-08-24 follow-up, which `MarketplaceNode` already
          * carries the other half of: *"we need power in the card descriptions otherwise you can't
@@ -361,18 +361,14 @@ describe('LoadoutEditor — the run collection', () => {
             expect(markup).toContain(`<span class="rs-desc">${escapeHtml(data.description)}</span>`);
         }
         /*
-         * TICKET 66's chassis replaced the coloured TEXT banner with a one-character type MARK and
-         * the cost gem with an energy PIP rack. The claim is unchanged — attack-vs-skill and the
-         * energy cost are both readable on every tile — so this asserts the same two facts through
-         * the shapes that now carry them. The `title` is what keeps the mark nameable.
+         * TICKET 183c: the cost is the energy hexagon, and there is no type mark or pip rack on the
+         * face (D3, ruled). The claim is unchanged — the energy cost is readable on every tile — so
+         * it is asserted through the shape that now carries it. A 0-cost card is a hexagon reading 0.
          */
-        expect(markup).toContain('<span class="rs-typ ATTACK" title="ATTACK">▲</span>');
-        expect(markup).toContain('<span class="rs-typ DAEMON" title="DAEMON">◆</span>');
-        // `undertow` is a Skill and `healing_mist` is a Heal: two categories, one mark.
-        expect(markup.match(/<span class="rs-typ SKILL" title="SKILL">✦<\/span>/g)?.length).toBe(2);
-        // A 0-cost card racks ONE unfilled pip; a 2-cost card racks two filled ones.
-        expect(markup).toContain('<span class="rs-pips" aria-label="0 energy"><i class="off"></i></span>');
-        expect(markup).toContain('<span class="rs-pips" aria-label="2 energy"><i></i><i></i></span>');
+        expect(markup).toContain('role="img" aria-label="Energy 0" title="Energy 0"');
+        expect(markup).toContain('role="img" aria-label="Energy 2" title="Energy 2"');
+        expect(markup).not.toContain('rs-typ');
+        expect(markup).not.toContain('rs-pips');
     });
 
     it('tags a tile by what it is FOR — payoff, generic, benched, or a pick', () => {
@@ -413,8 +409,9 @@ describe('LoadoutEditor — the run collection', () => {
         expect(markup).toContain('<span class="rs-tg">pick</span>');
         // And the element it is: colour alone could not tell Water from Air, Ice or None.
         // TICKET 182a (R4): an icon, with the element's name as its hover and screen-reader label.
-        expect(markup).toContain('<span class="rs-elw rs-elw-icon" title="Fire element" aria-label="FIRE">');
-        expect(markup).toContain('<span class="rs-elw rs-elw-icon" title="None element" aria-label="NEUTRAL">');
+        // TICKET 183c: the face's mark is the kit's disc, named by `aria-label` and `title`.
+        expect(markup).toContain('class="k-mark" role="img" aria-label="Fire" title="Fire"');
+        expect(markup).toContain('class="k-mark" role="img" aria-label="None" title="None"');
         expect(markup).not.toContain('>FIRE</span>');
         expect(markup).toContain('<span class="rs-elc" title="Water element">WTR</span>');
         expect(markup).toContain('class="rs-card payoff"');

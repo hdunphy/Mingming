@@ -200,6 +200,22 @@ The stage is now `src/ui/components/stage/` (one small component per piece: `Bio
 4. **Everywhere the full card is shown takes this face (D2, ruled):** `CardPeek` (the hover card), the stall tile (`rs-card`), the reward pick, the upgrade preview (now → upgraded, side by side), the deck and discard viewers, the codex, and 176c's town tabs. The compact list row (`rs-row`) is not a full card and keeps its row shape, restyled to the kit's type and colours only.
 5. **Tests:** a fire card with a fire caster has the STAB frame and the tooltip; a non-match has the ink frame; the readout shows the figure, the vs-name and every chip the preview carries; `fanGeometry.test.ts` untouched.
 
+### 183c built (2026-10-02)
+
+`CardFace` is now a small family under `src/ui/screens/card/` (`CardHeader`, `CostExtras`, `CardRules`, `TargetTag`, `targetIcon.ts`, `card.css`). The caller's `.rs-card` owns the size and the element (`--cw`, `--ch`, `--ah`, `--el`) and the states (`data-stab`, `data-selected`); the face is a frame, a header (element mark, name, energy hexagon), the hatch art slot with the target tag inside it, the rules text, and a foot that is the readout strip or the 5px element bar. Screenshots: `research/183-screens/183c/`. Where it differs from the row text above:
+
+- **The target tag is the icon only**, inside the art slot. The mock printed icon and word; at 140px the word cost a line of rules text. The word is the tag's hover.
+- **The element word is a hover**, on the header's mark. Colour, symbol and word is still the rule; the word is on demand at card size.
+- **Lit and upgrade-changed text is a yellow highlight behind ink**, not yellow letters: yellow letters on the white card body fail contrast.
+- **Selected** is the yellow ring (four hard drop-shadows, so it follows the slant). A card the nudge says to play gets the same ring in amber.
+- **`ProgramCard` is deleted**, with its CSS. The reward pick, the gym draft and the synthesis fan now draw `RewardCardFace` (`CardFace` at 164 x 214). The face-down back is a plain navy slant plate; the pulse glow on pick is gone.
+- **Upgrade preview** is the pair: `CardPeek` draws now, an arrow, upgraded; the changed numbers are highlighted on the second card. `peekPlacement` counts two tiles.
+- **Shop and event tiles are border-box now**, so they come out a few pixels smaller than before. The price plate is a navy slant plate on the face's foot.
+- `CardKeywordChips` are `k-slant` chips with `StatusIcon`; the Codex's status rows use `StatusIcon` too (no emoji left on a card surface). `bannerFor` and the type mark are gone.
+- The deck and discard viewers are compact rows (the row shape is kept, D2); their hover is the peek, which is this face.
+- The played-card lane lost its neon glow filter; its animation is unchanged. Particle FX and the HUD sidebar card glows are later rows.
+- `cards.html` (dev only, like `stage.html` and `kit.html`) mounts the real shop, loadout editor, reward row and event for the screenshots.
+
 ## 183d: The console and toasts
 
 **Files:** `MacroRack.tsx` + `.css`, `CardHand.tsx` (piles), `BattleArena.tsx` (End Turn, toast mount), `Callout.tsx` + `.css`.

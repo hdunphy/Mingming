@@ -6,10 +6,11 @@ import type { ProgramData, StatusType } from '../../engine/types';
 // exports only components.
 import { KEYWORD_INFO, appliedStacks, getAppliedStatuses, getCardKeywords } from './cardKeywords';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
+import { StatusIcon } from '../theme/kit/StatusIcon';
 
-/** Small neon chip with a portal tooltip (never clipped by parent overflow). */
-const Chip: React.FC<{ label: string; color: string; title: string; description: string }> = ({
-    label, color, title, description
+/** Small slanted chip with a portal tooltip (never clipped by parent overflow). */
+const Chip: React.FC<{ label: string; color: string; title: string; description: string; icon?: React.ReactNode }> = ({
+    label, color, title, description, icon
 }) => {
     const [hovered, setHovered] = React.useState(false);
     // Ticket 55: measured after layout rather than read during render — see `useAnchoredRect`.
@@ -20,22 +21,10 @@ const Chip: React.FC<{ label: string; color: string; title: string; description:
             ref={chipRef}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '1px 5px',
-                borderRadius: '4px',
-                border: `1px solid ${color}`,
-                background: 'rgba(0, 0, 0, 0.6)',
-                color,
-                fontSize: '0.6rem',
-                fontWeight: 800,
-                letterSpacing: '0.4px',
-                lineHeight: 1.4,
-                whiteSpace: 'nowrap',
-                cursor: 'help'
-            }}
+            className="k-slant rs-kwchip"
+            style={{ color }}
         >
+            {icon}
             {label}
             {hovered && rect !== null && createPortal(
                 <div
@@ -50,13 +39,12 @@ const Chip: React.FC<{ label: string; color: string; title: string; description:
                             top: isTopHalf ? rect.bottom + 8 : 'auto',
                             bottom: isTopHalf ? 'auto' : (window.innerHeight - rect.top) + 8,
                             borderColor: color,
-                            boxShadow: `0 0 20px ${color}55`,
                             width: '220px',
                             zIndex: 10001
                         };
                     })()}
                 >
-                    <div className="os-tooltip-header" style={{ color, borderBottomColor: `${color}55` }}>
+                    <div className="os-tooltip-header" style={{ color }}>
                         {title}
                     </div>
                     <div className="os-tooltip-desc">{description}</div>
@@ -82,7 +70,7 @@ const Chip: React.FC<{ label: string; color: string; title: string; description:
 function chipLabel(data: ProgramData, status: StatusType): string {
     const stacks = appliedStacks(data, status);
 
-    const name = `${statusGlossary[status].icon ?? ''} ${statusGlossary[status].name}`.trim().toUpperCase();
+    const name = statusGlossary[status].name.toUpperCase();
     return stacks > 1 ? `${stacks} ${name}` : name;
 }
 
@@ -117,6 +105,7 @@ const CardKeywordChips: React.FC<{ data: ProgramData }> = ({ data }) => {
                      * as in the fight.
                      */
                     label={chipLabel(data, s)}
+                    icon={<StatusIcon status={s} size={10} />}
                     color={STATUS_COLORS[s]}
                     title={statusGlossary[s].name}
                     description={statusGlossary[s].description}

@@ -152,127 +152,22 @@
 
 /* --- the big card tile ----------------------------------------------------------------------- */
 
-.rs-card {
-    width: var(--cw, 152px);
-    height: var(--ch, 200px);
-    border: 1px solid var(--panel-2);
-    border-radius: 8px;
-    background: linear-gradient(180deg, var(--panel) 0%, var(--page) 100%);
-    position: relative;
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 3px 10px color-mix(in srgb, var(--page) 47%, transparent);
-    color: inherit;
-    font: inherit;
-    text-align: center;
-    cursor: pointer;
-}
-/*
- * TICKET 66 rules **no payoff glow** — *"payoff = tag in editor contexts only"*, which the editor
- * already does (`LoadoutEditor.tagsFor`). The rule below survives under a corrected NAME: the one
- * place that used it was the marketplace marking a RARE MACRO, which is a rarity cue and was never
- * a payoff cue. Renaming it is what makes the ruling checkable — there is now no class called
- * `payoff` on any card face.
- */
-.rs-card.rare { border-color: var(--el); box-shadow: 0 0 0 1px var(--el), 0 3px 12px color-mix(in srgb, var(--page) 53%, transparent); }
-.rs-card:disabled { cursor: default; }
+/* The card itself is drawn by `card/card.css` (ticket 183c); what stays here is the element word
+   the compact rows print, and the badges that belong to a collection screen. */
 
 /*
- * TICKET 66's chassis: energy PIPS top-left, TYPE MARK top-right.
- *
- * The gem this replaces was a 30px disc hanging off the corner with a numeral in it — a price you
- * read and then did arithmetic with. Pips are a quantity you compare by looking, which is what
- * "cost as capacity" means and what matters in a game where a turn is two energy.
- */
-.rs-pips {
-    position: absolute; top: 7px; left: 7px;
-    display: flex; gap: 3px;
-}
-
-.rs-pips i {
-    width: 9px; height: 9px;
-    border-radius: 2px;
-    background: var(--el);
-    box-shadow: 0 0 5px var(--el);
-    display: block;
-}
-
-/* An unfilled slot: a 0-cost card racks ONE of these rather than nothing, so "free" reads as a
-   deliberate empty slot instead of as a corner that failed to render. */
-.rs-pips i.off { background: var(--panel-2); box-shadow: none; }
-
-.rs-typ {
-    position: absolute; top: 2px; right: 7px;
-    font-size: 15px; line-height: 1;
-    text-shadow: 0 0 6px currentColor;
-}
-.rs-typ.ATTACK { color: var(--text-dim); }
-.rs-typ.SKILL { color: var(--el-water); }
-.rs-typ.DAEMON { color: var(--text-dim); }
-.rs-typ.MACRO { color: var(--amber); }
-
-/* Placeholder until ticket 33's art pass — the mockup's own gradient, so the swap is one rule. */
-.rs-art {
-    height: var(--ah, 52px);
-    border-radius: 5px;
-    /* Ticket 66's spacing: the art starts BELOW the pips and the mark, which both now sit inside
-       the card rather than hanging off its corner (the gem used to hang outside it, so the art
-       could start higher). 16px clears a 9px pip at top:7px with a hair to spare — the reference's
-       20px is against a 246px editor card, and ours is 216px, where the extra 4px pushed the tag
-       line under the price plate. */
-    margin: 16px 0 6px;
-    background:
-        repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--text) 3%, transparent) 6px 12px),
-        linear-gradient(135deg, var(--el) 0%, var(--page) 130%);
-    opacity: 0.85;
-    flex: none;
-}
-
-.rs-cnm { font-size: 12.5px; font-weight: 700; margin-bottom: 4px; line-height: 1.1; }
-.rs-desc { font-size: 10px; color: var(--text-dim); line-height: 1.35; flex: 1; overflow: hidden; }
-/*
- * `padding-right` is the ×N badge's room, and it is a fix for a collision the 2026-08-30 element
- * word created: `.rs-nbadge` hangs off the bottom-right corner, and the tag line is the last thing
- * in the tile's flow, so the two share that corner. One short tag never reached it; an element word
- * plus a tag does. Henry, 2026-09-05: *"the x2 on the card in the load out editor is covered by the
- * element line."*
- *
- * Reserved space rather than a z-index: the badge winning the paint would still leave the word
- * unreadable underneath it. This is the same move `.mk-tags`' bottom margin makes for the price
- * plate, for the same reason — two things that both want the bottom of a tile.
- */
-.rs-tags {
-    font-size: 8.5px; color: var(--text-mute); letter-spacing: 0.5px;
-    min-height: 11px;
-    padding-right: 26px;
-}
-
-/*
- * The element, said out loud (2026-08-30 playtest). `--el` alone could not carry it: four of the
- * nine hues in `runShell.ts` are blues. Both forms tint themselves with the same custom property
- * they are backing up, so the colour still does its work for anyone reading it - the word is what
- * settles it when the colour is ambiguous, which on Water/Air/Ice/None is always.
- *
- * `.rs-elw` rides INSIDE the existing `.rs-tags` line and `.rs-elc` inside the row's flex, so
- * neither costs the tile a pixel of description.
+ * The element, said out loud: the compact row prints a three-letter code (`.rs-elc`), and the few
+ * callers that still print the word or the old icon (`.rs-elw`) tint it with the same custom
+ * property they are backing up. The card face itself now carries the kit's element mark.
  */
 .rs-elw {
     font-weight: 800;
     letter-spacing: 0.12em;
     color: var(--el);
-    text-shadow: 0 0 6px currentColor;
 }
-/*
- * The separator belongs to the TAG, not to the element word: a tag is rendered only when there is
- * one, so a card with no tag cannot end up with a dangling middot. (`:only-child` could not do this
- * job - a bare text node is not a child element, so it would have read "WATERoff-pool".)
- */
-.rs-tg::before { content: ' · '; color: var(--panel-3); font-weight: 400; }
 
-/* 182a: the element as an icon - same colour and glow as the word it replaced. */
+/* 182a: the element as an icon - same colour as the word it replaced. */
 .rs-elw-icon { display: inline-flex; vertical-align: middle; line-height: 0; }
-.rs-tgt { display: inline-flex; vertical-align: middle; line-height: 0; color: var(--text-mute); margin-left: 4px; }
 
 .rs-elc {
     flex: none;
@@ -282,35 +177,23 @@
     color: var(--el);
 }
 
-.rs-nbadge {
-    position: absolute; bottom: -10px; right: -8px;
-    /* Above the tag line it shares a corner with — see `.rs-tags`, which also reserves the room. */
-    z-index: 1;
-    background: var(--amber); color: var(--page);
-    font-weight: 800; font-size: 12px;
-    border-radius: 11px; padding: 2px 8px;
-    border: 2px solid var(--page);
-}
-
-.rs-elbar {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    height: 3px; border-radius: 0 0 8px 8px; background: var(--el);
-}
-
-/* The price rides ON the card face — ticket 63's ruling, so a stall reads as a stall. */
+/* The price rides ON the card face — ticket 63's ruling, so a stall reads as a stall. A navy plate
+   on a slant (183c); the rules text above it makes room (`MarketplaceNode.css`). */
 .rs-price {
-    position: absolute; bottom: 10px; left: 50%;
+    position: absolute; bottom: 12px; left: 50%;
     transform: translateX(-50%);
-    background: var(--amber); color: var(--page);
-    font-weight: 800; font-size: 12.5px;
-    border-radius: 3px; padding: 2px 10px;
-    border: 2px solid var(--page);
+    z-index: 2;
+    clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+    background: var(--panel); color: var(--text);
+    font-family: var(--font-display); font-weight: 800; font-style: italic;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    font-size: 14px; line-height: 1;
+    padding: 4px 14px;
     white-space: nowrap;
 }
 /* A sold card STAYS on the shelf, greyed. Ticket 63: the gap it leaves is what tells you the
    stock was finite, and a vanished card reads as a bug. */
 .rs-price.sold { background: var(--panel-2); color: var(--text-mute); }
-.rs-card.sold { opacity: 0.55; }
 
 /* --- the 27px deck row ------------------------------------------------------------------------ */
 
@@ -364,8 +247,23 @@
     z-index: 10001;
     transform-origin: top left;
     pointer-events: none;
-    box-shadow: 0 10px 34px color-mix(in srgb, var(--page) 80%, transparent), 0 0 0 1px var(--el);
+    display: flex;
+    align-items: center;
+    gap: 4px;
     animation: card-peek-in 0.12s ease-out;
+}
+
+/* The upgrade preview's arrow, between the two cards (183c). */
+.card-peek-arrow {
+    /* 20 + the holder's two 4px gaps = `PEEK_PAIR_GAP` (peekPlacement.ts): the maths counts this slot. */
+    flex: 0 0 20px;
+    width: 20px;
+    text-align: center;
+    font-style: normal;
+    font-size: 28px;
+    line-height: 1;
+    overflow: visible;
+    color: var(--text);
 }
 
 /* Opacity only: the tile's `transform` is the stage scale and must not be animated away. */

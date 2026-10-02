@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { ProgramData } from '../../engine/types';
-import ProgramCard from './ProgramCard';
-import { getElementColor } from './cardIcons';
+import RewardCardFace from './RewardCardFace';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 
@@ -67,8 +66,6 @@ const RevealCard: React.FC<RevealCardProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const accent = getElementColor(data.element);
-
     const handleClick = () => {
         if (disabled || !revealed || pulsing) return;
         playSfx('rewardClaim');
@@ -93,7 +90,7 @@ const RevealCard: React.FC<RevealCardProps> = ({
             style={{
                 perspective: '1000px',
                 cursor: disabled ? 'default' : 'pointer',
-                filter: pulsing ? `drop-shadow(0 0 12px ${accent})` : 'none'
+                filter: 'none'
             }}
         >
             <motion.div
@@ -112,46 +109,24 @@ const RevealCard: React.FC<RevealCardProps> = ({
             >
                 {/* Front face: the actual reward card (in normal flow → sizes the flip) */}
                 <div style={{ backfaceVisibility: 'hidden', transform: 'rotateY(0deg)' }}>
-                    <ProgramCard data={data} isSelected={isSelected} />
+                    <RewardCardFace data={data} isSelected={isSelected} />
                 </div>
 
-                {/* Back face: neon terminal card back (skipped for reduced-motion fades).
-                    Deliberately element-neutral so a face-down card never leaks
-                    what's underneath — house cyan accent + glyph only. */}
+                {/* Back face: a plain navy card back (skipped for reduced-motion fades).
+                    Deliberately element-neutral so a face-down card never leaks what's underneath. */}
                 {!reduced && (
                     <div
                         aria-hidden
+                        className="k-slant reward-card-back"
                         style={{
                             position: 'absolute',
                             inset: 0,
                             transform: 'rotateY(180deg)',
                             backfaceVisibility: 'hidden',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(0, 210, 255, 0.6)',
-                            background:
-                                'repeating-linear-gradient(0deg, rgba(0, 210, 255, 0.05) 0px, rgba(0, 210, 255, 0.05) 1px, transparent 1px, transparent 4px), ' +
-                                'linear-gradient(145deg, var(--page) 0%, var(--page) 100%)',
-                            boxShadow: 'inset 0 0 18px rgba(0, 210, 255, 0.08), 0 0 10px rgba(0, 210, 255, 0.2)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
+                            background: 'var(--panel-edge)',
                         }}
                     >
-                        <div style={{
-                            fontSize: '2rem',
-                            color: 'var(--panel-edge)',
-                            textShadow: '0 0 12px var(--panel-edge)'
-                        }}>
-                            ◈
-                        </div>
-                        <div style={{
-                            fontSize: '0.6rem',
-                            fontWeight: 900,
-                            letterSpacing: '3px',
-                            color: 'rgba(0, 210, 255, 0.65)'
-                        }}>
+                        <div className="k-slant reward-card-back-body k-display">
                             ENCRYPTED
                         </div>
                     </div>

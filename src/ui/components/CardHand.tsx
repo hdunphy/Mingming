@@ -37,7 +37,8 @@ import { describeConditional, readCardConditionals } from '../utils/cardConditio
 import { litClauses } from '../utils/conditionalClauses';
 import { KEYWORD_INFO, appliedStacks, getAppliedStatuses, getCardKeywords } from './cardKeywords';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
-import { getElementAccent } from '../utils/contrastText';
+import { stabTitle } from './stabText';
+import { StatusIcon } from '../theme/kit/StatusIcon';
 import { colorFor } from '../screens/runShell';
 import { playSfx } from '../audio/AudioEngine';
 // The fight draws ticket 66's ruled chassis now — same stylesheet as the shop and the editor.
@@ -428,7 +429,6 @@ const CardHand: React.FC<{
                         // casting. Absence of glow is the signal for unmatched cards (never dimmed).
                         const preview = previews.get(card.id);
                         const isStabMatch = !!preview?.stab;
-                        const stabAccent = isStabMatch ? getElementAccent(data.element) : null;
 
                         /*
                          * THE CARD'S "IF", ANSWERED — Henry, 2026-09-25: *"We also need an
@@ -475,7 +475,7 @@ const CardHand: React.FC<{
                                  * until a card was lifted, which was his own 09-20 call for wide
                                  * hands; he has reversed it, so the description always shows.
                                  */
-                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${isStabMatch ? 'stab-match' : ''} ${liveNudge?.cardIds.includes(card.id) ? 'nudge-playable' : ''}`}
+                                className={`rs-card hand-card ${isSelected ? 'selected' : ''} ${isUnplayable ? 'grayscale' : ''} ${liveNudge?.cardIds.includes(card.id) ? 'nudge-playable' : ''}`}
                                 /*
                                  * TICKET 155, DEEP DIVE 8 — a card is a control.
                                  *
@@ -490,6 +490,15 @@ const CardHand: React.FC<{
                                  * flex row reintroduces the browser's own button metrics that the
                                  * fan's geometry would then have to fight.
                                  */
+                                /*
+                                 * TICKET 183c — the two states the stylesheet paints on the card:
+                                 * STAB turns the frame the element's colour (and the hover says
+                                 * why), selected is the yellow ring. Attributes rather than
+                                 * classes so every other surface that shows a card can set the same
+                                 * two words.
+                                 */
+                                data-stab={isStabMatch ? 'true' : undefined}
+                                data-selected={isSelected ? 'true' : undefined}
                                 role="button"
                                 tabIndex={0}
                                 aria-pressed={isSelected}
@@ -509,7 +518,7 @@ const CardHand: React.FC<{
                                  * greyed out was, in practice, invisible. Same convention as
                                  * `MacroRack`'s disabled slots: never inert without a sentence.
                                  */
-                                title={constraints.length > 0 ? constraints.join(' · ') : undefined}
+                                title={[...constraints, ...(isStabMatch ? [stabTitle()] : [])].join(' · ') || undefined}
                                 onClick={() => {
                                     // If the preceding pointerdown just selected this card,
                                     // skip the toggle so a single click leaves it selected.
@@ -567,9 +576,8 @@ const CardHand: React.FC<{
                                      */
                                     ['--cw' as string]: `${cardSize.width}px`,
                                     ['--ch' as string]: `${cardSize.height}px`,
-                                    ['--ah' as string]: `${Math.round(44 * Math.min(Math.max(scale, 0.75), 1.2))}px`,
+                                    ['--ah' as string]: `${Math.round(36 * Math.min(Math.max(scale, 0.75), 1.2))}px`,
                                     zIndex: isSelected ? 100 : (isHovered ? 99 : index),
-                                    filter: isUnplayable ? 'grayscale(0.6)' : 'none',
                                     /*
                                      * TICKET 155e — the one-line defect.
                                      *
@@ -587,10 +595,6 @@ const CardHand: React.FC<{
                                      * alert) — the point of the row is that the hand joins them.
                                      */
                                     ['--el' as string]: colorFor(data.element),
-                                    ...(stabAccent ? {
-                                        '--stab-color': stabAccent,
-                                        '--stab-glow': `${stabAccent}88`
-                                    } as React.CSSProperties : {}),
                                 }}
                             >
                                 <HandCardFace
@@ -600,8 +604,6 @@ const CardHand: React.FC<{
                                     isDiscounted={isDiscounted}
                                     isBlocked={isBlocked}
                                     blockReason={blockReason ?? undefined}
-                                    isStabMatch={isStabMatch && !!source}
-                                    stabTitle={source ? `${data.element} matches ${source.name} — ×1.5 STAB` : undefined}
                                     preview={preview}
                                     replayTargetName={replayTargetName}
                                     showReplay={!!data.actions?.some((a) => a.type === 'PLAY_LAST_CARD')}
@@ -684,7 +686,7 @@ const CardHand: React.FC<{
                                                         return (
                                                             <div key={st} className="tooltip-glossary">
                                                                 <span className="tooltip-glossary-name" style={{ color: STATUS_COLORS[st] }}>
-                                                                    {`${g.icon ?? ''} ${stacks > 1 ? `${stacks} ` : ''}${g.name}`.trim()}
+                                                                    <StatusIcon status={st} size={11} />{` ${stacks > 1 ? `${stacks} ` : ''}${g.name}`}
                                                                 </span>
                                                                 {' '}{g.description}
                                                             </div>
