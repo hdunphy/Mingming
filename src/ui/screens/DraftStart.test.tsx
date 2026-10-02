@@ -168,7 +168,7 @@ describe('Draft Start through RunStart', () => {
         await click(host.querySelector('.ranch-offer')!);
         await click(host.querySelector('.ranch-roster-grid button')!);
         await click(button('Draft Start'));
-        await click(button('Begin run'));
+        await click(button('Start run'));
     }
 
     it('Launch with Draft Start on opens the draft and starts no run', async () => {
@@ -186,9 +186,9 @@ describe('Draft Start through RunStart', () => {
         await click(button('Back'));
 
         expect(store.getState().run.run).toBeNull();
-        expect(button('Begin run')).toBeTruthy();
+        expect(button('Start run')).toBeTruthy();
         // A second launch opens a fresh draft at pick 1.
-        await click(button('Begin run'));
+        await click(button('Start run'));
         expect(header()).toBe('Draft: Kraken, pick 1 of 5');
     });
 

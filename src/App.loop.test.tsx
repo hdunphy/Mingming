@@ -42,15 +42,15 @@ async function pickStarter(host: HTMLElement, name: string): Promise<void> {
 }
 
 async function assembleFirstBlueprint(host: HTMLElement): Promise<void> {
+    // TICKET 182a (R3): the starter is built on its v1 firmware at once, with no firmware modal.
     await clickText(host, 'Assemble (1 blueprint)');
-    await clickText(host, 'Spend blueprint');
 }
 
 async function beginRunWithFirstOffer(host: HTMLElement): Promise<void> {
     await clickText(host, 'Expedition');
     await click(host.querySelector('.ranch-offer')!);
     await click(host.querySelector('.ranch-card')!);
-    await clickText(host, 'Begin run');
+    await clickText(host, 'Start run');
 }
 
 /** Biome 0's layer 1 is always a fight (ticket 24), so the first travel button is a battle. */

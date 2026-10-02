@@ -63,9 +63,10 @@ export const TypeChart: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
 );
 
 /**
- * Collapsible wrapper: a small chip-styled 'TYPE CHART' toggle (closed by
- * default) that reveals the chart. Each screen mounts its own instance, so
- * open state is remembered per screen while the screen stays mounted.
+ * Collapsible wrapper: a small icon button (closed by default, ticket 182a:
+ * was a 'TYPE CHART' text chip) that reveals the chart. Each screen mounts
+ * its own instance, so open state is remembered per screen while the screen
+ * stays mounted.
  */
 export const TypeChartPanel: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
     const [open, setOpen] = React.useState(false);
@@ -76,8 +77,10 @@ export const TypeChartPanel: React.FC<{ style?: React.CSSProperties }> = ({ styl
                 className={`type-chart-toggle ${open ? 'open' : ''}`}
                 onClick={() => setOpen(o => !o)}
                 aria-expanded={open}
+                aria-label="Type chart"
+                title="Type chart"
             >
-                🧬 TYPE CHART {open ? '▲' : '▼'}
+                🧬
             </button>
             {open && <TypeChart />}
         </div>

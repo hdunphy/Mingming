@@ -129,10 +129,12 @@ describe('the tier picker', () => {
     it('at Tier 3 each offer prints the leader-Driver line; below it does not', async () => {
         await mount(makeStore({ tierClears: { gym_emberfall: [0, 1, 2] } }));
         expect(pressedTiers()).toEqual(['Tier 3']);
-        expect(host.querySelectorAll('.ranch-offer-tier-driver')).toHaveLength(3);
-        expect(host.textContent).toContain('Tier 3: active in all three gauntlet fights.');
+        // TICKET 182a: the leader-Driver line moved from the card face to the card's hover.
+        const hovers = () => [...host.querySelectorAll('.ranch-offer')].map((c) => c.getAttribute('title') ?? '');
+        expect(hovers().filter((t) => t.includes('Tier 3: active in all three gauntlet fights.'))).toHaveLength(3);
+        expect(host.textContent).not.toContain('Tier 3: active in all three gauntlet fights.');
         await click(tierButton(2));
-        expect(host.querySelectorAll('.ranch-offer-tier-driver')).toHaveLength(0);
+        expect(hovers().filter((t) => t.includes('Tier 3: active'))).toHaveLength(0);
     });
 });
 
@@ -144,7 +146,7 @@ describe('launching', () => {
 
         await click(host.querySelector('.ranch-offer'));
         await click(host.querySelector('.ranch-roster-grid button'));
-        const begin = [...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Begin run'));
+        const begin = [...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run'));
         await click(begin);
 
         expect(store.getState().run.run?.tier).toBe(2);
@@ -155,7 +157,7 @@ describe('launching', () => {
         await mount(store);
         await click(host.querySelector('.ranch-offer'));
         await click(host.querySelector('.ranch-roster-grid button'));
-        await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Begin run')));
+        await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run')));
         expect(store.getState().run.run?.tier).toBe(0);
     });
 });

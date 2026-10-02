@@ -109,7 +109,7 @@ describe('the modifier row', () => {
 describe('launching with modifiers', () => {
     async function launch(): Promise<void> {
         await click(host.querySelector('.ranch-roster-grid button')!);
-        await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Begin run'))!);
+        await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run'))!);
     }
 
     it('stores each switched-on modifier as mod:<id> on the run', async () => {

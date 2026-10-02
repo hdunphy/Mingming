@@ -18,6 +18,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactNode } from 'react';
 
 import MainMenuView from '../components/MainMenuView';
+import RanchScreen from '../screens/RanchScreen';
+import { createRanchMember } from '../../engine/gameTypes';
 import battleReducer from '../store/battleSlice';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
@@ -36,9 +38,19 @@ function render(tree: ReactNode, game = createEmptyRanch()): string {
     return renderToStaticMarkup(<Provider store={storeFor(game)}>{tree}</Provider>);
 }
 
+/** The new-player state: one starter assembled, nothing else held. */
+function oneStarter() {
+    return { ...createEmptyRanch(), roster: [createRanchMember('kraken', 'kraken_v1')] };
+}
+
 describe('the copy budget', () => {
     it('the starter screen is inside it', () => {
         const report = readCopy(render(<MainMenuView />));
+        expect(budgetProblem(report)).toBeNull();
+    });
+
+    it('the ranch (Expedition) is inside it', () => {
+        const report = readCopy(render(<RanchScreen initialSection="expedition" />, oneStarter()));
         expect(budgetProblem(report)).toBeNull();
     });
 

@@ -59,6 +59,21 @@ function useOfferScreen(): ReadonlyArray<IGymOffer> {
     return useMemo(() => offerGyms(seed), [seed]);
 }
 
+/**
+ * TICKET 182a — everything a gym card used to print under its route, as one hover.
+ *
+ * The leader's signature passive (ticket 68 ruling 4, the telegraph), the tier line (169e) and the
+ * pair the rivals field (142c). It is the same information; the card face is now a name, an element
+ * and three biome names.
+ */
+function offerHover(offer: IGymOffer, tier: number): string {
+    const lines = gymSignatures(offer.gym.id, offer.biomes).map((s) => `${s.name}: ${s.description}`);
+    const tierLine = leaderDriverTierLine(tier);
+    if (tierLine) lines.push(tierLine);
+    lines.push(`Rivals field: ${pathElementsFor(offer.gym.element).join(' / ')}`);
+    return lines.join('\n');
+}
+
 export default function RunStart(): ReactNode {
     const dispatch = useDispatch();
     const roster = useSelector((s: RootState) => s.game.roster);
@@ -183,21 +198,10 @@ export default function RunStart(): ReactNode {
 
             {!chosen && (
                 <>
-                    <p className="ranch-note">
-                        Three leaders are taking challengers. Each run walks all three biomes in the order
-                        shown and ends at the leader&apos;s own region. <strong>You pick the route first and
-                        the party second</strong> — the three offers always open on three different biomes,
-                        so a counter is always available.
-                    </p>
-                    <p className="ranch-note">
-                        {/* Ticket 142c: the four-link chain a player has to hold — biome decides who
-                            you fight, the fight drops the blueprint, the blueprint is what a workshop
-                            can build. Stated once, here, because the workshop is the end of that chain
-                            and has no element of its own to show. */}
-                        One wild in three is a <strong>rival</strong> walking the same road, and it fields
-                        the two elements that road needs rather than the biome&apos;s — so the blueprint
-                        for the body you are missing can be won in any biome, not just its own.
-                    </p>
+                    {/* TICKET 182a: one line. The two paragraphs on routes and rivals are gone (the
+                        rivals' elements are on each gym's hover, and the map's rival node explains
+                        itself, 142c). */}
+                    <p className="ranch-note">Beat the gym leader at the end of the road.</p>
                     {/* Ticket 169e: the tier row. A locked tier is disabled and says how to open it. */}
                     <div className="ranch-tier-picker" role="group" aria-label="Difficulty tier">
                         <div className="ranch-tier-row">
@@ -223,10 +227,13 @@ export default function RunStart(): ReactNode {
                                 );
                             })}
                         </div>
-                        <div className="ranch-tier-blurb">
-                            <strong>{tierRule(selectedTier).name}</strong>
-                            <span>{tierRule(selectedTier).description}</span>
-                        </div>
+                        {/* TICKET 182a: Tier 0 is "Standard — The game as it is." and says nothing. */}
+                        {selectedTier > 0 && (
+                            <div className="ranch-tier-blurb">
+                                <strong>{tierRule(selectedTier).name}</strong>
+                                <span>{tierRule(selectedTier).description}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="ranch-offer-grid">
                         {offers.map((offer) => (
@@ -234,6 +241,7 @@ export default function RunStart(): ReactNode {
                                 key={offer.gym.id}
                                 type="button"
                                 className="ranch-offer"
+                                title={offerHover(offer, selectedTier)}
                                 onClick={() => { setChosen(offer); playSfx('uiClick'); }}
                             >
                                 <div className="ranch-offer-name">{offer.gym.name}</div>
@@ -248,53 +256,15 @@ export default function RunStart(): ReactNode {
                                         <li key={biome.id}>
                                             <span className="ranch-offer-step">{i + 1}</span>
                                             {biome.name}
-                                            <span className="ranch-offer-element">{biome.elements.join(' / ')}</span>
                                         </li>
                                     ))}
                                 </ol>
                                 {/*
-                                  * TICKET 142c — THE PAIR THE ROAD FIELDS, on the screen where the
-                                  * road is chosen.
-                                  *
-                                  * Ticket 68 ruling 4 put the leader's signature here and gave the
-                                  * reason: the route is the run's one irreversible choice, so what
-                                  * you need to answer it belongs on THIS screen and no later. The
-                                  * path pair is the same kind of fact — it is what one wild in three
-                                  * will field in every biome, and it is fully determined by the gym
-                                  * you are about to pick.
-                                  *
-                                  * Henry played the first Rootfall run and asked *"I thought I would
-                                  * see nature in the workshop somehow"*. Nothing on any screen had
-                                  * ever said the pair out loud, so the mechanic could only be found
-                                  * by walking into it and inferring it from an enemy party.
+                                  * TICKET 182a — the telegraph and the rivals' pair moved to the hover
+                                  * (`offerHover`). They were on the card face for tickets 68 (ruling 4)
+                                  * and 142c; the facts are the same, one hover away, so the card shows
+                                  * a name, an element and three biomes.
                                   */}
-                                <div className="ranch-offer-path">
-                                    <span className="ranch-offer-path-label">Rivals field</span>
-                                    {pathElementsFor(offer.gym.element).map((element) => (
-                                        <span key={element} className="ranch-offer-element">{element}</span>
-                                    ))}
-                                </div>
-                                {/*
-                                  * TICKET 68 ruling 4 — THE TELEGRAPH.
-                                  *
-                                  * The leader's signature passive, stated before the party is
-                                  * chosen. It belongs on THIS screen and no later: the route is
-                                  * the run's one irreversible choice, and a boss built around an
-                                  * escalating aura is a boss you answer at party selection or not
-                                  * at all. `gymSignatures` gives one Driver for an authored gym
-                                  * and the three relic texts for a gym ruling 6 has not migrated.
-                                  */}
-                                <div className="ranch-offer-signature">
-                                    {gymSignatures(offer.gym.id, offer.biomes).map((signature) => (
-                                        <div key={signature.id} className="ranch-offer-driver">
-                                            <span className="ranch-offer-driver-name">{signature.name}</span>
-                                            <span className="ranch-offer-driver-rule">{signature.description}</span>
-                                        </div>
-                                    ))}
-                                    {leaderDriverTierLine(selectedTier) && (
-                                        <div className="ranch-offer-tier-driver">{leaderDriverTierLine(selectedTier)}</div>
-                                    )}
-                                </div>
                             </button>
                         ))}
                     </div>
@@ -363,7 +333,7 @@ export default function RunStart(): ReactNode {
                         >
                             {party.length === 0
                                 ? 'Pick at least one member'
-                                : `Begin run — ${party.length} member${party.length === 1 ? '' : 's'}, ${party.length * 8} cards`}
+                                : 'Start run'}
                         </button>
                     </div>
                 </>

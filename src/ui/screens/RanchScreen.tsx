@@ -67,7 +67,7 @@ import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
-import { RANCH_PARTY_CLAUSE } from './partyRuleText';
+
 
 type Section = 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex';
 
@@ -132,7 +132,9 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
                     onOpenFirmware={() => setShowFirmware(true)}
                 />
             )}
-            {section === 'assembly' && <AssemblySection blueprints={blueprints} seenTips={seenTips} />}
+            {section === 'assembly' && (
+                <AssemblySection blueprints={blueprints} seenTips={seenTips} rosterCount={roster.length} />
+            )}
             {section === 'vault' && <VaultSection drivers={drivers} tempDrivers={tempDrivers} />}
             {/* Ticket 31. Props rather than its own `useSelector`, so the screen is renderable in a
                 test from a plain object and the ranch stays the only thing that reads the store. */}
@@ -160,13 +162,6 @@ function RosterSection({
                     <Icon name="firmware" size={15} /> Firmware terminal
                 </button>
             </div>
-            <p className="ranch-note">
-                Everything you have ever assembled lives here, and none of it is committed to anything.
-                <strong> The party is chosen at run start</strong> — {RANCH_PARTY_CLAUSE} — so this
-                list is your collection rather than a loadout. The team is the deck: each member brings its
-                own start kit when a run begins.
-            </p>
-
             {roster.length === 0 && (
                 <div className="ranch-empty">
                     No mingmings yet. Spend a blueprint in <strong>Assembly</strong> to build one.
@@ -210,9 +205,11 @@ function StatRoll({ member }: { member: IRanchMember }): ReactNode {
 function AssemblySection({
     blueprints,
     seenTips,
+    rosterCount,
 }: {
     blueprints: Readonly<Record<string, number>>;
     seenTips: ReadonlyArray<string>;
+    rosterCount: number;
 }): ReactNode {
     const dispatch = useDispatch();
     const [pending, setPending] = useState<{ speciesId: string; osId: string } | null>(null);
@@ -228,15 +225,31 @@ function AssemblySection({
         [blueprints],
     );
 
-    const confirm = (): void => {
-        if (!pending) return;
+    const build = (choice: { speciesId: string; osId: string }): void => {
         // The component mints the individual because it owns the RNG for the stat roll; the reducer
         // spends the blueprint and pushes in one step, so the two cannot come apart.
-        const member: IRanchMember = createRanchMember(pending.speciesId, pending.osId);
+        const member: IRanchMember = createRanchMember(choice.speciesId, choice.osId);
         dispatch(assembleMingming(member));
         playSfx('rewardClaim');
         setBuilt(member);
         setPending(null);
+    };
+    const confirm = (): void => {
+        if (pending) build(pending);
+    };
+    /**
+     * TICKET 182a (R3): v1 for everyone. The player's very first build, their starter, goes in on
+     * its v1 firmware with no firmware modal; later builds keep the choice, with v1 picked.
+     */
+    const startAssembly = (speciesId: string): void => {
+        const definition = MingmingRegistry[speciesId];
+        const defaultOS = definition?.availableOS[0] ?? '';
+        setBuilt(null);
+        if (rosterCount === 0) {
+            build({ speciesId, osId: defaultOS });
+            return;
+        }
+        setPending({ speciesId, osId: defaultOS });
     };
 
     return (
@@ -251,13 +264,6 @@ function AssemblySection({
               * run banked are in front of you and the button spends one.
               */}
             <Callout tip={seenTips.includes(RANCH_BLUEPRINT_TIP.id) ? null : RANCH_BLUEPRINT_TIP} />
-
-            <p className="ranch-note">
-                Assembly costs <strong>one blueprint</strong> of the species and nothing else — scrap is
-                run-scoped and buys nothing here. Stats roll once, at assembly, and never change:
-                spending a second blueprint of the same species builds a second, differently-rolled
-                individual. <strong>Re-assembly is the re-roll.</strong>
-            </p>
 
             {held.length === 0 && (
                 <div className="ranch-empty">
@@ -279,7 +285,7 @@ function AssemblySection({
                             <button
                                 type="button"
                                 className="ranch-button"
-                                onClick={() => { playSfx('uiClick'); setBuilt(null); setPending({ speciesId, osId: definition?.availableOS[0] ?? '' }); }}
+                                onClick={() => { playSfx('uiClick'); startAssembly(speciesId); }}
                             >
                                 Assemble (1 blueprint)
                             </button>

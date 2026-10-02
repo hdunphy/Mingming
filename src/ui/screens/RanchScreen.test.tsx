@@ -68,8 +68,9 @@ describe('RanchScreen', () => {
         expect(markup).not.toMatch(/Active party/i);
         expect(markup).not.toMatch(/Empty slot/i);
         expect(markup).not.toMatch(/In party/i);
-        // ...and it says so, so the player knows where the choice moved to.
-        expect(markup).toContain('The party is chosen at run start');
+        // TICKET 182a: the paragraph that said where the choice moved to is cut (the roster tab opens
+        // on its list); run start is where the party is picked, and that is tested in RunStart.
+        expect(markup).not.toContain('The party is chosen at run start');
     });
 
     it('shows two of a species without complaint — the roster is a collection', () => {
