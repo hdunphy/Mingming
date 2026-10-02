@@ -23,7 +23,7 @@ import type { HookDefinition } from './HookTypes';
 import type { IBattleEntity } from '../types';
 import { getHook, hookRegistryVersion } from './HookRegistry';
 import { getOSBehavior, rawFirmwareHooks } from '../data/firmwareRegistry';
-import { getPatch, type PatchDefinition } from '../data/patchRegistry';
+import { applyPatchesToFirmware, getPatch, type PatchDefinition } from '../data/patchRegistry';
 import { GetProgramData } from '../data/programRegistry';
 import { HookFactory } from './HookFactory';
 
@@ -118,9 +118,10 @@ export function entityHooksFor(e: IBattleEntity, phase: string): HookDefinition[
             if (os && riders.length > 0) {
                 const raw = rawFirmwareHooks(e.activeOS);
                 const fromData = new Set(raw.map((hook) => hook.id));
-                for (const data of raw) {
-                    const changed = riders.reduce((acc, rider) => rider.apply(acc), data);
-                    patched.push(HookFactory.createHook(changed));
+                // 184d: through `applyPatchesToFirmware`, so a firmware's hand-written effect for a
+                // patch (`patchOverrides.ts`) is the one that plays — including a hook it ADDS.
+                for (const data of applyPatchesToFirmware(e.activeOS, riders, raw)) {
+                    patched.push(HookFactory.createHook(data));
                 }
                 /*
                  * Hand-written firmware (`CustomFirmware`) is CODE, not data, so a patch cannot

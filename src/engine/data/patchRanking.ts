@@ -18,11 +18,10 @@
  * 2026-09-25: *"rank by the 149c-scored delta (host hook value after − before), which is §3 as
  * written."*
  */
-import { patchScoreDelta, type HookRecord } from '../../debug/balance/powerscale';
-import { PATCHES, PATCH_IDS, patchDoesNothing, patchTouchCount, type PatchDefinition, type PatchId } from './patchRegistry';
-import type { DataHookDefinition, ModifierDataHookDefinition } from '../core/HookTypes';
+import { patchScoreDeltaOfLists, type HookRecord } from '../../debug/balance/powerscale';
+import { PATCHES, PATCH_IDS, applyPatchToFirmware, patchDoesNothing, type PatchDefinition, type PatchId } from './patchRegistry';
+import { rawFirmwareHooks } from './firmwareRegistry';
 
-type AnyHook = DataHookDefinition | ModifierDataHookDefinition;
 
 /**
  * What a patch is WORTH to this firmware — ticket 163g, and 163 §3 as it was always written.
@@ -35,11 +34,22 @@ type AnyHook = DataHookDefinition | ModifierDataHookDefinition;
  * this body" is a question about patches, and the ranking below has to be the same answer the
  * offer screen and the walker get.
  */
-export function patchScoreDeltaFor(patch: PatchDefinition, hooks: ReadonlyArray<AnyHook>): number {
-    return patchScoreDelta(
-        hooks as ReadonlyArray<HookRecord>,
-        (hook) => patch.apply(hook as AnyHook) as HookRecord,
+export function patchScoreDeltaFor(patch: PatchDefinition, osId: string): number {
+    // 184d: by firmware id, so a hand-written per-firmware effect (`patchOverrides.ts`) is the one
+    // that gets scored — not the generic transform the firmware never actually receives.
+    const before = rawFirmwareHooks(osId);
+    return patchScoreDeltaOfLists(
+        before as ReadonlyArray<HookRecord>,
+        applyPatchToFirmware(osId, patch, before) as ReadonlyArray<HookRecord>,
+        osId,
     );
+}
+
+/** How many hooks a patch changes or adds on this firmware — the rank's tie-break (163g). */
+export function patchChangeCount(patch: PatchDefinition, osId: string): number {
+    const before = rawFirmwareHooks(osId);
+    const after = applyPatchToFirmware(osId, patch, before);
+    return after.filter((hook) => !before.includes(hook)).length;
 }
 
 /**
@@ -71,16 +81,17 @@ export function patchScoreDeltaFor(patch: PatchDefinition, hooks: ReadonlyArray<
  * Ties break on touch count and then on declaration order, so the answer is stable for a given
  * firmware and a re-roll is a re-roll rather than a coin flip.
  */
-export function bestPatchFor(hooks: ReadonlyArray<AnyHook>): PatchDefinition {
+export function bestPatchFor(osId: string): PatchDefinition {
     // 184d: a patch that does nothing here is not a candidate. OVERCLOCK (a body patch) always is,
     // so the list is never empty.
-    const candidates = offerablePatchIds(hooks).map((id) => PATCHES[id]);
-    return candidates.reduce((best, patch) => (rankKey(patch, hooks) > rankKey(best, hooks) ? patch : best), candidates[0]);
+    const candidates = offerablePatchIds(osId).map((id) => PATCHES[id]);
+    return candidates.reduce((best, patch) => (rankKey(patch, osId) > rankKey(best, osId) ? patch : best), candidates[0]);
 }
 
 /** TICKET 184d: the patches this firmware can use, in declaration order — the no-ops hidden. */
-export function offerablePatchIds(hooks: ReadonlyArray<AnyHook>): PatchId[] {
-    return PATCH_IDS.filter((id) => !patchDoesNothing(PATCHES[id], hooks));
+export function offerablePatchIds(osId: string): PatchId[] {
+    const hooks = rawFirmwareHooks(osId);
+    return PATCH_IDS.filter((id) => !patchDoesNothing(PATCHES[id], osId, hooks));
 }
 
 /**
@@ -95,8 +106,8 @@ export function offerablePatchIds(hooks: ReadonlyArray<AnyHook>): PatchId[] {
  * Scaled rather than lexicographic because a sort needs one number: the count is worth a hundredth
  * of a point, which is the delta's own rounding unit, so it can never outrank a real difference.
  */
-function rankKey(patch: PatchDefinition, hooks: ReadonlyArray<AnyHook>): number {
-    return patchScoreDeltaFor(patch, hooks) + patchTouchCount(patch, hooks) / 100;
+function rankKey(patch: PatchDefinition, osId: string): number {
+    return patchScoreDeltaFor(patch, osId) + patchChangeCount(patch, osId) / 100;
 }
 
 /**
@@ -127,10 +138,10 @@ export const SHOP_STOCK_PATCH: PatchId = 'amplifier';
  * two would read as a bug. With six patches across six distinct fields this fallback is currently
  * unreachable; it is written because "currently" is a fact about the table, not about this rule.
  */
-export function gatePatchChoices(hooks: ReadonlyArray<AnyHook>, held: ReadonlyArray<string>): PatchId[] {
-    const ranked = offerablePatchIds(hooks)
+export function gatePatchChoices(osId: string, held: ReadonlyArray<string>): PatchId[] {
+    const ranked = offerablePatchIds(osId)
         .filter((id) => !held.includes(id))
-        .sort((a, b) => rankKey(PATCHES[b], hooks) - rankKey(PATCHES[a], hooks));
+        .sort((a, b) => rankKey(PATCHES[b], osId) - rankKey(PATCHES[a], osId));
     // 184d: with the no-ops hidden this IS reachable — huldra_v2 has no hook data, so OVERCLOCK is
     // the only patch she can use, and she is offered that one rather than a no-op beside it.
     if (ranked.length < 2) return ranked.slice(0, 2);

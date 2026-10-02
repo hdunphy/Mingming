@@ -37,7 +37,16 @@ export const FIRMWARE_COUNTERS: Readonly<Partial<Record<string, CounterReader>>>
         count: { key: 'jorm_water' },
         target: 'gate',
         uses: { key: 'jorm_ouroboros_used' },
-        describe: (value, target) => `Water cards this turn: ${value} of ${target}. Water card ${target} draws a card.`,
+        // 184d: SPLITTER makes any card count, and AMPLIFIER makes it draw 2 — the words follow the
+        // patched hook data rather than assuming the unpatched firmware.
+        describe: (value, target, { hooks }) => {
+            const counted = hooks.find((hook) => hook.id === 'jorm_v1_count');
+            const what = counted?.when?.programElement ? `${counted.when.programElement} cards` : 'Cards';
+            const draw = hooks.flatMap((hook) => ((hook as { do?: Array<{ type?: string; amount?: number }> }).do ?? []))
+                .find((action) => action.type === 'DRAW')?.amount ?? 1;
+            const card = what === 'Cards' ? 'Card' : `${what.replace(/s$/, '')}`;
+            return `${what} this turn: ${value} of ${target}. ${card} ${target} draws ${draw === 1 ? 'a card' : `${draw} cards`}.`;
+        },
         spentText: (allowed) => (allowed > 1
             ? `Drew ${allowed} times this turn; back next turn.`
             : 'Drew its card this turn; back next turn.'),

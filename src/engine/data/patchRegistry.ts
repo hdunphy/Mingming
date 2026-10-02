@@ -37,6 +37,7 @@
  * and `IRanchMember` is the roster that survives a run).
  */
 import type { DataHookDefinition, ModifierDataHookDefinition, HookAction } from '../core/HookTypes';
+import { PATCH_OVERRIDES } from './patchOverrides';
 
 /** Henry, 163 §5: ONE slot per body, and no second at the gym. */
 export const PATCH_SLOTS = 1;
@@ -228,14 +229,16 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
     splitter: {
         id: 'splitter',
         name: 'SPLITTER',
-        text: 'What your firmware gives you, it also gives your side.',
+        text: 'What your firmware gives you, the rest of your side gets too.',
         field: 'target',
         reach: 'firmware',
         apply: (hook) => {
             const selfward = (asPatchable(hook).do ?? []).filter((a: HookAction) => a.target === 'SELF' && !isDrawback(a));
             if (selfward.length === 0) return hook;
             const next = asPatchable(clone(hook));
-            const echoes = selfward.map((a: HookAction) => ({ ...clone(a), target: 'ALLIES' as const }));
+            // 184: OTHER_ALLIES, not ALLIES — the host keeps what it had and the rest of the side
+            // gains it too. Henry, 2026-10-01: "Splitter doesn't double up on Fenrir_V1."
+            const echoes = selfward.map((a: HookAction) => ({ ...clone(a), target: 'OTHER_ALLIES' as const }));
             // After the originals, so the host is paid first and an ally cannot be paid by a hook
             // whose own cost has not resolved.
             next.do = [...(next.do ?? []), ...echoes];
@@ -305,15 +308,46 @@ export function patchTouchCount(patch: PatchDefinition, hooks: ReadonlyArray<Any
 }
 
 /**
+ * TICKET 184d — **one patch on one firmware, the way every reader must see it.**
+ *
+ * The firmware's own hand-written effect for this patch if `patchOverrides.ts` has one, else the
+ * generic transform on each hook. The engine (`entityHooks`), the ranking, the no-op test and the
+ * counter pips all call this, so an override can never be honoured in one of them and missed in
+ * another. Returns the SAME array when the patch changes nothing (and for a `'none'` override).
+ */
+export function applyPatchToFirmware(
+    osId: string,
+    patch: PatchDefinition,
+    hooks: ReadonlyArray<AnyHook>,
+): ReadonlyArray<AnyHook> {
+    const override = PATCH_OVERRIDES[osId]?.[patch.id];
+    if (override === 'none') return hooks;
+    if (override) return override(hooks);
+    const out = hooks.map((hook) => patch.apply(hook));
+    return out.every((hook, i) => hook === hooks[i]) ? hooks : out;
+}
+
+/** Every patch a body carries, applied in order — `applyPatchToFirmware` folded over the list. */
+export function applyPatchesToFirmware(
+    osId: string,
+    patches: ReadonlyArray<PatchDefinition>,
+    hooks: ReadonlyArray<AnyHook>,
+): ReadonlyArray<AnyHook> {
+    return patches.reduce((acc, patch) => applyPatchToFirmware(osId, patch, acc), hooks);
+}
+
+/**
  * TICKET 184d — **a patch that changes nothing on this firmware is never offered for it.**
  *
  * Henry, 2026-10-01, on patches that do nothing on a body: *"Hide them I think."* A `firmware`
  * patch that finds nothing to change in any of the OS's hooks is a prize the body cannot use — and
  * a hand-written firmware (`CustomFirmware`, e.g. huldra_v2) has no hook data at all, so every
- * firmware patch is a no-op on it. A `body` patch (OVERCLOCK) is never a no-op by this test.
+ * firmware patch is a no-op on it. A `body` patch (OVERCLOCK) is never a no-op by this test. A
+ * `'none'` override (fenrir_v1's RELAY, ruled "ignored") is hidden whatever its reach.
  */
-export function patchDoesNothing(patch: PatchDefinition, hooks: ReadonlyArray<AnyHook>): boolean {
-    return patch.reach === 'firmware' && patchTouchCount(patch, hooks) === 0;
+export function patchDoesNothing(patch: PatchDefinition, osId: string, hooks: ReadonlyArray<AnyHook>): boolean {
+    if (PATCH_OVERRIDES[osId]?.[patch.id] === 'none') return true;
+    return patch.reach === 'firmware' && applyPatchToFirmware(osId, patch, hooks) === hooks;
 }
 
 /*

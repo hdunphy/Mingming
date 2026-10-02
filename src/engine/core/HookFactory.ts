@@ -252,7 +252,7 @@ export const HookFactory = {
         for (const action of actions) {
             const { targetId, state: stateAfterTargeting } = this.resolveTarget(action.target, { ...context, state: currentState }, owner);
             currentState = stateAfterTargeting;
-            if (!targetId && action.target !== 'RANDOM_ENEMY' && action.target !== 'ALLIES' && action.target !== 'ENEMIES') {
+            if (!targetId && action.target !== 'RANDOM_ENEMY' && action.target !== 'ALLIES' && action.target !== 'OTHER_ALLIES' && action.target !== 'ENEMIES') {
                 if (action.type !== 'LOG') continue;
             }
 
@@ -436,6 +436,13 @@ export const HookFactory = {
                 return {
                     targetId: (isOwnerPlayer ? state.playerParty : state.enemyParty)
                         .filter(e => e.currentHp > 0)
+                        .map(e => e.id),
+                    state
+                };
+            case 'OTHER_ALLIES':
+                return {
+                    targetId: (isOwnerPlayer ? state.playerParty : state.enemyParty)
+                        .filter(e => e.currentHp > 0 && e.id !== owner.id)
                         .map(e => e.id),
                     state
                 };

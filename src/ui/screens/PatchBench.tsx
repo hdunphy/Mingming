@@ -22,7 +22,6 @@ import { Icon } from '../theme/Icon';
 import { fitPatch } from '../store/runSlice';
 import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { gatePatchChoices, offerablePatchIds, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
-import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { effectiveOS } from '../../engine/run/effectiveOS';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
@@ -93,9 +92,9 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
         .map((row) => ({
             ...row,
             offers: venue === 'gate'
-                ? gatePatchChoices(rawFirmwareHooks(effectiveOS(run, row.member)), run.patches?.[row.memberId] ?? [])
+                ? gatePatchChoices(effectiveOS(run, row.member), run.patches?.[row.memberId] ?? [])
                 // 184d: the shop's stock patch is hidden from a body it does nothing for.
-                : offerablePatchIds(rawFirmwareHooks(effectiveOS(run, row.member))).filter((id) => id === SHOP_STOCK_PATCH),
+                : offerablePatchIds(effectiveOS(run, row.member)).filter((id) => id === SHOP_STOCK_PATCH),
         }));
 
     // TICKET 169g: Tight Budget raises the shop's price; the gate is free and stays free.

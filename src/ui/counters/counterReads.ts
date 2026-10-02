@@ -46,6 +46,21 @@ export function gateValue(hooks: ReadonlyArray<HookData>, key: string, operators
 }
 
 /**
+ * TICKET 184d: EVERY number a hook compares this counter against, smallest first. REPEATER on
+ * OUROBOROS_LOOP gives the count two triggers (3 and 5), so a pip needs the next one, not the first.
+ */
+export function gateValues(hooks: ReadonlyArray<HookData>, key: string, operators: ReadonlyArray<GateOperator>): number[] {
+    const values = new Set<number>();
+    for (const hook of hooks) {
+        const gates = [...(hook.when?.counter ? [hook.when.counter] : []), ...(hook.when?.counters ?? [])];
+        for (const gate of gates) {
+            if (gate.key === key && operators.includes(gate.operator as GateOperator)) values.add(gate.value);
+        }
+    }
+    return [...values].sort((a, b) => a - b);
+}
+
+/**
  * A once-per-turn style limit as a COUNT of fires: `LT n` allows n, `LTE n` allows n + 1. This is
  * the form REPEATER edits.
  */

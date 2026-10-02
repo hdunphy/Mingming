@@ -29,7 +29,6 @@ import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { upgradePrice } from '../../engine/run/marketplace';
 import { PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { SHOP_STOCK_PATCH, bestPatchFor } from '../../engine/data/patchRanking';
-import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { NO_FIRMWARE_OS as GATE_NO_FIRMWARE_OS, sampleFight, CELLS } from './runGate';
 import { runOne } from './runBatch';
 import { START_KIT_SIZE, createRun, startKitIdsFor } from '../../engine/run/createRun';
@@ -354,7 +353,7 @@ describe('163e — the patch policy', () => {
         // is being measured is the distribution that produces — not a preference of the walker's.
         const fits = choosePatches([member('mm1', 'kraken_v1')], {}, 'gate');
         expect(fits).toHaveLength(1);
-        expect(fits[0].patchId).toBe(bestPatchFor(rawFirmwareHooks('kraken_v1')).id);
+        expect(fits[0].patchId).toBe(bestPatchFor('kraken_v1').id);
     });
 
     it('at the SHOP takes Amplifier, which is what §3 says the shelf stocks', () => {

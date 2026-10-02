@@ -1991,7 +1991,20 @@ export function patchScoreDelta(
     apply: (hook: HookRecord) => HookRecord,
     osId = 'patched',
 ): number {
-    const before = scoreHookList(osId, hooks).pctOfPoolPerGame;
-    const after = scoreHookList(osId, hooks.map(apply)).pctOfPoolPerGame;
-    return Math.round((after - before) * 100) / 100;
+    return patchScoreDeltaOfLists(hooks, hooks.map(apply), osId);
+}
+
+/**
+ * TICKET 184d: the same delta for a patched hook LIST rather than a per-hook transform — a
+ * per-firmware patch (`patchOverrides.ts`) can add a hook (REPEATER on OUROBOROS_LOOP), which a
+ * one-hook-in, one-hook-out transform cannot express.
+ */
+export function patchScoreDeltaOfLists(
+    before: ReadonlyArray<HookRecord>,
+    after: ReadonlyArray<HookRecord>,
+    osId = 'patched',
+): number {
+    const was = scoreHookList(osId, before).pctOfPoolPerGame;
+    const now = scoreHookList(osId, after).pctOfPoolPerGame;
+    return Math.round((now - was) * 100) / 100;
 }

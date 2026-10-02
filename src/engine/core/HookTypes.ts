@@ -174,7 +174,12 @@ export type HookAction = {
     // `'HP'` is here because `lib/hooks.json` uses it and `HookFactory` dispatches on it; it was
     // missing from this union, which is why that comparison needed a cast to compile (ticket 55).
     type: ActionType | 'HP' | 'LOG' | 'COUNTER' | 'DRAW' | 'MAX_ENERGY'; // Hooks can perform actions or log
-    target?: 'SELF' | 'TARGET' | 'SOURCE' | 'ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
+    /**
+     * `OTHER_ALLIES` (ticket 184): the owner's living allies EXCEPT the owner. SPLITTER's echo
+     * uses it — Henry, 2026-10-01: *"Splitter doesn't double up... he stays the same, allies just
+     * gain the stacks too."* `ALLIES` includes the owner, so an echo aimed there paid him twice.
+     */
+    target?: 'SELF' | 'TARGET' | 'SOURCE' | 'ALLIES' | 'OTHER_ALLIES' | 'ENEMIES' | 'RANDOM_ENEMY';
     /**
      * Ticket 69 (`drip_feed`): apply this action ONLY to resolved targets that already carry this
      * status. Checked per target, so it is meaningful on the multi-target forms — `ALLIES` and

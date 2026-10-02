@@ -10,7 +10,6 @@ import { matchupScenario } from '../src/debug/balance/balanceScenarios';
 import { buildScenarioState } from '../src/debug/scenarios/buildScenarioState';
 import { bestPatchFor } from '../src/engine/data/patchRanking';
 import { gatePatchChoices } from '../src/engine/data/patchRanking';
-import { rawFirmwareHooks } from '../src/engine/data/firmwareRegistry';
 import type { IBattleState, ProgramEntity } from '../src/engine/types';
 
 function run(patches: string[], cards = 10): { triggers: number[]; } {
@@ -34,5 +33,5 @@ function run(patches: string[], cards = 10): { triggers: number[]; } {
 for (const p of [[], ['amplifier'], ['repeater'], ['splitter'], ['relay'], ['failsafe'], ['overclock']]) {
     console.log(`${(p[0] ?? 'none').padEnd(10)} fires on Water card #: ${JSON.stringify(run(p).triggers)}`);
 }
-console.log('bestPatchFor(jormungandr_v1) =', bestPatchFor(rawFirmwareHooks('jormungandr_v1')).id);
-console.log('gatePatchChoices(jormungandr_v1) =', gatePatchChoices(rawFirmwareHooks('jormungandr_v1'), []));
+console.log('bestPatchFor(jormungandr_v1) =', bestPatchFor('jormungandr_v1').id);
+console.log('gatePatchChoices(jormungandr_v1) =', gatePatchChoices('jormungandr_v1', []));

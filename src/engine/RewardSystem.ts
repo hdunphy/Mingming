@@ -36,7 +36,6 @@ import { resolveProgramId } from './data/programAliases';
 import { v2RunPool } from './data/speciesPools';
 import { PATCH_SLOTS } from './data/patchRegistry';
 import { bestPatchFor } from './data/patchRanking';
-import { rawFirmwareHooks } from './data/firmwareRegistry';
 import { rollMacroChoices } from './run/macroRewards';
 import type { FightBonus } from './run/fightBonus';
 import { GENERIC_HIT, GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
@@ -948,7 +947,7 @@ export function elitePatchOffer(
         if (memberId === undefined) continue;
         if ((held[memberId] ?? []).length >= PATCH_SLOTS) continue;
         if (!member.activeOS) continue;
-        offers.push({ memberId, patchId: bestPatchFor(rawFirmwareHooks(member.activeOS)).id });
+        offers.push({ memberId, patchId: bestPatchFor(member.activeOS).id });
     }
     return offers;
 }

@@ -5,14 +5,21 @@
  * kind, which key and what the words are; how a kind reads the battle is written once, here.
  */
 
-import { counterValue, gateValue, usesAllowed, type CounterRef } from './counterReads';
+import { counterValue, gateValues, usesAllowed, type CounterRef } from './counterReads';
 import type { CounterContext, CounterReader, CounterReading } from './counterTypes';
 
 /** Where a progress counter's target comes from: a number, or the hook's own gate on the key. */
 export type TargetSource = number | 'gate';
 
-function targetOf(context: CounterContext, ref: CounterRef, target: TargetSource): number | undefined {
-    return target === 'gate' ? gateValue(context.hooks, ref.key, ['EQ', 'GTE']) : target;
+/**
+ * The NEXT number the count fires at: the smallest gate above the current value (the count fires
+ * when it reaches a gate, so at rest it sits below the next one). With one gate that is just the
+ * gate; with REPEATER's 3-and-5 it is 3, then 5.
+ */
+function targetOf(context: CounterContext, ref: CounterRef, target: TargetSource, value: number): number | undefined {
+    if (target !== 'gate') return target;
+    const gates = gateValues(context.hooks, ref.key, ['EQ', 'GTE']);
+    return gates.find((gate) => gate > value) ?? gates[gates.length - 1];
 }
 
 /**
@@ -26,15 +33,15 @@ export function progressCounter(spec: {
     readonly count: CounterRef;
     readonly target: TargetSource;
     readonly uses?: CounterRef;
-    /** The hover sentence, given the count and the target. */
-    readonly describe: (value: number, target: number) => string;
+    /** The hover sentence, given the count and the target (and the battle, for words that depend on a patch). */
+    readonly describe: (value: number, target: number, context: CounterContext) => string;
     /** The hover sentence once the per-turn limit is used up. */
     readonly spentText?: (allowed: number) => string;
 }): CounterReader {
     return (context) => {
-        const target = targetOf(context, spec.count, spec.target);
-        if (target === undefined || target <= 0) return null;
         const value = counterValue(context.state, context.owner, spec.count);
+        const target = targetOf(context, spec.count, spec.target, value);
+        if (target === undefined || target <= 0) return null;
         if (spec.uses) {
             const allowed = usesAllowed(context.hooks, spec.uses.key) ?? 1;
             const used = counterValue(context.state, context.owner, spec.uses);
@@ -45,7 +52,7 @@ export function progressCounter(spec: {
         return {
             text: `${value}/${target}`,
             state: value >= target - 1 ? 'ready' : 'counting',
-            tooltip: spec.describe(value, target),
+            tooltip: spec.describe(value, target, context),
         };
     };
 }

@@ -7,10 +7,11 @@
  */
 
 import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
-import { getPatch, type PatchDefinition } from '../../engine/data/patchRegistry';
+import { applyPatchesToFirmware, getPatch, type PatchDefinition } from '../../engine/data/patchRegistry';
 import type { HookData } from './counterTypes';
 
 export function patchedFirmwareHooks(osId: string, patchIds: ReadonlyArray<string>): ReadonlyArray<HookData> {
     const riders = patchIds.map(getPatch).filter((patch): patch is PatchDefinition => patch !== undefined);
-    return rawFirmwareHooks(osId).map((hook) => riders.reduce((data, rider) => rider.apply(data), hook));
+    // 184d: the same call the engine makes, so a per-firmware override changes the pip too.
+    return applyPatchesToFirmware(osId, riders, rawFirmwareHooks(osId));
 }

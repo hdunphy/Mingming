@@ -209,16 +209,16 @@ describe('163g — "best" is the SCORED DELTA, not the touch count', () => {
          */
         const hooks = rawFirmwareHooks('fenrir_v1');
         expect(patchTouchCount(PATCHES.amplifier, hooks)).toBe(patchTouchCount(PATCHES.splitter, hooks));
-        expect(patchScoreDeltaFor(PATCHES.splitter, hooks))
-            .toBeGreaterThan(patchScoreDeltaFor(PATCHES.amplifier, hooks));
-        expect(bestPatchFor(hooks).id).toBe('splitter');
+        expect(patchScoreDeltaFor(PATCHES.splitter, 'fenrir_v1'))
+            .toBeGreaterThan(patchScoreDeltaFor(PATCHES.amplifier, 'fenrir_v1'));
+        expect(bestPatchFor('fenrir_v1').id).toBe('splitter');
     });
 
     it('no longer answers "amplifier" on every body — the thing 163e measured', () => {
         // The claim is that the ranking DISCRIMINATES, asserted as a property rather than as a
         // transcribed 12-row table: a table would have to be re-typed on every retune, and the
         // failure it exists to catch is "one patch wins everywhere", which is a count.
-        const winners = new Set(osIds.map((osId) => bestPatchFor(rawFirmwareHooks(osId)).id));
+        const winners = new Set(osIds.map((osId) => bestPatchFor(osId).id));
         expect(winners.size, `winners: ${[...winners].join(', ')}`).toBeGreaterThan(1);
     });
 
@@ -229,7 +229,7 @@ describe('163g — "best" is the SCORED DELTA, not the touch count', () => {
         for (const osId of osIds) {
             const hooks = rawFirmwareHooks(osId);
             expect(patchTouchCount(PATCHES.overclock, hooks), osId).toBe(0);
-            expect(patchScoreDeltaFor(PATCHES.overclock, hooks), osId).toBe(0);
+            expect(patchScoreDeltaFor(PATCHES.overclock, osId), osId).toBe(0);
         }
     });
 
@@ -257,7 +257,7 @@ describe('163g — "best" is the SCORED DELTA, not the touch count', () => {
         expect(found.length, 'relay should reach SOME firmware, or this case is vacuous')
             .toBeGreaterThan(0);
         for (const osId of found) {
-            expect(patchScoreDeltaFor(PATCHES.relay, rawFirmwareHooks(osId)), `relay on ${osId}`).toBe(0);
+            expect(patchScoreDeltaFor(PATCHES.relay, osId), `relay on ${osId}`).toBe(0);
         }
     });
 });
@@ -274,7 +274,7 @@ describe('163g — the gate offers two different KINDS', () => {
         // never offered, so a firmware that can use only one patch is offered only that one —
         // huldra_v2 has no hook data, and OVERCLOCK is the one patch that is not a hook change.
         for (const osId of osIds) {
-            const offers = gatePatchChoices(rawFirmwareHooks(osId), []);
+            const offers = gatePatchChoices(osId, []);
             if (osId === 'huldra_v2') {
                 expect(offers, osId).toEqual(['overclock']);
                 continue;
@@ -287,16 +287,14 @@ describe('163g — the gate offers two different KINDS', () => {
 
     it('leads with the body\'s best, so the pair always contains the one that fits', () => {
         for (const osId of osIds) {
-            const hooks = rawFirmwareHooks(osId);
-            expect(gatePatchChoices(hooks, [])[0], osId).toBe(bestPatchFor(hooks).id);
+            expect(gatePatchChoices(osId, [])[0], osId).toBe(bestPatchFor(osId).id);
         }
     });
 
     it('still respects what the body already holds', () => {
-        const hooks = rawFirmwareHooks('fenrir_v1');
-        const first = gatePatchChoices(hooks, [])[0];
-        expect(gatePatchChoices(hooks, [first])).not.toContain(first);
-        expect(gatePatchChoices(hooks, [first])).toHaveLength(2);
+        const first = gatePatchChoices('fenrir_v1', [])[0];
+        expect(gatePatchChoices('fenrir_v1', [first])).not.toContain(first);
+        expect(gatePatchChoices('fenrir_v1', [first])).toHaveLength(2);
     });
 
     it('keeps AMPLIFIER as the shop\'s stock whatever the ranking says', () => {

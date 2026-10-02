@@ -76,15 +76,27 @@ describe('184c - jormungandr_v1 counts its Water cards', () => {
         expect(firmwarePip(state)!.text).toBe('0/5');
     });
 
-    it('with REPEATER the pip reads what the engine does — and today that is "keeps counting"', () => {
-        // REPEATER raises the guard's gate from `LT 1` to `LT 2`, but OUROBOROS_LOOP's guard is
-        // written with `SET 1`, not `ADD 1`, so it never reaches 2: the patched firmware draws on
-        // EVERY 5th Water card, not twice a turn. Reported in 184d (patch-text-184.md) for Henry;
-        // the pip is honest about it rather than showing a USED the engine does not enforce.
+    it('with REPEATER it draws on the 3rd and the 5th Water card, and the pip walks both (Henry, 184d)', () => {
         let state = arena({ os: 'jormungandr_v1', patches: ['repeater'] });
-        for (let i = 0; i < 15; i++) state = play(state, 'undertow');
-        expect(state.logs.filter((l) => l.includes('OUROBOROS_LOOP triggers')).length).toBe(3);
-        expect(firmwarePip(state)).toMatchObject({ text: '0/5', state: 'counting' });
+        const seen: string[] = [];
+        for (let i = 0; i < 6; i++) {
+            state = play(state, 'undertow');
+            seen.push(firmwarePip(state)!.text);
+        }
+        expect(seen).toEqual(['1/3', '2/3', '3/5', '4/5', 'USED', 'USED']);
+        expect(state.logs.filter((l) => l.includes('OUROBOROS_LOOP triggers')).length).toBe(2);
+    });
+
+    it('with SPLITTER any card counts, and the words say so', () => {
+        let state = arena({ os: 'jormungandr_v1', patches: ['splitter'] });
+        state = play(state, 'tackle');
+        expect(firmwarePip(state)!.text).toBe('1/5');
+        expect(firmwarePip(state)!.tooltip).toBe('Cards this turn: 1 of 5. Card 5 draws a card.');
+    });
+
+    it('with AMPLIFIER the words say it draws 2', () => {
+        expect(firmwarePip(arena({ os: 'jormungandr_v1', patches: ['amplifier'] }))!.tooltip)
+            .toBe('Water cards this turn: 0 of 5. Water card 5 draws 2 cards.');
     });
 
     it('the hover sentence says what the count is for', () => {

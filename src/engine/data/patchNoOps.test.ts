@@ -23,27 +23,27 @@ describe('184d - no-op patches are hidden', () => {
         for (const os of LAUNCH_OS) {
             const hooks = rawFirmwareHooks(os);
             const doors = [
-                bestPatchFor(hooks).id,
-                ...gatePatchChoices(hooks, []),
+                bestPatchFor(os).id,
+                ...gatePatchChoices(os, []),
                 ...elitePatchOffer([{ id: 'm1', definitionId: os.replace(/_v\d$/, ''), activeOS: os }]).map((o) => o.patchId),
             ];
-            for (const id of doors) expect(patchDoesNothing(PATCHES[id as PatchId], hooks), `${os} offered ${id}`).toBe(false);
+            for (const id of doors) expect(patchDoesNothing(PATCHES[id as PatchId], os, hooks), `${os} offered ${id}`).toBe(false);
         }
     });
 
     it('huldra_v2 (hand-written firmware, no hook data) can use only OVERCLOCK', () => {
-        expect(offerablePatchIds(rawFirmwareHooks('huldra_v2'))).toEqual(['overclock']);
-        expect(bestPatchFor(rawFirmwareHooks('huldra_v2')).id).toBe('overclock');
+        expect(offerablePatchIds('huldra_v2')).toEqual(['overclock']);
+        expect(bestPatchFor('huldra_v2').id).toBe('overclock');
     });
 
     it('OVERCLOCK is never a no-op; the others are a no-op exactly when they touch nothing', () => {
-        for (const os of LAUNCH_OS) expect(patchDoesNothing(PATCHES.overclock, rawFirmwareHooks(os))).toBe(false);
-        expect(patchDoesNothing(PATCHES.repeater, rawFirmwareHooks('kraken_v1'))).toBe(true);
-        expect(patchDoesNothing(PATCHES.amplifier, rawFirmwareHooks('kraken_v1'))).toBe(false);
+        for (const os of LAUNCH_OS) expect(patchDoesNothing(PATCHES.overclock, os, rawFirmwareHooks(os))).toBe(false);
+        expect(patchDoesNothing(PATCHES.repeater, 'kraken_v1', rawFirmwareHooks('kraken_v1'))).toBe(true);
+        expect(patchDoesNothing(PATCHES.amplifier, 'kraken_v1', rawFirmwareHooks('kraken_v1'))).toBe(false);
     });
 
     it('the shop stock (AMPLIFIER) is not offered to huldra_v2, in the game or the walker', () => {
-        expect(offerablePatchIds(rawFirmwareHooks('huldra_v2'))).not.toContain('amplifier');
+        expect(offerablePatchIds('huldra_v2')).not.toContain('amplifier');
         const party = [
             { id: 'a', activeOS: 'huldra_v2' },
             { id: 'b', activeOS: 'kraken_v1' },
@@ -52,7 +52,8 @@ describe('184d - no-op patches are hidden', () => {
     });
 
     it('how many cells are hidden — the number the 184d report quotes', () => {
-        const hidden = LAUNCH_OS.flatMap((os) => PATCH_IDS.filter((id) => patchDoesNothing(PATCHES[id], rawFirmwareHooks(os))));
-        expect(hidden).toHaveLength(39);
+        const hidden = LAUNCH_OS.flatMap((os) => PATCH_IDS.filter((id) => patchDoesNothing(PATCHES[id], os, rawFirmwareHooks(os))));
+        // 39 no-ops, plus fenrir_v1's RELAY, which Henry ruled out (184d, 2026-10-01).
+        expect(hidden).toHaveLength(40);
     });
 });

@@ -25,7 +25,6 @@ import { offerGyms } from '../../engine/run/gyms';
 import { elitePatchOffer } from '../../engine/RewardSystem';
 import { PATCHES, PATCH_IDS, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { gatePatchChoices, bestPatchFor, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
-import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
 
@@ -94,7 +93,7 @@ describe('163d — what each door offers', () => {
         const offers = elitePatchOffer([{ id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1' }]);
         expect(offers).toHaveLength(1);
         expect(offers[0].memberId).toBe('mm1');
-        expect(offers[0].patchId).toBe(bestPatchFor(rawFirmwareHooks('kraken_v1')).id);
+        expect(offers[0].patchId).toBe(bestPatchFor('kraken_v1').id);
     });
 
     it('the ELITE skips a body whose slot is already full', () => {
@@ -104,21 +103,19 @@ describe('163d — what each door offers', () => {
     });
 
     it('the GATE offers two DIFFERENT riders, and never one already fitted', () => {
-        const hooks = rawFirmwareHooks('kraken_v1');
-        const pair = gatePatchChoices(hooks, []);
+        const pair = gatePatchChoices('kraken_v1', []);
         expect(pair).toHaveLength(2);
         expect(new Set(pair).size).toBe(2);
 
         const held = pair[0];
-        const second = gatePatchChoices(hooks, [held]);
+        const second = gatePatchChoices('kraken_v1', [held]);
         expect(second).not.toContain(held);
     });
 
     it('the GATE leads with the rider that fits, so the choice is a real one', () => {
         // A pair drawn at random would routinely offer two patches that do nothing to this
         // firmware — a choice in form only.
-        const hooks = rawFirmwareHooks('fenrir_v1');
-        expect(gatePatchChoices(hooks, [])[0]).toBe(bestPatchFor(hooks).id);
+        expect(gatePatchChoices('fenrir_v1', [])[0]).toBe(bestPatchFor('fenrir_v1').id);
     });
 
     it('the SHOP stocks AMPLIFIER, which §3 calls the one every OS can take', () => {

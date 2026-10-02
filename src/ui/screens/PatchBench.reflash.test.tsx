@@ -13,7 +13,6 @@ import { configureStore } from '@reduxjs/toolkit';
 
 import { PatchBench } from './PatchBench';
 import runReducer from '../store/runSlice';
-import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { getPatch } from '../../engine/data/patchRegistry';
 import { gatePatchChoices } from '../../engine/data/patchRanking';
 import { createRun } from '../../engine/run/createRun';
@@ -65,7 +64,7 @@ describe('168f — PatchBench on a reflashed body', () => {
         return host.textContent ?? '';
     };
     const namesFor = (osId: string): string[] =>
-        gatePatchChoices(rawFirmwareHooks(osId), []).map((id) => getPatch(id)!.name);
+        gatePatchChoices(osId, []).map((id) => getPatch(id)!.name);
 
     it('offers the two patches the new firmware ranks, and not the old one’s pair', () => {
         const flashed = shownNames(runWith({ osOverrides: { mm1: 'kraken_v2' } }));

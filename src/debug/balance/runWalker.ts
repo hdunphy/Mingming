@@ -83,7 +83,6 @@ export { BlueprintLedger } from './BlueprintLedger';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { gatePatchChoices, offerablePatchIds, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
-import { rawFirmwareHooks } from '../../engine/data/firmwareRegistry';
 import { SHOP_PATCH_PRICE } from '../../ui/screens/PatchBench';
 import { MingmingRegistry, LAUNCH_SPECIES, GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
@@ -408,12 +407,12 @@ export function choosePatches(
         if ((held[member.id] ?? []).length >= PATCH_SLOTS) continue;
         if (venue === 'shop') {
             // 184d: the game hides the shop's stock patch from a body it does nothing for; so does the walker.
-            if (offerablePatchIds(rawFirmwareHooks(member.activeOS ?? '')).includes(SHOP_STOCK_PATCH)) {
+            if (offerablePatchIds(member.activeOS ?? '').includes(SHOP_STOCK_PATCH)) {
                 out.push({ memberId: member.id, patchId: SHOP_STOCK_PATCH });
             }
             continue;
         }
-        const pair = gatePatchChoices(rawFirmwareHooks(member.activeOS ?? ''), held[member.id] ?? []);
+        const pair = gatePatchChoices(member.activeOS ?? '', held[member.id] ?? []);
         if (pair.length > 0) out.push({ memberId: member.id, patchId: pair[0] });
     }
     return out;
