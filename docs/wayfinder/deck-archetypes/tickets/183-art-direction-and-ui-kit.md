@@ -19,7 +19,8 @@
 - `B · Battle 3v3`, `B · Battle 2v2`, `B · Battle 1v1`: the battle screen in the kit, drawn on the real `stageGeometry.ts` numbers.
 - `B · Kit and card anatomy`: the card at 2× with callouts, the plaque at 2×, colours, element marks, HP steps, chips.
 - The second row of the canvas (chunky cream, "Forge") is superseded and kept for comparison only.
-- **Monster art direction:** the upright-wolf Fenrir reference Henry is sending to Champion Moab (vgen.co/ChampionMoab). AI-drafted, internal only, never shipped. Its register is the brief for the UI: clean cel shading, hard dark outlines, saturated glow only on the power lines and fire. The UI borrows the outline weight and the restraint, not softness.
+- **Monster art direction:** the commission brief to Champion Moab (vgen.co/ChampionMoab), updated by Henry 2026-10-02: an animal-based fakemon, an upright werewolf, carved rune-like glowing markings that say Fire, some armour, a chain (Fenrir bound), flames or a flame cannon only if they fit. Henry also drafted an upright-wolf picture with AI: **internal only, never sent to the artist, never shipped.** Its register is the brief for the UI: clean cel shading, hard dark outlines, saturated glow only on the markings and fire. The UI borrows the outline weight and the restraint, not softness.
+- **Rule (Henry, 2026-10-02): no AI-generated picture is ever sent to an artist.** References for artists are human-made only. AI drafts stay internal.
 - **UI reference research** (2026-10-01, Henry's other agent): one panel per monster, statuses as icon + count, element symbol + colour, effectiveness in words, one selection colour, corner layout. Taken. Charcoal/cyan/hexagons: not taken (written for the robot direction).
 
 ---
@@ -210,7 +211,7 @@ Rename UI labels only, per D1's table once ruled: a `labels.ts` map from interna
 
 ## Art commissions
 
-- **Monster art (Moab, steam-release ticket 33):** the brief is updated to the upright-wolf reference and the animal-inspired direction. Deliverables per species: a battle sprite that reads in a 150×120 box (drawn at 2×, 300×240, with headroom for the 190px cap), facing right (allies) with the enemy mirror done by the UI, on transparent; a square portrait for party faces and the map; a card-art crop at 134×36 ratio (3.7:1) for the hand card's art slot, or a wider band the UI crops.
+- **Monster art (Moab, steam-release ticket 33):** the brief is updated to the animal-inspired direction (Henry, 2026-10-02; no AI images in it). Deliverables per species: a battle sprite that reads in a 150×120 box (drawn at 2×, 300×240, with headroom for the 190px cap), facing right (allies) with the enemy mirror done by the UI, on transparent; a square portrait for party faces and the map; a card-art crop at 134×36 ratio (3.7:1) for the hand card's art slot, or a wider band the UI crops.
 - **Before Moab accepts (Henry, 2026-10-02: the request isn't accepted yet):** update the Milanote brief now, while the quote can still change. Today it still describes the robot direction ("Fakemon 'Robotic' Style" column, "Steel/Fire type", "the body is armored metal plating, not fur", a dark neon battle screenshot) and asks only for one 2000×2000 PNG and a PSD. Add the portrait and card-art crop listed above to the deliverables (keep 2000×2000 as the drawing size, and add "must read at 150×120 on screen"). Henry decides fur-with-accents or metal plating first. Replace the battle screenshot once 183b ships; until then the caption says the backdrop becomes bright flat bands, not dark. **No AI image goes to the artist** (Henry's standing rule), including the upright-wolf draft.
 - **Biome backdrops:** optional. The kit's flat bands ship first; painted backdrops in the same three palettes can replace them per biome later without touching layout.
 - **UI art:** none required. The kit is CSS. If a drawn panel frame is wanted later, the `SlantPanel` component is the one place it plugs in.
@@ -233,16 +234,17 @@ Rename UI labels only, per D1's table once ruled: a `labels.ts` map from interna
 
 The left column is this ticket's proposal; the right is a second draft from the 182 session (2026-10-02). Henry picks one per row, or writes his own. Do it **after 182** lands, since the text cut removes most of the sentences these words sit in. Wait for the Fenrir brief's fur-or-metal answer too (see "Art commissions"): if the monsters stay metal-plated, more of the tech words can stay.
 
-| In code | Draft A (this ticket) | Draft B (182 session) | Notes |
-|---|---|---|---|
-| firmware / OS | **Trait** | **Instinct** | the per-monster build choice; kernel/OS proper names stay as the trait's name |
-| reflash | **Retrain** | **Retrain** | both drafts agree |
-| assembly / workshop | **Hatch** | **Den** | where a monster joins |
-| daemon | **Companion** | — | |
-| blueprint | keep | **Trace** or **Bond** | what you keep to recruit again; avoid "Egg" (too close to Pokémon) |
-| macro | keep | **Draught** | the single-use consumable (Spire's potion) |
-| patch | keep | **Rune** | carved and attached to one monster |
-| driver | — | **Totem** or **Boon** | the party-wide passive from elites |
-| scrap | — | **Amber** | the currency; Norse trade goods |
-| program | — | **Card** | probably already "card" on most screens |
-| Mingming | keep | keep | |
+| In code | Draft A (this ticket) | Draft B (182 session) | **Recommended (one list to approve)** | Notes |
+|---|---|---|---|---|
+| firmware / OS | **Trait** | **Instinct** | **Instinct** | the per-monster build choice; kernel/OS proper names stay as the instinct's name. "Trait" is clear but generic; "Instinct" fits an animal |
+| reflash | **Retrain** | **Retrain** | **Retrain** | both drafts agree |
+| blueprint | keep | **Trace** or **Bond** | **Bond** | what you keep to recruit again; avoid "Egg" (too close to Pokémon) |
+| assembly | **Hatch** | — | **Summon** | spending a Bond to bring a monster in; "Hatch" needs eggs |
+| workshop (map node) | — | **Den** | **Den** | the place where you Summon |
+| daemon | **Companion** | — | **Aura** | a card that stays in play; "Companion" sounds like a creature |
+| macro | keep | **Draught** | **Draught** | the single-use consumable (Spire's potion) |
+| patch | keep | **Rune** | **Rune** | carved and attached to one monster; matches the brief's rune markings |
+| driver | — | **Totem** or **Boon** | **Totem** | the party-wide passive from elites |
+| scrap | — | **Amber** | **Amber** | the currency; Norse trade goods |
+| program | — | **Card** | **Card** | probably already "card" on most screens |
+| Mingming | keep | keep | **keep** | |
