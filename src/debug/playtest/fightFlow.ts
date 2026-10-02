@@ -11,7 +11,8 @@
  * call what the screens call: the reward roll is seeded with the battle's seed and is told
  * `firstRun`, and the player side also runs the temporary Drivers an event may have granted.
  */
-import { enterNode, endRun } from '../../ui/store/runSlice';
+import { enterNode, endRun, freezeMarketParty } from '../../ui/store/runSlice';
+import { isMarketNode } from '../../engine/run/marketplace';
 import { rollEncounter, isFightNode } from '../../engine/run/encounter';
 import { fightNodeFor } from '../../engine/run/eventFight';
 import { tempDriverIds } from '../../engine/run/tempDrivers';
@@ -22,6 +23,7 @@ import { autoPlay, openBattle } from './battleSim';
 import { partyOf } from './party';
 import { speciesName } from './gameText';
 import { startRewards } from './rewards';
+import { liveRanchParty } from './stalls';
 import type { FightReport, World } from './types';
 import { runOf } from './types';
 
@@ -46,6 +48,9 @@ export function stepOnto(world: World, nodeId: string): void {
     world.store.dispatch(enterNode(nodeId));
     const node = runOf(world).nodes.find((n) => n.id === nodeId);
     if (node && isFightNode(node.kind) && node.kind !== 'gym') playFightNode(world, node);
+    // The stall freezes its shelf for the team it was first seen with. `MarketplaceNode` does this in
+    // an effect on first render; here it is the same dispatch, made on arrival.
+    if (node && isMarketNode(node.kind)) world.store.dispatch(freezeMarketParty({ nodeId, party: liveRanchParty(world) }));
 }
 
 /** Roll the node's encounter, play it out with the game's AI on both sides, and settle the result. */

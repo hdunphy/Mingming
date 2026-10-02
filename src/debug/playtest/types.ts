@@ -91,8 +91,20 @@ export interface View {
     /** The fight just played, shown with its rewards. */
     fight: FightReport | null;
     reward: RewardFlow | null;
-    /** `nodeId:visit` keys of stalls and events the player has walked out of. */
-    left: string[];
+    /**
+     * The node id of the last stall (market or workshop) the player walked out of. This is
+     * `RunScreen`'s `closedNodeId`: stepping back onto that same node shows the map with a
+     * button to go back in, not the stall itself.
+     */
+    closedStall: string | null;
+    /** `nodeId:visit` of the last event the player walked out of (`RunScreen`'s `leftEventKey`). */
+    leftEvent: string | null;
+}
+
+/** What a section of a screen contributes: some lines of text and the moves that go with them. */
+export interface Section {
+    readonly lines: ReadonlyArray<string>;
+    readonly moves: ReadonlyArray<Move>;
 }
 
 export interface World {

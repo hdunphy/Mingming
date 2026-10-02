@@ -14,6 +14,8 @@ import { resolveDriverStake, partyElementsOf } from '../../../engine/run/driverS
 import { rivalElementPlan, FIGHT_KINDS } from '../../../engine/run/encounter';
 import { GetMingmingData } from '../../../engine/data/mingmingRegistry';
 import { PARTY_SIZE } from '../../../engine/party';
+import { isMarketNode } from '../../../engine/run/marketplace';
+import { isWorkshopNode } from '../../../engine/run/workshop';
 import type { IRegionNode } from '../../../engine/runTypes';
 import { fireMapReveal } from '../../../ui/store/runSlice';
 import { layoutRegion, type LaidOutNode } from '../../../ui/screens/regionLayout';
@@ -76,6 +78,15 @@ export function mapScreen(world: World): Screen {
         label: `Go to ${describeNode(world, laid)}`,
         apply: (w) => stepOnto(w, laid.node.id),
     }));
+
+    // A stall you walked out of is not spent: the map offers the way back in (`RunScreen`'s button).
+    if (here && (isMarketNode(here.node.kind) || isWorkshopNode(here.node.kind)) && world.view.closedStall === here.node.id) {
+        moves.push({
+            key: 'reopen',
+            label: `Go back into the ${isMarketNode(here.node.kind) ? 'market' : 'workshop'}`,
+            apply: (w) => { w.view.closedStall = null; },
+        });
+    }
 
     // A Survey macro lights up the whole biome the party stands in. It is free to fire and is used up.
     run.macros.forEach((macroId, slot) => {

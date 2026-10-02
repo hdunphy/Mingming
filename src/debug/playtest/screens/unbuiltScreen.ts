@@ -1,9 +1,9 @@
 /**
  * TICKET 180a — A PLACE THE PLAYTESTER CANNOT PLAY YET.
  *
- * 180b builds the market and the workshop, 180c the events and the gym. Until a screen exists for a
- * node kind this one stands in for it, with the one move every place has: walk back out. 180c's test
- * asserts a whole run never lands here, which is the "no unknown screen" rule from the ticket.
+ * 180c builds the events and the gym; until a screen exists for a node kind this one stands in for
+ * it, with the one move every place has: walk back out. 180c's test asserts a whole run never lands
+ * here, which is the "no unknown screen" rule from the ticket.
  */
 import type { Screen, World } from '../types';
 import { runOf } from '../types';
@@ -20,7 +20,7 @@ export function unbuiltScreen(world: World): Screen {
         moves: [{
             key: 'leave',
             label: 'Walk back out to the map',
-            apply: (w) => { w.view.left = [...w.view.left, leftKey(node.id, node.visited)]; },
+            apply: (w) => { w.view.leftEvent = leftKey(node.id, node.visited); },
         }],
     };
 }
