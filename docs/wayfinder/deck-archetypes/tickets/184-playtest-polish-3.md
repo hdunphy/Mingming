@@ -1,6 +1,6 @@
 # Ticket 184: Draw pile viewer, Burn overflow text, OS counters, per-OS patch text
 
-**Type:** UI fixes, plus one written table. **Status:** RULED by Henry 2026-10-01 (the four decisions are at the bottom). 184a to 184c are buildable. 184d starts with a draft for Henry to review, with no game change, and ships after he rules on it.
+**Type:** UI fixes, plus one written table. **Status:** 184a, 184b and 184c BUILT (2026-10-01). 184d step 1 BUILT: no-op patches are hidden, and the per-OS text is drafted in `docs/balance/patch-text-184.md`. **184d step 2 waits on Henry:** his review of that draft, and a ruling on three patches that switch Jörmungandr v1's firmware off.
 
 **Henry (2026-10-01), in his words:**
 
