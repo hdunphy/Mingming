@@ -47,7 +47,6 @@ import {
     nodeLabelFor,
     type LaidOutNode,
 } from './regionLayout';
-import type { IconName } from '../theme/icons';
 import './RegionMap.css';
 import { Icon } from '../theme/Icon';
 import { iconPaths } from '../theme/icons';
@@ -219,22 +218,12 @@ export default function RegionMap({
      * everything twice is a map nobody reads.
      */
     const currentBiome = layout.byId.get(currentNodeId)?.node.biomeIndex ?? 0;
-    const bandState = (biomeIndex: number): string =>
-        biomeIndex < currentBiome ? 'WALKED' : biomeIndex === currentBiome ? 'CURRENT' : 'AHEAD';
 
     const reachable = layout.nodes.filter((n) => n.reachable);
 
-    /** The map key: one entry per icon on show, revealed nodes only, in layout order. */
-    const legendKey: ReadonlyArray<{ icon: IconName; label: string }> = (() => {
-        const seen = new Map<string, { icon: IconName; label: string }>();
-        for (const laid of layout.nodes) {
-            if (!laid.revealed) continue;
-            const label = nodeLabelFor(laid.node);
-            if (!seen.has(label)) seen.set(label, { icon: nodeIconFor(laid.node), label });
-        }
-        return [...seen.values()];
-    })();
-    const current = layout.byId.get(currentNodeId);
+    // TICKET 182a: the legend key, "You are here" and the bullet lines are cut. The node hover (below)
+    // says what a node is, and the Travel list says it for screen readers.
+    const hasStakes = layout.nodes.some((n) => n.revealed && n.node.driverStake);
 
     /**
      * The elements a fight node actually fields — the ONE place that decides it, so the colour, the
@@ -284,20 +273,19 @@ export default function RegionMap({
         return parts.join(', ');
     };
 
+    /**
+     * TICKET 182a — what a node says when you hover it, now that the key line and "You are here"
+     * are gone. The same words the Travel list reads out; a rival adds the one line that explains
+     * it (142c: it fields the elements the road needs, not the biome's).
+     */
+    const hoverOf = (laid: LaidOutNode): string =>
+        laid.revealed && laid.node.kind === 'rival'
+            ? `${describe(laid)}. A rival fields the elements this road needs.`
+            : describe(laid);
+
     return (
         <div className="rm">
-            <div className="rm-biome-strip" aria-hidden="true">
-                {biomeNames.map((name, i) => (
-                    <div
-                        key={i}
-                        className={`rm-biome ${current && current.node.biomeIndex === i ? 'here' : ''}`}
-                        style={{ borderColor: ELEMENT_COLOR[biomeElements[i]] ?? '#7a5cff' }}
-                    >
-                        <span className="rm-biome-name">{name}</span>
-                        <span className="rm-biome-element">{biomeElements[i]}</span>
-                    </div>
-                ))}
-            </div>
+            {/* TICKET 182a: the biome tab strip is gone; each band on the map names its biome. */}
 
             {/*
               * TICKET 38 — THE PANNABLE CANVAS HAS TO BE FOCUSABLE, OR THE PAN IS MOUSE-ONLY.
@@ -355,11 +343,11 @@ export default function RegionMap({
                                 stroke={ELEMENT_COLOR[band.element] ?? '#7a5cff'}
                             />
                             <text
-                                className={`rm-band-label ${bandState(band.biomeIndex) === 'CURRENT' ? 'here' : ''}`}
+                                className={`rm-band-label ${band.biomeIndex === currentBiome ? 'here' : ''}`}
                                 x={band.x + 18} y={BAND_INSET_Y + 20}
                                 style={{ fill: ELEMENT_COLOR[band.element] ?? undefined }}
                             >
-                                {band.element.toUpperCase()} · {bandState(band.biomeIndex)}
+                                {biomeNames[band.biomeIndex] ?? band.element}
                             </text>
                         </g>
                     ))}
@@ -417,6 +405,8 @@ export default function RegionMap({
                                 ].filter(Boolean).join(' ')}
                                 onClick={laid.reachable ? () => onTravel(laid.node) : undefined}
                             >
+                                {/* TICKET 182a: the key line is gone, so every node says what it is on hover. */}
+                                <title>{hoverOf(laid)}</title>
                                 <circle
                                     cx={x} cy={y}
                                     r={laid.node.kind === 'gym' && laid.revealed ? R + 5 : R}
@@ -505,58 +495,21 @@ export default function RegionMap({
                 </svg>
             </div>
 
-            <div className="rm-legend">
-                {/*
-                  * THE ICON KEY — Henry, 2026-09-25: *"The node icons need a legend. It is unclear
-                  * what they mean."* The icons were explained only by the `map:types` tip, which is
-                  * once-ever, so from the second run on nothing on screen said what a node was.
-                  * Built from the nodes the player can actually SEE on this map (fogged ones show
-                  * their shape, not their kind), in the order they first appear, so the key never
-                  * explains a kind this run does not have.
-                  */}
-                {legendKey.length > 0 && (
-                    <span className="rm-legend-key" aria-label="Map key">
-                        {legendKey.map(({ icon, label }) => (
-                            <span key={label} className="rm-legend-key-item">
-                                <Icon name={icon} size={13} /> {label}
-                            </span>
-                        ))}
-                    </span>
-                )}
-                <span>You are here: <strong>{current ? describe(current) : '—'}</strong></span>
-                {/*
-                  * Ticket 142c: stated on the map rather than left to the tip, because the tip is
-                  * once-ever (`seenTips` lives on the ranch save) and this is the sentence a player
-                  * wants again on the run where it matters. Rendered only when the run HAS rivals,
-                  * so a caller without them is not told about a node kind it never draws.
-                  */}
-                {rivalElements.length > 0 && (
-                    <span className="rm-legend-rival">
-                        · a <strong>rival</strong> fields the two elements your route needs, not this
-                        biome&apos;s — the dot is its second element
-                    </span>
-                )}
-                {/* Ticket 17: the stake ring and the ambush tint, explained once where the fog is. */}
-                {layout.nodes.some((n) => n.revealed && n.node.driverStake) && (
+            {/* Ticket 17: the stake ring and the ambush tint, explained once, and only when there is one. */}
+            {hasStakes && (
+                <div className="rm-legend">
                     <span className="rm-legend-stakes">
-                        · a <strong>violet ring</strong> is a Driver at stake — win the fight, keep the Driver for the run;
+                        a <strong>violet ring</strong> is a Driver at stake — win the fight, keep the Driver for the run;
                         a red <strong>ambush</strong> outnumbers you and pays one as a bonus
                     </span>
-                )}
-                <span className="rm-legend-fog">
-                    · fogged nodes show their shape, not their kind — visibility is one layer ahead
-                    {/* Ticket 15: a survey is a permanent change to what the map shows, so the
-                        legend that explains the fog has to stop lying about it once one is spent. */}
-                    {revealedBiomes.length > 0
-                        && `, except biome${revealedBiomes.length > 1 ? 's' : ''} ${revealedBiomes.map((b) => b + 1).join(', ')} — surveyed`}
-                </span>
-            </div>
+                </div>
+            )}
 
             {/*
               * The keyboard and screen-reader surface. Not a fallback for the picture — it is the
               * primary control, and the SVG is the illustration of it.
               */}
-            <nav className="rm-travel" aria-label="Travel">
+            <nav className="rm-travel sr-only" aria-label="Travel">
                 <h3 className="rm-travel-head">Travel</h3>
                 <ul className="rm-travel-list">
                     {reachable.map((laid) => (

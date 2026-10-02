@@ -19,6 +19,10 @@ import type { ReactNode } from 'react';
 
 import MainMenuView from '../components/MainMenuView';
 import RanchScreen from '../screens/RanchScreen';
+import RunScreen from '../screens/RunScreen';
+import { createRun } from '../../engine/run/createRun';
+import { offerGyms } from '../../engine/run/gyms';
+import { ALL_TIP_IDS } from '../../engine/tips';
 import { createRanchMember } from '../../engine/gameTypes';
 import battleReducer from '../store/battleSlice';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
@@ -52,6 +56,27 @@ describe('the copy budget', () => {
     it('the ranch (Expedition) is inside it', () => {
         const report = readCopy(render(<RanchScreen initialSection="expedition" />, oneStarter()));
         expect(budgetProblem(report)).toBeNull();
+    });
+
+    it('the map is inside it', () => {
+        const run = createRun({
+            seed: 'budget-seed',
+            offer: offerGyms('budget-offer')[0],
+            party: [{
+                id: 'm1', definitionId: 'kraken', activeOS: 'kraken_v1', blueprintsCollected: 0,
+                attackIV: 10, defenseIV: 10, hpIV: 10,
+            }],
+            startedAt: 1,
+        });
+        const game = { ...oneStarter(), seenTips: [...ALL_TIP_IDS] };
+        game.roster = [{ ...game.roster[0], id: 'm1' }];
+        const store = configureStore({
+            reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
+            preloadedState: { game, run: { run } },
+            middleware: (getDefault) => getDefault({ serializableCheck: false }),
+        });
+        const markup = renderToStaticMarkup(<Provider store={store}><RunScreen /></Provider>);
+        expect(budgetProblem(readCopy(markup))).toBeNull();
     });
 
     it('the measurement itself: two paragraphs, or one that runs long, is over budget', () => {

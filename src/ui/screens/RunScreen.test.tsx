@@ -165,12 +165,13 @@ describe('RunScreen — a node that fired says so', () => {
         expect(markup).not.toContain('nothing here yet');
     });
 
-    it('shows the map, the party and the run’s seed while on the map', () => {
+    it('shows the map and the party while on the map', () => {
         // A plain node, now that the stall, the bay and the event take the whole screen: the map's
-        // own chrome and nothing else.
+        // own chrome and nothing else. 182a: the seed line and the fights count are gone from the
+        // screen (the seed is in the exported run log); the party is a row of faces.
         const markup = render(standingOn('wild'));
-        expect(markup).toContain('run-screen-seed');
-        expect(markup).toContain('fights');
+        expect(markup).not.toContain('run-screen-seed');
+        expect(markup).toContain('run-party-faces');
         expect(markup).toContain('rm-canvas');
     });
 
@@ -370,8 +371,9 @@ describe('RunScreen — abandoning moved to Settings (182a, R5)', () => {
 
 describe('RunScreen — the run says which tier it is (ticket 169e)', () => {
     it('prints the tier, counted from 0, in the map header', () => {
-        expect(render({ ...BASE, tier: 2 })).toMatch(/layer \d+ · Tier 2 · \d+ fights/);
-        expect(render({ ...BASE, tier: 0 })).toMatch(/layer \d+ · Tier 0 · \d+ fights/);
+        // 182a: the header is the biome and scrap; the tier shows only when the player chose one.
+        expect(render({ ...BASE, tier: 2 })).toMatch(/Tier 2/);
+        expect(render({ ...BASE, tier: 0 })).not.toMatch(/Tier \d/);
     });
 
     it('prints it in the gauntlet header too', () => {
@@ -383,7 +385,7 @@ describe('RunScreen — the run says which tier it is (ticket 169e)', () => {
             phase: 'gauntlet',
             gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
         });
-        expect(markup).toMatch(/Tier 3 · \d+ fights/);
+        expect(markup).toMatch(/Tier 3/);
     });
 });
 
@@ -395,7 +397,7 @@ describe('RunScreen — the run says which modifiers are on (ticket 169f)', () =
     });
 
     it('says "1 modifier" for one, and nothing for none', () => {
-        expect(render({ ...BASE, modifiers: ['mod:elite_hunt'] })).toContain('1 modifier</span> ·');
+        expect(render({ ...BASE, modifiers: ['mod:elite_hunt'] })).toContain('1 modifier</span>');
         expect(render(BASE)).not.toMatch(/modifier/);
     });
 

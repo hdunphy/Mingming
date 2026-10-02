@@ -83,8 +83,10 @@ describe('142c — a rival and a scout say what they are', () => {
         expect(markup).toContain('rm-node-scout-ring');
     });
 
-    it('explains the rival in the legend, but only in a run that has them', () => {
-        expect(render(graph.entryNodeId, graph.nodes, RIVAL_ELEMENTS)).toContain('rm-legend-rival');
+    it('explains the rival on its own hover (182a: the legend line is gone)', () => {
+        const markup = render(beside(rival.id), graph.nodes, RIVAL_ELEMENTS);
+        expect(markup).not.toContain('rm-legend-rival');
+        expect(markup).toMatch(/<title>[^<]*rival[^<]*fields the elements this road needs/i);
     });
 });
 describe('17 — the stakes are said before the player commits', () => {
@@ -166,10 +168,13 @@ describe('RegionMap', () => {
         expect(markup.match(/class="rm-biome-seam"/g)?.length).toBe(BIOME_NAMES.length - 1);
     });
 
-    it('shows the three biomes and marks the one you are standing in', () => {
+    it('names the three biomes on the map itself and marks the one you are standing in (182a)', () => {
         const markup = render();
-        for (const name of BIOME_NAMES) expect(markup).toContain(name);
-        expect(markup).toContain('rm-biome here');
+        // The tab strip is gone; each band is labelled with its biome name and nothing else.
+        expect(markup).not.toContain('rm-biome-strip');
+        const labels = [...markup.matchAll(/<text class="rm-band-label[^"]*"[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+        expect(labels).toEqual(BIOME_NAMES);
+        expect(markup).toContain('rm-band-label here');
     });
 
     it('gives every reachable node a real button, so the map works without a mouse', () => {
@@ -221,8 +226,10 @@ describe('RegionMap', () => {
         expect(markup).not.toMatch(/cleared|spent|exhausted/i);
     });
 
-    it('says where you are in words, not only in pixels', () => {
-        expect(render()).toContain('You are here');
+    it('has no "You are here" sentence (182a); the where-you-are words live on the node hover', () => {
+        const markup = render();
+        expect(markup).not.toContain('You are here');
+        expect(markup).toMatch(/<title>Start, /);
     });
 
     it('offers nothing to travel to from a node with no edges, without crashing', () => {
@@ -236,18 +243,18 @@ describe('2026-09-25 playtest — the start node, and a key for the icons', () =
     it('calls the node the run starts on Start, and says walking back in is a fight', () => {
         // Henry: "I start on node one, but never encounter a fight." It wore the wild's blade.
         const markup = render(graph.entryNodeId);
-        expect(markup).toContain('You are here: <strong>Start, Fire, walking back in is a Wild fight');
+        // 182a: the sentence is gone; the same words are the start node's hover.
+        expect(markup).toContain('<title>Start, Fire, walking back in is a Wild fight');
     });
 
-    it('lists a key entry for every kind on show, and none for a fogged one', () => {
+    it('has no key line under the map (182a); the icons keep their hover', () => {
         const markup = render(graph.entryNodeId);
-        expect(markup).toContain('rm-legend-key');
-        const key = markup.slice(markup.indexOf('rm-legend-key'), markup.indexOf('You are here'));
-        expect(key).toContain('Start');
+        expect(markup).not.toContain('rm-legend-key');
+        expect(markup).not.toContain('Map key');
         // One layer of visibility from the start: the layer-1 nodes are revealed, and biome 0's
-        // layer 1 is always a fight (ticket 24), so Wild is in the key.
-        expect(key).toContain('Wild');
-        // The gym is several biomes away and fogged — the key must not explain it yet.
-        expect(key).not.toContain('Gym');
+        // layer 1 is always a fight (ticket 24), so a Wild hover is on the map.
+        expect(markup).toMatch(/<title>Wild, /);
+        // The gym is several biomes away and fogged: its hover says Unknown, never Gym.
+        expect(markup).not.toMatch(/<title>Gym/);
     });
 });

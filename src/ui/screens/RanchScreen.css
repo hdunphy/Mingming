@@ -429,6 +429,22 @@
     line-height: 1.5;
 }
 
+/* TICKET 182a: the header line is a biome name and scrap with an icon; the party is a row of faces. */
+.ranch-run-meta { display: flex; align-items: center; gap: 0.9rem; }
+.run-scrap { display: inline-flex; align-items: center; gap: 0.25rem; }
+.run-party-faces { display: flex; gap: 0.35rem; margin-left: auto; }
+.run-party-face {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid #7a5cff;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
 /* Abandon's two-step confirm (ticket 19). The second step puts two buttons where there was one, and
    they have to travel together — otherwise the header's flex gap pushes "Keep going" away from the
    thing it is the escape from, which is the one arrangement worse than no confirm at all. */

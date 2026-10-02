@@ -101,7 +101,8 @@ import WorkshopNode from './WorkshopNode';
 import EventNode from './EventNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 import { Icon } from '../theme/Icon';
-import RunTierLabel from './RunTierLabel';
+import RunMeta from './RunMeta';
+import PartyFaces from './PartyFaces';
 import type { Element as MingmingElement } from '../../engine/types';
 import { partyElementsOf } from '../../engine/run/driverStakes';
 
@@ -165,6 +166,14 @@ export default function RunScreen(): ReactNode {
      * this array, so a fresh identity every render would re-lay-out the whole graph on every render
      * for nothing. Declared above the early return, as hooks must be.
      */
+    /** The party as the run holds it, in party order (the header's row of faces). */
+    const partyMembers = useMemo(
+        () => (run?.partyIds ?? [])
+            .map((id) => roster.find((m) => m.id === id))
+            .filter((m): m is (typeof roster)[number] => m !== undefined),
+        [run, roster],
+    );
+
     const revealedBiomes = useMemo(() => revealedBiomesFrom(run?.modifiers ?? []), [run]);
 
     /**
@@ -354,10 +363,7 @@ export default function RunScreen(): ReactNode {
             <div className="ranch-screen">
                 <header className="ranch-header">
                     <h1><Icon name="gym" size={20} /> {gym?.name ?? run.gymId}</h1>
-                    <div className="ranch-run-meta">
-                        Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                        {' '}<RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
-                    </div>
+                    <RunMeta run={run} biomeName={biome?.name} />
                     <SettingsButton />
                 </header>
 
@@ -381,10 +387,8 @@ export default function RunScreen(): ReactNode {
         <div className="ranch-screen">
             <header className="ranch-header">
                 <h1>{gym?.name ?? run.gymId}</h1>
-                <div className="ranch-run-meta">
-                    Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                    layer {current.layer} · <RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
-                </div>
+                <RunMeta run={run} biomeName={biome?.name} />
+                <PartyFaces members={partyMembers} />
                 <SettingsButton />
             </header>
 
@@ -489,22 +493,8 @@ export default function RunScreen(): ReactNode {
                     onTravel={travel}
                 />
 
-                <h2 className="ranch-subhead">Party</h2>
-                <div className="ranch-roster-grid">
-                    {run.partyIds.map((id) => {
-                        const member = roster.find((m) => m.id === id);
-                        const cards = run.deck.filter((c) => c.ownerId === id).length;
-                        return (
-                            <div key={id} className="ranch-card">
-                                <div className="ranch-card-name">
-                                    {member?.nickname ?? (member ? GetMingmingData(member.definitionId).name : id)}
-                                </div>
-                                <div className="ranch-card-species">{cards} cards</div>
-                            </div>
-                        );
-                    })}
-                </div>
-                <p className="ranch-note">Run deck: {run.deck.length} cards. Seed <code>{run.seed}</code>.</p>
+                {/* TICKET 182a: the Party section and the deck/seed line are gone. The party is a
+                    row of faces in the header, and the seed is in the exported run log. */}
             </section>
 
             {/*
