@@ -14,7 +14,7 @@ Open any `.html` in a browser (they are self-contained: fonts and placeholder ar
 | `183-town-den` | The Den tab: Traces, the party with Retrain buttons, and Summon — pick an Instinct, each shown with its blurb and its engine cards as rows | 176c, 183g |
 | `183-town-loadout` | The Loadout tab (dock hidden): bigger portraits in the team row, the run collection as B card faces with filters, the active deck as rows | 176c, 183g |
 
-Words are 183h's ruled list (Instinct, Retrain, Trace, Summon, Den, Aura, Draught, Rune, Totem, Amber, Card). Monster art is the AI placeholder set already in `src/assets` and is never shipped (steam ticket 33). "ART PENDING" blobs stand where commissioned sprites go.
+Copy follows ticket 182: one sentence per screen (the header blurb), no helper text, explanations live in hover titles, empty slots not drawn where 182b hides them, Abandon run in Settings. Words are 183h's ruled list (Instinct, Retrain, Trace, Summon, Den, Aura, Draught, Rune, Totem, Amber, Card). Monster art is the AI placeholder set already in `src/assets` and is never shipped (steam ticket 33). "ART PENDING" blobs stand where commissioned sprites go.
 
 `fonts/` holds Barlow and Barlow Condensed (SIL OFL, licence beside them) — the same files 183a bundles into `public/fonts/`. `art/` is the placeholder art with its white backgrounds knocked out.
 
