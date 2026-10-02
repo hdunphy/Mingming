@@ -31,6 +31,7 @@ import { createPortal } from 'react-dom';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { getPatch } from '../../engine/data/patchRegistry';
+import { statusChipText } from '../utils/statusOverflow';
 import { getElementAccent } from '../utils/contrastText';
 import { Icon } from '../theme/Icon';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
@@ -182,12 +183,12 @@ export const UnitPreview: React.FC<{ preview: DamagePreview | null; className?: 
         <>
     {preview && preview.statusChanges.length > 0 && (
         <div className={rowClass}>
-            {preview.statusChanges.map(({ status, delta }) => (
+            {preview.statusChanges.map((change) => (
                 <span
-                    key={status}
-                    className={`hud-preview-chip ${delta > 0 ? 'hud-preview-chip-super' : 'hud-preview-chip-weak'}`}
+                    key={change.status}
+                    className={`hud-preview-chip ${change.overflow !== undefined || change.delta > 0 ? 'hud-preview-chip-super' : 'hud-preview-chip-weak'}`}
                 >
-                    {delta > 0 ? '+' : ''}{delta} {status.toUpperCase()}
+                    {statusChipText(change)}
                 </span>
             ))}
         </div>

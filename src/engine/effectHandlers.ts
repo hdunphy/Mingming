@@ -560,6 +560,7 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
     let finalEffects = currentEffects;
     let immediateDamage = 0;
     let behaviorLogs: string[] = [];
+    let overflow: { detonations: number; remaining: number } | undefined;
 
     // 3. Behavior Logic (only if stacks remaining after duality)
     if (remainingStacks > 0) {
@@ -567,6 +568,7 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
         finalEffects = result.updatedEffects;
         immediateDamage = result.immediateDamage;
         behaviorLogs = result.logs;
+        overflow = result.overflow;
     }
 
     // 4. Update State
@@ -597,6 +599,9 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
         absorbed: 0,
         applied: beforeHp - Math.max(0, beforeHp - immediateDamage),
         element: 'None',
+        // 184b: a detonation says so. (A frame under 8 max HP floors the payout to 0 and gets no
+        // record at all - a 0-damage "hit" would be counted by the run log and the cheap AI.)
+        ...(overflow ? { overflow: { status, ...overflow } } : {}),
     } : null;
 
     newState = {
@@ -639,6 +644,7 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
             // Ticket 146b. `engine` is the honest fallback: something in the engine did it and did
             // not say what, which is true of expiries, overflow and hand-built fixtures alike.
             source: source ?? { kind: 'engine', id: 'engine', ownerId: sourceId ?? targetId },
+            ...(overflow ? { overflowRemaining: overflow.remaining } : {}),
             timestamp: Date.now()
         });
     }

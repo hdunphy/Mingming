@@ -13,6 +13,7 @@ import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
 import { describeDriver } from '../../engine/data/driverRegistry';
 import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
 import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '../vfx/hookStatusBeat';
+import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -267,7 +268,8 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     // Pending timeouts, cleared on unmount (pendingTimeoutsRef pattern from MingmingUnit).
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
     // TICKET 166b: STATUS_APPLIED events from one reducer burst, merged by body + status.
-    const statusBurstRef = React.useRef<Map<string, { targetId: string; status: StatusType; stacks: number }> | null>(null);
+    // 184b: `overflow` is the pile left behind when one of the merged applications set it off.
+    const statusBurstRef = React.useRef<Map<string, { targetId: string; status: StatusType; stacks: number; overflow?: number }> | null>(null);
     /*
      * TICKET 171f: statuses a HOOK applied (EMBER_FUSE's Burn), held out of the burst above and
      * played as their own beat after the card. Keyed hookId|body|status so Pack Tactics' three fuses
@@ -275,7 +277,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
      * the statuses in the same burst; the sound waits for the float so the two land together.
      */
     const hookBurstRef = React.useRef<{
-        entries: Map<string, { hookId: string; targetId: string; status: StatusType; stacks: number }>;
+        entries: Map<string, { hookId: string; targetId: string; status: StatusType; stacks: number; overflow?: number }>;
         labels: Map<string, string | undefined>;
         sounds: Array<() => void>;
     } | null>(null);
@@ -373,8 +375,12 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
 
             // One float per body per status, with the stack count.
             for (const entry of entries) {
-                pushFloat(entry.targetId, 'status', statusFloatText(entry.status, entry.stacks),
-                    STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+                // 184b: a pile that went off says OVERFLOW and what is left, not "+4" on a badge
+                // that has just dropped to 2.
+                const text = entry.overflow !== undefined
+                    ? overflowText(entry.status, entry.overflow)
+                    : statusFloatText(entry.status, entry.stacks);
+                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
             }
         };
 
@@ -395,8 +401,11 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 return { ...prev, unitFx };
             });
             for (const entry of entries) {
-                pushFloat(entry.targetId, 'status', hookFloatText(entry.status, entry.stacks, burst.labels.get(entry.hookId)),
-                    STATUS_COLORS[entry.status] ?? '#cccccc');
+                const label = burst.labels.get(entry.hookId);
+                const text = entry.overflow !== undefined
+                    ? [overflowText(entry.status, entry.overflow), label].filter(Boolean).join(' · ')
+                    : hookFloatText(entry.status, entry.stacks, label);
+                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status] ?? '#cccccc');
             }
         };
 
@@ -565,6 +574,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                         hooks.entries.set(hookKey, {
                             hookId: event.source.hookId, targetId: event.targetId, status: event.status,
                             stacks: (before?.stacks ?? 0) + event.stacks,
+                            overflow: nextOverflowRemaining(before?.overflow, event.stacks, event.overflowRemaining),
                         });
                         return;
                     }
@@ -578,7 +588,10 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     }
                     const key = `${event.targetId}|${event.status}`;
                     const previous = burst.get(key);
-                    burst.set(key, { targetId: event.targetId, status: event.status, stacks: (previous?.stacks ?? 0) + event.stacks });
+                    burst.set(key, {
+                        targetId: event.targetId, status: event.status, stacks: (previous?.stacks ?? 0) + event.stacks,
+                        overflow: nextOverflowRemaining(previous?.overflow, event.stacks, event.overflowRemaining),
+                    });
                     return;
                 }
                 case 'STATUS_REMOVED': {

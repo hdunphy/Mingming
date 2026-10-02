@@ -129,6 +129,12 @@ export interface StatusAppliedEvent extends BaseEvent {
     readonly status: StatusType;
     readonly stacks: number;
     readonly source?: StatusSource;
+    /**
+     * TICKET 184b: present when these stacks pushed the pile past its cap and it went off (Burn's
+     * detonation); the pile left behind. The float reads "OVERFLOW · 2 BURN" off it, instead of
+     * "+4 Burn" on a badge that has just dropped.
+     */
+    readonly overflowRemaining?: number;
 }
 
 export interface StatusRemovedEvent extends BaseEvent {

@@ -907,4 +907,10 @@ export interface IDamageRecord {
   readonly applied: number;
   readonly element: Element;
   readonly cause?: string;
+  /**
+   * TICKET 184b: this record is a capped status going off (Burn's detonation), and this is what it
+   * left behind. Read by the hover preview, which otherwise sees a pile that shrank while stacks
+   * were added and calls it a loss. Only ever on a status's immediate-damage record.
+   */
+  readonly overflow?: { readonly status: StatusType; readonly detonations: number; readonly remaining: number };
 }

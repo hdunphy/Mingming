@@ -163,3 +163,45 @@ describe('171f — a hook\'s status floats on its own, after the card, with its 
         sfxSpy.mockRestore();
     });
 });
+
+describe('184b — a Burn overflow floats as an overflow', () => {
+    it('4 Burn + 2 floats "OVERFLOW · 2 BURN", not "Burn ×2" on a badge that just dropped', () => {
+        vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 2, overflowRemaining: 2, timestamp: Date.now(),
+            });
+        });
+        act(() => { vi.advanceTimersByTime(10); });
+        const texts = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
+        expect(texts).toEqual(['OVERFLOW · 2 BURN']);
+    });
+
+    it('a burst that detonates and then adds more reports the pile it ends on', () => {
+        vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({ type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 2, overflowRemaining: 1, timestamp: Date.now() });
+            globalBattleEventBus.emit({ type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 1, timestamp: Date.now() });
+        });
+        act(() => { vi.advanceTimersByTime(10); });
+        const texts = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
+        expect(texts).toEqual(['OVERFLOW · 2 BURN']);
+    });
+
+    it('a hook that sets the pile off names itself after the overflow', () => {
+        vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({
+                type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 1, overflowRemaining: 1, timestamp: Date.now(),
+                source: { kind: 'os', id: 'skoll_v2', ownerId: 'p1', hookId: 'skoll_v2_ember_fuse' },
+            });
+            globalBattleEventBus.emit({
+                type: 'HOOK_FIRED', osId: 'skoll_v2', hookId: 'skoll_v2_ember_fuse', ownerId: 'p1',
+                trigger: 'onPostDamage', timestamp: Date.now(),
+            });
+        });
+        act(() => { vi.advanceTimersByTime(710); });
+        const texts = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
+        expect(texts).toEqual(['OVERFLOW · 1 BURN · EMBER_FUSE']);
+    });
+});
