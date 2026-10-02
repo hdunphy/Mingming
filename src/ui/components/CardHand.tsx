@@ -32,6 +32,7 @@ import { describeDraw, drawTooltipLines } from '../utils/drawFormula';
 import { keybindLegend } from '../keybinds';
 import HandCardFace from './HandCardFace';
 import DiscardPileViewer from './DiscardPileViewer';
+import DrawPileViewer from './DrawPileViewer';
 import { describeConditional, readCardConditionals } from '../utils/cardConditionals';
 import { litClauses } from '../utils/conditionalClauses';
 import { KEYWORD_INFO, appliedStacks, getAppliedStatuses, getCardKeywords } from './cardKeywords';
@@ -289,7 +290,7 @@ const CardHand: React.FC<{
      * describing.
      */
     const drawPile = (
-        <div className="pile-indicator draw-pile hand-piles" title={drawTooltipLines(draw).join('\n')}>
+        <div className="pile-indicator draw-pile hand-piles">
             <span className="pile-label">DRAW</span>
             {/*
               * TICKET 145d — the pile IS a card, face down, with its count on its corner. A draw
@@ -298,10 +299,18 @@ const CardHand: React.FC<{
               * screen — which is where §1 cut it from. Two stacked shadows, because a pile of one
               * and a pile of thirty should not look identical.
               */}
-            <span className="pile-stack">
-                <span className="pile-card pile-card-stacked" aria-hidden="true" />
-                <span className="pile-count">{drawPileCount}</span>
-            </span>
+            {/* TICKET 184a: the pile opens onto its cards, sorted and stacked, like the discard. The
+                draw formula that was the column's tooltip is now the button's, so it still reads
+                on hover. */}
+            <DrawPileViewer
+                drawpile={battleState?.playerDeck.drawpile ?? []}
+                toggleTitle={drawTooltipLines(draw).join('\n')}
+            >
+                <span className="pile-stack">
+                    <span className="pile-card pile-card-stacked" aria-hidden="true" />
+                    <span className="pile-count">{drawPileCount}</span>
+                </span>
+            </DrawPileViewer>
             <span className="pile-formula">+{draw.total}/turn</span>
         </div>
     );

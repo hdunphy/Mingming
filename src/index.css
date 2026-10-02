@@ -1670,7 +1670,6 @@ body {
 .dpv-list {
   text-align: left;
   position: absolute;
-  right: 0;
   bottom: calc(100% + 10px);
   width: 290px;
   max-height: 360px;
@@ -1678,6 +1677,9 @@ body {
   z-index: 60;
   text-align: left;
 }
+/* 184a: each list hangs from the pile's edge that faces the middle of the console. */
+.dpv-list-right { right: 0; }
+.dpv-list-left { left: 0; }
 .dpv-list h2 { margin: 0 0 6px; font-size: 0.72rem; letter-spacing: 0.12em; }
 .dpv-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 /* The row borrows `.rs-row`'s look (element stripe, cost disc, element code) but NOT its fixed
@@ -1698,6 +1700,7 @@ body {
 .dpv-rows .dpv-row .rs-elc { margin-top: 1px; }
 /* FIR and NEU are different widths; a fixed slot lines every card's text up in one column. */
 .dpv-rows .dpv-row .rs-elc { min-width: 24px; }
+.dpv-count { font-weight: 600; opacity: 0.8; }
 .dpv-latest { outline: 1px solid rgba(255, 204, 0, 0.55); }
 .dpv-text {
   display: flex;

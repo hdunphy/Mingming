@@ -11,30 +11,20 @@
  * appends the unplayed hand after it), so reversing the array is the whole of the ordering.
  */
 
-import { GetProgramData } from '../../engine/data/programRegistry';
-import { numericBaseCost } from '../../engine/types';
 import type { ProgramEntity } from '../../engine/types';
+import { cardFace, type PileRow } from './pileRow';
 
-export interface DiscardRow {
-    /** The instance id — two copies of one card are two rows with two keys. */
+/** A discard row keeps its instance id — two copies of one card are two rows with two keys. */
+export interface DiscardRow extends PileRow {
     readonly id: string;
-    readonly dataId: string;
-    readonly name: string;
-    readonly description: string;
-    readonly element: string;
-    readonly cost: number;
 }
 
 export function discardRows(discard: ReadonlyArray<ProgramEntity>): DiscardRow[] {
-    return [...discard].reverse().map((card) => {
-        const data = GetProgramData(card.dataId);
-        return {
-            id: card.id,
-            dataId: card.dataId,
-            name: data?.name || card.dataId,
-            description: data?.description ?? '',
-            element: data?.element ?? 'None',
-            cost: data ? numericBaseCost(data.baseCost) : 0,
-        };
-    });
+    return [...discard].reverse().map((card, index) => ({
+        id: card.id,
+        key: card.id,
+        ...cardFace(card.dataId),
+        // The top row is the answer to "what did I just play", so it is marked as such.
+        ...(index === 0 ? { tag: 'last in', highlight: true } : {}),
+    }));
 }
