@@ -10,6 +10,24 @@
 - **181** (playtest round 2) is the goal. It waits on 182, 183 and 181c (the "Tell Henry how it went" button, which needs Henry's Google Form first).
 - **176** is blocked until 183a–c ship. **175** comes after everything else. **180** waits for Henry's go.
 
+## Two agents in parallel (from 2026-10-02)
+
+Two agents work at once, **each in its own git worktree on its own branch**, so neither can switch the other's branch, stage the other's files or run the gate against the other's half-done code.
+
+| | Agent A: the screens | Agent B: the agent playtester |
+|---|---|---|
+| Folder | `Mingming-Balancing` (this one) | `Mingming-Balancing-180` (a git worktree) |
+| Branch | `first-impressions` | `agent-playtester` (made from `first-impressions`) |
+| Tickets | 182 → 183a–e → 183f–h → 181c | 180 only |
+| Owns | everything under `src/` **except** `src/debug/playtest/`; this map, this HANDOFF, every ticket except 180 | `src/debug/playtest/`, `scripts/playtest-*.mjs`, `docs/playtest/`, ticket 180, `HANDOFF-180.md` |
+| Shared files | must not touch `package.json` scripts or `.gitignore` | may add only its own `playtest*` script lines to `package.json` and its `results/` line to `.gitignore` |
+
+- **B never changes game code** (ticket 180's rule 3). A bug B finds goes in its report, for A or Henry to fix.
+- **B never edits this HANDOFF or `map.md`.** Its progress goes in ticket 180 and `HANDOFF-180.md`.
+- **B's tests must not pin on-screen wording**: 182 rewrites the copy and 183h renames the words. B prints whatever the game's own modules print.
+- **Neither agent merges, rebases, switches branch or pushes.** Henry merges `agent-playtester` into `first-impressions` (`git merge --no-ff agent-playtester`) only while A is stopped at a ticket checkpoint, then pushes.
+- **Locks:** both worktrees share one `.git`. Never park a lock younger than a minute; it may be the other agent's.
+
 ## What Henry owes
 
 1. 181c: make the Google Form and its pre-filled link (181 §1.3a).
