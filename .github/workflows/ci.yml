@@ -25,11 +25,9 @@ name: CI
 
 on:
   push:
-    # Ticket 181: `playtest` is the branch deploy.yml publishes, and deploy.yml calls this workflow
-    # via workflow_call before it builds, so listing `playtest` here too would run every gate twice
-    # on every push to it. `main` no longer publishes (testers only get a new build when Henry pushes
-    # to `playtest` on purpose), so it runs the full gate here like any other branch.
-    branches-ignore: [ playtest ]
+    # `main` is covered by deploy.yml, which calls this workflow via workflow_call before it
+    # builds. Listing main here too would run every gate twice on every push to it.
+    branches-ignore: [ main ]
   pull_request:
   workflow_call:
 

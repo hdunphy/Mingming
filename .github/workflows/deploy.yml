@@ -1,12 +1,8 @@
 name: Deploy to GitHub Pages
 
-# Ticket 181: testers only get a new build when Henry pushes to `playtest` on purpose.
-# This used to publish every push to `main`, which meant merging WAS releasing and every later merge
-# silently changed what the testers were playing. `main` still runs the full gate (ci.yml) on every
-# push; it just no longer publishes.
 on:
   push:
-    branches: [ playtest ]
+    branches: [ main ] # Change this to your active dev branch if needed
 
 permissions:
   contents: read
@@ -42,13 +38,13 @@ jobs:
         run: npm ci
 
       # Ticket 181a: the label the main menu, Settings and exported run logs show, next to the
-      # commit (`vite.config.ts` reads both). It comes from the repository variable PLAYTEST_LABEL
-      # (GitHub -> Settings -> Secrets and variables -> Actions -> Variables) and falls back to
-      # `PLAYTEST` when the variable is not set.
+      # commit (`vite.config.ts` reads both). It is set HERE, so no GitHub setting is needed: bump
+      # the literal below (e.g. to `PLAYTEST 2.1` for a hotfix) in the commit that ships the build.
+      # A repository variable named PLAYTEST_LABEL, if one exists, overrides it without a commit.
       - name: Build
         run: npm run build
         env:
-          VITE_BUILD_LABEL: ${{ vars.PLAYTEST_LABEL || 'PLAYTEST' }}
+          VITE_BUILD_LABEL: ${{ vars.PLAYTEST_LABEL || 'PLAYTEST 2' }}
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
