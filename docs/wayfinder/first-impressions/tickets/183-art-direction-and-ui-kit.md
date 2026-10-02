@@ -123,7 +123,7 @@ The earth/air/ice/light/dark tokens and every legacy alias in `tokens.css` (`--b
 2. **No geometry changes except 183e.** `stageGeometry.test.ts` and `fanGeometry.test.ts` stay green and unedited through 183a–183d.
 3. **Tokens only.** No hex literal in a screen stylesheet or a component after 183a; a test greps for `#[0-9a-f]{6}` outside `tokens.css` and `runShell.ts` and fails on any hit.
 4. **One component per piece, small.** `EnergyHex`, `ElementMark`, `ElementBadge`, `HpBar`, `StatusChip`, `SlantPanel`, `ReadoutStrip`. Compose them; do not grow `MingmingUnit.tsx` (526 lines) or `BattleArena.tsx` (1,360 lines).
-5. **Screenshots are the review.** Every row ends with a Playwright capture at 1280×800 and 1920×1080 into `docs/wayfinder/deck-archetypes/research/183-screens/<row>/`, committed with the row. Henry reviews pictures, not diffs.
+5. **Screenshots are the review.** Every row ends with a Playwright capture at 1280×800 and 1920×1080 into `docs/wayfinder/first-impressions/research/183-screens/<row>/`, committed with the row. Henry reviews pictures, not diffs.
 6. **Gate:** `npm run gate` green before each commit. Commits authored as Henry (`git -c user.name='Henry Dunphy' -c user.email='hdunphy15@gmail.com' commit ...`), no Co-Authored-By, last line `HANDOFF: <one sentence>`. One commit per row. **Do not push.**
 7. **Report** in plain English, ending with the decisions Henry owes.
 

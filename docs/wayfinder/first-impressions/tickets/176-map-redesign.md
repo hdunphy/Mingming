@@ -6,7 +6,7 @@
 
 > *"Let's add a new ticket for a map redesign. I don't love the current layout."*
 
-**Reference picture:** `docs/wayfinder/deck-archetypes/research/176-map-mock.png`. It's a hand-coded mock of one seed, drawn with the rules below. It shows the shape and the look, not final art.
+**Reference picture:** `docs/wayfinder/first-impressions/research/176-map-mock.png`. It's a hand-coded mock of one seed, drawn with the rules below. It shows the shape and the look, not final art.
 
 ---
 
