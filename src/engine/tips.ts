@@ -22,10 +22,15 @@
  * 2. **Once ever, not once per run.** `seenTips` lives on the ranch save (`IRanchState`), so the
  *    lesson survives the run that taught it — a player who dies in biome 0 does not get taught
  *    energy again on the next attempt.
- * 3. **Nothing is a gate.** No tip blocks input, and every tip carries both "Got it" and "Skip
- *    tips". A tutorial you cannot leave is the first thing a returning player resents.
+ * 3. **Nothing is a gate.** No tip blocks input, and none carries a button: since ticket 182a a
+ *    tip is a one-line toast (`<Callout>`) that goes away by itself or on the next click. A toast
+ *    does not need skipping, and a tutorial you cannot leave is the first thing a returning player
+ *    resents.
  * 4. **The predicate is the honesty.** A tip whose moment cannot be detected cheaply does not ship;
  *    see `battle:endturn`'s note for the one place that changed what the tip says.
+ * 5. **Three fight tips are retired (ticket 182a).** `battle:energy`, `battle:play` and `battle:stab`
+ *    are no longer in the order: a first fight teaches them by being played. Their ids stay in
+ *    `TipId` so a save that holds them still parses.
  *
  * Full tutorialization is re-cut after ticket 25's playtest — this is the floor, not the design.
  *
@@ -33,7 +38,6 @@
  */
 
 import { ElementalMatrix } from './combatUtils';
-import { GetProgramData } from './data/programRegistry';
 import type { Element, IBattleEntity, IBattleState } from './types';
 import type { IRunState, NodeKind } from './runTypes';
 
@@ -46,8 +50,9 @@ import type { IRunState, NodeKind } from './runTypes';
  *
  * The `surface:subject` shape is deliberate: `seenTips` is a flat string array on the save (it has
  * to be — zod, and a set is not JSON), so the id is the only thing that says where a stored entry
- * came from. `ALL_TIP_IDS` below is what "Skip tips" writes, so a new id is opted into the skip by
- * existing here and nowhere else.
+ * came from. `ALL_TIP_IDS` below lists every tip that can still be shown. Three fight ids
+ * (`battle:energy`, `battle:play`, `battle:stab`) are retired by ticket 182a: they stay in this union
+ * so an old save's `seenTips` parses, but they are no longer in the registry.
  */
 export type TipId =
     | 'battle:energy'
@@ -71,48 +76,21 @@ export interface Tip {
 }
 
 /**
- * The five fight tips, in the order a first fight teaches them.
+ * The two fight tips, in the order a first fight teaches them (ticket 182a cut it from five).
  *
- * The ticket asks for "energy, play a card, STAB, end turn, the type chart". The order here is not
- * that list's order: **the type chart comes before END TURN**, because the matchup is a thing you
- * want to know while you still have energy to act on it, and END TURN is the last thing that
- * happens in a turn. The set is the ticket's; the sequence is the turn's.
+ * The matchup comes before END TURN, because it is a thing you want to know while you still have
+ * energy to act on it, and END TURN is the last thing that happens in a turn.
  */
 const BATTLE_TIPS: ReadonlyArray<Tip> = [
     {
-        id: 'battle:energy',
-        title: 'Energy is per mingming',
-        body:
-            'Each of your mingmings has its own energy, shown as pips under its name, and each one ' +
-            'refills at the start of your turn. A card is paid for by whoever casts it.',
-    },
-    {
-        id: 'battle:play',
-        title: 'Pick a caster, then a card',
-        body:
-            'Click one of your mingmings to select it, then click a card and click a target. The ' +
-            'numbers on the card face are what will actually happen — for that caster, on that target.',
-    },
-    {
-        id: 'battle:stab',
-        title: 'Matching elements hit harder',
-        body:
-            'A card whose element matches its caster deals x1.5. The hand outlines those cards for ' +
-            'whoever you have selected, so the outline moves when you change caster.',
-    },
-    {
         id: 'battle:matchup',
         title: 'Elements beat elements',
-        body:
-            'On top of that, the attacker\'s element is weighed against the defender\'s. Hover any ' +
-            'element badge to see what it beats and what beats it.',
+        body: 'Elements beat elements; hover a badge to see how.',
     },
     {
         id: 'battle:endturn',
         title: 'End turn refills everyone',
-        body:
-            'There is no reason to hold energy back — it does not carry over. When you are out of ' +
-            'plays worth making, END TURN, and everyone starts full again.',
+        body: 'Energy refills every turn, so spend it, then END TURN.',
     },
 ];
 
@@ -121,51 +99,27 @@ const MAP_TIPS: ReadonlyArray<Tip> = [
     {
         id: 'map:types',
         title: 'The map tells you first',
-        body:
-            'Every node says what is in it before you step on it — the fight, the shop, the ' +
-            'workshop. You can see one layer ahead, so a route is something you choose, not something ' +
-            'you find out about.',
+        body: 'Every node shows what is inside it, one layer ahead.',
     },
     {
         id: 'map:gym',
         title: 'The gym is the run',
-        body:
-            'The last node of the third biome is the gym: three fights back to back, with only a 30% repair ' +
-            'in between. Everything before it is preparation for it.',
+        body: 'The last node is the gym: three fights in a row.',
     },
     {
         id: 'map:workshop',
         title: 'Workshops grow the team',
-        body:
-            'A workshop is where you recruit a second and then a third mingming, and each one brings ' +
-            'its own cards into the shared deck. Recruiting is drafting.',
+        body: 'A workshop adds a mingming and its cards to your team.',
     },
-    /*
-     * TICKET 142c. Henry played the first Rootfall run and asked *"I thought I would see nature in
-     * the workshop somehow"* — which is the right instinct pointed at the wrong screen, and the
-     * clearest possible evidence that the mechanic shipped without ever saying what it was.
-     *
-     * The chain the player has to hold is four links long: the biome decides who you FIGHT, the
-     * fight drops a BLUEPRINT, the blueprint is what a workshop can BUILD, and the build is your
-     * second body. The workshop is the last link, so it is the one you notice — and it has no
-     * element of its own to show. A rival is the only node that breaks the first link, so it is the
-     * only place the chain is worth explaining. Both tips name the blueprint explicitly for that
-     * reason: the player is standing at the wrong end of the chain and needs pointing back up it.
-     */
     {
         id: 'map:rival',
         title: 'A rival brings the other element',
-        body:
-            'Rivals are walking the same road to the same leader, so they field the two elements ' +
-            'that road needs — including the one this biome will never show you. Beating one is how ' +
-            'you get that blueprint here instead of a biome later.',
+        body: 'Rivals field the element this road needs; beat one for its blueprint.',
     },
     {
         id: 'map:scout',
         title: 'The scout is the leader',
-        body:
-            'The last fight before the gym is two of the leader\'s own team, at full strength. It is ' +
-            'the one look at the gauntlet you get while a shop and a workshop are still behind you.',
+        body: 'The last fight before the gym previews the leader\'s team.',
     },
 ];
 
@@ -173,9 +127,7 @@ const RANCH_TIPS: ReadonlyArray<Tip> = [
     {
         id: 'ranch:blueprints',
         title: 'Blueprints are what you keep',
-        body:
-            'A run takes its scrap and its cards with it when it ends. Blueprints do not — they come ' +
-            'back here, and they are what you spend to assemble a new mingming for the next run.',
+        body: 'Blueprints are what you keep after a run, and what builds new mingmings.',
     },
 ];
 
@@ -184,7 +136,7 @@ export const TIP_REGISTRY: ReadonlyMap<TipId, Tip> = new Map(
     [...BATTLE_TIPS, ...MAP_TIPS, ...RANCH_TIPS].map((tip) => [tip.id, tip]),
 );
 
-/** What "Skip tips" writes into `seenTips`. Adding a tip above adds it here. */
+/** Every tip that can still be shown. Adding a tip above adds it here. */
 export const ALL_TIP_IDS: ReadonlyArray<TipId> = [...TIP_REGISTRY.keys()];
 
 /** The one ranch tip, by name, so `RanchScreen` does not index a list by number. */
@@ -214,27 +166,6 @@ const elementsOf = (entity: IBattleEntity): Element[] =>
         ? [entity.primaryElement, entity.secondaryElement]
         : [entity.primaryElement];
 
-/** Does any living player member share an element with any card in hand? (`None` never STABs.) */
-function handCanStab(state: IBattleState): boolean {
-    const mine = new Set<Element>();
-    for (const entity of living(state.playerParty)) {
-        for (const element of elementsOf(entity)) if (element !== 'None') mine.add(element);
-    }
-    if (mine.size === 0) return false;
-
-    for (const card of state.playerDeck.hand) {
-        const data = GetProgramData(card.dataId);
-        if (data.element !== 'None' && mine.has(data.element)) return true;
-    }
-    return false;
-}
-
-/**
- * Is there a non-neutral matchup on the field right now?
- *
- * Reads `ElementalMatrix` rather than a copy of it, for the reason `TypeChart.getMatchupMultiplier`
- * gives: a second table is a table that can disagree with combat.
- */
 function fieldHasMatchup(state: IBattleState): boolean {
     for (const attacker of living(state.playerParty)) {
         for (const defender of living(state.enemyParty)) {
@@ -268,12 +199,6 @@ export function nextBattleTip(state: IBattleState, seen: SeenTips): Tip | null {
     for (const tip of BATTLE_TIPS) {
         if (isSeen(seen, tip.id)) continue;
         switch (tip.id) {
-            case 'battle:energy':
-            case 'battle:play':
-                return tip;
-            case 'battle:stab':
-                if (handCanStab(state)) return tip;
-                continue;
             case 'battle:matchup':
                 if (fieldHasMatchup(state)) return tip;
                 continue;

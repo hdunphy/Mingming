@@ -19,6 +19,7 @@ import { Provider } from 'react-redux';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import RanchScreen from './RanchScreen';
+import { RANCH_BLUEPRINT_TIP } from '../../engine/tips';
 import type { IRanchMember, IRanchState } from '../../engine/runTypes';
 import battleReducer from '../store/battleSlice';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
@@ -87,24 +88,23 @@ describe('RanchScreen', () => {
 
     it('teaches blueprints on the assembly tab, once — ticket 24', () => {
         const fresh = render({ roster: [member('a1', 'kraken')], seenTips: [] }, 'assembly');
-        expect(fresh).toContain('Blueprints are what you keep');
-        // Both exits are on screen. A tutorial you cannot leave is the thing returning players
-        // resent, so "everything skippable" is asserted rather than assumed.
-        expect(fresh).toContain('Got it');
-        expect(fresh).toContain('Skip tips');
+        expect(fresh).toContain(RANCH_BLUEPRINT_TIP.body);
+        // 182a: a one-line toast with no buttons, so there is nothing to skip.
+        expect(fresh).not.toContain('Got it');
+        expect(fresh).not.toContain('Skip tips');
 
         const taught = render(
             { roster: [member('a1', 'kraken')], seenTips: ['ranch:blueprints'] },
             'assembly',
         );
-        expect(taught).not.toContain('Blueprints are what you keep');
+        expect(taught).not.toContain(RANCH_BLUEPRINT_TIP.body);
         // The section itself is untouched by the tip being gone.
         expect(taught).toContain('Assembly bay');
     });
 
     it('does not put the blueprint tip on a tab it is not about', () => {
         const markup = render({ roster: [member('a1', 'kraken')], seenTips: [] }, 'roster');
-        expect(markup).not.toContain('Blueprints are what you keep');
+        expect(markup).not.toContain(RANCH_BLUEPRINT_TIP.body);
     });
 
     it('the vault reports the RUN’s drivers, and says so when there is no run', () => {

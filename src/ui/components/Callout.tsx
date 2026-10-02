@@ -1,86 +1,79 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
-import { ALL_TIP_IDS, type Tip } from '../../engine/tips';
-import { markTipSeen, skipTips } from '../store/gameSlice';
+import type { Tip } from '../../engine/tips';
+import { markTipSeen } from '../store/gameSlice';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import './Callout.css';
 
 /**
- * ONE TIP ON SCREEN — ticket 24's reusable half.
+ * ONE TIP ON SCREEN, AS A TOAST — ticket 24's reusable half, cut down by ticket 182a.
  *
- * # WHY THIS IS A STRIP AND NOT A COACH MARK
+ * # WHAT IT WAS, AND WHY IT IS A TOAST NOW
  *
- * The ticket says "contextual callouts", and the picture that phrase paints is a little bubble with
- * an arrow pointing at the energy pips. That was costed and rejected, in the open:
+ * Ticket 24 built a strip with a title, two sentences and two buttons ("Got it", "Skip tips").
+ * Henry's first-impression review (2026-10-01) found that the paragraphs on every screen were what
+ * made the game feel AI-made, and a tip panel with buttons is a paragraph with homework. So the tip
+ * is one line, no buttons, and it leaves by itself.
  *
- * - There is no positioning library in the repo and a lockfile change is forbidden, so anchoring
- *   would mean hand-rolled `getBoundingClientRect` measurement plus a resize/scroll listener per
- *   mark — and the battle screen's own layout arithmetic (ticket 22's six-pip budget) is already
- *   tuned to the pixel at 1280x800. A floating bubble is the one element that would have to fit
- *   somewhere nobody measured.
- * - It would be **untestable here**. `renderToStaticMarkup` runs no effects, so a measured position
- *   is a position no test can ever see; the strip's markup is asserted in full by
- *   `Callout.test.tsx`.
- *
- * So the callout is a strip that sits in the layout, and it earns "contextual" a different way: the
- * *moment* is contextual (`engine/tips.ts` decides when each one is true) and the sentence names
- * the thing it is about in words — "the pips under its name" — rather than pointing at it. A player
- * reading a sentence that names what they are looking at is taught; a player following an arrow to
- * a widget with no explanation is only directed.
- *
- * # THE TWO BUTTONS ARE THE POINT
- *
- * "Got it" marks this tip seen. "Skip tips" marks **all** of them seen, which is the ticket's
- * "everything skippable" and is one dispatch rather than a `tutorialEnabled` boolean — a second
- * piece of state that could disagree with `seenTips` about whether onboarding is over. There is
- * exactly one answer to that question and it is this list.
+ * - **It marks its tip seen the moment it shows** (`seenTips`, once ever), not when it is dismissed,
+ *   so closing the game with a toast up does not bring it back.
+ * - **It goes after `TOAST_MS`, or on the next click**, whichever comes first.
+ * - **One at a time.** Marking a tip seen makes the parent offer the next one at once; the toast
+ *   keeps the tip it is showing and takes the next only when this one has gone.
+ * - **Its text is not a `<p>`.** A toast is transient, not screen copy, so it does not count against
+ *   the copy budget (`copyBudget.test.tsx`).
+ * - "Skip tips" is gone. A toast does not need skipping.
  *
  * Reduced motion is honoured by not animating at all (the entrance is a CSS transition, and the
- * class that carries it is dropped): `prefersReducedMotion` is the repo's existing gate, used the
- * same way `BattleArena` uses it.
+ * class that carries it is dropped): `prefersReducedMotion` is the repo's existing gate.
  */
+
+/** How long a toast stays up if nobody clicks. */
+export const TOAST_MS = 5000;
+
 export interface CalloutProps {
     /** The tip to show. `null` renders nothing — callers pass `nextBattleTip(...)` straight in. */
     readonly tip: Tip | null;
-    /** Where the strip sits, which is only ever a CSS concern. */
+    /** Where the toast sits, which is only ever a CSS concern. */
     readonly placement?: 'battle' | 'panel';
 }
 
 const Callout: React.FC<CalloutProps> = ({ tip, placement = 'panel' }) => {
     const dispatch = useDispatch();
-    if (!tip) return null;
+    // Starts as the tip it was handed, so the very first render already shows it (a static render
+    // runs no effects).
+    const [shown, setShown] = useState<Tip | null>(tip);
+
+    // Take the next tip, but only once the current one has gone (React's "adjust state while
+    // rendering" pattern: guarded, so it settles in one extra render).
+    if (shown === null && tip !== null) setShown(tip);
+
+    // A tip on screen is a tip seen; and it leaves after a few seconds or on the next click.
+    useEffect(() => {
+        if (shown === null) return undefined;
+        dispatch(markTipSeen(shown.id));
+        const timer = window.setTimeout(() => setShown(null), TOAST_MS);
+        const onPointer = (): void => setShown(null);
+        document.addEventListener('pointerdown', onPointer);
+        return () => {
+            window.clearTimeout(timer);
+            document.removeEventListener('pointerdown', onPointer);
+        };
+    }, [shown, dispatch]);
+
+    if (!shown) return null;
 
     const motionClass = prefersReducedMotion() ? '' : ' callout-enter';
 
     return (
         <aside
             className={`callout callout-${placement}${motionClass}`}
-            role="note"
-            aria-label={`Tip: ${tip.title}`}
-            data-testid={`callout-${tip.id}`}
+            role="status"
+            aria-label={`Tip: ${shown.title}`}
+            data-testid={`callout-${shown.id}`}
         >
-            <div className="callout-body">
-                <h4 className="callout-title">{tip.title}</h4>
-                <p className="callout-text">{tip.body}</p>
-            </div>
-            <div className="callout-actions">
-                <button
-                    type="button"
-                    className="callout-button callout-got-it"
-                    onClick={() => dispatch(markTipSeen(tip.id))}
-                >
-                    Got it
-                </button>
-                <button
-                    type="button"
-                    className="callout-button callout-skip"
-                    onClick={() => dispatch(skipTips([...ALL_TIP_IDS]))}
-                    title="Stop showing tips for good."
-                >
-                    Skip tips
-                </button>
-            </div>
+            <span className="callout-text">{shown.body}</span>
         </aside>
     );
 };

@@ -23,7 +23,7 @@ import runReducer from '../store/runSlice';
 import { gauntletOpponentElements } from '../../engine/run/gauntlet';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
-import { ALL_TIP_IDS } from '../../engine/tips';
+import { ALL_TIP_IDS, TIP_REGISTRY } from '../../engine/tips';
 import type { IGauntletProgress, IRanchMember, IRunState, NodeKind, RunOutcome } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 
@@ -411,19 +411,23 @@ describe('RunScreen — the run says which modifiers are on (ticket 169f)', () =
 describe('RunScreen — onboarding on the map (ticket 24)', () => {
     it('teaches the map before the gym, one tip at a time', () => {
         const fresh = render(BASE, []);
-        expect(fresh).toContain('The map tells you first');
+        const types = TIP_REGISTRY.get('map:types')!.body;
+        const gym = TIP_REGISTRY.get('map:gym')!.body;
+        expect(fresh).toContain(types);
         // One at a time: the gym tip is next in line and must NOT also be on screen.
-        expect(fresh).not.toContain('The gym is the run');
-        expect(fresh).toContain('Skip tips');
+        expect(fresh).not.toContain(gym);
+        // 182a: a toast, no buttons.
+        expect(fresh).not.toContain('Skip tips');
+        expect(fresh).not.toContain('Got it');
 
         const next = render(BASE, ['map:types']);
-        expect(next).toContain('The gym is the run');
-        expect(next).not.toContain('The map tells you first');
+        expect(next).toContain(gym);
+        expect(next).not.toContain(types);
     });
 
     it('says nothing once the player has been taught, or has skipped', () => {
         const markup = render(BASE, ALL_TIP_IDS);
-        expect(markup).not.toContain('The map tells you first');
+        expect(markup).not.toContain(TIP_REGISTRY.get('map:types')!.body);
         expect(markup).not.toContain('Skip tips');
         // The map itself is untouched.
         expect(markup).toContain('Travel');

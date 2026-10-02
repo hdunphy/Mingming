@@ -1,71 +1,111 @@
+// @vitest-environment jsdom
 /**
- * The onboarding strip — ticket 24.
+ * The tip toast — ticket 24, turned from a panel into a toast by ticket 182a.
  *
- * `renderToStaticMarkup`, the shape every UI test in this repo uses (no `@testing-library/react`;
- * a lockfile change is forbidden). That decides what this file can and cannot claim:
- *
- * - **Can:** the strip renders the tip it was handed, renders nothing when handed `null`, offers
- *   both exits, and is announced to a screen reader.
- * - **Cannot:** that clicking "Got it" advances to the next tip. No effects run and no event can be
- *   dispatched, so the closest honest test is the reducer (`gameSlice.test.ts`, "records a tip once
- *   and never twice") plus the selector (`engine/tips.test.ts`, the whole sequence). Between them
- *   the only untested link is the `onClick` line itself.
+ * It is one line, it has no buttons, and it goes away by itself (a few seconds) or on the next
+ * click. It still marks its tip seen, once ever, so the lesson does not come back. "Skip tips" is
+ * gone with the buttons: a toast does not need skipping.
  */
 
-import { configureStore } from '@reduxjs/toolkit';
-import { Provider } from 'react-redux';
+import { act } from 'react';
+import { useSelector } from 'react-redux';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { Provider } from 'react-redux';
 
-import Callout from './Callout';
-import { RANCH_BLUEPRINT_TIP, TIP_REGISTRY } from '../../engine/tips';
-import battleReducer from '../store/battleSlice';
-import gameReducer from '../store/gameSlice';
-import runReducer from '../store/runSlice';
+import Callout, { TOAST_MS } from './Callout';
+import { TIP_REGISTRY, RANCH_BLUEPRINT_TIP, type Tip } from '../../engine/tips';
+import type { RootState } from '../store/store';
+import { makeStore, mount } from '../../testing/interaction';
 
-function render(node: React.ReactNode): string {
-    const store = configureStore({
-        reducer: { battle: battleReducer, game: gameReducer, run: runReducer },
-        middleware: (getDefault) => getDefault({ serializableCheck: false }),
-    });
-    return renderToStaticMarkup(<Provider store={store}>{node}</Provider>);
+const types = TIP_REGISTRY.get('map:types')!;
+const gym = TIP_REGISTRY.get('map:gym')!;
+
+function staticRender(tip: Tip | null): string {
+    return renderToStaticMarkup(<Provider store={makeStore()}><Callout tip={tip} /></Provider>);
 }
 
-describe('Callout', () => {
-    it('renders the tip it is handed, with both exits', () => {
-        const markup = render(<Callout tip={RANCH_BLUEPRINT_TIP} />);
+/** Hands the toast "the first of these tips the save has not seen", as the screens do. */
+function Harness({ tips }: { tips: ReadonlyArray<Tip> }) {
+    const seen = useSelector((s: RootState) => s.game.seenTips);
+    return <Callout tip={tips.find((t) => !seen.includes(t.id)) ?? null} />;
+}
 
-        expect(markup).toContain(RANCH_BLUEPRINT_TIP.title);
-        expect(markup).toContain('Got it');
-        expect(markup).toContain('Skip tips');
+describe('Callout (the tip toast)', () => {
+    it('renders the tip as one line, with no buttons and no heading', () => {
+        const markup = staticRender(RANCH_BLUEPRINT_TIP);
+        expect(markup).toContain(RANCH_BLUEPRINT_TIP.body);
+        expect(markup).not.toContain('Got it');
+        expect(markup).not.toContain('Skip tips');
+        expect(markup).not.toContain('<button');
+        expect(markup).not.toContain('<h4');
+    });
+
+    it('is not a <p>, so a toast never counts against a screen\'s copy budget', () => {
+        expect(staticRender(RANCH_BLUEPRINT_TIP)).not.toContain('<p');
     });
 
     it('renders nothing at all for a null tip', () => {
-        // Callers pass `nextBattleTip(...)` straight in, so `null` is the ordinary case — the one
-        // that holds for the whole game after onboarding is over. It must not leave an empty box.
-        expect(render(<Callout tip={null} />)).toBe('');
+        expect(staticRender(null)).toBe('');
     });
 
     it('is announced rather than silently drawn', () => {
-        const markup = render(<Callout tip={RANCH_BLUEPRINT_TIP} />);
-        expect(markup).toContain('role="note"');
+        const markup = staticRender(RANCH_BLUEPRINT_TIP);
+        expect(markup).toContain('role="status"');
         expect(markup).toContain(`aria-label="Tip: ${RANCH_BLUEPRINT_TIP.title}"`);
     });
 
     it('carries the placement class the caller asked for', () => {
-        // The battle strip is absolutely positioned so it costs the console none of the 30px of
-        // vertical slack ticket 22 measured; the panel one sits in the flow. That is the only
-        // difference between them, and it is a class name.
-        expect(render(<Callout tip={RANCH_BLUEPRINT_TIP} placement="battle" />)).toContain('callout-battle');
-        expect(render(<Callout tip={RANCH_BLUEPRINT_TIP} />)).toContain('callout-panel');
+        const withPlacement = (placement: 'battle' | 'panel') =>
+            renderToStaticMarkup(
+                <Provider store={makeStore()}><Callout tip={RANCH_BLUEPRINT_TIP} placement={placement} /></Provider>,
+            );
+        expect(withPlacement('battle')).toContain('callout-battle');
+        expect(withPlacement('panel')).toContain('callout-panel');
     });
 
     it('never prints a power figure at the player', () => {
-        // The standing law, held at the surface that renders the copy as well as at the copy
-        // itself (`tips.test.ts`) — ticket 22's lesson was that a law tested in one layer can be
-        // false in the layer that actually reaches the screen.
-        for (const tip of TIP_REGISTRY.values()) {
-            expect(render(<Callout tip={tip} />)).not.toMatch(/power/i);
-        }
+        for (const tip of TIP_REGISTRY.values()) expect(staticRender(tip)).not.toMatch(/power/i);
+    });
+
+    describe('over time', () => {
+        beforeEach(() => { vi.useFakeTimers(); });
+        afterEach(() => { vi.useRealTimers(); });
+
+        it('marks its tip seen the moment it shows, and goes away on its own', async () => {
+            const store = makeStore();
+            const host = await mount(store, <Harness tips={[types]} />);
+
+            expect(host.textContent).toContain(types.body);
+            expect(store.getState().game.seenTips).toContain(types.id);
+
+            await act(async () => { vi.advanceTimersByTime(TOAST_MS + 50); });
+            expect(host.textContent).not.toContain(types.body);
+        });
+
+        it('goes away on the next click', async () => {
+            const store = makeStore();
+            const host = await mount(store, <Harness tips={[types]} />);
+            expect(host.textContent).toContain(types.body);
+
+            await act(async () => {
+                document.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+            });
+            expect(host.textContent).not.toContain(types.body);
+        });
+
+        it('shows one at a time: the next tip waits until the first has gone', async () => {
+            const store = makeStore();
+            const host = await mount(store, <Harness tips={[types, gym]} />);
+
+            // The first is marked seen on show, so the parent now offers the second; the toast
+            // keeps the first on screen until it has gone.
+            expect(host.textContent).toContain(types.body);
+            expect(host.textContent).not.toContain(gym.body);
+
+            await act(async () => { vi.advanceTimersByTime(TOAST_MS + 50); });
+            expect(host.textContent).toContain(gym.body);
+            expect(store.getState().game.seenTips).toEqual(expect.arrayContaining([types.id, gym.id]));
+        });
     });
 });

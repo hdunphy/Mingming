@@ -107,73 +107,77 @@ describe('the tip registry', () => {
         }
     });
 
-    it('opens the fight sequence on energy, and names the one ranch tip', () => {
-        // The order is the turn's order and the first entry is the only unconditional one, so a
-        // reorder is a behaviour change rather than a cosmetic one.
-        expect([...TIP_REGISTRY.keys()][0]).toBe('battle:energy');
+    it('opens the fight sequence on the matchup, and names the one ranch tip', () => {
+        // TICKET 182a: two fight tips remain; the order is still the turn's order.
+        expect([...TIP_REGISTRY.keys()].slice(0, 2)).toEqual(['battle:matchup', 'battle:endturn']);
         expect(RANCH_BLUEPRINT_TIP.id).toBe('ranch:blueprints');
+    });
+
+    it('is one short line per tip: a toast, not a paragraph (182a)', () => {
+        for (const tip of TIP_REGISTRY.values()) {
+            expect(tip.body.length, tip.id).toBeLessThanOrEqual(80);
+            // One sentence: no full stop followed by another sentence.
+            expect(tip.body, tip.id).not.toMatch(/[.!?]\s+[A-Z]/);
+        }
     });
 });
 
 // --- Battle sequence ------------------------------------------------------------------------------
 
 describe('nextBattleTip', () => {
-    it('opens on energy and moves to the play tip once energy is seen', () => {
-        expect(nextBattleTip(battle(), [])?.id).toBe('battle:energy');
-        expect(nextBattleTip(battle(), ['battle:energy'])?.id).toBe('battle:play');
+    /*
+     * TICKET 182a: only two fight tips remain, "Elements beat elements" and "End turn refills
+     * everyone". Energy, play-a-card and STAB are retired from the order (their ids stay in `TipId`
+     * so an old save still parses) because a first fight teaches them by being played.
+     */
+    const lopsided = (): IBattleState =>
+        battle({ player: [entity('kraken', 'p1')], enemy: [entity('fenrir', 'e1')] });
+
+    it('opens on the matchup tip when the field has one', () => {
+        expect(nextBattleTip(lopsided(), [])?.id).toBe('battle:matchup');
+    });
+
+    it('never offers the three retired tips, whatever is in hand or on the field', () => {
+        const stabHand = battle({ hand: [card('hydro_blast')], cardsPlayedThisTurn: 2 });
+        const shown = new Set<string>();
+        for (const state of [battle(), lopsided(), stabHand]) {
+            const tip = nextBattleTip(state, []);
+            if (tip) shown.add(tip.id);
+        }
+        for (const retired of ['battle:energy', 'battle:play', 'battle:stab']) {
+            expect(shown.has(retired)).toBe(false);
+            expect(TIP_REGISTRY.has(retired as never)).toBe(false);
+            expect(ALL_TIP_IDS).not.toContain(retired);
+        }
+    });
+
+    it('says nothing on a neutral field before a card has been played', () => {
+        expect(nextBattleTip(battle(), [])).toBeNull();
     });
 
     it('says nothing at all while the enemy is acting', () => {
-        expect(nextBattleTip(battle({ activeSide: 'ENEMY' }), [])).toBeNull();
-    });
-
-    it('holds the STAB tip back until a card in hand could actually STAB', () => {
-        const seen = ['battle:energy', 'battle:play'];
-        // kraken is Water; `water_slap` is the None-element neutral ("Tackle", deck-archetypes
-        // ticket 16), so it cannot STAB for anyone.
-        const noStab = battle({ hand: [card('water_slap')] });
-        expect(nextBattleTip(noStab, seen)?.id).not.toBe('battle:stab');
-
-        const stab = battle({ hand: [card('hydro_blast')] });
-        expect(nextBattleTip(stab, seen)?.id).toBe('battle:stab');
-    });
-
-    it('holds the matchup tip back until the field actually has one', () => {
-        const seen = ['battle:energy', 'battle:play', 'battle:stab'];
-        // Water vs Water is neutral in `ElementalMatrix`, so there is nothing to teach yet.
-        const neutral = battle({ player: [entity('kraken', 'p1')], enemy: [entity('kraken', 'e1')] });
-        expect(nextBattleTip(neutral, seen)?.id).not.toBe('battle:matchup');
-
-        // Water beats Fire.
-        const lopsided = battle({ player: [entity('kraken', 'p1')], enemy: [entity('fenrir', 'e1')] });
-        expect(nextBattleTip(lopsided, seen)?.id).toBe('battle:matchup');
+        expect(nextBattleTip({ ...lopsided(), activeSide: 'ENEMY' } as IBattleState, [])).toBeNull();
     });
 
     it('holds the end-turn tip back until a card has been played this turn', () => {
-        const seen = ['battle:energy', 'battle:play', 'battle:stab', 'battle:matchup'];
+        const seen = ['battle:matchup'];
         expect(nextBattleTip(battle({ cardsPlayedThisTurn: 0 }), seen)).toBeNull();
         expect(nextBattleTip(battle({ cardsPlayedThisTurn: 1 }), seen)?.id).toBe('battle:endturn');
     });
 
-    it('skips a tip whose moment has not come and offers a later one that is ready', () => {
-        // The order is a priority list, not a queue: nothing is blocked behind a tip that is
-        // waiting. Here STAB cannot fire (no matching card) but the matchup can.
-        const state = battle({
-            hand: [card('water_slap')],
-            player: [entity('kraken', 'p1')],
-            enemy: [entity('fenrir', 'e1')],
-        });
-        expect(nextBattleTip(state, ['battle:energy', 'battle:play'])?.id).toBe('battle:matchup');
+    it('offers the end-turn tip even on a neutral field, once a card has been played', () => {
+        expect(nextBattleTip(battle({ cardsPlayedThisTurn: 1 }), [])?.id).toBe('battle:endturn');
     });
 
-    it('goes quiet once everything has been seen — including via Skip tips', () => {
+    it('goes quiet once everything has been seen', () => {
         expect(nextBattleTip(battle({ cardsPlayedThisTurn: 3 }), [...ALL_TIP_IDS])).toBeNull();
     });
 
-    it('ignores ids in the save that this build has never heard of', () => {
+    it('ignores ids in the save that this build has never heard of, and ones it retired', () => {
         // `seenTips` is stored as loose strings on purpose (see `IRanchState.seenTips`), so a save
         // from a build with a retired tip must not throw or shift the sequence.
-        expect(nextBattleTip(battle(), ['battle:whatever-we-called-it-in-june'])?.id).toBe('battle:energy');
+        expect(nextBattleTip(lopsided(), ['battle:whatever-we-called-it-in-june'])?.id).toBe('battle:matchup');
+        expect(nextBattleTip(lopsided(), ['battle:energy', 'battle:play', 'battle:stab'])?.id).toBe('battle:matchup');
     });
 });
 
