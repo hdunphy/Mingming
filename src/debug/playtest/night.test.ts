@@ -78,8 +78,8 @@ describe('180f — the plan command', () => {
 // ---------------------------------------------------------------------------------------------------
 
 interface NightScript {
-    DEFAULTS: { runs: number; model: string; resultsRoot: string };
-    parseNightArgs(argv: string[], today?: string): Record<string, unknown> & { date: string; runs: number; model: string; minutes: number; dryRun: boolean; report: boolean; cardRuns: number; turnRuns: number };
+    DEFAULTS: { runs: number; model: string; maxUsd: number; resultsRoot: string };
+    parseNightArgs(argv: string[], today?: string): Record<string, unknown> & { date: string; runs: number; model: string; minutes: number; maxUsd: number; dryRun: boolean; report: boolean; cardRuns: number; turnRuns: number };
     driverCommand(entry: NightEntry, options: Record<string, unknown>): { command: string; args: string[]; stdin: string };
     promptFor(entry: NightEntry, brief: string, resultsDir: string): string;
     readUsage(stdout: string): { tokens?: number; costUsd?: number; turns?: number };
@@ -117,22 +117,35 @@ describe('180f — the night script: arguments and the driver command', () => {
     it('has defaults: ten runs, the small model, tonight’s date', async () => {
         const { parseNightArgs, DEFAULTS } = await loadScript();
         const options = parseNightArgs([], DATE);
-        expect(options).toMatchObject({ date: DATE, runs: DEFAULTS.runs, model: DEFAULTS.model, dryRun: false, report: true });
+        expect(options).toMatchObject({ date: DATE, runs: DEFAULTS.runs, model: DEFAULTS.model, dryRun: false, report: true, maxUsd: DEFAULTS.maxUsd });
+    });
+
+    it('a single-session trial is not played in card mode unless asked', async () => {
+        const { parseNightArgs } = await loadScript();
+        expect(parseNightArgs(['--runs', '1'], DATE).cardRuns).toBe(0);
+        expect(parseNightArgs(['--runs', '1', '--card-runs', '1'], DATE).cardRuns).toBe(1);
+        expect(parseNightArgs(['--runs', '4'], DATE).cardRuns).toBe(1);
     });
 
     it('reads the flags, and refuses a number that is not one', async () => {
         const { parseNightArgs } = await loadScript();
-        const options = parseNightArgs(['--runs', '2', '--minutes', '15', '--model', 'sonnet', '--date', '2026-01-01', '--dry-run', '--no-report'], DATE);
-        expect(options).toMatchObject({ runs: 2, minutes: 15, model: 'sonnet', date: '2026-01-01', dryRun: true, report: false });
+        const options = parseNightArgs(['--runs', '2', '--minutes', '15', '--model', 'sonnet', '--date', '2026-01-01', '--max-usd', '1.5', '--dry-run', '--no-report'], DATE);
+        expect(options).toMatchObject({ runs: 2, minutes: 15, model: 'sonnet', date: '2026-01-01', maxUsd: 1.5, dryRun: true, report: false });
         expect(() => parseNightArgs(['--runs', 'many'], DATE)).toThrow(/runs/);
     });
 
     it('the driver may run the playtest tool and nothing else, and its results go to the night’s folder', async () => {
         const { driverCommand } = await loadScript();
-        const spec = driverCommand(entries()[0], { model: 'haiku', maxTurns: 100, date: DATE, brief: 'BRIEF' });
+        const spec = driverCommand(entries()[0], { model: 'haiku', maxTurns: 100, maxUsd: 2.5, date: DATE, brief: 'BRIEF' });
         expect(spec.command).toBe('claude');
         const allowed = spec.args[spec.args.indexOf('--allowedTools') + 1];
         expect(allowed).toBe('Bash(npm run playtest -- *)');
+        // A4: read-only tools (Read, Glob, Grep) are allowed by default in a headless run, so the built-in
+        // tool set is cut down to Bash, and anything not on the allow list is refused rather than asked about
+        expect(spec.args[spec.args.indexOf('--tools') + 1]).toBe('Bash');
+        expect(spec.args[spec.args.indexOf('--permission-mode') + 1]).toBe('dontAsk');
+        // a dollar cap per session, so a first night cannot run away
+        expect(spec.args[spec.args.indexOf('--max-budget-usd') + 1]).toBe('2.5');
         expect(spec.args).toContain('-p');
         // where the night lives is told to the agent (it adds `--results` to each command), not left to the environment
         expect(spec.stdin).toContain(`--results ${join('results', 'playtest', DATE)}`);

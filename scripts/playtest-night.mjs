@@ -20,6 +20,7 @@
  *   npm run playtest:night                        ten sessions, tonight's date, the small model
  *   npm run playtest:night -- --runs 2 --minutes 15
  *   npm run playtest:night -- --model sonnet       another model (A3's pilot compares them)
+ *   npm run playtest:night -- --max-usd 1          a dollar cap per session (default 3)
  *   npm run playtest:night -- --date 2026-10-02    resume or redo a particular night
  *   npm run playtest:night -- --dry-run            print the plan and each driver command, run nothing
  *   npm run playtest:night -- --no-report          skip the morning report at the end
@@ -35,6 +36,8 @@ export const DEFAULTS = Object.freeze({
     model: 'haiku',
     minutes: 25,
     maxTurns: 600,
+    /** A dollar cap for one session, so a first night cannot run away. */
+    maxUsd: 3,
     cardRuns: 1,
     turnRuns: 0,
     briefPath: path.join('docs', 'playtest', 'agent-player.md'),
@@ -63,13 +66,16 @@ export function parseNightArgs(argv, today = todayLocal()) {
         if (!Number.isFinite(value) || value < 0) throw new Error(`--${name} must be a number, 0 or more`);
         return value;
     };
+    const runs = number('runs', DEFAULTS.runs);
     return {
         date: typeof flags.date === 'string' ? flags.date : today,
-        runs: number('runs', DEFAULTS.runs),
+        runs,
         model: typeof flags.model === 'string' ? flags.model : DEFAULTS.model,
         minutes: number('minutes', DEFAULTS.minutes),
         maxTurns: number('max-turns', DEFAULTS.maxTurns),
-        cardRuns: number('card-runs', DEFAULTS.cardRuns),
+        maxUsd: number('max-usd', DEFAULTS.maxUsd),
+        // one session is a trial: play it in run mode, the cheap one, unless card mode is asked for
+        cardRuns: number('card-runs', runs > 1 ? DEFAULTS.cardRuns : 0),
         turnRuns: number('turn-runs', DEFAULTS.turnRuns),
         dryRun: flags['dry-run'] === true,
         report: flags['no-report'] !== true,
@@ -90,6 +96,11 @@ export function driverCommand(entry, options) {
             '--output-format', 'json',
             '--model', options.model,
             '--max-turns', String(options.maxTurns),
+            '--max-budget-usd', String(options.maxUsd),
+            // A4. Read, Glob and Grep need no permission in a headless run, so allowing one command is not
+            // enough: the built-in tools are cut to Bash, and anything off the allow list is refused.
+            '--tools', 'Bash',
+            '--permission-mode', 'dontAsk',
             '--allowedTools', 'Bash(npm run playtest -- *)',
         ],
         stdin: promptFor(entry, options.brief, path.join(DEFAULTS.resultsRoot, options.date)),
