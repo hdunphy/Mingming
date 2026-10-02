@@ -39,14 +39,16 @@
 import { SeedStream } from '../core/SeedStream';
 import { GAME_BEAM_WIDTH, type AiTier } from '../ai/TacticalAI';
 import { getSectorSpecies } from '../data/EncounterGenerator';
-import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, getDeckForOS } from '../data/mingmingRegistry';
-import { initializeBattleEntity } from '../types';
+import { GENERIC_HIT, GetMingmingData, PLAYABLE_SPECIES, START_KIT_PAYOFF, getDeckForOS } from '../data/mingmingRegistry';
+import { GetProgramData } from '../data/programRegistry';
+import { initializeBattleEntity, numericBaseCost } from '../types';
 import type { Element, EnemyCombatMode, IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState, NodeKind } from '../runTypes';
 import { authoredBossFor } from './bosses';
-import { GYM_REGISTRY, pathElementsFor } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan, gymLeaderFirmware, pathElementsFor, speciesOwningFirmware } from './gyms';
 import { START_KIT_SIZE, startDeckFor, startKitIdsFor } from './createRun';
 import { nodeSeed } from './nodeSeed';
+import { tierRule } from './tiers/tierRegistry';
 
 // ---------------------------------------------------------------------------------------------
 // Which nodes are a fight
@@ -140,6 +142,12 @@ export function enemyPartySize(kind: NodeKind, playerPartySize: number): number 
  * depth order.
  */
 export type EnemyDeckRule =
+    /**
+     * TICKET 157-r2 — the opening fight's rung: the start kit **minus its one payoff**, with a
+     * generic in the vacated slot, plus the run's generics on the first body. Same card count as
+     * the player's opener; one fewer card that can cash the engine.
+     */
+    | 'start-kit-minus-payoff'
     /** The same the player starts with: 4 `startKit` cards, plus the run's 2 generics on the first. */
     | 'start-kit-plus-generics'
     /** The 5 `startKit` cards alone — a sharper list than the player's, and shorter. */
@@ -180,6 +188,30 @@ export interface IEnemyLoadout {
     readonly beam: number;
     /** Inclusive IV band, both ends. See `IV_BANDS` for why each rung has its own. */
     readonly iv: readonly [number, number];
+    /**
+     * ── TICKET 152, RULED BY HENRY 2026-09-22 — A WILD MAY NOT HOLD TWO PURE CANTRIPS ────
+     *
+     * *"leave it, but remove the double undertow cards from all wild encounters. It should only be
+     * in elites and bosses."*
+     *
+     * Ticket 111's law is *players may break decks; base enemy decks may not loop*, and the loop
+     * needs exactly two things: a card that costs nothing and draws, and a SECOND COPY of it. The
+     * 111 guard already holds the resolving instance out of a reshuffle so a card cannot draw
+     * itself; it cannot stop two copies drawing each other. `undertow` A draws B, B's draw
+     * reshuffles a discard holding A, A comes back. On a nine-card deck the pile cycles inside one
+     * turn — measured at **≥6 casts in 12.7% of jormungandr_v1's turns, max 18**, and 16.8% of his
+     * turns removing three quarters of a health pool.
+     *
+     * 152 tried two card swaps and both gutted the deck (69.6% field → 18–27% against a 47–64% peer
+     * band), because the loop IS why he is at the top of the roster. Henry declined both, and
+     * declined the engine fix that would have reached every deck. This is the third answer: the
+     * deck keeps its shape, and the RUNG decides whether the player meets it.
+     *
+     * **False at a wild, true at an elite and a gauntlet.** The player meets a wild twenty times an
+     * hour and an elite as the biome's exam; a turn that deletes a full-health recruit out of
+     * nowhere is a boss's privilege, not a roadside encounter's.
+     */
+    readonly duplicateCantrips: boolean;
 }
 
 /**
@@ -245,11 +277,14 @@ const ELITE_IV: readonly [number, number] = [0, 31];
  * giving them a fourth rung as well would be two knobs for one idea.
  */
 export const ENEMY_LADDER: Readonly<Record<EnemyGrade, IEnemyLoadout>> = {
-    wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV, beam: GAME_BEAM_WIDTH },
-    elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV, beam: GAME_BEAM_WIDTH },
-    // The gym. Beamless: the boss is the one fight worth the full search, and it is the one fight
-    // a player meets once. See `IEnemyLoadout.beam`.
-    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV, beam: 0 },
+    wild: { deck: 'tuned', os: false, ai: 'greedy', iv: WILD_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: false },
+    elite: { deck: 'tuned', os: true, ai: 'lite', iv: ELITE_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: true },
+    // The gym. Beam 8 since ticket 166f (Henry, 2026-09-27: "lets first try to fix the search bug and
+    // narrow the gym's search"). The 09-06 ruling made it beamless because beam 8 measured ~12.5
+    // points weaker - but that measurement ran on bug A1, which searched one play deep. Fixed, beam 8
+    // plays the full search's move 14 times in 15 on the Rootfall boss, and its slowest decision
+    // drops from ~43 s to ~5 s (scratch/bossbeam.ts).
+    gauntlet: { deck: 'tuned', os: true, ai: 'full', iv: ELITE_IV, beam: GAME_BEAM_WIDTH, duplicateCantrips: true },
 };
 
 /** The three rungs. Named rather than inferred, so a fourth is a deliberate act. */
@@ -267,7 +302,8 @@ export function gradeFor(kind: NodeKind): EnemyGrade {
 
 /**
  * **THE TIER RAISES THE WILD RUNG, AND NOTHING ELSE** — ticket 60: *"tier 2 = wild OS on; tier 3 =
- * wild AI lite"*, and `exploration-map.md`'s standing law that *"harder tiers unlock by beating
+ * wild AI lite"*, moved down one tier each by ticket 169a (Henry, 2026-09-29): **tier 1 is firmware
+ * and tier 2 is the lite AI.** The rows live in `data/tiers.json` (`tierRegistry`), and `exploration-map.md`'s standing law that *"harder tiers unlock by beating
  * gyms — meaner curated teams, more elites, enemy relics; never bigger numbers."*
  *
  * Only the wild moves, and that is the point rather than an omission: an elite already runs its
@@ -275,16 +311,53 @@ export function gradeFor(kind: NodeKind): EnemyGrade {
  * reaching for a number. A tier makes the ORDINARY fight play like the exam did one tier ago, which
  * is a difficulty curve made of the same three grades the player has already met.
  *
- * Tiers are cumulative and clamped: tier 3 and above is the top rung, because there is no fourth
- * grade and inventing one here would be a scaling knob wearing a ladder's clothes.
+ * Tiers are cumulative and clamped (`tierRule`): the top row is the top rung, because there is no
+ * fourth grade and inventing one here would be a scaling knob wearing a ladder's clothes. (Tiers
+ * also add elites and Drivers elsewhere - 169b and 169c - but never here.)
  */
-export function enemyLoadoutFor(kind: NodeKind, tier: number): IEnemyLoadout {
+export function enemyLoadoutFor(kind: NodeKind, tier: number, biomeIndex = 1): IEnemyLoadout {
     const grade = gradeFor(kind);
     const base = ENEMY_LADDER[grade];
     if (grade !== 'wild') return base;
-    if (tier >= 3) return { ...base, os: true, ai: 'lite' };
-    if (tier >= 2) return { ...base, os: true };
-    return base;
+
+    /*
+     * ══ TICKET 157-r1(a), RULED BY HENRY 2026-09-24 — **THE OPENINGS HAVE TO MATCH.** ══
+     *
+     * 157's walker measured fight one at **77.5% against the ruled 95**, eight of twelve starters
+     * under target, `jormungandr_v1` at 10%, and `runGate`'s own wild/biome-0 cell agreed at 67%.
+     * The diagnosis Henry accepted is that the two sides' OPENINGS were asymmetric, and neither
+     * half was a bug on its own:
+     *
+     *   - ticket 161 deliberately THINNED the player's opening five — the engine is meant to start
+     *     weak and be assembled;
+     *   - this ladder deals every wild the FULL tuned kit from fight one, because when it was
+     *     written the player also opened on a tuned deck.
+     *
+     * So a brand-new party walked into a nine-card tuned deck holding five kit cards and three
+     * tackles. Neither ticket is wrong; the pair is.
+     *
+     * **Biome 0 mirrors the SHAPE the player is dealt** — `start-kit-plus-generics`, which is
+     * `startDeckFor`'s own composition rather than a second copy of it. Biome 1 onward is the full
+     * kit, unchanged, which is where the drift the run is FOR starts to pay: by then the player has
+     * taken picks, bought, upgraded and recruited, and the tuned deck is the right thing to meet.
+     *
+     * **`biomeIndex` defaults to 1, not 0**, and that is deliberate: a caller that has not been
+     * taught about this gets the OLD behaviour (the full kit) rather than a silently gentler fight.
+     * The one caller that matters — `rollEncounter` — passes the node's own index.
+     *
+     * Elites and the gauntlet are untouched at every depth. An elite is the rung where "the same
+     * cards, played better" begins, and a first-biome elite is a fight the player chose to take.
+     */
+    /*
+     * The biome touches the DECK and nothing else; the tier touches how it is PLAYED and nothing
+     * else. Written as two independent adjustments rather than as one ordered chain of returns,
+     * because the first draft of this returned early at biome 0 and silently ate the tier raise —
+     * a tier-3 run's first-biome wilds came out greedy and firmware-less, which is ticket 60's
+     * rung quietly deleted for a third of the map.
+     */
+    const deck: EnemyDeckRule = biomeIndex <= 0 ? 'start-kit-plus-generics' : base.deck;
+    const rule = tierRule(tier);
+    return { ...base, deck, os: base.os || rule.wildFirmware, ai: rule.wildAi === 'greedy' ? base.ai : rule.wildAi };
 }
 
 /**
@@ -298,11 +371,15 @@ export function enemyLoadoutFor(kind: NodeKind, tier: number): IEnemyLoadout {
  * brand-new player's first fight harder.
  */
 export const OPENING_FIGHT_LOADOUT: IEnemyLoadout = {
-    deck: 'start-kit-plus-generics',
+    deck: 'start-kit-minus-payoff',
     os: false,
     ai: 'greedy',
     iv: WILD_IV,
     beam: GAME_BEAM_WIDTH,
+    // Ticket 152: a wild's rule, and the opening fight is gentler than a wild by construction.
+    // It is also moot here - `start-kit-plus-generics` holds no tuned deck to de-duplicate - but
+    // stated rather than inherited, for the reason the docblock above gives about the ladder.
+    duplicateCantrips: false,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -388,6 +465,10 @@ export function encounterSeed(run: IRunState, node: IRegionNode): string {
 // Species
 // ---------------------------------------------------------------------------------------------
 
+/** The species a single element fields, in registry order. Shared by the pool and 142c's deal. */
+function speciesOfElement(element: string): string[] {
+    return getSectorSpecies(element as Element).map(d => d.id);
+}
 /** Elements already warned about, so a three-enemy fight does not print the same line three times. */
 const warnedEmptyPools = new Set<string>();
 
@@ -400,6 +481,68 @@ const warnedEmptyPools = new Set<string>();
  * is the biome's order and duplicates are dropped, so a pair biome draws from both halves evenly
  * rather than twice from whatever overlaps.
  */
+/**
+ * TICKET 142c — WHICH ELEMENT EACH RIVAL BODY FIELDS, off-biome first.
+ *
+ * Henry, after the first Rootfall playtest: *"We should guarantee at least one 'off biome'
+ * mingming. So the first is always the Nature in a fire biome (1v1 it's just nature); in 3v3 we can
+ * coin flip the last one to make it NFN or NFF."*
+ *
+ * 142a shipped the pool as a flat UNION of the two path elements and drew every body from it
+ * independently, which made the guarantee a coin flip: each path element holds two species out of
+ * the four, so a solo player's rival was **50% an ordinary-looking on-biome fight** that dropped
+ * the blueprint they already had. The node exists to break the map's grip on recruiting order, and
+ * half the time it did not.
+ *
+ * So the first bodies are DEALT rather than rolled: one of each path element, the one that is NOT
+ * this biome's element first, and only the bodies past that roll from the union.
+ *
+ * | biome (Rootfall, path Fire+Nature) | 1 body | 2 bodies | 3 bodies |
+ * |---|---|---|---|
+ * | 1, Nature | Fire | Fire, Nature | Fire, Nature, roll |
+ * | 2, Fire | **Nature** | Nature, Fire | **N, F, roll → NFN or NFF** |
+ * | 3, Water | Fire | Fire, Nature | Fire, Nature, roll |
+ *
+ * OFF-BIOME IS BIOME-RELATIVE, not "the counter element". For Rootfall the path is [Fire, Nature]
+ * and it is FIRE that beats the leader — but standing in the Fire biome the body you cannot
+ * otherwise get is the NATURE one, and in the Nature biome it is the Fire one. Ordering by the
+ * biome rather than by the path is what makes one rule serve both. In the third biome neither path
+ * element is the biome's, both are off-biome, and the path's own order stands.
+ *
+ * Returns `[]` for anything that is not a rival, which is every caller's signal to roll as before.
+ */
+export function rivalElementPlan(run: IRunState, node: IRegionNode, size: number): string[] {
+    if (node.kind !== 'rival') return [];
+    const path = pathElementsFor(GYM_REGISTRY[run.gymId]?.element ?? '');
+    if (path.length === 0) return [];
+    const biomeElements = run.biomes[node.biomeIndex]?.elements ?? [];
+    const offBiome = path.filter(e => !biomeElements.includes(e));
+    const onBiome = path.filter(e => biomeElements.includes(e));
+    return [...offBiome, ...onBiome].slice(0, Math.max(0, size));
+}
+/**
+ * THE APPROACH BIOME'S BODIES — ticket 142 §7, Henry 2026-09-11.
+ *
+ * *"It should be NNW decks so the last spot is a water mingming (either jorm or kraken). So you
+ * only see the water in 3v3s — the first two are one of the four nature decks. If it's a 1v1 or
+ * 2v2 it would be a single N then two N's respectively."*
+ *
+ * Same shape as `rivalElementPlan` and dealt by the same loop: one element per body, each filled
+ * from that element's whole species pool, exactly one draw per body. `gymCompElementPlan` supplies
+ * the order (gym element first, the off-element body last), and slicing it to the party size is
+ * what makes a solo run meet one Nature and a full one meet the Water.
+ *
+ * Empty for every other node, which is the caller's signal to roll as before. The gym fight, the
+ * scout and rivals each have their own rule and are all resolved before this one - the approach
+ * biome governs the ORDINARY fights on it, not the set pieces standing in it.
+ */
+export function gymBiomeElementPlan(run: IRunState, node: IRegionNode, size: number): string[] {
+    if (node.biomeIndex !== run.biomes.length - 1) return [];
+    if (node.kind === 'gym' || node.kind === 'rival') return [];
+    const gym = GYM_REGISTRY[run.gymId];
+    if (!gym) return [];
+    return [...gymCompElementPlan(gym)].slice(0, Math.max(0, size));
+}
 export function encounterSpeciesPool(run: IRunState, node: IRegionNode): string[] {
     // TICKET 142b — the scout fields the leader's own bodies, so its pool is the species behind
     // `gym.leaderComp` rather than an element at all. Ahead of the element branch because it is not
@@ -469,7 +612,7 @@ export interface IRunEncounter {
      * `enemyAiTier` above and carried for the same reason: the screen must not have to re-derive
      * it. `RunScreen` and `GauntletNode` hand it to `startBattle` as `options.aiBeam`.
      *
-     * Bosses are beamless. See `IEnemyLoadout.beam`.
+     * Bosses are beam 8 since 166f. See `IEnemyLoadout.beam`.
      */
     readonly aiBeam: number;
     /**
@@ -503,6 +646,36 @@ function enemyDeckFor(
     isFirstEnemy: boolean,
 ): string[] {
     switch (loadout.deck) {
+        case 'start-kit-minus-payoff': {
+            /*
+             * ══ TICKET 157-r2 (Henry, 2026-09-25) — **THE ENGINE THAT CANNOT FIRE.** ══
+             *
+             * 157-r1's read showed fight one at 75.8% over 2,400 runs against a ruled 95, and that
+             * it had NOT moved and could not: the scripted opener already held
+             * `start-kit-plus-generics`, so both sides opened on the same shape. A mirror cannot
+             * reach 95 — the player's only edge is its firmware, worth +25.8 points over even.
+             *
+             * The alternative I proposed — drop the opener's three generics — was refused, and
+             * correctly: a five-card kit is the SHARPER deck, not the gentler one. The rung Henry
+             * ruled instead takes the payoff out and leaves the count alone. *"The player keeps the
+             * one payoff ruled 09-24; the enemy shows the engine that cannot fire."*
+             *
+             * **Built by SUBSTITUTION, not subtraction**, which is the whole of why it is gentler
+             * rather than sharper: the payoff is swapped for a `GENERIC_HIT`, so the deck is the
+             * same eight cards and the same draw odds, with one card that cashes replaced by one
+             * that does not. Removing it outright would have concentrated the remaining four.
+             *
+             * `START_KIT_PAYOFF` names the card, checked against the design file's shape tag in
+             * `startKits.test.ts`. A firmware with no entry (every post-EA species) drops nothing
+             * and falls through to the plain start-kit shape — an untagged kit is one nobody has
+             * classified, not one classified as having no engine.
+             */
+            const ids = startDeckFor(state, stream, isFirstEnemy).map((card) => card.dataId);
+            const payoff = START_KIT_PAYOFF[state.activeOS ?? ''];
+            const at = payoff === undefined ? -1 : ids.indexOf(payoff);
+            if (at < 0) return ids;
+            return ids.map((id, index) => (index === at ? GENERIC_HIT : id));
+        }
         case 'start-kit-plus-generics':
             // `true`: an enemy party's first member carries the generics, exactly as the
             // player's does. The symmetry is the whole claim of this loadout — "the same cards you
@@ -513,6 +686,150 @@ function enemyDeckFor(
         case 'tuned':
             return getDeckForOS(state.definitionId, state.activeOS);
     }
+}
+
+/**
+ * ── THE CARDS A WILD MAY NOT HOLD TWO OF — ticket 152, and this is a MEASURED list ──────
+ *
+ * It was a property test: *0 energy, draws, and does nothing else*. That lasted one day. The
+ * third clause was justified by "there is no price that stops the third repetition", and the
+ * 2026-09-23 brake measurement falsified it — `undertow` with a 15-power recoil, `forage`'s own
+ * number, still chained **fourteen deep** in a turn and still removed three quarters of a health
+ * pool once every thirteen turns. A price does not stop a loop whose payoff scales with the loop.
+ *
+ * Worse, the clause made the rule ESCAPABLE. Henry shipped a self-Weaken rider on `undertow` the
+ * same day, and the card fell straight out of a rule written for it. A rule a card can wriggle
+ * out of by gaining flavour is not a rule.
+ *
+ * So the obvious widening — drop the third clause, keep *0 energy and it draws* — was measured
+ * too, and it is wrong in the other direction. That catches `forage`, and `forage` **does not
+ * loop**: 1,200 games on ratatoskr_v1 put it at a maximum of 4 casts in a turn and 0.0% of turns
+ * at six or more, against `undertow`'s max 18 and 12.7%. Removing a copy from ratatoskr_v1 costs
+ * that deck **10.9 field points** and buys nothing.
+ *
+ * Card properties cannot separate them, because the difference is not in the card. `undertow`
+ * chains on jormungandr_v1 because that deck holds `ink_stream` (scales on cards drawn this turn)
+ * and `serpents_coil` (cards played this turn), so every iteration pays for itself several times
+ * over. `forage` sits in decks that do not pay for drawing, so the AI never bothers.
+ *
+ * Hence a list, with the measurement beside each entry. That is not an arbitrary cap in the sense
+ * Henry's standing rule forbids — the evidence IS the condition, and it is written down. What
+ * keeps it honest is the tripwire in `encounter.test.ts`: every 0-energy card that draws must
+ * appear in this set or in `MEASURED_NOT_LOOPING`, so a new cantrip fails a test until somebody
+ * measures it and decides. A missed card becomes a conversation instead of a silent regression.
+ */
+export const LOOPING_FREE_DRAWS: ReadonlySet<string> = new Set([
+    // max 18 casts in one turn, 12.7% of turns at >=6, on jormungandr_v1 (1,200 games).
+    'undertow',
+    // Same shape, same deck shape: sleipnir_v1 runs two and holds `stampede`, which scales on
+    // cards played this turn. Not separately measured at depth; caught on the evidence that its
+    // twin is the same card with a different name.
+    'slipstream',
+    // No shipped deck runs two, so this costs nothing today. Listed because it is the same card
+    // again, and tickets 111/113 are the record of what it did when a deck could chain it.
+    'glimmer',
+]);
+
+/**
+ * 0-energy draws that were measured and are NOT capped, with the number that says why.
+ *
+ * `forage` is "draw 1, take 15 power". 1,200 games on ratatoskr_v1: **max 4 casts in a turn, 0.0%
+ * of turns at six or more**. Capping it would cost that deck 10.9 field points against a loop it
+ * has never run.
+ *
+ * `ignite` joined it under ticket 162a, which gave the card a conditional cantrip — *"apply 1 Burn;
+ * if the target was ALREADY Burning, draw a card"*. That makes it a 0-energy card that draws, so
+ * the tripwire below stopped the build until somebody measured it. Measured, 1,200 games on
+ * fenrir_v2 (the deck that runs two copies and the most Burn in the roster): **max 8 casts in a
+ * turn, 0.3% of turns at six or more**, against `undertow`'s max 18 and 12.7%.
+ *
+ * The number that actually settles it is the one the wild rule exists for — the deletion turn.
+ * fenrir_v2's worst turn is **85.5% of a health pool** and it spends 0.1% of turns above 75%;
+ * jormungandr_v1 on `undertow` was at **145%** before its brake and 118.6% after. Chaining `ignite`
+ * piles a status that caps at 4 and draws cards into a deck with no draw payoff, so the chain does
+ * not convert into damage the way `undertow`'s did. Capping it would cost fenrir_v2 the two-copy
+ * opener its whole kit is built on, for a loop it does not have.
+ *
+ * NEITHER SET COVERS AN UPGRADE any more — Henry ruled the whole class out on 2026-09-24. See
+ * `freeDrawCardIds` below for the ruling and the number behind it.
+ *
+ * This set exists so the tripwire can tell "measured and excluded" from "nobody has looked".
+ */
+export const MEASURED_NOT_LOOPING: ReadonlySet<string> = new Set(['forage', 'ignite']);
+
+/**
+ * Every 0-energy card that draws — the population the two sets above must between them cover.
+ *
+ * ## UPGRADES ARE OUT OF THE POPULATION — RULED BY HENRY, 2026-09-24
+ *
+ * *"Leave ignite broken — upgrades are supposed to be broken."*
+ *
+ * 163a put ninety-eight `+` cards in the registry and three of them landed in this population.
+ * They were measured, on one instrument, base and `+` back to back on the deck that runs two
+ * copies:
+ *
+ *     forage     0.2% of turns at >=3, max 7   ->  forage+    0.3%, max 7
+ *     undertow   0.3% of turns at >=3, max 4   ->  undertow+  0.0%, max 2
+ *     ignite     7.7% at >=3,  0.3% at >=6, max 8
+ *     ignite+   26.3% at >=3, 23.1% at >=6, max 16
+ *
+ * `ignite+` IS A LOOP, seventy-seven times its base's rate above six casts: the base draws only if
+ * the target was ALREADY burning, and at 1 Burn that is a real condition because the pile decays,
+ * while at 2 Burn it is not a condition at all. That was put to Henry with three ways to fix it and
+ * he took none of them. The measurement is kept here because the ruling is only worth anything
+ * beside the number it overrode.
+ *
+ * SO THE EXEMPTION IS THE CLASS, NOT THE CARD. Listing `ignite+` as an exception would leave the
+ * next upgrade asking the same question, and the answer would be the same — the ticket-163 pass is
+ * *defined* as cards that break their own budget. The rule this tripwire protects is about the
+ * shipped pool, and it is untouched: a BASE card that starts drawing for nothing still stops the
+ * build until somebody measures it, which `encounter.test.ts` asserts directly so this widening
+ * cannot quietly swallow one.
+ */
+export function freeDrawCardIds(ids: ReadonlyArray<string>): string[] {
+    return ids.filter((dataId) => {
+        const data = GetProgramData(dataId);
+        if (!data || data.id === 'missing') return false;
+        if (data.upgradeOf) return false;
+        if (numericBaseCost(data.baseCost) !== 0) return false;
+        return (data.actions ?? []).some((action) => (action.type as string) === 'DRAW');
+    });
+}
+
+/**
+ * ── TICKET 152 — ONE LOOPING FREE DRAW AT A WILD, HOWEVER MANY THE DECK SHIPS ───────────────
+ *
+ * Henry, 2026-09-22: *"remove the double undertow cards from all wild encounters. It should only
+ * be in elites and bosses."* See `IEnemyLoadout.duplicateCantrips` for the measurement behind it.
+ *
+ * The EXTRA copies are dropped and nothing is put in their place. A replacement would be a card
+ * nobody designed into the list, chosen by this function, and 152 already measured what swapping
+ * one in does — both arms cost the deck 43–51 field points. Dropping is the smaller claim: the
+ * deck is the deck, minus the copy that makes it loop.
+ *
+ * Applied to the SIDE's assembled pile rather than to one member's list - see the call site.
+ *
+ * It touches two shipped lists, and they are the only two: `jormungandr_v1` (`undertow` x2, the
+ * deck this ticket is about) and `sleipnir_v1` (`slipstream` x2). `ratatoskr_v1` and `hel_v2` run
+ * `forage` x2 and keep both — measured at max 4 casts in a turn, see `MEASURED_NOT_LOOPING`.
+ *
+ * Order is preserved and the FIRST copy is the one kept, so a wild's list is a prefix-stable
+ * subsequence of the tuned list. That matters more than it looks: the deck is shuffled from a
+ * seeded stream, and a rule that reordered the list would change every wild encounter's draw in
+ * the whole corpus rather than only the decks it removes a card from.
+ */
+export function dedupeCantrips(deck: ReadonlyArray<string>, loadout: IEnemyLoadout): string[] {
+    if (loadout.duplicateCantrips) return [...deck];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const dataId of deck) {
+        if (LOOPING_FREE_DRAWS.has(dataId)) {
+            if (seen.has(dataId)) continue;
+            seen.add(dataId);
+        }
+        out.push(dataId);
+    }
+    return out;
 }
 
 /**
@@ -575,7 +892,10 @@ export function gymDriverForNode(run: IRunState, node: IRegionNode): string | un
  */
 export function scoutFirmwareFor(run: IRunState, node: IRegionNode): string[] {
     if (!node.scout) return [];
-    const comp = GYM_REGISTRY[run.gymId]?.leaderComp ?? [];
+    // TICKET 28a: the scout previews the team the GAUNTLET FIELDS. It read `leaderComp`, a 142b
+    // placeholder that disagreed with `AUTHORED_BOSSES` at every gym — so the one free look at the
+    // exam showed the wrong paper, which is worse than showing none.
+    const comp = gymLeaderFirmware(run.gymId);
     if (comp.length === 0) return [];
     const stream = new SeedStream(new SeedStream(encounterSeed(run, node)).fork('scout-comp'));
     return stream.shuffle([...comp]).slice(0, 2);
@@ -585,9 +905,10 @@ export function scoutFirmwareFor(run: IRunState, node: IRegionNode): string[] {
 function scoutSpeciesFor(run: IRunState, node: IRegionNode): string[] {
     const species: string[] = [];
     for (const firmware of scoutFirmwareFor(run, node)) {
-        const owner = Object.values(MingmingRegistry)
-            .find((definition) => definition.availableOS.includes(firmware));
-        if (owner && !species.includes(owner.id)) species.push(owner.id);
+        // `speciesOwningFirmware` rather than the search written out again — this was the second
+        // copy of it, and the first copy is what 142d's biome builder needed and did not find.
+        const ownerId = speciesOwningFirmware(firmware);
+        if (ownerId && !species.includes(ownerId)) species.push(ownerId);
     }
     return species;
 }
@@ -603,7 +924,8 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
     // 2026-08-23) — pinned to its own gentle loadout and to a single body. See `isOpeningFight` for
     // why this is a floor on the fight rather than a rewrite of it.
     const opening = isOpeningFight(run);
-    const loadout = opening ? OPENING_FIGHT_LOADOUT : enemyLoadoutFor(node.kind, run.tier);
+    // TICKET 157-r1(a): the node's biome decides whether a wild mirrors the player's opening shape.
+    const loadout = opening ? OPENING_FIGHT_LOADOUT : enemyLoadoutFor(node.kind, run.tier, node.biomeIndex);
     const pool = encounterSpeciesPool(run, node);
     // Ticket 142b: the scout is TWO bodies of the leader's comp, whatever the player brought — a
     // preview that mirrored your party size would show a different fight to a solo run than to a
@@ -613,6 +935,15 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         ? 1
         : scoutFirmware.length > 0 ? scoutFirmware.length : enemyPartySize(node.kind, party.length);
 
+    /*
+     * ONE DEALT PLAN, TWO RULES THAT PRODUCE ONE. A rival deals the PATH elements (142a); an
+     * ordinary fight on the approach biome deals the gym's comp shape (§7). They cannot both
+     * apply - `gymBiomeElementPlan` returns nothing for a rival - so the fallback below is a
+     * choice between them rather than a merge, and the dealing loop stays one loop.
+     */
+    const rivalPlan = rivalElementPlan(run, node, size);
+    const dealtPlan = rivalPlan.length > 0 ? rivalPlan : gymBiomeElementPlan(run, node, size);
+
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];
 
@@ -620,9 +951,17 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         // The scout's bodies are named, not rolled — `pool` holds exactly their species, in the
         // same order as the firmwares, so body i is firmware i running on its own species.
         const scoutOS = scoutFirmware[i];
+        // TICKET 142c: a rival's first bodies are DEALT one per path element, off-biome first, so
+        // the node cannot roll into the fight the biome already offers. Still exactly ONE draw per
+        // body — narrowed to that element's species rather than skipped — so the roster stream
+        // stays in step with the IV draws below and with every other node kind.
+        const dealtElement = dealtPlan[i];
+        const dealtPool = dealtElement ? speciesOfElement(dealtElement) : [];
         const definitionId = scoutOS
             ? (pool[i] ?? pool[pool.length - 1])
-            : pool[roster.nextInt(0, pool.length - 1)];
+            : dealtPool.length > 0
+                ? dealtPool[roster.nextInt(0, dealtPool.length - 1)]
+                : pool[roster.nextInt(0, pool.length - 1)];
         const definition = GetMingmingData(definitionId);
 
         // Ticket 21: IVs are the ONLY per-individual variance left, and their range is the same at
@@ -661,13 +1000,27 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
         enemyDeckIds.push(...enemyDeckFor(state, loadout, decks, enemyParty.length === 1));
     }
 
+    /*
+     * TICKET 152 — ON THE ASSEMBLED PILE, NOT PER ENEMY, AND THE DIFFERENCE IS THE WHOLE RULE.
+     *
+     * The enemy SIDE shares one deck: this list is every member's cards in one pile, which is why
+     * it is built by pushing rather than by mapping. So a 3v3 of three jormungandr_v1 holds SIX
+     * `undertow` even though no single member ships more than two, and a per-member de-duplication
+     * would have left three — enough to loop, on a rule that claims to stop looping.
+     *
+     * Found by the ticket-08 test, which compares the pile card for card: it expected one and got
+     * two. That test is the reason this is a one-line call in the right place rather than a subtle
+     * bug in a shipped wild.
+     */
+    const sideDeck = dedupeCantrips(enemyDeckIds, loadout);
+
     // Ticket 68 ruling 4: the gym's Driver, on the elites guarding its approach and nowhere else.
     // Undefined for every wild, every elite outside the gym's biome, and every un-authored gym.
     const gymDriver = gymDriverForNode(run, node);
 
     return {
         enemyParty,
-        enemyDeckIds,
+        enemyDeckIds: sideDeck,
         seed,
         enemyAiTier: loadout.ai,
         aiBeam: loadout.beam,

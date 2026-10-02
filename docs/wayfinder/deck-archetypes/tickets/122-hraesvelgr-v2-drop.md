@@ -1,5 +1,7 @@
 # Ticket 122 — `hraesvelgr_v2` lost 10.9 points of field to the ticket-111 fix, and nobody knows why
 
+> **Status: CLOSED 2026-09-08** — done — hraesvelgr_v2 was reworked in 136 (25.9 → 46.4). Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** OPEN, unconfirmed. Opened 2026-08-26 at Henry's request — *"Add a ticket to investigate
 hraesvelgr_v2."*
 

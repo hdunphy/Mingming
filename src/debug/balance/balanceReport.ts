@@ -43,12 +43,28 @@ import { fileURLToPath } from 'node:url';
 import { getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import type { ProgramData } from '../../engine/types';
 import { computeRegistryHash } from '../scenarios/registryHash';
-import { budgetBandFor, calculatePowerscale } from './powerscale';
+import {
+    BAND_TOLERANCE_PCT,
+    OS_BAND_MAX_PCT,
+    OS_BAND_MIN_PCT,
+    OS_FLAG_PCT,
+    bandVerdict,
+    budgetBandFor,
+    calculatePowerscale,
+    isBandExempt,
+    scoreAllOS,
+} from './powerscale';
+import type { BandState, OsScore } from './powerscale';
 import type { BatchResult, PairedBatchResult } from './runBatch';
 import { numericBaseCost } from '../../engine/types';
 
 /** Bump when the JSON shape changes, so an old report is never diffed against a new one. */
-export const BALANCE_REPORT_SCHEMA_VERSION = 1;
+// 2 (ticket 149c-4): every 1.3 entry now carries `score1v1`, `score3v3` and `width`.
+// 3 (ticket 149c-5): entries carry `verdict` and `pctVsBand`, and `cardBudget` gained a
+//   `watchlist` beside `redlines` - a card inside the +/-15% tolerance is reported, not redlined.
+// 4 (ticket 149c-6): entries carry `hookFloor`, `hookCeiling` and `buildAroundIndex`.
+// 5 (ticket 149c-7): new section `firmware` - all 33 OSes scored against their own band.
+export const BALANCE_REPORT_SCHEMA_VERSION = 5;
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -104,6 +120,10 @@ export type MatchupRole = 'mirror' | 'gauntlet-matchup' | 'gauntlet-overall' | '
 
 export type RedlineKind =
     | 'CARD_OVER_BUDGET'
+    // Ticket 149c-7: firmware past section 4.5's 50% flag. `OS_GAP` below is a different thing
+    // entirely - a win-rate gap between two OSes in section 2 - and naming them apart matters,
+    // because a reader filtering the CSV for firmware problems would otherwise get both.
+    | 'FIRMWARE_OVER_BAND'
     | 'MIRROR_WIN_RATE'
     | 'MIRROR_SIDE_BIAS'
     | 'ARCHETYPE_WIN_RATE'
@@ -169,8 +189,55 @@ export interface CardBudgetEntry {
     id: string;
     name: string;
     cost: number;
+    /**
+     * The score the verdict was taken against - `score1v1`, or the WORSE of the two widths on a
+     * Side/All card (ticket 149c-4 / section 4.2).
+     */
     score: number;
     perEnergy: number;
+    /**
+     * TICKET 149c-4: the same card at both widths.
+     *
+     * A Side card hits one enemy at 1v1 and three at 3v3, and the scorer used to charge the 3v3
+     * multiplier always - so 22 Side cards read as over-budget in a fight they are ordinary in,
+     * and the report had no way to say which width it meant. Section 4.2 rules that both are
+     * printed and, for a Side/All card, the verdict is the worse of the two: a card that is fine
+     * at one width and egregious at the other is still a card that has to be looked at.
+     *
+     * Equal on the 221 cards that are not Side or All, which is most rows.
+     */
+    score1v1: number;
+    score3v3: number;
+    /**
+     * `'1v1'` when the two widths agree and the verdict is simply the score; `'both'` when they
+     * do not, i.e. this is a Side or All card and a reader needs to see which number won.
+     */
+    width: '1v1' | 'both';
+    /**
+     * TICKET 149c-5: which of section 4.3's four states this card is in, and by how much.
+     *
+     * Henry, on a card scoring 3.3 against a 3.0 band: "3.3 vs 3 is not a problem. 3 is not a
+     * hard cut off but a general target we can be +/- some percentage." The audit was binary, so
+     * a card 1% over and a card 150% over produced the same word. `pctVsBand` is always present,
+     * whatever the state, because the number is the part a reader can act on.
+     */
+    verdict: BandState;
+    pctVsBand: number;
+    /**
+     * TICKET 149c-6 / section 4.4: the hook half of the score, at the roster-mean trigger rate
+     * and at the best home-deck rate the 149b census saw. `hookFloor` is part of `score`;
+     * `hookCeiling` is part of nothing - no card is ever priced at a ceiling.
+     *
+     * `buildAroundIndex` is their ratio, and it answers a question a single score cannot: a high
+     * FLOOR is a card everyone has to take, while a low floor with a high ceiling is a legitimate
+     * deck-specific rare. `echo_chamber_v2` procs 3.3x the roster mean on ratatoskr_v1 - that is
+     * the card working as designed, and the old single number had no way to say so.
+     *
+     * All three are 0 (index 1) for a card that registers no hooks, which is most of the pool.
+     */
+    hookFloor: number;
+    hookCeiling: number;
+    buildAroundIndex: number;
     /** Section 1.3's upper bound for this cost. */
     budget: number;
     overBudgetBy: number;
@@ -212,7 +279,31 @@ export interface BalanceReport {
     cardBudget: {
         /** Section 1.3's table, echoed so the report is readable without the source. */
         thresholds: Array<{ cost: string; maxScore: number }>;
+        /** Ticket 149c-5 / section 4.3: how far past band is still not a violation. */
+        tolerancePct: number;
+        /** Past the band by MORE than `tolerancePct`. These are the violations. */
         redlines: CardBudgetEntry[];
+        /**
+         * Past the band by the tolerance or less, plus the MANUAL REVIEW tail (a score of zero
+         * or below - drawback cards the model reads as net-negative, parked behind ticket 138 by
+         * section 4.7). Reported so the movement is visible; not redlined, because "3.3 against a
+         * 3.0 target" is not a thing that is broken.
+         */
+        watchlist: CardBudgetEntry[];
+    };
+    /**
+     * SECTION 1.4 FIRMWARE - ticket 149c-7.
+     *
+     * An OS is not a card: it costs no energy, occupies no slot, is chosen once and runs for the
+     * whole game, so there is no budget band to hold it against. What can be asked is how much of
+     * a health pool it moves over a game, and section 4.5 rules 15-40% in band with anything past
+     * 50% flagged.
+     */
+    firmware: {
+        bandMinPct: number;
+        bandMaxPct: number;
+        flagPct: number;
+        entries: OsScore[];
     };
     matchups: MatchupReport[];
     /** Every redline from both halves, flattened and sorted. The "what is broken" list. */
@@ -255,7 +346,7 @@ function byString(a: string, b: string): number {
 /* Section 1: the static card-budget audit                                    */
 /* -------------------------------------------------------------------------- */
 
-function budgetRedline(entry: CardBudgetEntry): Redline {
+export function budgetRedline(entry: CardBudgetEntry): Redline {
     return {
         kind: 'CARD_OVER_BUDGET',
         section: '1.3',
@@ -265,8 +356,23 @@ function budgetRedline(entry: CardBudgetEntry): Redline {
         threshold: entry.budget,
         comparison: 'above',
         detail:
-            `${entry.name} (${entry.id}) costs ${entry.cost} energy and scores ${entry.score}, ` +
+            // Ticket 149c-5: the PERCENTAGE leads, because it is the part a reader can act on.
+            // "2.1 over the 6.5 budget" needs arithmetic to compare against another row; "+32%"
+            // does not, and comparing rows is the only thing anyone does with this list.
+            `${entry.name} (${entry.id}) costs ${entry.cost} energy and scores ${entry.score} ` +
+            `- ${entry.verdict} ${entry.pctVsBand >= 0 ? '+' : ''}${entry.pctVsBand}%, ` +
             `${round(entry.overBudgetBy, 1)} over the ${entry.budget} budget for that cost.` +
+            // Ticket 149c-4: name the width whenever it decided the number, and print the one
+            // that did not, so a reader can tell "over budget in every fight" from "over budget
+            // only at 3v3" without opening the JSON.
+            (entry.width === 'both'
+                ? ` Side/All: ${entry.score3v3} at 3v3, ${entry.score1v1} at 1v1 - judged on the worse.`
+                : '') +
+            // Ticket 149c-6: a hook card's score is a floor, and the ceiling is the difference
+            // between "everyone has to take this" and "this is someone's deck".
+            (entry.buildAroundIndex > 1
+                ? ` Hooks: ${entry.hookFloor} at the roster rate, ${entry.hookCeiling} on the deck built for it (${entry.buildAroundIndex}x).`
+                : '') +
             (entry.manualReview.length > 0
                 ? ` (score excludes unscored ${entry.manualReview.join('/')} action(s) - actual value is at least this.)`
                 : ''),
@@ -276,38 +382,114 @@ function budgetRedline(entry: CardBudgetEntry): Redline {
 /**
  * Score every card in the inflated registry against its section 1.3 band.
  *
- * Over budget only. Section 1.3 states ranges, but a card *under* its target is a card
- * nobody plays rather than a card that breaks the game, the Studio's amber threshold does
- * not match the doc's lower bound anyway (see `powerscale.ts`), and inventing a redline
- * this repo never agreed to is how a report loses its authority.
+ * TICKET 149c-5 SPLIT THE ANSWER IN TWO, because section 4.3 made the band a target rather than
+ * a cliff. A card past its band by 15% or less is REPORTED (`watchlist`) and not redlined; only
+ * a card past the tolerance is a `redline`. The old function returned one list and every card
+ * over the line by any amount was in it.
+ *
+ * Still over-budget only, on the original reasoning: a card *under* its target is a card nobody
+ * plays rather than a card that breaks the game, and inventing a redline this repo never agreed
+ * to is how a report loses its authority. The one addition is section 4.3's MANUAL REVIEW state,
+ * which is NOT an under-band verdict - see `bandVerdict`.
  */
-export function auditCardBudget(): { entries: CardBudgetEntry[]; cardsAudited: number } {
+/**
+ * A flagged firmware, as a redline - ticket 149c-7 / section 4.5.
+ *
+ * Only `FLAGGED` (past 50% of a pool a game) becomes a redline. `OVER BAND` is reported in the
+ * section and left there, on exactly the reasoning section 4.3 applies to cards: a band is a
+ * target, and a list that treats 41% and 143% the same way is a list nobody triages.
+ */
+export function firmwareRedline(os: OsScore): Redline {
+    return {
+        kind: 'FIRMWARE_OVER_BAND',
+        section: '1.4',
+        subject: os.id,
+        metric: 'pctOfPoolPerGame',
+        value: os.pctOfPoolPerGame,
+        threshold: OS_FLAG_PCT,
+        comparison: 'above',
+        detail:
+            `${os.name} (${os.id}) delivers ${os.pctOfPoolPerGame}% of a health pool a game, ` +
+            `past the ${OS_FLAG_PCT}% flag and the ${OS_BAND_MIN_PCT}-${OS_BAND_MAX_PCT}% band.` +
+            (os.unpriced.length > 0
+                ? ` (Excludes unpriced ${os.unpriced.join('/')} action(s) - the real figure is at least this.)`
+                : '') +
+            (os.unmeasured.length > 0
+                ? ` (${os.unmeasured.length} hook(s) have no measured proc rate and contribute nothing here.)`
+                : ''),
+    };
+}
+
+export function auditCardBudget(): {
+    redlines: CardBudgetEntry[];
+    watchlist: CardBudgetEntry[];
+    cardsAudited: number;
+} {
     const registry = getInflatedProgramRegistry();
     const ids = Object.keys(registry).sort();
 
-    const entries: CardBudgetEntry[] = [];
+    const redlines: CardBudgetEntry[] = [];
+    const watchlist: CardBudgetEntry[] = [];
     for (const id of ids) {
         const card = registry[id] as ProgramData;
+        /*
+         * TICKET 163a — the ninety-eight `+` cards are not audited against the band.
+         *
+         * Henry, 2026-09-24: *"upgrades are supposed to be broken. So no need to score them."*
+         * Auditing them would add ninety-eight redlines that all say the same true and useless
+         * thing, and bury the base-card redlines this report exists to surface. See
+         * `isBandExempt` for the ruling in full.
+         */
+        if (isBandExempt(card)) continue;
         const band = budgetBandFor(numericBaseCost(card.baseCost));
-        const { score, perEnergy, manualReview } = calculatePowerscale(card);
-        if (score > band.over) {
-            entries.push({
-                id,
-                name: card.name,
-                cost: numericBaseCost(card.baseCost),
-                score,
-                perEnergy,
-                budget: band.over,
-                overBudgetBy: round(score - band.over, 1),
-                manualReview,
-            });
-        }
+        const { score1v1, score3v3, perEnergy, manualReview, hookFloor, hookCeiling } =
+            calculatePowerscale(card);
+        /*
+         * TICKET 149c-4, section 4.2: the verdict is against `score1v1` unless the card is
+         * Side/All, where it is the WORSE of the two.
+         *
+         * "Worse" is the higher number, because both widths are judged against the same band -
+         * the band is a property of the card's energy cost, not of the fight. So this is a max,
+         * and it is written as one rather than branching on `card.target`: the two scores are
+         * equal by construction on every card whose scope does not depend on width, so a max
+         * over them IS the rule, with no classification to keep in step with `powerscale.ts`.
+         */
+        const widthsDiffer = score3v3 !== score1v1;
+        const score = Math.max(score1v1, score3v3);
+        const verdict = bandVerdict(score, band.over);
+        if (verdict.state === 'IN BAND') continue;
+
+        const entry: CardBudgetEntry = {
+            id,
+            name: card.name,
+            cost: numericBaseCost(card.baseCost),
+            score,
+            perEnergy,
+            score1v1,
+            score3v3,
+            width: widthsDiffer ? 'both' : '1v1',
+            budget: band.over,
+            overBudgetBy: round(score - band.over, 1),
+            verdict: verdict.state,
+            pctVsBand: verdict.pct,
+            hookFloor,
+            hookCeiling,
+            // 1 rather than 0 or Infinity when there are no hooks: the index means "how much
+            // headroom does the best deck have", and a card with no hooks has exactly none.
+            buildAroundIndex: hookFloor > 0 ? round(hookCeiling / hookFloor, 2) : 1,
+            manualReview,
+        };
+        if (verdict.state === 'OUT OF BAND') redlines.push(entry);
+        else watchlist.push(entry);
     }
 
     // Worst offender first, then by id so equal scores never reorder between runs.
-    entries.sort((a, b) => b.overBudgetBy - a.overBudgetBy || byString(a.id, b.id));
+    const worstFirst = (a: CardBudgetEntry, b: CardBudgetEntry): number =>
+        b.overBudgetBy - a.overBudgetBy || byString(a.id, b.id);
+    redlines.sort(worstFirst);
+    watchlist.sort(worstFirst);
 
-    return { entries, cardsAudited: ids.length };
+    return { redlines, watchlist, cardsAudited: ids.length };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -571,10 +753,12 @@ function compareRedlines(a: Redline, b: Redline): number {
 }
 
 export function assembleReport(matchups: ReadonlyArray<MatchupReport>): BalanceReport {
-    const { entries: cardEntries, cardsAudited } = auditCardBudget();
+    const { redlines: cardEntries, watchlist, cardsAudited } = auditCardBudget();
     const sortedMatchups = [...matchups].sort((a, b) => byString(a.id, b.id));
 
     const cardRedlines = cardEntries.map(budgetRedline);
+    const firmware = scoreAllOS();
+    const firmwareRedlines = firmware.filter(os => os.verdict === 'FLAGGED').map(firmwareRedline);
     const matchupRedlines = sortedMatchups.flatMap(m => m.redlines);
     const reported = EXPECTED_SUITES.filter(suite => sortedMatchups.some(m => m.suite === suite));
 
@@ -599,10 +783,20 @@ export function assembleReport(matchups: ReadonlyArray<MatchupReport>): BalanceR
                 { cost: '2', maxScore: budgetBandFor(2).over },
                 { cost: '3+', maxScore: budgetBandFor(3).over },
             ],
+            // Ticket 149c-5: the band is a target, not a cliff. `redlines` is past the tolerance;
+            // `watchlist` is inside it, plus the MANUAL REVIEW tail - reported, not redlined.
+            tolerancePct: BAND_TOLERANCE_PCT,
             redlines: cardEntries,
+            watchlist,
+        },
+        firmware: {
+            bandMinPct: OS_BAND_MIN_PCT,
+            bandMaxPct: OS_BAND_MAX_PCT,
+            flagPct: OS_FLAG_PCT,
+            entries: firmware,
         },
         matchups: sortedMatchups,
-        redlines: [...cardRedlines, ...matchupRedlines].sort(compareRedlines),
+        redlines: [...cardRedlines, ...firmwareRedlines, ...matchupRedlines].sort(compareRedlines),
     };
 }
 

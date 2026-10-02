@@ -1,5 +1,7 @@
 # Status re-denomination grid (ticket 95) - measured, STOP for Henry's pick
 
+> **Status: CLOSED 2026-09-24 — Henry's pick was made and shipped as ticket 102 (POWER, +1 per stack, uncapped).**
+
 - Type: wayfinder:research. Branch `archetype-web`. **Nothing shipped** - `STATUS_MODEL` ships at
   the live values, 851 tests unchanged.
 

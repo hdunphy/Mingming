@@ -79,4 +79,42 @@ describe('enemy card draw across turns', () => {
         expect(after.activeSide).toBe('PLAYER');
         expect(after.playerDeck.hand.length).toBeGreaterThan(0);
     });
+    /*
+     * TICKET 159 — KEPT FROM THE REVERTED 159a.
+     *
+     * 159a moved the refill to the end of the owner's own turn and was reverted when Henry ruled
+     * for a drawpile PREVIEW instead (no engine change, so no balance re-baseline and no turn-start
+     * hooks disturbed). This one test outlived it, because what it guards is true under either
+     * timing and was never actually covered: the REFILL is a phase, but a DRAW action on a card is
+     * not, and the obvious wrong way to touch the refill is to make the deck untouchable outside
+     * its phase — which would silently break the twenty-four cards whose whole text is "and draw
+     * a card".
+     */
+    it('leaves a DRAW-on-cast drawing MID-turn, where it belongs', () => {
+        const state = createSparseBattleState({
+            activeSide: 'PLAYER',
+            phase: 'ACTION',
+            enemyMode: 'MOVES',
+            playerParty: [createSparseEntity({ id: 'p1', definitionId: 'skoll', name: 'Skoll', currentEnergy: 5 })],
+            playerDeck: {
+                ownerId: 'PLAYER',
+                deck: [],
+                drawpile: [card('p-a'), card('p-b'), card('p-c')],
+                hand: [{ id: 'keen', dataId: 'keen_edge', currentCost: 1, isPlayable: true } as ProgramEntity],
+                discard: [],
+                exhaust: [],
+            },
+        });
+
+        const after = battleReducer(state, {
+            type: 'PLAY_PROGRAM',
+            payload: { sourceId: 'p1', targetId: 'p1', programId: 'keen' },
+        });
+
+        // Still the player's turn — no phase change — and the card drew into hand as it resolved.
+        expect(after.activeSide).toBe('PLAYER');
+        expect(after.phase).toBe('ACTION');
+        expect(after.playerDeck.hand.length).toBeGreaterThan(0);
+        expect(after.playerDeck.drawpile.length).toBeLessThan(3);
+    });
 });

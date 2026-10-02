@@ -52,7 +52,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData, MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import { RelicRegistry } from '../../engine/data/relicRegistry';
+import { describeDriver } from '../../engine/data/driverRegistry';
 import { createRanchMember } from '../../engine/gameTypes';
 import type { IRanchMember } from '../../engine/runTypes';
 import { assembleMingming } from '../store/gameSlice';
@@ -67,11 +67,13 @@ import { playSfx } from '../audio/AudioEngine';
 import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
+import { RANCH_PARTY_CLAUSE } from './partyRuleText';
 
 type Section = 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex';
 
 /** Stable empty array, so the `no run in progress` selector does not re-render on every dispatch. */
 const EMPTY_DRIVERS: ReadonlyArray<string> = [];
+const EMPTY_TEMP_DRIVERS: ReadonlyArray<{ readonly driverId: string }> = [];
 
 // Ticket 34: emoji out. `IconName` is a closed union, so a section cannot ask for a glyph that
 // does not exist, and the icons take the section's own colour when it is active.
@@ -98,6 +100,8 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
     // Ticket 11: drivers are run-scoped (`IRunState.drivers`). The Vault shows the run's, when
     // there is one — see `VaultSection` for why it is still here at all.
     const drivers = useSelector((s: RootState) => s.run.run?.drivers ?? EMPTY_DRIVERS);
+    // Ticket 168b: the ones that last for the next fight only, listed after the permanent ones.
+    const tempDrivers = useSelector((s: RootState) => s.run.run?.tempDrivers ?? EMPTY_TEMP_DRIVERS);
 
     const [section, setSection] = useState<Section>(initialSection);
     const [showFirmware, setShowFirmware] = useState(false);
@@ -129,7 +133,7 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
                 />
             )}
             {section === 'assembly' && <AssemblySection blueprints={blueprints} seenTips={seenTips} />}
-            {section === 'vault' && <VaultSection drivers={drivers} />}
+            {section === 'vault' && <VaultSection drivers={drivers} tempDrivers={tempDrivers} />}
             {/* Ticket 31. Props rather than its own `useSelector`, so the screen is renderable in a
                 test from a plain object and the ranch stays the only thing that reads the store. */}
             {section === 'codex' && <CodexScreen codex={codex} firedMilestones={codexMilestones} />}
@@ -158,7 +162,7 @@ function RosterSection({
             </div>
             <p className="ranch-note">
                 Everything you have ever assembled lives here, and none of it is committed to anything.
-                <strong> The party is chosen at run start</strong> — up to three, one per species — so this
+                <strong> The party is chosen at run start</strong> — {RANCH_PARTY_CLAUSE} — so this
                 list is your collection rather than a loadout. The team is the deck: each member brings its
                 own start kit when a run begins.
             </p>
@@ -367,7 +371,11 @@ function OsPicker({
 
 // --- Vault -------------------------------------------------------------------------------------
 
-function VaultSection({ drivers }: { drivers: ReadonlyArray<string> }): ReactNode {
+function VaultSection({ drivers, tempDrivers }: {
+    drivers: ReadonlyArray<string>;
+    tempDrivers: ReadonlyArray<{ readonly driverId: string }>;
+}): ReactNode {
+    const tempIds = tempDrivers.map((entry) => entry.driverId);
     return (
         <section className="ranch-section">
             <div className="ranch-section-head">
@@ -379,21 +387,30 @@ function VaultSection({ drivers }: { drivers: ReadonlyArray<string> }): ReactNod
                 driver dies with the run that won it, so there is nothing here to carry into the next one.
                 This section is a readout, not a loadout, and ticket 16 gives drivers their own surface.
             </p>
-            {drivers.length === 0 && (
+            {drivers.length === 0 && tempIds.length === 0 && (
                 <div className="ranch-empty">
                     Nothing installed. Drivers are won from elites inside a run and are lost when it ends.
                 </div>
             )}
-            <div className="ranch-relic-grid">
+            <div className="ranch-driver-grid">
                 {drivers.map((driverId) => {
-                    // Indexed, not `GetRelic`, which throws on an unknown id. A run carrying a driver
-                    // that has since been renamed must not take the whole screen down with it.
-                    const relic = RelicRegistry[driverId];
-                    if (!relic) return null;
+                    // `describeDriver` never throws: a run carrying a Driver that has since been
+                    // renamed prints its id rather than taking the whole screen down with it.
+                    const { name, description } = describeDriver(driverId);
                     return (
-                        <div key={driverId} className="ranch-relic">
-                            <div className="ranch-relic-name">{relic.name}</div>
-                            <div className="ranch-relic-desc">{relic.description}</div>
+                        <div key={driverId} className="ranch-driver">
+                            <div className="ranch-driver-name">{name}</div>
+                            <div className="ranch-driver-desc">{description}</div>
+                        </div>
+                    );
+                })}
+                {tempIds.map((driverId) => {
+                    // Ticket 168b: an event's penalty, gone after the next fight.
+                    const { name, description } = describeDriver(driverId);
+                    return (
+                        <div key={`temp:${driverId}`} className="ranch-driver" data-temporary="true">
+                            <div className="ranch-driver-name">{name} · next fight</div>
+                            <div className="ranch-driver-desc">{description}</div>
                         </div>
                     );
                 })}

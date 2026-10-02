@@ -30,6 +30,7 @@ import type { ReactNode } from 'react';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { minimumActiveDeck } from '../../engine/run/createRun';
+import { effectiveOS } from '../../engine/run/effectiveOS';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import { cardFace, colorFor, groupByData } from './runShell';
@@ -86,7 +87,7 @@ export default function BoundaryAlert({
                     <span className="ba-dot">{data.name.charAt(0)}</span>
                     <span className="ba-who">
                         <span className="ba-nm">{member.nickname ?? data.name}</span>
-                        <span className="ba-os">{member.activeOS}</span>
+                        <span className="ba-os">{effectiveOS(run, member)}</span>
                     </span>
                     <span className="ba-en">{data.primaryElement}</span>
                 </div>

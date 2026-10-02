@@ -37,8 +37,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Ticket 181a: the label the main menu, Settings and exported run logs show, next to the
+      # commit (`vite.config.ts` reads both). It is set HERE, so no GitHub setting is needed: bump
+      # the literal below (e.g. to `PLAYTEST 2.1` for a hotfix) in the commit that ships the build.
+      # A repository variable named PLAYTEST_LABEL, if one exists, overrides it without a commit.
       - name: Build
         run: npm run build
+        env:
+          VITE_BUILD_LABEL: ${{ vars.PLAYTEST_LABEL || 'PLAYTEST 2' }}
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3

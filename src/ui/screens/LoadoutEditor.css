@@ -73,3 +73,21 @@
 
 .led-rows { display: flex; flex-direction: column; gap: 3px; overflow: auto; flex: 1; }
 .led-foot { margin-top: 8px; flex: none; }
+
+/*
+ * THE DECK-ROW PEEK — Henry, 2026-09-11: *"on hover of the Edit Loadout screen you should see what
+ * the active deck cards look like. I need to see the full card that I would see from the shop or
+ * card collection when I hover."*
+ *
+ * TICKET 167f (Henry, 2026-09-27): *"The card should be static so it hovers next to the mouse and
+ * it should be outside of any containers. Like a tooltip."* It is `<CardPeek>` now, a fixed tile
+ * drawn into <body> beside the pointer (see `.card-peek` in runShell.css), so there is nothing to
+ * place in this column any more. That reverses 155h's "in the panel" block, and with it the two
+ * layout rules that only existed to leave that block room (`.led-deck` as a flex column and
+ * `.led-rows { flex: 0 1 auto }`), which are gone.
+ */
+
+/* TICKET 171a: an open party slot, and the note CONFIRM shows while a bench pick is pending. */
+.led-slot-open { border-style: dashed; opacity: 0.7; justify-content: center; }
+.led-slot-open.led-target { opacity: 1; }
+.led-confirm-warn { color: #e0b050; font-size: 12px; font-style: normal; padding: 4px 12px; }

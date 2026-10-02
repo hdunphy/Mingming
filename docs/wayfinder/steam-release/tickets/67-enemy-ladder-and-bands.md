@@ -1,7 +1,9 @@
 # The enemy ladder, and the three bands the run gate says we are failing (ticket 67)
 
+> **2026-09-24 — RE-KEYED TO THE WALKER (Henry). The instrument this ticket's Done-when names (`balance:run-gate` inside ±5) was ruled NOISE on collection v2 on 09-24: it runs the un-drifted starter kit, which 161 deliberately weakened. Done-when is now: deck-archetypes 157's walker (a played run: picks, upgrades, patches, strategic recruits) reports the three bands, and they sit inside ±5 of 95/75/60. The 60±5 gauntlet-compound target stands until the walker says otherwise. 2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. **
+
 - Type: wayfinder:grilling
-- Status: open
+- Status: closed
 - Assignee: session-67-build (steps 1-2 only; the grilling is Henry's)
 - Blocked by: [61](61-apply-60.md)
 - Phase: Vertical Slice
@@ -69,9 +71,23 @@ Ticket 61's package 2, verbatim, plus whatever the answers change:
 
 ## Done when
 
-`npm run balance:run-gate` reports all three bands inside ±5, at a sample size whose Wilson interval
-is narrower than the window (the tool flags `UNDER-SAMPLED` when it is not), and the per-cell table
-shows no non-monotonic step the ruling did not ask for.
+**RE-KEYED 2026-09-24 (Henry), and applied 2026-09-24 now that the walker exists.**
+`npm run balance:walk` — deck-archetypes 157's run walker, which plays a whole run with picks,
+upgrades, patches and strategic recruits — reports the three bands inside ±5 of **95 / 75 / 60**,
+at a sample size whose interval is narrower than the window. The 60±5 gauntlet-compound target
+stands until the walker says otherwise.
+
+`balance:run-gate` is NOT the instrument any more: it fights the un-drifted starter kit, which 161
+deliberately weakened, so on collection v2 it measures a deck no player ever holds past fight one.
+Both were measured on 2026-09-24 and they agree about the direction and disagree about nothing:
+the gate reads **67%** on its wild/biome-0 cell and the walker reads **77.5%** on fight one, against
+the same ruled 95.
+
+**The first walker reading is in and it is not close** (`results/t157/FINDINGS.md`): eight of twelve
+starters are under the wild target on their FIRST fight, `jormungandr_v1` at 10%, and **0 of 120
+runs reached the gym band at all** — so the elite and gauntlet bands are currently unmeasurable
+rather than failing. That is this ticket's question, restated with a number: **the opening fight is
+about thirty points under target on two independent instruments.**
 
 ## Notes for whoever takes it
 
@@ -395,3 +411,7 @@ against the specific boss battle. so this specific boss battle should be about 8
    Rootfall reads ~7.6pt under WITH NO TOOLBOX CARDS in the deck; Tidewrack's 37-point outlier is
    the open problem and its verdict waits on the five remaining toolbox cards
    (research/69-toolbox-printings.md) plus the firmware-pairing harness fix.
+
+## Resolution
+
+**CLOSED 2026-10-01 (Henry: "Close this. We need to revamp the walker and then I'm not sure what the metrics should be.").** The 95/75/60 walker bands are retired as a gate. The walker rework is deck-archetypes 170; what it should measure, and against which targets, is decided after that, in a new ticket. Henry's own playtests are the difficulty gate until then.

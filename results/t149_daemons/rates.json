@@ -1,0 +1,399 @@
+{
+ "harden_daemon": [
+  {
+   "rate": 0.7902093269740329,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.7848551360842845,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0.7095652173913043,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  }
+ ],
+ "core_overclock_daemon": [
+  {
+   "rate": 0.8289392333509981,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.7967076382791922,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0.8626086956521739,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  },
+  {
+   "rate": 1.9632857897517169,
+   "gameLen": 3.5314814814814817,
+   "n": 3786,
+   "width": 1,
+   "note": "fenrir_v1 units"
+  },
+  {
+   "rate": 1.7435897435897436,
+   "gameLen": 4.538461538461538,
+   "n": 39,
+   "width": 3,
+   "note": "fenrir_v1 units"
+  }
+ ],
+ "cinder_armor_daemon": [
+  {
+   "rate": 0.06794294294294294,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.13507462686567165,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  },
+  {
+   "rate": 0,
+   "gameLen": 3.5314814814814817,
+   "n": 3786,
+   "width": 1,
+   "note": "fenrir_v1 units"
+  },
+  {
+   "rate": 0,
+   "gameLen": 4.538461538461538,
+   "n": 39,
+   "width": 3,
+   "note": "fenrir_v1 units"
+  }
+ ],
+ "feedback_loop_daemon": [
+  {
+   "rate": 0.5850335629747394,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.32532923617208076,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0.35130434782608694,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  },
+  {
+   "rate": 1.4170057828228744,
+   "gameLen": 4.37037037037037,
+   "n": 4669,
+   "width": 1,
+   "note": "kraken_v1 units"
+  },
+  {
+   "rate": 1.0636363636363637,
+   "gameLen": 5.25,
+   "n": 110,
+   "width": 3,
+   "note": "kraken_v1 units"
+  }
+ ],
+ "echo_chamber_v2": [
+  {
+   "rate": 1.5143967496908672,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 1.0153204565408254,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 1.1165217391304347,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  },
+  {
+   "rate": 3.3413240418118466,
+   "gameLen": 6.976923076923077,
+   "n": 7175,
+   "width": 1,
+   "note": "ratatoskr_v1 units"
+  },
+  {
+   "rate": 1.930232558139535,
+   "gameLen": 5.142857142857143,
+   "n": 43,
+   "width": 3,
+   "note": "ratatoskr_v1 units"
+  },
+  {
+   "rate": 1.9978227737861964,
+   "gameLen": 4.459615384615384,
+   "n": 4593,
+   "width": 1,
+   "note": "ratatoskr_v2 units"
+  },
+  {
+   "rate": 0.15789473684210525,
+   "gameLen": 5,
+   "n": 57,
+   "width": 3,
+   "note": "ratatoskr_v2 units"
+  },
+  {
+   "rate": 2.278025995125914,
+   "gameLen": 4.621296296296296,
+   "n": 4924,
+   "width": 1,
+   "note": "sleipnir_v1 units"
+  }
+ ],
+ "fertile_ground_daemon": [
+  {
+   "rate": 0.7902093269740329,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.7848551360842845,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0.7095652173913043,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  }
+ ],
+ "hoofbeat_daemon": [
+  {
+   "rate": 1.5143967496908672,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 1.0153204565408254,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 1.1165217391304347,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  },
+  {
+   "rate": 2.278025995125914,
+   "gameLen": 4.621296296296296,
+   "n": 4924,
+   "width": 1,
+   "note": "sleipnir_v1 units"
+  },
+  {
+   "rate": 3.3413240418118466,
+   "gameLen": 6.976923076923077,
+   "n": 7175,
+   "width": 1,
+   "note": "ratatoskr_v1 units"
+  },
+  {
+   "rate": 1.930232558139535,
+   "gameLen": 5.142857142857143,
+   "n": 43,
+   "width": 3,
+   "note": "ratatoskr_v1 units"
+  }
+ ],
+ "einherjar_standard": [
+  {
+   "rate": 0,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  }
+ ],
+ "riptide": [
+  {
+   "rate": 3.3627671789436495,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 4.1532923617208075,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 5.895652173913043,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  }
+ ],
+ "short_circuit": [
+  {
+   "rate": 0.5834658187599364,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.8352502194907814,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0.7947826086956522,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  }
+ ],
+ "reactive_plating": [
+  {
+   "rate": 2.0603250309132664,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool, capped 3/turn"
+  },
+  {
+   "rate": 2.1982001755926253,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field, capped 3/turn"
+  },
+  {
+   "rate": 2.5269565217391303,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool, capped 3/turn"
+  }
+ ],
+ "scrubber": [
+  {
+   "rate": 0.799924924924925,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.7980684811237928,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0.7634782608695653,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  }
+ ],
+ "drip_feed": [
+  {
+   "rate": 0.799924924924925,
+   "gameLen": 4.952173913043478,
+   "n": 45288,
+   "width": 1,
+   "note": "pool"
+  },
+  {
+   "rate": 0.7980684811237928,
+   "gameLen": 4.952173913043478,
+   "n": 22780,
+   "width": 1,
+   "note": "field"
+  },
+  {
+   "rate": 0.7634782608695653,
+   "gameLen": 5,
+   "n": 575,
+   "width": 3,
+   "note": "pool"
+  }
+ ]
+}

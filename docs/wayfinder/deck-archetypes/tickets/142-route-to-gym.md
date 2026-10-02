@@ -1,6 +1,8 @@
 # Ticket 142 — The route to the gym: rivals on the road, and a scout at the last exit
 
-**Status:** approved direction by Henry 2026-09-05 ("let's try your idea"); Henry's alternative is
+> **Status: CLOSED 2026-09-24 — signed off by Henry after playtest ("I'm signing off on 142, 146, 147, 155 and 162"). 142a–g shipped; 142h's end-to-end walk is 157's walker. §5's biome alternative stays on file as the fallback.**
+
+**Status:** RE-RULED 2026-09-11 — build Henry's alternative (§7; 142d–h ready for Legion). History: approved direction by Henry 2026-09-05 ("let's try your idea"); Henry's alternative is
 recorded in §5 and is NOT dead — it is the fallback if this does not fix the feel.
 **Branch:** `legion/ai-perf`, one commit per lettered row, authored as Henry.
 
@@ -114,3 +116,112 @@ Not a grid — a playtest. Henry runs Rootfall with a Fire starter and reports: 
 assembled by the end of biome 2 without benching anyone; did the scout tell him anything the
 gauntlet then confirmed; did rivals read as a choice on the map. Plus the tests named in §3/§4 and
 `regionGraph.test.ts` / `encounter.test.ts` extended for the two new node behaviours.
+
+
+## 6. Playtest 2026-09-10 (Henry's run log `mingming_run_log.json`, Rootfall tier 0, lost at biome 3's first node)
+
+The route itself ran: 14 fights, three rivals in biome 1 and three in biome 2, both elites beaten,
+scrap never a constraint (80–110 banked most of the way). What the run surfaced is not the path;
+it is what the player does *at the seam*, and it is the strongest note yet for 148:
+
+- **Henry benched down to one body at every boundary, on purpose.** *"Losing a mingming in a fight
+  puts you at a real disadvantage … the type disadvantage is hard to overcome so I dropped rat when
+  I went to the fire biome and then dropped both fire mingmings when I went into water."* The
+  boundary editor works exactly as ticket 61 §3 asked — and the rational move it enables is to
+  enter every new biome 1v1 with the one on-type body, so the 3v3 the game is built around only
+  happens for a few nodes after a workshop. The type triangle at biome scale makes two of the
+  three bodies wrong for two of the three biomes. Energized (ticket 135) is not enough to keep an
+  off-type body on the field; the recruit is either the coming biome's counter or it is benched.
+- **Biome 3 opened with the biome-1 recruit alone (8 cards) against a wild jormungandr and died in
+  one turn.** That fight is ticket 152 (the undertow pair loops); the one-body party is this
+  ticket's problem.
+- **"I still don't feel like I'm leveling up with my decks. I almost always send cards to the
+  collection and search for 2–3 cards to add to the deck."** Deck size 8 → 17 → 8 → 17 → 8 across
+  the run: every recruit adds five engine cards, every bench removes them, and the tuned deck is
+  rebuilt from the same 2–3 picks each biome. This is ticket 77's finding (adding cards loses;
+  deck size is the lever) *felt from the player's side* — the run has no progression axis that
+  survives a boundary. Input to 148's design session, not to its P0–P3 arms.
+
+**Verdict on 142's own question** (does the road to the gym feel better?): not answered — the run
+did not reach a gym, and the seam dominated the feel. Henry's biome alternative (§5) stays live.
+The design question 142 and 148 now share: *what makes an off-type body worth keeping through a
+biome?* — candidates for the session: a boundary reflash that keeps the body but swaps its five
+engine cards toward the coming biome; recruits offered at the workshop being the *next* biome's
+counter, not this one's; a persistent per-body axis (blueprint / level) that a bench does not
+reset, so the deck is not the only thing that "levels".
+
+
+## 7. RULED 2026-09-11 — build Henry's alternative (§5), and the shop becomes static
+
+Off the 2026-09-10 playtest (§6). Henry: *"Let's try my alternative route. It's fine if there are no
+Water mingmings in there."* One commit per lettered row, authored as Henry.
+
+- **142d — the route is [counter element, gym element, gym biome].** For Rootfall (Nature gym):
+  Fire biome → Nature biome → gym biome. The gym biome fields the gym's species (NNW for Rootfall)
+  at reduced strength until the gym itself. The Water biome is not on the Rootfall route and kraken
+  / jormungandr are not recruitable on it — accepted (*"it's fine if there are no Water mingmings"*).
+  142a's rivals and 142b's scout stay as built and re-key to the new order (the scout at the
+  Nature biome's exit previews two of the gym comp; rivals field the path species of the biome
+  they stand in). `pathAndScout.test` / `encounter.test` / `regionGraph.test` updated; the run
+  walker (`scratch/t149_runmix.ts`) re-run so the fight count and width mix are on record.
+- **142e — the marketplace stock is static per run.** Today `marketplace.ts` re-rolls the stock on
+  every visit (*"stock re-rolls per visit"*, L16). Henry: *"make it static per run so whenever you
+  come back it has the same stock, which doesn't get replenished — once you buy the card it's gone
+  from the shop."* Stock (cards, macros, and the blueprint slot below) is rolled once per
+  marketplace node from `nodeSeed(run seed, node id)` with visit count removed from the key; a
+  bought item leaves a gap; re-entry shows the same remaining stock. The no-farm rule in the
+  file's header is satisfied by construction (nothing replenishes).
+- **142f — refresh for scrap.** *"You can pay scrap to refresh it."* One button, **50 scrap**,
+  re-rolls the entire stock — cards, macros and the blueprint slot — from the next visit-count key.
+  Replaces today's 10-scrap card reroll. Henry: *"we might need to go higher"* — the number is a
+  constant with a comment, and the run walker reports scrap-at-gym so it can be retuned.
+- **142g — blueprints in the shop.** *"Add blueprints to the shop, but they should be expensive
+  and only offer 1 random option."* One slot, one random blueprint from the species the run can
+  recruit on this route, **50 scrap**. Bought → gone until a refresh. Blueprint economy per the
+  steam-release ruling in HANDOFF (blueprints are consumable; assembly rolls stats).
+- **142h — write-back.** A run walked end to end on the new route with the log attached; scrap
+  banked at each marketplace visit before and after; the §6 questions re-asked of Henry on his
+  next playtest.
+
+Gates: 142d — every route still reaches a gym in 11–13 fights (the ticket-149 walker measured 11.7
+on the old order); the scout still previews the gym comp; no unreachable species on the *other*
+gyms' routes (each gym's route visits its counter and its own element — check all three). 142e/f/g
+— `marketplace.test` covers static stock, gap-on-buy, refresh re-roll, blueprint slot pricing, and
+that a refresh cannot be bought with less than 50.
+
+## 8. CORRECTION 2026-09-12 — the route was never about withholding
+
+Henry, reading 142g back:
+
+> *"We aren't intentionally withholding blueprints. The stall can sell a kraken blueprint, it just
+> felt bad trying to prepare for a NNW deck by going through an entire water biome when you want to
+> focus on your fire team. You should be able to get water mingmings — maybe you want to try a
+> certain deck archetype and take the type disadvantage, or maybe it's an achievement to beat a
+> grass boss with water mingmings. It's not about limiting, it was about avoiding having to drop
+> your fire starters to get through the biome then last minute switch back to FFN party."*
+
+**This corrects §7's 142d bullet, and a claim I built on it.** That bullet reads *"kraken /
+jormungandr are not recruitable on it — accepted"*, and 142g took it as a design goal: the shop's
+blueprint pool was restricted to the route's own elements so an off-route body could not be bought.
+That inverted the ruling. The complaint 142d answers is being FORCED to walk a biome you have no
+team for; the shop is the opposite of that problem, because it is how an off-route body is reached
+**without** the detour. Restricting it turned a fix for a routing annoyance into a content lock.
+
+So: the blueprint pool is the whole Early Access roster (`blueprintPool()`), and the route's
+element gap is a fact about where you WALK, not about what you can own. What §7's bullet should
+have said is that the route no longer forces a detour — not that it closes a door.
+
+Two more clarifications from the same message, both already true and now pinned by tests rather
+than left to luck:
+
+- **Duplicates are buyable.** *"You should be able to purchase duplicate cards that you already
+  own. What we don't want is the shop has unlimited stock. It should work like Slay the Spire where
+  you have a single stock of each item."* `isOfferSold` keys on the offer's minted INSTANCE, not on
+  its card id, so holding three Tackles greys out nothing; `drawDistinct` puts each id on the wall
+  at most once, which is the single stock. A future "don't offer what they already have" filter
+  would satisfy the second half and break the first, so both are asserted together.
+- **Each shop is its own shelf, and it persists.** *"If I go into shop at biome 1 and buy tackle,
+  the shop in biome 2 is different, but if I were to return to biome 1 shop the same cards would be
+  there except the tackle that I bought."* That is 142e's per-node seed plus the instance-keyed
+  gap, and it is now walked end to end in one test rather than asserted a piece at a time — the
+  three claims only mean anything together.

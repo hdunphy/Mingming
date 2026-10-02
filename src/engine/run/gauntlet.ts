@@ -59,8 +59,9 @@ import type { IRegionNode, IRunState } from '../runTypes';
 import { ENEMY_LADDER, encounterSpeciesPool } from './encounter';
 import type { IRunEncounter } from './encounter';
 import { authoredBossFor } from './bosses';
-import { GYM_REGISTRY } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan } from './gyms';
 import { nodeSeed } from './nodeSeed';
+import { gauntletDriversFor } from './tiers/gauntletDrivers';
 
 // ---------------------------------------------------------------------------------------------
 // The shape of a gauntlet
@@ -212,9 +213,10 @@ export interface GauntletFightInput {
  *
  * This is the leader's recruiting ground for fights 1 and 2 and it is deliberately the *union* of the
  * three biome pools rather than the gym biome's alone: the gauntlet is the run's final exam, and an
- * exam set only on the last chapter would make the first two biomes route decoration.
+ * exam set only on the last chapter would make the first two biomes route decoration. Since ticket
+ * 167a the union is filtered per slot by `gauntletSlotPool`.
  */
-function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
+export function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
     const ids: string[] = [];
     for (let biomeIndex = 0; biomeIndex < run.biomes.length; biomeIndex += 1) {
         // `encounterSpeciesPool` reads the element off the node's biome, so each biome is asked
@@ -226,6 +228,28 @@ function regionSpeciesPool(run: IRunState, node: IRegionNode): string[] {
         }
     }
     return ids;
+}
+
+/**
+ * TICKET 167a (Henry, 2026-09-28): *"The boss should vary its first fights. But pull just from the
+ * WWF mingmings."* Fights 1 and 2 field one body per element of the BOSS team's plan
+ * (`gymCompElementPlan`: Tidewrack Water/Water/Fire), each drawn from every species of that
+ * element the region fields. Replaces 166c's "two gym-element bodies and one other", which could
+ * put Nature into a Water/Fire gym.
+ *
+ * Early Access has two species per element, so two same-element slots are always those two
+ * species; the variety is in the odd slot, each body's firmware and its rolled stats. That is
+ * intended, not a bug.
+ *
+ * Falls back to the whole region pool if a slot's element has no species in it, so a content gap
+ * can never leave a slot with nothing to draw.
+ */
+function gauntletSlotPool(run: IRunState, node: IRegionNode, slot: number, plan: ReadonlyArray<string>): string[] {
+    const region = regionSpeciesPool(run, node);
+    const element = plan[slot];
+    if (!element) return region;
+    const matching = region.filter((id) => GetMingmingData(id).primaryElement === element);
+    return matching.length > 0 ? matching : region;
 }
 
 /** Draw one species, preferring one not already on this team (map § Notes: one of each species). */
@@ -300,8 +324,10 @@ function buildEnemy(
      * For an UN-AUTHORED gym's boss, `activeOS` is a `boss_relic_*` id and no species has a deck
      * keyed by one, so `getDeckForOS` resolves to `availableOS[0]`'s tuned list by its documented
      * fallback. That was load-bearing under ticket 18: it meant a shipped boss was reproducible in
-     * the balance harness as nothing more than `[species, boss_relic_x]`
-     * (`debug/balance/teamComps.ts`, `BOSS_COMPS`).
+     * the balance harness as nothing more than `[species, boss_relic_x]`. **All three gyms are
+     * authored as of ticket 28b, so this branch is now unreachable in a shipped run** and the table
+     * that depended on it (`BOSS_COMPS`) is deleted. The fallback stays because the branch is
+     * reachable the moment a fourth gym is added ahead of its authoring session.
      *
      * **Ticket 68's authored bosses need no fallback at all**, which is the quieter half of the
      * redesign: the member's `activeOS` IS one of its own `availableOS`, so this lookup returns the
@@ -337,6 +363,8 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
     const roster = new SeedStream(new SeedStream(seed).fork('gauntlet-roster'));
 
     const gym = GYM_REGISTRY[run.gymId];
+    // 167a: the boss team's element plan, computed once so the slot loop only looks it up.
+    const plan = gym ? gymCompElementPlan(gym) : [];
     // A run always names a gym in the registry (`createRun` copies it off the offer), so this is the
     // label for a state nothing can produce rather than a case with behaviour of its own.
     const gymName = gym?.name ?? 'Gym';
@@ -357,7 +385,7 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
         const biomeIndex = boss ? Math.min(slot, run.biomes.length - 1) : -1;
         const pool = boss
             ? encounterSpeciesPool(run, { ...node, biomeIndex })
-            : regionSpeciesPool(run, node);
+            : gauntletSlotPool(run, node, slot, plan);
 
         /*
          * The draw happens even when the authored table overrides it — the same stream-position
@@ -393,6 +421,8 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
      * existed. It is read off `ENEMY_LADDER` rather than written as `'full'` so that the gym cannot
      * hold a second opinion about its own rung — the same discipline the deck rule already keeps.
      */
+    const drivers = gauntletDriversFor(run, boss);
+
     return {
         enemyParty,
         enemyDeckIds,
@@ -401,9 +431,11 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
         // Ticket 144 §2: read off the ladder for the same reason the grade is — the gym must not
         // hold a second opinion about its own rung. This row is 0: the boss thinks at full depth.
         aiBeam: ENEMY_LADDER.gauntlet.beam,
-        // Ticket 68: one side-level Driver, on the authored boss fight only. Ticket 60's rung reads
-        // "kit + OS + Driver" and this is the Driver — literally, now that there is one.
-        ...(authored ? { enemyDrivers: [authored.driver] } : {}),
+        // Ticket 68: one side-level Driver, on the authored boss fight. Ticket 60's rung reads
+        // "kit + OS + Driver" and this is the Driver — literally, now that there is one. Ticket 169c:
+        // at tier 3 the leader's Driver rides fights 1 and 2 as well (`gauntletDriversFor`); "absent"
+        // still means "none", so a fight with no Driver has no `enemyDrivers` key at all.
+        ...(drivers.length > 0 ? { enemyDrivers: drivers } : {}),
     };
 }
 

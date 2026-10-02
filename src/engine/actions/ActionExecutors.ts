@@ -1,5 +1,5 @@
 import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance } from '../types';
-import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
+import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, MaxEnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
 import type { HookAction, HookContext } from '../core/Hooks';
 import { calculateDamage, calculateHeal } from '../combatUtils';
  // Need to refactor checkDefeat or keep it in effectHandlers for now
@@ -10,6 +10,7 @@ import { getStatusBehavior } from '../StatusBehaviors';
 import { globalBattleEventBus } from '../events';
 import { PRNG } from '../core/PRNG';
 import { NEGATIVE_STATUSES } from '../core/ConditionValidator';
+import { actionConditionsMet } from './actionConditions';
 import { isSimulating } from '../core/simulationDepth';
 
 function addLog(state: IBattleState, message: string): IBattleState {
@@ -99,6 +100,32 @@ export const MISSING_HP_PCT_CAP = 50;
 export const SHARP_STACKS_POWER_PER_STACK = 5;
 
 /**
+ * TICKET 163c — **OVERCLOCK: every stack this body holds counts for one more.**
+ *
+ * 163 §3's sixth patch, and §4 is explicit that it is *"a status-value modifier on the member"*
+ * rather than a hook change: nothing in a firmware's hook data says what a Sharp stack is worth to
+ * a card that cashes it, so there is no hook for a transform to touch. `patchRegistry` carries it
+ * as an identity transform and the work happens HERE, where a scaler reads a pile.
+ *
+ * ONE MORE STACK, NOT ONE MORE PER STACK. A body with 3 Sharp and OVERCLOCK scales as 4, not as 6.
+ * That is §3's own wording (*"worth one more in every payoff that reads them"*) and it is the
+ * version that stays a patch rather than becoming a second firmware: +1 is a fixed favour that a
+ * three-stack deck feels and a ten-stack deck barely does, which is the right curve for something
+ * found in a chest.
+ *
+ * ON A PILE THE BODY ACTUALLY HAS, and that clause is load-bearing. A body holding NO Sharp scales
+ * at 0, not at 1 — otherwise Overclock would turn every scaler into a card with a floor, which is
+ * a different and much larger change than the one Henry ruled.
+ */
+export const OVERCLOCK_PATCH_ID = 'overclock';
+
+function overclocked(source: IBattleEntity | undefined, stacks: number): number {
+    if (stacks <= 0) return stacks;
+    return source?.patches?.includes(OVERCLOCK_PATCH_ID) === true ? stacks + 1 : stacks;
+}
+
+
+/**
  * Ticket 74: the per-event-count scalers (`CARDS_PLAYED`, `CARDS_DRAWN`, `CARDS_DRAWN_TRIGGERED`,
  * `CARDS_DISCARDED`) are deliberately UNCAPPED, and that is a design decision, not an oversight.
  *
@@ -118,7 +145,7 @@ export const SHARP_STACKS_POWER_PER_STACK = 5;
 
 export function getEffectiveAttackPower(
     source: IBattleEntity,
-    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower'>,
+    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower' | 'scalingStatus'>,
     target?: IBattleEntity,
 ): number {
     const power = action.power || 0;
@@ -193,11 +220,41 @@ export function getEffectiveAttackPower(
         // live shield is routinely 7.36 stacks. Without the floor this reproduces ticket 36's
         // fractional-product bug, which put 22.5 HP of damage into an entity.
         const shield = source.statusEffects.find(s => s.type === 'BarkShield')?.stacks || 0;
-        return power * Math.floor(shield);
+        return power * overclocked(source, Math.floor(shield));
     }
     if (action.scaling === 'SHARP_STACKS') {
+        /*
+         * TICKET 162a: `scalingPower` OVERRIDES the shared constant, and the default is still it.
+         *
+         * Collection v2 prices `cinder_lance` at +6 a stack and leaves `thorn_whip` and
+         * `spike_launch` at +5. Before this line the three shared one number, so moving one meant
+         * moving all three silently - the exact failure the ticket-139 note above was written to
+         * prevent, from the other direction. A card that says 6 now carries the 6.
+         */
         const sharpStacks = source.statusEffects.find(s => s.type === 'Sharp')?.stacks || 0;
-        return power + SHARP_STACKS_POWER_PER_STACK * sharpStacks;
+        return power + (action.scalingPower ?? SHARP_STACKS_POWER_PER_STACK) * overclocked(source, sharpStacks);
+    }
+    if (action.scaling === 'TARGET_STATUS_STACKS') {
+        /*
+         * TICKET 162a - the detonation shape: a flat base PLUS a per-stack bonus read off the
+         * DEFENDER. `flashover` (50 + 15/Burn) and `sap_strength` (20 + 6/Weakened).
+         *
+         * Not `BURN_STACKS`/`DAZED_STACKS`: those MULTIPLY, so a 50-power base reads 0 against a
+         * clean board and the card is dead in the hand that draws it first. Not `SHARP_STACKS`:
+         * that adds, but reads the attacker.
+         *
+         * Uncapped, under Henry's standing law that per-stack scalers should underperform early
+         * and overperform late. Burn is bounded by BURN_CONFIG's own cap; Weakened is bounded by
+         * how much of your side's tempo you spent applying it. `target` is optional so the UI
+         * preview can call this without one - an unaimed card reads as its base, which is the
+         * honest floor rather than a zero.
+         */
+        const stacks = action.scalingStatus
+            ? (target?.statusEffects.find(s => s.type === action.scalingStatus)?.stacks || 0)
+            : 0;
+        // The TARGET's pile, so Overclock — a modifier on the body that HOLDS it — does not
+        // apply: this scaler reads the enemy's board, not the caster's currency.
+        return power + (action.scalingPower || 0) * Math.floor(stacks);
     }
     if (action.scaling === 'MISSING_HP') {
         // Power-side (ticket 26): rides the divisor, STAB and resistances like every other
@@ -216,7 +273,7 @@ export function getEffectiveAttackPower(
         // an effective ~98 power for 1 Energy against a 40 budget. That card still exists, so
         // if a Strength deck runs away it is the row to look at first.
         const strengthStacks = source.statusEffects.find(s => s.type === 'Strengthened')?.stacks || 0;
-        return power * Math.min(strengthStacks, STRENGTH_STACK_CAP);
+        return power * Math.min(overclocked(source, strengthStacks), STRENGTH_STACK_CAP);
     }
     return power;
 }
@@ -405,7 +462,19 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             payload: {
                 amount: damage,
                 isHeal: false,
-                element: element || program?.element
+                element: element || program?.element,
+                /*
+                 * Ticket 146b. A card hurting its own caster is a RECOIL, and 146f draws it as a
+                 * red pulse on the caster with no trail rather than as an incoming hit.
+                 *
+                 * Two ways to be one, because the game has two: `percentMaxHp` is the priced
+                 * recoil ticket 138 ruled must not scale, and a Self-target ATTACK action is the
+                 * hand-authored kind (odin_v1's `unbound_fang`, the Dark card at line 969). Both
+                 * are "the attacker is the target", which is the only test that matters here.
+                 */
+                cause: (typeof actionData.percentMaxHp === 'number' || targetId === sourceId)
+                    ? 'recoil' as const
+                    : 'attack' as const
             }
         }]);
 
@@ -491,7 +560,25 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             const existingStatus = target.statusEffects.find(s => s.type === status);
             const consumedStacks = existingStatus ? existingStatus.stacks : 0;
 
-            let newState: IBattleState = { ...state, lastStatusConsumed: consumedStacks };
+            /*
+             * TICKET 163c — OVERCLOCK counts for a CONSUME too, and only when the caster is eating
+             * its OWN pile.
+             *
+             * §3's wording is *"worth one more in every payoff that reads them"*, and a consume is
+             * the payoff that reads hardest: Sun Devourer is 40 power a stack. But the patch is a
+             * modifier on the body that HOLDS the currency, so it applies when the consume lands on
+             * SELF (`sharp_edge`, `sun_devourer`, `bark_smash`) and not when it eats the enemy's
+             * board (`crushing_depths`, `venom_glut`), which is the same line the target-side
+             * scaler above draws.
+             *
+             * It changes what the payoff COUNTS, not what is removed — the pile shed below is the
+             * real one. A patch that deleted a stack the body never had would be a different and
+             * much stranger card.
+             */
+            const source = findEntity(sourceId, state.playerParty) || findEntity(sourceId, state.enemyParty);
+            const counted = targetId === sourceId ? overclocked(source, consumedStacks) : consumedStacks;
+
+            let newState: IBattleState = { ...state, lastStatusConsumed: counted };
             if (consumedStacks > 0) {
                 const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                     party.map(e => {
@@ -569,7 +656,14 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             type: 'STATUS',
             targetId: targetId,
             sourceId: sourceId,
-            payload: { status, stacks: effectiveStacks }
+            payload: {
+                status,
+                stacks: effectiveStacks,
+                // Ticket 146b. A card put this here, and `_program` is which card — 146g and 146f
+                // both want to point at the caster rather than only at the target.
+                // TICKET 171f: a hook's own STATUS action says so, rather than borrowing the card.
+                source: _context?.statusSource ?? { kind: 'card' as const, id: _program?.id ?? 'card', ownerId: sourceId }
+            }
         }]);
     }
 }
@@ -635,6 +729,36 @@ export class EnergyExecutor extends ActionExecutor<EnergyActionData> {
             sourceId: sourceId,
             payload: { amount }
         }]);
+    }
+}
+
+/**
+ * TICKET 162a — `overclock_core`: Max Energy +1 for the rest of the battle.
+ *
+ * Writes `maxEnergy` directly rather than through `applyMutations`, for the same reason the hook
+ * side does (`HookFactory`, ticket 68): there is no `MAX_ENERGY` mutation and adding one would put
+ * a second definition of "raise the ceiling" in the engine, which is one edit away from the two
+ * disagreeing. Both halves now do the same single thing to the same single field.
+ *
+ * Deliberately NOT floored or capped. The ceiling only ever moves up, the only card that moves it
+ * exhausts, and a cap here would be a number nobody ruled.
+ */
+export class MaxEnergyExecutor extends ActionExecutor<MaxEnergyActionData> {
+    execute(state: IBattleState, _sourceId: string, targetId: string, actionData: MaxEnergyActionData): IBattleState {
+        const amount = actionData.amount || 0;
+        if (amount === 0) return state;
+        const raise = (e: IBattleEntity): IBattleEntity =>
+            e.id === targetId ? { ...e, maxEnergy: e.maxEnergy + amount } : e;
+        const target = state.playerParty.find(e => e.id === targetId)
+            ?? state.enemyParty.find(e => e.id === targetId);
+        const next: IBattleState = {
+            ...state,
+            playerParty: state.playerParty.map(raise),
+            enemyParty: state.enemyParty.map(raise),
+        };
+        return target
+            ? addLog(next, `  ⚡ ${target.name}'s core is overclocked — max Energy +${amount}.`)
+            : next;
     }
 }
 
@@ -874,7 +998,19 @@ export function actionTargetIds(
         return [sourceId];
     }
     if (programData?.target === 'Side' || programData?.target === 'All') {
-        const isOnPlayerSide = state.playerParty.some(e => e.id === targetId);
+        /*
+         * TICKET 160-e1: an `allyTarget` side card resolves against the CASTER'S side, whatever it
+         * was aimed at. Everything else keeps reading the declared target's side, which is the rule
+         * that makes an enemy's Side card hit the player and the player's hit the enemy.
+         *
+         * Stated rather than left to the aim, because the two disagree in exactly one case and it
+         * is a case that reaches here: an enemy AI casting `howl` has no picker in front of it, and
+         * a Side card with no legal enemy left would otherwise resolve against whoever `targetId`
+         * happened to name. A card that says "every ally" must not depend on where it was pointed.
+         */
+        const isOnPlayerSide = programData.allyTarget
+            ? state.playerParty.some(e => e.id === sourceId)
+            : state.playerParty.some(e => e.id === targetId);
         const party = isOnPlayerSide ? state.playerParty : state.enemyParty;
         return party.filter(e => e.currentHp > 0).map(e => e.id);
     }
@@ -902,6 +1038,10 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
 
         if (lastProgramData.actions) {
             finalState = addLog(finalState, `  🔁 Reprogramming: ${lastProgramData.name}`);
+            const casterPartyKey = finalState.playerParty.some(e => e.id === sourceId) ? 'playerParty' : 'enemyParty';
+            const preCastCaster = finalState[casterPartyKey].find(e => e.id === sourceId);
+            if (!preCastCaster) return finalState;
+
             for (const action of lastProgramData.actions) {
                 // Prevent infinite recursion: do not re-execute PlayLastCard actions
                 if (action.type === 'PLAY_LAST_CARD') {
@@ -921,6 +1061,12 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
                         const target = finalState.playerParty.find(e => e.id === tId)
                             ?? finalState.enemyParty.find(e => e.id === tId);
                         if (!target || target.currentHp <= 0) continue;
+
+                        const liveCaster = finalState[casterPartyKey].find(e => e.id === sourceId) ?? preCastCaster;
+                        if (!actionConditionsMet(finalState, action, targetId, target, preCastCaster, liveCaster)) {
+                            continue;
+                        }
+
                         finalState = executor.execute(finalState, sourceId, tId, action, lastProgramData, _context);
                     }
                 }
@@ -960,13 +1106,19 @@ export function resolveProgramFree(
     // random consumer does not replay it (same contract as HookFactory.resolveTarget).
     const enemies = (isPlayerSource ? finalState.enemyParty : finalState.playerParty).filter(e => e.currentHp > 0);
     let defaultTargetId = sourceId;
-    if (enemies.length > 0) {
+    if (enemies.length === 1) {
+        // TICKET 59: one candidate is not a choice - see HookFactory.resolveTarget's guard.
+        defaultTargetId = enemies[0].id;
+    } else if (enemies.length > 1) {
         const { value: index, nextSeed } = new PRNG(finalState.seed).nextInt(0, enemies.length - 1);
         defaultTargetId = enemies[index].id;
         finalState = { ...finalState, seed: nextSeed };
     }
 
     const growth = programData.growPerPlay ? (finalState.counters?.[`card_growth:${instanceId}`] || 0) : 0;
+    const casterPartyKey = isPlayerSource ? 'playerParty' : 'enemyParty';
+    const preCastCaster = finalState[casterPartyKey].find(e => e.id === sourceId);
+    if (!preCastCaster) return finalState;
 
     for (const action of programData.actions ?? []) {
         // No recursion: a free cast may not itself echo, or VALHALLA + Reprogram loops.
@@ -990,6 +1142,12 @@ export function resolveProgramFree(
         for (const tId of actionTargetIds(finalState, programData, resolved, sourceId, defaultTargetId)) {
             const target = finalState.playerParty.find(e => e.id === tId) || finalState.enemyParty.find(e => e.id === tId);
             if (!target || target.currentHp <= 0) continue;
+
+            const liveCaster = finalState[casterPartyKey].find(e => e.id === sourceId) ?? preCastCaster;
+            if (!actionConditionsMet(finalState, resolved, defaultTargetId, target, preCastCaster, liveCaster)) {
+                continue;
+            }
+
             finalState = executor.execute(finalState, sourceId, tId, resolved, programData, { ...context, state: finalState });
         }
     }
@@ -1072,7 +1230,10 @@ export class RedirectTargetExecutor extends ActionExecutor<RedirectTargetActionD
             const targetParty = isPlayerTarget ? newState.playerParty : newState.enemyParty;
             const validTargets = targetParty.filter(e => e.currentHp > 0 && e.id !== targetId);
 
-            if (validTargets.length > 0) {
+            if (validTargets.length === 1) {
+                // TICKET 59: one candidate is not a choice - no draw spent.
+                finalTargetId = validTargets[0].id;
+            } else if (validTargets.length > 1) {
                 const { value: randIndex, nextSeed } = prng.nextInt(0, validTargets.length - 1);
                 finalTargetId = validTargets[randIndex].id;
                 newState = { ...newState, seed: nextSeed };
@@ -1243,6 +1404,7 @@ export const ActionExecutorRegistry: Record<ActionType, ActionExecutor<Executabl
     'HEAL': new HealExecutor(),
     'DRAW': new DrawExecutor(),
     'ENERGY': new EnergyExecutor(),
+    'MAX_ENERGY': new MaxEnergyExecutor(),
     'GENERATE_CARD': new GenerateCardExecutor(),
     'CLEANSE': new CleanseExecutor(),
     'DISCARD': new DiscardExecutor(),

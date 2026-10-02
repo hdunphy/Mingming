@@ -62,6 +62,7 @@ import {
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { cardFace } from './runShell';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
@@ -71,6 +72,9 @@ import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes
 const escapeHtml = (text: string): string =>
     text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+
+/** For the one assertion that has to be a pattern rather than a substring: card names carry `+`. */
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const KRAKEN: IMingmingState = {
     id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1',
@@ -319,14 +323,17 @@ describe('WorkshopNode — the assembly stage', () => {
     it('lists the whole 5-card engine, payoff first, duplicates collapsed to ×N', () => {
         /*
          * Ticket 65: *"choosing the firmware IS choosing the five cards, and a picker that named only
-         * the OS would be asking the player to choose blind."* Skoll's v1 engine is a payoff plus a
-         * doubled enabler, which is the shape that catches both failures at once — a screen that
-         * dropped the duplicate would print four cards for a five-card price, and one that listed
-         * five rows would say the player is buying five different cards.
+         * the OS would be asking the player to choose blind."* Skoll's v1 engine carries a DOUBLED
+         * card, which is the shape that catches both failures at once — a screen that dropped the
+         * duplicate would print four rows for a five-card price, and one that listed five rows would
+         * say the player is buying five different cards.
          *
          * Asserted against `engineIdsForSpecies` rather than against card names, because the point is
          * that the stage prints the engine the run will actually mint: retagging Skoll's `startKits`
-         * must move this expectation, not break it.
+         * must move this expectation, not break it. Ticket 157-r1(b) did exactly that — the doubled
+         * card used to be an enabler and is now the payoff itself (`fury_strike` ×2) — which is why
+         * the ×N check below tolerates the tag chip sitting between the name and the count instead
+         * of demanding they be adjacent. That adjacency was an accident of WHICH card was doubled.
          */
         const ids = engineIdsForSpecies('skoll', 'skoll_v1');
         expect(ids.length).toBe(RECRUIT_KIT_SIZE);
@@ -337,8 +344,14 @@ describe('WorkshopNode — the assembly stage', () => {
         for (const { name, n } of expectedEngineRows(ids)) {
             expect(markup).toContain(`<span class="rs-rnm">${escapeHtml(name)}</span>`);
             if (n > 1) {
-                expect(markup).toContain(
-                    `<span class="rs-rnm">${escapeHtml(name)}</span><span class="rs-x">×${n}</span>`,
+                // name → [optional tag chip] → count. The tag is optional and the count is not,
+                // which is the row's actual grammar; nothing else may come between them.
+                expect(markup).toMatch(
+                    new RegExp(
+                        `<span class="rs-rnm">${escapeRegExp(escapeHtml(name))}</span>` +
+                            `(?:<span class="rs-t">[^<]*</span>)?` +
+                            `<span class="rs-x">×${n}</span>`,
+                    ),
                 );
             }
         }
@@ -431,7 +444,15 @@ describe('WorkshopNode — the assembly stage', () => {
         const markup = render(makeRun(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
 
         expect(markup).toContain(`ASSEMBLE → PARTY — ${short} SHORT`);
-        expect(markup.match(/<button[^>]* disabled=""/g)?.length).toBe(2);
+        /*
+         * Two ASSEMBLE verbs plus every row of 163b's upgrade bench, which a 10-scrap purse also
+         * cannot cover — the cheapest upgrade is 25. Spelled out rather than scoped away, because
+         * "a purse this thin greys out the bench too" is the same claim this case is making and is
+         * worth failing if it ever stops being true.
+         */
+        const poor = makeRun(10);
+        const bench = new Set(poor.deck.filter((c) => hasUpgrade(c.dataId)).map((c) => c.dataId)).size;
+        expect(markup.match(/<button[^>]* disabled=""/g)?.length).toBe(2 + bench);
         expect(markup).toContain('<span class="rs-chip">1 × BLUEPRINT</span>');
     });
 
@@ -501,9 +522,19 @@ describe('WorkshopNode — the reflash comparison', () => {
             for (const { name, n } of expectedEngineRows(ids)) {
                 expect(markup).toContain(`<span class="rs-rnm">${escapeHtml(name)}</span>`);
                 if (n > 1) {
-                    expect(markup).toContain(
-                        `<span class="rs-rnm">${escapeHtml(name)}</span><span class="rs-x">×${n}</span>`,
+                    /*
+                     * TICKET 162a: matched with a gap rather than as one adjacent string. The row
+                     * renders name, then an optional `rs-t` tag, then the count — and until
+                     * collection v2 no kit doubled the card that leads it, so the tag was never
+                     * between them. kraken_v1 now opens on two `whirlpool`, which is both the
+                     * first card and a double. The claim is that the count rides the right NAME,
+                     * which is what the bounded gap holds.
+                     */
+                    const row = new RegExp(
+                        `<span class="rs-rnm">${escapeHtml(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</span>`
+                        + `(?:<span class="rs-t">[^<]*</span>)?<span class="rs-x">×${n}</span>`,
                     );
+                    expect(markup, `${name} ×${n}`).toMatch(row);
                 }
             }
         }
@@ -693,8 +724,13 @@ describe('WorkshopNode — the standing laws', () => {
         const ranch = makeRanch({ fenrir: 2, skoll: 1 });
         const markup = render(makeRun(400), ranch, { initialSpeciesId: 'skoll' });
 
+        // TICKET 163b adds the upgrade bench at the foot of the bay — one row per upgradable card
+        // in the deck. Derived from the run, like every other term here, so a deck that can
+        // upgrade nothing still counts right.
+        const benchRun = makeRun(400);
+        const bench = new Set(benchRun.deck.filter((c) => hasUpgrade(c.dataId)).map((c) => c.dataId)).size;
         const expected = 2 + Object.keys(ranch.blueprints).length
-            + GetMingmingData('skoll').availableOS.length + 2 + 1;
+            + GetMingmingData('skoll').availableOS.length + 2 + 1 + bench;
         expect(markup.match(/<button/g)?.length).toBe(expected);
         // Every one of them a real button with an explicit type — a bare `<button>` inside a form is
         // a submit, and this screen will one day live inside one.
@@ -702,5 +738,75 @@ describe('WorkshopNode — the standing laws', () => {
         // And nothing faking one: no ARIA-painted div, no anchor standing in for an action.
         expect(markup).not.toContain('role="button"');
         expect(markup).not.toContain('<a ');
+    });
+});
+
+/**
+ * TICKET 169g — Tight Budget at the workshop. The price on the chip, in the shortfall and in the
+ * hint is the raised one; `planRecruit` and `planReflash` charge it (`shopPrice.test.ts`).
+ */
+describe('Tight Budget (169g)', () => {
+    const tight = (scrap: number): IRunState => makeRun(scrap, { modifiers: ['mod:tight_budget'] });
+
+    it('shows the assembly at 35, and its shortfall against 35', () => {
+        const markup = render(tight(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        expect(markup).toContain(`<span class="rs-chip">35 `);
+        expect(markup).toContain('ASSEMBLE → PARTY — 25 SHORT');
+    });
+
+    it('shows the reflash at 20, and its shortfall against 20', () => {
+        const markup = render(
+            tight(5),
+            makeRanch({ kraken: 1 }),
+            { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } },
+        );
+
+        expect(markup).toContain(`<span class="rs-chip">20 `);
+        expect(markup).toContain('REFLASH — 15 SHORT');
+    });
+
+    it('leaves the plain workshop at 25 and 15', () => {
+        expect(render(makeRun(10), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' })).toContain(`<span class="rs-chip">25 `);
+        expect(render(makeRun(5), makeRanch({ kraken: 1 }), { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } }))
+            .toContain(`<span class="rs-chip">15 `);
+    });
+});
+
+/**
+ * TICKET 169h — No Recruits at the workshop. The species list is replaced by one sentence, nothing
+ * offers an assembly, and the parts of the workshop that are not recruiting (reflash) are untouched.
+ */
+describe('No Recruits (169h)', () => {
+    const off = (scrap: number): IRunState => makeRun(scrap, { modifiers: ['mod:no_recruits'] });
+    const SENTENCE = 'No Recruits is on: your party is set for this run.';
+
+    it('says so instead of listing the blueprints', () => {
+        const markup = render(off(400), makeRanch({ skoll: 1, fenrir: 1 }));
+
+        expect(markup).toContain(SENTENCE);
+        expect(markup).not.toContain('blueprints ×');
+        expect(markup).not.toContain('ws-bpc sel');
+    });
+
+    it('offers no assembly, even when a species was pre-selected', () => {
+        const markup = render(off(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        expect(markup).toContain(SENTENCE);
+        expect(markup).not.toContain('ASSEMBLE');
+    });
+
+    it('still lists the party, and still reflashes', () => {
+        const ranch = makeRanch({ kraken: 1 });
+        expect(render(off(400), ranch)).toContain('PARTY 1/3');
+        expect(render(off(400), ranch, { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } }))
+            .toContain('>REFLASH</button>');
+    });
+
+    it('shows the species list, and not the sentence, without the modifier', () => {
+        const markup = render(makeRun(400), makeRanch({ skoll: 1 }));
+
+        expect(markup).not.toContain(SENTENCE);
+        expect(markup).toContain('blueprints ×1');
     });
 });

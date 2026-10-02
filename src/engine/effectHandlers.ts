@@ -3,6 +3,7 @@ import { StatusType } from './types';
 import type { HookContext } from './core/Hooks';
 import { calculateDamage, calculateHeal, getModifierBreakdown } from './combatUtils';
 import { globalBattleEventBus } from './events';
+import type { DamageCause, StatusSource } from './events';
 import { getStatusBehavior } from './StatusBehaviors';
 import { applyHealModifiers } from './core/Hooks';
 import { isSimulating } from './core/simulationDepth';
@@ -34,9 +35,33 @@ export type EffectPayloads = {
         damageOverride?: number;
         program?: ProgramData;
         action?: AttackActionData;
+        /**
+         * Ticket 146b. Why this damage is happening, for the UI's benefit only — nothing in the
+         * engine branches on it.
+         *
+         * It is threaded from the CALLER rather than inferred here because the caller is the only
+         * one who knows. Every non-attack price in the game resolves through this same handler: a
+         * recoil is an ATTACK with `percentMaxHp`, and hel's blood toll is an HP mutation that
+         * `applyMutations` turns into an ATTACK with a `damageOverride` and `sourceId: 'SYSTEM'`.
+         * From in here they are all indistinguishable from a sword, which is exactly the confusion
+         * 146f has to undo.
+         *
+         * Defaults to `attack`, which is what an unannotated caller is.
+         */
+        cause?: DamageCause;
     };
     HEAL: { sourceId: string; targetId: string; power: number; flatHeal?: number; healPower?: number };
-    APPLY_STATUS: { targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number };
+    APPLY_STATUS: {
+        targetId: string; status: StatusType; stacks: number; sourceId?: string; power?: number;
+        /**
+         * Ticket 146b. WHO did this, for 146g's benefit — `sourceId` says which unit, and a tell
+         * needs to know whether it was that unit's card, OS or daemon, and which one.
+         *
+         * Optional and threaded from the caller for `cause`'s reason: by the time a status reaches
+         * this handler, a card's STATUS action and an OS hook's STATUS mutation look identical.
+         */
+        source?: StatusSource;
+    };
     GENERATE_CARD: { sourceId: string; dataId: string };
     CLEANSE: { targetId: string; statusTarget?: StatusType };
 };
@@ -52,8 +77,17 @@ export const effectHandlers: { [K in keyof EffectPayloads]: EffectHandler<K> } =
     'CLEANSE': handleCleanse
 };
 
+/**
+ * Ticket 48 / 164b: Asleep loses ONE STACK per incoming attack (cause === 'attack' explicitly).
+ * The other half of ticket 48: "statuses do not wake him". Status detonations (TriggerStatusExecutor),
+ * DoT ticks, tolls, and recoil never chip or wake a sleeping unit.
+ */
+function chipsSleep(cause?: DamageCause): boolean {
+    return cause === 'attack';
+}
+
 function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): IBattleState {
-    const { sourceId, targetId, power, element, damageOverride } = payload;
+    const { sourceId, targetId, power, element, damageOverride, cause } = payload;
 
     const findEntity = (id: string, party: ReadonlyArray<IBattleEntity>) => party.find(e => e.id === id);
 
@@ -124,24 +158,24 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
         absorbed: damage - finalDamage,
         applied: target.currentHp - newCurrentHp,
         element,
+        cause,
     };
 
-    // Ticket 48: Asleep loses ONE STACK per incoming attack instead of ending on the first point
+    // Ticket 48 / 164b: Asleep loses ONE STACK per incoming attack instead of ending on the first point
     // of damage. It is applied at ASLEEP_INITIAL_STACKS (3), so it takes three attacks to break -
     // plus the natural 1/turn decay in `StatusBehaviors.ts`, which is unchanged. Both clocks run.
     //
-    // Three deliberate departures from the old rule:
-    //  - No `finalDamage > 0` requirement. A fully absorbed hit still counts, which is what stops
-    //    `glacier_wall` from keeping Draugr asleep forever - a live anti-synergy before this.
-    //  - `sourceId === 'SYSTEM'` is skipped. That literal is how `resolutionEngine` dispatches
-    //    status and hook HP mutations through this handler, and skipping it is what enforces
-    //    "statuses do not wake him". End-of-turn DoT ticks bypass `handleAttack` entirely, but
-    //    TRIGGER_STATUS and Burn overflow do not - without this guard a poison detonate would
-    //    wake him.
+    // Ticket 164b fix:
+    //  - Keyed on cause === 'attack' explicitly (chipsSleep): statuses, DoT, recoil and tolls do not chip.
+    //  - Henry ruling: multi-hit attacks chip once per card play, checked against damageLedger.
+    //  - No `finalDamage > 0` requirement: a fully absorbed hit still counts (glacier_wall synergy).
     //  - `onStatusRemoved` fires only when the last stack goes, not on every chip.
     let wakesUp = false;
     let sleepChipped = false;
-    if (sourceId !== 'SYSTEM') {
+    const alreadyAttackedThisPlay = (state.damageLedger ?? []).some(
+        d => d.targetId === targetId && d.cause === 'attack'
+    );
+    if (chipsSleep(cause) && !alreadyAttackedThisPlay) {
         const sleeping = target.statusEffects.find(s => s.type === 'Asleep');
         if (sleeping) {
             sleepChipped = true;
@@ -157,12 +191,17 @@ function handleAttack(state: IBattleState, payload: EffectPayloads['ATTACK']): I
         amount: finalDamage,
         element: element,
         damage: damageRecord,
+        // Ticket 146b. `attack` is the honest default here: an unannotated caller went through the
+        // full damage formula, which is what an attack is.
+        cause: cause ?? 'attack',
         timestamp: Date.now()
     });
 
     if (wakesUp) {
         globalBattleEventBus.emit({
             type: 'STATUS_REMOVED',
+            // The sleeper woke because it was hit — engine, not anybody's card.
+            source: { kind: 'engine', id: 'sleep-chipped', ownerId: target.id },
             targetId: target.id,
             status: 'Asleep',
             timestamp: Date.now()
@@ -469,7 +508,7 @@ const DUALITY_MAP: Partial<Record<StatusType, StatusType>> = {
 };
 
 function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_STATUS']): IBattleState {
-    const { targetId, status, stacks, sourceId, power } = payload;
+    const { targetId, status, stacks, sourceId, power, source } = payload;
     const behavior = getStatusBehavior(status);
     if (!behavior) {
         return addLog(state, `  ⚠️ Error: Status effect "${status}" is not defined in StatusBehaviors!`);
@@ -521,6 +560,7 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
     let finalEffects = currentEffects;
     let immediateDamage = 0;
     let behaviorLogs: string[] = [];
+    let overflow: { detonations: number; remaining: number } | undefined;
 
     // 3. Behavior Logic (only if stacks remaining after duality)
     if (remainingStacks > 0) {
@@ -528,6 +568,7 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
         finalEffects = result.updatedEffects;
         immediateDamage = result.immediateDamage;
         behaviorLogs = result.logs;
+        overflow = result.overflow;
     }
 
     // 4. Update State
@@ -558,6 +599,9 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
         absorbed: 0,
         applied: beforeHp - Math.max(0, beforeHp - immediateDamage),
         element: 'None',
+        // 184b: a detonation says so. (A frame under 8 max HP floors the payout to 0 and gets no
+        // record at all - a 0-damage "hit" would be counted by the run log and the cheap AI.)
+        ...(overflow ? { overflow: { status, ...overflow } } : {}),
     } : null;
 
     newState = {
@@ -597,6 +641,10 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
             targetId,
             status,
             stacks: remainingStacks,
+            // Ticket 146b. `engine` is the honest fallback: something in the engine did it and did
+            // not say what, which is true of expiries, overflow and hand-built fixtures alike.
+            source: source ?? { kind: 'engine', id: 'engine', ownerId: sourceId ?? targetId },
+            ...(overflow ? { overflowRemaining: overflow.remaining } : {}),
             timestamp: Date.now()
         });
     }
@@ -608,6 +656,10 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
             amount: immediateDamage,
             element: 'None',
             damage: immediateRecord,
+            // Damage dealt at the MOMENT a status lands — a status doing it, not a hit, so 146f
+            // gives it the status treatment rather than a hit-stop.
+            cause: 'status',
+            status,
             timestamp: Date.now()
         });
     }

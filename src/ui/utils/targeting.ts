@@ -32,10 +32,26 @@ import type { IBattleEntity, ProgramData } from '../../engine/types';
  * silent rules change smuggled in under a UI ticket is how a fight stops matching its tests.
  */
 export function isValidCardTarget(data: ProgramData, isEnemy: boolean): boolean {
+    /*
+     * TICKET 160-e1 — the ONE early return, and why it is early.
+     *
+     * An `allyTarget` card lands on your side and nowhere else. It has to be checked before the
+     * rule below rather than folded into it, because the rule below has a carve-out — "a card
+     * carrying a HEAL or a STATUS may be pointed at an ally" — which is a WIDENING, and a widening
+     * cannot express a restriction. Bolster is 3 Sharp; under that carve-out alone it is legal on
+     * an enemy, and handing the enemy three Sharp is a misclick the player cannot undo.
+     *
+     * That carve-out stays for everything else. It is what lets `soothe`-shaped cards work at all
+     * without a flag, and removing it here would silently un-target a dozen cards this ticket is
+     * not about.
+     */
+    if (data.allyTarget) return !isEnemy;
+
     const targetType = data.target;
     return (
         (isEnemy && (targetType === 'Single' || targetType === 'Side' || targetType === 'All')) ||
         (!isEnemy && (targetType === 'Self' || targetType === 'Side' || targetType === 'All')) ||
+        // Henry, 2026-09-26 (Ticket 165b): "Yes you can attack on your own mingmings. Sometimes its beneficial."
         (!isEnemy && data.actions.some(a => a.type === 'HEAL' || a.type === 'STATUS'))
     );
 }
@@ -51,10 +67,44 @@ export function legalSides(data: ProgramData): { enemies: boolean; allies: boole
  */
 export function describeLegalTargets(data: ProgramData): string {
     const { enemies, allies } = legalSides(data);
-    if (enemies && allies) return 'ANY LIVING UNIT';
+    /*
+     * TICKET 155g — *"ANY LIVING UNIT"* is true and unhelpful. It is what an ATTACK with no side
+     * restriction resolves to, and a player reading it on a damage card wonders why they would
+     * ever point it at their own team. Saying which side it is FOR, with the other in parentheses,
+     * answers the question the phrase was raising.
+     */
+    if (enemies && allies) {
+        return isDamaging(data) ? 'ONE ENEMY (OR AN ALLY)' : 'ANY LIVING UNIT';
+    }
     if (enemies) return data.target === 'Single' ? 'ONE ENEMY' : 'ENEMIES';
-    if (allies) return data.target === 'Self' ? 'SELF' : 'YOUR SIDE';
+    // 160-e1: an ally card says WHICH ally. "YOUR SIDE" on a card that lands on one of three
+    // bodies is the difference between a heal and a team heal, and the player is choosing.
+    if (allies) {
+        if (data.target === 'Self') return 'SELF';
+        return data.allyTarget && data.target === 'Single' ? 'ONE ALLY (OR YOURSELF)' : 'YOUR SIDE';
+    }
     return 'NO LEGAL TARGET';
+}
+
+const isDamaging = (data: ProgramData): boolean =>
+    (data.actions ?? []).some((a) => a.type === 'ATTACK');
+
+/**
+ * The same fact in one or two words, for the tag on a card's name row — ticket 155e.
+ *
+ * The long phrase is right in a tooltip and wrong in a 140px card: "ANY LIVING UNIT" at 7.5px is
+ * two thirds of the content width, and on the live hand it squeezed "Battle Rhythm" down to
+ * "Batt Rhyt". The tag says WHICH SIDE; the tooltip says the rest.
+ */
+export function shortTargetLabel(data: ProgramData): string {
+    const { enemies, allies } = legalSides(data);
+    if (enemies && allies) return isDamaging(data) ? 'ENEMY*' : 'ANY';
+    if (enemies) return data.target === 'Single' ? 'ENEMY' : 'ENEMIES';
+    if (allies) {
+        if (data.target === 'Self') return 'SELF';
+        return data.allyTarget && data.target === 'Single' ? 'ALLY' : 'ALLIES';
+    }
+    return '—';
 }
 
 /** The answer to "may this card land here, and if not, what should the player be told". */

@@ -1,0 +1,79 @@
+[balance:drivers] Ticket 16 — the Driver compounding canary. Report-only.
+[balance:drivers]   population  REFERENCE_PANEL ring (each comp vs the next): 6 matchups x 1 seeds x 2 orders = 12 battles/arm
+[balance:drivers]   arms        bare + 4: driver_first_blood, driver_third_strike, driver_static_field, driver_antivenom
+[balance:drivers]   fidelity    beam 8; AI_LITE is read from the environment
+[balance:drivers]   maxTurns    40   (standalone 3v3s — NOT a run)
+
+[balance:drivers]   bare                         1/12  panel-zoo vs panel-control         29s
+[balance:drivers]   bare                         2/12  panel-zoo vs panel-control         53s
+[balance:drivers]   bare                         3/12  panel-control vs panel-ramp        84s
+[balance:drivers]   bare                         4/12  panel-control vs panel-ramp        114s
+[balance:drivers]   bare                         5/12  panel-ramp vs panel-burst          126s
+[balance:drivers]   bare                         6/12  panel-ramp vs panel-burst          139s
+[balance:drivers]   bare                         7/12  panel-burst vs panel-mixed-a       144s
+[balance:drivers]   bare                         8/12  panel-burst vs panel-mixed-a       156s
+[balance:drivers]   bare                         9/12  panel-mixed-a vs panel-mixed-b     170s
+[balance:drivers]   bare                        10/12  panel-mixed-a vs panel-mixed-b     177s
+[balance:drivers]   bare                        11/12  panel-mixed-b vs panel-zoo         194s
+[balance:drivers]   bare                        12/12  panel-mixed-b vs panel-zoo         202s
+[balance:drivers]   driver_first_blood           1/12  panel-zoo vs panel-control         239s
+[balance:drivers]   driver_first_blood           2/12  panel-zoo vs panel-control         278s
+[balance:drivers]   driver_first_blood           3/12  panel-control vs panel-ramp        325s
+[balance:drivers]   driver_first_blood           4/12  panel-control vs panel-ramp        366s
+[balance:drivers]   driver_first_blood           5/12  panel-ramp vs panel-burst          385s
+[balance:drivers]   driver_first_blood           6/12  panel-ramp vs panel-burst          406s
+[balance:drivers]   driver_first_blood           7/12  panel-burst vs panel-mixed-a       412s
+[balance:drivers]   driver_first_blood           8/12  panel-burst vs panel-mixed-a       428s
+[balance:drivers]   driver_first_blood           9/12  panel-mixed-a vs panel-mixed-b     448s
+[balance:drivers]   driver_first_blood          10/12  panel-mixed-a vs panel-mixed-b     459s
+[balance:drivers]   driver_first_blood          11/12  panel-mixed-b vs panel-zoo         481s
+[balance:drivers]   driver_first_blood          12/12  panel-mixed-b vs panel-zoo         494s
+[balance:drivers]   driver_third_strike          1/12  panel-zoo vs panel-control         530s
+[balance:drivers]   driver_third_strike          2/12  panel-zoo vs panel-control         562s
+[balance:drivers]   driver_third_strike          3/12  panel-control vs panel-ramp        605s
+[balance:drivers]   driver_third_strike          4/12  panel-control vs panel-ramp        643s
+[balance:drivers]   driver_third_strike          5/12  panel-ramp vs panel-burst          661s
+[balance:drivers]   driver_third_strike          6/12  panel-ramp vs panel-burst          680s
+[balance:drivers]   driver_third_strike          7/12  panel-burst vs panel-mixed-a       686s
+[balance:drivers]   driver_third_strike          8/12  panel-burst vs panel-mixed-a       702s
+[balance:drivers]   driver_third_strike          9/12  panel-mixed-a vs panel-mixed-b     720s
+[balance:drivers]   driver_third_strike         10/12  panel-mixed-a vs panel-mixed-b     731s
+[balance:drivers]   driver_third_strike         11/12  panel-mixed-b vs panel-zoo         753s
+[balance:drivers]   driver_third_strike         12/12  panel-mixed-b vs panel-zoo         765s
+[balance:drivers]   driver_static_field          1/12  panel-zoo vs panel-control         790s
+[balance:drivers]   driver_static_field          2/12  panel-zoo vs panel-control         819s
+[balance:drivers]   driver_static_field          3/12  panel-control vs panel-ramp        862s
+[balance:drivers]   driver_static_field          4/12  panel-control vs panel-ramp        892s
+[balance:drivers]   driver_static_field          5/12  panel-ramp vs panel-burst          907s
+[balance:drivers]   driver_static_field          6/12  panel-ramp vs panel-burst          921s
+[balance:drivers]   driver_static_field          7/12  panel-burst vs panel-mixed-a       927s
+[balance:drivers]   driver_static_field          8/12  panel-burst vs panel-mixed-a       943s
+[balance:drivers]   driver_static_field          9/12  panel-mixed-a vs panel-mixed-b     956s
+[balance:drivers]   driver_static_field         10/12  panel-mixed-a vs panel-mixed-b     965s
+[balance:drivers]   driver_static_field         11/12  panel-mixed-b vs panel-zoo         977s
+[balance:drivers]   driver_static_field         12/12  panel-mixed-b vs panel-zoo         989s
+[balance:drivers]   driver_antivenom             1/12  panel-zoo vs panel-control         1017s
+[balance:drivers]   driver_antivenom             2/12  panel-zoo vs panel-control         1042s
+[balance:drivers]   driver_antivenom             3/12  panel-control vs panel-ramp        1076s
+[balance:drivers]   driver_antivenom             4/12  panel-control vs panel-ramp        1110s
+[balance:drivers]   driver_antivenom             5/12  panel-ramp vs panel-burst          1123s
+[balance:drivers]   driver_antivenom             6/12  panel-ramp vs panel-burst          1137s
+[balance:drivers]   driver_antivenom             7/12  panel-burst vs panel-mixed-a       1142s
+[balance:drivers]   driver_antivenom             8/12  panel-burst vs panel-mixed-a       1155s
+[balance:drivers]   driver_antivenom             9/12  panel-mixed-a vs panel-mixed-b     1168s
+[balance:drivers]   driver_antivenom            10/12  panel-mixed-a vs panel-mixed-b     1176s
+[balance:drivers]   driver_antivenom            11/12  panel-mixed-b vs panel-zoo         1192s
+[balance:drivers]   driver_antivenom            12/12  panel-mixed-b vs panel-zoo         1201s
+
+[balance:drivers] ARM                                  n  win%   flips(+/-)  procs/battle  silent  turns  ftk  stall  sweeps
+[balance:drivers] bare (no Driver)                     12   58.3%    0/0         0.00         0     6.7    0      0  panel-control,panel-ramp,panel-mixed-b
+[balance:drivers] FIRST BLOOD                          12   66.7%    1/0         5.75         0     6.4    0      0  panel-control,panel-ramp,panel-mixed-a,panel-mixed-b
+[balance:drivers] THIRD STRIKE                         12   58.3%    1/1         2.08         0     6.8    0      0  panel-control,panel-mixed-a,panel-mixed-b
+[balance:drivers] STATIC FIELD                         12   58.3%    0/0        31.17         0     6.0    0      0  panel-control,panel-ramp,panel-mixed-b
+[balance:drivers] ANTIVENOM                            12   58.3%    0/0         1.17         7     6.7    0      0  panel-control,panel-ramp,panel-mixed-b
+
+[balance:drivers] READ: procs/battle is the rate census; silent = battles the Driver never fired in
+[balance:drivers]       (silent == n means the arm is VOID, not null). flips are paired against the bare
+[balance:drivers]       arm on (matchup, seed, order). sweeps = comps at 100% on this sample — a flag,
+[balance:drivers]       never a verdict at this n. Findings confirm at full, beamless lookahead.
+[balance:drivers] done in 1201s

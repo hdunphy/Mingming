@@ -4,12 +4,15 @@ import type { Element, IBattleState } from '../../engine/types';
 import { createBattleState } from '../../engine/data/battleFactories';
 import type { BattleOptions, IBattleSetup } from '../../engine/data/battleFactories';
 import { battleReducer } from '../../engine/battleReducer';
+import type { EndTurnNudge } from '../utils/endTurnNudge';
 
 export interface BattleUIState {
     battle: IBattleState | null;
     selectedSourceId: string | null;
     selectedTargetId: string | null;
     selectedCardId: string | null;
+    /** TICKET 171h: the END TURN nudge on screen, if the first press found a play left. */
+    endTurnNudge?: EndTurnNudge | null;
 }
 
 const initialState: BattleUIState = {
@@ -48,6 +51,15 @@ const battleSlice = createSlice({
             if (state.battle) {
                 state.battle = battleReducer(state.battle, { type: 'END_TURN' }) as Draft<IBattleState>;
             }
+            state.endTurnNudge = null;
+        },
+        /**
+         * TICKET 171h — the first press of END TURN with a play still available. Records which turn
+         * it was and which cards to light; `decideEndTurn` makes the second press end the turn.
+         */
+        nudgeEndTurn: (state, action: PayloadAction<ReadonlyArray<string>>) => {
+            if (!state.battle) return;
+            state.endTurnNudge = { turn: state.battle.turn, cardIds: [...action.payload] };
         },
         /**
          * **NOTHING DISPATCHES THIS — unwired pending a ruling, and deliberately so.**
@@ -87,13 +99,27 @@ const battleSlice = createSlice({
         },
         setBattleState: (state, action: PayloadAction<IBattleState | null>) => {
             state.battle = action.payload as Draft<IBattleState> | null;
+            state.endTurnNudge = null;
         },
         /**
          * Ticket 11: the payload carries an `IBattleSetup`, not a save. The caller resolves the
          * run's party against the ranch roster (`engine/run/battleSetup.ts`) before dispatching, so
          * the battle slice never has to know which slice a fighter came out of.
          */
-        startBattle: (state, action: PayloadAction<{ setup: IBattleSetup; enemyIds: string[]; sectorElement?: Element; options?: BattleOptions }>) => {
+        startBattle: (state, action: PayloadAction<{
+            setup: IBattleSetup;
+            enemyIds: string[];
+            sectorElement?: Element;
+            options?: BattleOptions;
+            /**
+             * TICKET 155, DEEP DIVE 6 — the room this fight is in.
+             *
+             * `createBattleState` is the ENGINE's factory and has no business knowing about a run's
+             * map, so the biome is attached here, where the UI already knows it. 145f's backdrop
+             * has been reading these two fields since it shipped and nothing has ever written them.
+             */
+            biome?: { name: string; element: Element };
+        }>) => {
             // options carries seed + enemyMode; dropping it here made
             // enemyMode: 'CARDS' and seeded battles unreachable from the UI.
             state.battle = createBattleState(
@@ -102,9 +128,14 @@ const battleSlice = createSlice({
                 action.payload.sectorElement,
                 action.payload.options
             ) as Draft<IBattleState>;
+            if (action.payload.biome) {
+                state.battle.biomeName = action.payload.biome.name;
+                state.battle.biomeElement = action.payload.biome.element;
+            }
             state.selectedSourceId = null;
             state.selectedTargetId = null;
             state.selectedCardId = null;
+            state.endTurnNudge = null;
         }
     }
 });
@@ -113,6 +144,7 @@ export const {
     playProgram,
     fireMacro,
     endTurn,
+    nudgeEndTurn,
     transferEnergy,
     executeIntent,
     selectCard,

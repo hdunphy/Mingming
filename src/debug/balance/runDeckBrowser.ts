@@ -29,6 +29,7 @@ import {
     readDeckReport,
     writeDeckBrowser,
 } from './deckBrowser';
+import { writeCollectionExport } from './collectionExport';
 
 function main(argv: string[]): void {
     const get = (flag: string): string | undefined => {
@@ -47,8 +48,21 @@ function main(argv: string[]): void {
     const payload = buildBrowserPayload(report);
     const path = writeDeckBrowser(payload, out);
 
+    /*
+     * TICKET 162d — the collection browser's data, exported in the same breath.
+     *
+     * `npm run decks` is the one command whose job is "regenerate a browser against the current
+     * registry", so it is where the collection-v2 export belongs. Writing the JSON here rather than
+     * rendering the HTML keeps the two browsers' presentation separate while giving them one
+     * source: `collection-v2/build.py` reads this file in preference to the design `collection.py`,
+     * so the page Henry prices cards off cannot show a number the registry has moved past.
+     */
+    const exported = writeCollectionExport();
+
     const launch = payload.decks.filter((deck) => deck.launch).length;
     console.log(`[decks] ${path}`);
+    console.log(`[decks] ${exported.path}`);
+    console.log(`[decks]   ${exported.cards} collection cards, ${exported.os} OS — run \`python build.py\` in that folder to render browser.html`);
     console.log(`[decks]   ${payload.decks.length} decks (${launch} tuned, ${payload.decks.length - launch} untuned)`);
     console.log(`[decks]   registry ${payload.registryHash}`);
 

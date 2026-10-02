@@ -1,0 +1,285 @@
+/**
+ * TICKET 145a — THE STAGGER STAGE, AS ARITHMETIC.
+ *
+ * Every number here is read off `docs/wayfinder/deck-archetypes/tickets/145-mock/145-mock.html`,
+ * which the ticket names as the spec: *"where this text and the mock disagree, the mock wins."* The
+ * mock positions its sprites absolutely on a 1280x800 frame, so these are FRAME coordinates at that
+ * reference size, and `stageScale()` is the only thing that turns them into pixels for a real
+ * viewport.
+ *
+ * WHY A MODULE RATHER THAN NUMBERS IN THE COMPONENT. Ticket 145 §3 makes the slot rectangles a
+ * published interface: `useStageAnchors()` hands them to ticket 146, which fires particles and
+ * hit-stop at them, and 146's whole design assumes a slot does not move on selection, death, or
+ * hand size. A layout that lives in JSX cannot be asserted against or reused; this can, and
+ * `stageGeometry.test.ts` holds it to the mock's numbers directly.
+ */
+
+/** The frame the mock was drawn at. Everything below is in these coordinates. */
+export const REF_WIDTH = 1280;
+export const REF_HEIGHT = 800;
+
+/** The three bands, in reference pixels. `44 + 546 + 210 = 800`. */
+export const TOP_BAR_H = 44;
+export const STAGE_H = 546;
+/*
+ * NOTE, 2026-09-10: this is the MOCK's console band, and `.console-area` is `flex: 0 0 265px`.
+ * The two have never agreed. Reconciling them moves the board's scale at every viewport, which
+ * is 145a's ruled composition, so it is written down here for Henry rather than changed inside
+ * a card-size fix. The hand does not need it: a 255px card bottom-aligned in the 195px row
+ * overflows UPWARD into the empty lower third of the stage, which costs the board nothing.
+ */
+export const CONSOLE_H = 210;
+/** Frame y of the stage band's top edge. */
+export const STAGE_TOP = TOP_BAR_H;
+
+/** Row pitch. The ticket names it in §2b and again in the 1920 rule, so it is a constant, not a gap. */
+export const ROW_PITCH = 170;
+
+/** Sprite box at the reference size. */
+export const SPRITE_W = 150;
+export const SPRITE_H = 120;
+
+/**
+ * The largest a sprite may be drawn, per §4.1's 1920 rule. It bites before the width scale does:
+ * 150 x (1920/1280) is 225, so a 1920 stage draws 190 and the columns spread further than the
+ * sprites grow. That is the intent — the stagger is a COMPOSITION, and letting the sprites track
+ * the width would close the reveal lane it is built around.
+ */
+export const SPRITE_MAX_W = 190;
+
+export const PLAQUE_W = 168;
+/** A plaque's top, relative to its sprite's top. Read off the mock: 110 - 62 = 48. */
+export const PLAQUE_DY = 48;
+
+/**
+ * How far the ACTIVE ally steps toward the centre. §2b: "the active ally's slot is its column x
+ * + 60; the others stay."
+ */
+export const ACTIVE_STEP = 60;
+
+export type StageSide = 'ally' | 'enemy';
+
+/** A rectangle in frame coordinates. */
+export interface StageRect {
+    readonly x: number;
+    readonly y: number;
+    readonly w: number;
+    readonly h: number;
+}
+
+/**
+ * The column each side rests at, and the direction "toward the centre" points.
+ *
+ * ENEMIES DO NOT STEP, and the mock's enemy-1 x of 790 is not a step — it is where that slot IS.
+ * §2b says "Enemies never step" and the same paragraph's table puts enemy 1 at 790 and enemies 2/3
+ * at 850, so the front enemy slot is 60px closer to the centre as a fixed part of the composition
+ * and stays there whoever is acting. Both statements are true at once only under that reading, and
+ * it is the one the mock draws. If Henry meant the enemy column to be flat at 850, `ENEMY_FRONT_STEP`
+ * is the one number to change.
+ */
+const ALLY_COLUMN_X = 270;
+const ENEMY_COLUMN_X = 850;
+const ENEMY_FRONT_STEP = 60;
+
+/** Frame y of row `index`'s sprite box, before scaling. Mock: 62, 232, 402. */
+export const rowY = (index: number): number => 62 + index * ROW_PITCH;
+
+/**
+ * The sprite box for one slot, in reference coordinates.
+ *
+ * `activeIndex` is the ally whose turn it is; pass `-1` (or an enemy side) for no step. Only the x
+ * moves, and only for an ally — §3 requires that a slot is otherwise stable across selection,
+ * death and hand size, because 146 caches these.
+ *
+ * `enemyShiftX` (TICKET 167g, reference pixels) slides the ENEMY column sideways to meet the enemy
+ * hand panel, see `enemyShiftFor`. It is added to an enemy's x and ignored for an ally. It is a
+ * function of the WINDOW and whether the panel is open, never of the selection, a death or the
+ * hand, so §3's stability property holds: 146 reads the same rect until the panel is toggled or
+ * the window is resized.
+ */
+export function spriteRect(side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0): StageRect {
+    const y = rowY(index);
+    if (side === 'ally') {
+        const stepped = index === activeIndex ? ACTIVE_STEP : 0;
+        return { x: ALLY_COLUMN_X + stepped, y, w: SPRITE_W, h: SPRITE_H };
+    }
+    const stepped = index === 0 ? ENEMY_FRONT_STEP : 0;
+    return { x: ENEMY_COLUMN_X - stepped + enemyShiftX, y, w: SPRITE_W, h: SPRITE_H };
+}
+
+/**
+ * The plaque for one slot — always on the OUTSIDE of its column, which is the rule that keeps the
+ * middle of the screen clear for the reveal lane. An ally's plaque sits to the LEFT of its sprite
+ * and an enemy's to the RIGHT, so neither ever crosses the lane however far a sprite steps.
+ */
+export function plaqueRect(side: StageSide, index: number, activeIndex = -1, enemyShiftX = 0): StageRect {
+    const sprite = spriteRect(side, index, activeIndex, enemyShiftX);
+    const x = side === 'ally' ? sprite.x - PLAQUE_W - 8 : sprite.x + sprite.w + 8;
+    return { x, y: sprite.y + PLAQUE_DY, w: PLAQUE_W, h: 0 };
+}
+
+/**
+ * The reveal lane — where `PlayedCardReveal` holds the card that just resolved. §2b: 148x196 at
+ * (566, 118), rotated -4deg. The lane is ~300px of gap between the two columns and it is empty
+ * between plays ON PURPOSE (`final-between-plays.png`); it is where the play happens.
+ */
+export const REVEAL_RECT: StageRect = { x: 566, y: 118, w: 148, h: 196 };
+export const REVEAL_ROTATION_DEG = -4;
+
+/** The fan's centre, in the console band. Anchors only — the console owns its own layout. */
+export const HAND_ANCHOR: StageRect = {
+    x: REF_WIDTH / 2 - 70,
+    y: STAGE_TOP + STAGE_H + 20,
+    w: 140,
+    h: 176,
+};
+
+/**
+ * WHERE A SPENT CARD GOES — ticket 146c step 5.
+ *
+ * §2c: *"the lane card shrinks and flies to the discard pile anchor, 200 ms; the discard count
+ * ticks on arrival."*
+ *
+ * Derived from the hand rather than measured from the console's DOM, for the reason this whole
+ * module exists (see the header): a measured anchor moves the first time the pile grows a digit,
+ * and 146c's flight would land somewhere new every few turns. The pile sits at the right-hand end
+ * of the hand row, so this is the fan's own band, pushed out past where the fan can reach.
+ *
+ * **Approximate, and deliberately so.** The console owns its own layout and does not publish an
+ * anchor; when it does, this should read it. The cost of being a little off is that a card flies
+ * toward the pile rather than exactly into it, which is a thing nobody can see at 200ms — and the
+ * alternative was blocking a juice row on a console refactor.
+ */
+export const DISCARD_ANCHOR: StageRect = {
+    x: REF_WIDTH / 2 + 300,
+    y: HAND_ANCHOR.y + 30,
+    w: 70,
+    h: 90,
+};
+
+/**
+ * How the reference composition maps onto a real viewport.
+ *
+ * UNIFORM, and clamped so it can only shrink the composition, never stretch it out of proportion.
+ * §4.1 asks for "column x's proportionally, the 170px pitch, sprites capped at 190" — a uniform
+ * scale is the shape that delivers all three at once, because the pitch and the columns then move
+ * together and only the cap breaks ranks. Scaling x alone was tried on paper and rejected: at
+ * 1920x1080 it leaves the three rows in the top 460px of an 826px band with a third of the stage
+ * empty under them.
+ *
+ * At exactly 1280x800 this returns 1 and the layout IS the mock, pixel for pixel. That property is
+ * what `stageGeometry.test.ts` pins, and it is the reason to scale rather than to re-lay-out.
+ */
+/**
+ * TICKET 155b — THE BAND, AND WHY IT IS SOLVED RATHER THAN ASSUMED.
+ *
+ * The console's height is `CONSOLE_H × scale`, and `scale` is computed FROM the band the console
+ * leaves. That is circular, and the circularity is the bug 155b is about: this used to subtract a
+ * flat `CONSOLE_H` while the real console had grown to ~390px, so the stage believed it had 180px
+ * it did not have and drew the third row below the fold.
+ *
+ * Solved instead of iterated. With `band = H − TOP_BAR_H − CONSOLE_H × s` and `s = band / STAGE_H`:
+ *
+ *     s = (H − TOP_BAR_H) / (STAGE_H + CONSOLE_H)
+ *
+ * one line, exact, and no fixed point to converge on. The width term is unchanged and still binds
+ * on a wide, short window.
+ *
+ * At exactly 1280×800 this returns 1 and the layout IS the mock, pixel for pixel — the property
+ * `stageGeometry.test.ts` pins, and the reason to scale rather than to re-lay-out.
+ */
+export function stageScale(viewportWidth: number, viewportHeight: number): number {
+    const usableHeight = Math.max(0, viewportHeight - TOP_BAR_H);
+    return Math.min(viewportWidth / REF_WIDTH, usableHeight / (STAGE_H + CONSOLE_H));
+}
+
+/**
+ * The console's drawn height at a viewport, in px. `BattleArena` publishes this as `--console-h`.
+ *
+ * One number, read by the stylesheet AND subtracted by `place()` below, so the band the console
+ * takes and the band the stage believes it has cannot come apart again.
+ */
+export const consoleHeightAt = (viewportWidth: number, viewportHeight: number): number =>
+    CONSOLE_H * stageScale(viewportWidth, viewportHeight);
+
+/** The drawn width of a sprite at `scale`, with §4.1's cap applied. */
+export const spriteWidthAt = (scale: number): number => Math.min(SPRITE_W * scale, SPRITE_MAX_W);
+
+/**
+ * A reference rect placed on a real viewport.
+ *
+ * The scaled composition is CENTRED horizontally in the viewport rather than pinned left, so a
+ * window wider than 1.463:1 (where the band height binds first) grows its margins evenly instead of
+ * pushing the whole stage against one edge.
+ */
+export function place(rect: StageRect, viewportWidth: number, viewportHeight: number): StageRect {
+    const scale = stageScale(viewportWidth, viewportHeight);
+    const offsetX = (viewportWidth - REF_WIDTH * scale) / 2;
+    // 155b: the SCALED console, the same number `consoleHeightAt` gives the stylesheet.
+    const bandHeight = Math.max(0, viewportHeight - TOP_BAR_H - CONSOLE_H * scale);
+    const offsetY = TOP_BAR_H + (bandHeight - STAGE_H * scale) / 2 - STAGE_TOP * scale;
+    return {
+        x: offsetX + rect.x * scale,
+        y: offsetY + rect.y * scale,
+        w: rect.w * scale,
+        h: rect.h * scale,
+    };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The enemy hand panel's edge (ticket 167g)
+// ---------------------------------------------------------------------------------------------
+
+/*
+ * The enemy hand panel's footprint against the WINDOW's right edge, in REAL pixels. These are the
+ * numbers `.ehp` in `index.css` carries (`right: 8px`, `width: 270px`, and the 34px tab that stays
+ * proud when it is closed); the stylesheet's comment points here so the two cannot drift apart.
+ */
+export const EHP_RIGHT_INSET = 8;
+export const EHP_OPEN_WIDTH = 270;
+export const EHP_TAB_WIDTH = 34;
+/** How far short of the panel's edge the enemy plaques stop, in real pixels. */
+export const ENEMY_PANEL_GAP = 12;
+
+/**
+ * The most the enemies may slide TOWARD the middle, in reference pixels: the front enemy's sprite
+ * stops where it would touch the reveal lane. 714 - 790 = -76 today. Derived from the rects, never
+ * typed, so it follows the mock if the lane or the columns ever move.
+ */
+export const ENEMY_MIN_SHIFT = REVEAL_RECT.x + REVEAL_RECT.w - spriteRect('enemy', 0).x;
+
+/**
+ * TICKET 167g — how far the enemy column slides so the enemies sit against the enemy hand panel.
+ *
+ * Henry, 2026-09-28: *"I just want the enemies to slide as far to the right as they can. If the panel
+ * is open then push them towards the middle. If it is closed make sure there isn't a gap of 'white
+ * space' between them."*
+ *
+ * WHY IT DEPENDS ON THE WINDOW. The stage is drawn at a scale and CENTRED, but the panel is a fixed
+ * number of real pixels on the window's edge. On a wide window the centred stage leaves empty space
+ * at both sides, so the closed tab sits far from the plaques (a 184 px gap at 1920x1080); on a narrow
+ * one the open panel overlaps them.
+ *
+ * The rule: the rightmost enemy plaque's right edge goes `ENEMY_PANEL_GAP` short of the panel's left
+ * edge, the panel being the open width or just the tab. Positive slides right, negative toward the
+ * middle. The result is clamped at `ENEMY_MIN_SHIFT` so the front enemy never enters the reveal
+ * lane. **At a narrow window (1280x800 is the case) the clamp binds and the open panel still covers
+ * part of the plaques.** That is the reveal-lane rule winning, and it is expected.
+ *
+ * Not applied to the drawn plaque's cap inset (`useStageAnchors` pulls a plaque in by a few pixels
+ * once the sprite cap bites, above ~1.36 scale); the shift is the geometry's, the inset is the
+ * anchor's, and the difference is under 8 px.
+ */
+export function enemyShiftFor(viewportWidth: number, viewportHeight: number, panelOpen: boolean): number {
+    const scale = stageScale(viewportWidth, viewportHeight);
+    // No stage to slide (a window shorter than the top bar): leave the mock's composition alone.
+    if (!(scale > 0)) return 0;
+
+    const panelEdge = viewportWidth - EHP_RIGHT_INSET - (panelOpen ? EHP_OPEN_WIDTH : EHP_TAB_WIDTH);
+    const target = panelEdge - ENEMY_PANEL_GAP;
+    const current = Math.max(...[0, 1, 2].map((index) => {
+        const plaque = place(plaqueRect('enemy', index), viewportWidth, viewportHeight);
+        return plaque.x + plaque.w;
+    }));
+    return Math.max(ENEMY_MIN_SHIFT, (target - current) / scale);
+}

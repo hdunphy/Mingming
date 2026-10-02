@@ -85,6 +85,18 @@ const picked = (n: number): IRunCard[] => Array.from({ length: n }, (_, i) => ({
     ownerId: null,
 }));
 
+describe('RunSummary — the modifiers a run was played with (ticket 169f)', () => {
+    it('prints their names next to the tier when there are any', () => {
+        const markup = render(ended('defeat', { modifiers: ['mod:junk_start', 'mod:tight_budget'] }));
+        expect(markup).toContain('Junk Start, Tight Budget');
+    });
+
+    it('prints nothing about modifiers on a run with none, and ignores map-reveal entries', () => {
+        expect(render(ended('defeat'))).not.toMatch(/Junk Start|Tight Budget|Elite Hunt|No Recruits|Draft Start/);
+        expect(render(ended('defeat', { modifiers: ['reveal:biome:1'] }))).not.toContain('reveal');
+    });
+});
+
 describe('RunSummary — the numbers match the run it is reporting', () => {
     it('prints the run clock against the 35–45 minute target', () => {
         const markup = render(ended('defeat'));

@@ -1,0 +1,37 @@
+ticket 39 — enemy DECISION cost, gym boss, 3v3, BEAMLESS (aiBeam 0)
+
+gym            decisions   mean      p50      p95      max
+   gym_emberfall d0 side=PLAYER act=PLAY_PROGRAM 24187ms
+   gym_emberfall d1 side=PLAYER act=PLAY_PROGRAM 16921ms
+   gym_emberfall d2 side=PLAYER act=PLAY_PROGRAM 13280ms
+   gym_emberfall d3 side=PLAYER act=PLAY_PROGRAM 9246ms
+   gym_emberfall d4 side=PLAYER act=PLAY_PROGRAM 4692ms
+   gym_emberfall d5 side=PLAYER act=PLAY_PROGRAM 4372ms
+   gym_emberfall d6 side=PLAYER act=PLAY_PROGRAM 3957ms
+   gym_emberfall d7 side=PLAYER act=PLAY_PROGRAM 2742ms
+   gym_emberfall d8 side=PLAYER act=PLAY_PROGRAM 2517ms
+   gym_emberfall d9 side=PLAYER act=PLAY_PROGRAM 3307ms
+   gym_emberfall d10 side=PLAYER act=PLAY_PROGRAM 1597ms
+   gym_emberfall d11 side=PLAYER act=PLAY_PROGRAM 1722ms
+   gym_emberfall d12 side=PLAYER act=PLAY_PROGRAM 2ms
+   gym_emberfall d13 side=PLAYER act=PLAY_PROGRAM 0ms
+   gym_emberfall d14 side=PLAYER act=END_TURN 0ms
+   gym_emberfall d15 side=ENEMY act=PLAY_PROGRAM 56591ms
+   gym_emberfall d16 side=ENEMY act=PLAY_PROGRAM 36849ms
+   gym_emberfall d17 side=ENEMY act=PLAY_PROGRAM 15226ms
+   gym_emberfall d18 side=ENEMY act=PLAY_PROGRAM 5585ms
+   gym_emberfall d19 side=ENEMY act=PLAY_PROGRAM 3322ms
+   gym_emberfall d20 side=ENEMY act=PLAY_PROGRAM 2791ms
+   gym_emberfall d21 side=ENEMY act=PLAY_PROGRAM 2496ms
+   gym_emberfall d22 side=ENEMY act=PLAY_PROGRAM 3241ms
+   gym_emberfall d23 side=ENEMY act=PLAY_PROGRAM 3699ms
+   gym_emberfall d24 side=ENEMY act=PLAY_PROGRAM 3488ms
+   gym_emberfall d25 side=ENEMY act=END_TURN 1ms
+   gym_emberfall d26 side=PLAYER act=PLAY_PROGRAM 15817ms
+   gym_emberfall d27 side=PLAYER act=PLAY_PROGRAM 8154ms
+   gym_emberfall d28 side=PLAYER act=PLAY_PROGRAM 3884ms
+   gym_emberfall d29 side=PLAYER act=PLAY_PROGRAM 1852ms
+gym_emberfall         11   12117ms    3488ms   56591ms   56591ms
+
+POOLED  n=11  mean 12117ms  p50 3488ms  p95 56591ms  max 56591ms
+target: enemy turn p95 < 1000ms. NOTE this machine is a 2-core sandbox, NOT Deck-class; and Chrome 4x throttling is a further multiplier on top.

@@ -1,0 +1,51 @@
+import type { StatusType } from '../../engine/types';
+
+export interface StatusEntry { readonly targetId: string; readonly status: StatusType }
+export interface StatusTellGroup { readonly status: StatusType; readonly targetIds: ReadonlyArray<string> }
+export interface ScheduledStatusTell extends StatusTellGroup { readonly at: number }
+
+/** One group per distinct status, in first-seen order; each body listed once per status. */
+export function groupStatusTells(entries: ReadonlyArray<StatusEntry>): StatusTellGroup[] {
+    const groups: Array<{ status: StatusType; targetIds: string[] }> = [];
+    for (const entry of entries) {
+        let group = groups.find((g) => g.status === entry.status);
+        if (!group) { group = { status: entry.status, targetIds: [] }; groups.push(group); }
+        if (!group.targetIds.includes(entry.targetId)) group.targetIds.push(entry.targetId);
+    }
+    return groups;
+}
+
+/**
+ * When each group plays: `stagger` apart, starting `stagger` after `afterMs` (the last impact).
+ * Measured from a FIXED base, so n groups end at afterMs + n * stagger - linear, not quadratic.
+ */
+export function scheduleStatusTells(
+    afterMs: number,
+    entries: ReadonlyArray<StatusEntry>,
+    stagger: number,
+): ScheduledStatusTell[] {
+    return groupStatusTells(entries).map((group, index) => ({ ...group, at: afterMs + stagger * (index + 1) }));
+}
+
+/**
+ * The float text: "Sharp" for one stack, "Sharp ×7" for several. Splits CamelCase ("Dark Stance").
+ *
+ * TICKET 167i: the stacks are rounded to a whole number for display. Bark Shield is a share of max
+ * HP, so its stacks arrive as 1.3248929838928; the float used to print that. Rounded first, THEN
+ * compared with 1, so a shield that rounds to 1 reads like a single stack instead of "×1".
+ */
+export function statusFloatText(status: StatusType, stacks: number): string {
+    const name = String(status).replace(/([a-z])([A-Z])/g, '$1 $2');
+    const shown = Math.round(stacks);
+    return shown > 1 ? `${name} ×${shown}` : name;
+}
+
+/**
+ * TICKET 167i: the whole number shown in the absorbed float, for what a shield took off a hit.
+ * A shield that took something but rounds to nothing still says 1 - "-0" would read as no shield
+ * at all. The float's shield glyph is added by `useBattleVfx`, which is where the in-battle glyph
+ * vocabulary lives (the no-emoji rule in `Icon.test.tsx` exempts it and not this file).
+ */
+export function absorbedAmount(absorbed: number): number {
+    return Math.max(1, Math.round(absorbed));
+}

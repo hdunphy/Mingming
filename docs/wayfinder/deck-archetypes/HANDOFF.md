@@ -2,6 +2,7 @@
 
 **READ _WARNING-line-endings.md AT REPO ROOT BEFORE ANY COMMIT - a sync-layer line-ending sweep sits in the working tree (162 phantom modifications). Stage explicit paths only until cleaned.**
 
+*Last updated: 2026-09-08. **The balance arc is CLOSED for now — 141 shipped (ally-triggered OS), 143 (fenrir + log), 144 (speed 2.1×, beam RULED as an enemy-ladder rung wild 8 / elite 8 / gym 0, harness beamless), 140 closed as the comp baseline (element triangle holds; Ink Loop 75, Sun Devourer 62, Venom Court).** The UI lane is live: **145 (battle scene) is RULED and mocked — Legion is building it**; 146/147 wait on its anchors; 148 (progression, slot-neutral) is ready for Legion; 59 (registry triage) before 148's policy arms; **149 (scorer pricing) is WRITTEN and awaits Henry's five rulings**; 142 waits on Henry's playtest. 23 stale tickets closed in the audit (`TICKET-AUDIT-2026-09-07.md`). Working branch is `playtest-polish` (legion/comp-grid merged as PR #12). Git on this machine cannot unlink its lock files from an agent shell — move `.git/*.lock` into `.git/_to_delete/` afterwards.*
 *Last updated: 2026-08-20. **STATUS ECONOMY IS POWER-BASED (+1/stack, uncapped, generation-bound - tickets 102/103); previews simulate (104); audhumbla drinks her own milk (101 SHIPPED - neutral absolutes 30 -> 15); ymir's build turn restored (106); hel death-order fixed (105); rimebreaker reads every status (107 - its Poison rider HELD for Henry); draw-4 DIED for sleipnir and points at huldra_v1 (100 - and found the glimmer infinite loop).** Legion is on ticket 100 (sleipnir draw-4). Open tickets: 96 (fenrir range), 98 (team sim), 108, plus a NEW one for the glimmer loop (pipeline: three-tier AI protocol + measurement menu apply NOW; push archetype-web to origin for the cloud second lane). Ticket 72 is stale-open - close as superseded, salvage riptide as optional kraken_v1 web tech. THE GAME'S SHAPE IS RULED: read research/vision.md (expedition roguelike, blueprints+scrap, no leveling, ranch, 3v3 gauntlet gyms) and research/exploration-map.md (map rulings). Design sessions remaining: blueprint/scrap economy, fafnir_v2 shield-piercing (engine-gated), deploy-choice question. A separate STEAM-RELEASE wayfinder is being spun up - it owns roadmap/build tickets; THIS wayfinder owns balance/decks/combat only.*
 *Last updated: 2026-08-20 (from implementation agent aka Legion), after ticket 103 (the mint bound with no caps; two caps removed) landed. Previously: ticket 102 (statuses re-denominated to POWER +1). Earlier note kept for the deck-pass lineage: after ticket 64 (skoll's deck pass) landed. **Both skoll decks are off the floor and ticket 64 is CLOSED GREEN — Amendment 1's curve swap took skoll_v2's dead cards 36.9/38.2 -> 32.5/32.8, under the gate on both seed bases.** Field now v1 47.7/48.1, v2 44.9/41.5. Queue next: repricing (66) -> kraken (65) -> hel_v1 -> hraesvelgr; ticket 63 census in any gap.*
 
@@ -182,7 +183,554 @@ Dead cards ≤0.35 **per side**, FTK 0, and mirror ≤30 turns still apply at fi
 - **An exponential curve is incompatible with a turn-count floor.** Every v1 lost 0/100 — the ramp deck becomes the fastest deck. Structural to the shape, not the constants.
 - **A curve change under ~20% is invisible to status cards**, because stacks are whole numbers. Status decks must be re-gated by hand after any curve move, and buffing the attack side is the finer instrument.
 
+## 0-WILD-CANTRIP-CAP (Henry, 2026-09-22, ticket 152) — THE RUNG DECIDES WHO MEETS A LOOP
+
+**A WILD's enemy side may hold only ONE copy of a pure cantrip. An ELITE and a GYM hold every copy
+the deck ships.** `IEnemyLoadout.duplicateCantrips`, applied in `rollEncounter` to the side's
+ASSEMBLED pile.
+
+**AMENDED 2026-09-23.** It was a property test — *0 energy, draws, and does nothing else* — and that
+lasted one day. The third clause was justified by "a price stops the third repetition", and the
+brake measurement falsified it: `undertow` with `forage`'s own 15-power recoil still chained
+FOURTEEN deep. The clause also made the rule ESCAPABLE — Henry shipped a self-Weaken rider on
+`undertow` the same day and the card fell straight out of a rule written for it (two tests caught
+it; that is the only reason it is not live).
+
+The obvious widening (*0 energy and it draws*) is wrong the other way: it catches `forage`, which
+**does not loop** — max 4 casts in a turn on ratatoskr_v1 and 0.0% of turns at six or more, against
+`undertow`'s max 18. Capping it costs ratatoskr_v1, an EA deck, **10.9 field points** for nothing.
+
+**Card properties cannot separate them, because the difference is not in the card.** `undertow`
+chains on jormungandr_v1 because that deck holds `ink_stream` and `serpents_coil`, which scale on
+cards drawn and cards played this turn, so every iteration pays for itself. Pairing the conditions
+was tried and fails too — ratatoskr_v1 holds `seed_bomb_v2`, also a cards-played scaler.
+
+So it is a MEASURED LIST: `LOOPING_FREE_DRAWS` = `undertow`, `slipstream`, `glimmer`, each with its
+number; `MEASURED_NOT_LOOPING` = `forage` and `ignite`, each with the number that excludes it. **A tripwire test**
+requires every 0-energy card that draws to be in one set or the other, so a new cantrip fails until
+somebody measures it with `scratch/t152_cardloop.ts` and decides. Do not "simplify" this back into
+a property test.
+
+Affects two shipped lists: `jormungandr_v1` (`undertow`×2) and `sleipnir_v1` (`slipstream`×2).
+
+**THE TRIPWIRE FIRED ON 2026-09-23 (ticket 162a), which is the only proof it works.** Collection
+v2 gives `ignite` a conditional cantrip — *apply 1 Burn; if the target was ALREADY Burning, draw a
+card* — so it became a 0-energy card that draws and the build stopped until somebody measured it.
+Measured on `fenrir_v2` (two copies, the most Burn in the roster), 1,200 games: **max 8 casts in a
+turn, 0.3% of turns at ≥6**, against `undertow`'s max 18 and 12.7%. The number that settles it is
+the deletion turn the rule exists for: fenrir_v2's worst turn is **85.5% of a health pool** and it
+spends 0.1% of turns above 75%, where jormungandr_v1 on `undertow` was at **145%** before its brake.
+Chaining `ignite` piles a status that caps at 4 into a deck with no draw payoff, so it does not
+convert. **MEASURED_NOT_LOOPING**; capping it would cost fenrir_v2 the two-copy opener its kit is
+built on, for a loop it does not have.
+
+**`undertow` ITSELF CHANGED ON 2026-09-23** (Henry: *"Ship 1 weakened"*) — it now reads "draw a
+card. You gain 1 Weakened." That takes jormungandr_v1 from 69.6% to 48.2%, right at the EA peer
+median, and costs kraken_v1 (one copy, no loop) 47.3% → 41.4%. It does NOT remove the loop — 9.9%
+of turns still chain six deep — so the wild rule below is still what stops the player meeting it.
+
+**THE DECK LISTS ARE UNCHANGED.** `mingmingRegistry` still reads `undertow ×2`; the balance corpus
+still measures the deck it always measured; a PLAYER who drafts two can still loop them, which is
+ticket 111's law verbatim. Do not "fix" this by editing a deck.
+
+**Why this and not the obvious fixes.** 152 measured both card swaps §3 proposed: they kill the loop
+and take jormungandr_v1 from a 69.6% field to 18–27%, against an EA peer band of 47–64%. The loop IS
+why he sits at the top of the roster, so no swap can both remove it and hold the number it made.
+The engine lever (extend ticket 111's guard to every copy of the resolving card during a triggered
+draw) was measured too — 42.8%, loop gone — and declined; it reaches every deck and costs a grid
+re-baseline. **Do not re-litigate these three.**
+
+**On the SIDE, not the member.** Three `jormungandr_v1` share one pile and put six `undertow` in it;
+a per-member rule leaves three, which still loops. The first implementation made that mistake and
+the ticket-08 test caught it.
+
+**What it moves:** the RUN GATE (it rolls enemies through `rollEncounter`). **What it cannot move:**
+§2–3 of the balance report — that corpus builds decks from `getDeckForOS` directly and never touches
+`rollEncounter` — and §1.3/§1.4, since no card or firmware changed.
+
+## EA SCOPE (Henry, 2026-09-22) — read this before picking up any balance finding
+
+> *"Lets leave the non-EA mingmings for after EA. Focus only on fire, water and nature, but good to
+> note."*
+
+**IN EA — three elements, six mingmings, twelve decks:**
+
+| element | mingmings |
+|---|---|
+| Fire | fenrir, sköll |
+| Water | kraken, jormungandr |
+| Nature | ratatoskr, huldra |
+
+**POST-EA:** fafnir and gullinbursti (Earth), hraesvelgr and sleipnir (Air), ymir and draugr (Ice),
+valkyrie and audhumbla (Light), hel and nidhoggr (Dark). `control` is the harness frame and is not
+a shipped mingming.
+
+### The post-EA findings list — measured, written down, not worked on
+
+| finding | where | note |
+|---|---|---|
+| **`gullinbursti_v2` 58.5% FLAGGED** | ticket 150d, `results/t150d/FINDINGS.md` | **Henry, 2026-09-24: parked post-EA. *"2.5 reads high on this body."*** Arm B shipped KINETIC_RAM at `bonus: 2.5` as printed and it is +27.9 field points (49.0% → 76.9%); §1.4 moves 15.6% IN BAND → 58.5% FLAGGED on the same hook paying the same 2.5, because the TRIGGER decides whether the scorer sees power or has to convert HP back through the frame. **The flag is a report, not a gate.** Nothing is tuned in response — no numeric tuning before playtest, and she is post-EA. |
+| three of ticket 149c's four scorer findings | `research/scorer-pricing.md` §7 | Left on exactly this reasoning. |
+
+This is a rule about **what to spend a session on**, not about what to record. A finding on a
+post-EA mingming still gets measured and written down — Henry's *"but good to note"* — it just does
+not become work. Three of ticket 149c's four findings landed post-EA and were left on exactly this
+reasoning (`research/scorer-pricing.md` §7).
+
+It also decides what a grid result means: a re-baseline that moves an Ice cell is not a release
+blocker, and a re-baseline that moves a jormungandr cell is.
+
 ## Open items, in the order they should be taken
+
+**2026-09-25 (night) — THE ROOTFALL / fenrir_v2 PLAYTEST, AND HENRY'S FIVE RULINGS ON IT.** Notes, save, logs and the review: [`playtest-results/2026-25-09/rootfall-fenrir_v2/`](../../../playtest-results/2026-25-09/rootfall-fenrir_v2/review.md). Numbers: `results/t0925_playtest/`. He died in fight two of biome 0; the session's question (does the counter route work at Rootfall) was never reached.
+
+**1. THE ENEMY'S FIRST TURN WAS TWO HANDS — FIXED (`d30106e`), AND IT MOVES EVERY BASELINE ONCE, ON PURPOSE.** *Ruled: "Yes."* `createBattleState` (and `buildScenarioState`, its sim twin) dealt the enemy a hand at creation that it kept through the player's turn 1, and `processPreTurn` drew a second on top: eight cards against four, every fight, because the player always moves first. Walker, 200 seeds × 12: fight one 93.3 → **96.8**, fight two 77.9 → **85.6**, fight three 67.2 → **75.9**; fenrir_v2's fight two 84 → 97. **Owed: the 1v1 roster grid and the comp grid re-baselined on `d30106e`** — every grid before it had the second seat holding a double first hand, and the census's first-mover edge should be re-read on it.
+
+**2. "BIOME 0 SHOULD BE A CAKE WALK" = AT LEAST 85% AT EACH NODE, NOT CUMULATIVELY.** *Henry: "Probably at least an 85% chance at each node. Not cumulatively."* Read after the fix (100 seeds × 12, walker's own route): **biome-0 wilds 91.2% — pass. Rivals 82.7% — just under. Elites 52.7% — far under**, and the walker walks into a lot of them (966 biome-0 elite fights in 1,200 runs); fight 4 pools at 60.5% for that reason, and only 441 of 1,200 runs reach biome 1. `RUN_GATE_TARGETS.wild` is still the 0.90 ruled this morning and is NOT changed here. **Open for Henry: does the 85 floor replace the 90 band, and does it cover elites and rivals or wilds only?**
+
+**3. SOUNDS ARE SPACED, NOT STACKED (`2fd4025`).** *Ruled: "space the sounds."* 80 ms apart in arrival order, bounded at six slots; series, ducking and interface cues keep their own timing.
+
+**4. YOUR OWN PLAYED CARD LEAVES AFTER 1.5 s (`a1c78e2`).** *Ruled: "sure 1.5s."* The enemy's hold is untouched (ticket 127).
+
+**5. WALKING BACK INTO A NODE STILL FIGHTS.** *Ruled: "yes."* Ticket 07 stands. The start node is now drawn as a flag labelled **Start** and says re-entry is a Wild fight (`fefa717`), with an icon key on the map.
+
+Also from the notes, needing no ruling: the discard pile opens onto its cards, newest first (`f4cc844`); the run log closes a won fight on the turn that decides it, so the reward rows no longer precede the killing turn (`d096c47`).
+
+---
+
+**2026-09-25 (evening) — HENRY'S RULINGS ON THE 157 ARC. FOUR THINGS SETTLED, AND THE ARC IS CLOSED UNTIL HE HAS PLAYED IT.**
+
+**1. THE WILD BAND IS 90, NOT 95.** *"90% should be the threshold."* `RUN_GATE_TARGETS.wild` 0.95 → 0.90. **Fight one's 93.0% (91.9–94.0) is now INSIDE the window**, and the two points that were left were not reachable by tuning: at fight one the two sides hold the same shape, count, IVs and AI, so the player's only edge is its firmware — worth +25.8 over even, and chasing 95 meant making the opener asymmetric by more than *"the enemy cannot fire its engine"* already does. The number moved to where the game is, rather than the game to the number. The other two bands are untouched — nothing has measured them since they were ruled. `runRunWalker` needed no edit: it reads the target from the gate, which is exactly why that indirection was built.
+
+**2. `skoll_v2` AT TWO GYMS IS ALLOWED.** *"Skoll can be at two gyms."* Ticket 74's *"the same OS at two gyms would make the roster read as a pool"* is **superseded for this case** — there is no second Fire firmware the element rule allows at Tidewrack, and the element rule is the one that decides the guest. `pathAndScout.test.ts` still pins it as exactly ONE duplicate, named, so the ruling cannot quietly widen into a roster that repeats itself.
+
+**3. THE "ALL THREE ELEMENTS" FLAG WAS ME READING THE DESIGN WORKING AS A PROBLEM — RETRACTED.** Henry: *"It should be Fire Gym = Water biome → Fire Biome → Fire Fire Nature Biome that ends with Boss of FFN."* That is what ships, verified:
+
+| gym | road | boss |
+|---|---|---|
+| **Emberfall** (Fire) | The Saltmarch (Water) → Emberglass Flats (Fire) → Cinderreach Approach (Fire+Nature) | fenrir_v2 + skoll_v2 + huldra_v1 = **FFN** |
+| Tidewrack (Water) | Rootmire (Nature) → The Drowned Shelf (Water) → Brinehollow Approach (Water+Fire) | jormungandr_v1 + kraken_v2 + skoll_v2 = WWF |
+| Rootfall (Nature) | The Slagfields (Fire) → The Thornwild (Nature) → Verdant Sprawl Approach (Nature+Water) | huldra_v2 + ratatoskr_v2 + jormungandr_v2 = NNW |
+
+*"Every road covers all three elements"* is that table restated — `counter(gym)`, then the gym, then the gym's own comp. It relaxes a cost taken under 142 §7 (*"it's fine if there are no Water mingmings in there"*), and that is the guest rule paying for itself. **Kept, and the note in `marketplace.test.ts` that called it a defect is corrected.**
+
+**4. NO MORE TUNING BEFORE A PLAYTEST.** *"I want to playtest before any more tweaking."* **The 30×12 walk is left un-run.** Relay and Repeater's scorer blindness (163g) is left as recorded — Henry playtests the patches. `gullinbursti_v2` stays on the post-EA list.
+
+**So: nothing on this map is waiting on an agent. It is waiting on a playtest.**
+
+---
+
+**2026-09-25 — 157-r2 + 157-r3 ARE IN, AND FIGHT ONE WENT 75.8% → 93.0%.** The opener now holds **the start kit minus its one payoff, plus generics** — *"the player keeps the one payoff ruled 09-24; the enemy shows the engine that cannot fire."* Rungs: opener = kit − payoff · biome-0 wilds = the start-kit shape · biome 1+ = the full tuned kit. Same instrument, 200 runs per starter, 2,400 total: **75.8% (74.1–77.5) → 93.0% (91.9–94.0), +17.2pt.** Five starters at 100%, huldra_v1 99, fenrir_v1 94, skoll_v1 93.5, ratatoskr_v1 91.5, huldra_v2 90.5, ratatoskr_v2 83.5, **jormungandr_v1 63.5**.
+
+**157-r3 is worth +44.5 points on its own** — jormungandr_v1 19.0% → 63.5%, the largest single move in this arc — and it is still the outlier by twenty points. One `undertow` became `surge_protection` (a 25-power hit, so the kit gained a card that acts), and `surge_protection` is re-tagged **glue** rather than scalar: 25 flat power with a refund rider banks nothing and cashes nothing, which is what keeps the one-payoff rule counting `serpents_coil` alone.
+
+**IT MISSES 95 AND THE ROW STOPPED THERE, as ruled.** The pooled interval excludes 95. **Two starters carry nearly all of the gap: drop jormungandr_v1 and ratatoskr_v2 and the other ten pool at 96.6%, over target.** So the next notch (opener holds enablers only) would be moving the whole table to fix two decks — Henry's to confirm, not the row's to take. **The 30×12 walk is still waiting on that.**
+
+**Two things worth having in hand for that decision.** (1) `ratatoskr_v1` hit the turn cap on **15 of 200** openers and averages **8.9 turns** against 2.7–4.1 for most of the table. It wins 91.5%, so it passes; a first fight that regularly runs to the clock is a different problem from a first fight you lose. (2) The whole WILD BAND, not just fight one, reads **80.6%** against the same 95 (`--bands wild`, 72 battles, under-sampled: biome 0 79.2%, biome 1 75.0%, biome 2 87.5%) — so 95 may be the wrong comparator for more than the opener.
+
+**Built by SUBSTITUTION, not subtraction**, which is the whole of why the rung is gentler rather than sharper: the payoff is swapped for a `GENERIC_HIT`, so the deck is the same eight cards with the same draw odds. Removing it would have concentrated the remaining four — the sharper deck the ruling refused, by a second route. **The engine now carries `START_KIT_PAYOFF`**, twelve facts rather than 98 cards of design data, checked in both directions against `collection.json`'s shape tags: a named card that is not in the kit makes the swap a no-op and the opener a MIRROR again, silently, which is the exact bug this row fixes.
+
+**Interpretation flagged:** the ruling lists *"biome-0 wilds = start kit"* among the rungs, read here as the shape 157-r1(a) just shipped (kit + generics), not the bare five. The bare five is the sharper list the same ruling refuses for the opener, and switching biome-0 to it would undo the +8.7/+11.5 that row measured on two instruments.
+
+---
+
+**2026-09-25 — 28b IS IN, AND THE TWO COMPOSITION RULES TURN OUT TO BE ONE RULE.** The guest is the element the gym BEATS: Emberfall `fenrir_v2 + skoll_v2 + huldra_v1`, Tidewrack back to the authored TIDAL SURGE trio `jormungandr_v1 + kraken_v2 + skoll_v2`, Rootfall unchanged. **28a broke ticket 68's ruling 3 at two of three gyms and `runGate.test.ts` carried the exception list; 28b restores it at all three**, because in a three-element cycle *"the element I beat"* and *"the element that beats the element that beats me"* are the same element. One heuristic is the other read backwards, and 28a's synergy rule was the only one of the three that could ever have broken it.
+
+**The canary (`results/t28b-canary.txt`), 3 iterations per gym × element party, real gauntlet boss fight, beam 0. Boss win%, so the gate is that the named counter column is LOWEST:**
+
+| gym | Water | Nature | Fire | named counter | |
+|---|---|---|---|---|---|
+| Emberfall | **0%** | 100% | 100% | Water **0%** | **PASS** |
+| Tidewrack | 67% | 67% | 100% | Nature 67% | tie |
+| Rootfall | 100% | 100% | **67%** | Fire **67%** | **PASS** |
+
+**The reading is the ORDER, not the cells** — at three battles a 33-point step is one battle. **In all three gyms the named counter is at or tied for the lowest boss win rate; no gym does better against the party it is supposed to lose to.** Two separate strictly; Tidewrack cannot separate Nature from Water at 1 of 3 each, which is three battles failing to resolve a difference rather than evidence against the route. FTK 0 and no truncation in all nine cells, so 18's standing gates hold. **The instrument's limit bounds all of it**: the player carries a run-START deck against a tuned trio with a Driver and `BOSS_IVS`, which is why cells saturate at 0 and 100. The reading that can grade these trios is the walker's gym-clear rate, and that waits on fight one.
+
+**TWO CONFLICTS, SHIPPED AS RULED AND RECORDED IN TESTS.** (1) **`skoll_v2` is fielded at two gyms now**, which ticket 74's docblock rules against in as many words (*"the same OS at two gyms would make the roster read as a pool"*); there is no second Fire firmware the element rule allows at Tidewrack. `pathAndScout.test.ts` asserts *"exactly ONE firmware appears twice, and it is `skoll_v2`"*, so a second duplicate is still drift. **The trios ship; the principle needs a ruling.** (2) **Every route now covers all three elements**, because the final biome's elements are the leader comp's and the guest is now the third element of the cycle. **That reverses a cost Henry took knowingly under 142 §7** — *"It's fine if there are no Water mingmings in there"*. Found by `marketplace.test.ts`'s vacuity guard, which could no longer find an off-route species to prove the blueprint stall sells one. Worth a ruling: *"you cannot recruit that element on this road"* was a routing decision the map was making.
+
+**`BOSS_COMPS` and `gauntlet-boss.balance.ts` are deleted** on that file's own standing rule (*"that space shrinks by one gym per authoring session until it is empty, at which point this table goes"*) — all three gyms are authored, so the suite was measuring a boss the game cannot field. Ticket 40's canary note is updated to match. The `kraken_v1`-return test goes with the shape it flagged, its lineage recorded in place, because that shape has now been removed twice and may be proposed a third time.
+
+---
+
+**2026-09-25 — 163g: PATCHES RANK BY WHAT THEY ARE WORTH, AND THREE OF THE SIX TURN OUT TO BE UNRANKABLE.** `patchTouchCount` ranked by construction — Amplifier touches an `amount` field, nearly every hook has one, ties broke on declaration order, so 163e measured `amplifier ×27`, every patch the walker fitted in sixty runs. `bestPatchFor` now ranks on the **149c-scored delta** (host hook value after − before, both sides priced by one function at the same measured rates). `fenrir_v1` is the clean disagreement and is pinned: amplifier and splitter touch the same TWO hooks, so the counts tie and order decided it; the deltas are 16.20 and 20.30. **Best-on went 12/12 amplifier → 8/12 amplifier + 4/12 splitter, and the walk went `amplifier ×27` → `amplifier ×21, splitter ×8`.**
+
+**THE FINDING IS ABOUT THE SCORER, NOT THE PATCHES.** Three riders find something to change and score exactly 0 doing it, on every body: **RELAY** changes a hook's `actor` (touches 4/12, moves 0/12) and the per-proc payoff is computed from the hook's ACTIONS — the scorer never reads who is acting, while Splitter's `target` change moves the score because the scope multipliers do. **So 163 §3's own worked example — *"a Relay on a self-only OS scores high and on an ally-reading OS scores zero"* — is a sentence this scorer cannot say.** **REPEATER** changes `triggers`, and the rate comes from `OS_PROC_RATE`, measured by census and keyed by hook id, so the delta holds it fixed by construction. **FAILSAFE** is 163c's recorded inertness, noted not fixed per the ruling. **Two of the six are unrankable by the metric §3 names, for reasons that live in the scorer** — pricing Relay needs the per-proc score to read the actor; pricing Repeater needs a rate the census cannot supply for a hook that does not ship. `patchTouchCount` therefore stays: *"found nothing"* and *"changed something the scorer prices at zero"* are different answers and only the count tells them apart.
+
+**The gate offers two different KINDS on all twelve**, off `PatchDefinition.field` (163 §4's kind, carried as data for exactly this). Amplifier stays the shop's stock — the shelf is deliberately not the ranking. **The shop price stays at 45**: the take-rate re-read is 4 of 21 shelves (19%) against 163e's 4 of 24 (17%), unchanged, and it should be, because the shop stocks Amplifier whatever the ranking says. **A REAL IMPORT CYCLE came out of it** — `patchRegistry → powerscale → core/Hooks → core/entityHooks → patchRegistry` — which ESM tolerated by handing `powerscale` a half-initialised module, so `STATUS_MODEL` read `undefined` at module scope and the file threw on load. It failed loudly, which was luck. The split follows the dependency: **`patchRegistry.ts` is the half `entityHooks` needs and `patchRanking.ts` is the half nothing in the hook path needs**, so it can see the scorer. Cost worth naming: the scorer now ships, 1,028 KB → 1,039 KB (+4.4 KB gzipped). Report `results/t163g/FINDINGS.md`.
+
+---
+
+**2026-09-25 — 18b: THE GYM CLEAR PAYS 5 BLUEPRINTS FLAT.** 18a's four-plus-a-coin-flip matched the old nine-roll expectation of 4.5 exactly (`BLUEPRINT_DROP_RATE.gym` 0.50 per body × 3 bodies × 3 fights) and was written up as a question; Henry took the alternative. **+0.5 a run, ruled as a raise rather than a rounding**, and it buys what 18a stopped one step short of: the run's last screen tells you what you won before it rolls anything, because it rolls nothing. **The flip is DELETED rather than pinned at 1.0** — a probability set to certainty is a knob somebody later reads as tunable — and `gymClearBlueprints` no longer takes a seed, so the call site cannot pass one from habit. The test asserts the RAISE (`GYM_CLEAR_BLUEPRINTS − 3 × GAUNTLET_FIGHTS × BLUEPRINT_DROP_RATE.gym === 0.5`) rather than a bare 5, so it fails if either table moves. **`gullinbursti_v2` 58.5% FLAGGED is on the post-EA list above** with Henry's note, *"2.5 reads high on this body"*.
+
+---
+
+**2026-09-25 — RULINGS ON THE 157-r1 READ (`results/t157r1/FINDINGS.md`).** Fight one is the scripted opener (ticket 24) and was ALREADY a mirror — same eight cards both sides, the player's only edge its OS — so 157-r1(a) landed on fights 2–5 (+9 to +11 there, measured twice) and could not move fight one (75.8%, n=2,400); after (a) the opener is the HARDEST of the first five. Arithmetic, not tuning: a mirror cannot reach 95. **RULED (157-r2): the opener holds the start kit MINUS its payoff, plus generics** — the player keeps the one payoff ruled 09-24; the enemy shows the engine that cannot fire. Deck rungs are now opener = kit − payoff · biome-0 wilds = start kit · biome 1+ = full kit. If fight one still misses 95, the next notch is the opener holding enablers only. **Fight one stays graded against 95.** Legion's alternative (the opener drops its three generics) is refused — a five-card kit is the sharper deck, not the gentler one. **jormungandr_v1 (157-r3): composition, not power** — 19% with three of five cards that do not advance the fight. RULED: one `undertow` → `surge_protection` in the opening five (undertow · blind_spot · serpents_coil · riptide_run · surge_protection), and `surge_protection` re-tagged glue (a flat hit with a rider, not a scalar) so the one-payoff rule reads it as it plays. sköll_v1 at 61% is the one-payoff rule as ruled; her kit does not change.
+
+**2026-09-25 — 157-r1 IS SHIPPED AND THE FIGHT-ONE READ IS IN. Three things, and the third is a decision.**
+
+**(1) The ruling landed and is worth about ten points — on a different fight from the one the 77.5% came from.** `enemyLoadoutFor` now takes the node's biome: a biome-0 wild holds `start-kit-plus-generics`, the same composition `createRun` deals the player, and biome 1 onward is the full tuned kit untouched. **Measured twice and they agree: the walker's fight two went 77.5% → 86.2% over 1,820 paired runs (+8.7pt, intervals disjoint), and `run-gate`'s `wild:biome0` cell went 67% → 78.5% over 400 battles (+11.5pt).** The control arm was produced by disabling the clause and re-running on the same seeds. The biome and the TIER are applied as two independent adjustments — the first draft returned early at biome 0 and silently ate ticket 60's tier raise, so a tier-3 run's first-biome wilds came out greedy and firmware-less.
+
+**(2) Fight one did not move, and it could not have.** **75.8% over 2,400 runs (CI 74.1–77.5) against the ruled 95.** Fight one of every run is the SCRIPTED opening — `isOpeningFight`, `fightsResolved === 0` — and it has held `OPENING_FIGHT_LOADOUT`, which is `start-kit-plus-generics`, since ticket 24. **The two sides' openings were already symmetric in the one fight the diagnosis was about.** What 157-r1(a) fixed is every OTHER biome-0 wild. The first report's 77.5% and this 75.8% are the same number measured twenty times as precisely.
+
+**(3) THE FLOOR IS NO LONGER A FLOOR, and 95 is not reachable with a mirror.** The run's designated gentlest fight now reads **ten points harder than the ordinary wild that follows it** (75.8% vs 86.2%), because at fight one both sides hold eight cards from the same table and by fight two the player has taken a pick and the enemy has not. At fight one the two sides have the same shape, the same count, the same IVs, the same AI and the same beam; **the player's only edge is its firmware, and that edge measures at +25.8 points over even.** No per-card work moves a mirror match to 95% while it stays a mirror. **Henry's decision: either the opening enemy drops the three generics (five cards against the player's eight — note that is `start-kit`, the SHARPER list, so it is not simply "shorter"), or fight one is not graded against `RUN_GATE_TARGETS.wild`.**
+
+**157-r1(b) moved fight one DOWN, and the cost is one number.** `skoll_v1` was the only one of the twelve whose five changed (ten already carried exactly one payoff; `jormungandr_v2` carries two and cannot be fixed inside its own five — TOXIN_FANG has only three non-payoff non-consume cards, so it is exempted with the arithmetic pinned, and fixing it needs a DECK change). Measured both ways at 200 runs: **old kit 80.0%, new kit 61.0% — −19 points, intervals disjoint.** That is *"the engine should be weak"* working exactly as ruled, and it is worth naming that the ruling and the 95 target pull in opposite directions on the same fight.
+
+**jormungandr_v1, read after the row as ruled: 19.0% over 200 runs, and it is NOT a power problem.** v1's kit scores **11.10** by 149c and v2's scores **10.80** — three tenths apart, and **seventy-nine points apart in the fight** (19% vs 98%). What separates them is what the cards DO: v1 is `undertow ×2 · blind_spot · serpents_coil · riptide_run`, and `undertow` is a LOOPING FREE DRAW while `blind_spot` is a debuff — **three of its five cards do not advance the fight**, and its single payoff is one copy. It opens on two live cards against an enemy's five, which is why it takes 5.4 turns to lose with 6% of its pool left: out-tempoed while it draws, not burst down. **The one-payoff rule says how many payoffs a five may carry and nothing about how many of the other four may be draw or debuff. v1 is legal under (b) and unplayable at fight one. That is a deck-composition question, so it is Henry's.**
+
+**New instrument: `npm run balance:walk -- --seeds 200 --fight 1`.** A truncation of the walk, not a second harness — same `createRun`, same node, same `rollEncounter`, same `runOne`, stopped after N fights. A full walk spends nearly all its time on fights the read does not look at, which is what capped the first one at five seeds a starter; at five seeds 60% and 80% are the same measurement. 2,400 fight-one runs cost about a minute. Report: `results/t157r1/FINDINGS.md`. Gate green, **3,078 tests / 213 files**. **Recorded, not fixed: `runGate.ts`'s ~line 160 docblock still cites `KIT_FRACTION_BY_BIOME[0]`, a table ticket 60 deleted** — the prose is right about the behaviour and wrong about where it comes from. `gullinbursti_v2` 58.5% is on the post-EA list with *"2.5 reads high on this body"*.
+
+**Queue as ruled, unchanged below this: 28b → 163g → 18b/40 cleanup → the big walk.** The 30×12 walk waits on the fight-one decision above, per ruling (6).
+
+**2026-09-24 (evening) — HENRY'S SIX RULINGS ON THE WALKER'S FIRST REPORT (`60c128a`, `d340503`, `2077092`).** (1) **Fight one is ~30 points under 95 because the two sides' openings are asymmetric**: 161 thinned the PLAYER's opening five (consume held back) while 67's ladder deals every wild the FULL tuned kit from fight one. RULED BOTH WAYS: the enemy ladder mirrors the start-kit SHAPE in biome 0 (wilds hold a start kit + generics; biome 1+ wilds and elites the full kit; gauntlet full + OS + Driver), AND every player start five must carry exactly ONE payoff card (scalar or consume) — *"the engine should be weak"*, not absent. jormungandr_v1 at 10% is this, not its own question. (2) **Trios — the guest is the element the gym BEATS**, never the player's counter: Emberfall = fenrir_v2 + sköll_v2 + huldra_v1; Tidewrack = the authored TIDAL SURGE trio, jormungandr_v1 + kraken_v2 + sköll_v2 (drops the kraken_v1/jorm_v1 double card-count pair 74 removed); Rootfall = huldra_v2 + ratatoskr_v2 + jormungandr_v2. The gate: each gym loses to its named counter party more than to the other two. (3) **Patches rank by the 149c-scored delta** (hook value after − before, 163 §3 as written), not touch count; the gate's two offers are two different kinds; Amplifier stays the shop stock. (4) **The gym pays 5 blueprints flat** (not 4 + a coin flip). (5) **Delete BOSS_COMPS.** (6) **The 30×12 walk runs only after (1) lands and a 5-seed fight-one read is near 95.** gullinbursti_v2 58.5% FLAGGED is parked post-EA (note: 2.5 reads high on that body). The patch shelf at 45 stands as a placeholder until the take-rate is re-read after (1) and (3).
+
+**2026-09-24 — THE DECK-ARCHETYPES MAP IS EMPTY.** The close-out queue is finished: **150, 154, 157, 158 and 163 are all CLOSED**, and with 163e the arc Henry set on 09-24 has no rows left. What remains on this map is **the ten post-EA species**, which wait until after Early Access by his 09-22 scope ruling, and the two design sessions under "Not yet specified" (the standardised balance report; playtest & ship criteria) that are his to call rather than blockers.
+
+**What is waiting on Henry, in one place:**
+
+1. **The opening fight is ~30 points under its ruled 95** on two independent instruments (157's walker 77.5%, `runGate`'s wild/biome-0 cell 67%), and **0 of 120 runs cleared a gym**. `jormungandr_v1` at 10% on fight one is probably its own question. Everything else on this list is smaller than this one.
+2. **Whether to queue the 30-seed × 12-starter walk** now or after that ruling — four to six hours, and worth spending on the game after the ruling rather than before it.
+3. **§1.4 reads gullinbursti_v2 at 58.5% FLAGGED** (was 15.6% IN BAND) — the same hook, correctly priced. A report line, not a gate.
+4. **Five of the six patches are never taken in play.** Roster fact, ranking bug, or offer shape?
+5. **`BOSS_COMPS` in `teamComps.ts` still names three unregistered `boss_relic_*` firmware** — the table's own header says it should go now that every gym is authored, and deleting a measurement suite is a decision rather than a tidy-up.
+6. **Two 28a conflicts** (steam-release): Tidewrack's ruled trio re-creates the two-engine fight 74 dismantled, and 68 ruling 3's odd-member clause now holds at one gym of three.
+
+**2026-09-24 — 163 IS CLOSED, and 163e's two numbers are both "not what you'd guess".** `npm run balance:walk -- --upgrades both` runs the pair (same seeds, same graphs, same offers, one spending policy apart); `--patch-price N` sweeps the shelf. Report `results/t163e/FINDINGS.md`.
+
+**(1) The upgrade arm is USED and changes almost nothing.** 54% take-rate — 58 upgrades at 108 benches, 1,810 scrap — and deck power moves **+0.06 at fight 4 and +0.02 at fight 8**; mean fights +0.17; biome-0 deaths 97 → 93. All inside the noise of 120 runs. **That is the arithmetic working rather than a disappointment**: an upgrade is +40% on ONE card in a deck of twelve to eighteen, and 163 §1's rule is that it never changes a card's shape. It becomes a large effect when runs get long enough to take five or six — which is 157's question, not this one's.
+
+**(2) The shop's patch price moves 50 → 45, and the take-rate is NOT what decided it.** Measured: 17% at 50 with nothing competing, **6% at 50 with upgrades competing**, 18% at 25. Halving triples it, so the shelf is price-sensitive and 50 was above what a run can pay — but the binding constraint is the PURSE, and pricing to a take-rate now would fit a number to a brokenness in the opening fight. **The condition sets it instead:** a patch is permanent, run-long, one slot per body, so `upgrade ceiling (40) < patch < blueprint (50)` = **45**. At 50 a patch cost the same as a whole body, which is the one thing it certainly is not. The slope says 45 reads ~8%; re-measure after the opening-fight ruling, which `--patch-price` makes free.
+
+**(3) FIVE OF THE SIX PATCHES ARE NEVER TAKEN.** Across 360 runs: **amplifier ×145, splitter ×3, nothing else at all.** `bestPatchFor` leads the gate's choice-of-two and the elite's offer and picks Amplifier on almost every EA firmware; the shop stocks Amplifier by ruling. The six riders 163c wrote against FIELDS are, in play, one rider. Not a bug — the 72-cell matrix says every transform is well-formed. Three different things could be true and they need three different fixes: the EA twelve are Amplifier-shaped; `patchTouchCount` is the wrong ranking; or the gate should offer a SPREAD rather than the best two. 163 §3's own argument was that a random patch is a no-op on most bodies, so "randomise it" is not the answer. **Henry's call.**
+
+**163f landed with it**: one `+` in the stall per RUN, on the market node a seeded draw over the run's own markets picks (no new run state, and it cannot be farmed by refreshing), from the PARTY's pool, as an EXTRA slot. Price derived from Henry's rule rather than tabled — buy-then-upgrade × 0.85 to the nearest five is **35 / 45 / 60 / 70**, the numbers he named, and the only 5%-step multiplier that lands all four rungs on a five. It is the single declared exception to `isRewardable`'s refusal of `+` cards, and **25-pre's "nothing outside the EA pool reaches the stall" test failed when it landed** — which is what should happen when a new door opens onto a shelf a previous row closed.
+
+**2026-09-24 — 157 IS CLOSED, AND ITS FIRST REPORT IS THE MOST IMPORTANT NUMBER ON THIS PAGE. `npm run balance:walk` plays whole runs; 120 of them cleared the gym ZERO times.** The walker is built on §5's four rulings — run-start deck, never bench but recruit strategically, the EA twelve as starters, picks by 149c score with every offer logged — and it holds **no second opinion about any rule the game already has**: it moves the run by dispatching `runSlice`'s own actions into a real store, rolls fights with `rollEncounter`/`rollGauntletFight`, prices shops with `marketplace.ts` and rolls rewards with `rollDropTable`. What it adds is a policy, and each ruled row is one exported function so it can be argued with in isolation.
+
+**THE THREE FINDINGS, and they separate 148/153/158 the way §4 said they would.**
+
+**(1) 0 of 120 runs cleared the gym.** Four starters reached it (skoll_v1, skoll_v2, kraken_v1, huldra_v1) and all four lost there. **100 of the 120 deaths are in BIOME 0**, 14 in biome 1, 6 in biome 2. That is the real answer to 162c's *"cannot clear a gym"*, and it is not a gym problem — most runs never see one.
+
+**(2) The deck-power curve EXISTS and is strong: 2.03 → 3.11 → 3.91 → 4.31** at fights 1 / 4 / 8 / gym. **It is not survivorship** — the six starters that reach fight 8 open at **2.06** against the all-twelve **2.03**, so the decks that survive did not start stronger. Per §4's first branch, **the rewards are NOT the problem**, which retires the thing 153 was opened about.
+
+**(3) So the fights are, and it is FIGHT ONE.** Mean opening-fight win rate **77.5%** against the ruled **95%** (`RUN_GATE_TARGETS.wild`); **eight of twelve starters are under target**; **`jormungandr_v1` reads 10%** — it loses nine of ten openers and then wins its next five in a row. **Two independent instruments agree**: measured in the same session, `runGate`'s own wild/biome-0 cell reads **67% over 24 samples** against the same 95%. That is what makes this a finding about the game and not about the new harness.
+
+**AND ONE THAT CONTRADICTS THE PLAYTEST, usefully. 153's number is about 2%** — of 341 picks taken, roughly eight were worse than everything already in the deck, and seven of twelve starters never took one. Henry's playtest impression was *"picks go to the collection because nothing improves the deck"*. Both are true at once, and the gap IS the finding: **the machine takes the best card on offer every time and never has to FIND it.** Per §4's third branch that points at visibility (158/159), not at the table.
+
+**The recruit policy works and half of it went untested.** skoll_v2 took fenrir_v2 six times of seven, kraken_v1 took jormungandr_v1 four times, ratatoskr_v2 took huldra_v1 four times — every one an authored partner out of 158-r1's registry grammar (which is why that row came first). **Nobody ever recruited for the counter element alone, because a partner was always available first**: the ruling's priority working, and the counter-element clause therefore unmeasured.
+
+**TWO ENGINE CHANGES, both general.** `RunResult` gained `playerEnd` and `enemyEnd`. `playerEnd` carries HP through the gauntlet's three fights (the only place a run carries HP — *"FULL HEAL between regular nodes"*). `enemyEnd` is not symmetry: **`rollDropTable` pays only for bodies at `currentHp <= 0`**, so a walker handing it the party as ROLLED gets an empty bundle — the first build of this file did exactly that and measured a run where no fight ever paid a card, which read like a devastating finding about the reward table. The join is POSITIONAL because `buildScenarioState` mints its own entity ids, and an id join matches nothing and looks exactly like a fight nobody lost.
+
+**Scope and honesty.** Ten seeds × twelve starters, not §3's thirty: a surviving run costs ~60 s (kraken_v1's ten took 634 s; jormungandr_v1's ten took 2 s because they end immediately), so 30 × 12 is a four-to-six hour job and is the right NEXT run — after a ruling, so it measures the game after rather than before. Policy v0 is dumb on purpose and the curve is **the FLOOR a human should beat**: never benches, never edits the deck, never removes a card, one shop buy per visit, first blueprint equipped. **A floor at 0/120 says the floor is below the table, not that the game is unwinnable.** One deviation from §3, named: it plays at the beam the ENCOUNTER carries (8) rather than §3's "beam 0", because taking §3's number would mean the harness holding a second opinion about AI width against the run's own. Gate green, **3,041 tests / 213 files**. Report: `results/t157/FINDINGS.md`; raw `results/t157/walk-10.txt`.
+
+**DECISIONS NEEDED: (1) the opening fight is ~30 points under its ruled target on two instruments — a number to rule on, not to tune around, and `jormungandr_v1` at 10% is probably its own question. (2) whether to queue the 30 × 12 run now or after that ruling.**
+
+**2026-09-24 — 158 IS CLOSED: the OS grammar is registry data, and the recruit screen tells you who it already wants.** 158-r1 as ruled (§5.3): `cur`, `tempo` and `partners` moved out of `collection-v2/collection.json` into `src/engine/data/osGrammar.ts`; `collection.py` no longer carries them; `collectionExport` writes them into `registry.json` and `registry_source.apply` sets them on the page. One source, three readers. **Both the tokens and Henry's designed line are kept** — the tokens are what 157's walker will match and what the chips draw, the line is the only place the parentheticals live, and *"ramp (push piles past 4)"* is a different plan from *"ramp (Str consume)"*. **Partners are firmware ids now, which is the part that unlocks the readout**: the design file said `'Rat v1'`, nothing could join that to `ratatoskr_v1`, and so the screen could not mark *"this partner is already in your party"* until today. `OSGrammarRow` draws it at the workshop's OS choice, both sides of the reflash comparison, and the loadout editor's party and bench rows — read against the PARTY, not the roster, because a benched body feeds nobody. **An OS with no grammar recorded draws nothing, not "currency: —"**: `grammarFor` is undefined for every post-EA firmware because nobody has written its currency down, which is not the same statement as "it has none".
+
+**WHAT THE GRAMMAR LOOKS LIKE NOW THAT IT CAN BE COUNTED** (pinned in `osGrammar.test.ts`, not described): **eleven distinct currencies across twelve firmware — five shared, six solo, and `cards` alone banked by FOUR** (both ratatoskrs, jormungandr_v1, kraken_v1, all counting the same thing). **Tempo: ramp 7, control 7, zoo 7, keeper 2.** **The partner web is 37 rows and five are one-way**; symmetry is deliberately not asserted, but the five are pinned so a design pass that makes a pairing one-way fails and gets read — the one worth an eye is `ratatoskr_v1 → ratatoskr_v2`, a species pointing at its own other firmware unreturned.
+
+**TWO THINGS FOR HENRY, both small.** (1) **`keeper` is a fourth tempo.** §5.3 names three; the data has `keeper` on ratatoskr_v1 and huldra_v1. The data is the design, so the type is four wide — if three was meant, two OS need re-tagging. (2) **One partner entry names two bodies** (`huldra_v1`'s `'Fenrir v1 / Sköll v1'`); it became two rows carrying the same sentence, unsplit, because its clauses do not divide along the slash (the second names Cinder Lance, which is fenrir_v2's card).
+
+**One accepted regression, named because it is a regression**: a `--design` build of the browser (no `registry.json`) now has no grammar to show and says *"from the registry — run `npm run decks`"* rather than printing three blank facts.
+
+**AND THE THING THE SYNC CHECK CAUGHT, which is the reusable part.** Before committing a generator the container had a copy of, `src`, `scripts` and `collection-v2` were md5-manifested on both machines and compared. **The container's `collection.py` was STALE** — the machine's carried 162e's new EMBER_FUSE sentence and a `skoll_v1` kit swap (`brute_force` in, `snarl` out) that matches the shipped registry. Committing the container's copy would have silently reverted both. The edit was re-applied to the machine's file instead, and the twelve grammar values were verified equal between `collection.json` and the machine's `collection.py` before anything was written. `registry.json` was regenerated in the container (vite-node still does not run on the machine); **`browser.html` was rebuilt ON THE MACHINE and came out byte-identical.** Gate green, **3,024 tests / 212 files**.
+
+**2026-09-24 — 154 IS CLOSED: a bad registry id now STOPS in development and still travels in a shipped build.** 154a as Henry ruled it — `import.meta.env.DEV` throws, production returns the same hollow sentinel it always has, **no call-site changes** (§4 counted 40, 22 of them UI, which is why this arm was the recommendation). The law lives in one new file, `src/engine/data/registryMiss.ts`, and **the message carries the diagnosis rather than the id**: 142d was a CATEGORY confusion — a firmware id (`kraken_v1`) asked of a registry keyed by SPECIES — so the throw names `speciesOwningFirmware` instead of leaving the reader to rediscover it a third time. **Turning it on failed 11 tests in 6 files, and the split is §2's "read as noise" claim with a count on it:** three files MEANT to reach the sentinel and are pinning graceful degradation (`stackHand` skipping a card a saved run no longer has, the reward element-pool fallback, `getDeckForOS` returning `[]`); three build battle entities with invented `definitionId`s — `def1`, `def2`, `test_def` — that **`generateIntents` has been asking the registry about on every pre-turn for as long as they have existed.** Both kinds hold a scoped, one-line opt-out (`beforeAll(() => allowRegistryMisses('why'))`, whose returned function `beforeAll` uses as teardown, so it cannot leak into the next file) — a counter, not a boolean, so a nested hold survives an inner release. **Deliberately not a global switch**: a blanket opt-out turns the whole thing back into a `console.warn`. The synthetic fixtures were NOT given real species ids, because a real species brings a real moveset and that would change what those tests measure. **§3's three `not.toBe('missing')` assertions stay green and are now unreachable as failures** — the throw arrives first, with a better message — and they are kept anyway: each is a scar from a bad id that travelled, and the sentence still states what the far end needs, now enforced upstream instead of checked downstream. **§6 folded in free:** the last three hand-written firmware→species resolutions (`liveness.ts`, `runDeckReport.ts`, `runGate.ts`) call `run/gyms.speciesOwningFirmware`; `runGate`'s copy searched `LAUNCH_SPECIES` where the shared one searches the whole registry, and `runGate.test.ts` now asserts that is the same answer rather than asserting it in a comment. Gate green, **2,998 tests / 210 files**. 154b/c/d recorded and not open — **154d (branded `SpeciesId`/`FirmwareId`) is the only arm that prevents the CLASS**, and the one to reach for if this proves insufficient.
+
+**2026-09-24 — 150 IS CLOSED: KINETIC_RAM rides the power at +2.5 as printed, and it is +27.9 field points.** Arm B shipped per Henry's ruling (`ecb5008`). The arm that was NOT taken is the interesting number: **arm A (`bonus: 1`) measures +0.2 against the shipped flat-HP hook** over 1,200 games — dead level, exactly where §2's conversion table put it, which is the cleanest confirmation that method has had (150c's miss was the *sentence* under the table picking the STAB'd end of its own range, not the table). **Arm B is a buff and was ruled as one: 49.0% → 76.9%**, gullinbursti_v2 from mid-field to top of it. Nothing tuned in response — no numeric tuning before playtest, and she is post-EA. **The dial saturates** (13.8 / 9.8 / 4.3 points for the four half-steps) because games shorten 6.4 → 5.0 turns and the hook fires 22.6 → 16.7 times: past ~+2 the deck kills before the extra power is spent. TOXIN_FANG's dial was straight at ~11 a unit — **a saturating dial means the deck is winning on tempo, a straight one means the hook is the deck.** Report `results/t150d/FINDINGS.md`. **§1.4 moves 15.6% IN BAND → 58.5% FLAGGED** on the same hook paying the same 2.5, because the trigger is what decides whether the scorer sees power or has to convert HP back through the frame — the first firmware past the 50% flag since that band was set. **The flag is a report, not a gate; it needs a ruling, not a fix.** 150e landed with it: the unit law is on the `bonus` line in `HookFactory` where the field is read, and `descriptionData.test.ts` now asserts it in both directions plus a guard against an empty walk. That test exists because KINETIC_RAM printed *"+2.5 **power**"* while paying flat HP for two tickets and the file passed the whole time — **every number it printed was in its own data; the UNIT was the lie, and nothing was looking at units.** Gate green, **2,988 tests / 209 files**. (A correction I owe the record: the gate was run at 2,986 and then the `daemonCoverage` guard below added two more assertions before the commit, so the first draft of this line said 2,986. The 2,988 figure is measured, not arithmetic — the suite was re-run on this tree with 154a's throw switched off.)
+
+**THE ONE THING THE RELIC SWEEP STILL HAS OPEN, and it is Henry's call, not a fix I should make.** `BOSS_COMPS` in `src/debug/balance/teamComps.ts` — eight comps — still names `boss_relic_fire` / `_water` / `_ice` as member firmware, and all three are **UNREGISTERED**: `getOSBehavior` returns undefined for every one, and `gauntlet.test.ts` asserts by name that no `boss_relic_*` firmware is registered anywhere. `gauntlet-boss.balance.ts` consumes that table and asserts every member id *starts with* `boss_relic_`. The gate does not catch it because `*.balance.ts` is a separate suite. The merge's relic grep called `boss_relic_*` legitimate, which was right about the *vocabulary* and wrong about these eight rows. **The table's own header already says what to do** — *"that space shrinks by one gym per authoring session until it is empty, at which point this table goes, rather than being ported"* — and ticket 17 emptied it (every gym is authored; `gauntlet.test.ts` calls that the invariant the relic deletion rests on). So the likely answer is DELETE `BOSS_COMPS` and `gauntlet-boss.balance.ts` and let the run gate pinned to a gym be the boss instrument, as that header says. Deleting a measurement suite is a decision, so it is reported here rather than taken.
+
+**2026-09-24 — MERGE LANDED, HOUSEKEEPING, and what is actually left.** `steam-prep-september` is merged onto `playtest-polish` (`6c25d2b`; Legion's write-up `986635d`: ten commits not four, five conflicts, hooks.json merged as JSON, relics gone with 163d's elite payout on `paysDriver`, the canary unmoved). `playtest-polish` is the September line. **Henry signed off 142, 146, 147, 155 and 162 — CLOSED.** 148 CLOSED as superseded (157 is its measurement, 161/163 its levers); 153, 156, 160, 161, 151, 95 closed as housekeeping; the map's Destination is rewritten for the EA/v2 scope. **Correction to the block below: 150a–c SHIPPED 09-22** (`f8428b2`, `ba35b95`, `782fea8`); only 150d and 150e are open. **The arc's open list, in order: 150d (arm B, `bonus: 2.5`) + 150e → 154a → 158-r1 (tags into the registry + recruit/loadout readout) → 157 walker (§5 as ruled) → 163e on the walker.** After those the deck-archetypes map is empty except post-EA species. Two design sessions with no rows stay under "Not yet specified" (the standardised balance report; playtest & ship criteria) — Henry's to call, not blockers.
+
+## 0-MERGE-steam-prep-september-ONTO-COLLECTION-v2 (2026-09-24, `6c25d2b`)
+
+Drivers (tickets 16/17) and ticket 77's Tracks B+C are on `playtest-polish`. **TEN commits came across, not four** — the branch had moved since the instruction was written, and the six extra are ticket 77 (17 arms, 2,700 battles, the macro/root-rot harness and `scripts/ticket77-arms.mjs`). Henry ruled all ten. 132 files, 11,741 insertions; `package-lock.json` untouched as instructed.
+
+**FIVE CONFLICTS, not the four predicted.** Four were the expected keep-both:
+
+| file | what collided | resolution |
+| --- | --- | --- |
+| `lib/hooks.json` | our 20 additions (EMBER_FUSE moved, 12 `+` daemons) vs their 15 `driver_*` | **merged as JSON, not as text.** Base/ours/theirs parsed and reconciled by key: no key was edited by both sides, so nothing had to be arbitrated. 82 keys, valid, 18 drivers, 12 `+` hooks |
+| `firmwareRegistry.ts` | our `RAW_FIRMWARE_HOOKS` line vs their `createHook(h, driverId)` | both |
+| `resolutionEngine.ts` | our 146b `cause` field vs their two-field version | **ours, then corrected** — `amount` was a local their `buffer_cache` branch used to bind, and that branch is deleted, so it reads `mutation.payload.amount` now |
+| `useBattleVfx.ts` | our 162e cue imports vs their `describeDriver` | both |
+| **`BattleReport.tsx`** (unpredicted) | 163d's patch panel vs the relic removal | relics out, patch in, and `onContinue` lost its `chosenRelic` argument — the patch now rides in its place |
+
+**THE hooks.json MERGE IS WORTH KNOWING ABOUT.** Eight conflict blocks in an 88KB file, all of them "both sides appended keys". Resolving that by hand in the markers is how a JSON file ships with a duplicated or dropped entry, so it was done structurally instead: the three versions parsed, keys reconciled, and the result re-validated. It also caught one thing a text merge would have got wrong — their side still carries the four `*_daemon` keys 162a RENAMED, and a naive union would have resurrected four dead entries under ids nothing points at. They were deliberately left out.
+
+**THE RELIC GREP FOUND THREE THINGS, one of them real.**
+
+1. **Six committed ticket-118 snapshots stopped loading.** `activeRelics` → `activeDrivers` is ticket 16's rename, and the scenario schema migrated the SETUP half (`player.relics`) but not the STATE half — the field is required, so the rename made it absent rather than wrong and six playtest positions failed outright. Fixed in `scenarioSchema` with the same preprocess the setup half uses. **Those files are evidence, not fixtures**; the loader reads old files, which is what that preprocess is for.
+
+2. **One test fixture string**, `runSlice.test.ts`'s `'relic_a'` driver id — renamed.
+
+3. **Everything else is legitimate** and stays: `boss_relic_*` is a set of gym-boss OS ids (a different thing entirely, and `RanchScreen.test.tsx` asserts the player never sees the word), `--boss-relics` is a kept CLI alias, and several tests assert the relics are GONE. **Zero dangling references to the deleted registry**; the only live mentions of the old vocabulary are the three lines of the migration itself.
+
+**ONE REAL INTERACTION, found by the suite.** Their `DEEP CACHE` case played `undertow` to make a triggered draw and asserted the drawer gains 1 Strengthened. It read 0 — because ticket 152 gave `undertow` a self-Weakened rider and **Strengthened cancels Weakened stack for stack**, so the Driver's grant and the card's own drawback annihilate. The Driver fires correctly; the card it was measured with now erases the measurement. Swapped to `forage`, whose drawback is HP and cancels nothing. Also fixed: their new `BattleTopBar.proc.test.tsx` used `onOpenLog`, which ticket 155 renamed to `onToggleLog`.
+
+**163d's ELITE PAYOUT IS RE-POINTED AT THE DRIVER**, per Henry's amendment. It read `nodeKind === 'elite'` because §3 says an elite pays a patch — written when an elite's other prize was a relic. Ticket 17 replaced that with the Driver and decided which nodes pay it: elites AND ambushes, because an ambush is harder. The patch asks `paysDriver` now rather than keeping a second opinion about which fights are the big ones, so the two prizes arrive together and cannot drift apart.
+
+**THE CANARY NUMBERS DID NOT MOVE.** One pass on the merged tree, `AI_LITE=1 --beam 8 --iterations 1` (`results/merge/canary-merged.txt`), against the committed `canary-drivers.txt`:
+
+| arm | procs/battle committed (n=180) | merged (n=12) |
+| --- | ---: | ---: |
+| FIRST BLOOD | 5.52 | 5.50 |
+| THIRD → TENTH STRIKE | 1.92 | 2.00 |
+| STATIC FIELD | 32.92 | 31.75 |
+| ANTIVENOM | 1.19 | 0.75 |
+| OVERKILL RECOVERY | 5.27 | 4.58 |
+| BULWARK REFLEX | 1.86 | 2.08 |
+| DEEP CACHE | 2.07 | 2.58 |
+| ELEMENT | 8.35 | 8.92 |
+
+**Read the RATES, not the win rates.** procs/battle is a per-battle census and survives n=12; every arm lands within noise of its committed number, which is the answer to "do the Drivers still fire the same way against collection v2" — yes. Win% at n=12 is worthless (the bare arm reads 50.0% against its committed 56.7%, and the standard error is about 14 points), so nothing should be concluded from it. ANTIVENOM is still mostly silent (52% of battles committed, 9 of 12 here) and DEEP CACHE still silent in a chunk — the same story, not a new one.
+
+**The committed baseline predates the ticket-16 amendment**: it says THIRD STRIKE where the tree now says TENTH STRIKE. Worth knowing before that file is used as a reference again.
+
+Gate on the merged tree: eslint 0, tsc -b 0, **2,983 vitest across 209 files**, build clean. `npm run decks` re-run and `build.py` re-rendered (98 cards, 12 OS); 162d's browser test passes. The browser and `registry.json` were regenerated in the container rather than on the machine — the device VM still cannot run vite-node (rollup native) — which is safe here because the container was brought to full md5 parity with the merged tree first.
+
+**2026-09-24 — 162e and the whole of 163b–d are SHIPPED** (`c95ab75`, `fbe93f4`, `a331def`, `73ce677`). The upgrade venue, the patches engine and patches in a run are all in; gate green at 2,921 tests across 203 files. **Still open from Henry's queue, in his order: 150a–c, then 150d (ruled arm B, `bonus: 2.5`), then 154a, then 157's run walker, then 163e's measurement on it.** Nothing below blocks a playtest — a patch and an upgrade are both reachable in a run now.
+
+**2026-09-24 — 162e: EMBER_FUSE per hit, and the condition that says "attack" now does something.** The trigger moved to `onPostDamage` (per swing) from `onActionStart` (per card); Pack Tactics on a Burning target applies 3. POST rather than pre, on 162a's `molten_core` lesson — a Burn added before the swing would be read by that swing's own damage. **Two things the "check the rate limiter" instruction found.** (1) `isAttack` had been in `HookSchema` since ticket 103 and READ BY NOTHING — ticket 107's test says so by name — and `ember_ward`/`ember_ward+` had since tried it, so they were scorching an enemy for applying WEAKENED. Implementing the field fixed both; the negative case now has the test it never had. (2) 147b coalesces identical cues inside 60ms, so three procs in one tick would have been ONE audible proc against three Burn on the board. `HOOK_FIRED` now carries the stated-series `step`, and the detection rule is one exported helper instead of two copies.
+
+**2026-09-24 — 163b: the upgrade venue.** Henry ruled BOTH stops, so the bench is at the market stall, the workshop and free at the gym gate — one component, one reducer, because the three differ only in price and whose allowance they spend. Upgrades are IN PLACE: the instance keeps its id and changes which card it points at, so holding two and upgrading one does exactly that. 25/30/35/40 by energy (Henry's 25–40 band, flatter than buying because an upgrade is the same size of favour whatever it lands on). One per visit per bench, keyed on `node.visited` — a bench is a SERVICE, not a shelf, so walking back is a new allowance at the price of the wilds. The `+` needed no UI (the registry name ends in one); the CHANGED NUMBER did, and `describeUpgrade` diffs the two printings positionally so "15 power, twice → three times" marks nothing about the 15. The bench prints no card description, on the workshop bay's standing law.
+
+**2026-09-24 — 163c: patches, written against FIELDS not firmware.** Six transforms from hook data to hook data, so the 72 cells are asserted rather than authored. A patch that finds nothing returns the hook unchanged by object identity, which is §3's scorer flag as behaviour. **Two measured limits, both kept rather than assumed away: FAILSAFE was inert on all twelve** (it looked for a negative `amount`; UNBOUND_KERNEL's recoil is `percentMaxHP`, §3's own worked example) — found by asking whether each patch changes anything on anybody, which is worth asking of any table this shape; and **`fenrir_v1_berserk` and `huldra_v2_bark_end` are hand-written code**, so no data transform reaches them. The test names both; its first draft claimed there were none and was wrong. Also collapsed: "which hooks does this body run" was in FOUR places, and the three copies in the damage/heal/power paths would have left AMPLIFIER silently doing nothing to every multiplier firmware. One place now (`core/entityHooks.ts`), keyed on the patch as well as the OS.
+
+**2026-09-24 — 163d: patches in a run.** Run state keyed by member id (§5: no cross-run persistence). One slot, and it does NOT swap — refused rather than replaced, because swapping turns a commitment into an inventory slot and that decision has not been made. **No door offers a dead row**: the elite gives each body the rider that changes the most about ITS firmware and skips a full slot; the gate's two are the body's best and the best of the rest; the shop stocks Amplifier. `bestPatchFor` uses touch count, so OVERCLOCK can never win it — its count is zero by construction — and it reaches the player through the doors that do not rank. **The shop's 50 scrap is Legion's, not Henry's**: §3 names no price, and 163e's take-rate is the number to tune it from. The reward panel's patch is optional where the relic is mandatory, because a patch has no undo.
+
+**2026-09-24 — closures and 158 rulings (Henry).** **145 CLOSED** ("close 145"). **153 CLOSED** — good for now; absorbed by 161/163/142. **158 ruled:** currencies are statuses AND Energy; ally targets already in; recruit screen shows currency + tempo → **158-r1 (Legion):** move `cur`/`tempo`/`partners` from `collection-v2/collection.json` into the registry (one source for the walker, the readout and the browser) and add the readout to the recruit/loadout screens. Slot 158-r1 before 157 so the walker reads the registry.
+
+**2026-09-24 — three more rulings (Henry).** **150d = arm B, `bonus: 2.5`** (as printed) — build it. **154a YES.** **157 §5 ruled:** baseline = run-start deck; never bench but recruit strategically from `collection-v2/collection.json`'s `cur`/`tempo`/`partners` and toward the gym's counter element (WWF gym → NNW party); starters = the current EA twelve; picks by 149c score with every offer and pick logged by card id. Legion order after 162e/163b–d: **150d → 154a → 157 walker**.
+
+**2026-09-24 — EMBER_FUSE RULED per hit (Henry); state of play.** 162e for Legion: hook from `onActionStart` to per-hit, sentence says "each hit", `emberFuse.test.ts` pinned to 3 procs from Pack Tactics / 1 from Brand. 163a is SHIPPED and closed; **163b (venue) → 163c (patches engine) → 163d (patches in the run) → 163e (measure)** are Legion's next rows, then 150a–c and 154a. 157 waits on Henry's §5 (or "defaults"). Map rows for 160/162/163 reconciled.
+
+**2026-09-24 — 163a SHIPPED (`fa26724`): the 98 `+` cards are in the registry.** Every card in `collection-v2/upgrades.json` now has a `<id>+` entry with `upgradeOf`, the text Henry ruled, and actions built from the BASE card's actions rather than from its prose — `scratch/t163a_build.py` moves the numbers the text moved and then proves the two agree, and it REFUSED four cards (`blood_rite`, `pile_on`, `molten_core`, `thorn_whip`) rather than guessing, which is why the other 68 are worth trusting. **Nothing can reach one**: four doors closed (`isRewardable`, `EncounterGenerator`, the codex denominator, the band audit), guarded by `plusRegistry.test.ts` and mutation-tested. `EncounterGenerator` was a LIVE LEAK — its pools walk the whole registry, so an enemy would have been dealt Hydro Blast+ at 170 power. **Both things it raised were RULED the same evening** — see the block below; nothing from 163a is waiting.
+
+**2026-09-24 — the Sköll kit swap is GATED.** Ruling (3) of the 162c set asked Legion to run the gate on `37f9d40`. Done: 2,783 green at that commit, nothing pinned the old list, `brute_force` reads Strength (`25 power, +8 if you have Strength`) so 158 §2's pair rule is satisfied in the opening five. No change needed.
+
+**2026-09-24 — Henry's rulings on 162c.** (1) **The run-gate result is NOISE** — it ran the un-drifted starter kit against the gym, which 161 deliberately weakened; ignore 0-A-v2-RUN-CANNOT-CLEAR-A-GYM until the walker (157) or a drifted-deck gate exists. (2) **The 1v1/3v3 deck tables wait for playtest**; no numeric tuning. (3) **Sköll v1 kit swap, APPLIED** in `mingmingRegistry.ts` + `speciesPools.ts` + `collection.py`: Brute Force into the kit and the start five, Snarl to the pool — the opening five now holds a Strength reader (158 §2's pair rule). **Legion: run the gate** (the device VM cannot — rollup native module), regenerate `registry.json`/browser, and fix any kit test that pinned the old list. (4) **YES** to retiring ticket 61's two kit rules that 161 replaces. (5) **YES** Heartwood ships `Single`. (6) **EMBER_FUSE per card vs per hit — still Henry's**; recommendation on file is per hit (Pack Tactics is in Sköll v2's kit for exactly that).
+
+**2026-09-24 — repo repair.** Two of my commits last night (`1398552`, `ce40788`) wrote `collection-v2/build.py` and `browser.html` from a pre-162d working copy and silently un-did 162d twice; Legion restored it and guarded it (`collectionBrowser.test.ts`). Now `upgrades_gen.py` also goes through `registry_source.apply`, `browser.html` is regenerated from `registry.json` on the machine, and `tickets/157` + `research/single-player-card-games.md` — never actually committed on 09-20/21 — are in. Rule for me from here: never commit `build.py`, `browser.html` or `registry.json` from the container; edit the design/generator files and regenerate on the machine. **163 is NOT built** (no `upgradeOf`, no `<id>+` in the registry) — it stands as written, after Henry rules the 162c findings.
+
+**2026-09-23 — 163 is implementable.** §4 rewritten as Legion rows with data shapes and tests: 163a `+` registry (no pricing gate; `+` exempt from the band flag) → 163b workshop Upgrade tab + gym-gate free upgrade + `CARD_UPGRADED` → 163c patches engine (`patches[]` max 1, `modifies` fields on the firmware runner, six patches, plaque chip) → 163d patches in the run → 163e measure. After 160-e1, 162a and the playtest prep.
+
+**2026-09-23 — 163a rule revised** (Henry): status upgrades are +(1 + Energy cost) stacks (0e +1 … 3e +4); raw numbers +40%; draw/Energized unchanged. `collection-v2/upgrades_gen.py` regenerates `upgrades.json`. Burn caps at 4 and detonates past it, so Inferno+ (5 Burn to the side), Wildfire+ (5 each) and Heat Wave+ (double, then +3 each) are detonation cards by the rule — **RULED intended** (Henry: *"upgrades are supposed to be broken"*). 149c prices `+` rows but does not band-flag them.
+
+## 0-UPGRADES-ARE-RULED-BROKEN-AND-NOT-SCORED (163a, 2026-09-24) — SETTLED
+
+Henry, closing 163a: *"Leave ignite broken — upgrades are supposed to be broken. So no need to score them."* Two decisions, both applied. **Do not re-litigate either from a measurement** — he had the measurement.
+
+**(1) `ignite+` stands as printed.** Ticket 152's tripwire fired on it. All three new 0-energy draws were measured on ONE instrument (`t149_castprobe`, base and `+` back to back on the deck that runs two copies):
+
+| card | >=3 casts in a turn | >=6 | max |
+| --- | ---: | ---: | ---: |
+| `forage` → `forage+` | 0.2% → 0.3% | 0.0% → 0.0% | 7 → 7 |
+| `undertow` → `undertow+` | 0.3% → 0.0% | 0.0% → 0.0% | 4 → 2 |
+| `ignite` → **`ignite+`** | 7.7% → **26.3%** | 0.3% → **23.1%** | 8 → **16** |
+
+`ignite+` is a loop its base is not, seventy-seven times the rate above six casts, because the base draws only if the target was ALREADY burning — at 1 Burn a real condition, since the pile decays; at 2 Burn not a condition at all. Three fixes were put to Henry and he took none. **`freeDrawCardIds` now drops the whole `upgradeOf` class**, not `ignite+` by name: the next upgrade would ask the same question and get the same answer, and the ticket-163 pass is *defined* as cards that break their budget. The rule is untouched for the shipped pool — a BASE card that starts drawing for nothing still stops the build, and `encounter.test.ts` asserts that directly so the widening cannot swallow one.
+
+**(2) No `+` row is scored.** The ledger was built, run and read first — twelve cards flagged at two rungs or more, Ember Ward+ at +439% because the rule turned "the attacker gains 1 Burn" into 4 on a hook that fires every time you are hit — and Henry ruled the question out rather than any card in it. `powerscale.isBandExempt` carries the ruling, the card budget audit passes over them, and §2's rung flag is struck from the ticket. `scratch/t163a_ledger.ts` and `results/t163/LEDGER-PLUS.txt` stay as the record of the number the ruling overrode — and because that ledger is what found the scorer bug below.
+
+## 0-THE-SCORER-WAS-READING-THREE-SCALINGS-AS-ZERO (163a, 2026-09-24) — FIXED, AND IT TOUCHES 162b
+
+`SHARP_STACKS`, `STRENGTH_STACKS` and `TARGET_STATUS_STACKS` fell off the end of `powerscale`'s ATTACK chain and contributed **nothing, with no flag**. Six shipped cards were priced at their printed base with the whole rider invisible:
+
+| card | printed | what the scorer saw |
+| --- | --- | --- |
+| `flashover` | 50 power, **+15 per Burn on the target** | 50 |
+| `cinder_lance` | 40 power, +6 per Sharp | 40 |
+| `sap_strength` | 20 power, +6 per Weakened | 20 |
+| `thorn_whip` / `spike_launch` | 15 power, +5 per Sharp | 15 |
+| `unbound_fang` | 5 power **per stack of Strength** | 5 |
+
+Found because 163a's ledger asks a question 162b's could not: the `+` pass moved every one of those riders and the scorer reported a lift of **exactly zero** on all five that have one. A card that does not move when its only number moves is an instrument fault, not a dud upgrade.
+
+**FLAGGED, NOT PRICED.** Every `ASSUMED_` constant in that file came out of ticket 66's census of real battles, and the Sharp, Strength and target-Burn piles have not been measured — a number invented there would read as a measurement, which is the failure ticket 66 spent a census correcting. So they say UNPRICED and the ledgers print it. **This means 162b's ledger under-read those rows**, including `flashover`, which is one of the cards the 2e-rung conversation was about. Re-pricing them needs a census; that is a ticket, not a line.
+
+
+## 0-A-v2-RUN-CANNOT-CLEAR-A-GYM (162c, 2026-09-23) — THE ONE BLOCKER
+
+Ticket 61's run gate on collection v2, 18 battles (`results/t162/RUNGATE.txt`):
+
+| band | target | measured | verdict |
+| --- | ---: | ---: | --- |
+| WILDS | 95% | **100%** (6/6) | PASS |
+| ELITES | 75% | **50%** (3/6) | FAIL by 20pt |
+| GAUNTLET | 60% clear | **0%** (0/6 fights) | FAIL by 55pt |
+
+Under-sampled at 2 iterations a cell, so provisional — and the gauntlet is not marginal enough for that to matter. The player loses **every one** of the gym's three fights and the damage is one-sided rather than close: **574 / 502 / 582** a turn against **741 / 1,098 / 1,332**. The boss fight lasts 2.5 turns.
+
+**IT IS NOT THE UN-DRIFTED FLOOR**, and ruling that out is the useful half. The gate models a run before a single reward is taken, and 161 §2 deliberately lowers that floor by keeping the consume out of the opening five — so "161 and the run gate are in tension" was the obvious suspect. Measured instead: `--deck engine-plus-3` (a 27-card drifted deck, `results/t162/RUNGATE-drifted.txt`) moves the gauntlet 0/6 → **1/6**, boss still 0/2 at 443 against 1,106. Rewards do not save it.
+
+**What does explain it, from two directions at once.** v2.1 raised the big Water numbers (Hydro Blast 105→120, Maelstrom 90+1 Dazed→100+3, Tidal Wave 45→55, Boiling Surge 40→55) and **Tidewrack is the Water gym** — so those buffs landed on the ENEMY side of the fight the player must win. Meanwhile the player's whole 2e rung sits **36% under Henry's own slot tax** (below). Both halves of the gym fight moved in opposite directions in the same pass.
+
+## 0-THE-BAND-IS-HENRY'S-SLOT-TAX-AND-THE-REDLINE-IS-GENERATED (162b, 2026-09-23)
+
+**`BUDGET_BANDS` is 12 / 30 / 70 / 120 power** for 0/1/2/3 Energy. Henry: *"Keep my numbers."* The rule behind them: *"you pay for the cost of playing 1 card"* — a 2e or 3e card must beat two 1e cards, because it spends a hand slot as well as the Energy and the old 10/30/65/105 curve charged it only for the Energy. The 1e rung did not move, so the curve stays anchored where the roster is densest and every per-status price is still in the same power unit.
+
+**This audits the WHOLE registry**, not collection v2's 98 — the 170 v1 entries twenty post-EA species still field are priced against it too. One curve, or the audit says two different things about two halves of one registry.
+
+**`collection-v2/REDLINE.md` is the standing review list**, generated by `scratch/t162b_redline.ts` from the live registry through the live scorer. Regenerate it, do not edit it; the hand-kept part is the `RULINGS` map in that script.
+
+| bucket | n | what it means |
+| --- | ---: | --- |
+| UNPRICED | 9 | the scorer says ITSELF it cannot price this. **Unscored, not underpowered.** |
+| OVER | 19 | above band past tolerance; 7 carry Henry's 09-23 ruling |
+| GUESSED | 15 | a number against an ASSUMED three-stack board — a floor, not a price |
+| UNDER | 5 | readable, short, **and not an enabler** |
+| CHEAP BY DESIGN | 21 | enablers and glue below band, which is 158 §2 working |
+
+**All five UNDER rows are DAEMONS**, and that is the finding rather than a coincidence: a daemon's price is a TRIGGER RATE. **Collection v2 has no ordinary card the scorer can read and calls under-priced.**
+
+Two things about the list that are deliberate. A **ruled card stays on the page** with the verdict beside it — "this was checked and it is fine" is the most useful line a review list carries, and one that drops ruled rows asks the same question every regeneration; the generator also flags a card whose score has MOVED since its ruling, because a verdict is against the numbers that were on the page. And the suite **does not snapshot the page** — that would fail on every legitimate card edit and train people to regenerate without reading, which is the habit the list exists to interrupt. It holds two claims instead: the bands quoted on the page are the bands in the code, and no ruling is keyed to a card that has left the registry.
+
+## 0-COLLECTION-v2-IS-PRICED-ON-HENRY'S-CURVE (162b, 2026-09-23 — CORRECTED)
+
+**An earlier version of this block said "the 2e rung is 36% under the slot tax". That was wrong, and how it was wrong is the reusable part.** The auditor prices a card that CONSUMES, SCALES ON or MULTIPLIES a pile against an ASSUMED three stacks. That is a guess. Pooling those cards with the ones it can read, and pooling in twelve daemons whose hooks it cannot price at all, produced a median that described the auditor rather than the pool.
+
+Split by whether the auditor can actually read the card, medians in power:
+
+| cost | it can read | it guesses | repo target | Henry's v2.1 |
+| --- | ---: | ---: | ---: | ---: |
+| 0e | **10** (17) | 7 (1) | 10 | 12 |
+| 1e | **30** (34) | 22 (6) | 30 | 30 |
+| 2e | **74** (10) | 45 (13) | 65 | 70 |
+| 3e | **120** (4) | — | 105 | 120 |
+
+**Every rung the auditor can read lands on Henry's v2.1 number.** Three flat 2e cards are genuinely under and are the only pricing rows the ledger supports: `inferno` 40, `crippling_vine` 59, `verdant_ward` 61.
+
+**THE BUG THE QUESTION FOUND.** Answering *"what is under?"* surfaced a defect 160-e1 had introduced hours earlier. Every sign flip in `powerscale` asks *is this happening to me or to them*, and asked it as `action.target === 'SELF'` — the same question until an `allyTarget` card's payload could land on a FRIEND through `TARGET`. `soothe` priced at **−0.8**: a card that helps you, scored as a cost. Fixed as `landsOnOwnSide = actionIsSelfFacing || card.allyTarget`; `scope` untouched, because width is not side. **If a new targeting concept ever lands, grep `powerscale` for `actionIsSelfFacing` before anything else.**
+
+**THE LESSON, for the next person who quotes a median off `powerscale`:** always split the pool by `manualReview` and by pile-reading before quoting one. A number that pools "cards the model prices" with "cards the model admits it cannot price" is a statement about the model. `scratch/t162b_ledger.ts` prints the `UNPRICED` tag per card for exactly this reason.
+
+Twenty cards read OVER and Henry ruled them fine (2026-09-23). The two extremes, `contagion` and `sun_devourer` at 20.4 (2e), are assumed-pile artefacts in the other direction.
+
+Open, and bookkeeping rather than balance: `BUDGET_BANDS` still holds 10/30/65/105 where v2.1 rules 12/30/70/120. The two disagree on ten of 98 cards, all within a rung's tolerance.
+
+## 0-MEASURE-A-COLLECTION-v2-DECK-AT-3v3-OR-NOT-AT-ALL (162c, 2026-09-23)
+
+Henry, on the 1v1 table below: *"She shares the str payoff with fenrir — we need to look at these as 3v3 decks not just 1v1."* He is right, and the size of it is the point.
+
+`scratch/t162c_comps.ts` runs six comps round-robin, both turn orders. The comps are not invented — each is a triple from `collection.json`'s own `partners` field, Henry's statement of which OS wants which. Field win rate against the other five:
+
+| comp | members | field |
+| --- | --- | ---: |
+| detonation | sköll_v2 + fenrir_v2 + kraken_v2 | **80%** |
+| poison | jorm_v2 + huldra_v2 + rat_v2 | **80%** |
+| water-engine | jorm_v1 + kraken_v1 + rat_v1 | **70%** |
+| keeper | huldra_v1 + rat_v1 + fenrir_v1 | 30% |
+| strength | sköll_v1 + fenrir_v1 + huldra_v1 | **20%** |
+| dazed | kraken_v1 + rat_v2 + huldra_v1 | **20%** |
+
+**A body moves up to FIFTY POINTS between the two instruments.** `jormungandr_v1` reads 20.9% alone and **70%** in the water-engine comp (+49). `ratatoskr_v2` 33.8% → **80%** (+46). `huldra_v2` 50% → 80% (+30). `kraken_v1` 45.7% → 70% (+24). **The §7 1v1 table below must not be used to rank decks**, and the two 1v1 "structural findings" it produced — jormungandr_v1 at 20.9%, ratatoskr_v2 at 33.8% — are instrument artefacts. A collection whose OS descriptions say *"whenever an ALLY..."* eleven times out of twelve cannot be measured a body at a time.
+
+**The one deck 3v3 does NOT rescue is sköll_v1**, and the test is controlled: `strength` and `keeper` differ by exactly one body (sköll_v1 ↔ ratatoskr_v1) and keeper is the better comp, 30% against 20%, beating it 2/2 head to head. Her own solitaire gain is +8.3 where the other passengers gain 24–49. She also drags `fenrir_v1` from 69.9% to 20%, the largest negative in the table. The kit finding below is the mechanism.
+
+**CONFIDENCE IS LOW AND THE NUMBER OF GAMES IS WHY.** Ten games a comp (one iteration, fifteen pairs, both orders) took **58 minutes** — 3v3 battles with draw engines run 70–340s each. A 2/10 has a 95% interval of roughly 3–56%. This is a smoke read that says WHICH INSTRUMENT TO USE; it is not evidence about any single comp. Three iterations is ~3 hours and is what a ruling should quote.
+
+## 0-SKÖLL-v1-MAKES-A-CURRENCY-NOTHING-IN-HER-KIT-SPENDS (162c, 2026-09-23)
+
+158 §2 rules a kit to be two enablers, a consume, a scalar and a glue, *"the consume/scalar pair is required"*. Checked against the shipped kits (`scratch/t162c_shape.ts`): all twelve carry glue, ten carry a scalar, and **skoll_v1 and kraken_v2 carry neither a consume nor a scalar**.
+
+skoll_v1 is the **11.7%** deck — the worst field number in the roster by nine points. Her kit MAKES Strength (`fury_strike` ×2, `howl`) and holds nothing that reads it; `brute_force` is in her POOL, i.e. found in the run. That is a currency with no payoff in the opening deck, which is exactly the shape 158 §2's pair rule exists to forbid, and it explains the number without appeal to any knob. **Fix the kit, not the cards.**
+
+Same file: the duplicate-count gate 160 §5 asked for is **NOT met** — 7 cards / 19 kit slots → 11 / 28, read from `archive/ea-kits-v1.json` rather than from §5's prose (which misremembers `tackle ×8`; the blob says `water_slap ×7`). Glue duplication 7→10 slots, everything else 12→18. 162 §3 predicted *"only shared-element cards by design"* and named four; the real non-glue list is nine.
+
+## 0-COLLECTION-v2-IS-UNBALANCED-AND-THAT-IS-EXPECTED (162a, 2026-09-23) — THE DELTAS FOR 162c
+
+Ticket 162 §4: *"Not priced. Not measured."* §5.5: *"the grid is expected to move — do not re-baseline tonight, record the deltas."* Here they are, measured AFTER the cut on the 1v1 probe (`scratch/t149_castprobe.ts --width 1 --iter 20`, 1,200 games per OS over 30 opponents; full table in `results/t162/GRID.txt`).
+
+| OS | field win % | vs the 47–64 EA band |
+| --- | ---: | --- |
+| ratatoskr_v1 | **80.5** | far over |
+| fenrir_v2 | **79.3** | far over |
+| kraken_v2 | **75.2** | far over |
+| fenrir_v1 | **69.9** | over |
+| sköll_v2 | 66.9 | over |
+| jormungandr_v2 | 62.6 | IN |
+| huldra_v2 | 50.0 | IN |
+| kraken_v1 | 45.7 | just under |
+| ratatoskr_v2 | 33.8 | under |
+| huldra_v1 | 33.6 | under |
+| jormungandr_v1 | **20.9** | far under |
+| sköll_v1 | **11.7** | far under |
+
+**Mean 52.5, sd 22.5, spread 68.8 points, two of twelve in band.** For comparison the last ruled grid (136u) was **sd 8.6 with 31 of 32 in band**, and `jormungandr_v1` was 48.2% the same morning. So this is not a tuned roster — it is a fresh card pool with draft numbers in it, which is exactly what 162 §4 says it is. **Do not read a cell as a regression against the old grid; the decks are different decks.**
+
+Two things worth carrying into 162b/162c rather than rediscovering. **The tails are structural, not numeric.** `sköll_v1` at 11.7% is the Strength MULTI-HIT deck under the v2.1b multi-hit rule (band power split across hits) with the Strength CONSUME moved to Fenrir — it builds a pile it has nothing to spend. `jormungandr_v1` at 20.9% lost `ink_stream` to Kraken (Henry's 09-21 ruling) and is now a cards-played deck whose payoff is `serpents_coil` alone. Both are pricing questions for 162b and possibly kit questions, not knob-turns.
+
+**`fenrir_v1` spends 17.0% of its turns dealing ≥75% of a health pool** (next worst is huldra_v2 at 8.1%, and nine of twelve are under 2%), on a p50 of 55.2% damage a turn. That is the one line in the table that looks like a mechanism rather than a number: `war_pact`×2 + `ragnarok_edge`×2 under UNBOUND_KERNEL, opening on five cards that all feed each other.
+
+**2026-09-23 — 162 COMPLETE: a, b, c, d, plus 160-e1.** `172bc68`..`517b206`, eight commits, gate green throughout (eslint 0, tsc 0, **2,654 vitest across 194 files**, build clean).
+
+**160-e1 LANDED**, so the eight ally cards do what they print rather than sitting on §5.4's fallback. `allyTarget` is a FLAG beside `target`, not a TargetType: `target` says how wide a card reaches and every consumer already reads it that way, so which SIDE it reaches is a second, orthogonal field. Enforced in three places because the picker is not a rule — the hand's targeting predicate, the AI's enumeration, and `battleReducer`, which is the one that matters since scenarios, replays, the balance corpus and the AI all reach `PLAY_PROGRAM` without going near the UI. The AI branch is FIRST, ahead of the heuristics that infer a card's side from its payload: those get `bolster`, `shell_share` and `howl` wrong (no HEAL on any of them), so the AI was enumerating them against the enemy and scoring handing the opponent a buff. **The beam gate the ticket asked for was measured and the prediction was wrong in the safe direction** — the eight cards enumerate 33 targets before and **24 after** at 3v3, because a Side ally card used to be tried against both sides. Branching went DOWN; beam 8 needs no revisit.
+
+**162b, 162c and 162d are done and each found something** — see the three blocks above and ticket 162 §§8–10. The full 140 comp grid was deliberately NOT run: §5.5 rules no re-baseline until pricing lands, and measuring a pool the ledger says is 36% light at 2e produces a grid to throw away.
+
+**2026-09-23 — 162a SHIPPED. COLLECTION v2 IS THE REGISTRY.** `172bc68`..`993ad09`, four commits, gate green (eslint 0, tsc 0, **2,635 vitest across 193 files**, build clean). The v1 pool and the twelve v1 kits are in `src/engine/data/archive/` and nothing loads them. The registry is **268 entries, not 98** — the 20 post-EA species still field v1 decks and ~90 scenario fixtures still name v1 cards, so what keeps a v1 card out of a player's hands is `RewardSystem`'s **V2_RUN_POOL** gate, not the registry's size: an all-launch-species party is offered the 98 and nothing else. The thirteen renames resolve through `data/programAliases.ts` at `GetProgramData` — deliberately NOT folded in as extra registry keys, because eight places walk `Object.keys()` and every one would see each renamed card twice.
+
+**160-e1 DID NOT LAND FIRST, and the eight ally-target cards shipped on §5.4's fallback.** `Ally` and `AllySide` are not `TargetType`s and there is no picker. Soothe, Mend, Tend, Bolster and Shell Share ship `target: Self` with a `TODO(160-e1)`; Howl, Verdant Ward and Tidal Battery ship `Side` (which `actionTargetIds` already widens to whichever side the card is aimed at — how `tidal_battery` has shipped since ticket 69). **So Huldra v1's and Rat v1's keeper lanes only heal and buff their own caster tonight.** That is castable and playable, and it is the half of the playtest worth knowing is not real yet. e1 turns five `Self` into `Ally` and nothing else.
+
+**THREE THINGS FOR HENRY TO RULE, none blocking:** (1) Two of ticket 61's kit rules are RETIRED because 161 §2 replaces them — *the kit leads with the payoff* (most decks' payoff IS their consume, and 161 keeps consumes out of the opening five) and *the kit never tags the generic* (v2 puts the glue IN the kit). Reasons are in `startKits.test.ts`. (2) `heartwood` ships `target: Single`, not the collection's `Self`: its own text says *"apply 1 Poison to the target"* and a Self program has no enemy, so `Self` would delete half the card. (3) **EMBER_FUSE fires once per CARD, not once per hit** (`onActionStart` is dispatched before the action loop). That matches the printed sentence and the kit — v2 is the detonation deck, Sköll v1 is where the multi-hits live — but `pack_tactics` in v2's kit gets one proc, not three. Pinned in `emberFuse.test.ts` so moving it is a ruling and not an accident.
+
+**2026-09-23 — 160 SUPERSEDED by 162** except 160-e1 (ally-target cards, now the fallback's follow-up) and §5 (now 162c); r1/r2 shipped in 162a.
+
+**2026-09-23 — 162 RULED for playtest (v2.1b); 163 OPENED.** Henry: commit collection v2.1b for tonight — 162a is Legion's next row (archive programs.json, load `collection-v2/collection.json`, EMBER_FUSE + Ignite hooks, ally-target cards with Self fallbacks if 160-e1 is not in, no re-baseline tonight). **163 the upgrade pass:** card `+` versions by a per-shape generator rule (flat +25%, status +1 stack, scalar +25%/stack, multi-hit +1 hit, ally-target also self, daemon wider trigger), bought at the workshop / free at the gym gate; OS **patches** — six generic riders (Amplifier, Repeater, Relay, Splitter, Overclock, Failsafe) any OS accepts, one slot per body, written against the grammar so Relay/Splitter turn a solitaire OS into a party one; tiers rejected, Obelisk fork later. Four questions for Henry in 163 §5.
+
+**2026-09-23 — Collection v2.1.** Henry's review of the draft applied (162 §4b): the SLOT TAX (0e ≈ 12 / 1e ≈ 30 / 2e ≥ 70 / 3e ≥ 120 — a 2e/3e card must do what two 1e cards cannot) and the ONE-JOB rule at 0e; Forage is the generic 0e draw (Quick Scan gone), Undertow = draw + 1 self Weakened (Legion tested), Fenrir v1 takes Desperate Strike + Glass Cannon, Hydro Blast 120, Maelstrom 100 + 3 Dazed, Crippling Vine is a side card, Surge Protection 1e/25, Venom Glut 15/stack, Tidal Battery text says Energized. 98 cards. Still unpriced (149c) and unmeasured; registry untouched.
+
+**2026-09-22 — 162 DRAFT: Collection v2.** Henry: the pool is not exciting and decks are still hard to build — archive it and start again under the grammar. `collection-v2/` holds the draft: 99 cards (58 kept, 8 revised, 33 new), 12 kits with ★ start kits that hold no consume, run pools, 36 sample decks, partner map; `browser.html` is the review surface. Sköll v2 becomes EMBER_FUSE (detonation). Not priced (149c next), not measured, three engine dependencies (ally targets 160-e1, EMBER_FUSE hook, detonation numbers). Nothing in the registry changes until Henry reviews; 162a–d are the swap.
+
+**2026-09-22 — 160 §6 RULED + 161 OPENED.** Henry: ally-target cards exist (→ **160-e1**, engine + UI, Legion, before session 5); Tidal Battery is a run card (reward pool), not a kit card; 160-r1 is 2e, exhaust, **permanent +1 max Energy**. **161** start kits + card upgrades: start kit = enablers + scalar + glue with the consume seeded into that run's reward pool (the first pick completes an engine you can see); upgrades shape A (`<id>+`, StS-style) for the EA sixty, priced by 149c, bought at the workshop for scrap (153's sink), C (currency-rider rule) as the draft generator; four questions in §5.
+
+**2026-09-21 — 160 OPENED: the EA re-cut.** Henry ruled the grammar direction go. Two-axis model (currency × tempo — ramp is a tempo, not a currency; Fenrir berserker is HP-ramp). Ramp catalogue: one-shot / permanent (Battery Pack is 4e, hence unseen) / refund / side (Tidal Battery, the only party ramp) / conversion / cost-reduction. Two prints: 160-r1 ramp daemon (2e, exhaust like all daemons, +1 Energized per refill, NO Dazed rider — tempo is the tax; scorer + grid decide 2e vs 3e) and 160-r2 anti-ramp daemon (unspent Energy → damage) so Energy has an answer. Nine sessions cheapest-drift-first, Sköll v2 rework LAST; before/after numbers (live-pair rate, duplicates, solitaire score, 140 grid, run gate) run on the current registry first. Henry owes: ally-target cards in EA?, Tidal Battery's home, 160-r1's price. Supersedes 151's per-deck sessions.
+
+**2026-09-21 — Henry's OS directions reviewed** (`research/os-directions-2026-09-21.md`): two build directions per EA OS; the forced ones are the duplicates (Str-consume ×4, Kraken v2's two ramps, Jorm v2's three Poison lanes). Rulings proposed: Sköll v1 = Str multi-hit scalar + battery (needs a Fire multi-hit), Sköll v2 = Burn DETONATION deck (Burn is permanent, cap 4 — "2× / twice" is a THERMAL_OVERLOAD reskin), Rat drops Poison and ramp, Jorm v1 drops Ink Stream and takes refund-ramp, Jorm v2 = ramp, Kraken v2 = ramp + steam Burn, Huldra v1 = control + keeper (ally-target cards). One rework (Sköll v2), ten re-cuts, ~8 prints, one engine feature (ally targets). 158 §2.6 counter rule added.
+
+**2026-09-21 — 158 has its grammar.** Henry's zoo/ramp/control cut blurred because it was drawn by card shape; 158 §2 now defines an archetype as a CURRENCY (cards-cast + Strength / Energy / enemy stacks + turns), every card as enabler · consume · scalar · glue, a 5-card kit as 2+1+1+1 with the consume/scalar pair required (151's two paths for free), an OS as one currency + one trigger, and the EA twelve on that grid — which shows many enablers and converters and almost no consumes. Sustain is control's deny half. Hate cards are daemons that punish a behaviour (RIPTIDE, SHORT_CIRCUIT exist). Henry designs from the grid next; §3's shape census is the first machine job.
+
+**2026-09-21 — 159 RULED: face-up enemy hand.** Henry: *"I like the face up hand idea."* 159 §5 has Legion's rows — 159a the draw moves to the end of the owner's turn (symmetric, grid re-baseline), 159b the EDGE TAB (Henry picked prototype C of `159-mock/`): a tab at the stage's right edge that slides the Edit Loadout deck column over the plaques, rows greyed by affordability, tile on hover; 159c the Settings switch. Plaque deck list HELD. Threat line and committed queue HELD. The Roguebook alternate-body discount is NOT a rule — at most a daemon or Driver (158). Research: `research/single-player-card-games.md` §1–5.
+
+**2026-09-20 — three design tickets opened from Henry's second run.** **157** automate progression testing: a `runWalker` policy that walks the run (route/picks/shop/bench) on top of `runGate` and writes 156's rows, so the 148 curve comes from 30 seeds × 6 starters instead of one evening; policy v0 is dumb on purpose (floor, not ceiling). **158** party-synergy rules, Henry designs: seven draft rules (species = role; shared currencies; cross-body payoffs never cross-body enablers; the one-hand live-pair test; STAB a tax not a wall; two paths per party; generics as glue) + four machine measurements (live-pair rate, off-STAB share, currency utilisation, solitaire score); unblocks steam-release 78's tags. **159** enemy-turn visibility without moves: the engine fact is that `END_TURN` discards the hand and `TURN_START` draws it, so the enemy holds NO cards during the player's turn — any telegraph needs the enemy to draw at the end of its own turn; recommend face-up hand + deck list on the plaque first, AI-derived threat line held as step two. All three await Henry's session.
+
+**2026-09-19 — 155 battle-screen defect pass (Henry's first play of the 145+146 build).** Two critical findings: 146 is DEAD ON ARRIVAL — `useCastSequence`/`useImpactFeedback` depend on `[battleState]` so every render unsubscribes and clears the cast queue before the 0 ms timer fires (fix: mount-scoped effect + stateRef, like `useBattleVfx`); and the console band is ~390 px (content-sized) while `stageGeometry` assumes 210, so the third ally/enemy row is under the console at every viewport and the hand card is 180×255 not 140×176. Plus: `--el` never set on hand cards (no pips/art/foot), text-select on drag, draw label clamps against the current hand (+4 vs ~12), discard badge on End Turn, `formatAction` switches on action types that don't exist, Edit Loadout peek anchored to viewport centre. All 201 UI tests are green — §3.10 lists the tests that would have caught it. Do 155a and the `--el` line first. 147a/d wiring waits on 155a.
+
+**2026-09-19 — 147 SFX assets are in.** 61 cues in `public/sfx/*.mp3` (674 KB) + `manifest.json` + `docs/audio/SOURCES.md`, chosen by Henry over four sampler rounds. 147 §8 has the shipped cue list, the rulings that changed §4 (normal/super only; element impacts as an option; five shield cues; kill = power-down; one tell per EA OS; cries for all 16), and rows 147a (sample playback with synth fallback), 147b (mixing), 147d (wiring paired with 146). Packs live in `_sfx/` (gitignored, 13 GB) — never commit them.
+
+**2026-09-12 — 146 RULED (v2) and ready for Legion; 145 is BUILT (closes on Henry's screenshot review).** Rulings: Slay-the-Spire palette (few, sharp); hit-stop on every hit scaled 30–110 ms by damage; NO persistent status emitters (apply/remove/tick get tells instead); one trail shape per element with its particle (flame / drop / leaf), neutral streak for the rest; the cast sequence (hand → lane, card BEHIND the effects, trail → impact → statuses → discard; enemy cast originates at and returns to the caster); status damage looks different from a hit; every OS gets a tell (family default + authored signature keyed in hooks.json `vfx`, EA twelve first); three Settings switches particles / vfx / animations + reduced motion. Three additive engine event fields (DAMAGE_TAKEN.cause, STATUS_*.source, HOOK_FIRED) — 146b. Capabilities primer: `research/vfx-capabilities.md`. 147 pairs one cue per 146 row.
+
+**2026-09-11 — playtest fallout.** 142 RE-RULED: build Henry's route [counter, gym element, gym biome] (142d) + static per-run shop with 50-scrap full refresh and a 50-scrap single random blueprint slot (142e–g). **152** jormungandr_v1's two undertows draw each other (ticket-111 loop in two cards; 16.5% of his turns deal ≥75% of a pool) — card swap, two arms, gates in the ticket. **153** design session: rewards (scrap is saturated at 10/fight; picks go to the collection; blueprint hunt is the real grind). 148 gets the "not leveling up" note. NOTE: 151 is the EA deck-rework ticket, not the jorm one.
+
+**2026-09-09 — 149c and 150 are RULED and ready for Legion.** 149c (`tickets/149-scorer-pricing.md` §5): DRAW ladder 20/15/10, two-width score (Side ×1.0 / ×2.2), ±15% + MANUAL REVIEW, `CARDS_DISCARDED` branch, the daemon guard, hook formula with floor/ceiling trigger-rate tables, an OS band (15–40% of a pool per game, flag >50%) as balance report §1.4. 150 (`tickets/150-os-bonuses-ride-power.md`): delete `hel_v2_lifeblood`; new `onPowerCalculated` trigger; TOXIN_FANG +3 power/stack (equivalence); KINETIC_RAM two arms (+1 equivalence / +2.5 as printed) — Henry picks from the fields. Henry's framing for the scorer: a pre-grid lint and a general-insight tool, never width- or deck-specific; bands are a guide; daemons are the sanctioned over-band rare. The game AI does not read the scorer. Census: `research/scorer-pricing.md`, `research/firmware-power-census.md` (ticket 63 CLOSED by it).
+
+**2026-09-08 — WHERE THE MAP IS.** Read `TICKET-AUDIT-2026-09-07.md` §4 for the open list; this
+is the short form.
+- **145 battle scene — RULED, BUILDING.** The stagger stage. `tickets/145-mock/145-mock.html` is the
+  spec (1280×800; the mock wins over the prose). Rows 145a–f in order; `useStageAnchors()` is the
+  contract 146 consumes. Do not re-open the rejected directions in §1 of the ticket.
+- **146 juice / 147 SFX** — after 145a lands (anchors). 146b's Burn flames can start earlier.
+- **148 progression curve** — P0–P3 for Legion, slot-neutral (ticket 77: deck size is the lever).
+- **59 registry triage** — 53 orphan cards are reward-pool traps; do this before 148's policy arms.
+- **149 scorer pricing** — **CLOSED 2026-09-22.** 149c shipped all nine rows 2026-09-21 (§7 of the ticket has the
+  ledger). The draw ladder is 20/15/10; scores are width-aware (`score1v1` / `score3v3`, verdict
+  on the worse for a Side card); the band has a ±15% tolerance with the percentage always
+  printed; daemon hooks are priced at measured per-trigger rates instead of a flat 4 procs; and
+  §1.4 of the balance report now scores all 33 firmware against a 15-40% band.
+  **RULE RETIRED: "any card that draws more than one is unpriced" (ticket 130) no longer
+  applies** — gate those on a score like anything else.
+  **All four findings RULED 2026-09-22: left as they are, revisit only if playtesting raises
+  them.** `riptide` 3.8 -> 11.9 (83% over band); Ice reads as a 3v3 element (seven cards); 
+  REBIRTH_CYCLE_OS at 118% of a pool a game; the 36 still out of band. Three of the four are
+  post-EA mingmings — see EA SCOPE above. Numbers in `research/scorer-pricing.md` §7.
+- **142 route to gym** — shipped; Henry's playtest decides; his biome alternative is §5.
+- **Beam (144 §2):** harness default beamless; `BatchOptions.aiBeam` is the only route. Results
+  on Henry's machine: `results/compgrid_beam` is the post-143 BEAMLESS grid (rows record `beam: 0`)
+  despite its name.
+- **Design session backlog (not tickets yet):** kraken_v2 / fenrir_v2 / ratatoskr_v1 at ~20 on the
+  3v3 grid; the standardised balance report (below, unchanged); hexbloom side-scope after 149's 3c.
 
 **136u SHIPPED 2026-09-04: valkyrie_v2's REBIRTH_CYCLE is UNCAPPED and pays 15/15.** She goes
 **24.95 -> 49.51** and the roster reads **sd 8.6, 31 of 32 in band** - tighter than the pre-131
@@ -289,7 +837,7 @@ STRATEGIC (Henry, 2026-08-12): after balancing completes, decide 1v1-only vs 3v3
 0-VALK-ENGINE. **DO NOT RE-DERIVE: valkyrie_v2's ENGINE IS HER OS, NOT HER DECK (ticket 60).** Zeroing REBIRTH_CYCLE's payoff costs her **50 of her 88 field points (87.7% -> 37.7%)**; **every single-card knockout lands inside +-3.3 on a +-5 instrument**, and four of five make her stronger. **Deck size is NOT a lever either** - 6 / 7 / 8 cards all read 87-91. Two consequences. (a) **Restoring her 8th card is FREE (+2.6) and must be paired with an OS change**, or the rulebook fix ships her at ~90%. (b) The two hypotheses that looked obvious were both wrong: the exhaust package does not drive reshuffles (shuffles/turn go UP when cards LEAVE - deck size drives cycling), and `starfall` is not a mispriced bomb but the deck's weakest card at **7.1 damage/cast, 3.11 casts/game**, whose removal is the study's biggest gain. **Her once-per-turn guard is load-bearing** - she reshuffles more than once on 34.7% of turns and the cap eats every one.
 0-BURN-CEILING. **DO NOT RE-DERIVE: A THIRD OF ALL BURN PLAYED IN THE GAME IS THROWN AWAY, AND OVERFLOW PAYS ZERO (ticket 58).** Roster-wide **32.1% of applied stacks are wasted at the 3-stack cap, with 0 overflow damage across 54,767 requested stacks** - `BURN_OVERFLOW_PERCENT = 0.01` floors to zero on every frame under 100 max HP and no current frame reaches 100 (the code comment calls this intentional headroom). Per deck: **fenrir_v2 53.8%**, skoll_v2 19.7%, hraesvelgr_v2 9.4%, draugr_v2 0%. Worst card is **`molten_core` at 64% wasted**. **This bounds any "more Burn" design** - fenrir_v2 already applies 26,667 stacks to land 12,313. The DoT that DOES land is not small: **39% of fenrir_v2's damage (~25 HP/game) and 18% of skoll_v2's (~11.6)**.
 0-FLOOR-LINE-NOISE. **THE FLOOR LIST'S 0.25 LINE IS NOT STABLE AT 50-100 ITERATIONS (ticket 58).** `fenrir_v1` appeared to "recover" 0.29 -> 0.194 and came off the list with **nothing touching it or the control**. Measured on the identical matchup: **0.205 at 150 iterations, and five seed bases at 50 iterations give 0.255 / 0.235 / 0.182 / 0.232 / 0.283 - a spread of 0.101** that swallows the entire move. **Decide floor-list membership at 150 iterations, or give the line a hysteresis band**; and pair this with 0-DECISION-GRADE, which found the same instability on the field axis.
-0-ASSUMED-STACKS. **`ASSUMED_STATUS_COUNT = 3` IS A PRICE THE DECK MUST ACTUALLY SUPPLY, AND `ash_communion` IS THE CASE THAT PROVES IT.** It scores **10.6 against a 6.5 band - the registry's loudest card redline - and delivers 7.3 HP, about 1.5 stacks.** It consumes FENRIR'S OWN Burn, and two of his three Burn cards apply to the TARGET, so the deck cannot feed it. **It is also OUTBID rather than unaffordable** (in hand 281 turns: outbid 144, unaffordable 107, constraint-blocked 0). **Before treating a STATUS_CONSUMED redline as a card problem, check whether the deck supplies the stacks the scorer assumed.**
+0-ASSUMED-STACKS. **`ASSUMED_STATUS_COUNT = 3` IS A PRICE THE DECK MUST ACTUALLY SUPPLY, AND `ash_communion` IS THE CASE THAT PROVES IT.** It scores **10.6 against a 6.5 band - the registry's loudest card redline - and delivers 7.3 HP, about 1.5 stacks.** It consumes FENRIR'S OWN Burn, and two of his three Burn cards apply to the TARGET, so the deck cannot feed it. **It is also OUTBID rather than unaffordable** (in hand 281 turns: outbid 144, unaffordable 107, constraint-blocked 0). **Before treating a STATUS_CONSUMED redline as a card problem, check whether the deck supplies the stacks the scorer assumed.** **EXTENDED 2026-09-21 by 149c-7: the same constant is now the floor for a FLAT-BONUS firmware hook, and the same trap is in it.** KINETIC_RAM_OS is +2.5 HP per Sharp stack; priced at the assumed 3 it delivers 15.6% of a pool a game, and the census read **13 stacks** on gullinbursti_v2 for a measured 63%. Four times the number, because that deck is built to feed the hook. The scorer prices the ROSTER and the deck is where the ceiling lives — 149c-6's ceiling column is the general form of this.
 0-KRAKEN-WALL. **DO NOT RE-DERIVE: KRAKEN'S SUB-WINDOW NUMBER IS A WALL, NOT DECAY (ticket 65, 1,800 real battles).** kraken_v1 26.6% / v2 27.3%, but v1 **wins 75-100% vs four species and 0% vs EIGHT** (jormungandr, huldra, ymir, draugr, valkyrie, audhumbla, nidhoggr, ratatoskr - zero wins in 60 decided games each). Both decks share the shape, so it is SPECIES-level, not OS-level. **Damage rate is NOT the cause: kraken 13.0 dmg/turn vs valkyrie_v2's 12.9 - the same deck by that instrument, 18 field points apart.** **Do not spend a knob here**: TIDAL_CRUSH is worth 5.02 HP/game (8% of output) and `surge_protection`'s refund already fires 100% of casts, so every available dial moves damage output and damage output is not what separates her from a 45% deck. The indictment is the absence of an answer card for sustain/long games, the 58 HP frame (lowest in the roster) and chip cards delivering 1.4-5.6 damage a play. **Before designing, confirm none of the eight zeros is a mechanical LOCKOUT** - that would be a defect rather than balance and the diagnostic did not test for it. Pace is fine (5.2-turn mirror vs a 5.28 roster median).
   **DECOMPOSED 2026-08-16 (ticket 67 + Amendment 1)** ([research/kraken-lockout.md](research/kraken-lockout.md)). **NO STRUCTURAL LOCKOUT EXISTS** - 7 of 8 zeros dragged below 26% max HP, **5 of 8 taken to 0.0%**, v2 won against five of them in-sample; ymir is closest and still is not one. **The type confound was real and bigger than the diagnostic knew: her four wins are EXACTLY her four type-advantaged matchups, and her NEUTRAL-bucket win rate is 7.1/12.5% against the reported 26.6%.** But the deficit is **NET, not offense**: in neutral matchups **kraken deals 12.72 dmg/turn and valkyrie_v2 deals 12.51 - and valkyrie wins 64.4% to kraken's 10.7%**, because kraken takes 14.21/turn to valkyrie's 12.53 on a 12%-smaller frame. **Close -1.49/turn (~+12% rate or equivalent mitigation).** hel_v2 proves the game pays for RATE: worst damage taken in the roster, 75.5% win. **The pool cannot fix her** - no probe arm moved a zero off zero, and removing `capacitor` made v2 WORSE (it buys the 3-energy payoff turns). Sustain is NOT the common cause (jormungandr and nidhoggr sustain 0.00).
 

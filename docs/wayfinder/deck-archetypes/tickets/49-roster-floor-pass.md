@@ -1,5 +1,7 @@
 # The decks that lose to the floor — a roster-wide pass
 
+> **Status: CLOSED 2026-09-08** — superseded — every deck it listed was taken through 55/56/57/58/64/81/82 and 136; the roster is 31/32 in band. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:task
 - Status: **open** — still a backlog record, not an implementation. Nothing here has been actioned.
   **The numbers are now current:** regenerated 2026-08-12 at registry `1:e2f392b8`, after ticket 53

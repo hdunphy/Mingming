@@ -1,0 +1,786 @@
+[
+ {
+  "id": "tackle",
+  "name": "Tackle",
+  "cost": 0,
+  "text": "12 power.",
+  "plus": "15 power.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "deep_scan",
+  "name": "Deep Scan",
+  "cost": 1,
+  "text": "Draw 2.",
+  "plus": "Draw 3.",
+  "rule": "draw: +1 card"
+ },
+ {
+  "id": "capacitor",
+  "name": "Capacitor",
+  "cost": 2,
+  "text": "Gain 3 Energized.",
+  "plus": "Gain 4 Energized.",
+  "rule": "Energized: +1"
+ },
+ {
+  "id": "soothe",
+  "name": "Soothe",
+  "cost": 0,
+  "text": "Remove 1 stack of a debuff from an ally.",
+  "plus": "Remove 1 stack of a debuff from an ally, and 1 from yourself.",
+  "rule": "ally-target: also the caster"
+ },
+ {
+  "id": "mend",
+  "name": "Mend",
+  "cost": 1,
+  "text": "Heal an ally with 20 power.",
+  "plus": "Heal an ally with 20 power, and yourself with 10.",
+  "rule": "ally-target: also the caster"
+ },
+ {
+  "id": "overclock_core",
+  "name": "Overclock Core",
+  "cost": 2,
+  "text": "Daemon (exhaust): Max Energy +1 for the rest of the battle.",
+  "plus": "Daemon (exhaust): Max Energy +1 for the rest of the battle, and gain 1 Energized now.",
+  "rule": "daemon: adds an immediate effect"
+ },
+ {
+  "id": "short_fuse",
+  "name": "Short Fuse",
+  "cost": 2,
+  "text": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point.",
+  "plus": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 15 power per point.",
+  "rule": "daemon: number +40%"
+ },
+ {
+  "id": "riptide",
+  "name": "Riptide",
+  "cost": 2,
+  "text": "Daemon (exhaust): whenever an enemy plays a card, deal 8 power to it.",
+  "plus": "Daemon (exhaust): whenever an enemy plays a card, deal 11 power to it.",
+  "rule": "daemon: number +40%"
+ },
+ {
+  "id": "short_circuit",
+  "name": "Short Circuit",
+  "cost": 2,
+  "text": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
+  "plus": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 20 power to it.",
+  "rule": "daemon: number +40%"
+ },
+ {
+  "id": "static_ward",
+  "name": "Static Ward",
+  "cost": 2,
+  "text": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power.",
+  "plus": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 11 power.",
+  "rule": "daemon: number +40%"
+ },
+ {
+  "id": "core_overclock",
+  "name": "Core Overclock",
+  "cost": 2,
+  "text": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+  "plus": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+  "rule": "daemon: number +40%"
+ },
+ {
+  "id": "cinder_armor",
+  "name": "Cinder Armor",
+  "cost": 2,
+  "text": "Daemon (exhaust): cards that add Burn also add 1 Sharp to the host.",
+  "plus": "Daemon (exhaust): cards that add Burn also add 4 Sharp to the host.",
+  "rule": "daemon: +3 stacks (1 + cost)"
+ },
+ {
+  "id": "ember_ward",
+  "name": "Ember Ward",
+  "cost": 2,
+  "text": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn.",
+  "plus": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 4 Burn.",
+  "rule": "daemon: +3 stacks (1 + cost)"
+ },
+ {
+  "id": "feedback_loop",
+  "name": "Feedback Loop",
+  "cost": 1,
+  "text": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 7 power.",
+  "plus": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 10 power.",
+  "rule": "daemon: number +40%"
+ },
+ {
+  "id": "hoofbeat",
+  "name": "Hoofbeat",
+  "cost": 2,
+  "text": "Daemon (exhaust): whenever you play a 0-cost card, deal 8 power to a random enemy.",
+  "plus": "Daemon (exhaust): whenever you play a 0-cost card, deal 11 power to a random enemy.",
+  "rule": "daemon: number +40%"
+ },
+ {
+  "id": "echo_chamber",
+  "name": "Echo Chamber",
+  "cost": 2,
+  "text": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+  "plus": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand — two the first time each turn.",
+  "rule": "daemon: trigger widens"
+ },
+ {
+  "id": "reactive_plating",
+  "name": "Reactive Plating",
+  "cost": 2,
+  "text": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 per turn.",
+  "plus": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 5 per turn.",
+  "rule": "daemon: cap widens"
+ },
+ {
+  "id": "thermal_overload",
+  "name": "Thermal Overload",
+  "cost": 2,
+  "text": "Daemon (exhaust): your Burns deal 50% more damage. Host takes 5 Fire damage at turn end.",
+  "plus": "Daemon (exhaust): your Burns deal 75% more damage. Host takes 5 Fire damage at turn end.",
+  "rule": "daemon: number +50%"
+ },
+ {
+  "id": "ignite",
+  "name": "Ignite",
+  "cost": 0,
+  "text": "Apply 1 Burn. If the target was already Burning, draw a card.",
+  "plus": "Apply 2 Burn. If the target was already Burning, draw a card.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "ember_jab",
+  "name": "Ember Jab",
+  "cost": 0,
+  "text": "8 power. Apply 1 Burn.",
+  "plus": "8 power. Apply 2 Burn.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "brand",
+  "name": "Brand",
+  "cost": 1,
+  "text": "25 power. If the target is Burning, apply 1 more Burn.",
+  "plus": "35 power. If the target is Burning, apply 1 more Burn.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "fury_strike",
+  "name": "Fury Strike",
+  "cost": 1,
+  "text": "25 power. Gain 1 Strength.",
+  "plus": "25 power. Gain 3 Strength.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "flare_burst",
+  "name": "Flare Burst",
+  "cost": 1,
+  "text": "15 power, twice.",
+  "plus": "15 power, three times.",
+  "rule": "multi-hit: +1 hit"
+ },
+ {
+  "id": "pack_tactics",
+  "name": "Pack Tactics",
+  "cost": 2,
+  "text": "23 power, three times.",
+  "plus": "23 power, four times.",
+  "rule": "multi-hit: +1 hit"
+ },
+ {
+  "id": "howl",
+  "name": "Howl",
+  "cost": 1,
+  "text": "Every ally gains 1 Strength.",
+  "plus": "Every ally gains 2 Strength.",
+  "rule": "side buff: +1 stack per ally"
+ },
+ {
+  "id": "snarl",
+  "name": "Snarl",
+  "cost": 0,
+  "text": "Apply 2 Weakened.",
+  "plus": "Apply 3 Weakened.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "snap",
+  "name": "Snap",
+  "cost": 1,
+  "text": "20 power. +12 power if the target is Weakened.",
+  "plus": "30 power. +12 power if the target is Weakened.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "brute_force",
+  "name": "Brute Force",
+  "cost": 1,
+  "text": "25 power. +8 power if you have Strength.",
+  "plus": "35 power. +8 power if you have Strength.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "battle_rhythm",
+  "name": "Battle Rhythm",
+  "cost": 1,
+  "text": "25 power. Above half HP: gain 2 Strength. Otherwise gain 2 Sharp.",
+  "plus": "25 power. Above half HP: gain 4 Strength. Otherwise gain 2 Sharp.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "crimson_draw",
+  "name": "Crimson Draw",
+  "cost": 1,
+  "text": "18 power. Heal 8.5% of your max HP.",
+  "plus": "25 power. Heal 8.5% of your max HP.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "war_pact",
+  "name": "War Pact",
+  "cost": 0,
+  "text": "Above half HP: gain 2 Strength and 2 Dazed. Below half: heal with 15 power.",
+  "plus": "Above half HP: gain 3 Strength and 2 Dazed. Below half: heal with 15 power.",
+  "rule": "status: +1 Strength (1 + cost), the Dazed does not grow"
+ },
+ {
+  "id": "unbound_fang",
+  "name": "Unbound Fang",
+  "cost": 1,
+  "text": "5 power per stack of Strength you hold, then lose half of them.",
+  "plus": "7 power per stack of Strength you hold, then lose half of them.",
+  "rule": "consume: per-stack +40%"
+ },
+ {
+  "id": "sun_devourer",
+  "name": "Sun Devourer",
+  "cost": 2,
+  "text": "Consume all your Strength: 30 power per stack consumed.",
+  "plus": "Consume all your Strength: 40 power per stack consumed.",
+  "rule": "consume: per-stack +40%"
+ },
+ {
+  "id": "ragnarok_edge",
+  "name": "Ragnarok Edge",
+  "cost": 1,
+  "text": "20 power. +1 power per 1% of your max HP missing (max 50%).",
+  "plus": "30 power. +1 power per 1% of your max HP missing (max 50%).",
+  "rule": "scalar: base +40% (the per-1% is capped)"
+ },
+ {
+  "id": "blood_rite",
+  "name": "Blood Rite",
+  "cost": 1,
+  "text": "15 power. +15 power above half HP; otherwise heal with 40 power.",
+  "plus": "20 power. +15 power above half HP; otherwise heal with 40 power.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "desperate_strike",
+  "name": "Desperate Strike",
+  "cost": 0,
+  "text": "8 power. Gain 1 Strength. Lose 3% of your max HP.",
+  "plus": "8 power. Gain 2 Strength. Lose 3% of your max HP.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "glass_cannon",
+  "name": "Glass Cannon",
+  "cost": 1,
+  "text": "45 power. Lose 5% of your max HP.",
+  "plus": "65 power. Lose 5% of your max HP.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "molten_core",
+  "name": "Molten Core",
+  "cost": 1,
+  "text": "Apply 4 Burn if you hold Sharp. Otherwise 2 Burn.",
+  "plus": "Apply 6 Burn if you hold Sharp. Otherwise 2 Burn.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "slag_strike",
+  "name": "Slag Strike",
+  "cost": 1,
+  "text": "22 power. Gain 1 Sharp.",
+  "plus": "22 power. Gain 3 Sharp.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "cinder_lance",
+  "name": "Cinder Lance",
+  "cost": 2,
+  "text": "40 power. +6 power per stack of Sharp you hold.",
+  "plus": "40 power. +10 power per stack of Sharp you hold.",
+  "rule": "scalar: per-stack +40%"
+ },
+ {
+  "id": "sharp_edge",
+  "name": "Sharp Edge",
+  "cost": 2,
+  "text": "Consume your Sharp: 15 power per stack consumed.",
+  "plus": "Consume your Sharp: 20 power per stack consumed.",
+  "rule": "consume: per-stack +40%"
+ },
+ {
+  "id": "inferno",
+  "name": "Inferno",
+  "cost": 2,
+  "text": "Apply 2 Burn to the enemy side.",
+  "plus": "Apply 5 Burn to the enemy side.",
+  "rule": "status: +3 stacks (1 + cost)"
+ },
+ {
+  "id": "heat_wave",
+  "name": "Heat Wave",
+  "cost": 2,
+  "text": "Double the enemy side's Burn stacks.",
+  "plus": "Double the enemy side's Burn stacks, then apply 3 more to each.",
+  "rule": "consume: +3 stacks after (1 + cost) — past the cap of 4 it detonates, which is the point (Henry: upgrades are supposed to be broken)"
+ },
+ {
+  "id": "flashover",
+  "name": "Flashover",
+  "cost": 2,
+  "text": "50 power. +15 power per Burn on the target.",
+  "plus": "50 power. +20 power per Burn on the target.",
+  "rule": "scalar: per-stack +40%"
+ },
+ {
+  "id": "wildfire",
+  "name": "Wildfire",
+  "cost": 3,
+  "text": "45 power to the enemy side. Apply 1 Burn to each.",
+  "plus": "45 power to the enemy side. Apply 5 Burn to each.",
+  "rule": "status: +4 stacks (1 + cost)"
+ },
+ {
+  "id": "ash_communion",
+  "name": "Ash Communion",
+  "cost": 2,
+  "text": "Consume your Burn: heal with 30 power per stack consumed.",
+  "plus": "Consume your Burn: heal with 40 power per stack consumed.",
+  "rule": "consume: per-stack +40%"
+ },
+ {
+  "id": "undertow",
+  "name": "Undertow",
+  "cost": 0,
+  "text": "Draw a card. You gain 1 Weakened.",
+  "plus": "Draw a card.",
+  "rule": "self-debuff removed (Henry, 2026-09-28)"
+ },
+ {
+  "id": "blind_spot",
+  "name": "Blind Spot",
+  "cost": 0,
+  "text": "6 power. Apply 1 Dazed.",
+  "plus": "6 power. Apply 2 Dazed.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "whirlpool",
+  "name": "Whirlpool",
+  "cost": 1,
+  "text": "8 power. Draw a card. Apply 2 Dazed.",
+  "plus": "8 power. Draw a card. Apply 4 Dazed.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "pressure_point",
+  "name": "Pressure Point",
+  "cost": 1,
+  "text": "22 power. If the target is Dazed, draw 1.",
+  "plus": "30 power. If the target is Dazed, draw 1.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "ink_stream",
+  "name": "Ink Stream",
+  "cost": 1,
+  "text": "33 power for each card an effect drew you this turn.",
+  "plus": "45 power for each card an effect drew you this turn.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "crushing_depths",
+  "name": "Crushing Depths",
+  "cost": 2,
+  "text": "Consume all Dazed on the target: 20 power per stack consumed.",
+  "plus": "Consume all Dazed on the target: 30 power per stack consumed.",
+  "rule": "consume: per-stack +40%"
+ },
+ {
+  "id": "slander",
+  "name": "Slander",
+  "cost": 2,
+  "text": "15 power per stack of Dazed on the target.",
+  "plus": "20 power per stack of Dazed on the target.",
+  "rule": "scalar: per-stack +40%"
+ },
+ {
+  "id": "ink_cloud",
+  "name": "Ink Cloud",
+  "cost": 2,
+  "text": "25 power to the enemy side. Apply 2 Dazed to each.",
+  "plus": "25 power to the enemy side. Apply 5 Dazed to each.",
+  "rule": "status: +3 stacks (1 + cost)"
+ },
+ {
+  "id": "scavenge_data",
+  "name": "Scavenge Data",
+  "cost": 1,
+  "text": "Draw a Water card.",
+  "plus": "Draw 2 Water cards.",
+  "rule": "draw: +1 card"
+ },
+ {
+  "id": "serpents_coil",
+  "name": "Serpent's Coil",
+  "cost": 1,
+  "text": "10 power for every card you played this turn.",
+  "plus": "15 power for every card you played this turn.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "surge_protection",
+  "name": "Surge Protection",
+  "cost": 1,
+  "text": "25 power. If an effect drew your team a card this turn, refund 1 Energy.",
+  "plus": "35 power. If an effect drew your team a card this turn, refund 1 Energy.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "riptide_run",
+  "name": "Riptide Run",
+  "cost": 1,
+  "text": "20 power. Refund 1 Energy if this is the third or later card you played this turn.",
+  "plus": "30 power. Refund 1 Energy if this is the third or later card you played this turn.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "corrosive_leak",
+  "name": "Corrosive Leak",
+  "cost": 0,
+  "text": "Poison yourself 2 stacks. Gain 1 Energized.",
+  "plus": "Poison yourself 2 stacks. Gain 2 Energized.",
+  "rule": "Energized: +1"
+ },
+ {
+  "id": "tidal_battery",
+  "name": "Tidal Battery",
+  "cost": 2,
+  "text": "Every ally gains 1 Energized.",
+  "plus": "Every ally gains 2 Energized.",
+  "rule": "side buff: +1 stack per ally"
+ },
+ {
+  "id": "tide_pool",
+  "name": "Tide Pool",
+  "cost": 1,
+  "text": "Gain 1 Energized. Draw 1.",
+  "plus": "Gain 2 Energized. Draw 1.",
+  "rule": "Energized: +1"
+ },
+ {
+  "id": "corrosive_bolt",
+  "name": "Corrosive Bolt",
+  "cost": 1,
+  "text": "Apply 3 Poison.",
+  "plus": "Apply 5 Poison.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "venom_fang",
+  "name": "Venom Fang",
+  "cost": 1,
+  "text": "30 power.",
+  "plus": "40 power.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "serpent_flurry",
+  "name": "Serpent Flurry",
+  "cost": 1,
+  "text": "Three strikes of 10 power.",
+  "plus": "Four strikes of 10 power.",
+  "rule": "multi-hit: +1 hit"
+ },
+ {
+  "id": "toxic_surge",
+  "name": "Toxic Surge",
+  "cost": 1,
+  "text": "Apply 1 Poison, then trigger Poison damage immediately.",
+  "plus": "Apply 3 Poison, then trigger Poison damage immediately.",
+  "rule": "consume: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "contagion",
+  "name": "Contagion",
+  "cost": 2,
+  "text": "Double the target's Poison stacks.",
+  "plus": "Double the target's Poison stacks, then apply 3 more.",
+  "rule": "enabler: +3 stacks after (1 + cost)"
+ },
+ {
+  "id": "venom_glut",
+  "name": "Venom Glut",
+  "cost": 2,
+  "text": "Consume the target's Poison: 15 power per stack consumed.",
+  "plus": "Consume the target's Poison: 20 power per stack consumed.",
+  "rule": "consume: per-stack +40%"
+ },
+ {
+  "id": "spreading_rot",
+  "name": "Spreading Rot",
+  "cost": 1,
+  "text": "Apply 2 Poison to the enemy side.",
+  "plus": "Apply 4 Poison to the enemy side.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "scald",
+  "name": "Scald",
+  "cost": 0,
+  "text": "Apply 2 Burn. You gain 1 Dazed.",
+  "plus": "Apply 3 Burn. You gain 1 Dazed.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "boiling_surge",
+  "name": "Boiling Surge",
+  "cost": 2,
+  "text": "55 power. Apply 2 Burn.",
+  "plus": "75 power. Apply 2 Burn.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "maelstrom",
+  "name": "Maelstrom",
+  "cost": 3,
+  "text": "100 power. Apply 3 Dazed.",
+  "plus": "140 power. Apply 3 Dazed.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "hydro_blast",
+  "name": "Hydro Blast",
+  "cost": 3,
+  "text": "120 power.",
+  "plus": "170 power.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "tidal_wave",
+  "name": "Tidal Wave",
+  "cost": 3,
+  "text": "55 power to the enemy side.",
+  "plus": "75 power to the enemy side.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "acorn_toss",
+  "name": "Acorn Toss",
+  "cost": 0,
+  "text": "5 power, three times.",
+  "plus": "5 power, four times.",
+  "rule": "multi-hit: +1 hit"
+ },
+ {
+  "id": "forage",
+  "name": "Forage",
+  "cost": 0,
+  "text": "Draw 1. Take damage equal to 15 power.",
+  "plus": "Draw 1. Take damage equal to 8 power.",
+  "rule": "draw: drawback halves"
+ },
+ {
+  "id": "seed_bomb",
+  "name": "Seed Bomb",
+  "cost": 2,
+  "text": "20 power per card you played this turn.",
+  "plus": "30 power per card you played this turn.",
+  "rule": "scalar: per-stack +40%"
+ },
+ {
+  "id": "rejuvenation",
+  "name": "Rejuvenation",
+  "cost": 1,
+  "text": "Draw a card. Heal with 25 power.",
+  "plus": "Draw a card. Heal with 35 power.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "tend",
+  "name": "Tend",
+  "cost": 0,
+  "text": "An ally gains 1 Sharp and heals with 8 power.",
+  "plus": "An ally and you each gain 1 Sharp and heal with 8 power.",
+  "rule": "ally-target: also the caster"
+ },
+ {
+  "id": "bolster",
+  "name": "Bolster",
+  "cost": 1,
+  "text": "An ally gains 3 Sharp.",
+  "plus": "An ally and you gain 3 Sharp.",
+  "rule": "ally-target: also the caster"
+ },
+ {
+  "id": "verdant_ward",
+  "name": "Verdant Ward",
+  "cost": 2,
+  "text": "Every ally gains 2 Regen and 1 Sharp.",
+  "plus": "Every ally gains 3 Regen and 1 Sharp.",
+  "rule": "side buff: +1 stack per ally"
+ },
+ {
+  "id": "iron_bark",
+  "name": "Iron Bark",
+  "cost": 1,
+  "text": "Gain 3 Sharp and 2 Regen.",
+  "plus": "Gain 5 Sharp and 2 Regen.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "shrug_off",
+  "name": "Shrug Off",
+  "cost": 0,
+  "text": "Remove 1 Weakened, then gain 2 Sharp.",
+  "plus": "Remove 1 Weakened, then gain 3 Sharp.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "thorn_whip",
+  "name": "Thorn Whip",
+  "cost": 1,
+  "text": "15 power. +5 power per Sharp you hold.",
+  "plus": "15 power. +7 power per Sharp you hold.",
+  "rule": "scalar: per-stack +40%"
+ },
+ {
+  "id": "pollen_cloud",
+  "name": "Pollen Cloud",
+  "cost": 0,
+  "text": "Apply 1 Weakened to each enemy.",
+  "plus": "Apply 2 Weakened to each enemy.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "heckle",
+  "name": "Heckle",
+  "cost": 0,
+  "text": "Apply 1 Dazed and 1 Weakened.",
+  "plus": "Apply 2 Dazed and 1 Weakened.",
+  "rule": "status: +1 stacks (1 + cost)"
+ },
+ {
+  "id": "nagging_bite",
+  "name": "Nagging Bite",
+  "cost": 1,
+  "text": "15 power. +20 power if the target is Dazed.",
+  "plus": "20 power. +20 power if the target is Dazed.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "pile_on",
+  "name": "Pile On",
+  "cost": 2,
+  "text": "45 power. If the target is Dazed, hit again.",
+  "plus": "65 power. If the target is Dazed, hit again.",
+  "rule": "flat: +40%"
+ },
+ {
+  "id": "crippling_vine",
+  "name": "Crippling Vine",
+  "cost": 2,
+  "text": "20 power to the enemy side. Apply 2 Weakened to each.",
+  "plus": "20 power to the enemy side. Apply 5 Weakened to each.",
+  "rule": "status: +3 stacks (1 + cost)"
+ },
+ {
+  "id": "thorn_tithe",
+  "name": "Thorn Tithe",
+  "cost": 1,
+  "text": "30 power. Apply 3 Weakened.",
+  "plus": "30 power. Apply 5 Weakened.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "sap_strength",
+  "name": "Sap Strength",
+  "cost": 1,
+  "text": "20 power. +6 power per Weakened on the target.",
+  "plus": "20 power. +10 power per Weakened on the target.",
+  "rule": "scalar: per-stack +40%"
+ },
+ {
+  "id": "hexbloom",
+  "name": "Hexbloom",
+  "cost": 2,
+  "text": "Apply 1 Poison per Weakened on the target, then remove the Weakened.",
+  "plus": "Apply 1 Poison per Weakened on the target and deal 7 power per Weakened, then remove the Weakened.",
+  "rule": "consume: damage rider per stack"
+ },
+ {
+  "id": "heartwood",
+  "name": "Heartwood",
+  "cost": 1,
+  "text": "Gain 6 Bark Shield. Apply 1 Poison to the target.",
+  "plus": "Gain 8 Bark Shield. Apply 1 Poison to the target.",
+  "rule": "status: +2 Bark (its currency; 1 + cost)"
+ },
+ {
+  "id": "shell_share",
+  "name": "Shell Share",
+  "cost": 1,
+  "text": "An ally gains 6 Bark Shield.",
+  "plus": "An ally and you gain 6 Bark Shield.",
+  "rule": "ally-target: also the caster"
+ },
+ {
+  "id": "bark_lash",
+  "name": "Bark Lash",
+  "cost": 0,
+  "text": "1 power per point of Bark Shield you hold.",
+  "plus": "2 power per point of Bark Shield you hold.",
+  "rule": "scalar: per-point +1 (0e; +40% of 1 rounds to nothing)"
+ },
+ {
+  "id": "bark_smash",
+  "name": "Bark Smash",
+  "cost": 2,
+  "text": "Consume your Bark Shield: 6 power per point consumed.",
+  "plus": "Consume your Bark Shield: 10 power per point consumed.",
+  "rule": "consume: per-stack +40%"
+ },
+ {
+  "id": "thornguard",
+  "name": "Thornguard",
+  "cost": 1,
+  "text": "20 power. Apply 3 Poison if you are shielded.",
+  "plus": "20 power. Apply 5 Poison if you are shielded.",
+  "rule": "status: +2 stacks (1 + cost)"
+ },
+ {
+  "id": "blightbloom",
+  "name": "Blightbloom",
+  "cost": 2,
+  "text": "30 power. Apply 5 Poison.",
+  "plus": "30 power. Apply 8 Poison.",
+  "rule": "status: +3 stacks (1 + cost)"
+ },
+ {
+  "id": "nettle_sting",
+  "name": "Nettle Sting",
+  "cost": 1,
+  "text": "22 power. Apply 1 Poison.",
+  "plus": "22 power. Apply 3 Poison.",
+  "rule": "status: +2 stacks (1 + cost)"
+ }
+]

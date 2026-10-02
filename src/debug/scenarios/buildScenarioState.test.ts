@@ -47,7 +47,7 @@ function makeSetup(overrides: Partial<ComposedSetup> = {}): ComposedSetup {
                 'ignite',
                 'strength_burst',
             ],
-            relics: [],
+            drivers: [],
         },
         enemies: [
             {
@@ -223,7 +223,7 @@ describe('buildScenarioState - per-entity overrides', () => {
     });
 });
 
-describe('buildScenarioState - decks, relics and enemyMode', () => {
+describe('buildScenarioState - decks, drivers and enemyMode', () => {
     it('expands the player deck into instances and deals an opening hand', () => {
         const setup = makeSetup();
         const state = buildScenarioState(setup);
@@ -249,7 +249,7 @@ describe('buildScenarioState - decks, relics and enemyMode', () => {
         expect(state.enemyParty[0].currentIntent).not.toBeNull();
     });
 
-    it('CARDS mode deals the enemy a hand from the per-enemy decks', () => {
+    it('CARDS mode builds the enemy a drawpile from the per-enemy decks, and deals it no opening hand', () => {
         const setup = makeSetup({ enemyMode: 'CARDS' });
         setup.enemies = [
             {
@@ -273,28 +273,59 @@ describe('buildScenarioState - decks, relics and enemyMode', () => {
         expect(state.enemyMode).toBe('CARDS');
         const total = state.enemyDeck.hand.length + state.enemyDeck.drawpile.length;
         expect(total).toBe(3);
-        expect(state.enemyDeck.hand.length).toBeGreaterThan(0);
+        // 2026-09-25: the enemy draws at the start of its own first turn, like every turn after.
+        // An opening deal here stacked a second hand on top of it (see `createBattleState`).
+        expect(state.enemyDeck.hand).toEqual([]);
+        expect(state.enemyDeck.drawpile).toHaveLength(3);
         // No intents in CARDS mode - the normalizer's fill class leaves them null.
         expect(state.enemyParty[0].currentIntent).toBeNull();
     });
 
-    it('threads relics onto activeRelics and applies their battle-start bonuses', () => {
-        const plain = buildScenarioState(makeSetup());
-        const setup = makeSetup();
-        setup.player.relics = ['heatsink', 'expansion_slot'];
-        const buffed = buildScenarioState(setup);
+    it('opens on the side it is asked to: an ENEMY start deals the enemy its hand and the player none', () => {
+        // 2026-09-27. The paired harness runs every matchup twice, once with each side moving
+        // first. After the enemy stopped being dealt an opening hand (d30106e), `runOne` built a
+        // PLAYER-first state and only relabelled `activeSide`, so the "enemy-first" battle opened
+        // with the enemy holding nothing and the player holding a hand it then drew on top of.
+        // The side that moves first must be the side whose turn 1 ran.
+        const setup = makeSetup({ enemyMode: 'CARDS' });
+        setup.enemies = [
+            {
+                definitionId: 'draugr',
+                attackIV: 0,
+                defenseIV: 0,
+                hpIV: 0,
+                deck: ['fire_poke', 'scorch', 'ignite', 'fire_poke', 'scorch', 'ignite'],
+            },
+        ];
 
-        expect(buffed.activeRelics).toEqual(['heatsink', 'expansion_slot']);
-        expect(buffed.playerParty[0].maxEnergy).toBe(plain.playerParty[0].maxEnergy + 1);
-        expect(buffed.playerParty[0].cardDraw).toBe(plain.playerParty[0].cardDraw + 1);
-        // Enemies never receive player relics.
-        expect(buffed.enemyParty[0].cardDraw).toBe(plain.enemyParty[0].cardDraw);
+        const state = buildScenarioState(setup, 'ENEMY');
+
+        expect(state.activeSide).toBe('ENEMY');
+        expect(state.turn).toBe(1);
+        expect(state.enemyDeck.hand.length).toBeGreaterThan(0);
+        expect(state.playerDeck.hand).toEqual([]);
     });
 
-    it('warns and continues on an unknown relic', () => {
+    it('threads drivers onto activeDrivers and attaches their hooks to the player side only', () => {
+        // Ticket 16: the player side goes through the same `applyDrivers` as the enemy side and the
+        // live factory, so a Driver here is a Driver in the shipped game, hook for hook.
+        const plain = buildScenarioState(makeSetup());
+        const setup = makeSetup();
+        setup.player.drivers = ['driver_first_blood', 'driver_antivenom'];
+        const buffed = buildScenarioState(setup);
+
+        expect(buffed.activeDrivers).toEqual(['driver_first_blood', 'driver_antivenom']);
+        expect(buffed.playerParty[0].hooks).toContain('driver_first_blood_boost');
+        expect(buffed.playerParty[0].hooks).toContain('driver_antivenom_purge');
+        expect(plain.playerParty[0].hooks).toEqual([]);
+        // Enemies never receive player Drivers.
+        expect(buffed.enemyParty[0].hooks ?? []).not.toContain('driver_first_blood_boost');
+    });
+
+    it('warns and continues on an unknown driver', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const setup = makeSetup();
-        setup.player.relics = ['no_such_relic'];
+        setup.player.drivers = ['no_such_driver'];
 
         expect(() => buildScenarioState(setup)).not.toThrow();
         expect(warn).toHaveBeenCalled();
@@ -310,7 +341,6 @@ describe('buildScenarioState - canonical form and guards', () => {
         expect(state.elementPlays).toBeDefined();
         expect(Object.values(state.elementPlays!).every(v => v === 0)).toBe(true);
         for (const entity of [...state.playerParty, ...state.enemyParty]) {
-            expect(entity.relicBonuses).toBeDefined();
             expect(entity.hooks).toEqual([]);
             expect(entity.playsThisTurn).toBe(0);
             expect(entity.currentIntent !== undefined).toBe(true);

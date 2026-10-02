@@ -302,13 +302,13 @@ describe('BoundaryAlert — the suggested column', () => {
         const collection = [
             card('blood_rite', 'mm2'),
             card('ink_stream', 'mm1'),
-            card('seed_bomb_v2', null),
+            card('seed_bomb', null),
         ];
         const markup = render(makeRun({ collection, bench: ['mm2'] }));
 
         expect(suggestedNames(markup)).toEqual([ProgramRegistry.blood_rite.name]);
         expect(markup).not.toContain(ProgramRegistry.ink_stream.name);
-        expect(markup).not.toContain(ProgramRegistry.seed_bomb_v2.name);
+        expect(markup).not.toContain(ProgramRegistry.seed_bomb.name);
     });
 
     it('stops at SUGGESTION_LIMIT rather than pouring the collection into a modal', () => {
@@ -325,8 +325,8 @@ describe('BoundaryAlert — the suggested column', () => {
          * arbitrary cards and still count correctly, and "five of the ten" is only useful advice if
          * they are the five the player is most likely to be able to afford playing.
          */
-        const cheapest = ['undertow', 'healing_mist', 'blood_rite', 'berserk_rush', 'battle_rhythm'];
-        const dearest = ['ragnarok_edge', 'seed_bomb_v2', 'hydro_blast'];
+        const cheapest = ['undertow', 'tend', 'blood_rite', 'berserk_rush', 'battle_rhythm'];
+        const dearest = ['ragnarok_edge', 'seed_bomb', 'hydro_blast'];
         const collection = [...dearest, ...cheapest].map((id) => card(id, 'mm2'));
         expect(collection.length).toBeGreaterThan(SUGGESTION_LIMIT);
 

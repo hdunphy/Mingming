@@ -158,8 +158,24 @@ function App() {
    */
   const settingsLayer = settingsOpen ? <SettingsScreen /> : null;
 
+  /*
+   * ══ TICKET 38 — EVERY BRANCH LANDS IN A `main`, NOT JUST THE RANCH ONE. ══
+   *
+   * `App` returns one of four things, and only the last of them — the ranch shell below — was
+   * wrapped in a landmark. axe reported `landmark-one-main` and `region` on the starter picker,
+   * the region map and the battle screen for that reason: the whole screen sat in bare `#root`,
+   * so a screen-reader user landing on a fight had no landmark to jump to and no way to skip the
+   * debug layer.
+   *
+   * Wrapped here at each early return rather than around `#root` in `main.tsx`, because the
+   * settings overlay and the debug layer are siblings of the screen and neither belongs inside
+   * `main`: a dialog is not the page's main content, and the debug toolkit is not content at all.
+   *
+   * `className` rather than a style object on each: `.app-main` carries the same fill-the-frame
+   * rules the ranch branch had inline, in one place.
+   */
   if (isInBattle) {
-    return <>{debugLayer}<BattleArena />{settingsLayer}</>;
+    return <>{debugLayer}<main className="app-main"><BattleArena /></main>{settingsLayer}</>;
   }
 
   /*
@@ -176,20 +192,20 @@ function App() {
    * A wiped save (no roster, no blueprints) comes back here, which is right.
    */
   if (rosterSize === 0 && blueprintsHeld === 0) {
-    return <>{debugLayer}<MainMenuView />{settingsLayer}</>;
+    return <>{debugLayer}<main className="app-main"><MainMenuView /></main>{settingsLayer}</>;
   }
 
   // TICKET 09: a run in progress outranks the ranch. There is no tab for it — you are either at
   // the ranch or in a run, and the only ways out are finishing it or abandoning it. Ticket 10
   // replaces `RunScreen`'s body with the real region map.
   if (hasRun) {
-    return <>{debugLayer}<RunScreen />{settingsLayer}</>;
+    return <>{debugLayer}<main className="app-main"><RunScreen /></main>{settingsLayer}</>;
   }
 
   return (
     <>
     {debugLayer}
-    <main style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <main className="app-main">
       {/* Tab Navigation */}
       <nav className="main-nav" style={{ position: 'relative' }}>
         {TAB_CONFIG.map(tab => (

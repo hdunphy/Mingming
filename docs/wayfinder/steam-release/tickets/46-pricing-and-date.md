@@ -1,5 +1,7 @@
 # Pricing, launch window and the calendar around the baby (ticket 46)
 
+> **2026-09-25 — 05 re-ruled to a small 1.0: the price band stays; drop the EA "→ $9.99 at 1.0" step; the launch window question is unchanged.**
+
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: 

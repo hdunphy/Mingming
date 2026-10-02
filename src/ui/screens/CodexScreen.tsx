@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import {
     CODEX_MILESTONES,
     codexCardIds,
+    codexAllSpeciesIds,
     codexLaunchSpeciesIds,
     codexOsIds,
     codexPercent,
@@ -216,8 +217,21 @@ function Cards({ codex }: { codex: ICodex }): ReactNode {
 function Species({ codex }: { codex: ICodex }): ReactNode {
     const met = new Set(codex.species);
     const built = new Set(codex.assembled);
-    const launch = new Set(codexLaunchSpeciesIds());
-    const ids = useMemo(() => codexSpeciesIds(), []);
+    /*
+     * TICKET 31a — **the GRID shows the whole roster; the DENOMINATOR is the EA six.**
+     *
+     * `codexSpeciesIds` used to be all sixteen and is now the six Early Access ships, which is what
+     * a completion percentage has to count against (162a parked the other ten on the archived pool).
+     * If the grid followed it the ten would vanish from the screen entirely, and a collection that
+     * silently hides content is worse at being a collection than one that shows it greyed.
+     *
+     * So: `codexAllSpeciesIds` draws the cells, `codexSpeciesIds` marks which of them count today,
+     * and the ten that do not wear `post-launch`. Both numbers are on the screen and neither is
+     * pretending to be the other — which is the shape the old comment here asked for and did not get
+     * once the two lists became the same list.
+     */
+    const launch = new Set(codexSpeciesIds());
+    const ids = useMemo(() => codexAllSpeciesIds(), []);
 
     return (
         <>

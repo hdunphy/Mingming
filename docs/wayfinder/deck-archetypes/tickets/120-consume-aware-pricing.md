@@ -1,5 +1,7 @@
 # Ticket 120 — hexbloom and the over-band tail: is the scorer double-counting consumed stacks?
 
+> **Status: CLOSED 2026-09-08** — closed — Henry: hexbloom plays fine; the scorer question (is consume double-counted?) is folded into ticket 149. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** OPEN. Opened 2026-08-26 at Henry's request — *"Leave hexbloom for now, add a ticket to
 investigate later. We might just be scoring it wrong, it does consume stacks."*
 

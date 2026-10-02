@@ -36,6 +36,7 @@ import { battleReducer, type BattleAction } from '../../engine/battleReducer';
 import { executeDraw } from '../../engine/resolutionEngine';
 import { HAND_SIZE_LIMIT } from '../../engine/deckLogic';
 import { getBestAction } from '../../engine/ai/TacticalAI';
+import type { MacroFire, MacroPolicy } from './macroPolicy';
 import { PRNG } from '../../engine/core/PRNG';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import { buildScenarioState } from '../scenarios/buildScenarioState';
@@ -102,6 +103,14 @@ export interface BatchOptions {
      */
     enemyAiTier?: AiTier;
     /**
+     * TICKET 177e — which grade of `TacticalAI` plays the PLAYER side: the mirror of `enemyAiTier`,
+     * for the cheap-AI measurement (`cheap` against `full`) and any other two-grade comparison. The
+     * paragraph above says the player's side is never graded BY `enemyAiTier`, and that stays true;
+     * a harness that wants to grade it asks by name, here. Omitted means the process-wide default,
+     * so every existing suite keeps the grade it had and every existing result is byte-identical.
+     */
+    playerAiTier?: AiTier;
+    /**
      * TICKET 144 §2 — the beam width for these battles. Undefined takes the process default, which
      * is now 8 everywhere.
      *
@@ -128,6 +137,15 @@ export interface BatchOptions {
      * The other half of the KO cliff. Off by default; composes with `bereavementEnergy`.
      */
     bereavementDraw?: BereavementDraw;
+    /**
+     * TICKET 77 TRACK B1 — a hand on the PLAYER's macro rack.
+     *
+     * Consulted before every player action; when it returns a `FIRE_MACRO` that action is dispatched
+     * in place of `getBestAction`'s card. Off in every shipped path and in every suite that does not
+     * ask for it, so the bare arm is bit-identical. One policy instance per BATTLE — it holds the
+     * rack — so a caller running several seeds must build one per seed (see `runGate.measureCell`).
+     */
+    playerPolicy?: MacroPolicy;
 }
 
 /**
@@ -277,10 +295,37 @@ export interface RunResult {
     deadCards: { player: number; enemy: number };
     /** Card instances that reached a hand at all, per side - the ratio's denominator. */
     cardsSeen: { player: number; enemy: number };
+    /**
+     * TICKET 157 — THE PLAYER SIDE AS THE BATTLE LEFT IT.
+     *
+     * Every other field here is a summary, because every other consumer measures a POOL of battles
+     * and one battle's end state means nothing to an average. The run walker is the first consumer
+     * that plays battles in SEQUENCE, and the gauntlet is the one place a run carries HP between
+     * them (`IGauntletProgress.persistedHp` — *"FULL HEAL between regular nodes"*, so outside the
+     * gym there is nothing to carry).
+     *
+     * Reported for every battle rather than behind a flag: it is three numbers per body off a state
+     * this function already holds, and a field that exists only when asked for is a field the next
+     * caller forgets to ask for. In player-party (setup) order; a downed body reports 0 rather than
+     * being left out, because the walker needs to know WHO died and not only how many.
+     */
+    playerEnd: ReadonlyArray<{ id: string; definitionId: string; hp: number; maxHp: number }>;
+    /**
+     * The enemy side's end HP, by entity id, and it is not symmetry for its own sake.
+     *
+     * `RewardSystem.rollDropTable` pays **only for entities at `currentHp <= 0`** — *"the fight's
+     * size is its CORPSES, not the player's party"* — so a walker that handed it the enemy party as
+     * it was ROLLED would be handing it a fight nobody won, and every reward would come back empty.
+     * (It did, for one build of `runWalker`, and the fix is this field rather than the walker
+     * guessing which bodies fell.) Only HP, because that is the only thing the drop table asks.
+     */
+    enemyEnd: ReadonlyArray<{ id: string; hp: number }>;
     /** Ticket 26: present only when `BatchOptions.telemetry` was set. */
     telemetry?: RunTelemetry;
     /** Ticket 70's four numbers. Always collected — see `SnowballRecord`. */
     snowball?: SnowballRecord;
+    /** Ticket 77 B1: every macro the player policy fired, in order. Present only when a policy ran. */
+    macrosFired?: ReadonlyArray<MacroFire>;
 }
 
 /**
@@ -460,13 +505,23 @@ export function runOne(
     bereavement?: BereavementEnergy,
     /** EXPERIMENTAL, ticket 70 Q3b. Undefined in every shipped path. */
     bereavementDraw?: BereavementDraw,
+    /** Ticket 77 B1: the player's macro policy. Undefined in every shipped path. */
+    playerPolicy?: MacroPolicy,
+    /** Ticket 177e: the grade that plays the PLAYER side. Undefined takes the process default. */
+    playerAiTier?: AiTier,
 ): RunResult {
-    const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed });
+    // 2026-09-27: the side that moves first is built by running ITS turn 1, not by relabelling a
+    // PLAYER-first state. Since the enemy stopped being dealt an opening hand (d30106e), the
+    // relabel left an enemy-first battle opening on an empty enemy hand while the player drew a
+    // second hand on top of its first - every mirror read 65-97% PLAYER.
+    const built = buildScenarioState({ ...applyStatJitter(setup, seed), seed }, startingSide);
     let state: IBattleState = {
-        ...(startingSide === 'PLAYER' ? built : { ...built, activeSide: 'ENEMY' as const }),
+        ...built,
         // Left off the state entirely when unset, so `TacticalAI.tierFor` reads it as "take the
         // process default" rather than as a grade someone chose.
         ...(enemyAiTier === undefined ? {} : { enemyAiTier }),
+        // 177e: same shape, same reason. Left off the state entirely when unset.
+        ...(playerAiTier === undefined ? {} : { playerAiTier }),
         // Same shape, same reason: left OFF the state entirely when unset, so the search reads it
         // as "take the process default" rather than as a width someone chose.
         ...(aiBeam === undefined ? {} : { aiBeam }),
@@ -627,9 +682,23 @@ export function runOne(
             break;
         }
 
-        const action: BattleAction = getBestAction(state);
+        /*
+         * TICKET 77 B1: the rack is consulted BEFORE the card AI, on the player's action only. A
+         * macro is free and costs no card, so firing it never pre-empts a play — the AI is asked on
+         * the very next iteration with the macro's effect already on the board.
+         */
+        const macro: BattleAction | null = playerPolicy !== undefined && state.activeSide === 'PLAYER'
+            ? playerPolicy.next(state)
+            : null;
+        const action: BattleAction = macro ?? getBestAction(state);
         const side = state.activeSide;
         const nextState = battleReducer(state, action);
+
+        if (macro !== null && nextState === state) {
+            // The policy pre-checks `canFireMacro`, so a refusal here is a policy bug and a STOP
+            // condition (ticket 77), never something to end the turn around.
+            throw new Error(`[runBatch] the macro policy fired ${JSON.stringify(macro)} and the reducer refused it.`);
+        }
 
         if (nextState === state) {
             // The reducer rejected the AI's choice (a stale constraint, an unplayable
@@ -780,7 +849,17 @@ export function runOne(
         truncated,
         deadCards: { player: deadRatio('PLAYER'), enemy: deadRatio('ENEMY') },
         cardsSeen: { player: seen.PLAYER.size, enemy: seen.ENEMY.size },
+        // Ticket 157. Read off the final state rather than tracked as it moves: one read at the
+        // end cannot drift from what the battle actually did.
+        playerEnd: state.playerParty.map((entity) => ({
+            id: entity.id,
+            definitionId: entity.definitionId,
+            hp: Math.max(0, entity.currentHp),
+            maxHp: entity.maxHp,
+        })),
+        enemyEnd: state.enemyParty.map((entity) => ({ id: entity.id, hp: Math.max(0, entity.currentHp) })),
         ...(telemetry ? { telemetry } : {}),
+        ...(playerPolicy ? { macrosFired: [...playerPolicy.fired] } : {}),
         snowball: {
             firstKoBy,
             firstKoTurn,
@@ -883,7 +962,8 @@ export function runBatch(setup: ComposedSetup, options: BatchOptions = {}): Batc
     return aggregate(
         resolveSeeds(setup, options).map(seed =>
             runOne(setup, seed, maxTurns, startingSide, options.telemetry === true, options.enemyAiTier,
-                options.aiBeam, options.bereavementEnergy, options.bereavementDraw)),
+                options.aiBeam, options.bereavementEnergy, options.bereavementDraw, options.playerPolicy,
+                options.playerAiTier)),
     );
 }
 

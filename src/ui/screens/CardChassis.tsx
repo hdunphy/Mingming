@@ -34,9 +34,12 @@
  * `Icon.test.tsx`'s sweep already allows by name.
  */
 
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
+import { describeUpgrade } from './runShell';
 import type { Banner } from './runShell';
+import { paintSegments } from './litSegments';
+import type { TextRange } from '../utils/conditionalClauses';
 
 /**
  * The type mark, top-right. Replaces the coloured text banner the tiles used to carry.
@@ -124,4 +127,143 @@ export function EnergyPips({ cost }: { readonly cost: number }): ReactElement {
             ))}
         </span>
     );
+}
+
+/**
+ * THE WHOLE TILE — the face the shop and the collection draw, as one component.
+ *
+ * Henry, 2026-09-11: *"on hover of the Edit Loadout screen you should see what the active deck
+ * cards look like. I need to see the full card that I would see from the shop or card collection
+ * when I hover."*
+ *
+ * The active deck is a list of 27px rows — cost, element code, name — which is the right shape for
+ * a list you are editing and the wrong shape for deciding whether to cut a card. The hover answer
+ * has to be the SAME card the collection shows, not a second rendering that could drift from it,
+ * so the tile stops being markup inlined at each call site and becomes this.
+ *
+ * Pure and prop-driven: the grid tile is a `<button>` that adds a card, the hover preview is a
+ * floating `<div>`, and neither behaviour belongs in the face. The caller supplies the element.
+ */
+/**
+ * THE ONE CARD FACE — ticket 155e.
+ *
+ * Henry, 2026-09-19: the hand cards *"don't look like the shop cards"*. They were supposed to since
+ * ticket 145d, and the reason they did not is that `HandCardFace` adopted the chassis' CLASSES and
+ * then added three rows of its own — a target chip, a keyword strip and a readout — to a tile whose
+ * description is the only flexing row. Three extra rows is three rows the description gives up, and
+ * in a 176px card it clipped mid-sentence.
+ *
+ * So there is now one face, and the fight's extras go where they cost nothing:
+ *
+ *   - the TARGET rides on the name row as a small tag, not a row of its own;
+ *   - the READOUT rides inside the existing tag line beside the element word
+ *     (`FIRE · 96 DMG vs SKOLL`), which is the row the shop already spends on metadata;
+ *   - the keyword chips carry their stacks, so the separate status summary is gone.
+ *
+ * Every caller — shop, loadout editor, hand, reveal lane — renders this. That is the property the
+ * ticket is really asking for: not "make them look similar" but "make them the same component", so
+ * the next divergence has nowhere to live.
+ *
+ * NO STAB TEXT. Ticket 66 ruled it out and `HandCardFace` had grown a `×1.5` pip anyway; the `--el`
+ * glow is the cue, and 155e says so in as many words.
+ */
+export function CardFace({ face, count, tags, target, readout, keywords, extras, lit }: {
+    readonly face: {
+        readonly name: string;
+        readonly description: string;
+        readonly element: string;
+        readonly cost: number;
+        readonly banner: Banner;
+        /**
+         * TICKET 163b — when the face knows which card it is, an UPGRADED card's moved numbers
+         * are picked out in the element colour (§4). Optional because several callers build a face
+         * by hand from a stack or an offer and have nothing to look up; those render plain text,
+         * which is what they rendered before.
+         */
+        readonly dataId?: string;
+    };
+    readonly count?: number;
+    readonly tags?: string;
+    /** Where this card may land. A tag on the name row in every mode — it is a shopping question too. */
+    readonly target?: string;
+    /** The fight's preview, rendered inside the tag line after the element word. */
+    readonly readout?: ReactNode;
+    /** Keyword chips, which carry their own stack counts. */
+    readonly keywords?: ReactNode;
+    /** Cost-was, cannot-pay, replay — things that hang off the pips rather than taking a row. */
+    readonly extras?: ReactNode;
+    /**
+     * Ranges of the description to paint as TRUE RIGHT NOW — the fight's conditional read
+     * (Henry, 2026-09-25: *"if dazed draw one card ... should highlight green"*). Only the hand
+     * passes it; every other caller renders exactly what it rendered before.
+     */
+    readonly lit?: ReadonlyArray<TextRange>;
+}): ReactElement {
+    const segments = face.dataId === undefined
+        ? [{ text: face.description, changed: false }]
+        : describeUpgrade(face.dataId);
+    const painted = paintSegments(segments, lit ?? []);
+    return (
+        <>
+            <EnergyPips cost={face.cost} />
+            {extras}
+            <TypeMark banner={face.banner} />
+            <span className="rs-art" />
+            <span className="rs-nmrow">
+                <span className="rs-cnm">{face.name}</span>
+                {target && <span className="rs-tgt">{target}</span>}
+            </span>
+            <span className="rs-desc">
+                {painted.map((seg, i) => {
+                    /*
+                     * Unchanged, unlit text is the RAW STRING, not a wrapped span. A card with no
+                     * upgrade and nothing lit comes back as one plain segment, so this renders
+                     * byte-for-byte what `{face.description}` rendered before 163b — which is what
+                     * keeps a highlight for ninety-eight cards from being a DOM change for all 268.
+                     *
+                     * Index keys: the segments are a pure function of one immutable string and the
+                     * lit ranges, so the list cannot reorder and there is no identity to preserve.
+                     */
+                    if (!seg.changed && !seg.lit) return seg.text;
+                    const cls = [seg.changed ? 'rs-upn' : '', seg.lit ? 'rs-lit' : ''].filter(Boolean).join(' ');
+                    return <span key={i} className={cls}>{seg.text}</span>;
+                })}
+            </span>
+            {keywords}
+            <span className="rs-tags">
+                <ElementMark element={face.element} />
+                {readout}
+                {tags && <span className="rs-tg">{tags}</span>}
+            </span>
+            {count !== undefined && count > 1 && <span className="rs-nbadge">×{count}</span>}
+            <span className="rs-elbar" />
+        </>
+    );
+}
+
+/**
+ * The collection's face. A thin call to `CardFace` — kept as its own name because twenty-odd
+ * callers spell it, and renaming them would bury 155e's actual change in a rename diff.
+ */
+export function CardTileFace({ face, count, tags }: {
+    readonly face: {
+        readonly name: string;
+        readonly description: string;
+        readonly element: string;
+        readonly cost: number;
+        readonly banner: Banner;
+        /**
+         * TICKET 163b — when the face knows which card it is, an UPGRADED card's moved numbers
+         * are picked out in the element colour (§4). Optional because several callers build a face
+         * by hand from a stack or an offer and have nothing to look up; those render plain text,
+         * which is what they rendered before.
+         */
+        readonly dataId?: string;
+    };
+    /** Copies held. Prints the ×N badge above 1, exactly as the collection grid does. */
+    readonly count?: number;
+    /** `pick`, `benched` — the collection's own word for where this card sits. */
+    readonly tags?: string;
+}): ReactElement {
+    return <CardFace face={face} count={count} tags={tags} />;
 }

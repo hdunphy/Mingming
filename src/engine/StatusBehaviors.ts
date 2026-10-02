@@ -18,6 +18,13 @@ export interface ApplyResult {
     readonly immediateDamage: number;
     /** Log messages to append */
     readonly logs: string[];
+    /**
+     * TICKET 184b: set when the application pushed a capped pile past its cap and it went off
+     * (Burn's detonation). `remaining` is the pile left behind. Without it, the only trace of a
+     * detonation is that the pile got SMALLER while stacks were being added - which is exactly how
+     * the hover preview came to read "+4 Burn" as "-2 BURN".
+     */
+    readonly overflow?: { readonly detonations: number; readonly remaining: number };
 }
 
 export interface EndTurnResult {
@@ -288,6 +295,7 @@ class BurnBehavior extends StatusBehavior {
         const currentStacks = existingIdx !== -1 ? effects[existingIdx].stacks : 0;
         const totalStacks = currentStacks + incomingStacks;
         let immediateDamage = 0;
+        let detonationCount = 0;
         const logs: string[] = [];
 
         // Per-event payout. Floored, so it is 0 on any frame under `1 / overflowPercent` max HP -
@@ -307,6 +315,7 @@ class BurnBehavior extends StatusBehavior {
                     detonations++;
                 }
                 immediateDamage = perEvent * detonations;
+                detonationCount = detonations;
                 finalStacks = remaining;
                 for (let i = 0; i < detonations; i++) {
                     logs.push(`  🔥 ${target.name} — Burn overload! Detonation deals ${perEvent} damage`);
@@ -315,6 +324,7 @@ class BurnBehavior extends StatusBehavior {
                 // VENT: the pile holds at the cap and every excess stack pays.
                 const overflowStacks = totalStacks - cfg.maxStacks;
                 immediateDamage = perEvent * overflowStacks;
+                detonationCount = overflowStacks;
                 finalStacks = cfg.maxStacks;
                 logs.push(`  🔥 ${target.name} — Burn overflow! ${overflowStacks} excess stack${overflowStacks !== 1 ? 's' : ''} deal ${immediateDamage} immediate damage`);
             }
@@ -326,7 +336,12 @@ class BurnBehavior extends StatusBehavior {
             effects.push(this.createInstance(finalStacks));
         }
 
-        return { updatedEffects: effects, immediateDamage, logs };
+        return {
+            updatedEffects: effects,
+            immediateDamage,
+            logs,
+            ...(detonationCount > 0 ? { overflow: { detonations: detonationCount, remaining: finalStacks } } : {}),
+        };
     }
 
     endTurn(instance: StatusEffectInstance, entity: IBattleEntity): EndTurnResult {

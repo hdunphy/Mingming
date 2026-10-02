@@ -75,6 +75,13 @@ const HookDefinitionSchema = z.object({
     id: z.string(),
     trigger: z.string(),
     priority: z.number(),
+    /**
+     * Ticket 16: this hook's firing IS the Driver's visible proc. `HookFactory` emits a
+     * `DRIVER_PROC` battle event when a hook flagged here passes its `when`, and the UI flashes the
+     * Driver chip and floats its name on the owner. Declared in the schema for HANDOFF 8c2's reason
+     * (zod strips undeclared keys, silently): a flag that is not here is a flag that never fires.
+     */
+    proc: z.boolean().optional(),
     when: HookConditionSchema.optional(),
     condition: z.any().optional(),
     do: z.array(HookActionSchema).optional(),
@@ -93,6 +100,21 @@ export const HookLibraryItemSchema = z.object({
     // runtime no matter what hooks.json says. That is exactly how `escalatePerPlay` cost ticket 36
     // three byte-identical sim runs (HANDOFF 8c2).
     actsWhileAsleep: z.boolean().optional(),
+    /**
+     * TICKET 146g — the authored OS tell, as data.
+     *
+     * Declared here because of the comment three lines up: zod STRIPS unknown keys, so the twelve
+     * `vfx` blocks added to `hooks.json` existed in the file and not at runtime until this line.
+     * The registry loaded them, the tests read `undefined`, and nothing anywhere said why — which
+     * is the same shape as the `escalatePerPlay` incident that comment is about, found the same way
+     * (a test that asserted the data arrived, rather than only that the code compiled).
+     */
+    vfx: z.object({
+        shape: z.enum(['pulse', 'rise', 'arc', 'crack', 'swirl', 'drain', 'spark', 'ring']),
+        color: z.string().optional(),
+        at: z.enum(['owner', 'target', 'owner-to-target', 'target-to-owner']).optional(),
+        note: z.string().optional(),
+    }).optional(),
     hooks: z.array(HookDefinitionSchema).optional()
 });
 

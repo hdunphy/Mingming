@@ -23,7 +23,7 @@
 import { describe, it, expect } from 'vitest';
 import { battleReducer } from './battleReducer';
 import { createSparseBattleState, createSparseEntity } from '../debug/scenarios/scenarioTestSupport';
-import { ProgramRegistry } from './data/programRegistry';
+import { GetProgramData, ProgramRegistry } from './data/programRegistry';
 import type { IBattleState, IBattleEntity } from './types';
 
 const FRAME = 1000;
@@ -59,7 +59,7 @@ function play(
     const deck = {
         ownerId: casterIsEnemy ? 'ENEMY' : 'PLAYER',
         deck: [], drawpile: pile, discard: [], exhaust: [],
-        hand: [{ id: 'h1', dataId: opts.dataId, currentCost: ProgramRegistry[opts.dataId].baseCost as number, isPlayable: true }],
+        hand: [{ id: 'h1', dataId: opts.dataId, currentCost: GetProgramData(opts.dataId).baseCost as number, isPlayable: true }],
     };
     const empty = { ownerId: '', deck: [], drawpile: [], discard: [], exhaust: [], hand: [] };
     const state: IBattleState = createSparseBattleState({
@@ -138,31 +138,19 @@ describe('141b — allies\' attacks feed fenrir_v1, and only his own cost him HP
     });
 });
 
-describe('141d — allies\' Fire attacks charge skoll_v2', () => {
-    it('an ally\'s Fire attack gives her 1 Strengthened', () => {
-        const state = play({
-            playerOS: ['skoll_v2', undefined, undefined],
-            dataId: 'fire_poke', casterId: 'p2', targetId: 'e1',
-        });
-        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(1);
-    });
-
-    it('a NON-Fire attack does not — the element gate is the whole point of the row', () => {
-        const state = play({
-            playerOS: ['skoll_v2', undefined, undefined],
-            dataId: 'baseline_jab', casterId: 'p2', targetId: 'e1',
-        });
-        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(0);
-    });
-
-    it('an enemy\'s Fire attack does not', () => {
-        const state = play({
-            playerOS: ['skoll_v2', undefined, undefined],
-            dataId: 'fire_poke', casterId: 'e1', targetId: 'p2',
-        });
-        expect(stacks(state.playerParty[0], 'Strengthened')).toBe(0);
-    });
-});
+/*
+ * 141d — RETIRED by ticket 162a, and this note is the record of why.
+ *
+ * The row was *"whenever an ally plays a Fire attack, Sköll gains 1 Strengthened"*, SOLAR_OVERDRIVE's
+ * ally half. Collection v2 replaced that OS with EMBER_FUSE — Henry's 09-21 directions split the
+ * two Strength decks, and v2 became the detonation deck. EMBER_FUSE reads `source: SELF`, so
+ * skoll_v2 is no longer one of the ally-triggered firmwares this file is about, and there is no
+ * ally trigger left to assert.
+ *
+ * Its three cases are NOT rewritten as EMBER_FUSE cases here: this file's subject is ticket 141's
+ * ally-trigger family, and testing a self-triggered hook in it would make the file about something
+ * else. EMBER_FUSE has its own coverage in `emberFuse.test.ts`.
+ */
 
 describe('141e — skoll_v1 keeps her 1-stack trigger; the PAYOFF card is the knob', () => {
     /*
@@ -296,10 +284,14 @@ describe('141i — INSTIGATOR reads any ally\'s free card', () => {
     });
 
     it('an ally\'s 1-cost card does not', () => {
+        // TICKET 162a: was `fire_poke`, which collection v2 renamed `ember_jab` AND re-costed from
+        // 1e to 0e — so the card this case used to prove the gate with now walks straight through
+        // it. `brand` is the 1-energy Fire attack that replaced it in the same kit.
         const state = play({
             playerOS: ['ratatoskr_v2', undefined, undefined],
-            dataId: 'fire_poke', casterId: 'p2', targetId: 'e2',
+            dataId: 'brand', casterId: 'p2', targetId: 'e2',
         });
+        expect(GetProgramData('brand').baseCost, 'the case is only a gate test while this is 1').toBe(1);
         expect(stacks(state.enemyParty[1], 'Dazed')).toBe(0);
     });
 });

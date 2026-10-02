@@ -40,6 +40,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 
 import * as marketplace from './marketplace';
+import { GetMingmingData, LAUNCH_SPECIES } from '../data/mingmingRegistry';
 import {
     CARD_PRICE_BY_ENERGY,
     MARKET_NEUTRAL_SLOTS,
@@ -54,17 +55,27 @@ import {
     SELL_PRICE_BY_ENERGY,
     cardPrice,
     isMarketNode,
+    MARKET_BLUEPRINT_PRICE,
+    MARKET_REFRESH_PRICE,
+    blueprintSlotKey,
+    isBlueprintSlotSold,
+    rollBlueprintOffer,
+    blueprintPool,
     isOfferSold,
+    marketStockSeed,
     rollMarketStock,
     sellPrice,
+    upgradedCardPrice,
+    upgradedOfferFor,
+    upgradePrice,
 } from './marketplace';
 import { STARTER_GENERICS, createRun } from './createRun';
 import { encounterSeed } from './encounter';
 import { nodeSeed } from './nodeSeed';
-import { offerGyms } from './gyms';
+import { LAUNCH_ELEMENTS, offerGyms } from './gyms';
 import { PARTY_SIZE } from '../party';
-import { isRewardable, rewardCardPool, scrapForWin } from '../RewardSystem';
-import { GENERIC_HIT, LAUNCH_SPECIES, MingmingRegistry, getDeckForOS } from '../data/mingmingRegistry';
+import { isRewardable, rewardCardPool, scrapForWin, inV2RunPool } from '../RewardSystem';
+import { GENERIC_HIT, MingmingRegistry, getDeckForOS } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
 import { numericBaseCost } from '../types';
 import type { ProgramData, Rarity } from '../types';
@@ -87,7 +98,7 @@ const TRIO = [
     member('mm3', 'ratatoskr', 'ratatoskr_v1'),
 ];
 
-function makeRun(seed = 'market-run', party = SOLO): IRunState {
+function makeRun(seed = 'market-run-1', party = SOLO): IRunState {
     return createRun({ seed, offer: offerGyms('offer-seed')[0], party, startedAt: 1_700_000_000_000 });
 }
 
@@ -111,7 +122,12 @@ function stockAt(node: IRegionNode, run = RUN, party = SOLO) {
 // The seed
 // ---------------------------------------------------------------------------------------------
 
-describe('the market re-rolls per visit, and only per visit', () => {
+/*
+ * RE-KEYED BY TICKET 142 §7 (Henry, 2026-09-11): *"make it static per run so whenever you come
+ * back it has the same stock, which doesn't get replenished — once you buy the card it's gone from
+ * the shop."* The axis was `node.visited`; it is the node's paid REFRESH count now.
+ */
+describe('the market is static per run, and moves only on a paid refresh', () => {
     it('puts a marketplace in every biome, so a run sees the three markets the prices assume', () => {
         expect(MARKETS.length).toBe(MARKET_VISITS_PER_RUN);
         expect(new Set(MARKETS.map((n) => n.biomeIndex)).size).toBe(MARKET_VISITS_PER_RUN);
@@ -125,13 +141,34 @@ describe('the market re-rolls per visit, and only per visit', () => {
             .toEqual(stockAt(MARKET).offers.map((o) => o.card.instanceId));
     });
 
-    it('rolls a different stock on the second visit', () => {
+    it('shows the SAME stock on the second visit — walking back in is not a re-roll', () => {
+        // The farm this ruling closes. Before §7 the stock was a function of `visited`, so leaving
+        // and returning re-rolled the shelf for free and only the three-visit cap held it down.
         const first = stockAt(MARKET);
         const second = stockAt(visited(MARKETS[0], 2));
 
-        expect(second.visit).toBe(2);
-        expect(second.seed).not.toBe(first.seed);
-        expect(second.offers.map((o) => o.card.dataId)).not.toEqual(first.offers.map((o) => o.card.dataId));
+        expect(second.seed).toBe(first.seed);
+        expect(second.offers.map((o) => o.card.dataId)).toEqual(first.offers.map((o) => o.card.dataId));
+        // Instance ids too: the offer IS the card, and an id that moved on re-entry would make
+        // "already bought" unresolvable — which is what keeps a bought slot a GAP.
+        expect(second.offers.map((o) => o.card.instanceId))
+            .toEqual(first.offers.map((o) => o.card.instanceId));
+    });
+
+    it('rolls a different stock once a refresh is paid for', () => {
+        const first = stockAt(MARKET);
+        const refreshed = stockAt(MARKET, { ...RUN, marketRefreshes: { [MARKET.id]: 1 } });
+
+        expect(refreshed.visit).toBe(1);
+        expect(refreshed.seed).not.toBe(first.seed);
+        expect(refreshed.offers.map((o) => o.card.dataId))
+            .not.toEqual(first.offers.map((o) => o.card.dataId));
+    });
+
+    it('refreshing one market leaves the other alone — two shelves, two counters', () => {
+        const run = { ...RUN, marketRefreshes: { [MARKETS[0].id]: 1 } };
+        expect(stockAt(MARKETS[1], run).seed).toBe(stockAt(MARKETS[1]).seed);
+        expect(stockAt(MARKETS[0], run).seed).not.toBe(stockAt(MARKETS[0]).seed);
     });
 
     it('rolls a different stock in a different market on the same visit', () => {
@@ -146,13 +183,19 @@ describe('the market re-rolls per visit, and only per visit', () => {
         expect(stockAt(visited(otherMarket, 1), other).seed).not.toBe(stockAt(MARKET).seed);
     });
 
-    it('shares ONE derivation with the encounter roll rather than copying it', () => {
-        // Ticket 13 extracted `nodeSeed`; `encounterSeed` is now a call to it. The two purposes must
-        // still land on different seeds, or a market and a fight on the same node would draw the
-        // same numbers.
+    it('no longer shares the encounter derivation — and must not collide with it', () => {
+        /*
+         * Ticket 13 had the shelf on `nodeSeed`, which folds in `node.visited`. §7 takes the shelf
+         * OFF that axis, so the two derivations part company - `encounterSeed` still wants the
+         * visit (a re-entered node should roll a different fight) and the shelf must not have it.
+         *
+         * What still has to hold is the property ticket 13 actually cared about: a market and a
+         * fight on the SAME node never draw the same numbers.
+         */
         expect(encounterSeed(RUN, MARKET)).toBe(nodeSeed(RUN, MARKET, 'encounter'));
-        expect(stockAt(MARKET).seed).toBe(nodeSeed(RUN, MARKET, 'market'));
+        expect(stockAt(MARKET).seed).toBe(marketStockSeed(RUN, MARKET));
         expect(stockAt(MARKET).seed).not.toBe(encounterSeed(RUN, MARKET));
+        expect(stockAt(MARKET).seed).not.toBe(nodeSeed(RUN, MARKET, 'market'));
     });
 });
 
@@ -468,10 +511,13 @@ describe('a price is the card’s printed energy, and nothing else', () => {
         // These three are all 2-energy; the old model billed them 40, 56 and 80.
         expect(ProgramRegistry.bracing_cold.rarity).toBe('Common');
         expect(ProgramRegistry.strength_burst.rarity).toBe('Uncommon');
-        expect(ProgramRegistry.core_overclock_daemon.rarity).toBe('Rare');
+        // TICKET 162a renamed it `core_overclock`; `core_overclock_daemon` still resolves through
+        // `programAliases`, but a DIRECT registry index does not go through the table by design.
+        expect(ProgramRegistry.core_overclock.rarity).toBe('Rare');
         expect(cardPrice('bracing_cold')).toBe(35);
         expect(cardPrice('strength_burst')).toBe(35);
-        expect(cardPrice('core_overclock_daemon')).toBe(35);
+        expect(cardPrice('core_overclock_daemon'), 'and the old id still prices, through the alias').toBe(35);
+        expect(cardPrice('core_overclock')).toBe(35);
     });
 
     it('holds that at registry scale: every energy bucket is multi-rarity and single-priced', () => {
@@ -668,39 +714,39 @@ describe('the market buys back, and always for less than it sold', () => {
         expect(sellPrice('no-such-card')).toBe(SELL_PRICE_BY_ENERGY[0]);
     });
 
-    it('charges for a reroll, and charges strictly less for it than the cheapest card', () => {
-        // The one ordering law this module still claims, and the reason REROLL_PRICE moved at all:
-        // a reroll buys nothing but a new set of choices, so it must never be the most expensive
-        // thing on the screen — and it must never be free, or the stock is a slot machine.
-        expect(REROLL_PRICE).toBeGreaterThan(0);
-        expect(REROLL_PRICE).toBeLessThan(Math.min(...CARD_PRICE_BY_ENERGY));
+    /*
+     * THE REROLL'S PRICING LAW IS RETIRED — ticket 142 §7, Henry 2026-09-11.
+     *
+     * Three tests lived here, all descended from ticket 13's law: *"priced BELOW the cheapest card,
+     * because a reroll buys nothing but a new set of choices"*, plus "close enough that variance is
+     * never free" and "costs two 0-energy sales". Every one of them reasoned about a shelf that
+     * **re-rolled free on re-entry** — the paid reroll only bought the increment early, so it had to
+     * undercut a card or nobody would pay for what walking out gave away.
+     *
+     * §7 deleted the free version. A refresh is now the ONLY way a shelf ever changes, which makes
+     * it a different purchase and puts it on the other side of the card price on purpose.
+     */
+    it('prices the refresh above the dearest card — it competes WITH a purchase, not under one', () => {
+        // Henry ruled 50 and flagged it: *"we might need to go higher."* So this pins the RULED
+        // number and the relationship that makes it mean something, not a derivation.
+        expect(MARKET_REFRESH_PRICE).toBe(50);
+        expect(MARKET_REFRESH_PRICE % 5).toBe(0);
+        expect(MARKET_REFRESH_PRICE).toBeGreaterThan(Math.max(...CARD_PRICE_BY_ENERGY));
         // Against the shelf as it actually stocks, not only against the table.
-        expect(REROLL_PRICE).toBeLessThan(Math.min(...REGISTRY_IDS.map(cardPrice)));
-        // Ticket 13's 20 is what this catches: it was under a 24-scrap floor and is over a 15 one.
-        expect(20).toBeGreaterThan(Math.min(...CARD_PRICE_BY_ENERGY));
+        expect(MARKET_REFRESH_PRICE).toBeGreaterThan(Math.max(...REGISTRY_IDS.map(cardPrice)));
     });
 
-    it('keeps the reroll close enough to a card that variance is never free', () => {
-        // The other half of ticket 13's stated law — "close to it, so it is never free variance."
-        // Two thirds of the cheapest card. A reroll at 5 would make the stall a slot machine you
-        // pull until it pays.
-        expect(REROLL_PRICE / Math.min(...CARD_PRICE_BY_ENERGY)).toBeGreaterThan(0.5);
-        // Pinned exactly. This line used to read `REROLL_PRICE === REMOVAL_PRICE / 2`, which held
-        // the number to the digit by tying it to a price that no longer exists — so the digit is
-        // written down instead, with its derivation: ticket 13's 20/24 ratio (0.83) against ticket
-        // 56's 15-scrap floor is 12.5, rounded onto the 5-scrap grid. Still FLAGGED as derived
-        // rather than ruled; if it is wrong it is wrong by 5.
-        expect(REROLL_PRICE).toBe(10);
-        expect(REROLL_PRICE % 5).toBe(0);
+    it('is not reachable by selling filler — a refresh is a run decision, not small change', () => {
+        // The old law's paying-side clause, kept because it still says something true: at 50 a
+        // refresh is ten 0-energy sales, which is more filler than any run holds. What changed is
+        // the direction — it used to be TWO sales, and cheap enough to pull like a lever.
+        expect(MARKET_REFRESH_PRICE / SELL_PRICE_BY_ENERGY[0]).toBeGreaterThan(5);
     });
 
-    it('costs more than the cheapest sale, so one generic never buys a fresh shelf', () => {
-        // The reroll is the one thing at the stall that consumes scrap and hands back nothing, and
-        // now that the market pays out again it is worth stating what it costs in SALES rather than
-        // only in cards: two 0-energy sales, which is every generic a solo run holds but one. That
-        // keeps "never free variance" true from the paying side as well as the buying side.
-        expect(REROLL_PRICE).toBeGreaterThan(SELL_PRICE_BY_ENERGY[0]);
-        expect(REROLL_PRICE / SELL_PRICE_BY_ENERGY[0]).toBe(2);
+    it('keeps the deprecated alias pointing at the ruled number', () => {
+        // `REROLL_PRICE` survives one release as an alias so a stale import cannot quietly charge
+        // the old 10. If this ever drifts, something is importing a price that no longer exists.
+        expect(REROLL_PRICE).toBe(MARKET_REFRESH_PRICE);
     });
 });
 
@@ -750,7 +796,7 @@ describe('the generics, measured against the run’s income', () => {
         expect(trio.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
         // And a solo run holds the same three — the allowance is the starter's, not the party's.
         expect(RUN.deck.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(GENERICS_PER_RUN);
-        expect(GENERIC_HIT).toBe('water_slap');
+        expect(GENERIC_HIT).toBe('tackle');
     });
 
     it('quotes the income table the derivation is written against', () => {
@@ -828,5 +874,345 @@ describe('the generics, measured against the run’s income', () => {
         expect(cardPrice(GENERIC_HIT)).toBe(CARD_PRICE_BY_ENERGY[0]);
         expect(sellPrice(GENERIC_HIT)).toBeLessThan(cardPrice(GENERIC_HIT));
         expect(cardPrice(GENERIC_HIT) - sellPrice(GENERIC_HIT)).toBe(10);
+    });
+});
+
+// =================================================================================================
+// THE BLUEPRINT SLOT — ticket 142g
+// =================================================================================================
+
+describe('142g — one blueprint on the shelf, from this route', () => {
+    it('offers exactly one, priced above the dearest card', () => {
+        // Henry, 2026-09-11: *"Add blueprints to the shop, but they should be expensive and only
+        // offer 1 random option."* One is the ruling; "expensive" is pinned against the card table
+        // rather than as a bare digit, so a future reprice of cards cannot silently make it cheap.
+        const offer = rollBlueprintOffer(RUN, MARKET)!;
+        expect(offer).not.toBeNull();
+        expect(offer.price).toBe(MARKET_BLUEPRINT_PRICE);
+        expect(offer.price).toBeGreaterThan(Math.max(...CARD_PRICE_BY_ENERGY));
+    });
+
+    it('draws from the WHOLE Early Access roster — off-route species included', () => {
+        /*
+         * CORRECTED 2026-09-12. The first version restricted this to the route's own elements and
+         * argued a kraken blueprint on the Rootfall road would undo the route. Henry: *"We aren't
+         * intentionally withholding blueprints. The stall can sell a kraken blueprint ... It's not
+         * about limiting, it was about avoiding having to drop your fire starters to get through
+         * the biome then last minute switch back to FFN party."*
+         *
+         * So the shop is the opposite of 142d's problem, not a leak in it: it is how an off-route
+         * body is reached WITHOUT the detour. Asserted with the off-route species named, because
+         * that is the case a well-meaning 'fix' would break first.
+         */
+        expect(blueprintPool()).toEqual([...LAUNCH_SPECIES]);
+
+        /*
+         * ══ RE-STATED 2026-09-25, TICKET 28b. THE OLD VACUITY GUARD CANNOT FIRE ANY MORE, AND
+         * THE REASON IS A REAL CHANGE TO EVERY ROAD IN THE GAME. ══
+         *
+         * This used to find a species whose element the route never visits and prove the stall
+         * could still sell it. **28b left no such species on any route.** A road is
+         * `counter(gym) → gym → the gym's own biome`, and the last biome's elements are the
+         * leader comp's (`gymCompElementPlan`). 28b seats the guest from the element the gym
+         * BEATS, so that final biome carries `{gym, beaten}` — and in a three-element cycle
+         * `counter(gym)`, `gym` and `beaten` are all three elements. **Every route now shows the
+         * player every launch element.**
+         *
+         * **RULED 2026-09-25, and it is the road Henry wanted all along.** He described the Fire
+         * gym's road as *"Water biome → Fire Biome → Fire Fire Nature Biome that ends with Boss of
+         * FFN"*, and that is exactly what ships: Emberfall runs The Saltmarch (Water) → Emberglass
+         * Flats (Fire) → Cinderreach Approach (Fire+Nature), against fenrir_v2 + skoll_v2 +
+         * huldra_v1. "All three elements on every road" is that sentence restated — `counter(gym)`,
+         * then the gym, then the gym's own comp — not a defect, and the earlier note here calling
+         * it one was reading the design working as a problem.
+         *
+         * It does relax a cost taken under 142 §7 (*"It's fine if there are no Water mingmings in
+         * there"*): Rootfall used to run Fire → Nature → Nature+Water and never stand in a Water
+         * biome, and now its third biome carries Water because its guest does. That is the guest
+         * rule paying for itself, and it is kept.
+         *
+         * The assertion that remains is the one that was always load-bearing: the pool is the
+         * WHOLE roster and is not a function of the run at all — `blueprintPool()` takes no run —
+         * and every one of the six is actually drawable across the seed space rather than merely
+         * allowed. A route filter re-introduced upstream would fail the second half even now.
+         */
+        const routeElements = new Set(RUN.biomes.flatMap((b) => [...b.elements]));
+        expect([...routeElements].sort(), '28b: every road now covers all three elements')
+            .toEqual([...LAUNCH_ELEMENTS].sort());
+
+        const drawn = new Set(MARKETS.flatMap((node) => [0, 1, 2, 3, 4, 5].map((r) => rollBlueprintOffer(
+            { ...RUN, marketRefreshes: { [node.id]: r } }, node,
+        )!.speciesId)));
+        // The species this road meets LAST — the final biome's guest element — is the one a
+        // route-filtered pool would most plausibly withhold, so it is named rather than sampled.
+        const lastMet = blueprintPool().filter((id) =>
+            GetMingmingData(id).primaryElement === RUN.biomes[RUN.biomes.length - 1].elements.at(-1));
+        expect(lastMet.length, 'the final biome names an element, or this case is vacuous').toBeGreaterThan(0);
+        expect(lastMet.some((id) => drawn.has(id)), `drawn: ${[...drawn].join(', ')}`).toBe(true);
+    });
+    it('holds across visits and moves on a refresh, like the rest of the stall', () => {
+        const first = rollBlueprintOffer(RUN, MARKET)!;
+        expect(rollBlueprintOffer(RUN, visited(MARKETS[0], 2))!.speciesId).toBe(first.speciesId);
+
+        // Sampled across the markets: one refresh CAN legitimately redraw the same species.
+        const differs = MARKETS.some((node) => rollBlueprintOffer(
+            { ...RUN, marketRefreshes: { [node.id]: 1 } }, node,
+        )!.speciesId !== rollBlueprintOffer(RUN, node)!.speciesId);
+        expect(differs).toBe(true);
+    });
+
+    it('reads SOLD from the run, not from the ranch — and a refresh restocks the slot', () => {
+        // A card offer answers "already bought?" from ownership; a blueprint cannot, because
+        // blueprints are a persistent COUNT and owning one says nothing about which stall it came
+        // from. The refresh count is IN the key, so a refresh reopens the slot with no clearing step.
+        expect(isBlueprintSlotSold(RUN, MARKET)).toBe(false);
+
+        const bought = { ...RUN, boughtBlueprints: [blueprintSlotKey(RUN, MARKET)] };
+        expect(isBlueprintSlotSold(bought, MARKET)).toBe(true);
+
+        const refreshed = { ...bought, marketRefreshes: { [MARKET.id]: 1 } };
+        expect(isBlueprintSlotSold(refreshed, MARKET)).toBe(false);
+    });
+
+    it('does not shift the cards or the macros — the slot has its own fork', () => {
+        // Every shelf here forks the same seed for this reason: adding a slot must not change what
+        // the other slots drew, or this commit would silently restock every saved run.
+        expect(stockAt(MARKET).offers.map((o) => o.card.dataId).length).toBeGreaterThan(0);
+        expect(rollBlueprintOffer(RUN, MARKET)!.speciesId)
+            .not.toBe(stockAt(MARKET).offers[0].card.dataId);
+    });
+});
+
+// =================================================================================================
+// HENRY'S SHELF, 2026-09-12 — the scenario in his own words
+// =================================================================================================
+
+describe("each shop is its own shelf, and it persists", () => {
+    it('biome 1 and biome 2 are different shelves', () => {
+        // *"I want to make sure each shop node is unique, but persists."*
+        const a = stockAt(MARKETS[0]);
+        const b = stockAt(MARKETS[1]);
+        expect(b.seed).not.toBe(a.seed);
+        expect(b.offers.map((o) => o.card.instanceId)).not.toEqual(a.offers.map((o) => o.card.instanceId));
+    });
+
+    it('buying at biome 1 leaves biome 2 untouched, and biome 1 keeps the rest', () => {
+        /*
+         * *"If I go into shop at biome 1 and buy tackle, the shop in biome 2 is different, but if I
+         * were to return to biome 1 shop the same cards would be there except the tackle that I
+         * bought."*
+         *
+         * Walked end to end rather than asserted a piece at a time, because the three claims only
+         * mean something together: the gap is in the right shelf, the other shelf did not move, and
+         * coming back shows the same wall minus one.
+         */
+        const before = stockAt(MARKETS[0]);
+        const otherBefore = stockAt(MARKETS[1]);
+        const bought = before.offers[0];
+
+        // Buying = the offer's minted instance is now owned. That is the whole mechanism.
+        const owned = [bought.card];
+
+        const returned = stockAt(visited(MARKETS[0], 2));
+        expect(returned.offers.map((o) => o.card.instanceId))
+            .toEqual(before.offers.map((o) => o.card.instanceId));
+        expect(returned.offers.filter((o) => isOfferSold(owned, o))).toHaveLength(1);
+        expect(returned.offers.filter((o) => !isOfferSold(owned, o)))
+            .toHaveLength(before.offers.length - 1);
+
+        // The other shelf neither restocked nor lost anything.
+        expect(stockAt(MARKETS[1]).offers.map((o) => o.card.instanceId))
+            .toEqual(otherBefore.offers.map((o) => o.card.instanceId));
+        expect(stockAt(MARKETS[1]).offers.some((o) => isOfferSold(owned, o))).toBe(false);
+    });
+
+    it('sells a card you already own — one stock of each item, not one copy per run', () => {
+        /*
+         * Henry, 2026-09-12: *"you should be able to purchase duplicate cards that you already own.
+         * What we don't want is the shop has unlimited stock. It should work like Slay the Spire
+         * where you have a single stock of each item."*
+         *
+         * Both halves are already true and neither is obvious, so both are pinned. SOLD is keyed on
+         * the offer's minted INSTANCE, not on its card id, so holding three Tackles greys out
+         * nothing; and `drawDistinct` puts each id on the wall at most once, which is the single
+         * stock. A future "don't offer what they already have" filter would pass the second and
+         * break the first.
+         */
+        const shelf = stockAt(MARKET);
+        const ids = shelf.offers.map((o) => o.card.dataId);
+        expect(new Set(ids).size, 'one stock of each item').toBe(ids.length);
+
+        // Own a copy of the first offer's CARD — a different instance of the same dataId.
+        const ownedCopy = [{ ...shelf.offers[0].card, instanceId: 'owned_elsewhere' }];
+        expect(isOfferSold(ownedCopy, shelf.offers[0])).toBe(false);
+        expect(shelf.offers.every((o) => !isOfferSold(ownedCopy, o))).toBe(true);
+    });
+});
+
+/**
+ * TICKET 25-pre (Henry, 2026-09-24) — **THE STRANGER SLOT IS A CARD THE GAME SHIPS.**
+ *
+ * The off-pool slot drew from `ProgramRegistry` entire, so an Early-Access party could be sold a
+ * card out of the archived v1 collection or out of one of the ten post-EA species. Ticket 69's own
+ * argument for the slot is that it offers *"a card the party could not otherwise be offered"* — an
+ * archived card is not that; it is a card nobody can be offered, because the game does not ship it.
+ *
+ * Named as ticket 25's prerequisite because the vertical-slice playtest is the first time testers
+ * see the stall with collection v2 in it, and a v1 card on that shelf is a bug report about the
+ * collection rather than about the shop.
+ */
+describe('25-pre — an EA party is never sold a card outside collection v2', () => {
+    const EA_PARTY = [
+        { definitionId: 'fenrir', activeOS: 'fenrir_v1', id: 'mm1' },
+        { definitionId: 'kraken', activeOS: 'kraken_v1', id: 'mm2' },
+    ];
+
+    const stallIds = (party: typeof EA_PARTY, seeds: number, slots?: (slot: string) => boolean): string[] => {
+        const out: string[] = [];
+        for (let i = 0; i < seeds; i += 1) {
+            const run = makeRun(`stranger-${i}`);
+            for (const node of run.nodes.filter((n) => isMarketNode(n.kind))) {
+                const stock = rollMarketStock({ run, node, party });
+                out.push(...stock.offers.filter((o) => slots?.(o.slot) ?? true).map((o) => o.card.dataId));
+            }
+        }
+        return out;
+    };
+
+    /*
+     * 163f's `+` slot is the ONE declared exception to this rule, so it is excluded by NAME here
+     * rather than by widening `inV2RunPool`. That is the whole difference between an exception and a
+     * hole: this test failed when 163f landed, which is exactly what should happen when a new door
+     * opens onto a shelf a previous ticket closed.
+     */
+    const NOT_UPGRADED = (slot: string): boolean => slot !== 'upgraded';
+
+    it('offers nothing an EA run could not otherwise reach — every shelf slot, every market', () => {
+        const ids = stallIds(EA_PARTY, 12, NOT_UPGRADED);
+        expect(ids.length, 'no markets were rolled — the fixture is not exercising anything').toBeGreaterThan(30);
+        const outside = [...new Set(ids)].filter((id) => !inV2RunPool(id));
+        expect(outside, 'an archived-v1 or post-EA card reached the stall').toEqual([]);
+    });
+
+    it('still fills the stranger slot, so the gate narrowed it rather than emptying it', () => {
+        // The failure this guards is the quiet one: a filter that leaves nothing turns a seven-slot
+        // shelf into a six-slot shelf and no test notices.
+        const run = makeRun('stranger-fill');
+        const node = run.nodes.find((n) => isMarketNode(n.kind))!;
+        const stock = rollMarketStock({ run, node, party: EA_PARTY });
+        expect(stock.offers.filter((o) => o.slot === 'stranger')).toHaveLength(MARKET_WILDCARD_SLOTS);
+    });
+
+    it('leaves a party the v2 pool cannot speak for on the full complement', () => {
+        /*
+         * `usesV2Pool` is false the moment one member is post-EA, and the gate follows it rather
+         * than holding a second opinion: narrowing the shelf under a party whose own cards are not
+         * in `V2_RUN_POOL` would offer that member nothing. Asserted by finding a stranger the EA
+         * gate would have refused.
+         */
+        const mixed = [...EA_PARTY, { definitionId: 'ymir', activeOS: 'ymir_v1', id: 'mm3' }];
+        const ids = stallIds(mixed, 12, NOT_UPGRADED);
+        expect(ids.some((id) => !inV2RunPool(id)), 'the mixed party saw only v2 cards — check `usesV2Pool`').toBe(true);
+    });
+});
+
+/**
+ * TICKET 163f (Henry, 2026-09-23) — **ONE `+` CARD IN THE STALL, AND IT IS A DOOR, NOT A HOLE.**
+ *
+ * > *"An upgraded card may be found in the market stall for sale, priced below buying the base and
+ * > upgrading it — less than buying then upgrading the card, like 10–20% discount."*
+ *
+ * `isRewardable` refuses every `+` everywhere else, because the only way to hold one is to upgrade
+ * its base (163a). This shelf is the single explicit exception, and what has to be pinned is each
+ * of the three sides it is bounded on — one per RUN, from the PARTY's pool, at the derived price.
+ */
+describe('163f — the one upgraded card in the stall', () => {
+    const EA = [
+        { definitionId: 'fenrir', activeOS: 'fenrir_v1', id: 'mm1' },
+        { definitionId: 'kraken', activeOS: 'kraken_v1', id: 'mm2' },
+    ];
+
+    const upgradedSlots = (seed: string) => {
+        const run = makeRun(seed);
+        return run.nodes.filter((n) => isMarketNode(n.kind)).map((node) => ({
+            node,
+            offers: rollMarketStock({ run, node, party: EA }).offers.filter((o) => o.slot === 'upgraded'),
+        }));
+    };
+
+    it('appears at exactly ONE market in a run, however many the run has', () => {
+        for (let i = 0; i < 8; i += 1) {
+            const rows = upgradedSlots(`plus-run-${i}`);
+            expect(rows.length, 'the run rolled no markets').toBeGreaterThan(1);
+            expect(rows.filter((r) => r.offers.length > 0)).toHaveLength(1);
+        }
+    });
+
+    it('is an EXTRA slot, so a run that meets it loses nothing from the five', () => {
+        const run = makeRun('plus-extra');
+        const counts = run.nodes.filter((n) => isMarketNode(n.kind)).map((node) => {
+            const offers = rollMarketStock({ run, node, party: EA }).offers;
+            return { total: offers.length, pool: offers.filter((o) => o.slot === 'pool').length };
+        });
+        for (const row of counts) expect(row.pool).toBe(MARKET_STOCK_SIZE);
+        expect(new Set(counts.map((c) => c.total))).toEqual(new Set([MARKET_TOTAL_SLOTS, MARKET_TOTAL_SLOTS + 1]));
+    });
+
+    it('offers the `+` of a card THIS PARTY can use, not a stranger\'s', () => {
+        const run = makeRun('plus-pool');
+        const pool = rewardCardPool(EA);
+        for (const node of run.nodes.filter((n) => isMarketNode(n.kind))) {
+            for (const offer of rollMarketStock({ run, node, party: EA }).offers.filter((o) => o.slot === 'upgraded')) {
+                const id = offer.card.dataId;
+                expect(id.endsWith('+'), id).toBe(true);
+                expect(pool, `${id} is not an upgrade of anything in the party's pool`).toContain(id.slice(0, -1));
+            }
+        }
+    });
+
+    it('prices it at base + bench, less 15% — 35 / 45 / 60 / 70 by energy', () => {
+        // Derived, not tabled: the DISCOUNT is the ruling and the four numbers fall out of it, so a
+        // move to either price table carries this with it. The four rungs are asserted because they
+        // are the numbers Henry named.
+        const byEnergy = ['tackle', 'venom_fang', 'pack_tactics', 'hydro_blast'];
+        expect(byEnergy.map((id) => upgradedCardPrice(`${id}+`))).toEqual([35, 45, 60, 70]);
+        for (const id of byEnergy) {
+            const full = cardPrice(id) + upgradePrice(id);
+            expect(upgradedCardPrice(`${id}+`), `${id} is not a discount`).toBeLessThan(full);
+            expect(upgradedCardPrice(`${id}+`) / full).toBeGreaterThan(0.80);
+            expect(upgradedCardPrice(`${id}+`) / full).toBeLessThan(0.90);
+        }
+    });
+
+    it('cannot be farmed by refreshing — the slot is a property of the RUN, not of the visit', () => {
+        // `marketStockSeed` moves with `marketRefreshes` and `upgradedOfferFor` deliberately does
+        // not read it, so a player who refreshes the wrong stall does not eventually roll one up.
+        const run = makeRun('plus-farm');
+        const markets = run.nodes.filter((n) => isMarketNode(n.kind));
+        const carrier = markets.find((n) => upgradedOfferFor(run, n, rewardCardPool(EA)) !== null)!;
+        const other = markets.find((n) => n.id !== carrier.id)!;
+        for (let refreshes = 0; refreshes < 4; refreshes += 1) {
+            const refreshed = { ...run, marketRefreshes: { [other.id]: refreshes } };
+            expect(upgradedOfferFor(refreshed, other, rewardCardPool(EA))).toBeNull();
+        }
+    });
+
+    it('offers nothing when the party has no upgradable card, rather than reaching outside the pool', () => {
+        expect(upgradedOfferFor(makeRun('plus-empty'), makeRun('plus-empty').nodes.find((n) => isMarketNode(n.kind))!, [])).toBeNull();
+    });
+});
+
+describe('171g — the stall never sells Tackle', () => {
+    // Out of the pick pool, it must not fall into the stranger slot ("rewardable and not in the
+    // pool") instead. Fifty refreshes of every market, solo and trio.
+    it('in any slot, on any refresh', () => {
+        for (const party of [SOLO, TRIO]) {
+            for (const market of MARKETS) {
+                for (let r = 0; r < 50; r += 1) {
+                    const stock = stockAt(visited(market, 1), { ...RUN, marketRefreshes: { [market.id]: r } }, party);
+                    expect(stock.offers.map((o) => o.card.dataId)).not.toContain(GENERIC_HIT);
+                }
+            }
+        }
     });
 });

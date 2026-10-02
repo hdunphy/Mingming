@@ -21,7 +21,7 @@ import {
     applyDrivers,
     describeDriver,
     getDriver,
-    isHookDriver,
+    isDriverId,
 } from './driverRegistry';
 import { getOSBehavior } from './firmwareRegistry';
 import type { IBattleEntity, IBattleState, IMingmingState } from '../types';
@@ -57,7 +57,7 @@ function battleWithEnemyDrivers(enemyDrivers: ReadonlyArray<string>): IBattleSta
 describe('the Driver registry', () => {
     it('loads every shipped Driver, with a name and readable rule text', () => {
         for (const id of DRIVER_IDS) {
-            expect(isHookDriver(id)).toBe(true);
+            expect(isDriverId(id)).toBe(true);
             const driver = getDriver(id);
             expect(driver, `${id} has no hooks.json entry`).toBeDefined();
             expect(driver!.hooks.length).toBeGreaterThan(0);
@@ -96,22 +96,22 @@ describe('the Driver registry', () => {
         expect(twice.hooks).toEqual(once.hooks);
     });
 
-    it('still applies the player’s stat Drivers, unchanged by the move (Milestone 8.4)', () => {
-        const entity = {
-            id: 'e1', maxEnergy: 2, currentEnergy: 2, cardDraw: 3, hooks: [],
-            relicBonuses: { draw: 0, energy: 0, attackMod: 1 },
-        } as unknown as IBattleEntity;
-
-        expect(applyDriver(entity, 'heatsink').maxEnergy).toBe(3);
-        expect(applyDriver(entity, 'expansion_slot').cardDraw).toBe(4);
-        expect(applyDriver(entity, 'overclock_module').relicBonuses!.attackMod).toBeCloseTo(1.1);
+    it('no longer knows the four stat relics — they are deleted, not renamed (ticket 16)', () => {
+        // The Milestone 8.4 relics were invisible flat bonuses, which the Driver law forbids. An
+        // old save naming one is skipped with a warning, exactly like any other unknown id.
+        const entity = { id: 'e1', maxEnergy: 2, currentEnergy: 2, cardDraw: 3, hooks: [] } as unknown as IBattleEntity;
+        for (const relic of ['heatsink', 'expansion_slot', 'buffer_cache', 'overclock_module']) {
+            const after = applyDriver(entity, relic);
+            expect(after.maxEnergy).toBe(2);
+            expect(after.cardDraw).toBe(3);
+            expect(after.hooks).toEqual([]);
+            expect(getDriver(relic)).toBeUndefined();
+        }
     });
 
     it('survives an unknown id rather than killing the fight it was decorating', () => {
-        // `GetRelic` throws, which is right for a lookup and wrong for an application loop over a
-        // list that legitimately mixes two kinds of id.
         const entity = { id: 'e1', hooks: [] } as unknown as IBattleEntity;
-        expect(() => applyDrivers(entity, ['driver_does_not_exist', 'not_a_relic_either'])).not.toThrow();
+        expect(() => applyDrivers(entity, ['driver_does_not_exist', 'not_a_driver_either'])).not.toThrow();
         expect(applyDrivers(entity, ['driver_does_not_exist']).hooks).toEqual([]);
     });
 });

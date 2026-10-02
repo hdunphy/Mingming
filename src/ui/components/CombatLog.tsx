@@ -25,13 +25,32 @@ import { isPinnedToBottom } from './combatLogModel';
  * below is kept because it costs nothing and is correct if the stream is ever filled, but the [OS]
  * chip has never once rendered in a real fight.
  */
-const CombatLog: React.FC = () => {
+/**
+ * TICKET 145c: the collapsed state moved OUT of this component.
+ *
+ * 143c gave the log a collapsed/expanded model and owned the toggle itself. The top bar now shows
+ * the latest line with the chevron that opens the panel, so the two would be two sources of truth
+ * for one piece of state — and the bar's chevron would be unable to open a log that had closed
+ * itself. Controlled from `BattleArena`, which owns every other piece of battle-screen state for
+ * the same reason.
+ */
+const CombatLog: React.FC<{ isOpen?: boolean; onOpenChange?: (open: boolean) => void }> = ({
+    isOpen,
+    onOpenChange,
+}) => {
     const logs = useSelector((state: RootState) => state.battle.battle?.logs || []);
     const osLogs = useSelector((state: RootState) => state.battle.battle?.osLogs || []);
     const scrollRef = useRef<HTMLDivElement>(null);
     const pinnedRef = useRef(true);
     // Per session, deliberately not persisted (ticket 143c). Collapsed is the opening state.
-    const [isCollapsed, setIsCollapsed] = useState(true);
+    const [uncontrolledCollapsed, setUncontrolledCollapsed] = useState(true);
+    // Controlled when the parent passes `isOpen` (the battle screen); self-owned otherwise, so a
+    // debug scenario that renders the log alone still gets a working toggle.
+    const isCollapsed = isOpen === undefined ? uncontrolledCollapsed : !isOpen;
+    const setIsCollapsed = (collapsed: boolean) => {
+        if (onOpenChange) onOpenChange(!collapsed);
+        else setUncontrolledCollapsed(collapsed);
+    };
 
     // Both streams are append-only, so an entry's index WITHIN its own stream is
     // a stable identity ('log-17' / 'os-3'). Indexes into the combined array are
@@ -45,7 +64,7 @@ const CombatLog: React.FC = () => {
         ...osLogs.map((text, i) => ({ key: `os-${i}`, text, isOS: true })),
     ];
     const shown = visibleEntries(entries, isCollapsed);
-    const newest = entries.length > 0 ? entries[entries.length - 1] : null;
+    // (`newest` lived here for the collapsed strip; the top bar owns that line now.)
 
     const onScroll = useCallback(() => {
         pinnedRef.current = isPinnedToBottom(scrollRef.current);
@@ -66,35 +85,31 @@ const CombatLog: React.FC = () => {
         if (!isCollapsed) pinnedRef.current = true;
     }, [isCollapsed]);
 
+    /*
+     * COLLAPSED DRAWS NOTHING — Henry, 2026-09-10: *"The combat log is duplicated."*
+     *
+     * It was. 145c moved the collapsed surface to the top bar (see the docblock above) but left
+     * this component still rendering its own: the `COMBAT LOG` header and a `.log-strip` holding
+     * the newest line. `.combat-log-container` is `position: absolute; top: 0` centred, which is
+     * exactly where the bar's own latest-line button sits, so the two drew over each other and
+     * the newest line appeared twice - once in the bar, once again underneath it.
+     *
+     * The bar IS the collapsed state now, so there is nothing left for this to draw until it is
+     * open. Half a move finished: 145c wrote the rule in a comment and moved only the state.
+     */
+    if (isCollapsed) return null;
+
     return (
-        <div className={`combat-log-container ${isCollapsed ? 'is-collapsed' : ''}`}>
+        <div className="combat-log-container">
             <div
                 className="log-header"
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 style={{ cursor: 'pointer', userSelect: 'none' }}
             >
                 <span>COMBAT LOG</span>
-                <span style={{ float: 'right' }}>{isCollapsed ? '▼' : '▲'}</span>
+                <span style={{ float: 'right' }}>▲</span>
             </div>
 
-            {isCollapsed && (
-                <div
-                    className="log-strip"
-                    onClick={() => setIsCollapsed(false)}
-                    style={{ cursor: 'pointer' }}
-                    title={newest?.text ?? ''}
-                >
-                    {newest
-                        ? (
-                            <>
-                                <span className="log-timestamp">{'>>'}</span>{' '}
-                                {newest.isOS && <span className="log-os-chip">OS</span>}
-                                {newest.text}
-                            </>
-                        )
-                        : <span className="log-strip-empty">awaiting first action…</span>}
-                </div>
-            )}
 
             <AnimatePresence>
                 {!isCollapsed && (

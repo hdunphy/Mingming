@@ -2,7 +2,8 @@
 // resolved to the DOM's global `Element` interface, because `lib: ["DOM"]` is on and the game's
 // union was never imported here. Found by ticket 55 — the `(action as any).element` reaches in
 // `HookFactory` were papering over it.
-import type { Element, IBattleState, IBattleEntity, ProgramData, StatusType, ActionType, ProgramCategory } from '../types';
+import type { Element, IBattleState, IBattleEntity, ProgramData, ProgramAction, StatusType, ActionType, ProgramCategory } from '../types';
+import type { StatusSource } from '../events';
 
 /**
  * Counter scoping: 'OWNER' (the default for hook counters) namespaces the key
@@ -86,6 +87,23 @@ export type HookContext = {
     triggerDepth: number;
     isNaturalDraw?: boolean; // For Kraken's OS
     statusApplied?: StatusType; // For Fenrir's OS
+    /**
+     * TICKET 162e — **the ONE action this dispatch is about**, set at the three per-hit sites in
+     * `battleReducer` (a card's action loop, a macro's, an enemy intent's).
+     *
+     * `program` is the whole card and is the wrong question for a per-hit hook: `actionType` in a
+     * condition asks *"does this card have an ATTACK anywhere in it"*, which is true for the STATUS
+     * half of an attack-plus-rider card too. A hook that must fire once per SWING needs the swing,
+     * and this is it. Absent at the once-per-card dispatches (`onActionStart`, `onActionEnd`) and at
+     * `runVitalsHook`, where there is no single action and `isAttack` therefore cannot pass.
+     */
+    action?: ProgramAction;
+    /**
+     * TICKET 171f — set by `HookFactory` while a data hook's `do` list runs, so a STATUS it applies
+     * is reported as the hook's (`StatusSource.hookId`) rather than as the card that triggered it.
+     * Event payload only: nothing in the battle state reads it.
+     */
+    statusSource?: StatusSource;
 };
 
 export type HookCondition = {
@@ -93,6 +111,21 @@ export type HookCondition = {
     source?: 'SELF' | 'ALLY' | 'OPPONENT' | 'ANY';
     target?: 'SELF' | 'ALLY' | 'OPPONENT' | 'ANY';
     actionType?: ActionType;
+    /**
+     * TICKET 162e — **passes when THIS action is an ATTACK.** Reads `context.action`, so it is
+     * meaningful only at the per-hit dispatches (`onModifierPhase`, `onPostDamage`).
+     *
+     * It was in `HookSchema` from ticket 103 and READ BY NOTHING until now, which ticket 107's test
+     * calls out by name: *"declared in the schema, read by nothing, and silently a no-op for
+     * whoever tries it"*. Two shipped hooks had since tried it — `ember_ward` and `ember_ward+`,
+     * whose printing is *"whenever an ally is hit BY AN ATTACK"* and which were firing on any
+     * enemy action that resolved on an ally, a Weakened application included. Implementing the
+     * field fixes both of them and is what lets EMBER_FUSE move to a per-hit trigger at all.
+     *
+     * Distinct from `actionType` on purpose, and the difference is the bug above: `actionType`
+     * asks about the CARD, this asks about the SWING.
+     */
+    isAttack?: boolean;
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;
@@ -196,6 +229,16 @@ export type DataHookDefinition = {
     id: string;
     trigger: keyof Omit<HookDefinition, 'id' | 'priority' | 'onDamageCalculated' | 'onStatusDamageCalculated' | 'onHealCalculated'>;
     priority: HookPriority;
+    /**
+     * TICKET 16 — the Driver law is PROC-VISIBLE: *"every Driver names a trigger moment and the UI
+     * flashes it when it procs."* A hook flagged `proc` announces itself through a `DRIVER_PROC`
+     * battle event whenever its `when` passes (`HookFactory.announceProc`). It is a flag rather
+     * than "every `driver_` hook" because a Driver is usually SEVERAL hooks — a counter that
+     * advances on every attack and a payoff that fires on the tenth — and only the payoff is the
+     * moment the player is meant to see. Read on both hook kinds; meaningful only for hooks whose
+     * definition belongs to a Driver (`driverRegistry.driverIdForHook`).
+     */
+    proc?: boolean;
     when?: HookCondition;
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     do: HookAction[];
@@ -203,8 +246,10 @@ export type DataHookDefinition = {
 
 export type ModifierDataHookDefinition = {
     id: string;
-    trigger: 'onDamageCalculated' | 'onStatusDamageCalculated' | 'onCostCalculated' | 'onHealCalculated';
+    trigger: 'onDamageCalculated' | 'onPowerCalculated' | 'onStatusDamageCalculated' | 'onCostCalculated' | 'onHealCalculated';
     priority: HookPriority;
+    /** Ticket 16: see `DataHookDefinition.proc`. */
+    proc?: boolean;
     when?: HookCondition;
     condition?: (context: HookContext, owner: IBattleEntity) => boolean; // For custom complex logic
     multiplier?: number;
@@ -228,6 +273,22 @@ export type HookDefinition = {
     id: string;
     priority: number;
     onDamageCalculated?: DamageModifierHook;
+    /**
+     * TICKET 150b — THE POWER-SIDE TWIN OF `onDamageCalculated`.
+     *
+     * Ticket 26's law: *a bonus that rides the POWER is the only kind `powerscale` can price, and
+     * the only kind that behaves the same at every level.* `onDamageCalculated` fires at step 5 of
+     * `calculateDamage` — after the attack/defense ratio, the /45 pace divisor, STAB and type
+     * effectiveness — so a `bonus` there is flat HP that none of those dials can reach. The 149b
+     * census measured what that does: TOXIN_FANG's +10 HP per Poison stack delivers **x3.93 on the
+     * attack it rides**, a size the pace dial and the frame cannot move and the scorer cannot see.
+     *
+     * This fires at step 1 instead, on the raw power, where the duality statuses already ride
+     * (`statusPower`). Same `multiplier`/`bonus`/`scaling` shape, same priority sort, same
+     * dedupe-by-id — the only difference is WHERE in the pipeline the number lands, which is the
+     * whole point.
+     */
+    onPowerCalculated?: DamageModifierHook;
     onStatusDamageCalculated?: DamageModifierHook; // New hook for Burn/Poison scaling
     onCostCalculated?: DamageModifierHook; // Same signature as damage hook (returns a number)
     /** Ticket 36: healing had NO modifier path at all - `onHeal` fires after the heal resolves

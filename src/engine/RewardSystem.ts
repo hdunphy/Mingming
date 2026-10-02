@@ -1,7 +1,7 @@
 /**
  * POST-FIGHT REWARDS — ticket 12 (steam-release map), refitting Epic 3's drop table.
  *
- * What a won fight pays: **scrap**, **one pick-1-of-3 per defeated enemy**, and **possibly a
+ * What a won fight pays: **scrap**, **one pick-1-of-3 per fight** (ticket 179; it was per defeated enemy), and **possibly a
  * blueprint**. That is the whole list. Three things changed here and each one is a ruling rather
  * than a tidy-up:
  *
@@ -32,7 +32,14 @@
 import { PRNG, type PrngSeed } from './core/PRNG';
 import { SeedStream } from './core/SeedStream';
 import { ProgramRegistry } from './data/programRegistry';
-import { GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, getDeckForOS } from './data/mingmingRegistry';
+import { resolveProgramId } from './data/programAliases';
+import { v2RunPool } from './data/speciesPools';
+import { PATCH_SLOTS } from './data/patchRegistry';
+import { bestPatchFor } from './data/patchRanking';
+import { rawFirmwareHooks } from './data/firmwareRegistry';
+import { rollMacroChoices } from './run/macroRewards';
+import type { FightBonus } from './run/fightBonus';
+import { GENERIC_HIT, GetMingmingData, MingmingRegistry, PLAYABLE_SPECIES, LAUNCH_SPECIES, getDeckForOS } from './data/mingmingRegistry';
 import type { IRewardBundle, IOwnedProgram, ICardChoice } from './gameTypes';
 import { createOwnedProgram } from './gameTypes';
 import { FIGHT_KINDS } from './run/encounter';
@@ -41,13 +48,20 @@ import type { IBattleEntity, Element, Rarity } from './types';
 
 // --- Rarity Distribution Constants ---
 
-/** Card-salvage options offered per defeated foe ("pick 1 of N"). */
+/**
+ * Card-salvage options offered per fight ("pick 1 of N").
+ *
+ * TICKET 179: this was "per defeated foe" until Henry's 2026-10-01 scrap-bloat ruling, so a 3v3 win
+ * handed out three picks. A fight now offers ONE. The constant keeps its name and its value; only
+ * the count of triples changed.
+ */
 export const SALVAGE_CHOICES_PER_FOE = 3;
 
 /** Bounded rerolls when hunting for distinct cards within one pick-1-of-3. */
 const SALVAGE_REROLL_LIMIT = 24;
 
-const RARITY_WEIGHTS: Record<Rarity, number> = {
+/** Exported for ticket 168's event card picks, which roll rarity the way a fight reward does. */
+export const RARITY_WEIGHTS: Record<Rarity, number> = {
     'Common': 50,
     'Uncommon': 30,
     'Rare': 15,
@@ -127,6 +141,30 @@ export const BLUEPRINT_DROP_RATE: Readonly<Record<NodeKind, number>> = {
 export const SOLO_BLUEPRINT_BONUS = 0.10;
 
 /**
+ * **THE FIRST-RUN BONUS - RULED by Henry, 2026-09-09: "for the first run increase blueprint rate
+ * by 10% across the board."**
+ *
+ * This is the modifier the long note below asks for by name. Early-game generosity was deleted
+ * in ticket 12 as `getBlueprintRate(rosterSize)` because it read a PERSISTENT stat that moved
+ * while you played; that note's own remedy is that it *"belongs as an explicit `firstRun: true`
+ * modifier on this table"*. `IRanchState.runsCompleted` counts ENDED runs, so during a run the
+ * answer cannot change - the objection that killed the curve does not apply to this shape.
+ *
+ * **+10 points, not x1.1**, on the precedent of `SOLO_BLUEPRINT_BONUS` directly above: Henry's
+ * identical phrasing there was read as points, and points leave the table's ordering intact.
+ * A multiplier would pay the elite +2.5 points and the gym +5 while paying a wild +2, making the
+ * generosity largest exactly where a new player is least likely to be.
+ *
+ * **"Across the board" means every kind that can drop at all.** The three non-fight kinds stay 0
+ * through the `base <= 0` guard in `blueprintRateFor` - a workshop does not start paying
+ * blueprints because it is your first run - and the alpha stays 1.00 through the `Math.min`.
+ * What moves: wild/rival/ambush 0.20 -> 0.30, elite 0.25 -> 0.35, gym 0.50 -> 0.60.
+ * **A SOLO first-run wild is 0.40**, because the two bonuses stack. That is the number to bring
+ * back to Henry if the opening run reads rich rather than forgiving.
+ */
+export const FIRST_RUN_BLUEPRINT_BONUS = 0.10;
+
+/**
  * **THE PITY FLOOR — RULED by Henry, 2026-09-01.** After this many won fights with no blueprint,
  * the next win drops one.
  *
@@ -149,13 +187,17 @@ export const BLUEPRINT_PITY_FIGHTS = 5;
  * state, and a second copy of "plus ten if solo" is exactly how a table and a screen come to
  * disagree. Capped at 1: the alpha is already certain and cannot become more so.
  */
-export function blueprintRateFor(nodeKind: NodeKind, bodies: number): number {
+export function blueprintRateFor(nodeKind: NodeKind, bodies: number, firstRun = false): number {
     const base = BLUEPRINT_DROP_RATE[nodeKind] ?? 0;
     // Rate 0 stays 0. A marketplace does not become a 10% blueprint because you walked in alone —
     // the three non-fight kinds are 0 by `FIGHT_KINDS`, and a bonus that ignored that would hand
     // a future event-fight a payout nobody authored.
     if (base <= 0) return 0;
-    return Math.min(1, bodies <= 1 ? base + SOLO_BLUEPRINT_BONUS : base);
+    // Ticket 59: the first-run bonus sits inside the same guard, which is what "across the board"
+    // has to mean for a kind that never rolls at all.
+    const solo = bodies <= 1 ? SOLO_BLUEPRINT_BONUS : 0;
+    const opening = firstRun ? FIRST_RUN_BLUEPRINT_BONUS : 0;
+    return Math.min(1, base + solo + opening);
 }
 
 /**
@@ -272,6 +314,13 @@ export function scrapForWin(nodeKind: NodeKind, defeatedCount: number): number {
 export interface IRewardPartyMember {
     readonly definitionId: string;
     readonly activeOS?: string;
+    /**
+     * TICKET 163d — the INSTANCE id, for a reward that is fitted to one body rather than to the
+     * party. Optional because the three shapes this interface is structurally satisfied by
+     * (`IBattleEntity`, `IMingmingState`, `IRanchMember`) all carry one, and the two older readers
+     * (`usesV2Pool`, `rewardCardPool`) ask only about species.
+     */
+    readonly id?: string;
 }
 
 /**
@@ -327,15 +376,120 @@ const CALIBRATION_ONLY: ReadonlySet<string> = (() => {
     for (const species of Object.keys(MingmingRegistry)) {
         const isPlayable = (PLAYABLE_SPECIES as ReadonlyArray<string>).includes(species);
         for (const os of MingmingRegistry[species]?.availableOS ?? []) {
-            for (const dataId of getDeckForOS(species, os)) (isPlayable ? playable : other).add(dataId);
+            // TICKET 162a: canonical ids on BOTH sides of the subtraction. A non-EA deck still says
+            // `water_slap`; without resolving it, `tackle` would look like a card no playable deck
+            // runs and fall out of every reward pool in the game.
+            for (const dataId of getDeckForOS(species, os)) (isPlayable ? playable : other).add(resolveProgramId(dataId));
         }
     }
     return new Set([...other].filter((dataId) => !playable.has(dataId)));
 })();
 
-export function isRewardable(dataId: string): boolean {
+/**
+ * TICKET 162a — **the Early-Access run pool: collection v2, and nothing else.**
+ *
+ * ## The complaint this answers
+ *
+ * Henry, 2026-09-22: *"My latest playtest showed they were not exciting and it is still hard to
+ * build decks."* `CALIBRATION_ONLY` above excludes exactly one species' cards, so the shop and the
+ * reward screen have been drawing from the whole registry by ELEMENT — every Fire card any of the
+ * twenty post-EA species runs, offered to a party that can never field those species. That is a
+ * hundred and seventy cards of noise between the player and the eight their deck is built around.
+ *
+ * ## The rule
+ *
+ * When every member of the party is a LAUNCH species, the offerable set is collection v2's run
+ * pool: the twelve kits, the twelve species pools, and the run-only cards. Ninety-eight cards.
+ * A mixed or post-EA party falls through to the old behaviour unchanged, because those species
+ * have no v2 pool yet and gating them would leave them with nothing to be offered.
+ *
+ * ## Why this is a gate and not a deletion
+ *
+ * The registry still holds the v1 entries (`archive/README.md` says why: twenty species and ~90
+ * scenario fixtures still name them). A card is kept OUT OF A PLAYER'S HANDS here, at the one
+ * place that decides what a run may offer, rather than by shrinking a registry the balance corpus
+ * depends on. Turning it off is deleting one condition.
+ */
+const V2_RUN_POOL: ReadonlySet<string> = v2RunPool((osId) => {
+    const species = Object.keys(MingmingRegistry)
+        .find((id) => (MingmingRegistry[id]?.availableOS ?? []).includes(osId));
+    return species ? getDeckForOS(species, osId).map(resolveProgramId) : [];
+});
+
+/** Every OS in `SPECIES_CARD_POOLS` belongs to a launch species; this is the set of those species. */
+const V2_SPECIES: ReadonlySet<string> = new Set(LAUNCH_SPECIES);
+
+/**
+ * Is this party one the v2 pool speaks for? True only when EVERY member is a launch species — a
+ * party with one post-EA member has cards the v2 pool does not name, and narrowing the pool under
+ * it would offer that member nothing.
+ */
+export function usesV2Pool(party: ReadonlyArray<IRewardPartyMember>): boolean {
+    return party.length > 0 && party.every((m) => V2_SPECIES.has(m.definitionId));
+}
+
+/**
+ * TICKET 25-pre — **is this card one an Early-Access run may hand a player at all?**
+ *
+ * `rewardCardPool` applies `V2_RUN_POOL` to the pool it builds, which covers every reward and the
+ * marketplace's five pool slots. It does NOT cover the stall's **stranger** slot, because that slot
+ * is by definition the COMPLEMENT of the pool — `marketplace.ts` drew it from
+ * `Object.keys(ProgramRegistry)` and therefore from the archived v1 collection and the ten post-EA
+ * species as well.
+ *
+ * Ticket 69's own comment is the argument for fixing it here rather than with a second list: the
+ * off-pool slot exists so a party meets a card *its team could not otherwise be offered*, and an
+ * archived card is not that — it is a card the game does not ship. Henry's 2026-09-24 ruling names
+ * it as 25's prerequisite.
+ *
+ * Exported as a PREDICATE rather than as the set, for the reason `V2_RUN_POOL`'s own comment gives:
+ * it is a gate at the one place that decides what a run may offer, and handing out the set invites
+ * a second copy of the rule somewhere else.
+ *
+ * Note the union is already right: `v2RunPool` seeds itself with `RUN_ONLY_CARDS` and
+ * `NEUTRAL_UTILITY_IDS`, so the neutral-utility answers stay reachable without a second clause here.
+ */
+export function inV2RunPool(dataId: string): boolean {
+    return V2_RUN_POOL.has(resolveProgramId(dataId));
+}
+
+
+export function isRewardable(rawId: string): boolean {
+    // TICKET 162a: resolve the v2 renames before asking anything about the card. A deck that still
+    // says `water_slap` contributes `tackle` to the playable set, so the same card cannot be both
+    // rewardable under one spelling and calibration-only under the other.
+    const dataId = resolveProgramId(rawId);
     const data = ProgramRegistry[dataId];
     if (!data || data.isToken || (data.rarity as string) === 'Token') return false;
+    // TICKET 168c: junk (Corrupted Data) is never offered — not as a reward, not in the stall.
+    if (data.junk === true) return false;
+    /*
+     * TICKET 163a — a `+` card is NOT a card a run can be offered.
+     *
+     * The upgraded forms are real registry entries (163 §2: one per card, `upgradeOf` naming the
+     * base) and there are ninety-eight of them, every one stronger than something already in the
+     * pool. The only way to hold one is to UPGRADE the base — the workshop tab and the gym gate,
+     * which 163b builds. Until then, and after, being offered one straight is not a thing.
+     *
+     * It goes HERE rather than in `rewardCardPool` because this is the function the element pools,
+     * the v2 run pool and the marketplace's off-pool wild slot all already share, and the comment
+     * above this one records what it cost to learn that a second copy of "is this a real card"
+     * drifts from the first.
+     */
+    if (data.upgradeOf) return false;
+    /*
+     * TICKET 171g — **the generic hit is never a card you are offered.** Henry, 2026-09-30:
+     * *"Remove tackle from card rewards."* `tackle` is `GENERIC_HIT`, the filler the first member
+     * brings three of, and a fourth as the prize for a won fight is the reward that felt like
+     * nothing in the 2026-09-29 playtest.
+     *
+     * HERE rather than in `rewardCardPool` for the reason the `+` rule above gives: this is the one
+     * gate every offer shares. Put in the pool alone, Tackle would have fallen straight into the
+     * stall's stranger slot, which is built from "rewardable and NOT in the pool". So it leaves
+     * fight rewards, event picks and trades, and the stall's shelves together (the stall shares
+     * the reward rule by ticket 13). Kits and decks still hold it; only the offer is gone.
+     */
+    if (dataId === GENERIC_HIT) return false;
     return !CALIBRATION_ONLY.has(dataId);
 }
 
@@ -421,7 +575,17 @@ export function rewardCardPool(
         }
     }
 
-    return ids.length > 0 ? ids : getPoolForElement(fallbackElement);
+    const pool = ids.length > 0 ? ids : getPoolForElement(fallbackElement);
+
+    /*
+     * TICKET 162a: an Early-Access party is offered collection v2 and nothing else. See
+     * `V2_RUN_POOL`. The intersection is applied HERE rather than inside `getPoolForElement`
+     * because the element rule is also the FALLBACK for a party that contributes no elements, and
+     * a fallback that can return an empty list is a fight the player wins and gets nothing for.
+     */
+    if (!usesV2Pool(party)) return pool;
+    const narrowed = pool.filter((dataId) => V2_RUN_POOL.has(dataId));
+    return narrowed.length > 0 ? narrowed : pool;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -489,6 +653,8 @@ function rollForEntity(
     bodies: number,
     /** The pity floor has come due: this body drops whatever it rolled. */
     guaranteed: boolean,
+    /** Ticket 59: the player has finished no runs (`blueprintRateFor`'s second modifier). */
+    firstRun: boolean,
 ): { blueprint: string | null; cardChoice: ICardChoice; nextSeed: PrngSeed } {
     // 1. Blueprint, at the node-kind rate. Rolled even at rate 0 and at rate 1 so the seed chain
     //    advances identically whatever the node is — an alpha and a wild consume the same number of
@@ -498,7 +664,7 @@ function rollForEntity(
     //    fight** now (`scrapForWin`) and it is **flat**, so there is no scrap draw at all and this
     //    is the chain's first roll. One fewer draw per body — the sequence moved, which is a
     //    reward-roll change and not a battle one.
-    const bpRate = blueprintRateFor(nodeKind, bodies);
+    const bpRate = blueprintRateFor(nodeKind, bodies, firstRun);
     const bpRoll = prng.next();
     let currentSeed = bpRoll.nextSeed;
 
@@ -587,6 +753,19 @@ export interface IRewardRollInput {
      * owns it, and `BattleArena` advances it once per victory beside the banking dispatch.
      */
     readonly dryFights?: number;
+
+    /**
+     * True while the player has finished no runs - `IRanchState.runsCompleted === 0`, threaded in.
+     *
+     * Defaults to false, which is what a debug scenario and every caller written before ticket 59
+     * mean: an ordinary run, no opening-hand generosity. Read here and never written, exactly like
+     * `dryFights`: the ranch owns the counter and `gameSlice` advances it when a run ends.
+     */
+    readonly firstRun?: boolean;
+    /** TICKET 166d/e: extra prize from fightBonusFor. Defaults to null. */
+    readonly bonus?: FightBonus;
+    /** TICKET 166e: patches already held on the run's bodies (rosterId -> patchIds). */
+    readonly heldPatches?: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
 /**
@@ -601,8 +780,67 @@ export interface IRewardRollInput {
  * **There is no re-entry parameter and no falloff.** See the module header: repeat fights on a
  * re-entered node pay full rewards, by Henry's amendment of 2026-08-21.
  */
+/**
+ * TICKET 18a (Henry, 2026-09-24) — **THE GYM PAYS BLUEPRINTS, AND ONLY AT THE END.**
+ *
+ * > *"The gym is the last fight, so a payout only means something if it PERSISTS: blueprints do
+ * > (the ranch), scrap does not (assembly costs none, the run is over)."*
+ *
+ * So the gauntlet's three fights pay **nothing** — no scrap, no blueprint, no card pick — and
+ * clearing it pays one authored award. The gate's free upgrade and its two patch offers (163b/d)
+ * are PRE-fight spends and are untouched by this.
+ *
+ * # TICKET 18b (Henry, 2026-09-25) — **FIVE, FLAT. NO COIN FLIP.**
+ *
+ * 18a shipped four guaranteed plus a fifth on a coin flip, because `BLUEPRINT_DROP_RATE.gym` is
+ * 0.50 per body across three bodies and three fights — nine rolls at a half, an expectation of
+ * **4.5**, which is not a number of blueprints anybody can be handed. That shape was chosen to
+ * keep the delivery change from smuggling a balance change inside it, and it was recorded as a
+ * question rather than an answer: *"5 flat is the alternative, it is +0.5 a run, and it would make
+ * the whole award deterministic."*
+ *
+ * Henry took the alternative. **The award is 5 blueprints, every clear.** It is +0.5 a run against
+ * what shipped yesterday and +0.5 against the nine-roll table before it — a deliberate raise, not
+ * a rounding — and it buys the thing 18a was reaching for and stopped one step short of: the run's
+ * last screen tells you what you won before it rolls anything, because it rolls nothing.
+ *
+ * The coin flip is deleted rather than set to 1.0. A probability pinned at certainty is a knob
+ * somebody will later read as tunable, and the ruling is that there is no knob here.
+ *
+ * # WHICH SPECIES
+ *
+ * The boss trio's, one per body, in line-up order — which is the same rule the per-enemy drop used
+ * (*"the species is the one you just defeated"*), applied to the fight that was actually the exam.
+ * Five across three bodies means the leader and the second body are each paid twice, which falls
+ * out of the modulo rather than being chosen: line-up order is the rule, and five is the count.
+ */
+export const GYM_CLEAR_BLUEPRINTS = 5;
+
+export function gymClearBlueprints(bossSpecies: ReadonlyArray<string>): string[] {
+    if (bossSpecies.length === 0) return [];
+    const out: string[] = [];
+    for (let i = 0; i < GYM_CLEAR_BLUEPRINTS; i += 1) out.push(bossSpecies[i % bossSpecies.length]);
+    return out;
+}
+
 export function rollDropTable(input: IRewardRollInput): IRewardBundle {
-    const { defeated, nodeKind, party, seed, dryFights = 0 } = input;
+    const { defeated, nodeKind, party, seed, dryFights = 0, firstRun = false, heldPatches = {} } = input;
+    const bonus = input.bonus !== undefined ? input.bonus : null;
+
+    /*
+     * TICKET 18a: the gauntlet's fights pay no scrap, no blueprints, and no card picks.
+     * Ticket 166d: gauntlet fights 1 and 2 pay a macro pick (bonus === 'macro') and still nothing else.
+     * The gym clear blueprints are paid once when the third fight is won.
+     */
+    if (nodeKind === 'gym') {
+        return {
+            scraps: 0,
+            blueprints: [],
+            cards: [],
+            cardChoices: [],
+            ...(bonus === 'macro' ? { macroChoices: rollMacroChoices(seed) } : {}),
+        };
+    }
 
     /*
      * THE FIGHT'S SIZE IS ITS CORPSES, not the player's party.
@@ -635,20 +873,43 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
     const allCardChoices: ICardChoice[] = [];
     let currentSeed: string | number = seed;
 
+    /*
+     * TICKET 179 (Henry, 2026-10-01): *"we should always offer one set of card rewards per battle.
+     * Right now it is one set per Mingming."* Every fight offers exactly ONE pick of three, whatever
+     * its size.
+     *
+     * Every corpse is still rolled, and the later triples are thrown away on purpose: each
+     * `rollForEntity` consumes the numeric seed chain, so skipping the roll would shift every later
+     * corpse's blueprint roll and change drops for every existing seed. The instance-id stream is a
+     * separate thread, so the triple that is kept keeps the ids it always had.
+     */
+
     for (const entity of defeated) {
         // Only get rewards for fainted enemies
         if (entity.currentHp > 0) continue;
 
-        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids, bodies, pityOwed);
+        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids, bodies, pityOwed, firstRun);
         pityOwed = false;
 
         defeatedCount += 1;
         if (result.blueprint) {
             allBlueprints.push(result.blueprint);
         }
-        allCardChoices.push(result.cardChoice);
+        if (allCardChoices.length === 0) allCardChoices.push(result.cardChoice);
         currentSeed = result.nextSeed.toString();
     }
+
+    /*
+     * TICKET 166e (Henry, 2026-09-27): "only on the last elite you can win one. The others should
+     * give extra scrap or maybe a macro instead."
+     *
+     * The patch no longer follows paysDriver; it follows fightBonusFor, which since 166e pays it
+     * only at an elite in the final biome. Ambushes and earlier elites pay the macro pick.
+     * If all bodies already carry a patch, the final elite pays the macro pick instead so it is never
+     * an empty prize.
+     */
+    const patchOffers = bonus === 'patch' ? elitePatchOffer(party, heldPatches) : [];
+    const paysMacro = bonus === 'macro' || (bonus === 'patch' && patchOffers.length === 0);
 
     return {
         // Ticket 57: one payment for the fight, not a sum over corpses.
@@ -656,7 +917,40 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         blueprints: allBlueprints,
         cards: [],
         cardChoices: allCardChoices,
+        ...(patchOffers.length > 0 ? { patchChoices: patchOffers } : {}),
+        ...(paysMacro ? { macroChoices: rollMacroChoices(seed) } : {}),
     };
+}
+
+/**
+ * TICKET 163d — **the patch a Driver-paying node pays**, one per party member.
+ *
+ * 163 §3 puts a patch on the elite as *"the second coin the research doc asked for"*; the
+ * 2026-09-24 merge widened "elite" to `paysDriver` — see the call site, and 161 §2's
+ * seeding rule says which one: *"the host body's best patch."* So every member is offered the rider
+ * that changes the most about ITS firmware, and the player fits one of them — the choice is which
+ * BODY to improve, which is the decision a 3v3 game wants to be asking.
+ *
+ * Not random, and not a draw from a pool. A random patch is a no-op on most firmware (see
+ * `patchTouchCount`), and an elite that pays a rider the winner's team cannot use is a prize that
+ * teaches the player to stop reading prizes.
+ *
+ * A member who already carries one is left out rather than offered a patch they cannot fit — one
+ * slot per body (163 §5), and a dead row in a reward screen is ticket 20's silently-inert control.
+ */
+export function elitePatchOffer(
+    party: ReadonlyArray<IRewardPartyMember>,
+    held: Readonly<Record<string, ReadonlyArray<string>>> = {},
+): Array<{ memberId: string; patchId: string }> {
+    const offers: Array<{ memberId: string; patchId: string }> = [];
+    for (const member of party) {
+        const memberId = member.id;
+        if (memberId === undefined) continue;
+        if ((held[memberId] ?? []).length >= PATCH_SLOTS) continue;
+        if (!member.activeOS) continue;
+        offers.push({ memberId, patchId: bestPatchFor(rawFirmwareHooks(member.activeOS)).id });
+    }
+    return offers;
 }
 
 // --- Gym Clear Mini-Draft ---

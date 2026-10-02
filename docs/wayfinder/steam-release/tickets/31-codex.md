@@ -1,5 +1,7 @@
 # Codex: seen/played species, OS and cards; completion payouts (ticket 31)
 
+> **2026-09-24 — 31a IS DONE. EA denominators: `LAUNCH_SPECIES` × (`V2_RUN_POOL` ∪ neutral), the twelve EA firmware, a `+` as a MARK on its base row, and the `boss_relic_*` paragraph struck. 44's milestones inherit these. Write-back at the foot of this file. History below.**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: agent
@@ -137,3 +139,38 @@ rewriting text this screen exists to quote verbatim.
 
 _(open)_
 
+---
+
+## 31a — done (2026-09-24)
+
+The registry holds 366 entries; `codexCardIds` counted 264 of them while an EA run can meet about
+109. **That is not a hard codex, it is an incompletable one**, and it reads to a player as a bug in
+their save rather than as content they have not reached.
+
+- **Cards** — tokens and the `+` forms come out as before, and the archived v1 collection comes out
+  now, through `RewardSystem.inV2RunPool`: the same gate `rewardCardPool` narrows rewards with and
+  25-pre narrows the stall's stranger with, so the codex counts exactly what the three doors can hand
+  over and one edit moves all four. The union is already right — `v2RunPool` seeds itself with the
+  run-only daemons and the neutral-utility answers.
+- **A `+` is a MARK, not a row** (Henry's ruling). `codexPlusMark(dataId)` returns the base id for an
+  upgraded card and null for everything else, so a caller folds a `+` into the row it belongs to
+  without asking the registry twice. Seeing `venom_fang+` is seeing `venom_fang`.
+- **Species** — `codexSpeciesIds` is the EA six. Sixteen is the eventual roster; six is what
+  blueprints can be dropped for, because 162a parked the other ten on the archived pool. At sixteen
+  the species track read 6/16 for a player who had done everything the game offers.
+- **Firmware** — the EA twelve, since it derives from the species list.
+- **The `boss_relic_*` paragraph is struck.** That firmware is DELETED (ticket 16) and
+  `gauntlet.test.ts` asserts none is registered anywhere; a comment naming them as a live hazard
+  sends the next reader looking for something that is gone. The Driver exclusion, which is real,
+  stays.
+
+**The SCREEN still shows the whole roster**, which is the part worth saying: `CodexScreen` draws its
+cells from `codexAllSpeciesIds` and marks which of them count today, so the ten post-EA species are
+greyed with `post-launch` rather than vanishing. A collection that silently hides content is worse at
+being a collection than one that shows it out of reach. Both numbers are on the screen and neither
+pretends to be the other — which is what the old comment in `codex.ts` asked for and stopped getting
+the moment the two lists became the same list.
+
+A second test was added in the other direction, because a filter that narrowed too far would make the
+codex trivially completable and nothing would notice: **every card the three doors can offer is
+counted**, asserted against `inV2RunPool ∩ isRewardable` rather than against a list.

@@ -18,6 +18,12 @@ import { GENERIC_HIT, GetMingmingData, getDeckForOS } from '../data/mingmingRegi
 import type { IMingmingState } from '../types';
 import type { IRunCard, IRunState, MacroSlots } from '../runTypes';
 import { generateRegionGraph } from './regionGraph';
+import { assignDriverStakes } from './driverStakes';
+import { addTierElites } from './tiers/tierElites';
+import { tierRule } from './tiers/tierRegistry';
+import { applyEliteHunt } from './modifiers/eliteHunt';
+import { junkStartCards } from './modifiers/junkStart';
+import { MODIFIER_IDS, hasModifier, modifierEntry } from './modifiers/modifierRegistry';
 import type { IGymOffer } from './gyms';
 
 // ---------------------------------------------------------------------------------------------
@@ -99,8 +105,10 @@ export function minimumActiveDeck(partySize: number): number {
  * recruit now if the run has already paid a fight or two, or take a removal at the market instead —
  * which is the decision the opening shop was supposed to offer and could not at 0. See the
  * `scrap:` field below for the measurement this came from.
+ *
+ * Henry, 2026-09-30, ticket 174: 20 → 45. Biome 0 is where the recruits and first cards are bought, and it pays the least.
  */
-export const STARTING_SCRAP = 20;
+export const STARTING_SCRAP = 45;
 
 /**
  * Species already warned about for missing `startKits`, so a three-member debug party of untagged
@@ -209,9 +217,11 @@ export function startDeckFor(
     member: IMingmingState,
     stream: SeedStream,
     withGenerics: boolean,
+    /** Ticket 169i: the kit the player drafted, used instead of the dealt one. */
+    kitIds?: ReadonlyArray<string>,
 ): IRunCard[] {
     const ids = [
-        ...startKitIdsFor(member, START_KIT_SIZE),
+        ...(kitIds ?? startKitIdsFor(member, START_KIT_SIZE)),
         ...(withGenerics ? Array.from({ length: STARTER_GENERICS }, () => GENERIC_HIT) : []),
     ];
     return mintCards(member, ids, stream);
@@ -240,6 +250,23 @@ export interface CreateRunInput {
     readonly party: ReadonlyArray<IMingmingState>;
     /** Epoch ms, injected by the caller. See the header note on why this is not read here. */
     readonly startedAt: number;
+    /**
+     * Ticket 169: the difficulty tier the player chose at run start (0-3). Optional, and it falls
+     * back to the gym's own tier (always 0 today) so every caller that predates the tier picker
+     * builds the same run it always did.
+     */
+    readonly tier?: number;
+    /**
+     * Ticket 169f: the run modifiers the player switched on, by id (`data/modifiers.json`). Optional;
+     * an unknown id throws, so a typo cannot quietly play as the base game.
+     */
+    readonly modifiers?: ReadonlyArray<string>;
+    /**
+     * Ticket 169i: each member's drafted start kit, keyed by member id, used instead of the dealt kit.
+     * With Draft Start on, every member must have one of exactly `START_KIT_SIZE` cards or this
+     * throws: a half-drafted run is a bug in the screen, not a game to play.
+     */
+    readonly startKitOverrides?: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
 /**
@@ -252,6 +279,33 @@ export function createRun(input: CreateRunInput): IRunState {
     // correct here and does not collide with the deck stream below.
     const graph = generateRegionGraph(seed);
 
+    const modifierIds = input.modifiers ?? [];
+    for (const id of modifierIds) {
+        if (!MODIFIER_IDS.includes(id)) throw new Error(`createRun: unknown run modifier "${id}"`);
+    }
+    const modifiers = modifierIds.map(modifierEntry);
+
+    const overrides = input.startKitOverrides ?? {};
+    if (hasModifier({ modifiers }, 'draft_start')) {
+        for (const member of party) {
+            const kit = overrides[member.id];
+            if (kit === undefined || kit.length !== START_KIT_SIZE) {
+                throw new Error(
+                    `createRun: Draft Start needs ${START_KIT_SIZE} drafted cards for "${member.id}", got ${kit === undefined ? 'none' : kit.length}`,
+                );
+            }
+        }
+    }
+
+    // Ticket 169b: a tier can add elites to the map (tier 2: one more per biome). Before the Driver
+    // stakes are dealt, so a converted elite pays a Driver like every other one. At tier 0 and 1 this
+    // returns the graph's own nodes, so the map is exactly what it always was.
+    const tier = input.tier ?? offer.gym.tier;
+    const tiered = addTierElites(graph.nodes, seed, tierRule(tier).extraElitesPerBiome);
+    // Ticket 169f: Elite Hunt turns every rival into an elite, after the tier's own elites and before
+    // the stakes, so the converted nodes pay a Driver too.
+    const tieredNodes = hasModifier({ modifiers }, 'elite_hunt') ? applyEliteHunt(tiered) : tiered;
+
     // A labelled fork for deck minting, for the same reason: card instance ids must not be drawn
     // from the same point in the thread as the graph's layout rolls.
     const deckStream = new SeedStream(new SeedStream(seed).fork('start-deck'));
@@ -259,7 +313,10 @@ export function createRun(input: CreateRunInput): IRunState {
     const deck: IRunCard[] = [];
     // The generics ride on the FIRST member and only the first (`STARTER_GENERICS`). A party picked
     // at run start can be one, two or three members; whichever is first carries the filler.
-    party.forEach((member, index) => deck.push(...startDeckFor(member, deckStream, index === 0)));
+    party.forEach((member, index) => deck.push(...startDeckFor(member, deckStream, index === 0, overrides[member.id])));
+    // Ticket 169f: Junk Start's cards come AFTER the normal deck, from the same stream, so no other
+    // card's instance id moves.
+    deck.push(...junkStartCards({ modifiers }, deckStream));
 
     // `macros-and-drivers.md`: three fixed slots (`MACRO_SLOTS`), all empty at run start. Written
     // as a literal rather than built from the constant because `MacroSlots` is a fixed-length
@@ -277,10 +334,12 @@ export function createRun(input: CreateRunInput): IRunState {
         // `exploration-map.md`: tier is chosen at run start and never changes mid-run. It comes
         // from the gym because at Early Access the gym IS the difficulty selection — all three
         // launch leaders are tier 0, so this is a single value today and a real choice later.
-        tier: offer.gym.tier,
+        tier,
         biomes: offer.biomes,
 
-        nodes: graph.nodes,
+        // Ticket 17: every elite and ambush carries the Driver it pays, rolled here because the
+        // pool depends on the OFFER's biomes and the graph generator only knows the seed.
+        nodes: assignDriverStakes(tieredNodes, offer.biomes, seed),
         currentNodeId: graph.entryNodeId,
 
         partyIds: party.map((m) => m.id),
@@ -295,7 +354,7 @@ export function createRun(input: CreateRunInput): IRunState {
          *
          * Ticket 09 set this to 0 with the right argument — *"carrying any in would make the first
          * marketplace a function of the previous run"* — and that argument is about CARRYING, not
-         * about the opening balance. A fixed grant every run carries nothing: it is the same 20
+         * about the opening balance. A fixed grant every run carries nothing: it is the same grant
          * after a win and after a wipe, so no run can bank into the next one.
          *
          * What 0 actually cost, measured in Henry's 2026-08-24 playtest: early fights are 1-2
@@ -310,13 +369,14 @@ export function createRun(input: CreateRunInput): IRunState {
         macros,
         // Drivers are party-wide passives won from elites; there are none before the first fight.
         drivers: [],
-        // Opt-in ascension-shaped run modifiers. Empty for the vertical slice.
+        // Opt-in ascension-shaped run modifiers, stored as `mod:<id>` (ticket 169f). Empty unless the
+        // player switched some on at run start.
         //
         // Ticket 24 briefly put an `onboarding` flag here, gating an easier first fight on whether
         // the player had seen the tips. Henry retired it (2026-08-23): the opening fight is easy in
         // EVERY run, Slay the Spire's model, so there is nothing per-player to carry and nothing to
         // couple to "Skip tips". See `isOpeningFight`.
-        modifiers: [],
+        modifiers,
 
         // The run opens standing on the entry node with the map up. `generateRegionGraph` marks
         // that node `visited: 1` so the "entering a node triggers it" rule does not fire a fight

@@ -3,8 +3,8 @@
  *
  * # WHAT THE PLAYER IS LOOKING AT
  *
- * `exploration-map.md` rules the gym a gauntlet of **three fights with no healing between them**,
- * and ticket 18 asks for the screen that sits in the gaps: *"A between-fights screen (the old 'Pit
+ * `exploration-map.md` rules the gym a gauntlet of **three fights with no healing between them**
+ * (ticket 173a, Henry 2026-09-30: now a 30% repair for every member still standing), and ticket 18 asks for the screen that sits in the gaps: *"A between-fights screen (the old 'Pit
  * Stop' idea) showing HP, Macros, and the next opponent's visible types."* Those three things are
  * not a list of widgets, they are the three terms of the only decision on offer here — **is the
  * party healthy enough to walk into what is coming, or is this the moment to spend a consumable?**
@@ -48,6 +48,7 @@ import { useDispatch } from 'react-redux';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getMacro } from '../../engine/data/macroRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
+import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import { RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import {
     GAUNTLET_ENEMY_COUNT,
@@ -55,11 +56,14 @@ import {
     isBossFight,
     rollGauntletFight,
 } from '../../engine/run/gauntlet';
+import { GAUNTLET_HEAL_PERCENT } from '../../engine/run/gauntletHeal';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { initializeBattleEntity } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import { startBattle } from '../store/battleSlice';
+import { UpgradeBench } from './UpgradeBench';
+import { PatchBench } from './PatchBench';
 import './GauntletNode.css';
 import { Icon } from '../theme/Icon';
 
@@ -86,6 +90,8 @@ interface MemberLine {
     /** Carried HP, or full when nothing is carried — fight 1 opens with the party whole. */
     readonly currentHp: number;
     readonly down: boolean;
+    /** HP the 30% repair gave back after the last fight (ticket 173). */
+    readonly healed: number;
 }
 
 export default function GauntletNode({ run, node, ranch, onEditLoadout }: GauntletNodeProps): ReactNode {
@@ -106,7 +112,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
             const member: IRanchMember | undefined = ranch.roster.find((m) => m.id === id);
             if (!member) continue;
             const definition = GetMingmingData(member.definitionId);
-            const entity = initializeBattleEntity(toMingmingState(member), definition);
+            const entity = initializeBattleEntity(toMingmingState(withEffectiveOS(run, member)), definition);
             const carried = gauntlet.persistedHp[id];
             lines.push({
                 id,
@@ -117,10 +123,11 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                 // `IBattleSetup.persistedHp` makes, and the reason a 0 is not the same as a gap.
                 currentHp: carried === undefined ? entity.maxHp : carried,
                 down: gauntlet.downedMemberIds.includes(id),
+                healed: gauntlet.healedHp?.[id] ?? 0,
             });
         }
         return lines;
-    }, [gauntlet, ranch, run.partyIds]);
+    }, [gauntlet, ranch, run]);
 
     /** The elements walking out next. Rolled from the fight's own seed — see the header. */
     const opponentElements = useMemo(
@@ -181,9 +188,9 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                     ))}
                 </div>
                 <p className="gn-note">
-                    <strong>No healing between these three fights.</strong> Damage carries; a member
-                    who falls stays down until something brings them back, and nothing here is a rest
-                    stop. What you spend now is what you have.
+                    <strong>Between fights, every member still standing repairs {GAUNTLET_HEAL_PERCENT}% of
+                    its max HP.</strong> The rest of the damage carries, and a member who falls stays
+                    down until a Revive brings them back.
                 </p>
             </header>
 
@@ -191,7 +198,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
 
             <div className="gn-section-head">
                 <h3>Party</h3>
-                <span className="gn-tag-note">HP carries between fights</span>
+                <span className="gn-tag-note">HP carries between fights · +{GAUNTLET_HEAL_PERCENT}% repair</span>
             </div>
 
             <ul className="gn-list">
@@ -203,6 +210,9 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                                 <span className="gn-row-name">{member.name}</span>
                                 <span className="gn-row-meta">{member.element}</span>
                                 {member.down && <span className="gn-tag danger">Down — revivable</span>}
+                                {!member.down && member.healed > 0 && (
+                                    <span className="gn-tag">+{member.healed} repaired</span>
+                                )}
                             </div>
                             <div className="gn-hp">
                                 <span className="gn-hp-figure">{member.currentHp}/{member.maxHp}</span>
@@ -293,6 +303,28 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                     <button type="button" className="gn-button subtle" onClick={onEditLoadout}>
                         Edit loadout — last chance before the gym
                     </button>
+                )}
+                {/*
+                  * TICKET 163b — THE GATE'S FREE UPGRADE (163 §2), under the SAME guard as the
+                  * editor above and for the same reason. The ruling that gates the editor to
+                  * `fightIndex === 0` is about healing: three fights with no recovery between them
+                  * means anything offered between rounds two and three lets a player answer the
+                  * boss they just saw. A free upgrade is exactly that kind of answer, so it lives
+                  * before fight one or not at all.
+                  *
+                  * The once-per is the bench key, not this guard. The guard stops it being OFFERED
+                  * mid-gauntlet; `upgradesTaken` stops it being PRESSED twice before fight one,
+                  * which is the half a render cannot enforce.
+                  */}
+                {/* TICKET 163d/166e — the gate's CHOICE OF TWO (163 §3), one patch total per visit (166e). */}
+                {gauntlet.fightIndex === 0 && <PatchBench run={run} ranch={ranch} venue="gate" benchKey={`patch:${node.id}:${node.visited}`} />}
+                {gauntlet.fightIndex === 0 && (
+                    <UpgradeBench
+                        run={run}
+                        benchKey={`${node.id}:${node.visited}`}
+                        free
+                        heading="THE GATE — ONE FREE UPGRADE"
+                    />
                 )}
                 <button
                     type="button"

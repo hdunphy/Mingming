@@ -1,0 +1,533 @@
+
+====================================================================================================
+PASS 1 — STOCKED BOARD. Caster: 500/1000 hp, Sharp 3, Strength 4, Bark 6, Burn 2, 6-card drawpile.
+         Target e1: Burn 2, Poison 3, Dazed 3, Weakened 2.   Ally p2: Weakened 2, 500 hp.
+====================================================================================================
+
+  Soothe  (soothe, 0e Single+ally, at ALLY p2)
+      "Remove 1 stack of a debuff from an ally."
+      p2 ally    Weakened -1
+
+  Mend  (mend, 1e Single+ally, at ALLY p2)
+      "Heal an ally with 20 power."
+      p1 CASTER  energy -1
+      p2 ally    hp +50
+
+  Forage  (forage, 0e Self, at FOE e1)
+      "Draw 1. Take damage equal to 15 power."
+      p1 CASTER  BarkShield -3.6999999999999997
+      drew 1
+
+  Ignite  (ignite, 0e Single, at FOE e1)
+      "Apply 1 Burn. If the target was already Burning, draw a card."
+      e1 TARGET  Burn +1
+      drew 1
+
+  Ember Jab  (ember_jab, 0e Single, at FOE e1)
+      "8 power. Apply 1 Burn."
+      e1 TARGET  hp -53  Burn +1
+
+  Brand  (brand, 1e Single, at FOE e1)
+      "25 power. If the target is Burning, apply 1 more Burn."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -113  Burn +1
+
+  Flare Burst  (flare_burst, 1e Single, at FOE e1)
+      "15 power, twice."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -156
+
+  Pack Tactics  (pack_tactics, 2e Single, at FOE e1)
+      "23 power, three times."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -318
+
+  Howl  (howl, 1e Side+ally, at ALLY p2)
+      "Every ally gains 1 Strength."
+      p1 CASTER  energy -1  Strengthened +1
+      p2 ally    Weakened -1
+
+  Snarl  (snarl, 0e Single, at FOE e1)
+      "Apply 2 Weakened."
+      e1 TARGET  Weakened +2
+
+  Snap  (snap, 1e Single, at FOE e1)
+      "20 power. +12 power if the target is Weakened."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -163
+
+  Brute Force  (brute_force, 1e Single, at FOE e1)
+      "25 power. +8 power if you have Strength."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -166
+
+  Ragnarok Edge  (ragnarok_edge, 1e Single, at FOE e1)
+      "20 power. +1 power per 1% of your max HP missing (max 50%)."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -273
+
+  Desperate Strike  (desperate_strike, 0e Single, at FOE e1)
+      "8 power. Gain 1 Strength. Lose 3% of your max HP."
+      p1 CASTER  Strengthened +1  BarkShield -3
+      e1 TARGET  hp -53
+
+  Slag Strike  (slag_strike, 1e Single, at FOE e1)
+      "22 power. Gain 1 Sharp."
+      p1 CASTER  energy -1  Sharp +1
+      e1 TARGET  hp -103
+
+  Cinder Lance  (cinder_lance, 2e Single, at FOE e1)
+      "40 power. +6 power per stack of Sharp you hold."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -231
+
+  Sharp Edge  (sharp_edge, 2e Single, at FOE e1)
+      "Consume your Sharp: 15 power per stack consumed."
+      p1 CASTER  energy -2  Sharp -3
+      e1 TARGET  hp -184
+
+  Flashover  (flashover, 2e Single, at FOE e1)
+      "50 power. +15 power per Burn on the target."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -309
+
+  Wildfire  (wildfire, 3e Side, at FOE e1)
+      "45 power to the enemy side. Apply 1 Burn to each."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -184  Burn +1
+      e2 other   hp -184  Burn +1
+
+  Crushing Depths  (crushing_depths, 2e Single, at FOE e1)
+      "Consume all Dazed on the target: 20 power per stack consumed."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -227  Dazed -3
+
+  Slander  (slander, 2e Single, at FOE e1)
+      "15 power per stack of Dazed on the target."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -184
+
+  Ink Cloud  (ink_cloud, 2e Side, at FOE e1)
+      "25 power to the enemy side. Apply 2 Dazed to each."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -113  Dazed +2
+      e2 other   hp -113  Dazed +2
+
+  Surge Protection  (surge_protection, 1e Single, at FOE e1)
+      "25 power. If an effect drew you a card this turn, refund 1 Energy."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -113
+
+  Riptide Run  (riptide_run, 1e Single, at FOE e1)
+      "20 power. Refund 1 Energy if this is the third or later card you played this turn."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -96
+
+  Tide Pool  (tide_pool, 1e Self, at FOE e1)
+      "Gain 1 Energized. Draw 1."
+      p1 CASTER  energy -1  Energized +1
+      drew 1
+
+  Tidal Battery  (tidal_battery, 2e Side+ally, at ALLY p2)
+      "Every ally gains 1 Energized."
+      p1 CASTER  energy -2  Energized +1
+      p2 ally    Energized +1
+
+  Venom Fang  (venom_fang, 1e Single, at FOE e1)
+      "30 power."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -131
+
+  Serpent Flurry  (serpent_flurry, 1e Single, at FOE e1)
+      "Three strikes of 10 power."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -180
+
+  Venom Glut  (venom_glut, 2e Single, at FOE e1)
+      "Consume the target's Poison: 15 power per stack consumed."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -184  Poison -3
+
+  Scald  (scald, 0e Single, at FOE e1)
+      "Apply 2 Burn. You gain 1 Dazed."
+      p1 CASTER  Sharp -1
+      e1 TARGET  Burn +2
+
+  Boiling Surge  (boiling_surge, 2e Single, at FOE e1)
+      "55 power. Apply 2 Burn."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -220  Burn +2
+
+  Maelstrom  (maelstrom, 3e Single, at FOE e1)
+      "100 power. Apply 3 Dazed."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -380  Dazed +3
+
+  Hydro Blast  (hydro_blast, 3e Single, at FOE e1)
+      "120 power."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -451
+
+  Tidal Wave  (tidal_wave, 3e Side, at FOE e1)
+      "55 power to the enemy side."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -220
+      e2 other   hp -220
+
+  Acorn Toss  (acorn_toss, 0e Single, at FOE e1)
+      "6 power, twice."
+      e1 TARGET  hp -60
+
+  Seed Bomb  (seed_bomb, 2e Single, at FOE e1)
+      "20 power per card you played this turn."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -64
+
+  Tend  (tend, 0e Single+ally, at ALLY p2)
+      "An ally gains 1 Sharp and heals with 8 power."
+      p2 ally    hp +20  Sharp +1
+
+  Bolster  (bolster, 1e Single+ally, at ALLY p2)
+      "An ally gains 3 Sharp."
+      p1 CASTER  energy -1
+      p2 ally    Sharp +3
+
+  Verdant Ward  (verdant_ward, 2e Side+ally, at ALLY p2)
+      "Every ally gains 2 Regen and 1 Sharp."
+      p1 CASTER  energy -2  Sharp +1  Regen +2
+      p2 ally    Regen +2  Sharp +1
+
+  Pollen Cloud  (pollen_cloud, 0e Side, at FOE e1)
+      "Apply 1 Weakened to each enemy."
+      e1 TARGET  Weakened +1
+      e2 other   Weakened +1
+
+  Heckle  (heckle, 0e Single, at FOE e1)
+      "Apply 1 Dazed and 1 Weakened."
+      e1 TARGET  Dazed +1  Weakened +1
+
+  Pile On  (pile_on, 2e Single, at FOE e1)
+      "45 power. If the target is Dazed, hit again."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -246
+
+  Crippling Vine  (crippling_vine, 2e Side, at FOE e1)
+      "20 power to the enemy side. Apply 2 Weakened to each."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -64  Weakened +2
+      e2 other   hp -64  Weakened +2
+
+  Sap Strength  (sap_strength, 1e Single, at FOE e1)
+      "20 power. +6 power per Weakened on the target."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -92
+
+  Shell Share  (shell_share, 1e Single+ally, at ALLY p2)
+      "An ally gains 6 Bark Shield."
+      p1 CASTER  energy -1
+      p2 ally    BarkShield +6
+
+  Bark Smash  (bark_smash, 2e Single, at FOE e1)
+      "Consume your Bark Shield: 6 power per point consumed."
+      p1 CASTER  energy -2  BarkShield -6
+      e1 TARGET  hp -101
+
+  Blightbloom  (blightbloom, 2e Single, at FOE e1)
+      "30 power. Apply 5 Poison."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -87  Poison +5
+
+  Overclock Core  (overclock_core, 2e Self, at FOE e1)
+      "Daemon (exhaust): Max Energy +1 for the rest of the battle."
+      p1 CASTER  energy -2  MAXenergy +1
+
+  Short Fuse  (short_fuse, 2e Self, at FOE e1)
+      "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point."
+      p1 CASTER  energy -2
+
+  Static Ward  (static_ward, 2e Self, at FOE e1)
+      "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power."
+      p1 CASTER  energy -2
+
+  Ember Ward  (ember_ward, 2e Self, at FOE e1)
+      "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn."
+      p1 CASTER  energy -2
+
+  Thermal Overload  (thermal_overload, 2e Self, at FOE e1)
+      "Daemon (exhaust): your Burns deal 50% more damage. Host takes 5 Fire damage at turn end."
+      p1 CASTER  energy -2
+
+  Undertow  (undertow, 0e Self, at FOE e1)
+      "Draw a card. You gain 1 Weakened."
+      p1 CASTER  Strengthened -1
+      drew 1
+
+  Hoofbeat  (hoofbeat, 2e Self, at FOE e1)
+      "Daemon (exhaust): whenever you play a 0-cost card, deal 8 power to a random enemy."
+      p1 CASTER  energy -2
+
+====================================================================================================
+PASS 2 — EMPTY BOARD. No statuses anywhere. This is where a consume or a scaler that misreads
+         "nothing" as "something" shows itself.
+====================================================================================================
+
+  Soothe  (soothe, 0e Single+ally, at ALLY p2)
+      "Remove 1 stack of a debuff from an ally."
+      *** resolved with no observable effect on any body
+
+  Mend  (mend, 1e Single+ally, at ALLY p2)
+      "Heal an ally with 20 power."
+      p1 CASTER  energy -1
+      p2 ally    hp +50
+
+  Forage  (forage, 0e Self, at FOE e1)
+      "Draw 1. Take damage equal to 15 power."
+      p1 CASTER  hp -35
+      drew 1
+
+  Ignite  (ignite, 0e Single, at FOE e1)
+      "Apply 1 Burn. If the target was already Burning, draw a card."
+      e1 TARGET  Burn +1
+
+  Ember Jab  (ember_jab, 0e Single, at FOE e1)
+      "8 power. Apply 1 Burn."
+      e1 TARGET  hp -28  Burn +1
+
+  Brand  (brand, 1e Single, at FOE e1)
+      "25 power. If the target is Burning, apply 1 more Burn."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -88
+
+  Flare Burst  (flare_burst, 1e Single, at FOE e1)
+      "15 power, twice."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -106
+
+  Pack Tactics  (pack_tactics, 2e Single, at FOE e1)
+      "23 power, three times."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -243
+
+  Howl  (howl, 1e Side+ally, at ALLY p2)
+      "Every ally gains 1 Strength."
+      p1 CASTER  energy -1  Strengthened +1
+      p2 ally    Strengthened +1
+
+  Snarl  (snarl, 0e Single, at FOE e1)
+      "Apply 2 Weakened."
+      e1 TARGET  Weakened +2
+
+  Snap  (snap, 1e Single, at FOE e1)
+      "20 power. +12 power if the target is Weakened."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -71
+
+  Brute Force  (brute_force, 1e Single, at FOE e1)
+      "25 power. +8 power if you have Strength."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -88
+
+  Ragnarok Edge  (ragnarok_edge, 1e Single, at FOE e1)
+      "20 power. +1 power per 1% of your max HP missing (max 50%)."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -248
+
+  Desperate Strike  (desperate_strike, 0e Single, at FOE e1)
+      "8 power. Gain 1 Strength. Lose 3% of your max HP."
+      p1 CASTER  hp -30  Strengthened +1
+      e1 TARGET  hp -28
+
+  Slag Strike  (slag_strike, 1e Single, at FOE e1)
+      "22 power. Gain 1 Sharp."
+      p1 CASTER  energy -1  Sharp +1
+      e1 TARGET  hp -78
+
+  Cinder Lance  (cinder_lance, 2e Single, at FOE e1)
+      "40 power. +6 power per stack of Sharp you hold."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -142
+
+  Sharp Edge  (sharp_edge, 2e Single, at FOE e1)
+      "Consume your Sharp: 15 power per stack consumed."
+      p1 CASTER  energy -2
+
+  Flashover  (flashover, 2e Single, at FOE e1)
+      "50 power. +15 power per Burn on the target."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -177
+
+  Wildfire  (wildfire, 3e Side, at FOE e1)
+      "45 power to the enemy side. Apply 1 Burn to each."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -160  Burn +1
+      e2 other   hp -160  Burn +1
+
+  Crushing Depths  (crushing_depths, 2e Single, at FOE e1)
+      "Consume all Dazed on the target: 20 power per stack consumed."
+      p1 CASTER  energy -2
+
+  Slander  (slander, 2e Single, at FOE e1)
+      "15 power per stack of Dazed on the target."
+      p1 CASTER  energy -2
+
+  Ink Cloud  (ink_cloud, 2e Side, at FOE e1)
+      "25 power to the enemy side. Apply 2 Dazed to each."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -88  Dazed +2
+      e2 other   hp -88  Dazed +2
+
+  Surge Protection  (surge_protection, 1e Single, at FOE e1)
+      "25 power. If an effect drew you a card this turn, refund 1 Energy."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -88
+
+  Riptide Run  (riptide_run, 1e Single, at FOE e1)
+      "20 power. Refund 1 Energy if this is the third or later card you played this turn."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -71
+
+  Tide Pool  (tide_pool, 1e Self, at FOE e1)
+      "Gain 1 Energized. Draw 1."
+      p1 CASTER  energy -1  Energized +1
+      drew 1
+
+  Tidal Battery  (tidal_battery, 2e Side+ally, at ALLY p2)
+      "Every ally gains 1 Energized."
+      p1 CASTER  energy -2  Energized +1
+      p2 ally    Energized +1
+
+  Venom Fang  (venom_fang, 1e Single, at FOE e1)
+      "30 power."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -106
+
+  Serpent Flurry  (serpent_flurry, 1e Single, at FOE e1)
+      "Three strikes of 10 power."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -105
+
+  Venom Glut  (venom_glut, 2e Single, at FOE e1)
+      "Consume the target's Poison: 15 power per stack consumed."
+      p1 CASTER  energy -2
+
+  Scald  (scald, 0e Single, at FOE e1)
+      "Apply 2 Burn. You gain 1 Dazed."
+      p1 CASTER  Dazed +1
+      e1 TARGET  Burn +2
+
+  Boiling Surge  (boiling_surge, 2e Single, at FOE e1)
+      "55 power. Apply 2 Burn."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -195  Burn +2
+
+  Maelstrom  (maelstrom, 3e Single, at FOE e1)
+      "100 power. Apply 3 Dazed."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -355  Dazed +3
+
+  Hydro Blast  (hydro_blast, 3e Single, at FOE e1)
+      "120 power."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -426
+
+  Tidal Wave  (tidal_wave, 3e Side, at FOE e1)
+      "55 power to the enemy side."
+      p1 CASTER  energy -3
+      e1 TARGET  hp -195
+      e2 other   hp -195
+
+  Acorn Toss  (acorn_toss, 0e Single, at FOE e1)
+      "6 power, twice."
+      e1 TARGET  hp -28
+
+  Seed Bomb  (seed_bomb, 2e Single, at FOE e1)
+      "20 power per card you played this turn."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -47
+
+  Tend  (tend, 0e Single+ally, at ALLY p2)
+      "An ally gains 1 Sharp and heals with 8 power."
+      p2 ally    hp +20  Sharp +1
+
+  Bolster  (bolster, 1e Single+ally, at ALLY p2)
+      "An ally gains 3 Sharp."
+      p1 CASTER  energy -1
+      p2 ally    Sharp +3
+
+  Verdant Ward  (verdant_ward, 2e Side+ally, at ALLY p2)
+      "Every ally gains 2 Regen and 1 Sharp."
+      p1 CASTER  energy -2  Regen +2  Sharp +1
+      p2 ally    Regen +2  Sharp +1
+
+  Pollen Cloud  (pollen_cloud, 0e Side, at FOE e1)
+      "Apply 1 Weakened to each enemy."
+      e1 TARGET  Weakened +1
+      e2 other   Weakened +1
+
+  Heckle  (heckle, 0e Single, at FOE e1)
+      "Apply 1 Dazed and 1 Weakened."
+      e1 TARGET  Dazed +1  Weakened +1
+
+  Pile On  (pile_on, 2e Single, at FOE e1)
+      "45 power. If the target is Dazed, hit again."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -106
+
+  Crippling Vine  (crippling_vine, 2e Side, at FOE e1)
+      "20 power to the enemy side. Apply 2 Weakened to each."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -47  Weakened +2
+      e2 other   hp -47  Weakened +2
+
+  Sap Strength  (sap_strength, 1e Single, at FOE e1)
+      "20 power. +6 power per Weakened on the target."
+      p1 CASTER  energy -1
+      e1 TARGET  hp -47
+
+  Shell Share  (shell_share, 1e Single+ally, at ALLY p2)
+      "An ally gains 6 Bark Shield."
+      p1 CASTER  energy -1
+      p2 ally    BarkShield +6
+
+  Bark Smash  (bark_smash, 2e Single, at FOE e1)
+      "Consume your Bark Shield: 6 power per point consumed."
+      p1 CASTER  energy -2
+
+  Blightbloom  (blightbloom, 2e Single, at FOE e1)
+      "30 power. Apply 5 Poison."
+      p1 CASTER  energy -2
+      e1 TARGET  hp -71  Poison +5
+
+  Overclock Core  (overclock_core, 2e Self, at FOE e1)
+      "Daemon (exhaust): Max Energy +1 for the rest of the battle."
+      p1 CASTER  energy -2  MAXenergy +1
+
+  Short Fuse  (short_fuse, 2e Self, at FOE e1)
+      "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point."
+      p1 CASTER  energy -2
+
+  Static Ward  (static_ward, 2e Self, at FOE e1)
+      "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power."
+      p1 CASTER  energy -2
+
+  Ember Ward  (ember_ward, 2e Self, at FOE e1)
+      "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn."
+      p1 CASTER  energy -2
+
+  Thermal Overload  (thermal_overload, 2e Self, at FOE e1)
+      "Daemon (exhaust): your Burns deal 50% more damage. Host takes 5 Fire damage at turn end."
+      p1 CASTER  energy -2
+
+  Undertow  (undertow, 0e Self, at FOE e1)
+      "Draw a card. You gain 1 Weakened."
+      p1 CASTER  Weakened +1
+      drew 1
+
+  Hoofbeat  (hoofbeat, 2e Self, at FOE e1)
+      "Daemon (exhaust): whenever you play a 0-cost card, deal 8 power to a random enemy."
+      p1 CASTER  energy -2
+
+====================================================================================================
+1 automatic problem(s) flagged above — read the *** lines.
+The flags are crude by design: refused plays, no-ops, negative or fractional stacks, runaway Energy.
+Everything else needs reading against the printed text, which is the point of the dump.

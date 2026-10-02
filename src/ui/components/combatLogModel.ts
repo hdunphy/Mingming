@@ -8,8 +8,34 @@
  * embedded in the component would be untestable. Pulled out, both rules are asserted directly.
  */
 
-/** How many entries the expanded panel keeps. Ticket 143c: "a handful", specified as 8. */
-export const EXPANDED_ENTRY_COUNT = 8;
+/**
+ * ── THE EXPANDED PANEL KEEPS THE WHOLE FIGHT — Henry, 2026-09-22 ────────────────────
+ *
+ * *"the enemy played like 10 cards that I don't see in the log. Does it trim it?"*
+ *
+ * It did, to eight entries. Ten enemy card plays is upwards of twenty lines — a play line and a
+ * damage line each, plus firmware and daemon procs — so the turn he was trying to read had been
+ * thrown away before the panel opened.
+ *
+ * 143c asked for *"a handful and lets you scroll"* and the slice defeated the second half: with
+ * eight entries in a scroll box there is nothing to scroll to. The cap was solving a problem the
+ * CSS already solves — `.log-messages` is `max-height: clamp(90px, 16vh, 150px); overflow-y:
+ * auto`, so the panel's SIZE never depended on the entry count. All the slice controlled was how
+ * far back a reader could go, and the answer was: not as far as one enemy turn.
+ *
+ * So there is no cap. The bound is the fight: `state.logs` is what happened, the engine caps it
+ * nowhere, and "how far back can I scroll" now has the only non-arbitrary answer — to the start.
+ * The newest entry is still the one on screen (`isPinnedToBottom` below), so nothing changes for
+ * a reader who is just watching.
+ *
+ * Mounting cost is real but small: the longest fight 156 measured is 376 lines, and
+ * `AnimatePresence initial={false}` mounts an already-full list without animating any of it —
+ * only entries that arrive while the panel is open animate in.
+ *
+ * The constant is GONE rather than raised to a big number. A cap of 500 would be the same
+ * decision with a bigger arbitrary number in it, and Henry's standing rule is to find the
+ * CONDITION instead of picking a ceiling. The condition is "the fight".
+ */
 
 /**
  * A pixel of slack on the at-the-bottom test. Smooth scrolling and sub-pixel layout mean
@@ -27,13 +53,12 @@ export interface LogEntry {
 
 /**
  * WHAT THE PANEL SHOWS. Collapsed, the strip carries the newest entry and nothing else; expanded,
- * the last `EXPANDED_ENTRY_COUNT`, oldest first so the newest sits at the bottom the way a chat log
- * does.
+ * the whole fight, oldest first so the newest sits at the bottom the way a chat log does.
  */
 export function visibleEntries(entries: ReadonlyArray<LogEntry>, isCollapsed: boolean): LogEntry[] {
     if (entries.length === 0) return [];
     if (isCollapsed) return [entries[entries.length - 1]];
-    return entries.slice(-EXPANDED_ENTRY_COUNT);
+    return [...entries];
 }
 
 /**

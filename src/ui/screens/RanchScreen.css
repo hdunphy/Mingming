@@ -266,20 +266,20 @@
 
 /* --- Vault --- */
 
-.ranch-relic-grid {
+.ranch-driver-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
     gap: 0.6rem;
 }
 
-.ranch-relic {
+.ranch-driver {
     border: 1px solid rgba(122, 92, 255, 0.3);
     border-radius: 6px;
     padding: 0.7rem;
 }
 
-.ranch-relic-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.25rem; }
-.ranch-relic-desc { font-size: 0.75rem; opacity: 0.72; line-height: 1.5; }
+.ranch-driver-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.25rem; }
+.ranch-driver-desc { font-size: 0.75rem; opacity: 0.72; line-height: 1.5; }
 
 /* --- Run start (ticket 09) --- */
 
@@ -312,6 +312,27 @@
 .ranch-offer:hover { border-color: #7a5cff; background: rgba(122, 92, 255, 0.12); }
 .ranch-offer-name { font-weight: 700; font-size: 1rem; }
 .ranch-offer-meta { font-size: 0.72rem; opacity: 0.6; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.ranch-offer-cleared { font-size: 0.72rem; opacity: 0.85; letter-spacing: 0.05em; margin: -0.3rem 0 0.5rem; }
+
+/* Ticket 169e: the tier row above the gym offers. */
+.ranch-tier-picker { margin-bottom: 0.9rem; }
+.ranch-tier-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-start; }
+.ranch-tier-slot { display: flex; flex-direction: column; gap: 0.25rem; max-width: 9rem; }
+.ranch-tier-lock { font-size: 0.68rem; opacity: 0.6; line-height: 1.35; }
+.ranch-tier-blurb { display: flex; flex-direction: column; gap: 0.1rem; margin-top: 0.5rem; font-size: 0.78rem; }
+.ranch-tier-blurb span { opacity: 0.72; }
+
+/* Ticket 169f: the modifier row on the party screen. */
+.ranch-modifier-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.9rem 0 0.6rem; }
+.ranch-modifier-title { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
+.ranch-modifier-chip {
+    font-family: inherit; font-size: 0.78rem; color: inherit; cursor: pointer;
+    background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(122, 92, 255, 0.3); border-radius: 999px; padding: 0.25rem 0.7rem;
+}
+.ranch-modifier-chip:hover:not(:disabled) { border-color: #7a5cff; }
+.ranch-modifier-chip.on { background: rgba(122, 92, 255, 0.3); border-color: #7a5cff; }
+.ranch-modifier-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.ranch-modifier-lock { font-size: 0.72rem; opacity: 0.6; }
 
 .ranch-offer-route {
     list-style: none;
@@ -341,6 +362,28 @@
 }
 
 .ranch-offer-element { margin-left: auto; opacity: 0.55; font-size: 0.7rem; }
+
+/* TICKET 142c — the path pair, under the route. A row rather than a list item because it is not a
+   step of the walk: it is what one wild in three fields in EVERY step of it. The elements keep
+   `.ranch-offer-element`'s type so the route above and this row read as the same kind of fact,
+   minus the `margin-left: auto` that pushes a route element to the right of its biome name. */
+.ranch-offer-path {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(160, 150, 210, 0.18);
+}
+
+.ranch-offer-path .ranch-offer-element { margin-left: 0; }
+
+.ranch-offer-path-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.45;
+}
 
 /*
  * Ticket 68 ruling 4 — the leader's signature passive, on the offer card.
@@ -375,6 +418,7 @@
 }
 
 .ranch-offer-driver-rule { font-size: 0.72rem; opacity: 0.72; line-height: 1.45; }
+.ranch-offer-tier-driver { font-size: 0.72rem; opacity: 0.72; line-height: 1.45; font-style: italic; }
 
 /* --- Run shell --- */
 
@@ -393,3 +437,11 @@
 /* The run frame lets the map use the full width — a 15-column region is wider than the ranch's
    reading measure, and clamping it would just move the scrollbar somewhere less useful. */
 .ranch-section-wide { max-width: none; }
+
+/* --- ticket 169i: the Draft Start screen ------------------------------------------------------- */
+.draft-offer { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+.draft-card { cursor: pointer; border-radius: 8px; outline-offset: 3px; }
+.draft-card:hover, .draft-card:focus-visible { outline: 2px solid var(--el, #7a5cff); }
+.draft-picked-title { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; margin: 0.6rem 0 0.3rem; }
+.draft-picked { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; margin: 0; padding: 0; min-height: 1.6rem; }
+.draft-picked li { font-size: 0.8rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(122, 92, 255, 0.3); border-radius: 999px; padding: 0.2rem 0.65rem; }

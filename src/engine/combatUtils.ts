@@ -96,7 +96,7 @@ export function calculateModifier(attacker: IBattleEntity, target: IBattleEntity
   return getModifierBreakdown(attacker, target, program).modifier;
 }
 
-import { applyDamageModifiers, STATUS_MODEL } from './core/Hooks';
+import { applyDamageModifiers, applyPowerModifiers, STATUS_MODEL } from './core/Hooks';
 // ... types ...
 
 /** Raw stack count of one status, or 0. Ticket 95's POWER shape reads these directly. */
@@ -125,9 +125,29 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
         (stacksOf(attacker, 'Strengthened') - stacksOf(attacker, 'Weakened'))
         + (stacksOf(target, 'Dazed') - stacksOf(target, 'Sharp')))
     : 0;
+  /*
+   * TICKET 150b — POWER-SIDE HOOKS FIRE HERE, BESIDE `statusPower` AND BEFORE EVERY DIAL.
+   *
+   * Ticket 26's law, quoted two comments up: a bonus that rides the power is the only kind
+   * `powerscale` can price and the only kind that behaves the same at every level. `statusPower`
+   * obeys it; the two firmware hooks the 149b census caught did not, because `onDamageCalculated`
+   * fires at step 5 where the attack/defense ratio, the /45 pace divisor, STAB and type
+   * effectiveness have all already been applied and can no longer reach the number.
+   *
+   * Once per hit, exactly as `applyDamageModifiers` is — `calculateDamage` is called once per hit
+   * on a multi-hit card, so both hook families see every hit and neither sees the card.
+   */
+  const modifiedPower = applyPowerModifiers(power, {
+    source: attacker,
+    target,
+    program,
+    state,
+    triggerDepth: 0
+  });
+
   // Floored at zero: a card whose power is cancelled into the negative deals nothing, it does not
   // heal the target.
-  const effectivePower = Math.max(0, power + statusPower);
+  const effectivePower = Math.max(0, modifiedPower + statusPower);
 
   // Step 2: Scaled Damage
   const scaled = Math.floor(levelBase * effectivePower * attacker.attack / target.defense);
@@ -159,10 +179,8 @@ export function calculateDamage(attacker: IBattleEntity, target: IBattleEntity, 
   // Step 4: Final Modifier
   let damage = Math.floor(reduced * modifier);
 
-  // Milestone 8.4: Relic Attack Multiplier
-  if (attacker.relicBonuses?.attackMod) {
-    damage = Math.floor(damage * attacker.relicBonuses.attackMod);
-  }
+  // TICKET 16: the Milestone 8.4 relic attack multiplier that sat here is gone with the relics.
+  // A Driver that scales damage is a hook on the modifier path below, like every OS that does.
 
   // Step 5: Hooks
   damage = applyDamageModifiers(damage, {

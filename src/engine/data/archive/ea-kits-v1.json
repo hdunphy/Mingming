@@ -1,0 +1,259 @@
+{
+    "fenrir": {
+        "decks": {
+            "fenrir_v1": [
+                "ragnarok_edge",
+                "ragnarok_edge",
+                "battle_rhythm",
+                "war_pact",
+                "war_pact",
+                "unbound_fang",
+                "unbound_fang",
+                "blood_rite",
+                "blood_rite"
+            ],
+            "fenrir_v2": [
+                "ignite",
+                "ignite",
+                "molten_core",
+                "molten_core",
+                "slag_strike",
+                "water_slap",
+                "pyre_sacrifice",
+                "ash_communion",
+                "cinder_lance"
+            ]
+        },
+        "startKits": {
+            "fenrir_v1": [
+                "ragnarok_edge",
+                "war_pact",
+                "unbound_fang",
+                "battle_rhythm",
+                "blood_rite"
+            ],
+            "fenrir_v2": [
+                "pyre_sacrifice",
+                "ignite",
+                "ignite",
+                "molten_core",
+                "slag_strike"
+            ]
+        }
+    },
+    "skoll": {
+        "decks": {
+            "skoll_v1": [
+                "sun_devourer",
+                "sun_devourer",
+                "fury_strike",
+                "fury_strike",
+                "brute_force",
+                "battle_rhythm",
+                "crimson_draw",
+                "crimson_draw",
+                "water_slap"
+            ],
+            "skoll_v2": [
+                "strength_burst",
+                "fury_strike",
+                "fury_strike",
+                "all_in",
+                "desperate_strike",
+                "reckless_charge",
+                "overdrive",
+                "glass_cannon",
+                "water_slap"
+            ]
+        },
+        "startKits": {
+            "skoll_v1": [
+                "sun_devourer",
+                "fury_strike",
+                "fury_strike",
+                "brute_force",
+                "battle_rhythm"
+            ],
+            "skoll_v2": [
+                "overdrive",
+                "fury_strike",
+                "fury_strike",
+                "strength_burst",
+                "reckless_charge"
+            ]
+        }
+    },
+    "kraken": {
+        "decks": {
+            "kraken_v1": [
+                "whirlpool_v2",
+                "whirlpool_v2",
+                "pressure_point",
+                "pressure_point",
+                "ink_stream",
+                "ink_stream",
+                "crushing_depths",
+                "undertow"
+            ],
+            "kraken_v2": [
+                "maelstrom",
+                "hydro_blast",
+                "capacitor",
+                "capacitor",
+                "boiling_surge",
+                "boiling_surge",
+                "scald",
+                "scald"
+            ]
+        },
+        "startKits": {
+            "kraken_v1": [
+                "ink_stream",
+                "undertow",
+                "whirlpool_v2",
+                "pressure_point",
+                "pressure_point"
+            ],
+            "kraken_v2": [
+                "hydro_blast",
+                "capacitor",
+                "capacitor",
+                "boiling_surge",
+                "boiling_surge"
+            ]
+        }
+    },
+    "jormungandr": {
+        "decks": {
+            "jormungandr_v1": [
+                "undertow",
+                "undertow",
+                "blind_spot",
+                "corrosive_leak",
+                "surge_protection",
+                "serpents_coil",
+                "serpents_coil",
+                "ink_stream",
+                "ink_stream"
+            ],
+            "jormungandr_v2": [
+                "corrosive_bolt",
+                "corrosive_bolt",
+                "venom_fang",
+                "venom_fang",
+                "water_slap",
+                "water_slap",
+                "toxic_surge",
+                "contagion",
+                "serpent_flurry",
+                "serpent_flurry"
+            ]
+        },
+        "startKits": {
+            "jormungandr_v1": [
+                "ink_stream",
+                "undertow",
+                "undertow",
+                "serpents_coil",
+                "blind_spot"
+            ],
+            "jormungandr_v2": [
+                "contagion",
+                "corrosive_bolt",
+                "corrosive_bolt",
+                "toxic_surge",
+                "venom_fang"
+            ]
+        }
+    },
+    "ratatoskr": {
+        "decks": {
+            "ratatoskr_v1": [
+                "forage",
+                "forage",
+                "seed_spit",
+                "seed_spit",
+                "healing_mist",
+                "shrug_off",
+                "nettle_sting",
+                "nettle_sting",
+                "seed_bomb_v2",
+                "seed_bomb_v2",
+                "echo_chamber_v2"
+            ],
+            "ratatoskr_v2": [
+                "pollen_cloud",
+                "pollen_cloud",
+                "water_slap",
+                "water_slap",
+                "nagging_bite",
+                "nagging_bite",
+                "crippling_vine",
+                "slander",
+                "echo_chamber_v2"
+            ]
+        },
+        "startKits": {
+            "ratatoskr_v1": [
+                "seed_bomb_v2",
+                "forage",
+                "forage",
+                "echo_chamber_v2",
+                "healing_mist"
+            ],
+            "ratatoskr_v2": [
+                "crippling_vine",
+                "pollen_cloud",
+                "pollen_cloud",
+                "nagging_bite",
+                "nagging_bite"
+            ]
+        }
+    },
+    "huldra": {
+        "decks": {
+            "huldra_v1": [
+                "growth",
+                "growth",
+                "soothe",
+                "water_slap",
+                "iron_bark",
+                "iron_bark",
+                "thorn_tithe",
+                "thorn_tithe",
+                "hexbloom",
+                "thorn_whip",
+                "thorn_whip"
+            ],
+            "huldra_v2": [
+                "sap_vigor",
+                "sap_vigor",
+                "water_slap",
+                "nettle_sting",
+                "nettle_sting",
+                "heartwood",
+                "thornguard",
+                "thornguard",
+                "blightbloom",
+                "bark_lash",
+                "bark_lash"
+            ]
+        },
+        "startKits": {
+            "huldra_v1": [
+                "hexbloom",
+                "growth",
+                "growth",
+                "iron_bark",
+                "thorn_tithe"
+            ],
+            "huldra_v2": [
+                "blightbloom",
+                "sap_vigor",
+                "thornguard",
+                "thornguard",
+                "heartwood"
+            ]
+        }
+    }
+}

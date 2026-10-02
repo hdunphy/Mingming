@@ -1,0 +1,37 @@
+ticket 39 — enemy DECISION cost, gym boss, 3v3, aiBeam=8
+
+gym            decisions   mean      p50      p95      max
+   gym_emberfall d0 side=PLAYER act=PLAY_PROGRAM 839ms
+   gym_emberfall d1 side=PLAYER act=PLAY_PROGRAM 2955ms
+   gym_emberfall d2 side=PLAYER act=PLAY_PROGRAM 119ms
+   gym_emberfall d3 side=PLAYER act=PLAY_PROGRAM 2675ms
+   gym_emberfall d4 side=PLAYER act=PLAY_PROGRAM 104ms
+   gym_emberfall d5 side=PLAYER act=PLAY_PROGRAM 88ms
+   gym_emberfall d6 side=PLAYER act=PLAY_PROGRAM 2473ms
+   gym_emberfall d7 side=PLAYER act=PLAY_PROGRAM 2121ms
+   gym_emberfall d8 side=PLAYER act=PLAY_PROGRAM 1727ms
+   gym_emberfall d9 side=PLAYER act=PLAY_PROGRAM 1442ms
+   gym_emberfall d10 side=PLAYER act=PLAY_PROGRAM 2051ms
+   gym_emberfall d11 side=PLAYER act=END_TURN 0ms
+   gym_emberfall d12 side=ENEMY act=PLAY_PROGRAM 983ms
+   gym_emberfall d13 side=ENEMY act=PLAY_PROGRAM 311ms
+   gym_emberfall d14 side=ENEMY act=PLAY_PROGRAM 2995ms
+   gym_emberfall d15 side=ENEMY act=PLAY_PROGRAM 3086ms
+   gym_emberfall d16 side=ENEMY act=PLAY_PROGRAM 2215ms
+   gym_emberfall d17 side=ENEMY act=PLAY_PROGRAM 2588ms
+   gym_emberfall d18 side=ENEMY act=PLAY_PROGRAM 2873ms
+   gym_emberfall d19 side=ENEMY act=PLAY_PROGRAM 81ms
+   gym_emberfall d20 side=ENEMY act=PLAY_PROGRAM 3252ms
+   gym_emberfall d21 side=ENEMY act=PLAY_PROGRAM 2817ms
+   gym_emberfall d22 side=ENEMY act=END_TURN 9ms
+   gym_emberfall d23 side=PLAYER act=PLAY_PROGRAM 198ms
+   gym_emberfall d24 side=PLAYER act=PLAY_PROGRAM 142ms
+   gym_emberfall d25 side=PLAYER act=PLAY_PROGRAM 111ms
+   gym_emberfall d26 side=PLAYER act=PLAY_PROGRAM 77ms
+   gym_emberfall d27 side=PLAYER act=PLAY_PROGRAM 48ms
+   gym_emberfall d28 side=PLAYER act=PLAY_PROGRAM 2496ms
+   gym_emberfall d29 side=PLAYER act=PLAY_PROGRAM 1301ms
+gym_emberfall         11    1928ms    2588ms    3252ms    3252ms
+
+POOLED  n=11  mean 1928ms  p50 2588ms  p95 3252ms  max 3252ms
+target: enemy turn p95 < 1000ms. NOTE this machine is a 2-core sandbox, NOT Deck-class; and Chrome 4x throttling is a further multiplier on top.

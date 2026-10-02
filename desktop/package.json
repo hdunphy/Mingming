@@ -3,7 +3,7 @@
   "productName": "Mingming",
   "version": "0.1.0",
   "private": true,
-  "description": "Mingming — desktop wrapper (ticket 42).",
+  "description": "Mingming: Midgard Circuit — desktop wrapper (ticket 42).",
   "author": "Henry Dunphy <hdunphy15@gmail.com>",
   "license": "UNLICENSED",
   "main": "main.cjs",

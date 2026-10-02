@@ -51,13 +51,11 @@ import type {
 } from '../../engine/types';
 import { initializeBattleEntity } from '../../engine/types';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
-import { GetRelic } from '../../engine/data/relicRegistry';
 import { applyDrivers } from '../../engine/data/driverRegistry';
 import { instantiateDeck } from '../../engine/data/battleFactories';
-import { drawCards } from '../../engine/deckLogic';
-import { generateIntents } from '../../engine/core/IntentUtils';
 import { SeedStream } from '../../engine/core/SeedStream';
 import { normalizeBattleState } from './normalizeBattleState';
+import { beginTurn } from '../../engine/battleReducer';
 import type { ComposedSetup, EnemySetup, PartyMemberSetup } from './scenarioSchema';
 
 /** Id prefix for scenario-built combat units - matches `createMockEntity`'s. */
@@ -116,57 +114,20 @@ function buildEntity(setup: PartyMemberSetup | EnemySetup, rng: SeedStream): IBa
         entity = { ...entity, moves: setup.moves };
     }
 
+    if (setup.patches !== undefined && setup.patches.length > 0) {
+        entity = { ...entity, patches: [...setup.patches] };
+    }
+
     return entity;
 }
 
-/**
- * The player-side relic bonuses `createBattleState` applies at battle start, mirrored here
- * so `player.relics` is not decorative.
- *
- * The enemy side has its own list since ticket 68 (`setup.enemyDrivers`) and goes through
- * `driverRegistry.applyDrivers` instead — the same function the live factory calls, so the two
- * sides cannot drift. This one stays because it carries ticket 02's registry-drift policy for the
- * player's list, which `applyDrivers` deliberately does not replicate.
- *
- * `GetRelic` throws on an unknown id. Scenarios follow the registry-drift policy from
- * ticket 02 (warn, then continue) rather than hard-failing an entire scenario library over
- * one renamed relic.
+/*
+ * TICKET 16: the player-side `applyRelics` that sat here is gone with the relics. Both sides now go
+ * through `driverRegistry.applyDrivers` — the same function the live factory calls — so a scenario
+ * and a run can never disagree about what a Driver does. An unknown id is warned about once and
+ * skipped inside `applyDrivers`, which is ticket 02's registry-drift policy (warn, then continue)
+ * by another route.
  */
-function applyRelics(entity: IBattleEntity, relicIds: ReadonlyArray<string>): IBattleEntity {
-    let result = entity;
-
-    for (const relicId of relicIds) {
-        let effect: string;
-        try {
-            effect = GetRelic(relicId).effect;
-        } catch {
-            console.warn(`[buildScenarioState] Unknown relic '${relicId}' in scenario; skipping.`);
-            continue;
-        }
-
-        if (effect === 'ENERGY_CAP_BONUS') {
-            result = {
-                ...result,
-                maxEnergy: result.maxEnergy + 1,
-                currentEnergy: result.currentEnergy + 1,
-            };
-        }
-        if (effect === 'DRAW_BONUS') {
-            result = { ...result, cardDraw: result.cardDraw + 1 };
-        }
-        if (effect === 'ATTACK_MULTIPLIER') {
-            result = {
-                ...result,
-                relicBonuses: {
-                    ...result.relicBonuses!,
-                    attackMod: result.relicBonuses!.attackMod * 1.1,
-                },
-            };
-        }
-    }
-
-    return result;
-}
 
 /**
  * Build a live battle state from a composed scenario setup.
@@ -177,8 +138,12 @@ function applyRelics(entity: IBattleEntity, relicIds: ReadonlyArray<string>): IB
  * Throws when the setup describes a battle that cannot be played - an empty player party
  * or an empty enemy list - matching `createBattleState`'s guards. Both render a hollow
  * arena and an instant, meaningless result, so failing loudly beats materializing them.
+ *
+ * `startingSide` (2026-09-27): whose turn 1 runs. The paired harness passes 'ENEMY' for the
+ * enemy-first half of every matchup; everything else takes the default, which is what the live
+ * game does (`createBattleState` always opens on the player).
  */
-export function buildScenarioState(setup: ComposedSetup): IBattleState {
+export function buildScenarioState(setup: ComposedSetup, startingSide: 'PLAYER' | 'ENEMY' = 'PLAYER'): IBattleState {
     if (setup.player.party.length === 0) {
         throw new Error('[buildScenarioState] Scenario has no player party members.');
     }
@@ -195,7 +160,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
     const rng = new SeedStream(battleSeed);
 
     const playerParty: IBattleEntity[] = setup.player.party.map(member =>
-        applyRelics(buildEntity(member, rng), setup.player.relics),
+        applyDrivers(buildEntity(member, rng), setup.player.drivers),
     );
 
     // Enemies keep the activeOS `initializeBattleEntity` resolved. `createBattleState`
@@ -219,11 +184,6 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
     const pDeckCards: ProgramEntity[] = rng.shuffle(instantiateDeck([...setup.player.deck], rng));
     const eDeckCards: ProgramEntity[] = rng.shuffle(instantiateDeck(enemyDeckIds, rng));
 
-    const playerCardDraw =
-        playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
-    const enemyCardDraw =
-        enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
-
     const pInitialDeck: IDeckState = {
         ownerId: 'PLAYER',
         deck: [],
@@ -232,15 +192,8 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         discard: [],
         exhaust: [],
     };
-    const { state: pDeckState, nextSeed: seedAfterPlayerDraw } = drawCards(
-        pInitialDeck,
-        playerCardDraw,
-        rng.seed,
-    );
-    rng.adopt(seedAfterPlayerDraw);
 
-    // Move users get no drawpile or hand at all; card users get a dealt hand.
-    const eInitialDeck: IDeckState = {
+    const eDeckState: IDeckState = {
         ownerId: 'ENEMY',
         deck: [],
         drawpile: enemyMode === 'CARDS' ? eDeckCards : [],
@@ -248,17 +201,8 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         discard: [],
         exhaust: [],
     };
-    const { state: eDeckState, nextSeed: seedAfterEnemyDraw } =
-        enemyMode === 'CARDS'
-            ? drawCards(eInitialDeck, enemyCardDraw, rng.seed)
-            : { state: eInitialDeck, nextSeed: rng.seed };
-    rng.adopt(seedAfterEnemyDraw);
 
-    // Intents are only telegraphed for move users.
-    const finalEnemyParty =
-        enemyMode === 'MOVES' ? generateIntents(enemyParty, rng.seed, 1) : enemyParty;
-
-    return normalizeBattleState({
+    const rawState: IBattleState = {
         // Derived from the seed, never wall-clock: sessionId is a compared field, so a
         // timestamp here would break every replay diff on its own (ticket 02, section 3).
         sessionId: 'battle_' + battleSeed,
@@ -266,12 +210,12 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: setup.player.relics,
+        activeDrivers: setup.player.drivers,
 
         playerParty,
-        enemyParty: finalEnemyParty,
+        enemyParty,
 
-        playerDeck: pDeckState,
+        playerDeck: pInitialDeck,
         enemyDeck: eDeckState,
 
         logs: [],
@@ -283,5 +227,7 @@ export function buildScenarioState(setup: ComposedSetup): IBattleState {
         lastProgramPlayed: null,
         counters: {},
         enemyMode,
-    });
+    };
+
+    return normalizeBattleState(beginTurn(rawState, startingSide, 1));
 }

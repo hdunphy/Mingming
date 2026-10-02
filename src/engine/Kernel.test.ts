@@ -1,10 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { battleReducer, type BattleAction } from './battleReducer';
 import { effectHandlers } from './effectHandlers';
 import { type IBattleState, type IBattleEntity, type ProgramData, StatusType } from './types';
 import { calculateModifier } from './combatUtils';
 import { globalBattleEventBus } from './events';
 import { TestProgramRegistry } from './data/testProgramRegistry';
+import { allowRegistryMisses } from './data/registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// hand-built battle entities carry invented definitionIds (`def1`/`def2`) and were never registry-backed.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('hand-built battle entities carry invented definitionIds (`def1`/`def2`) and were never registry-backed'));
 
 vi.mock('./data/programRegistry', async (importOriginal) => {
     const original = await importOriginal<typeof import('./data/programRegistry')>();
@@ -37,7 +43,7 @@ function createMockState(): IBattleState {
 
     return {
         sessionId: 'test', seed: '123', turn: 1, phase: 'ACTION', activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: [p1], enemyParty: [e1],
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
         enemyDeck: { ownerId: 'ENEMY', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
@@ -215,7 +221,7 @@ describe('Kernel Milestone 7: Mandatory Unit Tests', () => {
         // Hit p1 with Damage
         const handler = effectHandlers['ATTACK'];
         const damageState = handler(sleepState, {
-            sourceId: 'e1', targetId: 'p1', power: 10, element: 'None'
+            sourceId: 'e1', targetId: 'p1', power: 10, element: 'None', cause: 'attack'
         });
 
         const p1Effects = damageState.playerParty[0].statusEffects;

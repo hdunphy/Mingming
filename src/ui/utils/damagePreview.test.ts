@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { computeDamagePreview } from './damagePreview';
+import { powerBonusLabel } from '../components/scalingLabels';
 import { calculateDamage } from '../../engine/combatUtils';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { battleReducer } from '../../engine/battleReducer';
@@ -78,7 +79,7 @@ describe('computeDamagePreview', () => {
             sessionId: 'test',
             turn: 1,
             activeSide: 'PLAYER',
-            activeRelics: [],
+            activeDrivers: [],
             phase: 'ACTION',
             playerParty: [weak, strong],
             enemyParty: [enemy],
@@ -203,6 +204,32 @@ describe('computeDamagePreview', () => {
         });
     });
 
+    describe('the bonus chip names what it reads (ticket 171c — flashover)', () => {
+        // Henry, 2026-09-29: "I had a hover over preview say +30 sharp, but no sharp was added."
+        // Flashover is 50 power + 15 per Burn on the TARGET; 2 Burn is +30, and it is Burn.
+        const FLASH: ProgramEntity = { id: 'card_f', dataId: 'flashover', currentCost: 2, isPlayable: true };
+        const BURN_2: StatusEffectInstance[] = [{ id: 'b1', type: 'Burn' as const, stacks: 2 }];
+
+        it('reads "+30 · 2 BURN", not SHARP', () => {
+            const withBurn = {
+                ...state,
+                playerParty: state.playerParty.map((p) => ({ ...p, energy: 9 })),
+                enemyParty: state.enemyParty.map((e) => ({ ...e, statusEffects: BURN_2 })),
+                playerDeck: { ...state.playerDeck, hand: [FLASH] },
+            };
+            const preview = computeDamagePreview(withBurn, 'strong', 'card_f', 'enemy');
+            expect(preview.powerBonus).toBe(30);
+            expect(preview.powerBonusLabel).toBe('· 2 BURN');
+        });
+
+        it('labels every other power scaler by its own name, and an unknown one as POWER', () => {
+            expect(powerBonusLabel('SHARP_STACKS')).toBe('SHARP');
+            expect(powerBonusLabel('MISSING_HP')).toBe('MISSING HP');
+            expect(powerBonusLabel('TARGET_STATUS_STACKS', 'Weakened', 3)).toBe('· 3 WEAKENED');
+            expect(powerBonusLabel('SOMETHING_NEW')).toBe('POWER');
+        });
+    });
+
     describe('action-scaling parity (SHARP_STACKS — spike_launch)', () => {
         // Real registry card: 20 power, +5 power per Sharp stack on the attacker.
         const SPIKE: ProgramEntity = { id: 'card_s', dataId: 'spike_launch', currentCost: 1, isPlayable: true };
@@ -217,14 +244,15 @@ describe('computeDamagePreview', () => {
 
         it('previews MORE damage with 3 Sharp than without, and reports the +15 power bonus', () => {
             const without = computeDamagePreview(state, 'strong', 'card_s', 'enemy');
-            expect(without.sharpBonus).toBe(0);
+            expect(without.powerBonus).toBe(0);
 
             const sharpState = {
                 ...state,
                 playerParty: [weak, { ...strong, statusEffects: SHARP_3 }]
             };
             const withSharp = computeDamagePreview(sharpState, 'strong', 'card_s', 'enemy');
-            expect(withSharp.sharpBonus).toBe(15);
+            expect(withSharp.powerBonus).toBe(15);
+            expect(withSharp.powerBonusLabel).toBe('SHARP');
             expect(withSharp.damage).toBeGreaterThan(without.damage);
         });
 

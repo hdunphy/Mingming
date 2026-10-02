@@ -289,3 +289,15 @@ export function buildWipeSave(): SaveEditAction {
 export function buildReplaceSave(ranch: IRanchState): SaveEditAction {
     return loadSave(ranch);
 }
+
+/**
+ * Ticket 169d: clear tiers 0, 1 and 2 on Emberfall, so tier 3 is open to playtest without beating
+ * three gyms. It adds to whatever the ranch already holds and never removes a clear. Routed through
+ * `buildReplaceSave` because the dry run validates one action at a time.
+ */
+export function buildUnlockAllTiers(current: IRanchState): SaveEditAction {
+    const gymId = 'gym_emberfall';
+    const held = current.tierClears[gymId] ?? [];
+    const tiers = [...new Set([...held, 0, 1, 2])].sort((a, b) => a - b);
+    return buildReplaceSave({ ...current, tierClears: { ...current.tierClears, [gymId]: tiers } });
+}

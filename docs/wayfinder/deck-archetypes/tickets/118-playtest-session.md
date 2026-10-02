@@ -1,5 +1,7 @@
 # Ticket 118 — playtest session: stacked-species comps, and whether control is fun to play
 
+> **Status: CLOSED 2026-09-08** — done — playtest held; findings in PLAYTEST-118-FINDINGS.md and acted on via 127/128/143. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** OPEN, needs Henry at the controls. Opened 2026-08-26 at his request — *"Need to do some
 play testing. Lets add a ticket to play test 3 & 4."*
 

@@ -63,7 +63,12 @@
  * this module needs and the reason it exists without loosening the card type for everyone else.
  */
 
-import { AUTHORED_BOSSES, type IAuthoredBoss } from '../../engine/run/bosses';
+import { FIRMWARE_REGISTRY, getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { DRIVER_ROOT_ROT } from '../../engine/data/driverRegistry';
+import { HookLibraryItemSchema } from '../../engine/data/HookSchema';
+import { HookFactory } from '../../engine/core/HookFactory';
+import { registerHook } from '../../engine/core/HookRegistry';
+import type { DataHookDefinition } from '../../engine/core/HookTypes';
 
 /**
  * `rootfall-rat-v2` — ticket 76 arm 4, the one comp-swap candidate.
@@ -82,6 +87,108 @@ import { AUTHORED_BOSSES, type IAuthoredBoss } from '../../engine/run/bosses';
  * announced in the banner, never committed.
  */
 const ROOTFALL_RAT_V2 = 'rootfall-rat-v2';
+
+/**
+ * `root-rot-c1` / `root-rot-c3` — ticket 77 Track C, ROOT ROT RESHAPED. **A NEW KNOB SHAPE.**
+ *
+ * The two knobs above swap a registry CARD or a boss BODY. This one swaps a Driver's HOOKS: for the
+ * length of the run, `driver_root_rot` keeps its id, its name and its place on Rootfall's trio, and
+ * resolves to a different trigger geometry. Nothing in `hooks.json` moves — the shipped ROOT ROT is
+ * exactly what `rootRot.test.ts` pins — and `applyDriver` picks the substitute up because it reads
+ * `getDriver` live at battle creation. Applied ONCE at script start, before any battle is built.
+ *
+ * # THE STANDING RULE THIS SERVES: NO CAPS, CHANGE THE SHAPE (Henry, 2026-09-01)
+ *
+ * ROOT ROT's weight is price-curve arbitrage: Poison is priced quadratically, so "+1 per
+ * application" lands on the pile being built and the boss trio applies Poison 5-8 times a turn.
+ * Each candidate stays proc-visible and UNCAPPED and moves the trigger instead:
+ *
+ *  - **C1 CREEPING ROT** — `onTurnEnd`: every Poisoned enemy gains 1 Poison. Per turn per BODY, not
+ *    per application, so the value scales with how many enemies the boss has touched and not with
+ *    how many Poison cards it chained. A Driver's hooks sit on every member, and three members each
+ *    firing "every Poisoned enemy +1" is three stacks a turn, not one — so the hook carries a
+ *    SIDE-scoped once-per-turn flag, reset at the side's `onTurnStart`, exactly DEEP CACHE's shape.
+ *    That flag is the mechanics of "the SIDE does this once", not a design cap: WAR FOOTING gets the
+ *    same effect for free by targeting SELF.
+ *  - **C2 SPREADING ROT** — *"another enemy gains 1 Poison"* — **NOT BUILT.** The hook targets are
+ *    `SELF | TARGET | SOURCE | ALLIES | ENEMIES | RANDOM_ENEMY`, and `RANDOM_ENEMY` may pick the
+ *    context target itself; there is no "a living enemy OTHER than the target". Ticket 77 says to
+ *    STOP rather than approximate, and an approximation here (RANDOM_ENEMY) would land on the pile
+ *    being built about a third of the time at 3v3 — the exact quadratic case the candidate exists
+ *    to avoid. Expressing it needs a new hook target in `HookFactory.resolveTarget`, which is engine
+ *    work and not a knob. Asking for `root-rot-c2` throws with this paragraph.
+ *  - **C3 FESTERING** — `onPostDamage`, source SELF, the program has an ATTACK action and the target
+ *    was already Poisoned: the target gains 1 Poison. Fires on hits, so the boss has to MIX attacking
+ *    with poisoning and cannot double-dip its own Poison cards (a card with no ATTACK never
+ *    qualifies). One caveat the log will show: `onPostDamage` fires once per ACTION of a card, and
+ *    `actionType` is a property of the PROGRAM, so an attack card that also applies a status fires
+ *    this once per action. Uncapped on purpose; the proc count reports it.
+ *
+ * Neither built candidate applies Poison inside an `onStatusApplied` hook, so neither needs ROOT
+ * ROT's re-entry guard (HANDOFF: an unguarded status-applying `onStatusApplied` hook re-enters ~12
+ * deep). C1 fires from `onTurnEnd` and C3 from `onPostDamage`; a Poison applied by either raises
+ * `onStatusApplied`, which nothing on the substituted Driver listens to.
+ *
+ * Every hook below is run through `HookLibraryItemSchema` before it is built — a clause zod would
+ * strip from `hooks.json` is stripped here too, so a candidate cannot carry a field the shipped
+ * loader would silently drop (HANDOFF 8c2).
+ */
+const ROOT_ROT_KNOB = /^root-rot-c([123])$/;
+
+const ROOT_ROT_CANDIDATES: Readonly<Record<'c1' | 'c3', { description: string; hooks: DataHookDefinition[] }>> = {
+    c1: {
+        description: "CREEPING ROT (ticket 77 C1): At the end of this side's turn, every Poisoned enemy gains 1 Poison.",
+        hooks: [
+            {
+                id: 'driver_root_rot_c1_creep',
+                trigger: 'onTurnEnd',
+                priority: 40,
+                proc: true,
+                when: { source: 'SELF', counter: { key: 'root_rot_c1_fired', operator: 'LT', value: 1, scope: 'SIDE' } },
+                do: [
+                    { type: 'COUNTER', target: 'SELF', key: 'root_rot_c1_fired', scope: 'SIDE', operator: 'SET', amount: 1 },
+                    { type: 'STATUS', target: 'ENEMIES', targetHasStatus: 'Poison', status: 'Poison', stacks: 1 },
+                    { type: 'LOG', text: 'CREEPING ROT spreads through every poisoned body.' },
+                ],
+            },
+            {
+                id: 'driver_root_rot_c1_reset',
+                trigger: 'onTurnStart',
+                priority: 90,
+                when: { source: 'SELF' },
+                do: [{ type: 'COUNTER', target: 'SELF', key: 'root_rot_c1_fired', scope: 'SIDE', operator: 'RESET' }],
+            },
+        ] as DataHookDefinition[],
+    },
+    c3: {
+        description: "FESTERING (ticket 77 C3): Whenever this side's attack hits a Poisoned enemy, it gains 1 Poison.",
+        hooks: [
+            {
+                id: 'driver_root_rot_c3_fester',
+                trigger: 'onPostDamage',
+                priority: 40,
+                proc: true,
+                when: { source: 'SELF', actionType: 'ATTACK', targetStatus: { status: 'Poison', minStacks: 1 } },
+                do: [
+                    { type: 'STATUS', target: 'TARGET', status: 'Poison', stacks: 1 },
+                    { type: 'LOG', text: 'FESTERING: the wound takes the rot deeper.' },
+                ],
+            },
+        ] as DataHookDefinition[],
+    },
+};
+
+const C2_REFUSAL =
+    '[tweaks] "root-rot-c2" (SPREADING ROT) is NOT BUILT: "another enemy than the target gains 1 Poison" has no '
+    + 'hook target — RANDOM_ENEMY may pick the context target itself, and there is no "random enemy other than '
+    + 'the target" in HookFactory.resolveTarget. Ticket 77 says STOP rather than approximate. Expressing it '
+    + 'needs a new hook target in the engine, which is not a knob.';
+
+/** Which ROOT ROT candidate a knob name selects, or undefined for a knob that is not one. */
+function rootRotCandidate(name: string): 'c1' | 'c2' | 'c3' | undefined {
+    const match = ROOT_ROT_KNOB.exec(name);
+    return match ? (`c${match[1]}` as 'c1' | 'c2' | 'c3') : undefined;
+}
 
 /** Knobs that once existed, and the one-line reason each is gone. Drives the loud rejection. */
 const RETIRED: ReadonlyArray<{ readonly matches: (name: string) => boolean; readonly why: string }> = [
@@ -106,6 +213,15 @@ const RETIRED: ReadonlyArray<{ readonly matches: (name: string) => boolean; read
         why: 'COMMITTED by ticket 74 follow-up — thorn_tithe is printed at 30 power. The reprice arm '
             + 'measured 30 as free (75.0%, p = 1.00 paired against 40). See research/73 §7.4.',
     },
+    {
+        matches: (n) => n === ROOTFALL_RAT_V2,
+        why: 'COMMITTED by steam-release ticket 28a (Henry, 2026-09-24) — Rootfall\'s authored trio '
+            + 'FIELDS ratatoskr_v2 now, so the knob has nothing left to swap and the baseline IS the '
+            + 'arm. This was ticket 76 arm 4\'s candidate; 28a took it on the synergy argument '
+            + '(INSTIGATOR banks Dazed off the same 0-cost casts, and Dazed is +power on every one '
+            + 'of jormungandr_v2\'s three flurry hits) rather than on this knob\'s numbers, which '
+            + 'were never run. Drop the flag.',
+    },
 ];
 
 export type TweakName = string;
@@ -121,10 +237,12 @@ export function validateTweaks(names: ReadonlyArray<string>): void {
     for (const name of names) {
         const retired = RETIRED.find((entry) => entry.matches(name));
         if (retired) throw new Error(`[tweaks] "${name}" ${retired.why}`);
-        if (name === ROOTFALL_RAT_V2) continue;
+        const candidate = rootRotCandidate(name);
+        if (candidate === 'c2') throw new Error(C2_REFUSAL);
+        if (candidate !== undefined) continue;
         throw new Error(
-            `[tweaks] unknown tweak "${name}". The only live knob is "${ROOTFALL_RAT_V2}" `
-            + '(ticket 76 arm 4). Everything else this module carried has been ruled on and printed.',
+            `[tweaks] unknown tweak "${name}". The live knobs are "root-rot-c1" / "root-rot-c3" `
+            + '(ticket 77 Track C). Everything else this module carried has been ruled on and printed.',
         );
     }
 }
@@ -132,10 +250,14 @@ export function validateTweaks(names: ReadonlyArray<string>): void {
 /** One line per knob for the report banner — a tweaked number must never be pasted as a baseline. */
 export function describeTweaks(names: ReadonlyArray<string>): ReadonlyArray<string> {
     validateTweaks(names);
-    return names.map((name) => (name === ROOTFALL_RAT_V2
-        ? `${ROOTFALL_RAT_V2}: Rootfall's trio fields ratatoskr_v2 in place of ratatoskr_v1 `
-          + '(candidate only — ticket 76 moves no lever before Henry\'s session)'
-        : name));
+    return names.map((name) => {
+        const candidate = rootRotCandidate(name);
+        if (candidate === 'c1' || candidate === 'c3') {
+            return `${name}: driver_root_rot's hooks REPLACED for this run — ${ROOT_ROT_CANDIDATES[candidate].description} `
+                + '(shape candidate only — ticket 77 Track C moves no lever before Henry\'s session; hooks.json untouched)';
+        }
+        return name;
+    });
 }
 
 /**
@@ -149,26 +271,50 @@ export function applyRegistryTweaks(names: ReadonlyArray<string>): ReadonlyArray
     const applied: string[] = [];
 
     for (const name of names) {
-        if (name !== ROOTFALL_RAT_V2) continue;
-
-        const gym = AUTHORED_BOSSES['gym_rootfall'];
-        if (gym === undefined) throw new Error('[tweaks] gym_rootfall has no authored boss');
-
-        const slot = gym.members.findIndex((m) => m.os === 'ratatoskr_v1');
-        if (slot < 0) {
-            // The trio changed under the knob — measuring it now would describe the wrong experiment.
-            throw new Error(
-                '[tweaks] Rootfall no longer fields ratatoskr_v1, so `rootfall-rat-v2` has nothing to '
-                + 'swap. The candidate is stale; re-read ticket 76 before running this arm.',
-            );
+        const candidate = rootRotCandidate(name);
+        if (candidate === 'c1' || candidate === 'c3') {
+            applyRootRotCandidate(candidate);
+            applied.push(name);
+            continue;
         }
-
-        const members = gym.members.map((m, i) => (i === slot ? { ...m, os: 'ratatoskr_v2' } : m));
-        (AUTHORED_BOSSES as Record<string, IAuthoredBoss>)['gym_rootfall'] = { ...gym, members };
-        applied.push(name);
+        // TICKET 28a: `rootfall-rat-v2`'s swap is SHIPPED, so the knob is retired above rather than
+        // applied here. `validateTweaks` has already thrown by the time this loop sees the name.
     }
 
     return applied;
+}
+
+/**
+ * Substitute `driver_root_rot`'s hooks with one candidate's. Process-global; see `ROOT_ROT_KNOB`.
+ *
+ * Refuses to run twice, and refuses if the shipped Driver is not the one it expects to replace — a
+ * candidate applied over another candidate, or over a ROOT ROT someone has since reshaped, would
+ * describe an experiment nobody asked for.
+ */
+function applyRootRotCandidate(candidate: 'c1' | 'c3'): void {
+    const shipped = getOSBehavior(DRIVER_ROOT_ROT);
+    if (shipped === undefined) throw new Error(`[tweaks] ${DRIVER_ROOT_ROT} is not registered; nothing to reshape.`);
+    if (!shipped.hooks.some((h) => h.id === 'driver_root_rot_spread')) {
+        throw new Error(
+            `[tweaks] ${DRIVER_ROOT_ROT} no longer carries driver_root_rot_spread — either a candidate is already `
+            + 'applied or the shipped Driver was reshaped. Re-read ticket 77 Track C before running this arm.',
+        );
+    }
+
+    const spec = ROOT_ROT_CANDIDATES[candidate];
+    // Through the SAME schema hooks.json goes through, so a clause zod would strip there is stripped
+    // here too and the candidate cannot rely on a field the shipped loader does not know.
+    const parsed = HookLibraryItemSchema.parse({ id: DRIVER_ROOT_ROT, name: shipped.name, description: spec.description, hooks: spec.hooks });
+    const hooks = (parsed.hooks ?? []).map((h) => HookFactory.createHook(h as unknown as DataHookDefinition, DRIVER_ROOT_ROT));
+    if (hooks.length !== spec.hooks.length) throw new Error(`[tweaks] ${candidate}: the schema dropped a hook.`);
+    hooks.forEach((hook) => registerHook(hook));
+
+    FIRMWARE_REGISTRY[DRIVER_ROOT_ROT] = { ...shipped, description: spec.description, hooks };
+}
+
+/** The candidate's hook DECLARATIONS, for a test to read without applying the knob. */
+export function rootRotCandidateHooks(candidate: 'c1' | 'c3'): ReadonlyArray<DataHookDefinition> {
+    return ROOT_ROT_CANDIDATES[candidate].hooks;
 }
 
 /**

@@ -24,6 +24,7 @@ import {
     serializeOneRunLog,
     serializeRunLogs,
 } from '../../engine/run/runLog';
+import { BUILD_INFO } from '../buildInfo';
 
 /** How many runs are on file. Drives the button's label and its disabled state. */
 export function storedRunLogCount(): number {
@@ -99,7 +100,7 @@ export function exportRunLogs(): string | null {
 
     const now = new Date();
     const fileName = `mingming-run-log-${stampOf(now)}.json`;
-    writeRunLogFile(fileName, serializeRunLogs(now.getTime()));
+    writeRunLogFile(fileName, serializeRunLogs(now.getTime(), BUILD_INFO));
     return fileName;
 }
 
@@ -184,6 +185,6 @@ export function autoSaveRunLog(runKey: string, outcome: string): string | null {
     const suffix = outcome.replace(/[^a-z]/gi, '') || 'ended';
     const fileName = `mingming-run-${stampOf(now)}-${suffix}-${seed}.json`;
 
-    writeRunLogFile(fileName, serializeOneRunLog(log, now.getTime()));
+    writeRunLogFile(fileName, serializeOneRunLog(log, now.getTime(), BUILD_INFO));
     return fileName;
 }

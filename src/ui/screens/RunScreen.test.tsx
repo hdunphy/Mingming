@@ -146,6 +146,18 @@ describe('RunScreen — a node that fired says so', () => {
         expect(render(standingOn('marketplace'))).not.toContain('BLUEPRINTS');
     });
 
+    it('gives an event node the whole screen, with no placeholder (ticket 168)', () => {
+        // The same inversion as the stall and the bay: the event is a full frame with its own top
+        // bar, so the map's chrome is ABSENT. The "nothing here yet (ticket 30)" note is gone for
+        // good, not merely hidden.
+        const markup = render(standingOn('event'));
+        expect(markup).not.toContain('nothing here yet');
+        expect(markup).not.toContain('ticket 30');
+        expect(markup).not.toContain('rm-canvas');
+        expect(markup).not.toContain('Abandon run');
+        expect(markup).toContain('ev-choice');
+    });
+
     it('says nothing of the kind on a fight node', () => {
         // A wild's contents are not pending — they are a battle, and `App` swaps this screen for
         // `BattleArena` while it runs.
@@ -154,9 +166,9 @@ describe('RunScreen — a node that fired says so', () => {
     });
 
     it('shows the map, the party and the run’s seed while on the map', () => {
-        // A plain node, now that the stall and the bay take the whole screen. `event` is the one
-        // kind still in `PENDING_NODE_TICKET`, so it is the map's own chrome and nothing else.
-        const markup = render(standingOn('event'));
+        // A plain node, now that the stall, the bay and the event take the whole screen: the map's
+        // own chrome and nothing else.
+        const markup = render(standingOn('wild'));
         expect(markup).toContain('run-screen-seed');
         expect(markup).toContain('fights');
         expect(markup).toContain('rm-canvas');
@@ -210,11 +222,12 @@ describe('RunScreen — the gauntlet takes the screen', () => {
         ...over,
     });
 
-    it('shows which fight it is, and that nothing heals between them', () => {
+    it('shows which fight it is, and the 30% repair between them (ticket 173)', () => {
         const markup = render(inGauntlet());
 
         expect(markup).toContain('fight 1 of 3');
-        expect(markup).toContain('No healing between these three fights');
+        expect(markup).not.toContain('No healing between these three fights');
+        expect(markup).toContain('repairs 30% of');
         expect(markup).toContain('Begin fight 1 of 3');
     });
 
@@ -223,6 +236,15 @@ describe('RunScreen — the gauntlet takes the screen', () => {
 
         expect(markup).toContain('HP carries between fights');
         expect(markup).toContain('12/');
+    });
+
+    it('shows what the repair gave each member, and nothing for a downed one (ticket 173)', () => {
+        // Henry, 2026-09-30: no hidden math. The pit stop says how much came back, not only the total.
+        const markup = render(inGauntlet({}, { fightIndex: 1, persistedHp: { mm1: 40 }, healedHp: { mm1: 25 } }));
+        expect(markup).toContain('+25 repaired');
+
+        const down = render(inGauntlet({}, { fightIndex: 1, persistedHp: { mm1: 0 }, downedMemberIds: ['mm1'] }));
+        expect(down).not.toContain('repaired');
     });
 
     it('calls a downed member out as revivable rather than hiding them', () => {
@@ -266,10 +288,10 @@ describe('RunScreen — the gauntlet takes the screen', () => {
 
     it('does NOT draw the region map — there is no walking out of the exam', () => {
         expect(render(inGauntlet())).not.toContain('rm-canvas');
-        // ...and an ordinary node still does. `event` rather than `marketplace` since ticket 63:
-        // the stall takes the whole screen too now, so it is no longer the control case for "the
-        // map is still there" — see the stall's own test for the inversion.
-        expect(render(standingOn('event'))).toContain('rm-canvas');
+        // ...and an ordinary node still does. `wild` rather than `marketplace` since ticket 63 and
+        // rather than `event` since ticket 168: the stall, the bay and the event all take the whole
+        // screen now, so none of them is the control case for "the map is still there".
+        expect(render(standingOn('wild'))).toContain('rm-canvas');
     });
 });
 
@@ -332,7 +354,7 @@ describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
         // On a plain node, because the stall and the bay take the whole screen since tickets 63 and
         // 65 and neither of their ruled top bars carries an abandon. Quitting is still always
         // allowed — it is LEAVE and then this button, one click further away than it was.
-        const markup = render(standingOn('event'));
+        const markup = render(standingOn('wild'));
         expect(markup).toContain('Abandon run');
         // The second step's wording appears only after that click, so a confirm that ships both
         // states at once is not a confirm.
@@ -347,6 +369,42 @@ describe('RunScreen — abandoning is a two-step, not a native dialog', () => {
             gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
         }));
         expect(markup).toContain('Abandon run');
+    });
+});
+
+describe('RunScreen — the run says which tier it is (ticket 169e)', () => {
+    it('prints the tier, counted from 0, in the map header', () => {
+        expect(render({ ...BASE, tier: 2 })).toMatch(/layer \d+ · Tier 2 · \d+ fights/);
+        expect(render({ ...BASE, tier: 0 })).toMatch(/layer \d+ · Tier 0 · \d+ fights/);
+    });
+
+    it('prints it in the gauntlet header too', () => {
+        const gym = BASE.nodes.find((n) => n.kind === 'gym')!;
+        const markup = render({
+            ...BASE,
+            tier: 3,
+            currentNodeId: gym.id,
+            phase: 'gauntlet',
+            gauntlet: { fightIndex: 0, totalFights: 3, persistedHp: {}, downedMemberIds: [] },
+        });
+        expect(markup).toMatch(/Tier 3 · \d+ fights/);
+    });
+});
+
+describe('RunScreen — the run says which modifiers are on (ticket 169f)', () => {
+    it('adds "N modifiers" after the tier, and lists them on hover (the title)', () => {
+        const markup = render({ ...BASE, tier: 1, modifiers: ['mod:junk_start', 'mod:no_recruits'] });
+        expect(markup).toContain('Tier 1 · 2 modifiers');
+        expect(markup).toContain('title="Junk Start, No Recruits"');
+    });
+
+    it('says "1 modifier" for one, and nothing for none', () => {
+        expect(render({ ...BASE, modifiers: ['mod:elite_hunt'] })).toContain('1 modifier</span> ·');
+        expect(render(BASE)).not.toMatch(/modifier/);
+    });
+
+    it('does not count a map reveal as a modifier', () => {
+        expect(render({ ...BASE, modifiers: ['reveal:biome:1'] })).not.toMatch(/modifier/);
     });
 });
 

@@ -1,5 +1,7 @@
 # Ticket 144 — Sim speed, piece 4: fewer sims, cheaper sims, leaner lanes
 
+> **Status: CLOSED 2026-09-08** — done — 144a–d shipped (2.1× cumulative, beam ladder ruled); e/f/g were optional and are not being taken. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Type:** instrument work. **No balance numbers may change** unless a row says so and Henry rules it.
 **Branch:** `legion/ai-perf`, one commit per lettered row, authored as Henry.
 **Continues:** ticket 97 (cell cache, 36× warm), ticket 108 (process pool, three-tier AI, adaptive

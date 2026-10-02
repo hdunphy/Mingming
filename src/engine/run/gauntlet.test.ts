@@ -36,12 +36,13 @@ import {
     rollGauntletFight,
 } from './gauntlet';
 import { authoredBossFor } from './bosses';
+import { MingmingRegistry } from '../data/mingmingRegistry';
 import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
 import { getOSBehavior } from '../data/firmwareRegistry';
 import { ENEMY_LADDER, gradeFor } from './encounter';
 import { buildBattleSetup } from './battleSetup';
 import { createRun } from './createRun';
-import { GYM_REGISTRY, type IGymOffer } from './gyms';
+import { GYM_REGISTRY, gymCompElementPlan, type IGymOffer } from './gyms';
 import { createBattleState } from '../data/battleFactories';
 import { GetMingmingData, getDeckForOS } from '../data/mingmingRegistry';
 import { initializeBattleEntity } from '../types';
@@ -129,6 +130,7 @@ const ranchOf = (party: ReadonlyArray<IMingmingState>): IRanchState => ({
     codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
     gymsCleared: [],
     highestTierCleared: 0,
+    tierClears: {},
     seenTips: [],
     codexMilestones: [],
 });
@@ -391,10 +393,12 @@ describe('the gym is the enemy ladder’s top rung', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// exploration-map.md — three fights, NO healing between them
+// exploration-map.md — three fights, NO healing between them. Ticket 173a adds a 30% repair, applied
+// in `advanceGauntlet` before `persistedHp` is written; the setup below still builds each fight from
+// exactly the HP it is handed.
 // ---------------------------------------------------------------------------------------------
 
-describe('no healing between the three fights', () => {
+describe('HP carries between the three fights', () => {
     const party = [KRAKEN, FENRIR, RATATOSKR];
     const ranch = ranchOf(party);
 
@@ -606,7 +610,14 @@ describe('gauntletOpponentElements', () => {
             .enemyParty.map((e) => e.primaryElement as string);
 
         expect(promised).toEqual(delivered);
-        expect(promised).toEqual(['Fire', 'Fire', 'Nature']);
+        // TICKET 28a re-composed Emberfall: fenrir_v2 + skoll_v2 + kraken_v2, so the guest is Water
+        // where it used to be Nature. Derived from the authored table rather than retyped, because
+        // the claim is "two of the gym's element plus one guest" and not "these three words".
+        const elements = authoredBossFor('gym_emberfall')!.members
+            .map((m) => MingmingRegistry[m.species].primaryElement as string);
+        expect(promised).toEqual(elements);
+        expect(promised.filter((e) => e === 'Fire')).toHaveLength(2);
+        expect(promised.filter((e) => e !== 'Fire')).toHaveLength(1);
     });
 });
 
@@ -641,5 +652,81 @@ describe('every gym is authored — the invariant the relic deletion rests on', 
         for (const id of ['boss_relic_fire', 'boss_relic_water', 'boss_relic_ice']) {
             expect(getOSBehavior(id), `${id} should be deleted`).toBeUndefined();
         }
+    });
+});
+
+describe('ticket 152: the gym keeps the loop the wild does not', () => {
+    /*
+     * Henry, 2026-09-22: *"remove the double undertow cards from all wild encounters. It should
+     * only be in elites and bosses."*
+     *
+     * `rollEncounter` de-duplicates pure cantrips at the wild rung. This function is its sibling
+     * and builds its own pile, so the gym is untouched STRUCTURALLY rather than by a flag — which
+     * is exactly the kind of thing that is true until someone refactors the two together. Pinned
+     * here so that refactor fails a test instead of quietly disarming a boss.
+     */
+    it('a gauntlet fight keeps every copy its decks ship', () => {
+        const run = makeRun();
+        const node = { id: 'gym', kind: 'gym' } as unknown as Parameters<typeof rollGauntletFight>[0]['node'];
+
+        let sawADuplicate = false;
+        for (let fightIndex = 0; fightIndex < GAUNTLET_FIGHTS; fightIndex += 1) {
+            const fight = rollGauntletFight({ run, node, fightIndex });
+            const counts = new Map<string, number>();
+            for (const id of fight.enemyDeckIds) counts.set(id, (counts.get(id) ?? 0) + 1);
+            if ([...counts.values()].some((n) => n > 1)) sawADuplicate = true;
+        }
+
+        // Every tuned deck in the game runs at least one card twice, so a gauntlet that had been
+        // de-duplicated would show none of them.
+        expect(sawADuplicate).toBe(true);
+    });
+});
+
+describe('167a — gauntlet fights 1 and 2 follow the boss team\'s element plan', () => {
+    it('fields one body per element of the boss plan, in plan order, and the boss is unchanged', () => {
+        const gymIds = Object.keys(GYM_REGISTRY) as Array<keyof typeof GYM_REGISTRY>;
+        for (const gymId of gymIds) {
+            const gym = GYM_REGISTRY[gymId];
+            const plan = gymCompElementPlan(gym);
+            for (let s = 0; s < 40; s++) {
+                const seed = `gauntlet-167a-${gymId}-${s}`;
+                const run = makeRun([KRAKEN, FENRIR, RATATOSKR], seed, gym);
+                const node = gymNodeOf(run);
+                for (const fightIndex of [0, 1]) {
+                    const fight = rollGauntletFight({ run, node, fightIndex });
+                    expect(fight.enemyParty).toHaveLength(3);
+                    for (let i = 0; i < 3; i++) {
+                        expect(
+                            fight.enemyParty[i].primaryElement,
+                            `${gymId} fight ${fightIndex} slot ${i} seed ${seed}`,
+                        ).toBe(plan[i]);
+                    }
+
+                    // gauntletOpponentElements returns the same elements as the rolled fight
+                    const elements = gauntletOpponentElements({ run, node, fightIndex });
+                    expect(elements).toEqual(fight.enemyParty.map((e) => e.primaryElement));
+                }
+
+                // fightIndex 2 (the boss) fields exactly the authored members in order
+                const bossFight = rollGauntletFight({ run, node, fightIndex: 2 });
+                const authored = authoredBossFor(gymId)!;
+                expect(bossFight.enemyParty.map((e) => e.definitionId)).toEqual(authored.members.map((m) => m.species));
+
+                const bossElements = gauntletOpponentElements({ run, node, fightIndex: 2 });
+                expect(bossElements).toEqual(bossFight.enemyParty.map((e) => e.primaryElement));
+            }
+        }
+    });
+
+    it('Tidewrack fight 1 still varies: at least two different line-ups over 40 seeds', () => {
+        const gym = GYM_REGISTRY.tidewrack;
+        const lineups = new Set<string>();
+        for (let s = 0; s < 40; s++) {
+            const run = makeRun([KRAKEN, FENRIR, RATATOSKR], `gauntlet-167a-vary-${s}`, gym);
+            const fight = rollGauntletFight({ run, node: gymNodeOf(run), fightIndex: 0 });
+            lineups.add(fight.enemyParty.map((e) => `${e.definitionId}:${e.activeOS}`).join('|'));
+        }
+        expect(lineups.size).toBeGreaterThanOrEqual(2);
     });
 });

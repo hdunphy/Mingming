@@ -67,6 +67,8 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { minimumActiveDeck, RECRUIT_KIT_SIZE } from '../../engine/run/createRun';
+import { effectiveOS } from '../../engine/run/effectiveOS';
+import { OSGrammarRow } from '../components/OSGrammarRow';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
     WORKSHOP_REFLASH_SCRAP,
@@ -81,15 +83,21 @@ import {
     type WorkshopBlock,
 } from '../../engine/run/workshop';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
+import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { playSfx } from '../audio/AudioEngine';
 import { assembleMingming, swapOS } from '../store/gameSlice';
 import { benchPartyMember, recruitIntoParty, recruitToBench, reflashEngine } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { ElementMark } from './CardChassis';
 import { cardFace, colorFor } from './runShell';
+import { junkNote, readDeckFloor } from './deckFloor';
+import { UpgradeBench } from './UpgradeBench';
+import { UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
 import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
+import { WORKSHOP_DUPLICATE_CLAUSE } from './partyRuleText';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
 export interface ReflashTarget {
@@ -170,7 +178,10 @@ export default function WorkshopNode({
     // render closed over, which is a render behind the dispatch it has to verify.
     const store = useStore<RootState>();
 
-    const [speciesId, setSpeciesId] = useState<string | null>(initialSpeciesId ?? null);
+    const [pickedSpeciesId, setSpeciesId] = useState<string | null>(initialSpeciesId ?? null);
+    // TICKET 169h: No Recruits. Nothing can be selected, so nothing offers an assembly.
+    const noRecruits = recruitingBlocked(run);
+    const speciesId = noRecruits ? null : pickedSpeciesId;
     const [osId, setOsId] = useState<string | null>(null);
     const [built, setBuilt] = useState<IRanchMember | null>(null);
     /** True while ASSEMBLE → PARTY is waiting for the player to name who leaves the field. */
@@ -179,11 +190,19 @@ export default function WorkshopNode({
 
     const scrap = run.scrap;
     const floor = minimumActiveDeck(run.partyIds.length);
+    const deckReading = readDeckFloor(run);
     const bench = useMemo(() => run.bench ?? [], [run.bench]);
     const species = useMemo(() => workshopSpecies(ranch, run), [ranch, run]);
 
     const memberOf = (id: string): IRanchMember | undefined => ranch.roster.find((m) => m.id === id);
     const partyMembers = run.partyIds.map(memberOf).filter((m): m is IRanchMember => m !== undefined);
+    /*
+     * TICKET 158-r1: the firmware on the field, which is what turns an authored partner hint into
+     * a fact about THIS party. Read from the party rather than the roster — a benched body is not
+     * feeding anybody's currency.
+     */
+    // TICKET 168f: the firmware each body runs in this run (Firmware Reflash).
+    const partyOS = partyMembers.map((m) => effectiveOS(run, m));
     const benchMembers = bench.map(memberOf).filter((m): m is IRanchMember => m !== undefined);
 
     const selected = speciesId ? species.find((entry) => entry.speciesId === speciesId) ?? null : null;
@@ -206,6 +225,10 @@ export default function WorkshopNode({
 
     /** The shortfall, in the words the player needs: what they are short, not that they are short. */
     const shortBy = (price: number): number => Math.max(0, price - scrap);
+
+    /** TICKET 169g: what this workshop asks, at Tight Budget's rate when that is on. `planRecruit` and `planReflash` charge the same numbers. */
+    const assemblyPrice = shopPrice(run, WORKSHOP_ASSEMBLY_SCRAP);
+    const reflashPrice = shopPrice(run, WORKSHOP_REFLASH_SCRAP);
 
     /**
      * Build the selected species. **Two dispatches, ranch first** — see the header, and
@@ -312,7 +335,7 @@ export default function WorkshopNode({
         const plan = member
             ? planReflash({ ranch, run, node, member, targetOS })
             : null;
-        const short = shortBy(WORKSHOP_REFLASH_SCRAP);
+        const short = shortBy(reflashPrice);
 
         return (
             <section className="ws rs-frame rs-fixed">
@@ -329,6 +352,7 @@ export default function WorkshopNode({
                                 <p className="ws-osdesc">
                                     {(member && getOSBehavior(member.activeOS)?.description) ?? 'No firmware description.'}
                                 </p>
+                                {member && <OSGrammarRow osId={member.activeOS} partyOS={partyOS} />}
                                 <h4>ENGINE IN DECK NOW</h4>
                                 {member && <EngineRows ids={engineIdsFor(member)} />}
                             </div>
@@ -343,6 +367,10 @@ export default function WorkshopNode({
                                 <p className="ws-osdesc">
                                     {getOSBehavior(targetOS)?.description ?? 'No firmware description.'}
                                 </p>
+                                {/* The reflash is the one screen where both grammars are visible at
+                                    once, which is the comparison the ruling is for: a reflash that
+                                    changes currency changes what the rest of the party feeds. */}
+                                <OSGrammarRow osId={targetOS} partyOS={partyOS} />
                                 <h4>ENGINE THAT REPLACES IT</h4>
                                 {member && <EngineRows ids={engineIdsForSpecies(member.definitionId, targetOS)} />}
                             </div>
@@ -374,7 +402,7 @@ export default function WorkshopNode({
                             <span className="rs-chip">
                                 1 × {member ? GetMingmingData(member.definitionId).name.toUpperCase() : ''} BLUEPRINT
                             </span>
-                            <span className="rs-chip">{WORKSHOP_REFLASH_SCRAP} <Icon name="scrap" size={11} /></span>
+                            <span className="rs-chip">{reflashPrice} <Icon name="scrap" size={11} /></span>
                             <button
                                 type="button"
                                 className="rs-btn primary"
@@ -399,7 +427,10 @@ export default function WorkshopNode({
                 <div className="rs-panel">
                     <h2>BLUEPRINTS</h2>
                     <div className="ws-scroll">
-                        {species.map((entry) => {
+                        {noRecruits && (
+                            <span className="rs-hint">No Recruits is on: your party is set for this run.</span>
+                        )}
+                        {!noRecruits && species.map((entry) => {
                             const data = GetMingmingData(entry.speciesId);
                             const none = entry.blueprints < 1;
                             return (
@@ -435,7 +466,7 @@ export default function WorkshopNode({
                                 </button>
                             );
                         })}
-                        {species.length === 0 && (
+                        {!noRecruits && species.length === 0 && (
                             <span className="rs-hint">
                                 No species in the registry offer blueprints yet.
                             </span>
@@ -520,6 +551,12 @@ export default function WorkshopNode({
                                                 <span className="ws-osdesc">
                                                     {os?.description ?? 'No firmware description.'}
                                                 </span>
+                                                {/* TICKET 158-r1, Henry's §5.3 ruling: the row that
+                                                    chooses an OS says what it banks, how fast it
+                                                    plays, and which of its authored partners is
+                                                    already on the field. Compact here — the panel
+                                                    is a picker, not a reading surface. */}
+                                                <OSGrammarRow osId={id} partyOS={partyOS} compact />
                                             </button>
                                         );
                                     })}
@@ -539,7 +576,7 @@ export default function WorkshopNode({
                     {definition && (
                         <div className="ws-cost">
                             <span className="rs-chip">1 × BLUEPRINT</span>
-                            <span className="rs-chip">{WORKSHOP_ASSEMBLY_SCRAP} <Icon name="scrap" size={11} /></span>
+                            <span className="rs-chip">{assemblyPrice} <Icon name="scrap" size={11} /></span>
                             <button
                                 type="button"
                                 className="rs-btn primary"
@@ -547,7 +584,7 @@ export default function WorkshopNode({
                                     !selected
                                     || selected.blueprints < 1
                                     || assemblyBlock === 'duplicate-build'
-                                    || shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
+                                    || shortBy(assemblyPrice) > 0
                                 }
                                 onClick={() => {
                                     playSfx('uiClick');
@@ -557,8 +594,8 @@ export default function WorkshopNode({
                             >
                                 {assemblyBlock === 'duplicate-build'
                                     ? 'THIS OS ALREADY ON THE TEAM'
-                                    : shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
-                                        ? `ASSEMBLE → PARTY — ${shortBy(WORKSHOP_ASSEMBLY_SCRAP)} SHORT`
+                                    : shortBy(assemblyPrice) > 0
+                                        ? `ASSEMBLE → PARTY — ${shortBy(assemblyPrice)} SHORT`
                                         : partyFull ? 'ASSEMBLE → PARTY (SWAP)' : 'ASSEMBLE → PARTY'}
                             </button>
                             <button
@@ -568,7 +605,7 @@ export default function WorkshopNode({
                                     !selected
                                     || selected.blueprints < 1
                                     || assemblyBlock === 'duplicate-build'
-                                    || shortBy(WORKSHOP_ASSEMBLY_SCRAP) > 0
+                                    || shortBy(assemblyPrice) > 0
                                 }
                                 onClick={() => { playSfx('uiClick'); assemble('bench'); }}
                             >
@@ -577,10 +614,10 @@ export default function WorkshopNode({
                         </div>
                     )}
 
-                    {!definition && (
+                    {!definition && !noRecruits && (
                         <p className="rs-hint">
                             Pick a blueprint on the left. This is the only place the party grows — a
-                            blueprint <em>and</em> {WORKSHOP_ASSEMBLY_SCRAP} scrap, so recruiting
+                            blueprint <em>and</em> {assemblyPrice} scrap, so recruiting
                             competes with the marketplace for the same purse.
                         </p>
                     )}
@@ -646,12 +683,28 @@ export default function WorkshopNode({
                         {swappingOut
                             ? 'Pick who steps off the field. Their cards go to the collection with them, and the new engine takes their place in the deck.'
                             : partyFull
-                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. Species clause: no duplicate species across party + bench. Click a member to reflash. 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap.`
-                                : `Click a member to reflash — 1 blueprint + ${WORKSHOP_REFLASH_SCRAP} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
+                                ? `Party is full — ASSEMBLE → PARTY asks who to bench. ${WORKSHOP_DUPLICATE_CLAUSE} Click a member to reflash. 1 blueprint + ${reflashPrice} scrap.`
+                                : `Click a member to reflash — 1 blueprint + ${reflashPrice} scrap, and it swaps the whole ${RECRUIT_KIT_SIZE}-card engine, not just the firmware.`}
                     </p>
-                    <div className={`rs-pill ${run.deck.length <= floor ? 'at-floor' : ''}`}>
-                        DECK <b>{run.deck.length}</b> / floor {floor}
+                    <div className={`rs-pill ${deckReading.atFloor ? 'at-floor' : ''}`}>
+                        DECK <b>{deckReading.counted}</b> / floor {floor}{junkNote(deckReading)}
                     </div>
+
+                    {/*
+                      * TICKET 163b — the upgrade bench. Henry ruled it appears at BOTH stops
+                      * (2026-09-24), so the same component is mounted here and in the market stall;
+                      * the allowance is per node per visit, so standing in both on one lap is two
+                      * upgrades and walking back into either is another, at the price of the wilds
+                      * on the way. This is the workshop's only CARD verb — everything else on the
+                      * screen is about bodies — which is why it sits at the foot of the bay rather
+                      * than competing with the assembly stage.
+                      */}
+                    <UpgradeBench
+                        run={run}
+                        benchKey={`${node.id}:${node.visited}`}
+                        allowance={UPGRADES_PER_VISIT}
+                        heading="UPGRADE — UP TO TWO CARDS IN YOUR DECK"
+                    />
                 </div>
             </div>
         </section>

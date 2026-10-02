@@ -63,7 +63,26 @@ export interface IRewardBundle {
     readonly blueprints: ReadonlyArray<string>;
     readonly cards: ReadonlyArray<IOwnedProgram>; // Legacy or guaranteed cards
     readonly cardChoices: ReadonlyArray<ICardChoice>; // "Pick 1 of 3" choices
-    readonly relicChoices?: ReadonlyArray<string>;
+    /**
+     * Ticket 17: the Driver this fight pays — the node's `driverStake`, carried on the bundle so the
+     * report can show it and the claim can install it. Only an elite or an ambush sets it.
+     */
+    readonly driver?: string;
+    /**
+     * TICKET 163d — **the patch an elite pays out**, as `{ memberId, patchId }` pairs, one per
+     * party member so the player fits it to whichever body they choose.
+     *
+     * 163 §3's "where": *"an elite pays one (the second coin the research doc asked for)."* One
+     * patch per body rather than one for the party, because a patch is fitted to a FIRMWARE — the
+     * same rider is a gift on one body and a no-op on another, and offering a single id would make
+     * the prize a lottery on which member happens to run the right OS.
+     *
+     * Absent on every other node kind; absent and empty mean the same thing, as `enemyDrivers`
+     * says of itself for the same reason.
+     */
+    readonly patchChoices?: ReadonlyArray<{ readonly memberId: string; readonly patchId: string }>;
+    /** TICKET 166d — up to three macro ids; the player may take one. Absent when the fight pays none. */
+    readonly macroChoices?: ReadonlyArray<string>;
     /**
      * Gym-clear mini-draft: three sequential "pick 1 of 3" rounds presented before the normal
      * report. **Nothing sets this since ticket 12** — the gauntlet and its draft belong to ticket

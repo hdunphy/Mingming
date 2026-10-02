@@ -1,9 +1,19 @@
 import React from 'react';
 import { globalBattleEventBus } from '../../engine/events';
-import type { IBattleState, StatusType } from '../../engine/types';
+import type { IBattleEntity, IBattleState, StatusType } from '../../engine/types';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
+import { GetProgramData } from '../../engine/data/programRegistry';
 import { getElementAccent } from '../utils/contrastText';
-import { playSfx } from '../audio/AudioEngine';
+import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
+import {
+    castCue, causeCue, cryCue, effectivenessAgainst, HIT_BIG_FRACTION, hookCue, impactCue,
+    isPlayerSide, shieldCue, statusCue, tickCue,
+} from '../audio/battleCues';
+import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
+import { describeDriver } from '../../engine/data/driverRegistry';
+import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
+import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '../vfx/hookStatusBeat';
+import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -18,14 +28,19 @@ import { playSfx } from '../audio/AudioEngine';
  * The engine is never touched: this is a pure listener.
  */
 
-export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed';
+/**
+ * `proc` is ticket 16's: a Driver's NAME rising off the member whose copy fired. The Driver law is
+ * PROC-VISIBLE, and a float on the unit is the half of that law the eye is already on — the chip in
+ * the top bar flashes at the same moment for the half of the screen it is not.
+ */
+export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed' | 'proc' | 'status';
 
 export interface CombatFloat {
     id: number;
     kind: FloatKind;
     text: string;
     color: string;
-    /** 0..5 lateral slot so rapid hits fan out instead of overlapping dead-center. */
+    /** 0..5 vertical slot (ticket 167h) so rapid hits stack instead of overlapping dead-center. */
     slot: number;
 }
 
@@ -80,10 +95,25 @@ export interface PlayedCardAnnouncement {
  * a stranger's card is legible, so it is set for the fast case and the slow case keeps paying its
  * own way.
  *
- * It is a hold, not an animation length: the reveal itself never expires on a timer (see the
- * `PROGRAM_PLAYED` case below) — the next play or the turn flip is what takes it down.
+ * It is a hold, not an animation length: the ENEMY's reveal never expires on a timer (see the
+ * `PROGRAM_PLAYED` case below) — the next play or the turn flip is what takes it down. The player's
+ * own card is the exception, below.
  */
 export const PLAYED_CARD_REVEAL_MS = 1200;
+
+/**
+ * ── THE PLAYER'S OWN CARD LEAVES AFTER 1.5 s — Henry, 2026-09-25, off the Rootfall playtest ──
+ *
+ * *"card's that were just played stay stuck in the center and also cover the combat log. It should
+ * disappear after a few seconds."* The no-timer rule below was written for the ENEMY's cards: a
+ * timer there would race the AI loop's own hold. The player's side has no loop — on your own turn
+ * the next "something else" is often you pressing End Turn, so your last card sat over the log
+ * for as long as you were thinking. Ruled 1.5 s.
+ *
+ * Only the player's reveal times out. The enemy's still leaves when the next play or the turn flip
+ * replaces it, exactly as ticket 127 set it.
+ */
+export const PLAYER_CARD_HOLD_MS = 1500;
 
 export interface BattleVfx {
     unitFx: Record<string, UnitFx>;
@@ -111,11 +141,13 @@ const CRIT_FRACTION = 0.25;
 const ARENA_SHAKE_FRACTION = 0.33;
 /** Cap concurrent floats per unit; oldest are dropped beyond this. */
 const MAX_FLOATS_PER_UNIT = 8;
-/** Must outlive the ~1s float animation. */
-const FLOAT_LIFETIME_MS = 1150;
+/** Must outlive the 1.8 s float animation (`FxFloats`, ticket 167h). */
+const FLOAT_LIFETIME_MS = 2000;
 const FLOAT_SLOTS = 6;
 
 const HEAL_COLOR = '#4ade80';
+/** The Driver chip's violet (`.battle-driver-chip`), so the float and the chip read as one event. */
+const DRIVER_PROC_COLOR = '#c4b5fd';
 const ABSORB_COLOR = '#9aa0ae';
 
 /**
@@ -128,6 +160,59 @@ function statusPitch(status: string): number {
     return 0.85 + (Math.abs(h) % 8) * 0.06; // 0.85 .. 1.27
 }
 /** Element 'None' damage stays red-hot instead of the gray element accent, so it never reads as "absorbed". */
+/**
+ * How many stacks of this status the target is carrying — ticket 147d, so a tick can rise with it.
+ *
+ * Read off the PRE-dispatch snapshot, like everything else in this hook: bus events fire
+ * synchronously inside the reducer, so this is the stack count the tick was computed from rather
+ * than what is left after it.
+ */
+/**
+ * Impacts closer together than this are one cast landing on several bodies — ticket 147d.
+ *
+ * 146c staggers a cast's per-target impacts by `TRAIL_STAGGER_MS` (40 ms) and the next cast is
+ * hundreds of milliseconds away, so there is a wide gap to put the line in. 150 sits in it.
+ */
+const SAME_CAST_MS = 150;
+
+/**
+ * A card hits at most a side — three bodies — so the series never climbs past a third step.
+ *
+ * 162e reuses it for repeated HOOK firings, where a card CAN exceed three (Serpent Flurry+ is four
+ * swings). The clamp is right there too: the step is a readability device, not a count, and a
+ * fourth rising semitone would be a pitch nobody can place rather than information.
+ */
+export const MAX_HIT_STEP = 2;
+
+/**
+ * Where in a stated series this event sits — 147b's `step`, DETECTED rather than counted.
+ *
+ * One rule, two callers since 162e: a cast's per-target impacts, and a hook firing once per swing
+ * of a multi-hit card. Written once because it is one rule, and because two copies of "same key,
+ * close enough in time, clamped" is the shape that drifts — the impact path would get a fix the
+ * hook path did not.
+ *
+ * DETECTING is the load-bearing word. A bare counter would pitch a LONE event by whatever it
+ * happened to be sitting at, and would also exempt it from coalescing — which is the protection
+ * `step` is allowed to bypass precisely because the caller has stated a series. A different key,
+ * or a gap wider than one cast, starts over at 0.
+ */
+export function nextSeriesStep(
+    prior: { key: string; step: number; at: number },
+    key: string,
+    at: number,
+    windowMs: number = SAME_CAST_MS,
+): number {
+    return prior.key === key && at - prior.at < windowMs
+        ? Math.min(prior.step + 1, MAX_HIT_STEP)
+        : 0;
+}
+
+function stacksOf(target: IBattleEntity | undefined, status: StatusType | undefined): number {
+    if (!target || !status) return 0;
+    return target.statusEffects.find((effect) => effect.type === status)?.stacks ?? 0;
+}
+
 const NEUTRAL_DAMAGE_COLOR = '#ff5a5a';
 
 interface VfxState {
@@ -152,9 +237,50 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
 
     const floatIdRef = React.useRef(1);
     const revealKeyRef = React.useRef(1);
+    /*
+     * Which impact of a multi-target cast this is — ticket 147d, feeding 147b's `step`.
+     *
+     * The hook sees one `DAMAGE_TAKEN` at a time and is never told a Side card is in progress, so
+     * the series is DETECTED rather than counted: impacts less than `SAME_CAST_MS` apart are one
+     * cast landing on several bodies, and anything later starts over at 0.
+     *
+     * Detecting matters. A bare counter would pitch a LONE hit — the common case — by whatever
+     * the counter happened to be sitting at, and would also exempt it from coalescing, which is
+     * the protection `step` is allowed to bypass precisely because the caller has stated intent.
+     */
+    const hitStepRef = React.useRef(0);
+    const lastHitAtRef = React.useRef(0);
+    /*
+     * The same series detection for a HOOK firing several times in one cast — ticket 162e.
+     *
+     * EMBER_FUSE moved to a per-hit trigger, so Pack Tactics now fires it three times inside one
+     * reducer tick. Three `playSfx` calls with the same cue name land in the same millisecond,
+     * which is well inside 147b's 60 ms coalescing window: without a `step` the player would HEAR
+     * ONE PROC while the board took three Burn, and the audio would be telling them something
+     * untrue about the thing they are trying to learn.
+     *
+     * Keyed on the hook id rather than counted blind, for the reason the note above gives and one
+     * more: two different firmware firing in the same beat are not a series, they are two events,
+     * and stepping the second would pitch it for no reason the player could work out.
+     */
+    const hookStepRef = React.useRef<{ key: string; step: number; at: number }>({ key: '', step: 0, at: 0 });
     const slotRef = React.useRef<Record<string, number>>({});
     // Pending timeouts, cleared on unmount (pendingTimeoutsRef pattern from MingmingUnit).
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
+    // TICKET 166b: STATUS_APPLIED events from one reducer burst, merged by body + status.
+    // 184b: `overflow` is the pile left behind when one of the merged applications set it off.
+    const statusBurstRef = React.useRef<Map<string, { targetId: string; status: StatusType; stacks: number; overflow?: number }> | null>(null);
+    /*
+     * TICKET 171f: statuses a HOOK applied (EMBER_FUSE's Burn), held out of the burst above and
+     * played as their own beat after the card. Keyed hookId|body|status so Pack Tactics' three fuses
+     * read as one "+3 Burn · EMBER_FUSE". `label` and `sound` arrive with the HOOK_FIRED that follows
+     * the statuses in the same burst; the sound waits for the float so the two land together.
+     */
+    const hookBurstRef = React.useRef<{
+        entries: Map<string, { hookId: string; targetId: string; status: StatusType; stacks: number; overflow?: number }>;
+        labels: Map<string, string | undefined>;
+        sounds: Array<() => void>;
+    } | null>(null);
 
     const triggerLunge = React.useCallback((entityId: string) => {
         setVfx(prev => {
@@ -164,6 +290,20 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 unitFx: { ...prev.unitFx, [entityId]: { ...unit, lungeKey: unit.lungeKey + 1 } },
             };
         });
+    }, []);
+
+    /*
+     * TICKET 147a — START THE SAMPLE BANK WHEN A FIGHT DOES.
+     *
+     * The 61 sampled cues are 675 KB and nothing before a battle needs them, so they are fetched
+     * and decoded here rather than at boot. Fire-and-forget and idempotent: nothing waits on it,
+     * and every cue has a synth fallback for the seconds before its buffer lands — which is what
+     * makes loading it *here* rather than earlier cost nothing but fidelity on the first fight.
+     *
+     * A no-op with no AudioContext, which is how the suite stays silent.
+     */
+    React.useEffect(() => {
+        primeSfxSamples();
     }, []);
 
     React.useEffect(() => {
@@ -194,6 +334,81 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             pendingTimeoutsRef.current.push(timeout);
         };
 
+        const flushStatusBurst = () => {
+            const burst = statusBurstRef.current;
+            statusBurstRef.current = null;
+            if (!burst || burst.size === 0) return;
+            const entries = [...burst.values()];
+
+            // One sound per distinct status, in the order they arrived.
+            const sounded = new Set<StatusType>();
+            for (const entry of entries) {
+                if (sounded.has(entry.status)) continue;
+                sounded.add(entry.status);
+                /*
+                 * 147d. The two stances keep their own synthesized cues — they are the only
+                 * statuses that change how a whole unit BEHAVES, and 147 §8 left them out of
+                 * the sample pack for that reason. Everything else is the STS family model:
+                 * up for a buff, down for a debuff, and a cue of its own for the two that put
+                 * a wall in front of a body.
+                 */
+                if (entry.status === 'DarkStance') {
+                    playSfx('stanceDark');
+                } else if (entry.status === 'LightStance') {
+                    playSfx('stanceLight');
+                } else {
+                    playSfx(statusCue(entry.status), { pitch: statusPitch(entry.status) });
+                }
+            }
+
+            // One ring bump per body, coloured by the last status that body received.
+            const ringColour = new Map<string, string>();
+            for (const entry of entries) ringColour.set(entry.targetId, STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+            setVfx(prev => {
+                const unitFx = { ...prev.unitFx };
+                for (const [targetId, colour] of ringColour) {
+                    const unit = unitFx[targetId] ?? EMPTY_UNIT_FX;
+                    unitFx[targetId] = { ...unit, statusKey: unit.statusKey + 1, statusColor: colour };
+                }
+                return { ...prev, unitFx };
+            });
+
+            // One float per body per status, with the stack count.
+            for (const entry of entries) {
+                // 184b: a pile that went off says OVERFLOW and what is left, not "+4" on a badge
+                // that has just dropped to 2.
+                const text = entry.overflow !== undefined
+                    ? overflowText(entry.status, entry.overflow)
+                    : statusFloatText(entry.status, entry.stacks);
+                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status as StatusType] ?? '#cccccc');
+            }
+        };
+
+        const flushHookBurst = () => {
+            const burst = hookBurstRef.current;
+            hookBurstRef.current = null;
+            if (!burst) return;
+            for (const sound of burst.sounds) sound();
+            const entries = [...burst.entries.values()];
+            setVfx(prev => {
+                const unitFx = { ...prev.unitFx };
+                for (const entry of entries) {
+                    const unit = unitFx[entry.targetId] ?? EMPTY_UNIT_FX;
+                    unitFx[entry.targetId] = {
+                        ...unit, statusKey: unit.statusKey + 1, statusColor: STATUS_COLORS[entry.status] ?? '#cccccc',
+                    };
+                }
+                return { ...prev, unitFx };
+            });
+            for (const entry of entries) {
+                const label = burst.labels.get(entry.hookId);
+                const text = entry.overflow !== undefined
+                    ? [overflowText(entry.status, entry.overflow), label].filter(Boolean).join(' · ')
+                    : hookFloatText(entry.status, entry.stacks, label);
+                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status] ?? '#cccccc');
+            }
+        };
+
         const findEntity = (id: string) => {
             const s = stateRef.current;
             if (!s) return undefined;
@@ -216,17 +431,46 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                      * they are two different resources coming off two different bars.
                      */
                     const absorbed = event.damage?.absorbed ?? 0;
-                    if (absorbed > 0) {
-                        pushFloat(targetId, 'absorbed', `-${absorbed} 🛡`, ABSORB_COLOR);
-                        playSfx('absorbed');
+
+                    /*
+                     * ── TICKET 147d: DAMAGE IS FOUR DIFFERENT SOUNDS ───────────────────────
+                     *
+                     * `DAMAGE_TAKEN` carries a `cause` (146b) and this hook ignored it, so a Burn
+                     * tick, a toll paid and a sword landing all played `hit`. 147 §4 is explicit
+                     * that a tick is *"**never** the impact sound"* — a player has to be able to
+                     * tell "the board is hurting me" from "I am being hit" with their eyes
+                     * elsewhere, and that is the single most useful thing sound does here.
+                     */
+                    const tick = event.cause === 'status';
+                    const selfInflicted = causeCue(event.cause);
+                    if (tick) {
+                        playSfx(tickCue(event.status), {
+                            pitch: pitchForStacks(stacksOf(findEntity(targetId), event.status)),
+                        });
+                    } else if (selfInflicted) {
+                        playSfx(selfInflicted);
                     }
+
+                    if (absorbed > 0) {
+                        pushFloat(targetId, 'absorbed', `-${absorbedAmount(absorbed)} 🛡`, ABSORB_COLOR);
+                    }
+                    /*
+                     * Three shield moments, not one (147 §8): the bark held (`blockedByBark`),
+                     * the bark broke and the rest landed (`barkBreak`), or something reduced the
+                     * hit to nothing without a shield to credit (`absorbedNoDamage`). They are
+                     * three different pieces of news about whether that wall is still there.
+                     */
+                    if (!tick && !selfInflicted) {
+                        const shield = shieldCue(absorbed, amount);
+                        if (shield) playSfx(shield);
+                    }
+
                     if (amount <= 0) {
                         // Nothing reached HP. The shield float above is the whole readout; the
                         // wordy fallback is kept only for an absorption we could not quantify
                         // (a hand-built event with no ledger, or a non-shield reduction to zero).
                         if (absorbed <= 0) {
                             pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
-                            playSfx('absorbed');
                         }
                         return;
                     }
@@ -238,10 +482,44 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     // synchronously inside the reducer), so currentHp is the HP
                     // *before* this hit → HP→0 transition = lethal hit.
                     const isLethal = !!target && target.currentHp > 0 && amount >= target.currentHp;
+                    /*
+                     * THE IMPACT LADDER — 147 §8. Effectiveness decides the cue, damage decides the
+                     * pitch and whether the sub-thump is layered under it, and a lethal hit adds
+                     * the power-down and the dying body's cry on top.
+                     *
+                     * Ticks and tolls never reach here: they made their own sound above and a
+                     * `return` would have skipped the damage float, which they still deserve.
+                     */
+                    if (!tick && !selfInflicted) {
+                        const effectiveness = effectivenessAgainst(element, target);
+                        // One cast landing on several bodies, or a new cast? 146c staggers a
+                        // Side card's impacts by 40ms; the next cast is hundreds of ms away.
+                        const at = typeof performance !== 'undefined' ? performance.now() : Date.now();
+                        // 162e: the same helper the hook path uses — one series rule, one place.
+                        // The key is constant here because every impact of a cast IS the series;
+                        // `lastHitAtRef` is what separates one cast from the next.
+                        const hitStep = nextSeriesStep(
+                            { key: 'impact', step: hitStepRef.current, at: lastHitAtRef.current },
+                            'impact', at,
+                        );
+                        hitStepRef.current = hitStep;
+                        lastHitAtRef.current = at;
+                        playSfx(impactCue(element, effectiveness), {
+                            intensity: Math.min(1, frac),
+                            pitch: pitchForDamage(frac),
+                            // Each target of a Side card is the next of a stated series — see
+                            // `SfxOptions.step`. Without it the 40ms stagger falls inside the 60ms
+                            // coalescing window and three bodies take one audible hit.
+                            step: hitStep,
+                        });
+                        if (frac >= HIT_BIG_FRACTION || isLethal) playSfx('hitBig', { intensity: 1 });
+                    }
                     if (isLethal) {
-                        playSfx('death');
-                    } else {
-                        playSfx(isCrit ? 'hitCrit' : 'hit', { intensity: Math.min(1, frac) });
+                        // A power-down, not a scream: 147 §8 — they are robots. The cry goes under
+                        // it, which is the Pokémon model (one call, on entry and on faint).
+                        playSfx('kill');
+                        const cry = cryCue(target?.definitionId);
+                        if (cry) playSfx(cry);
                     }
                     const color =
                         element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
@@ -283,59 +561,129 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     return;
                 }
                 case 'STATUS_APPLIED': {
-                    if (event.status === 'DarkStance') {
-                        playSfx('stanceDark');
-                    } else if (event.status === 'LightStance') {
-                        playSfx('stanceLight');
-                    } else {
-                        playSfx('statusApply', { pitch: statusPitch(event.status) });
+                    // TICKET 171f: a hook's status is its own beat, after the card. See hookBurstRef.
+                    if (isHookStatus(event.source)) {
+                        let hooks = hookBurstRef.current;
+                        if (!hooks) {
+                            hooks = { entries: new Map(), labels: new Map(), sounds: [] };
+                            hookBurstRef.current = hooks;
+                            pendingTimeoutsRef.current.push(setTimeout(flushHookBurst, HOOK_BEAT_DELAY_MS));
+                        }
+                        const hookKey = `${event.source.hookId}|${event.targetId}|${event.status}`;
+                        const before = hooks.entries.get(hookKey);
+                        hooks.entries.set(hookKey, {
+                            hookId: event.source.hookId, targetId: event.targetId, status: event.status,
+                            stacks: (before?.stacks ?? 0) + event.stacks,
+                            overflow: nextOverflowRemaining(before?.overflow, event.stacks, event.overflowRemaining),
+                        });
+                        return;
                     }
-                    const color = STATUS_COLORS[event.status as StatusType] ?? '#cccccc';
-                    setVfx(prev => {
-                        const unit = prev.unitFx[event.targetId] ?? EMPTY_UNIT_FX;
-                        return {
-                            ...prev,
-                            unitFx: {
-                                ...prev.unitFx,
-                                [event.targetId]: {
-                                    ...unit,
-                                    statusKey: unit.statusKey + 1,
-                                    statusColor: color,
-                                },
-                            },
-                        };
+                    // TICKET 166b: gathered, not played. Every status of one cast arrives in the same
+                    // synchronous reducer burst; a 0 ms timeout runs after the burst and plays it once.
+                    let burst = statusBurstRef.current;
+                    if (!burst) {
+                        burst = new Map();
+                        statusBurstRef.current = burst;
+                        pendingTimeoutsRef.current.push(setTimeout(flushStatusBurst, 0));
+                    }
+                    const key = `${event.targetId}|${event.status}`;
+                    const previous = burst.get(key);
+                    burst.set(key, {
+                        targetId: event.targetId, status: event.status, stacks: (previous?.stacks ?? 0) + event.stacks,
+                        overflow: nextOverflowRemaining(previous?.overflow, event.stacks, event.overflowRemaining),
                     });
                     return;
                 }
+                case 'STATUS_REMOVED': {
+                    // 147d. A status ending is news too — a shield gone is a target that just got
+                    // softer, and it had no sound at all before this row.
+                    playSfx('statusOff');
+                    return;
+                }
+                case 'PROGRAM_DISCARDED': {
+                    playSfx('cardDiscard');
+                    return;
+                }
+                case 'DECK_SHUFFLED': {
+                    playSfx('shuffle');
+                    return;
+                }
+                case 'HOOK_FIRED': {
+                    /*
+                     * 147d. One cue per Early Access OS, the family blip for the rest. The engine
+                     * only fires this for hooks that actually DID something (`emitHookFired`'s
+                     * own predicate), so this is not the sound of a hook being checked.
+                     *
+                     * 162e: and a hook can now fire several times in one cast, so it carries the
+                     * same stated-series `step` a multi-target impact does. See `hookStepRef`.
+                     */
+                    const hookAt = Date.now();
+                    const hookStep = nextSeriesStep(hookStepRef.current, event.hookId, hookAt);
+                    hookStepRef.current = { key: event.hookId, step: hookStep, at: hookAt };
+                    const cue = hookCue(findEntity(event.ownerId), event.osId, event.daemonId);
+                    // TICKET 171f: a hook that put a status on someone this burst sounds with that
+                    // status's float, after the card, rather than under the card.
+                    const held = hookBurstRef.current;
+                    if (held && [...held.entries.values()].some((entry) => entry.hookId === event.hookId)) {
+                        held.labels.set(event.hookId, hookBeatLabel(event.osId, event.daemonId));
+                        held.sounds.push(() => playSfx(cue, { step: hookStep }));
+                        return;
+                    }
+                    playSfx(cue, { step: hookStep });
+                    return;
+                }
                 case 'PROGRAM_PLAYED': {
-                    // Subtle attacker anticipation ("Step Forward" from the roadmap).
-                    playSfx('cardPlay');
+                    /*
+                     * 147d. The card leaves the hand, then the element leaves the caster — the
+                     * two halves of 146c's cast, and they are different sounds because they are
+                     * different moments. The enemy's card is the same whoosh three semitones
+                     * down (147 §8), which is the cheapest possible "that was not you".
+                     */
+                    const fromPlayer = isPlayerSide(stateRef.current, event.sourceId);
+                    playSfx('cardFly', { pitch: fromPlayer ? 1 : semitones(-3) });
+                    playSfx(castCue(GetProgramData(event.programId)?.element));
                     triggerLunge(event.sourceId);
-                    // The reveal is NOT auto-expired on a timer. A timer would race the enemy
+                    // The ENEMY's reveal is NOT auto-expired on a timer. A timer would race the enemy
                     // loop's own hold, and the next play (or the turn ending) is the honest thing
                     // that should replace it - a card stays up until something else happens, which
-                    // is what makes it readable when the AI is thinking on the same thread.
+                    // is what makes it readable when the AI is thinking on the same thread. The
+                    // PLAYER's reveal does time out (PLAYER_CARD_HOLD_MS, 2026-09-25).
                     const source = findEntity(event.sourceId);
                     const target = findEntity(event.targetId);
                     const s = stateRef.current;
+                    const key = revealKeyRef.current++;
+                    const revealFromPlayer = s?.playerParty.some(e => e.id === event.sourceId) ?? false;
                     setVfx(prev => ({
                         ...prev,
                         playedCard: {
-                            key: revealKeyRef.current++,
+                            key,
                             dataId: event.programId,
                             sourceId: event.sourceId,
                             targetId: event.targetId,
-                            fromPlayer: s?.playerParty.some(e => e.id === event.sourceId) ?? false,
+                            fromPlayer: revealFromPlayer,
                             sourceName: source?.name ?? '',
                             targetName: target?.name ?? '',
                         },
                     }));
+                    // Your own card flies to the discard after PLAYER_CARD_HOLD_MS - unless a newer
+                    // play has already replaced it, which the key check makes a no-op.
+                    if (revealFromPlayer) {
+                        pendingTimeoutsRef.current.push(setTimeout(() => {
+                            setVfx(prev => (prev.playedCard?.key === key ? { ...prev, playedCard: null } : prev));
+                        }, PLAYER_CARD_HOLD_MS));
+                    }
                     return;
                 }
                 case 'CARD_DRAWN': {
                     // Only the player's deck ticks audibly; the 35ms coalescer
                     // collapses multi-card draws into a single soft tick.
                     if (event.ownerId === 'PLAYER') playSfx('cardDraw');
+                    return;
+                }
+                case 'TURN_END': {
+                    // 147d. The player's half only: an enemy turn ending is the player's turn
+                    // starting, and both would be two sounds for one moment.
+                    if (event.activeSide === 'PLAYER') playSfx('turnEnd');
                     return;
                 }
                 case 'TURN_START': {
@@ -350,6 +698,14 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     playSfx('levelUp');
                     return;
                 }
+                case 'DRIVER_PROC': {
+                    // Ticket 16. The name, not the number: what a Driver did is already on the
+                    // board as damage/heal/status floats of its own; what those floats cannot say
+                    // is WHY, and the why is the Driver.
+                    playSfx('driverProc');
+                    pushFloat(event.ownerId, 'proc', describeDriver(event.driverId).name, DRIVER_PROC_COLOR);
+                    return;
+                }
                 default:
                     return;
             }
@@ -360,6 +716,8 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             unsubscribe();
             timeouts.forEach(clearTimeout);
             timeouts.length = 0;
+            statusBurstRef.current = null;
+            hookBurstRef.current = null;
         };
     }, [triggerLunge]);
 

@@ -10,6 +10,7 @@ import {
     TEXT_SCALES,
     applySettings,
     loadSettings,
+    resolveVfxGates,
     saveSettings,
     type ISettings,
     type MotionChoice,
@@ -23,8 +24,41 @@ import {
     runLogDirectory,
     storedRunLogCount,
 } from '../settings/exportRunLog';
+import { FIGHT_LOG_CAP } from '../../engine/run/fightLog';
 import { playSfx } from '../audio/AudioEngine';
+import { useFullscreen } from '../hooks/useFullscreen';
+import { BUILD_INFO, buildText } from '../buildInfo';
 import './SettingsScreen.css';
+
+/**
+ * The three effect switches, as rows. Ticket 146a.
+ *
+ * A table rather than three hand-written blocks because they are genuinely the same control three
+ * times, and the notes are where the difference lives: each one says what a player LOSES, since
+ * "Particles: Off" tells you nothing about whether the fight still reads.
+ */
+const VFX_SWITCHES: ReadonlyArray<{
+    key: 'particles' | 'vfx' | 'animations';
+    label: string;
+    note: string;
+}> = [
+    {
+        key: 'particles',
+        label: 'Particles',
+        note: 'Flames, drops, leaves, sparks. The first thing to turn off on a machine that struggles.',
+    },
+    {
+        key: 'vfx',
+        label: 'Effects',
+        note: 'Flashes, trails, impacts, and the tells that say which status or program just fired.',
+    },
+    {
+        key: 'animations',
+        label: 'Animations',
+        note: 'Cards flying to the lane and back, lunges, screen shake, and the pause on a heavy hit.',
+    },
+];
+
 
 /**
  * THE SETTINGS SCREEN — ticket 36.
@@ -90,6 +124,8 @@ export default function SettingsScreen(): ReactNode {
      */
     const [logsDir] = useState(() => runLogDirectory());
     const [exported, setExported] = useState<string | null>(null);
+    // TICKET 37: the Display group below renders only when the host offers the Fullscreen API.
+    const fullscreen = useFullscreen();
 
     const update = (next: ISettings): void => {
         setSettings(next);
@@ -122,11 +158,78 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     </div>
                     <p className="settings-note">
-                        One channel, because the game has one: every sound is synthesized on the spot and
-                        there is no music yet. Volume and mute are stored separately from your save, so
-                        they follow you across slots.
+                        One channel, because the game has one: there is no music yet. Volume and mute are
+                        stored separately from your save, so they follow you across slots.
+                    </p>
+
+                    {/*
+                      * TICKET 147b. Beside the slider, because they are the two audio decisions and
+                      * they are different ones: the slider says how loud, this says whether the
+                      * FIGHT is part of it. Deliberately NOT tied to the Effects switch below —
+                      * 147b is explicit that turning effects off does not mute, and somebody who
+                      * wants a quiet fight should not lose their impact flashes for it.
+                      */}
+                    <div className="settings-row">
+                        <span className="settings-label">Combat sounds</span>
+                        <div className="settings-control settings-choices">
+                            {([false, true] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice ${settings.combatSounds === choice ? 'active' : ''}`}
+                                    aria-pressed={settings.combatSounds === choice}
+                                    onClick={() => update({ ...settings, combatSounds: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.combatSounds
+                            ? 'On. Casts, impacts, status ticks, shields, firmware tells and the creature cries.'
+                            : `Off. The fight is quiet — but the interface still answers you, the turn
+                               beats still play, and you still hear a win.`}
                     </p>
                 </section>
+
+                {/*
+                  * TICKET 37 — DISPLAY. One control, and the control is conditional.
+                  *
+                  * `supported` is false where the Fullscreen API is absent or disallowed (an
+                  * embedded webview, an older WebKit), and the row is then not rendered at all
+                  * rather than rendered disabled. A dead toggle in a settings screen reads as a
+                  * bug in the game; an absent one reads as a feature the host does not offer,
+                  * which is the true statement.
+                  *
+                  * The label is driven by `isFullscreen`, which this hook re-reads from the
+                  * document on every `fullscreenchange` — so leaving fullscreen with Escape or F11,
+                  * without touching this button, still updates it.
+                  */}
+                {fullscreen.supported ? (
+                    <section className="settings-group">
+                        <h3>Display</h3>
+                        <div className="settings-row">
+                            <span className="settings-label">Fullscreen</span>
+                            <button
+                                type="button"
+                                className="settings-button"
+                                aria-pressed={fullscreen.isFullscreen}
+                                onClick={() => {
+                                    playSfx('uiClick');
+                                    fullscreen.toggle();
+                                }}
+                            >
+                                {fullscreen.isFullscreen ? 'Leave fullscreen' : 'Go fullscreen'}
+                            </button>
+                        </div>
+                        <p className="settings-note">
+                            F11 does the same thing, in the desktop build and in a browser. The game
+                            lays out fluidly, so fullscreen gives you more of the map rather than a
+                            bigger picture of the same amount.
+                        </p>
+                    </section>
+                ) : null}
 
                 <section className="settings-group">
                     <h3>Motion</h3>
@@ -149,6 +252,82 @@ export default function SettingsScreen(): ReactNode {
                     <p className="settings-note">
                         <strong>Follow system</strong> uses your OS setting, which is what the game did
                         before this screen existed. The other two overrule it in either direction.
+                    </p>
+
+                    {/*
+                      * TICKET 146a — THE THREE EFFECT SWITCHES, under Motion rather than in a group
+                      * of their own.
+                      *
+                      * They belong next to reduced motion because reduced motion OVERRULES them
+                      * (see `resolveVfxGates`), and a player who turns that on and then finds three
+                      * switches elsewhere still claiming to be On has been told something false.
+                      * Sitting together, the note below can say so in one line.
+                      */}
+                    {VFX_SWITCHES.map(({ key, label, note }) => (
+                        <div className="settings-row" key={key}>
+                            <span className="settings-label">{label}</span>
+                            <div className="settings-control settings-choices">
+                                {([true, false] as const).map((choice) => (
+                                    <button
+                                        key={String(choice)}
+                                        type="button"
+                                        className={`settings-choice ${settings[key] === choice ? 'active' : ''}`}
+                                        aria-pressed={settings[key] === choice}
+                                        onClick={() => update({ ...settings, [key]: choice })}
+                                    >
+                                        {choice ? 'On' : 'Off'}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="settings-note">{note}</p>
+                        </div>
+                    ))}
+                    <p className="settings-note">
+                        Off means off, not fewer — the fight stays fully playable with all three off,
+                        reading from the numbers and the badges on each plaque.{' '}
+                        {resolveVfxGates(settings).particles
+                            ? null
+                            : <strong>Reduced motion is on, so particles and animations are off whatever these say.</strong>}
+                    </p>
+                </section>
+
+                {/*
+                  * TICKET 159c — ITS OWN GROUP, NOT A FOURTH ROW UNDER MOTION.
+                  *
+                  * §5 says "beside 146's three", and it cannot literally sit there: those three are
+                  * overruled by reduced motion (`resolveVfxGates`), and the note under them says so
+                  * out loud. A player who turns reduced motion on and reads "so particles and
+                  * animations are off whatever these say" directly above a switch that reduced
+                  * motion does NOT touch has been told something false about this one. Reduced
+                  * motion is a statement about movement; hiding information is a different
+                  * decision, and it stays the player's.
+                  */}
+                <section className="settings-group">
+                    <h3>Battle</h3>
+                    <div className="settings-row">
+                        <span className="settings-label">Show enemy hand</span>
+                        <div className="settings-control settings-choices">
+                            {([true, false] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice ${settings.showEnemyHand === choice ? 'active' : ''}`}
+                                    aria-pressed={settings.showEnemyHand === choice}
+                                    onClick={() => update({ ...settings, showEnemyHand: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.showEnemyHand
+                            ? `On. A tab at the right edge of the fight opens what the enemy is
+                               holding — or, on your turn, the cards their next draw takes off the top
+                               of their deck. No targets and no damage figures: what they have, not
+                               what they do with it.`
+                            : `Off. The tab is gone and their cards are hidden, as they were before.
+                               Their plaques still show energy, statuses and firmware.`}
                     </p>
                 </section>
 
@@ -248,6 +427,39 @@ export default function SettingsScreen(): ReactNode {
                     </p>
 
                     {/*
+                      * TICKET 156 / Henry, 2026-09-20. Under the auto-save toggle because it is the
+                      * same subject one level down: that one decides whether a run is KEPT, this one
+                      * decides how much of each fight is in it.
+                      */}
+                    <div className="settings-row">
+                        <span className="settings-label">Save battle logs</span>
+                        <div className="settings-control settings-choices">
+                            {([false, true] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice ${settings.battleLogs === choice ? 'active' : ''}`}
+                                    aria-pressed={settings.battleLogs === choice}
+                                    onClick={() => update({ ...settings, battleLogs: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.battleLogs
+                            ? `On. Each fight's combat log is kept beside the run — up to
+                               ${FIGHT_LOG_CAP} lines, the end of the fight rather than the start.
+                               It is what a bug report needs, and it is the only large thing a run
+                               keeps: about 12 KB a fight against 30 KB for everything else a whole
+                               run records.`
+                            : `Off. Runs still record every fight, every turn and every deck — only
+                               the combat text is skipped. The log still says how many lines each
+                               fight ran, so you can see what you are not keeping.`}
+                    </p>
+
+                    {/*
                       * Desktop only, and only when the toggle is on: a folder the player has been told
                       * about is a folder they should be able to open without hunting for AppData.
                       */}
@@ -290,6 +502,10 @@ export default function SettingsScreen(): ReactNode {
                                scrap went.`
                             : `A JSON transcript of your last ${RUN_LOG_RUNS} runs. It stays on this
                                machine until you send it somewhere.`}
+                    </p>
+                    {/* TICKET 181a: the build a bug report should quote, next to the log that names it too. */}
+                    <p className="settings-note" data-testid="settings-build">
+                        Build: {buildText(BUILD_INFO)}
                     </p>
                 </section>
 
@@ -412,9 +628,10 @@ export default function SettingsScreen(): ReactNode {
                     <h3>Not here yet</h3>
                     <ul className="settings-pending">
                         <li>
-                            <strong>Fullscreen and resolution</strong> — F11 toggles fullscreen in the
-                            desktop build and quitting lives above; the rest of windowing is still your
-                            browser's or the OS's until that lands.
+                            <strong>Resolution and windowing</strong> — fullscreen is a control now
+                            (Display, above). Choosing a RESOLUTION is still your browser's or the
+                            OS's: the game has no fixed one to choose, because it lays out fluidly
+                            and was measured to hold from 1280×720 to 3440×1440 (ticket 37).
                         </li>
                         <li>
                             <strong>Colourblind-safe element colours</strong> — the eight element colours
@@ -431,7 +648,7 @@ export default function SettingsScreen(): ReactNode {
                 <section className="settings-group">
                     <h3>Credits</h3>
                     <p className="settings-note">
-                        Mingming — built by Henry Dunphy. Runs on React, Redux Toolkit, Framer Motion, Zod
+                        Mingming: Midgard Circuit — built by Henry Dunphy. Runs on React, Redux Toolkit, Framer Motion, Zod
                         and Vite; every sound is synthesized in the browser with the Web Audio API, so
                         there are no sampled assets to credit. Full third-party licence text ships with the
                         release build.

@@ -1,5 +1,7 @@
 # Fenrir berserk range (ticket 96): entering the red is a choice
 
+> **Status: CLOSED 2026-09-08** — done — the berserk threshold moved and ragnarok_edge/unbound_fang were retuned in 136 and 143. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:task - Henry-approved 2026-08-19: BOTH the threshold move and a
   self-damage enabler. Branch archetype-web. Runs AFTER ticket 95's grid (a status-rate
   change moves fenrir's numbers; do not tune against a moving engine).

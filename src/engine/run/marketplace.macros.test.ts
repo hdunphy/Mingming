@@ -142,12 +142,22 @@ describe('the macro shelf', () => {
         expect(macrosAt(MARKET)).toEqual(macrosAt(MARKET));
     });
 
-    it('re-rolls on the second visit, exactly as the card stock does', () => {
-        // Ticket 07's re-entry rule and Henry's amendment ("stock re-rolls per visit") apply to the
-        // whole stall, not only to its card half. Sampled across the three markets rather than
-        // asserted on one, because two visits CAN legitimately draw the same two of thirteen macros.
-        const differs = MARKETS.some((node) =>
-            JSON.stringify(macrosAt(visited(node, 1))) !== JSON.stringify(macrosAt(visited(node, 2))));
+    it('holds across visits, and moves on a refresh — exactly as the card stock does', () => {
+        /*
+         * Ticket 142 §7 (Henry, 2026-09-11) inverted this. The old amendment was "stock re-rolls
+         * per visit"; the ruling is *"static per run ... which doesn't get replenished"*, and it
+         * applies to the whole stall rather than only to its card half — a shelf where the cards
+         * held and the macros re-rolled would be the farm closed on one side only.
+         */
+        for (const node of MARKETS) {
+            expect(macrosAt(visited(node, 2))).toEqual(macrosAt(visited(node, 1)));
+        }
+
+        // Sampled across the three markets rather than asserted on one: a refresh CAN legitimately
+        // redraw the same two of thirteen macros, so any-differs is the honest shape.
+        const differs = MARKETS.some((node) => JSON.stringify(macrosAt(node, {
+            ...RUN, marketRefreshes: { [node.id]: 1 },
+        })) !== JSON.stringify(macrosAt(node)));
         expect(differs).toBe(true);
     });
 
@@ -164,7 +174,7 @@ describe('the macro shelf', () => {
         // Sampled across every market of several runs: the map-reveal is one of thirteen, so any
         // single stall may or may not carry it.
         const seen = new Set<string>();
-        for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) {
+        for (const seed of ['a', 'b', 'c', 'd', 'e', 'j']) {
             const run = makeRun(seed);
             for (const node of run.nodes.filter((n) => n.kind === 'marketplace')) {
                 for (const visit of [1, 2, 3]) {

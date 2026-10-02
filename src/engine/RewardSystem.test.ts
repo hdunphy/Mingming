@@ -12,7 +12,7 @@
  * that leaves no trace in the type system, because the payout has no visit parameter to shrink.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import {
     BLUEPRINT_DROP_RATE,
     SALVAGE_CHOICES_PER_FOE,
@@ -26,13 +26,22 @@ import {
     rollDraftRounds,
     rollDropTable,
     blueprintRateFor,
+    gymClearBlueprints,
+    GYM_CLEAR_BLUEPRINTS,
 } from './RewardSystem';
-import { ProgramRegistry } from './data/programRegistry';
-import { getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
+import { GAUNTLET_FIGHTS } from './run/gauntlet';
+import { GetProgramData, ProgramRegistry } from './data/programRegistry';
+import { GENERIC_HIT, LAUNCH_SPECIES, getDeckForOS, MingmingRegistry } from './data/mingmingRegistry';
 import { encounterSeed } from './run/encounter';
 import type { IRegionNode, IRunState } from './runTypes';
 import type { Element, IBattleEntity } from './types';
 import { ELEMENTS } from './types';
+import { allowRegistryMisses } from './data/registryMiss';
+
+// TICKET 154a: a missing registry id THROWS in DEV. This file means to hit that path —
+// the element-pool fallback is measured by asking for a party member whose species does not exist.
+// `beforeAll` uses the returned function as its teardown, so the tolerance ends with the file.
+beforeAll(() => allowRegistryMisses('the element-pool fallback is measured by asking for a party member whose species does not exist'));
 
 function makeDeadEntity(id: string, defId: string, name: string, element: Element = 'Fire'): IBattleEntity {
     return {
@@ -66,6 +75,21 @@ function deadParty(count: number, defId = 'fyrbot', element: Element = 'Fire'): 
     return Array.from({ length: count }, (_, i) => makeDeadEntity(`e${i}`, defId, `Foe ${i}`, element));
 }
 
+/**
+ * TICKET 179a — blueprint and scrap payouts recorded on the PARENT of 179 (the commit before one card
+ * pick per fight), for 50 fixed seeds (`bp179-0` .. `bp179-49`), 1-3 fyrbot bodies, a wild node,
+ * the fenrir_v1 party. Key is `<dryFights>/<bodies>`. They are pasted rather than recomputed so that
+ * the test cannot pass by changing both sides.
+ */
+const PARENT_PAYOUTS: Record<string, { blueprints: string[][]; scraps: number }> = {
+    '0/1': { scraps: 10, blueprints: [[],['fyrbot'],['fyrbot'],[],[],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],['fyrbot'],[],[],[],[],[],['fyrbot'],['fyrbot'],[],['fyrbot'],[],[],['fyrbot'],[],[],[],['fyrbot'],[],[],[],['fyrbot'],['fyrbot'],[],[],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],['fyrbot']] },
+    '0/2': { scraps: 15, blueprints: [[],['fyrbot'],[],['fyrbot'],[],[],['fyrbot'],[],['fyrbot'],[],[],[],[],['fyrbot'],[],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],[],['fyrbot'],['fyrbot'],[],['fyrbot'],['fyrbot'],[],['fyrbot'],[],[],[],['fyrbot','fyrbot'],[],[],[],[],['fyrbot'],[],[],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],[]] },
+    '0/3': { scraps: 20, blueprints: [['fyrbot'],['fyrbot'],[],['fyrbot','fyrbot'],[],[],['fyrbot','fyrbot'],[],['fyrbot'],[],[],['fyrbot'],[],['fyrbot'],[],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],[],['fyrbot','fyrbot'],['fyrbot'],[],['fyrbot'],['fyrbot'],[],['fyrbot'],[],[],[],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],[],['fyrbot'],['fyrbot'],['fyrbot'],[],[],[],[],['fyrbot'],[],['fyrbot'],[],['fyrbot'],['fyrbot']] },
+    '99/1': { scraps: 10, blueprints: [['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot']] },
+    '99/2': { scraps: 15, blueprints: [['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot']] },
+    '99/3': { scraps: 20, blueprints: [['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot','fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot','fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot'],['fyrbot','fyrbot']] },
+};
+
 describe('RewardSystem', () => {
     describe('the bundle has no XP (ticket 12, piece 1)', () => {
         it('does not carry a totalXP field at all', () => {
@@ -83,7 +107,7 @@ describe('RewardSystem', () => {
             expect(Object.keys(bundle).sort()).toEqual(['blueprints', 'cardChoices', 'cards', 'scraps']);
         });
 
-        it('pays scrap, one pick per defeated enemy, and possibly a blueprint — and nothing else', () => {
+        it('pays scrap, one card pick for the fight, and possibly a blueprint — and nothing else', () => {
             const bundle = rollDropTable({
                 defeated: deadParty(3),
                 nodeKind: 'wild',
@@ -92,7 +116,8 @@ describe('RewardSystem', () => {
             });
 
             expect(bundle.scraps).toBeGreaterThan(0);
-            expect(bundle.cardChoices).toHaveLength(3);
+            // TICKET 179: one pick per FIGHT. Three corpses used to mean three picks.
+            expect(bundle.cardChoices).toHaveLength(1);
             for (const choice of bundle.cardChoices) {
                 expect(choice.options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
             }
@@ -148,7 +173,15 @@ describe('RewardSystem', () => {
             // fights ONE body, and a one-body fight is a solo fight, which the ruling pays 10 points
             // above the table. Comparing to the raw number here would be asserting that the solo
             // bonus does not exist — this file's own sampler is the shape the bonus is for.
-            for (const kind of ['wild', 'ambush', 'elite', 'gym'] as const) {
+            /*
+             * TICKET 18a DROPPED `gym` FROM THIS LOOP, and the gap is the point rather than an
+             * omission. The gauntlet pays nothing per fight now — Henry, 2026-09-24: *"the gym is
+             * the last fight, so a payout only means something if it PERSISTS"* — so its table entry
+             * is what the CLEAR award is sized against (`gymClearBlueprints`) and no longer what any
+             * roll consults. `BLUEPRINT_DROP_RATE.gym` is asserted in the 18a block below, against
+             * the award, which is the only place it means anything now.
+             */
+            for (const kind of ['wild', 'ambush', 'elite'] as const) {
                 const expected = blueprintRateFor(kind, 1);
                 const observed = dropRate(kind);
                 expect(Math.abs(observed - expected),
@@ -362,14 +395,14 @@ describe('RewardSystem', () => {
             expect(Math.abs(rateFor(7) - blueprintRateFor('wild', 1))).toBeLessThan(0.08);
         });
 
-        it('still offers a full pick-1-of-3 per enemy on a re-entered node', () => {
+        it('still offers a full pick-1-of-3 on a re-entered node', () => {
             const tenth = rollDropTable({
                 defeated: deadParty(3),
                 nodeKind: 'wild',
                 party: FENRIR_V1,
                 seed: seedForVisit('farm-picks', 10),
             });
-            expect(tenth.cardChoices).toHaveLength(3);
+            expect(tenth.cardChoices).toHaveLength(1);
             for (const choice of tenth.cardChoices) {
                 expect(choice.options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
             }
@@ -519,8 +552,18 @@ describe('RewardSystem', () => {
              * lazily unioned the whole roster.
              */
             const fielded = rewardCardPool([{ definitionId: 'kraken', activeOS: 'kraken_v1' }]);
+            /*
+             * TICKET 162a added the `element !== 'None'` filter, and it is a fixture fix rather
+             * than a weakening. `getPoolForElement` folds every NEUTRAL card into every element's
+             * pool — it always has — so a benched species' neutral cards were never excluded by
+             * this rule and never claimed to be. It went unnoticed until collection v2 put `forage`
+             * (element None) in fenrir_v1's kit and not in kraken_v1's. The claim under test is
+             * that a benched species' ELEMENTAL cards stop being offered, which is what the bench
+             * is for.
+             */
             const benched = getDeckForOS('fenrir', 'fenrir_v1')
-                .filter((id) => !getDeckForOS('kraken', 'kraken_v1').includes(id));
+                .filter((id) => !getDeckForOS('kraken', 'kraken_v1').includes(id))
+                .filter((id) => GetProgramData(id).element !== 'None');
 
             expect(benched.length, 'fixture assumes fenrir has cards kraken does not')
                 .toBeGreaterThan(0);
@@ -532,8 +575,9 @@ describe('RewardSystem', () => {
         it('dedupes for membership — a doubled card is not a doubled drop chance', () => {
             const pool = rewardCardPool(FENRIR_V1);
             expect(new Set(pool).size).toBe(pool.length);
-            // fenrir_v1 doubles blood_rite; the pool still lists it once.
-            expect(getDeckForOS('fenrir', 'fenrir_v1').filter((id) => id === 'blood_rite')).toHaveLength(2);
+            // fenrir_v1 doubles war_pact (it doubled blood_rite until collection v2); the pool
+            // still lists it once.
+            expect(getDeckForOS('fenrir', 'fenrir_v1').filter((id) => id === 'war_pact')).toHaveLength(2);
         });
 
         it('can offer a card the player already holds — duplicates are legal', () => {
@@ -648,8 +692,9 @@ describe('RewardSystem', () => {
                 seed: 'unique-ids',
             });
             const ids = bundle.cardChoices.flatMap((c) => c.options.map((o) => o.instanceId));
-            expect(ids).toHaveLength(9);
-            expect(new Set(ids).size).toBe(9);
+            // One pick of 3 for the fight (ticket 179).
+            expect(ids).toHaveLength(3);
+            expect(new Set(ids).size).toBe(3);
         });
     });
 
@@ -739,6 +784,242 @@ describe('RewardSystem', () => {
         it('defaults to 10 for unknown rarity', () => {
             expect(getScrapYield('Legendary')).toBe(10);
             expect(getScrapYield()).toBe(10);
+        });
+    });
+});
+
+/**
+ * TICKET 18a (Henry, 2026-09-24) — **THE GYM PAYS BLUEPRINTS ONLY, AND ONLY WHEN IT IS CLEARED.**
+ *
+ * > *"The gym is the last fight, so a payout only means something if it PERSISTS: blueprints do
+ * > (the ranch), scrap does not (assembly costs none, the run is over)."*
+ *
+ * Two claims, and the second is the one that could have been fudged. The first is that the gauntlet
+ * pays nothing per fight. The second is that the award is **the same size as what it replaces** —
+ * nine rolls at `BLUEPRINT_DROP_RATE.gym` is an expectation of 4.5 blueprints, and rounding that to
+ * a whole number would have moved the gym's pay by 11% inside a delivery change.
+ */
+describe('18a — the gauntlet pays nothing, and the clear pays blueprints', () => {
+    const boss = ['fenrir', 'skoll', 'kraken'];
+
+    it('pays no scrap, no blueprint and no pick for a gym fight', () => {
+        const bundle = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe'), makeDeadEntity('e2', 'skoll', 'Foe')],
+            nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-pays-nothing', dryFights: 9, firstRun: true,
+        });
+        expect(bundle.scraps).toBe(0);
+        expect(bundle.blueprints).toEqual([]);
+        expect(bundle.cardChoices).toEqual([]);
+        expect(bundle.cards).toEqual([]);
+    });
+
+    it('ignores even the pity floor, which is the one thing that could still have paid', () => {
+        // `dryFights: 9` is well past `BLUEPRINT_PITY_FIGHTS`, so the per-body path would have
+        // GUARANTEED a drop. The gym branch returns before any of that runs.
+        const bundle = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'kraken', 'Foe')],
+            nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-pity', dryFights: 99,
+        });
+        expect(bundle.blueprints).toEqual([]);
+    });
+
+    it('pays FIVE blueprints on a clear, one per body in line-up order', () => {
+        // TICKET 18b (Henry, 2026-09-25): *"the gym clear pays 5 blueprints flat. No coin flip."*
+        const award = gymClearBlueprints(boss);
+        expect(award).toHaveLength(GYM_CLEAR_BLUEPRINTS);
+        expect(award.slice(0, 3)).toEqual(boss);
+        // Five across three bodies pays the leader and the second body twice. That falls out of the
+        // modulo rather than being chosen — line-up order is the rule and five is the count — so it
+        // is pinned here, where a reader can see it is arithmetic and not a preference.
+        expect(award[3]).toBe(boss[0]);
+        expect(award[4]).toBe(boss[1]);
+    });
+
+    it('is FLAT — the same size on every seed, with no roll left to take', () => {
+        /*
+         * 18a's award was four guaranteed plus a fifth on a coin flip, and the arithmetic behind it
+         * was exact: `BLUEPRINT_DROP_RATE.gym` is per BODY, the gauntlet is three bodies over three
+         * fights, so the nine-roll table it replaced paid `9 × 0.50 = 4.5` in expectation. 18b takes
+         * the +0.5 and deletes the flip.
+         *
+         * Asserted as the RAISE rather than as a bare 5, because that is the decision: the old
+         * expectation is computed from the tables it came from, so this line fails if either of
+         * them moves and the award is quietly no longer +0.5 on what the gym used to pay.
+         */
+        const beforeGauntletRefit = 3 * GAUNTLET_FIGHTS * BLUEPRINT_DROP_RATE.gym;
+        expect(beforeGauntletRefit).toBe(4.5);
+        expect(GYM_CLEAR_BLUEPRINTS - beforeGauntletRefit).toBe(0.5);
+
+        // And no seed anywhere can change the size — the function does not take one any more.
+        const sizes = new Set(Array.from({ length: 400 }, () => gymClearBlueprints(boss).length));
+        expect(sizes).toEqual(new Set([GYM_CLEAR_BLUEPRINTS]));
+    });
+
+    it('is deterministic, so a clear replayed after a crash pays the same award', () => {
+        expect(gymClearBlueprints(boss)).toEqual(gymClearBlueprints(boss));
+    });
+
+    it('pays nothing when there is no authored boss to pay for', () => {
+        // Ticket 18's formula-boss case. An empty award is honest; an award of four copies of
+        // `undefined` would reach `addBlueprint` and sit in the ranch as a species nobody has.
+        expect(gymClearBlueprints([])).toEqual([]);
+    });
+});
+
+describe('166d — RewardSystem bonus choices', () => {
+    it('gym with bonus: macro pays 3 macroChoices, 0 scrap, no cards', () => {
+        const bundle = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+            nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-macro-test', bonus: 'macro',
+        });
+        expect(bundle.scraps).toBe(0);
+        expect(bundle.blueprints).toEqual([]);
+        expect(bundle.cardChoices).toEqual([]);
+        expect(bundle.cards).toEqual([]);
+        expect(bundle.macroChoices).toHaveLength(3);
+    });
+
+    it('wild with bonus: macro preserves scrap, blueprints and card choices', () => {
+        const withoutBonus = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+            nodeKind: 'wild', party: FENRIR_V1, seed: 'wild-fork-check',
+        });
+        const withBonus = rollDropTable({
+            defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+            nodeKind: 'wild', party: FENRIR_V1, seed: 'wild-fork-check', bonus: 'macro',
+        });
+        expect(withBonus.scraps).toBe(withoutBonus.scraps);
+        expect(withBonus.blueprints).toEqual(withoutBonus.blueprints);
+        expect(withBonus.cardChoices).toEqual(withoutBonus.cardChoices);
+        expect(withBonus.macroChoices).toHaveLength(3);
+    });
+
+    describe('166e — heldPatches and bonus fallback', () => {
+        const party = [
+            { id: 'p1', definitionId: 'fenrir', activeOS: 'fenrir_v1' },
+            { id: 'p2', definitionId: 'kraken', activeOS: 'kraken_v1' },
+            { id: 'p3', definitionId: 'huldra', activeOS: 'huldra_v1' },
+        ];
+
+        it('bonus: patch with heldPatches naming one member offers the other two only', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                nodeKind: 'elite',
+                party,
+                seed: 'patch-held-1',
+                bonus: 'patch',
+                heldPatches: { p1: ['amplifier'] },
+            });
+            expect(bundle.patchChoices).toBeDefined();
+            expect(bundle.patchChoices).toHaveLength(2);
+            const offeredIds = bundle.patchChoices!.map((o) => o.memberId);
+            expect(offeredIds).toContain('p2');
+            expect(offeredIds).toContain('p3');
+            expect(offeredIds).not.toContain('p1');
+        });
+
+        it('bonus: patch with every member held gives no patchChoices and 3 macroChoices', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                nodeKind: 'elite',
+                party,
+                seed: 'patch-held-all',
+                bonus: 'patch',
+                heldPatches: { p1: ['amplifier'], p2: ['splitter'], p3: ['converter'] },
+            });
+            expect(bundle.patchChoices).toBeUndefined();
+            expect(bundle.macroChoices).toHaveLength(3);
+        });
+
+        it('elite with no bonus passed defaults to null: neither patchChoices nor macroChoices', () => {
+            const bundle = rollDropTable({
+                defeated: [makeDeadEntity('e1', 'fenrir', 'Foe')],
+                nodeKind: 'elite',
+                party,
+                seed: 'elite-no-bonus',
+            });
+            expect(bundle.patchChoices).toBeUndefined();
+            expect(bundle.macroChoices).toBeUndefined();
+        });
+    });
+});
+
+describe('171g — Tackle is never offered', () => {
+    // Henry, 2026-09-30: "Remove tackle from card rewards."
+    it('is not rewardable, though it is still a real card in kits and decks', () => {
+        expect(GENERIC_HIT).toBe('tackle');
+        expect(isRewardable(GENERIC_HIT)).toBe(false);
+        expect(getDeckForOS('kraken', 'kraken_v2')).toContain(GENERIC_HIT);
+    });
+
+    it('is in no EA firmware\'s pick pool', () => {
+        for (const species of LAUNCH_SPECIES) {
+            for (const os of MingmingRegistry[species].availableOS ?? []) {
+                expect(rewardCardPool([{ definitionId: species, activeOS: os }]), os).not.toContain(GENERIC_HIT);
+            }
+        }
+    });
+
+    it('never turns up in the card choices after a fight', () => {
+        const party = [{ definitionId: 'kraken', activeOS: 'kraken_v2' }];
+        for (let i = 0; i < 60; i += 1) {
+            const bundle = rollDropTable({ defeated: deadParty(3, 'kraken', 'Water'), nodeKind: 'wild', party, seed: `no-tackle-${i}` });
+            for (const choice of bundle.cardChoices) {
+                expect(choice.options.map((o) => o.dataId)).not.toContain(GENERIC_HIT);
+            }
+        }
+    });
+});
+
+describe('one card pick per fight (ticket 179a)', () => {
+    /** The shape every fight kind now pays: exactly one pick, of three distinct cards. */
+    function expectOnePick(bundle: ReturnType<typeof rollDropTable>): void {
+        expect(bundle.cardChoices).toHaveLength(1);
+        expect(bundle.cardChoices[0].options).toHaveLength(SALVAGE_CHOICES_PER_FOE);
+        expect(new Set(bundle.cardChoices[0].options.map((o) => o.dataId)).size).toBe(SALVAGE_CHOICES_PER_FOE);
+    }
+
+    it.each([1, 2, 3])('a %i-body win returns exactly one card choice of 3 options', (bodies) => {
+        for (let i = 0; i < 10; i += 1) {
+            expectOnePick(rollDropTable({ defeated: deadParty(bodies), nodeKind: 'wild', party: FENRIR_V1, seed: `one-pick-${bodies}-${i}` }));
+        }
+    });
+
+    it.each(['elite', 'ambush', 'rival', 'alpha'] as const)('a %s fight returns one pick, however many bodies it fielded', (nodeKind) => {
+        for (const bodies of [1, 2, 3, 4]) {
+            expectOnePick(rollDropTable({ defeated: deadParty(bodies), nodeKind, party: FENRIR_V1, seed: `one-pick-${nodeKind}-${bodies}` }));
+        }
+    });
+
+    it('a gym fight still returns none (ticket 18a)', () => {
+        const bundle = rollDropTable({ defeated: deadParty(3), nodeKind: 'gym', party: FENRIR_V1, seed: 'gym-none' });
+        expect(bundle.cardChoices).toEqual([]);
+    });
+
+    it('a fight with no corpses offers no pick at all', () => {
+        const bundle = rollDropTable({ defeated: [makeAliveEntity('e1', 'fyrbot', 'Alive')], nodeKind: 'wild', party: FENRIR_V1, seed: 'no-corpse' });
+        expect(bundle.cardChoices).toEqual([]);
+    });
+
+    it('the kept pick is the one the FIRST corpse used to offer, ids and all', () => {
+        // The first corpse's roll runs before any later corpse's, so its triple does not depend on
+        // how many bodies stood behind it. Same seed, one body vs three: the same pick comes out.
+        const one = rollDropTable({ defeated: deadParty(1), nodeKind: 'wild', party: FENRIR_V1, seed: 'first-corpse' });
+        const three = rollDropTable({ defeated: deadParty(3), nodeKind: 'wild', party: FENRIR_V1, seed: 'first-corpse' });
+        expect(three.cardChoices[0].options.map((o) => o.dataId)).toEqual(one.cardChoices[0].options.map((o) => o.dataId));
+        expect(three.cardChoices[0].options.map((o) => o.instanceId)).toEqual(one.cardChoices[0].options.map((o) => o.instanceId));
+    });
+
+    describe.each(Object.keys(PARENT_PAYOUTS))('blueprints and scrap are what the parent paid (dryFights/bodies %s)', (key) => {
+        const [dry, bodies] = key.split('/').map(Number);
+        it('is identical for 50 fixed seeds', () => {
+            const expected = PARENT_PAYOUTS[key];
+            expect(expected.blueprints).toHaveLength(50);
+            for (let s = 0; s < 50; s += 1) {
+                const bundle = rollDropTable({ defeated: deadParty(bodies), nodeKind: 'wild', party: FENRIR_V1, seed: `bp179-${s}`, dryFights: dry });
+                expect(bundle.blueprints, `seed bp179-${s}`).toEqual(expected.blueprints[s]);
+                expect(bundle.scraps, `seed bp179-${s}`).toBe(expected.scraps);
+            }
         });
     });
 });

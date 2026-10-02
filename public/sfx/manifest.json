@@ -1,0 +1,311 @@
+{
+ "format": "mp3 96k mono 44.1k, peak -1 dBFS",
+ "generated": "2026-09-19 from Henry's sampler picks (rounds 2-4)",
+ "cues": {
+  "cardHover": {
+   "file": "sfx/cardHover.mp3",
+   "bytes": 4433,
+   "seconds": 0.34
+  },
+  "cardSelect": {
+   "file": "sfx/cardSelect.mp3",
+   "bytes": 7881,
+   "seconds": 0.627
+  },
+  "cardFly": {
+   "file": "sfx/cardFly.mp3",
+   "bytes": 7043,
+   "seconds": 0.549
+  },
+  "cardDraw": {
+   "file": "sfx/cardDraw.mp3",
+   "bytes": 9188,
+   "seconds": 0.731
+  },
+  "cardDiscard": {
+   "file": "sfx/cardDiscard.mp3",
+   "bytes": 9135,
+   "seconds": 0.731
+  },
+  "shuffle": {
+   "file": "sfx/shuffle.mp3",
+   "bytes": 17599,
+   "seconds": 1.437
+  },
+  "castFire": {
+   "file": "sfx/castFire.mp3",
+   "bytes": 14249,
+   "seconds": 1.149
+  },
+  "castWater": {
+   "file": "sfx/castWater.mp3",
+   "bytes": 14214,
+   "seconds": 1.149
+  },
+  "castNone": {
+   "file": "sfx/castNone.mp3",
+   "bytes": 10485,
+   "seconds": 0.836
+  },
+  "impactFire": {
+   "file": "sfx/impactFire.mp3",
+   "bytes": 11771,
+   "seconds": 0.94
+  },
+  "impactWater": {
+   "file": "sfx/impactWater.mp3",
+   "bytes": 11697,
+   "seconds": 0.94
+  },
+  "impactNature": {
+   "file": "sfx/impactNature.mp3",
+   "bytes": 4875,
+   "seconds": 0.366
+  },
+  "buffUp": {
+   "file": "sfx/buffUp.mp3",
+   "bytes": 12897,
+   "seconds": 1.045
+  },
+  "debuffDown": {
+   "file": "sfx/debuffDown.mp3",
+   "bytes": 12897,
+   "seconds": 1.045
+  },
+  "statusOff": {
+   "file": "sfx/statusOff.mp3",
+   "bytes": 9342,
+   "seconds": 0.731
+  },
+  "burnTick": {
+   "file": "sfx/burnTick.mp3",
+   "bytes": 10481,
+   "seconds": 0.836
+  },
+  "recoil": {
+   "file": "sfx/recoil.mp3",
+   "bytes": 3386,
+   "seconds": 0.235
+  },
+  "daemonProc": {
+   "file": "sfx/daemonProc.mp3",
+   "bytes": 7881,
+   "seconds": 0.627
+  },
+  "turnStart": {
+   "file": "sfx/turnStart.mp3",
+   "bytes": 11661,
+   "seconds": 0.914
+  },
+  "turnEnd": {
+   "file": "sfx/turnEnd.mp3",
+   "bytes": 11643,
+   "seconds": 0.94
+  },
+  "energyGain": {
+   "file": "sfx/energyGain.mp3",
+   "bytes": 10739,
+   "seconds": 0.836
+  },
+  "gymIntro": {
+   "file": "sfx/gymIntro.mp3",
+   "bytes": 19166,
+   "seconds": 1.567
+  },
+  "cry_fenrir": {
+   "file": "sfx/cry_fenrir.mp3",
+   "bytes": 12949,
+   "seconds": 1.045
+  },
+  "cry_skoll": {
+   "file": "sfx/cry_skoll.mp3",
+   "bytes": 9618,
+   "seconds": 0.758
+  },
+  "cry_ratatoskr": {
+   "file": "sfx/cry_ratatoskr.mp3",
+   "bytes": 3662,
+   "seconds": 0.261
+  },
+  "cry_kraken": {
+   "file": "sfx/cry_kraken.mp3",
+   "bytes": 14327,
+   "seconds": 1.149
+  },
+  "cry_huldra": {
+   "file": "sfx/cry_huldra.mp3",
+   "bytes": 8368,
+   "seconds": 0.653
+  },
+  "cry_sleipnir": {
+   "file": "sfx/cry_sleipnir.mp3",
+   "bytes": 13068,
+   "seconds": 1.045
+  },
+  "cry_gullinbursti": {
+   "file": "sfx/cry_gullinbursti.mp3",
+   "bytes": 13071,
+   "seconds": 1.045
+  },
+  "cry_audhumbla": {
+   "file": "sfx/cry_audhumbla.mp3",
+   "bytes": 12120,
+   "seconds": 0.967
+  },
+  "cry_fafnir": {
+   "file": "sfx/cry_fafnir.mp3",
+   "bytes": 16514,
+   "seconds": 1.332
+  },
+  "cry_nidhoggr": {
+   "file": "sfx/cry_nidhoggr.mp3",
+   "bytes": 14325,
+   "seconds": 1.149
+  },
+  "cry_ymir": {
+   "file": "sfx/cry_ymir.mp3",
+   "bytes": 15274,
+   "seconds": 1.228
+  },
+  "impactSuper": {
+   "file": "sfx/impactSuper.mp3",
+   "bytes": 10468,
+   "seconds": 0.836
+  },
+  "sharpRaise": {
+   "file": "sfx/sharpRaise.mp3",
+   "bytes": 8636,
+   "seconds": 0.679
+  },
+  "barkRaise": {
+   "file": "sfx/barkRaise.mp3",
+   "bytes": 10486,
+   "seconds": 0.836
+  },
+  "cry_hel": {
+   "file": "sfx/cry_hel.mp3",
+   "bytes": 15091,
+   "seconds": 1.228
+  },
+  "castNature": {
+   "file": "sfx/castNature.mp3",
+   "bytes": 13330,
+   "seconds": 1.045
+  },
+  "impactNormal": {
+   "file": "sfx/impactNormal.mp3",
+   "bytes": 9135,
+   "seconds": 0.731
+  },
+  "hitBig": {
+   "file": "sfx/hitBig.mp3",
+   "bytes": 15091,
+   "seconds": 1.228
+  },
+  "kill": {
+   "file": "sfx/kill.mp3",
+   "bytes": 17626,
+   "seconds": 1.437
+  },
+  "poisonTick": {
+   "file": "sfx/poisonTick.mp3",
+   "bytes": 11643,
+   "seconds": 0.94
+  },
+  "absorbedNoDamage": {
+   "file": "sfx/absorbedNoDamage.mp3",
+   "bytes": 10466,
+   "seconds": 0.836
+  },
+  "blockedByBark": {
+   "file": "sfx/blockedByBark.mp3",
+   "bytes": 10457,
+   "seconds": 0.836
+  },
+  "barkBreak": {
+   "file": "sfx/barkBreak.mp3",
+   "bytes": 11667,
+   "seconds": 0.94
+  },
+  "os_fenrir_CINDER_WALL": {
+   "file": "sfx/os_fenrir_CINDER_WALL.mp3",
+   "bytes": 11706,
+   "seconds": 0.94
+  },
+  "os_skoll_TREACHERY_KERNEL": {
+   "file": "sfx/os_skoll_TREACHERY_KERNEL.mp3",
+   "bytes": 11670,
+   "seconds": 0.94
+  },
+  "os_ratatoskr_INSTIGATOR": {
+   "file": "sfx/os_ratatoskr_INSTIGATOR.mp3",
+   "bytes": 9135,
+   "seconds": 0.731
+  },
+  "os_kraken_ABYSSAL_INK": {
+   "file": "sfx/os_kraken_ABYSSAL_INK.mp3",
+   "bytes": 11671,
+   "seconds": 0.94
+  },
+  "os_kraken_TIDAL_CRUSH": {
+   "file": "sfx/os_kraken_TIDAL_CRUSH.mp3",
+   "bytes": 12923,
+   "seconds": 1.045
+  },
+  "os_jormungandr_OUROBOROS": {
+   "file": "sfx/os_jormungandr_OUROBOROS.mp3",
+   "bytes": 11686,
+   "seconds": 0.94
+  },
+  "os_jormungandr_TOXIN_FANG": {
+   "file": "sfx/os_jormungandr_TOXIN_FANG.mp3",
+   "bytes": 10465,
+   "seconds": 0.836
+  },
+  "os_huldra_ALLURE_PROXY": {
+   "file": "sfx/os_huldra_ALLURE_PROXY.mp3",
+   "bytes": 11716,
+   "seconds": 0.94
+  },
+  "os_huldra_BARK_SHIELD": {
+   "file": "sfx/os_huldra_BARK_SHIELD.mp3",
+   "bytes": 11681,
+   "seconds": 0.94
+  },
+  "cry_jormungandr": {
+   "file": "sfx/cry_jormungandr.mp3",
+   "bytes": 15161,
+   "seconds": 1.228
+  },
+  "cry_hraesvelgr": {
+   "file": "sfx/cry_hraesvelgr.mp3",
+   "bytes": 12960,
+   "seconds": 1.045
+  },
+  "cry_draugr": {
+   "file": "sfx/cry_draugr.mp3",
+   "bytes": 15091,
+   "seconds": 1.228
+  },
+  "cry_valkyrie": {
+   "file": "sfx/cry_valkyrie.mp3",
+   "bytes": 14385,
+   "seconds": 1.149
+  },
+  "os_fenrir_UNBOUND_KERNEL": {
+   "file": "sfx/os_fenrir_UNBOUND_KERNEL.mp3",
+   "bytes": 7881,
+   "seconds": 0.627
+  },
+  "os_skoll_SOLAR_OVERDRIVE": {
+   "file": "sfx/os_skoll_SOLAR_OVERDRIVE.mp3",
+   "bytes": 6984,
+   "seconds": 0.549
+  },
+  "os_ratatoskr_GOSSIP_NODE": {
+   "file": "sfx/os_ratatoskr_GOSSIP_NODE.mp3",
+   "bytes": 5687,
+   "seconds": 0.444
+  }
+ }
+}

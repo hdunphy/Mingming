@@ -13,8 +13,8 @@
  *   - ad-hoc deck mode is CUT. Deck modes are base decks / saved deck. Ticket 11 retargeted
  *     "saved deck" at the RUN's deck (`IRunState.deck`), since the persistent deck and its
  *     builder are both gone;
- *   - relics stay here and take precedence over anything in the store, because
- *     `ComposedSetup.player.relics` is an explicit list that is never read from game state.
+ *   - Drivers stay here and take precedence over anything in the store, because
+ *     `ComposedSetup.player.drivers` is an explicit list that is never read from game state.
  *
  * THE DESTINATION-SLOT LINE ABOVE THE LAUNCH BUTTON IS LOAD-BEARING. Ending a scenario
  * battle writes blueprints and gym clears into whatever save slot is active — see
@@ -50,7 +50,7 @@ import {
     makeStatus,
     mirrorSaveParty,
     osOptions,
-    relicOptions,
+    driverOptions,
     resolveDeck,
     speciesOptions,
     toComposedSetup,
@@ -518,7 +518,7 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const cardIds = useMemo(() => cardOptions(), []);
-    const relics = useMemo(() => relicOptions(), []);
+    const drivers = useMemo(() => driverOptions(), []);
 
     const setup = toComposedSetup(draft, run);
     const deck = resolveDeck(draft, run);
@@ -756,31 +756,32 @@ export default function ScenarioLauncherPanel({ presentation }: DebugPanelProps)
             ))}
 
             <div style={{ ...headingStyle, marginTop: '12px' }}>
-                <span>RELICS</span>
+                <span>DRIVERS</span>
             </div>
-            <div style={{ ...rowStyle, gap: '4px' }}>
-                {relics.map((relic) => (
+            <div style={{ ...rowStyle, gap: '4px', flexWrap: 'wrap' }}>
+                {drivers.map((driver) => (
                     <button
-                        key={relic.id}
+                        key={driver.id}
                         type="button"
-                        style={pillStyle(draft.relics.includes(relic.id))}
-                        title={relic.description}
+                        style={pillStyle(draft.drivers.includes(driver.id))}
+                        title={driver.description}
                         onClick={() =>
                             patch({
-                                relics: draft.relics.includes(relic.id)
-                                    ? draft.relics.filter((id) => id !== relic.id)
-                                    : [...draft.relics, relic.id],
+                                drivers: draft.drivers.includes(driver.id)
+                                    ? draft.drivers.filter((id) => id !== driver.id)
+                                    : [...draft.drivers, driver.id],
                             })
                         }
                     >
-                        {relic.name}
+                        {driver.name}
                     </button>
                 ))}
             </div>
             <div style={noteStyle}>
-                This list is the scenario's relics outright — `ComposedSetup.player.relics` is never
+                This list is the scenario's Drivers outright — `ComposedSetup.player.drivers` is never
                 read from game state, so what is picked here is what the battle starts with, whatever
-                the ranch or the run in progress holds.
+                the ranch or the run in progress holds. Until ticket 17 wires the elite drop, this is
+                the only way to field one.
             </div>
         </div>
     );

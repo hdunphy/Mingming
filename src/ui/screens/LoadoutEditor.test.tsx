@@ -108,8 +108,8 @@ const copies = (dataId: string, n: number, ownerId: string | null = null): IRunC
  */
 const COLLECTION_IDS = [
     'ragnarok_edge', 'blood_rite', 'berserk_rush', 'battle_rhythm', 'crimson_draw',
-    'ink_stream', 'undertow', 'whirlpool_v2', 'hydro_blast',
-    'healing_mist', 'seed_bomb_v2', 'echo_chamber_v2',
+    'ink_stream', 'undertow', 'whirlpool', 'hydro_blast',
+    'tend', 'seed_bomb', 'echo_chamber',
 ] as const;
 
 /** Elements the filter row will offer for `COLLECTION_IDS` — `None` is excluded by the screen. */
@@ -118,7 +118,7 @@ const collectionElements = (ids: ReadonlyArray<string>): string[] =>
         .filter((element) => element !== 'None')
         .sort();
 
-function makeRun(over: Partial<IRunState> = {}): IRunState {
+export function makeRun(over: Partial<IRunState> = {}): IRunState {
     const run = createRun({
         seed: 'loadout-render-seed',
         offer: offerGyms('offer-seed')[0],
@@ -128,7 +128,7 @@ function makeRun(over: Partial<IRunState> = {}): IRunState {
     return { ...run, ...over };
 }
 
-function makeRanch(roster: IRanchMember[] = ROSTER): IRanchState {
+export function makeRanch(roster: IRanchMember[] = ROSTER): IRanchState {
     return { ...createEmptyRanch(), roster };
 }
 
@@ -137,7 +137,9 @@ function makeRanch(roster: IRanchMember[] = ROSTER): IRanchState {
  * none here either: an editor with no way out and no idea which door it came through is not a state
  * `RunScreen` can produce, so the harness always supplies both.
  */
-function render(run: IRunState, ranch: IRanchState = makeRanch(), initialPage?: number): string {
+function render(
+    run: IRunState, ranch: IRanchState = makeRanch(), initialPage?: number, initialSwapping?: string,
+): string {
     const store = configureStore({
         reducer: { run: runReducer, game: gameReducer },
         preloadedState: { game: ranch, run: { run } },
@@ -151,6 +153,7 @@ function render(run: IRunState, ranch: IRanchState = makeRanch(), initialPage?: 
                 context="WORKSHOP · NATURE BIOME · 143 SCRAP"
                 onClose={() => undefined}
                 initialPage={initialPage}
+                initialSwapping={initialSwapping}
             />
         </Provider>,
     );
@@ -348,7 +351,7 @@ describe('LoadoutEditor — the run collection', () => {
          * the case that is a ruling rather than a mapping: a `Heal` reads SKILL, because *"a heal is
          * a skill you cast"* and a fourth colour would be three shades of the same idea.
          */
-        const ids = ['ink_stream', 'undertow', 'echo_chamber_v2', 'healing_mist'];
+        const ids = ['ink_stream', 'undertow', 'echo_chamber', 'tend'];
         const markup = render(makeRun({ collection: ids.map((id) => card(id)) }));
 
         for (const id of ids) {
@@ -380,7 +383,8 @@ describe('LoadoutEditor — the run collection', () => {
          * card's own name and text cannot tell you.
          *
          * - `payoff` is positional, read from `startKits[os][0]` through `isPayoff`, never from a
-         *   second list that could disagree with the registry. `ragnarok_edge` leads `fenrir_v1`.
+         *   second list that could disagree with the registry. `war_pact` leads `fenrir_v1` since
+         *   collection v2 (ticket 162a); `ragnarok_edge` is still in the kit, one slot back.
          * - `benched` is the boundary-swap fact above: mm2 is off the field, so its engine is sitting
          *   in the collection rather than being playable.
          * - `generic` marks `GENERIC_HIT`, the run's filler, so a player editing toward a floor can
@@ -393,14 +397,14 @@ describe('LoadoutEditor — the run collection', () => {
          * label nobody reads at card size.
          */
         const collection = [
+            card('war_pact', 'mm2'),
             card('ragnarok_edge', 'mm2'),
-            card('blood_rite', 'mm2'),
             card(GENERIC_HIT, 'mm1'),
-            card('seed_bomb_v2', null),
+            card('seed_bomb', null),
         ];
         const markup = render(makeRun({ collection, bench: ['mm2'] }));
 
-        expect(GetMingmingData('fenrir').startKits?.fenrir_v1[0]).toBe('ragnarok_edge');
+        expect(GetMingmingData('fenrir').startKits?.fenrir_v1[0]).toBe('war_pact');
         // The tag line also carries the element word since the 2026-08-30 playtest — the tags
         // themselves are still the assertion, and `rs-tg` is what separates them from it.
         expect(markup).toContain('<span class="rs-tg">payoff · benched</span>');
@@ -642,3 +646,28 @@ function countByData(cards: ReadonlyArray<IRunCard>): Array<[string, number]> {
     for (const c of cards) counts.set(c.dataId, (counts.get(c.dataId) ?? 0) + 1);
     return [...counts.entries()];
 }
+
+describe('an empty party slot takes a benched member back (ticket 171a)', () => {
+    /*
+     * Henry, 2026-09-29: "I can't unbench Skoll. When I press confirm she stays benched." The strip
+     * drew only occupied party chips, so a party of one-or-two with someone benched had nowhere to
+     * put them back except on top of somebody else.
+     */
+    it('draws an open slot as a landing site once a benched member is picked up', () => {
+        const markup = render(makeRun({ bench: ['mm2'] }), makeRanch(), undefined, 'mm2');
+        const slots = buttonsOfClass(markup, 'rs-mem led-slot-open');
+        // Party of one: two open slots.
+        expect(slots.length).toBe(2);
+        expect(slots[0]).toContain('bring in');
+    });
+
+    it('shows the slot but not as a button while nobody is picked up', () => {
+        const markup = render(makeRun({ bench: ['mm2'] }));
+        expect(buttonsOfClass(markup, 'rs-mem led-slot-open').length).toBe(0);
+        expect(markup).toContain('pick a benched member');
+    });
+
+    it('draws no empty slot when the bench is empty', () => {
+        expect(render(makeRun())).not.toContain('led-slot-open');
+    });
+});

@@ -3,9 +3,8 @@ import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
 import { applyDrivers } from './driverRegistry';
-import { drawCards } from '../deckLogic';
-import { generateIntents } from '../core/IntentUtils';
 import { SeedStream, rollSeed } from '../core/SeedStream';
+import { beginTurn } from '../battleReducer';
 
 /**
  * Ticket 21: the `level` and `experience` parameters are gone. Every entity is built at
@@ -74,7 +73,7 @@ export interface BattleOptions {
     readonly enemyAiTier?: AiTier;
     /**
      * TICKET 144 §2 — the beam width for this battle. Comes off the enemy ladder
-     * (`IEnemyLoadout.beam`): bosses beamless, everything else 8. See `IBattleState.aiBeam`.
+     * (`IEnemyLoadout.beam`): all rungs beam 8 since ticket 166f. See `IBattleState.aiBeam`.
      */
     readonly aiBeam?: number;
 }
@@ -98,8 +97,16 @@ export interface IBattleSetup {
     readonly party: ReadonlyArray<IMingmingState>;
     /** The deck as dataIds. The instance-id indirection is gone — a run deck holds dataIds. */
     readonly deck: ReadonlyArray<string>;
-    /** Was `relics`. Applied to the player side and copied to `IBattleState.activeRelics`. */
+    /** Was `relics`. Applied to the player side and copied to `IBattleState.activeDrivers`. */
     readonly drivers: ReadonlyArray<string>;
+    /**
+     * TICKET 163d — each party member's patch, by member id, carried from `IRunState.patches`.
+     *
+     * Beside `drivers` rather than folded into `IMingmingState`, and the distinction is the one
+     * `drivers` already makes: a Driver is a thing the RUN owns and applies to a body, and so is a
+     * patch. `IMingmingState` is the individual in the save file, which outlives the run.
+     */
+    readonly patches?: Readonly<Record<string, ReadonlyArray<string>>>;
     /**
      * The ENEMY side's Drivers — ticket 68 build step 1. Applied to every enemy member by the same
      * `applyDrivers` the player's list goes through, so a Driver that works on one side works on
@@ -111,7 +118,7 @@ export interface IBattleSetup {
      * elite carry one, and everything else in the game would be writing `enemyDrivers: []` to say
      * nothing. Absent and empty mean the same thing here and the code treats them identically.
      *
-     * Not copied to `IBattleState.activeRelics`: that field is the PLAYER's list, read by
+     * Not copied to `IBattleState.activeDrivers`: that field is the PLAYER's list, read by
      * `resolutionEngine` for `buffer_cache`, and mixing both sides into it would make a
      * side-agnostic lookup out of something every reader treats as side-specific.
      */
@@ -191,6 +198,17 @@ export function createBattleState(
         // `data/driverRegistry.applyDrivers`, so that the enemy side below can go through the
         // identical path rather than a copy of it. Nothing about the player's Drivers changed.
         entity = applyDrivers(entity, setup.drivers);
+
+        /*
+         * TICKET 163d — the run's patch for THIS member, onto the entity that fights.
+         *
+         * A plain field rather than an `applyPatches` the way Drivers get an `applyDrivers`,
+         * because a Driver CHANGES STATS at setup and a patch changes nothing until a hook
+         * resolves: `entityHooksFor` reads `entity.patches` and rebuilds the firmware's hooks for
+         * this body. So all setup has to do is carry it across.
+         */
+        const fitted = setup.patches?.[mm.id];
+        if (fitted && fitted.length > 0) entity = { ...entity, patches: [...fitted] };
 
         return entity;
     });
@@ -337,9 +355,7 @@ export function createBattleState(
     const eDeckCardsRaw = instantiateDeck(enemyDeckIds, rng);
     const eDeckCards = rng.shuffle(eDeckCardsRaw);
 
-    const playerCardDraw = playerParty.reduce((sum, e) => sum + e.cardDraw, 0) - playerParty.length + 1;
-    const enemyCardDraw = enemyParty.reduce((sum, e) => sum + e.cardDraw, 0) - enemyParty.length + 1;
-
+    // Ticket 164c: opening hand is drawn by beginTurn, not by hand here.
     const pInitialDeck: IDeckState = {
         ownerId: 'PLAYER',
         deck: [],
@@ -348,8 +364,6 @@ export function createBattleState(
         discard: [],
         exhaust: []
     };
-    const { state: pDeckState, nextSeed: seedAfterPlayerDraw } = drawCards(pInitialDeck, playerCardDraw, rng.seed);
-    rng.adopt(seedAfterPlayerDraw);
 
     // A battle with no enemies is unwinnable-by-definition and renders a ghost
     // arena (empty enemy column, instant hollow victory). Fail loudly instead.
@@ -357,26 +371,17 @@ export function createBattleState(
         throw new Error(`[createBattleState] No enemies generated (encounter: ${setup.encounter ? setup.encounter.enemyParty.length : 'none'}, sector: ${sectorElement}, enemyIds: ${JSON.stringify(enemyIds)})`);
     }
 
-    // Move users get no drawpile/hand at all; card users get a dealt hand.
-    const eInitialDeck: IDeckState = {
+    const eDeckState: IDeckState = {
         ownerId: 'ENEMY',
         deck: [],
+        // Move users get no drawpile at all; card users get their shuffled pile and an EMPTY hand.
         drawpile: enemyMode === 'CARDS' ? eDeckCards : [],
         hand: [],
         discard: [],
         exhaust: []
     };
-    const { state: eDeckState, nextSeed: seedAfterEnemyDraw } = enemyMode === 'CARDS'
-        ? drawCards(eInitialDeck, enemyCardDraw, rng.seed)
-        : { state: eInitialDeck, nextSeed: rng.seed };
-    rng.adopt(seedAfterEnemyDraw);
 
-    // Intents are only telegraphed for move users.
-    const finalEnemyParty = enemyMode === 'MOVES'
-        ? generateIntents(enemyParty, rng.seed, 1)
-        : enemyParty;
-
-    return {
+    const rawState: IBattleState = {
         // sessionId lives inside IBattleState, so a wall-clock value would
         // break every replay diff on its own. Derive it from the seed instead.
         sessionId: 'battle_' + battleSeed,
@@ -388,8 +393,8 @@ export function createBattleState(
         osLogs: [],
         procs: [],
         playerParty: playerParty,
-        enemyParty: finalEnemyParty,
-        playerDeck: pDeckState,
+        enemyParty: enemyParty,
+        playerDeck: pInitialDeck,
         enemyDeck: eDeckState,
         cardsPlayedThisTurn: 0,
         cardsDrawnThisTurn: 0,
@@ -400,7 +405,7 @@ export function createBattleState(
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         },
         counters: {},
-        activeRelics: [...setup.drivers],
+        activeDrivers: [...setup.drivers],
         enemyMode,
         // Ticket 144 §2: unset means "take the process default", which is BEAMLESS. The game
         // supplies a width per fight off the enemy ladder; a harness that wants one asks by name.
@@ -410,4 +415,6 @@ export function createBattleState(
         // AI_GREEDY / AI_LITE environment the balance corpus runs under.
         enemyAiTier: options?.enemyAiTier
     };
+
+    return beginTurn(rawState, 'PLAYER', 1);
 }

@@ -35,7 +35,7 @@
 import { ElementalMatrix } from './combatUtils';
 import { GetProgramData } from './data/programRegistry';
 import type { Element, IBattleEntity, IBattleState } from './types';
-import type { IRunState } from './runTypes';
+import type { IRunState, NodeKind } from './runTypes';
 
 // ---------------------------------------------------------------------------------------------
 // The registry
@@ -58,6 +58,8 @@ export type TipId =
     | 'map:types'
     | 'map:gym'
     | 'map:workshop'
+    | 'map:rival'
+    | 'map:scout'
     | 'ranch:blueprints';
 
 export interface Tip {
@@ -128,7 +130,7 @@ const MAP_TIPS: ReadonlyArray<Tip> = [
         id: 'map:gym',
         title: 'The gym is the run',
         body:
-            'The last node of the third biome is the gym: three fights back to back with no healing ' +
+            'The last node of the third biome is the gym: three fights back to back, with only a 30% repair ' +
             'in between. Everything before it is preparation for it.',
     },
     {
@@ -137,6 +139,33 @@ const MAP_TIPS: ReadonlyArray<Tip> = [
         body:
             'A workshop is where you recruit a second and then a third mingming, and each one brings ' +
             'its own cards into the shared deck. Recruiting is drafting.',
+    },
+    /*
+     * TICKET 142c. Henry played the first Rootfall run and asked *"I thought I would see nature in
+     * the workshop somehow"* — which is the right instinct pointed at the wrong screen, and the
+     * clearest possible evidence that the mechanic shipped without ever saying what it was.
+     *
+     * The chain the player has to hold is four links long: the biome decides who you FIGHT, the
+     * fight drops a BLUEPRINT, the blueprint is what a workshop can BUILD, and the build is your
+     * second body. The workshop is the last link, so it is the one you notice — and it has no
+     * element of its own to show. A rival is the only node that breaks the first link, so it is the
+     * only place the chain is worth explaining. Both tips name the blueprint explicitly for that
+     * reason: the player is standing at the wrong end of the chain and needs pointing back up it.
+     */
+    {
+        id: 'map:rival',
+        title: 'A rival brings the other element',
+        body:
+            'Rivals are walking the same road to the same leader, so they field the two elements ' +
+            'that road needs — including the one this biome will never show you. Beating one is how ' +
+            'you get that blueprint here instead of a biome later.',
+    },
+    {
+        id: 'map:scout',
+        title: 'The scout is the leader',
+        body:
+            'The last fight before the gym is two of the leader\'s own team, at full strength. It is ' +
+            'the one look at the gauntlet you get while a shop and a workshop are still behind you.',
     },
 ];
 
@@ -276,6 +305,15 @@ export function nextMapTip(run: IRunState, seen: SeenTips): Tip | null {
             case 'map:workshop':
                 if (workshopIsAdjacent(run)) return tip;
                 continue;
+            // Ticket 142c: contextual for `map:workshop`'s reason, and more so. A rival is one wild
+            // in three, so "there are rivals" is true from the first frame and teaches nothing about
+            // WHICH node; adjacency is what makes the sentence about the thing on screen.
+            case 'map:rival':
+                if (kindIsAdjacent(run, 'rival')) return tip;
+                continue;
+            case 'map:scout':
+                if (scoutIsAdjacent(run)) return tip;
+                continue;
             default:
                 continue;
         }
@@ -284,9 +322,27 @@ export function nextMapTip(run: IRunState, seen: SeenTips): Tip | null {
 }
 
 function workshopIsAdjacent(run: IRunState): boolean {
+    return kindIsAdjacent(run, 'workshop');
+}
+
+/** Whether a node of `kind` is one step from where the player is standing. */
+function kindIsAdjacent(run: IRunState, kind: NodeKind): boolean {
+    return adjacentNodes(run).some((node) => node.kind === kind);
+}
+
+/**
+ * Ticket 142c: the scout is not a KIND — it is a flag on an ordinary fight node, because it takes
+ * over whatever the last pre-gauntlet fight was. So it needs its own predicate rather than another
+ * `kindIsAdjacent` call, and this is the first thing in the UI layer to read `node.scout` at all.
+ */
+function scoutIsAdjacent(run: IRunState): boolean {
+    return adjacentNodes(run).some((node) => node.scout === true);
+}
+
+function adjacentNodes(run: IRunState) {
     const current = run.nodes.find((node) => node.id === run.currentNodeId);
-    if (!current) return false;
-    return current.edges.some(
-        (id) => run.nodes.find((node) => node.id === id)?.kind === 'workshop',
-    );
+    if (!current) return [];
+    return current.edges
+        .map((id) => run.nodes.find((node) => node.id === id))
+        .filter((node): node is NonNullable<typeof node> => node !== undefined);
 }

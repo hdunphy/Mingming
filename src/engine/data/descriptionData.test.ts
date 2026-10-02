@@ -29,6 +29,7 @@ import PROGRAMS from './programs.json';
 import HOOKS from './lib/hooks.json';
 import { SHARP_STACKS_POWER_PER_STACK, MISSING_HP_PCT_CAP } from '../actions/ActionExecutors';
 import { STANCE_BONUS } from '../core/Hooks';
+import { HP_CROSSING_THRESHOLD } from '../resolutionEngine';
 import { statusGlossary } from './statusGlossary';
 import { REGEN_PERCENT_PER_TURN, POISON_PERCENT_PER_STACK, BURN_CONFIG } from '../StatusBehaviors';
 
@@ -84,6 +85,8 @@ function dataNumbers(node: unknown, acc = new Set<number>()): Set<number> {
             acc.add(Math.round(STANCE_BONUS.dark * 100));
             acc.add(Math.round(STANCE_BONUS.light * 100));
         }
+        // Ticket 16: "drops below 50%" is the engine's threshold event, not a number in the hook.
+        if (key === 'trigger' && value === 'onHpThresholdCrossed') acc.add(Math.round(HP_CROSSING_THRESHOLD * 100));
         dataNumbers(value, acc);
     }
     return acc;
@@ -100,7 +103,6 @@ const ALLOWED: Record<string, string> = {
     // --- the number lives in code that is not hook data: hand-written firmware, or a daemon
     //     whose behaviour is implemented in daemonHooks.ts rather than declared in hooks.json ---
     harden_daemon: 'daemonHooks.ts implements it; no actions and no hooks.json entry',
-    core_overclock_daemon: 'daemonHooks.ts implements it; no actions and no hooks.json entry',
     war_molt: 'the discard payout is handled by the discard pipeline, not by an action',
 
     // --- arithmetic the extractor deliberately does not do ---
@@ -115,7 +117,9 @@ const ALLOWED: Record<string, string> = {
 
 const ALLOWED_FIRMWARE: Record<string, string> = {
     fafnir_v1: 'HOARD_ENGINE is hand-written in CustomFirmware.ts (hooks: [])',
-    skoll_v2: 'SOLAR_OVERDRIVE is hand-written in CustomFirmware.ts (hooks: [])',
+    // TICKET 162a: `skoll_v2` LEFT this list. SOLAR_OVERDRIVE was hand-written firmware; EMBER_FUSE
+    // is data, and its one number is in the hook payload where the rule says it belongs.
+    overclock_core: 'the +1 is the CARD\'s MAX_ENERGY action; the hooks.json entry carries only the name',
     hraesvelgr_v2: 'UPDRAFT_KERNEL is hand-written in CustomFirmware.ts (hooks: [])',
     ymir_v2: 'GLACIAL_HEART is hand-written in CustomFirmware.ts (hooks: [])',
     hel_v2: 'UNDERWORLD_GATEWAY is hand-written in CustomFirmware.ts; its numbers are OS_KNOBS.hel',
@@ -123,14 +127,31 @@ const ALLOWED_FIRMWARE: Record<string, string> = {
     ratatoskr_v1: 'GOSSIP_NODE percentage is applied in the heal path, not printed in the hook',
     driver_war_footing: 'the turn-4 escalation is a driver, evaluated outside the hook payload',
     reactive_plating: 'the per-turn grant cap lives in daemonHooks.ts, not in the hook payload',
-    hoofbeat_daemon: 'daemon hook power is printed; the turn-gate number is in daemonHooks.ts',
+    hoofbeat: 'daemon hook power is printed; the turn-gate number is in daemonHooks.ts',
 };
+
+/**
+ * TICKET 163a — an upgraded card answers to its BASE's allowlist entry.
+ *
+ * `<id>+` is the same card with a bigger number: 163 §1's rule is that an upgrade never changes a
+ * card's SHAPE, only what it counts. So wherever text and data are related by code rather than by
+ * equality on the base — Molten Core's printed 4 being 2 unconditional plus 2 conditional, Crimson
+ * Draw's percentage heal — the same relationship holds on the `+`, with different numbers on both
+ * sides of it. Re-listing the ninety-eight would make the allowlist twice as long and say nothing
+ * new, and a second copy is one edit away from disagreeing with the first.
+ *
+ * It does mean a `+` inherits its base's exemption. That is not a hole an upgrade can hide in: the
+ * exemption is per-card and the shapes are identical by the ticket's own rule, so a `+` that broke
+ * the relationship would be a card that broke §1 — and `plusRegistry.test.ts` is where that is
+ * caught, against the base's actions rather than against prose.
+ */
+const allowlistKey = (id: string): string => (id.endsWith('+') ? id.slice(0, -1) : id);
 
 describe('ticket 139 — every number a card prints is a number its data holds', () => {
     it('holds for every card in the registry', () => {
         const offenders: string[] = [];
         for (const [id, card] of Object.entries(CARDS)) {
-            if (id in ALLOWED) continue;
+            if (allowlistKey(id) in ALLOWED) continue;
             const described = describedNumbers(String(card.description ?? ''));
             if (described.length === 0) continue;
             const held = dataNumbers(card.actions ?? []);
@@ -146,7 +167,7 @@ describe('ticket 139 — every number a card prints is a number its data holds',
     it('holds for every firmware description', () => {
         const offenders: string[] = [];
         for (const [id, entry] of Object.entries(FIRMWARE)) {
-            if (id in ALLOWED_FIRMWARE) continue;
+            if (allowlistKey(id) in ALLOWED_FIRMWARE) continue;
             const described = describedNumbers(String(entry.description ?? ''));
             if (described.length === 0) continue;
             const held = dataNumbers(entry.hooks ?? []);
@@ -174,6 +195,61 @@ describe('ticket 139 — every number a card prints is a number its data holds',
             if (!FIRMWARE[id]) stale.push(`${id} (no such firmware)`);
         }
         expect(stale, 'the allowlist has entries that are no longer earning their place').toEqual([]);
+    });
+});
+
+/**
+ * TICKET 150e — A `bonus` HAS A UNIT, AND THE PRINTED SENTENCE HAS TO NAME THE RIGHT ONE.
+ *
+ * The rest of this file asks whether a printed NUMBER is in the data. This asks the question one
+ * level up: whether the printed UNIT is. `bonus` is one field that means two quantities depending
+ * on the trigger it is read at (`HookFactory.createHook` carries the law):
+ *
+ *   - `onPowerCalculated` → POWER, in at step 1 of `calculateDamage` before every dial;
+ *   - `onDamageCalculated` → FLAT HP, in at step 5 after the /45 divisor, STAB and resistances.
+ *
+ * KINETIC_RAM is why this exists. Its description said *"+2.5 **power** per stack"* while its hook
+ * paid 2.5 flat HP — a x2.5 disagreement between the text and the data that lived through two
+ * tickets, because every number it printed WAS in its own data and the test above passed. The unit
+ * was the lie, and nothing was looking at units. 150d moved it; this is what stops it coming back,
+ * on it or on the next payoff somebody writes.
+ *
+ * Both directions, because both are wrong: a damage-side bonus must not claim power, and a
+ * power-side bonus must not claim damage or HP.
+ */
+describe('ticket 150e — a bonus names the unit its trigger actually pays in', () => {
+    const bonusHooks = Object.entries(FIRMWARE).flatMap(([id, entry]) =>
+        ((entry.hooks ?? []) as Loose[])
+            .filter(h => typeof h.bonus === 'number')
+            .map(h => ({
+                osId: id,
+                hookId: String(h.id),
+                trigger: String(h.trigger),
+                description: String(entry.description ?? ''),
+            })));
+
+    /**
+     * The guard that keeps the two claims below from passing on an empty walk. If a refactor
+     * renames `bonus` or moves firmware out of `hooks.json`, this fails rather than the offender
+     * lists going quietly green — the difference between "no firmware breaks the law" and "no
+     * firmware was looked at".
+     */
+    it('finds the bonus hooks it is here to judge', () => {
+        expect(bonusHooks.map(h => h.hookId).sort()).toEqual(['gullin_v2_ram', 'jorm_v2_toxin_fang']);
+    });
+
+    it('never prints "power" for a bonus that is paid in flat HP', () => {
+        const offenders = bonusHooks
+            .filter(h => h.trigger === 'onDamageCalculated' && /\bpower\b/i.test(h.description))
+            .map(h => `${h.osId}/${h.hookId}: onDamageCalculated pays flat HP — "${h.description}"`);
+        expect(offenders, 'move the hook to onPowerCalculated, or stop printing "power"').toEqual([]);
+    });
+
+    it('never prints "damage" or "HP" for a bonus that is paid in power', () => {
+        const offenders = bonusHooks
+            .filter(h => h.trigger === 'onPowerCalculated' && /\bdamage\b|\bHP\b/i.test(h.description))
+            .map(h => `${h.osId}/${h.hookId}: onPowerCalculated pays power — "${h.description}"`);
+        expect(offenders, 'print "power", or move the hook back to onDamageCalculated').toEqual([]);
     });
 });
 

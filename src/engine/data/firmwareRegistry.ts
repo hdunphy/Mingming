@@ -20,6 +20,31 @@ export interface OSDefinition {
      * castable-while-asleep for whoever happens to draft it.
      */
     actsWhileAsleep?: boolean;
+    /**
+     * TICKET 146g — the authored tell for this OS, as DATA.
+     *
+     * §2g: *"keyed in `hooks.json` as `vfx: { shape, color?, at? }` **so it is data, not code**"*.
+     * The reason is the roster: there are 51 firmware entries and twelve authored tells, and the
+     * other thirty-nine get a family default. If the tell lived in a UI switch statement, adding an
+     * OS would mean editing a component, and the day someone forgets is the day an OS ships with no
+     * tell and nothing says so.
+     *
+     * Undefined means the family default, which is a complete effect rather than a gap.
+     */
+    vfx?: OSVfx;
+}
+
+/** §2g's signature vocabulary. `ring` is in the table too, for CINDER_WALL's Sharp. */
+export type OSVfxShape = 'pulse' | 'rise' | 'arc' | 'crack' | 'swirl' | 'drain' | 'spark' | 'ring';
+
+export interface OSVfx {
+    readonly shape: OSVfxShape;
+    /** Hex. Defaults to the owner's element colour, which is the family default's colour too. */
+    readonly color?: string;
+    /** Where it plays. `owner` unless the tell is about somebody else. */
+    readonly at?: 'owner' | 'target' | 'owner-to-target' | 'target-to-owner';
+    /** Free text for whoever reads the JSON. Never rendered. */
+    readonly note?: string;
 }
 
 /** hooks.json, keyed by firmware id — only the fields read below. */
@@ -29,6 +54,7 @@ type HookLibraryEntry = {
     description?: string;
     maxCardsPerTurn?: number;
     actsWhileAsleep?: boolean;
+    vfx?: OSVfx;
     hooks?: Array<DataHookDefinition | ModifierDataHookDefinition>;
 };
 
@@ -73,7 +99,14 @@ function initFirmwareHooks() {
         let hooks: HookDefinition[] = [];
 
         if (data && data.hooks) {
-            hooks = data.hooks.map(h => HookFactory.createHook(h));
+            // Ticket 16: a Driver's hooks are told which Driver they belong to, so a hook flagged
+            // `proc` can announce the DRIVER (not just itself) when it fires. Firmware hooks get
+            // no owner id and can never announce — a proc is a Driver's concept.
+            const driverId = key.startsWith('driver_') ? key : undefined;
+            hooks = data.hooks.map(h => HookFactory.createHook(h, driverId));
+            // TICKET 163c: keep the DATA beside the built hooks. A patch transforms data, and
+            // `FIRMWARE_REGISTRY` holds closures — see `rawFirmwareHooks`.
+            RAW_FIRMWARE_HOOKS[key] = data.hooks;
         }
 
         if (CustomFirmware[key]) {
@@ -87,7 +120,8 @@ function initFirmwareHooks() {
                 description: data.description || 'Custom Firmware',
                 hooks,
                 maxCardsPerTurn: data.maxCardsPerTurn,
-                actsWhileAsleep: data.actsWhileAsleep
+                actsWhileAsleep: data.actsWhileAsleep,
+                vfx: data.vfx
             };
             hooks.forEach(hook => registerHook(hook));
         }
@@ -95,6 +129,27 @@ function initFirmwareHooks() {
 
     isInitialized = true;
 }
+
+/**
+ * TICKET 163c — the RAW `hooks.json` data for one firmware, before `HookFactory` builds it.
+ *
+ * A patch is a transform from hook data to hook data (`patchRegistry`), so it needs the data — and
+ * `FIRMWARE_REGISTRY` holds built closures, which cannot be transformed. Exposed as its own
+ * accessor rather than by keeping `validatedData` module-level and public, so the ONE legitimate
+ * reason to want the raw shape is named at the door.
+ *
+ * Returns only what is in the file. `CustomFirmware`'s hand-written hooks are code, not data, and a
+ * patch cannot reach them — which is a real limit worth knowing: FAFNIR, UPDRAFT, GLACIAL_HEART,
+ * UNDERWORLD_GATEWAY and fenrir_v1's berserk clause take no patch today. All five are post-EA, so
+ * nothing the twelve launch OSes ship is affected; `patchedHooks.test.ts` asserts that boundary
+ * rather than leaving it as a comment.
+ */
+export const rawFirmwareHooks = (osId: string): ReadonlyArray<DataHookDefinition | ModifierDataHookDefinition> => {
+    initFirmwareHooks();
+    return RAW_FIRMWARE_HOOKS[osId] ?? [];
+};
+
+const RAW_FIRMWARE_HOOKS: Record<string, Array<DataHookDefinition | ModifierDataHookDefinition>> = {};
 
 export const getOSBehavior = (osId: string): OSDefinition | undefined => {
     initFirmwareHooks();

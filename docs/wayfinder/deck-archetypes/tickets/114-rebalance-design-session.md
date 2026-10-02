@@ -1,5 +1,7 @@
 # Ticket 114 — rebalance design session: three questions, in the order they should be answered
 
+> **Status: CLOSED 2026-09-08** — done — the session happened; its three questions were answered by the 134–136 arc. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** OPEN, awaiting the session. Opened 2026-08-22 at Henry's request.
 **This ticket is written FOR Henry to read**, not as a findings log — every number below is here only
 because a decision hangs on it. The evidence lives in tickets 110 and 112.

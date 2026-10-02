@@ -5,6 +5,8 @@ import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import { getEffectiveAttackPower, getDamageScalingMultiplier } from '../../engine/actions/ActionExecutors';
 import { battleReducer } from '../../engine/battleReducer';
 import { globalBattleEventBus } from '../../engine/events';
+import { powerBonusLabel } from '../components/scalingLabels';
+import { withOverflows, type StatusChange } from './statusOverflow';
 
 /** Result of the on-hover damage preview, with the breakdown chips that explain the number. */
 export interface DamagePreview {
@@ -39,7 +41,12 @@ export interface DamagePreview {
     /** The card's element — used to color the STAB chip. */
     element: Element;
     /** Extra POWER granted by action scaling (SHARP_STACKS etc.); 0 when inactive. */
-    sharpBonus: number;
+    powerBonus: number;
+    /**
+     * TICKET 171c: what that bonus reads, for the chip ("SHARP", "· 2 BURN"). It was hard-coded
+     * "SHARP", so Flashover's +15 per Burn read "+30 SHARP". See `powerBonusLabel`.
+     */
+    powerBonusLabel: string;
     /**
      * Ticket 90: the POST-damage multiplier this card is riding right now - cards played this
      * turn, Energy spent, the target's Burn stacks. 1 when the card has no such scaling.
@@ -62,12 +69,12 @@ export interface DamagePreview {
      * status application would be a second implementation to drift from. Empty when the card
      * changes no status on this target.
      */
-    statusChanges: Array<{ status: string; delta: number }>;
+    statusChanges: StatusChange[];
 }
 
 const NO_PREVIEW: DamagePreview = {
     damage: 0, absorbed: 0, hpDamage: 0, lethal: false, hitCount: 0, stab: false, effectiveness: 1,
-    element: 'None', sharpBonus: 0, scalingMultiplier: 1, statusChanges: [],
+    element: 'None', powerBonus: 0, powerBonusLabel: '', scalingMultiplier: 1, statusChanges: [],
 };
 
 /** HP plus shield, because absorbed damage is still damage the player watches happen. */
@@ -237,7 +244,11 @@ export function computeDamagePreview(
     // target, so a three-hit card reports one total and a card that hits twice through a shield
     // reports both absorptions.
     const damage = hits.reduce((total, hit) => total + hit.raw, 0);
-    const statusChanges = statusDiff(statusBefore, statusMap(after, targetId));
+    // TICKET 184b: a pile that went off (Burn past its cap) is an OVERFLOW, not a loss. The engine
+    // marks the detonation on its damage record; the plain diff cannot see it.
+    const statusAfter = statusMap(after, targetId);
+    const overflowed = new Set(hits.flatMap((hit) => (hit.overflow ? [hit.overflow.status as string] : [])));
+    const statusChanges = withOverflows(statusDiff(statusBefore, statusAfter), overflowed, statusAfter, statusBefore);
 
     // TICKET 125: a card earns a preview if it does ANYTHING to this target, HP or statuses.
     // The old gates were `no ATTACK action` and `damage <= 0`, which between them silenced every
@@ -248,7 +259,16 @@ export function computeDamagePreview(
     // The chips below are derived off the first ATTACK action, so a status-only card returns the
     // neutral chip set with its statusChanges filled in.
     if (attackActions.length === 0 || damage <= 0) {
-        return { ...NO_PREVIEW, element: data.element, statusChanges };
+        // 184b: a status-only card can still deal damage — a Burn card that detonates the pile.
+        // That damage is real and in `hits`, so the plaque's HP preview shows it too.
+        return damage > 0
+            ? {
+                ...NO_PREVIEW, element: data.element, statusChanges, damage,
+                absorbed: hits.reduce((total, hit) => total + hit.absorbed, 0),
+                hpDamage: hits.reduce((total, hit) => total + hit.applied, 0),
+                lethal: currentHpOf(after, targetId) <= 0,
+            }
+            : { ...NO_PREVIEW, element: data.element, statusChanges };
     }
 
     // The explanatory chips, derived analytically off the FIRST attack action. They are LABELS,
@@ -290,7 +310,12 @@ export function computeDamagePreview(
         stab,
         effectiveness,
         element: data.element,
-        sharpBonus: effectivePower - basePower,
+        powerBonus: effectivePower - basePower,
+        powerBonusLabel: powerBonusLabel(
+            first.scaling,
+            first.scalingStatus,
+            first.scalingStatus ? (target.statusEffects.find(s => s.type === first.scalingStatus)?.stacks ?? 0) : 0,
+        ),
         scalingMultiplier: multiplier,
         scalingKind: multiplier === 1 ? undefined : first.scaling,
     };

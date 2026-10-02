@@ -13,7 +13,9 @@ name: CI
 #     standing gate for free (deck-archetypes ticket 104).
 #
 # `npm run balance` is deliberately NOT here: 11 minutes on 2 cores. It stays manual until
-# deck-archetypes ticket 108 optimizes the pipeline (map § fog, "Nightly long-balance run").
+# deck-archetypes ticket 108 optimizes the pipeline (map § fog, "Nightly long-balance run"). Ticket
+# 40 added the short canary below on the same reasoning, and measured which gates could afford to
+# join it — see the comment on that step.
 #
 # LINT IS BLOCKING (since ticket 55 closed, 2026-08-23). It was advisory from 2026-08-21, when the
 # tree failed `npm run lint` with 510 pre-existing errors and blocking on them would have meant a
@@ -72,3 +74,27 @@ jobs:
       # Ends in scripts/assert-no-debug.mjs — proves the debug toolkit is absent from dist/.
       - name: Build (includes the assert-no-debug release gate)
         run: npm run build
+
+      # ── Ticket 40's short canary. FTK 0 and no stalls, and DELIBERATELY NOT the win rates. ──
+      #
+      # The two cheap 1v1 cells of the run gate at 60 samples each: 120 battles, measured at 8s of
+      # compute and ~10s wall on a 2-core sandbox, against the ticket's 60-second budget.
+      #
+      # WHY NOT THE COMPS THE 2026-09-24 NOTE NAMED. That note put the 162c partner comps and
+      # `npm run balance:drivers` in "the short canary set", and neither can be a push gate — a 3v3
+      # battle with draw engines runs 70–340 seconds, so ZERO of them fit in 60. Measured for this
+      # row: one `balance:drivers` battle at beam 8 with AI_LITE took **91 seconds**, and its default
+      # scope is 108 of them (~2.7 hours). 162c's own write-up records 58 minutes for a single
+      # iteration. They are the nightly pair, alongside `npm run balance`.
+      #
+      # WHY ONLY FTK AND STALLS. The same note rules the run gate's BANDS "NOISE on v2 until 157's
+      # walker", and 157 has since moved fight one 17 points on one deck rule. A job that went red on
+      # a win rate would fail builds over a number nobody is tuning to. FTK and stalls are structural
+      # claims about the fight — nobody kills before the other side acts, nothing runs past the cap —
+      # and are ticket 18's own standing gates, so a regression there is a bug, not a tuning question.
+      # `--gate-structural` is that gate and is separate from `--strict`, which is the band one.
+      #
+      # `vite-node` resolves from node_modules/.bin as a vitest transitive, which is the same footing
+      # every other `balance:*` script already stands on.
+      - name: Short canary (FTK 0 / no stalls — ticket 18's standing gates)
+        run: npm run canary:short

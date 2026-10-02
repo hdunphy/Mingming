@@ -201,35 +201,41 @@ describe('Tidewrack, authored', () => {
     it('is the authored trio and not a rolled one', () => {
         const { fight } = fightFor('gym_tidewrack');
         const running = fight.enemyParty.map((e: IBattleEntity) => e.activeOS).sort();
-        // TICKET 74: kraken_v1 -> kraken_v2. Transcribed rather than read back off `AUTHORED_BOSSES`
-        // on purpose — a pin that derives its expectation from the table it guards passes whatever
-        // the table says, which is the one thing a pin must not do.
+        /*
+         * TICKET 28b (Henry, 2026-09-25) is the third composition this line has held, and it goes
+         * back to the one ticket 74 ruled: `jormungandr_v1 + kraken_v2 + skoll_v2`. 28a had moved
+         * it to `kraken_v1 + ratatoskr_v1` on a synergy argument; 28b replaces that heuristic with
+         * an element one — **the guest is the element the gym BEATS** — and Water beats Fire, so
+         * the third slot is Fire. `ratatoskr_v1` was Nature, the element that beats Water, which is
+         * precisely the body the new rule will not seat.
+         *
+         * Still TRANSCRIBED rather than read back off `AUTHORED_BOSSES` — a pin that derives its
+         * expectation from the table it guards passes whatever the table says, which is the one
+         * thing a pin must not do. So this line moving is the signal that the gym was re-composed,
+         * and it has now done that job twice.
+         */
         expect(running).toEqual(['jormungandr_v1', 'kraken_v2', 'skoll_v2']);
     });
 
-    it('fields ONE draw engine after ticket 74, which is the substance of the swap', () => {
-        /*
-         * The comp swap is only worth what it takes out of the pile, and that is the thing a future
-         * edit could silently undo — restoring `kraken_v1`, or handing `kraken_v2` a draw payoff,
-         * would leave the trio assertion above green while putting the two-engine fight back.
-         *
-         * research/73: `CARDS_DRAWN_TRIGGERED` is scoped per-Mingming, so an `ink_stream` is worth
-         * whatever its OWN body drew this turn. Two bodies each holding the payoff AND its own
-         * cantrips is the 30.0% fight; one body holding it is the ticket's bet.
-         */
-        const { fight } = fightFor('gym_tidewrack');
-        const pile: ReadonlyArray<string> = fight.enemyDeckIds;
-
-        expect(pile.filter((id) => id === 'ink_stream').length,
-            'jormungandr_v1 keeps its two; kraken_v1\'s two are what the swap removed').toBe(2);
-        expect(pile.filter((id) => id === 'undertow').length,
-            'the third cantrip left with kraken_v1').toBe(2);
-        for (const gone of ['whirlpool_v2', 'pressure_point']) {
-            expect(pile, `${gone} is ABYSSAL_INK_SYS's draw half and should be out of the pile`).not.toContain(gone);
-        }
-        // And the replacement really is present, or the swap dropped a body rather than changing one.
-        expect(pile, 'TIDAL_CRUSH\'s 3e payoff').toContain('maelstrom');
-    });
+    /*
+     * ══ THE TWO-ENGINE ROW IS DELETED — TICKET 28b (Henry, 2026-09-25). ══
+     *
+     * A test used to stand here asserting the RETURN of ticket 74's two-engine shape: both
+     * `jormungandr_v1` and `kraken_v1` on the field, and `ink_stream` in the pile twice. It was
+     * written as a deliberate flag rather than as a pin — 28a had re-created a fight that 73
+     * measured at 30.0% against a ~84.3% guide, and the canary immediately read the boss at
+     * 33% → 100% against its own named counter party.
+     *
+     * **28b removes `kraken_v1` from this gym, so there is no second engine to assert and nothing
+     * left to flag.** The row is deleted rather than inverted to "there is only one engine now",
+     * because that claim is already made, card for card and in order, by the trio pin above; a
+     * second test of it would be two things to keep true about one composition.
+     *
+     * Recorded because the shape has now been removed twice and may be proposed a third time: the
+     * indictment was never the payoff card's printed power (a 64% cut to `ink_stream` bought 13
+     * points and did not clear, p = 0.22). It was the FLOW — `CARDS_DRAWN_TRIGGERED` is scoped
+     * per-Mingming, so each engine multiplies its own cantrips.
+     */
 
     it('telegraphs on the offer screen and carries to the region final elite', () => {
         const { run, fight } = fightFor('gym_tidewrack');

@@ -13,6 +13,8 @@
 
 import { SeedStream } from '../core/SeedStream';
 import type { IBiome } from '../runTypes';
+import { MingmingRegistry } from '../data/mingmingRegistry';
+import { authoredBossFor } from './bosses';
 
 // ---------------------------------------------------------------------------------------------
 // The leaders
@@ -25,16 +27,18 @@ export interface IGym {
     readonly element: string;
     /** Difficulty, 0-based. `IRunState.tier` is copied from here at run start. */
     readonly tier: number;
-    /**
-     * TICKET 142b — the three firmwares the leader fields, and the thing the SCOUT shows two of.
+    /*
+     * TICKET 28a (Henry, 2026-09-24) — `leaderComp` IS GONE FROM THIS INTERFACE.
      *
-     * **Placeholders, like `name`, and ticket 28 owns the real ones.** These are the ticket-140
-     * comp grid's best measured comps of each gym's element pair, which is the most defensible
-     * stand-in available: it is what a good player would build for that element, so a cut of it is
-     * a fair preview of the exam. Ticket 28 should overwrite these with the authored teams and
-     * leave nothing else here alone.
+     * 142b put three firmware ids here as an explicit placeholder and said so: *"ticket 28 should
+     * overwrite these with the authored teams."* It never did, so the game carried TWO gym comp
+     * tables that disagreed at every gym — `bosses.AUTHORED_BOSSES` is what the gauntlet fields, and
+     * this is what the scout previewed. A free look at a team the gym does not field is worse than
+     * no free look: the player has no reason to distrust it.
+     *
+     * The authored table is the only one now. `gymCompElementPlan` below reads it, and so does
+     * `encounter.scoutFirmwareFor`.
      */
-    readonly leaderComp: ReadonlyArray<string>;
 }
 
 /**
@@ -57,18 +61,9 @@ export interface IGym {
  * `exploration-map.md`'s "harder tiers unlock by beating gyms" is post-launch content.
  */
 export const GYM_REGISTRY: Readonly<Record<string, IGym>> = {
-    gym_emberfall: {
-        id: 'gym_emberfall', name: 'Emberfall', element: 'Fire', tier: 0,
-        leaderComp: ['fenrir_v1', 'skoll_v1', 'jormungandr_v1'],
-    },
-    gym_tidewrack: {
-        id: 'gym_tidewrack', name: 'Tidewrack', element: 'Water', tier: 0,
-        leaderComp: ['kraken_v1', 'jormungandr_v1', 'huldra_v2'],
-    },
-    gym_rootfall: {
-        id: 'gym_rootfall', name: 'Rootfall', element: 'Nature', tier: 0,
-        leaderComp: ['kraken_v1', 'ratatoskr_v1', 'huldra_v1'],
-    },
+    gym_emberfall: { id: 'gym_emberfall', name: 'Emberfall', element: 'Fire', tier: 0 },
+    gym_tidewrack: { id: 'gym_tidewrack', name: 'Tidewrack', element: 'Water', tier: 0 },
+    gym_rootfall: { id: 'gym_rootfall', name: 'Rootfall', element: 'Nature', tier: 0 },
 };
 
 /**
@@ -225,8 +220,104 @@ export function pathElementsFor(gymElement: string): ReadonlyArray<string> {
  * less rolled quantity, and one less way for the screen to be subtly wrong.
  */
 function walkOrderFor(gymElement: string): ReadonlyArray<string> {
-    const counter = COUNTERED_BY[gymElement];
-    return [gymElement, counter, COUNTERED_BY[counter]];
+    return [COUNTERED_BY[gymElement], gymElement];
+}
+
+/**
+ * THE GYM BIOME — the third leg, and the only one that is not an element.
+ *
+ * Ticket 142 §7 (Henry, 2026-09-11), off the 09-10 playtest: *"the current road is not fun"*, and
+ * the fix is the alternative he recorded in §5 — *"Fire starter vs Fire biome, you recruit Sköll;
+ * then go to Nature biome where you recruit Rat; finally you go to the Gym biome which is NNW
+ * encounters but weaker until you face the final gym."*
+ *
+ * So the last biome is built from the LEADER'S COMP rather than from the counter chain. Its
+ * elements are the distinct elements that comp fields — Rootfall's `[kraken, ratatoskr, huldra]`
+ * is Water + Nature — which is what `IBiome.elements`' 1-or-2 shape was left open for (ticket 05
+ * deferred friendly pairs rather than cancelling them, and this is the first caller to need one).
+ *
+ * **The triangle is no longer walked, and that is the ruling, not an oversight.** The old rule 3
+ * guaranteed every run saw all three launch elements; Rootfall now goes Fire → Nature → Nature+
+ * Water and never stands in a Water biome, so kraken and jormungandr are not recruitable on that
+ * route. Henry accepted that cost explicitly: *"It's fine if there are no Water mingmings in
+ * there."* What is bought with it is a road that reads as a road — you meet what beats the gym,
+ * then the gym's own element, then the fight itself in miniature.
+ */
+/**
+ * The species behind one `leaderComp` entry.
+ *
+ * **`leaderComp` holds FIRMWARE ids, not species ids** - `kraken_v1` is kraken running its v1 OS,
+ * and `MingmingRegistry['kraken_v1']` is not a thing. That is the trap this function closes.
+ *
+ * `GetMingmingData` does NOT return undefined for a bad id: it logs `Mingming ID not found` and
+ * returns the **Missing Mingming sentinel**, whose `primaryElement` is `'None'`. So the first
+ * version of `gymBiomeElements` did not get nothing - it got a perfectly well-formed `'None'`,
+ * built a biome advertising an element no pool contains, and the failure surfaced three files away
+ * as a run reading the wall clock. The warning WAS printed, nine times, in the test output; it
+ * read as noise next to a failing assertion about a clock.
+ *
+ * That is the shape worth remembering: the sentinel keeps a bad id from throwing, which means a
+ * bad id TRAVELS. Resolve firmware ids here, where the lookup can return undefined and a caller
+ * has to decide what that means.
+ */
+/**
+ * TICKET 28a — **the firmware a gym's leader actually fields**, from the authored table.
+ *
+ * One accessor rather than three reads of `AUTHORED_BOSSES.members`, because the three consumers —
+ * the biome element plan below, the scout's preview, and 157's walker when it recruits toward the
+ * gym — have to agree, and the way two tables came to disagree in the first place was that each
+ * consumer read whichever one was nearest.
+ *
+ * Returns `[]` for a gym with no authored boss, which is ticket 18's formula-boss case: the biome
+ * plan then falls back to the gym's own element and the scout shows nothing, both of which are what
+ * they did before an authored table existed.
+ */
+export function gymLeaderFirmware(gymId: string): ReadonlyArray<string> {
+    return authoredBossFor(gymId)?.members.map((member) => member.os) ?? [];
+}
+
+export function speciesOwningFirmware(firmwareId: string): string | undefined {
+    return Object.values(MingmingRegistry)
+        .find((definition) => definition.availableOS.includes(firmwareId))?.id;
+}
+
+/**
+ * The comp's elements ONE PER BODY, gym element first.
+ *
+ * RULED by Henry, 2026-09-11: *"it should be NNW decks so the last spot is a water mingming
+ * (either jorm or kraken). So you only see the water in 3v3s — the first two are one of the four
+ * nature decks. If it's a 1v1 or 2v2 it would be a single N then two N's respectively."*
+ *
+ * So this keeps MULTIPLICITY and ORDER, and both carry meaning. Rootfall's comp is stored
+ * `[kraken(W), ratatoskr(N), huldra(N)]`; sorted gym-element-first it is **N, N, W**, and slicing
+ * that to the party size gives exactly the three cases he named. The off-element body is last
+ * because it is the one a smaller party never meets - put it first and a solo run would fight the
+ * Water one and never see the gym's own element on the gym's own approach.
+ *
+ * **Elements, not the comp's own species.** The bodies are *"one of the four nature decks"*, not
+ * ratatoskr and huldra specifically: the approach biome is the gym's SHAPE, and a biome that only
+ * ever fielded the three exact bodies would be the gym fight three times over rather than a
+ * region that reads like it.
+ */
+export function gymCompElementPlan(gym: IGym): ReadonlyArray<string> {
+    const perBody: string[] = [];
+    // TICKET 28a: the ONE comp table. This used to read `gym.leaderComp`, a 142b placeholder that
+    // disagreed with what the gauntlet fields at every gym.
+    for (const firmware of gymLeaderFirmware(gym.id)) {
+        const speciesId = speciesOwningFirmware(firmware);
+        const element = speciesId ? MingmingRegistry[speciesId]?.primaryElement : undefined;
+        if (element) perBody.push(element);
+    }
+    return perBody.sort((a, b) => Number(b === gym.element) - Number(a === gym.element));
+}
+
+/** The distinct elements of the above — what `IBiome.elements` advertises for the approach. */
+function gymBiomeElements(gym: IGym): ReadonlyArray<string> {
+    const elements: string[] = [];
+    for (const element of gymCompElementPlan(gym)) {
+        if (!elements.includes(element)) elements.push(element);
+    }
+    return elements;
 }
 
 /**
@@ -269,13 +360,27 @@ export function offerGyms(seed: string): ReadonlyArray<IGymOffer> {
 
         return {
             gym,
-            biomes: walkOrder.map((element): IBiome => {
-                const candidates = BIOME_POOL[element];
-                const template = candidates[stream.nextInt(0, candidates.length - 1)];
-                // Mono-element by ticket 05; the list shape is what lets friendly pairs return
-                // later without a save migration (`runTypes.ts`, `IBiome`).
-                return { id: template.id, name: template.name, elements: [element] };
-            }),
+            biomes: [
+                ...walkOrder.map((element): IBiome => {
+                    const candidates = BIOME_POOL[element];
+                    const template = candidates[stream.nextInt(0, candidates.length - 1)];
+                    // Mono-element by ticket 05; the list shape is what lets friendly pairs return
+                    // later without a save migration (`runTypes.ts`, `IBiome`).
+                    return { id: template.id, name: template.name, elements: [element] };
+                }),
+                // 142 §7: the third leg is the leader's own ground - see `gymBiomeElements`. It
+                // draws its NAME from the gym's element pool like any other biome, so the place
+                // still reads as somewhere you go rather than as `Gym Biome`.
+                ((): IBiome => {
+                    const candidates = BIOME_POOL[gym.element];
+                    const template = candidates[stream.nextInt(0, candidates.length - 1)];
+                    return {
+                        id: `${template.id}_approach`,
+                        name: `${template.name} Approach`,
+                        elements: [...gymBiomeElements(gym)],
+                    };
+                })(),
+            ],
         };
     });
 }

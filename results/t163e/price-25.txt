@@ -1,0 +1,94 @@
+
+> mingming_app@0.0.0 balance:walk
+> vite-node src/debug/balance/runRunWalker.ts --seeds 10 --upgrades on --patch-price 25 --label t163e25
+
+  [upgrades] fenrir_v1: 10 runs in 2 s
+  [upgrades] fenrir_v2: 10 runs in 347 s
+  [upgrades] skoll_v1: 10 runs in 511 s
+  [upgrades] skoll_v2: 10 runs in 207 s
+  [upgrades] kraken_v1: 10 runs in 63 s
+  [upgrades] kraken_v2: 10 runs in 3 s
+  [upgrades] jormungandr_v1: 10 runs in 0 s
+  [upgrades] jormungandr_v2: 10 runs in 2 s
+  [upgrades] ratatoskr_v1: 10 runs in 25 s
+  [upgrades] ratatoskr_v2: 10 runs in 6 s
+  [upgrades] huldra_v1: 10 runs in 1 s
+  [upgrades] huldra_v2: 10 runs in 2 s
+
+########## ARM: upgrades · patch 25 scrap ##########
+
+=== 157 — RUN WALKER, policy v0 ===
+
+starter           runs  wins   fights   deck power f1 → f4 → f8 → gym
+fenrir_v1           10   0%     1.6   1.93 →    — →    — →    —
+fenrir_v2           10   0%     4.9   2.02 → 3.96 → 4.99 → 5.63
+skoll_v1            10  10%     4.2   2.31 → 3.65 → 5.09 → 4.92
+skoll_v2            10   0%     6.7   2.16 → 3.44 → 4.72 → 5.07
+kraken_v1           10   0%     5.2   2.49 → 3.30 → 4.02 →    —
+kraken_v2           10   0%     2.8   3.50 → 3.84 →    — →    —
+jormungandr_v1      10   0%     1.3   1.84 →    — →    — →    —
+jormungandr_v2      10   0%     3.1   1.80 → 3.59 →    — →    —
+ratatoskr_v1        10   0%     3.1   1.56 → 2.38 →    — →    —
+ratatoskr_v2        10   0%     2.5   1.28 → 2.52 →    — →    —
+huldra_v1           10   0%     2.3   1.61 → 3.25 →    — →    —
+huldra_v2           10   0%     2.4   1.87 → 2.84 →    — →    —
+
+--- win rate by fight index (conditional on reaching it) ---
+starter              1    2    3    4    5    6    7    8    9   10   11   12
+fenrir_v1           30  100    0    ·    ·    ·    ·    ·    ·    ·    ·    ·
+fenrir_v2          100  100   60   33  100  100  100  100  100   50    0    ·
+skoll_v1            70   86   83   60   67  100  100  100   50  100  100  100
+skoll_v2           100  100   80   88   86   83   80   75   67  100    0    ·
+kraken_v1          100   80   88   71   80   75   67  100   50    0    ·    ·
+kraken_v2           90   67   33   50    0    ·    ·    ·    ·    ·    ·    ·
+jormungandr_v1      30    0    ·    ·    ·    ·    ·    ·    ·    ·    ·    ·
+jormungandr_v2     100   70   43   33    0    ·    ·    ·    ·    ·    ·    ·
+ratatoskr_v1        80   88   43   33  100  100    0    ·    ·    ·    ·    ·
+ratatoskr_v2        70   86   33    0    ·    ·    ·    ·    ·    ·    ·    ·
+huldra_v1           70   57   50    0    ·    ·    ·    ·    ·    ·    ·    ·
+huldra_v2           70   57   75    0    ·    ·    ·    ·    ·    ·    ·    ·
+
+--- where runs end, and what the rewards did ---
+starter           died in biome 0/1/2   picks taken/offered   → collection   bought  recruits   survivor HP
+fenrir_v1                    10/0/0       6/18        0 (0%)     1       1      13%
+fenrir_v2                     8/0/2      60/180       3 (5%)     6       6      47%
+skoll_v1                      6/2/1      45/135       1 (2%)     5       5      52%
+skoll_v2                      4/3/3      87/261       2 (2%)    11       8      61%
+kraken_v1                     5/4/1      58/174       0 (0%)     5       8      54%
+kraken_v2                     9/1/0      18/54        0 (0%)     4       2      26%
+jormungandr_v1               10/0/0       3/9         0 (0%)     0       0      47%
+jormungandr_v2               10/0/0      21/63        1 (5%)     2       3      39%
+ratatoskr_v1                  8/2/0      26/78        0 (0%)     2       3      52%
+ratatoskr_v2                 10/0/0      15/45        0 (0%)     2       1      31%
+huldra_v1                    10/0/0      13/39        1 (8%)     3       0      46%
+huldra_v2                    10/0/0      14/42        0 (0%)     3       1      47%
+
+--- who the walker recruited (§5.2: partner first, then the counter element) ---
+fenrir_v1         huldra_v1 ×1
+fenrir_v2         kraken_v2 ×4, jormungandr_v1 ×2
+skoll_v1          fenrir_v1 ×4, huldra_v1 ×1
+skoll_v2          fenrir_v2 ×5, kraken_v2 ×3
+kraken_v1         jormungandr_v1 ×7, ratatoskr_v1 ×1
+kraken_v2         fenrir_v2 ×2
+jormungandr_v2    huldra_v1 ×3
+ratatoskr_v1      fenrir_v1 ×2, huldra_v1 ×1
+ratatoskr_v2      huldra_v1 ×1
+huldra_v2         jormungandr_v2 ×1
+
+--- 163e: upgrades and patches ---
+starter           upgrades taken/benches   scrap spent   patches (elite/gate/shop)
+fenrir_v1                1/3          33%       35          0 (0/0/0)   shop shelf 0/2   0%
+fenrir_v2               11/17         65%      325         12 (8/2/2)   shop shelf 2/7  29%
+skoll_v1                 6/14         43%      170          9 (7/1/1)   shop shelf 1/6  17%
+skoll_v2                11/21         52%      310         20 (13/1/6)   shop shelf 6/10  60%
+kraken_v1                7/14         50%      255          6 (6/0/0)   shop shelf 0/5   0%
+kraken_v2                1/7          14%       35          1 (1/0/0)   shop shelf 0/5   0%
+jormungandr_v1           0/0           —         0          0 (0/0/0)   shop shelf 0/0   — 
+jormungandr_v2           3/7          43%      110          0 (0/0/0)   shop shelf 0/4   0%
+ratatoskr_v1             2/6          33%       65          2 (2/0/0)   shop shelf 0/3   0%
+ratatoskr_v2             2/5          40%       65          0 (0/0/0)   shop shelf 0/3   0%
+huldra_v1                1/4          25%       35          0 (0/0/0)   shop shelf 0/3   0%
+huldra_v2                1/4          25%       35          0 (0/0/0)   shop shelf 0/3   0%
+patch kinds: amplifier ×48, splitter ×2
+
+POOLED: 1/120 runs cleared the gym (0.8%).

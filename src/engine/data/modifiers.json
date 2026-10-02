@@ -1,0 +1,12 @@
+[
+  { "id": "junk_start", "name": "Junk Start",
+    "description": "Start with 2 Corrupted Data in your deck.", "junkCount": 2 },
+  { "id": "tight_budget", "name": "Tight Budget",
+    "description": "Marketplace and workshop prices +25%.", "pricePercent": 25 },
+  { "id": "elite_hunt", "name": "Elite Hunt",
+    "description": "Every rival is an elite." },
+  { "id": "no_recruits", "name": "No Recruits",
+    "description": "You can't recruit. The party you start with is the party you finish with." },
+  { "id": "draft_start", "name": "Draft Start",
+    "description": "Draft your starting cards instead of being dealt them." }
+]

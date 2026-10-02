@@ -48,34 +48,48 @@
  * inherits screens that already work without a mouse rather than screens that need retrofitting.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
-import { minimumActiveDeck } from '../../engine/run/createRun';
+import { isJunkCard } from '../../engine/run/junk';
 import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import {
     CARD_PRICE_BY_ENERGY,
     SELL_PRICE_BY_ENERGY,
+    JUNK_REMOVAL_PRICE,
     sellPrice,
-    REROLL_PRICE,
+    MARKET_REFRESH_PRICE,
     isOfferSold,
+    type IBlueprintOffer,
+    rollBlueprintOffer,
+    isBlueprintSlotSold,
     rollMacroStock,
     rollMarketStock,
     type IMacroOffer,
     type IMarketOffer,
+    UPGRADES_PER_VISIT,
 } from '../../engine/run/marketplace';
 import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
-import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
+import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { playSfx } from '../audio/AudioEngine';
-import { buyMacro, buyMarketCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { buyMacro, buyMarketBlueprint, buyMarketCard, freezeMarketParty, removeJunkCard, rerollMarketStock, sellRunCard } from '../store/runSlice';
+import { frozenMarketParty, marketPartyFor } from '../../engine/run/marketParty';
+import { junkNote, readDeckFloor } from './deckFloor';
+import { addBlueprint } from '../store/gameSlice';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { cardFace, colorFor, groupByData } from './runShell';
 import './runShell.css';
 import './MarketplaceNode.css';
 import { Icon } from '../theme/Icon';
+import { UpgradeBench } from './UpgradeBench';
+import { PatchBench } from './PatchBench';
 import { ElementMark, EnergyPips, TypeMark } from './CardChassis';
+import { CardPeek } from './CardPeek';
+import { useCardPeek } from '../hooks/useCardPeek';
 
 /**
  * Ticket 19's deck-band constants, re-exported because this module's readers and tests import them
@@ -95,6 +109,8 @@ interface SellStack {
     readonly instances: ReadonlyArray<IRunCard>;
     readonly inDeck: boolean;
     readonly price: number;
+    /** TICKET 168c: junk is removed for a price, not sold, and the floor never blocks it. */
+    readonly junk: boolean;
 }
 
 export interface MarketplaceNodeProps {
@@ -105,6 +121,13 @@ export interface MarketplaceNodeProps {
     readonly party: ReadonlyArray<IRewardPartyMember>;
     /** For the context line. The biome you are shopping in changes what the pool is worth. */
     readonly biomeName?: string;
+    /**
+     * TICKET 163d — the roster, for the patch shelf: a patch is fitted to a NAMED body, and
+     * `party` here is reward vocabulary (`definitionId` + `activeOS`) with no nickname on it.
+     * Optional so the debug scenarios that mount this screen without a ranch keep working — they
+     * see the stall minus one shelf, which is the same thing a run with nothing to patch sees.
+     */
+    readonly ranch?: IRanchState;
     /** Opens the shared `LoadoutEditor`. One of ticket 61 §3's four doors. */
     readonly onEditLoadout: () => void;
     /** Closes the stall back to the map. See `RunScreen` for why leaving is a UI state and not a move. */
@@ -112,22 +135,39 @@ export interface MarketplaceNodeProps {
 }
 
 export default function MarketplaceNode({
-    run, node, party, biomeName, onEditLoadout, onLeave,
+    run, node, party, biomeName, ranch, onEditLoadout, onLeave,
 }: MarketplaceNodeProps): ReactNode {
     const dispatch = useDispatch();
+    const { peek, at, peekHandlers } = useCardPeek();
 
-    // Rolled from (run seed, node id, visit count) — never held in component state. A remount, an
-    // app close or a resume therefore shows the same stock, and the *only* thing that changes it is
-    // a new visit: walking back in, or paying `REROLL_PRICE` for the same increment.
-    const stock = useMemo(() => rollMarketStock({ run, node, party }), [run, node, party]);
-    // Rolled off its own fork of the same node seed (`market-macros`), so the macro shelf re-rolls
-    // per visit exactly as the card shelf does and neither can shift the other.
-    const macroStock = useMemo(() => rollMacroStock({ run, node, party }), [run, node, party]);
+    // Rolled from (run seed, node id, REFRESH count) — never held in component state, so a remount,
+    // an app close or a resume shows the same stock. Ticket 142 §7 took the visit count out of that
+    // key: walking back in no longer changes anything, and a paid refresh is the only thing that does.
+    //
+    // TICKET 171b: and rolled for the team this shop was FIRST visited with, not the live one, so a
+    // recruit or a bench (even from the loadout editor opened here) cannot restock it. The first
+    // visit writes the snapshot; until that lands, the live team IS the snapshot.
+    const hasSnapshot = frozenMarketParty(run, node.id) !== undefined;
+    useEffect(() => {
+        if (!hasSnapshot) dispatch(freezeMarketParty({ nodeId: node.id, party }));
+    }, [dispatch, hasSnapshot, node.id, party]);
+    const shelfParty = useMemo(() => marketPartyFor(run, node.id, party), [run, node.id, party]);
+    const stock = useMemo(() => rollMarketStock({ run, node, party: shelfParty }), [run, node, shelfParty]);
+    // Its own fork of the same seed (`market-macros`), so the macro shelf holds and refreshes with
+    // the card shelf and neither can shift the other.
+    const macroStock = useMemo(() => rollMacroStock({ run, node, party: shelfParty }), [run, node, shelfParty]);
+    // Ticket 142 §7: one blueprint, from the species this ROUTE can recruit. Same seed, so it holds
+    // and refreshes with the rest of the stall.
+    const blueprintOffer = useMemo(() => rollBlueprintOffer(run, node), [run, node]);
+    const blueprintSold = isBlueprintSlotSold(run, node);
 
     const scrap = run.scrap;
-    const floor = minimumActiveDeck(run.partyIds.length);
-    const atFloor = run.deck.length <= floor;
+    const reading = readDeckFloor(run);
+    const { floor, atFloor } = reading;
     const macrosHeld = run.macros.filter((slot) => slot !== null).length;
+
+    /** TICKET 169g: junk removal is a price the player pays, so Tight Budget raises it; the sell prices beside it are income and do not move. */
+    const junkRemovalPrice = shopPrice(run, JUNK_REMOVAL_PRICE);
 
     /**
      * Everything the player owns, one row per unique card per pile.
@@ -143,12 +183,13 @@ export default function MarketplaceNode({
                 key: `${inDeck ? 'deck' : 'coll'}:${dataId}`,
                 instances,
                 inDeck,
-                price: sellPrice(dataId),
+                junk: isJunkCard(dataId),
+                price: isJunkCard(dataId) ? junkRemovalPrice : sellPrice(dataId),
             }));
         return [...build(run.deck, true), ...build(run.collection ?? [], false)]
             .sort((a, b) => a.price - b.price
                 || cardFace(a.instances[0].dataId).name.localeCompare(cardFace(b.instances[0].dataId).name));
-    }, [run.deck, run.collection]);
+    }, [run.deck, run.collection, junkRemovalPrice]);
 
     /**
      * Owned instances, for the SOLD check. Deck **and** collection: a bought card lands in the deck,
@@ -170,14 +211,35 @@ export default function MarketplaceNode({
         playSfx('rewardClaim');
     };
 
+    /*
+     * TWO SLICES, RANCH FIRST — the workshop's recruit makes the same split for the same reason.
+     * If the app dies between the dispatches, a player who paid and got nothing has lost scrap; a
+     * player who got the blueprint and was not charged has been given a present. Only one of those
+     * is a bug report.
+     */
+    const purchaseBlueprint = (offer: IBlueprintOffer): void => {
+        dispatch(addBlueprint(offer.speciesId));
+        dispatch(buyMarketBlueprint({ nodeId: node.id, price: offer.price }));
+        playSfx('rewardClaim');
+    };
+
     const sell = (stack: SellStack): void => {
+        if (stack.junk) {
+            if (scrap < stack.price) { playSfx('uiError'); return; }
+            dispatch(removeJunkCard({ instanceId: stack.instances[0].instanceId, price: stack.price }));
+            playSfx('uiClick');
+            return;
+        }
         if (stack.inDeck && atFloor) { playSfx('uiError'); return; }
         dispatch(sellRunCard({ instanceId: stack.instances[0].instanceId, price: stack.price }));
         playSfx('rewardClaim');
     };
 
+    /** TICKET 169g: the stall refresh, at Tight Budget's rate when that is on. */
+    const refreshPrice = shopPrice(run, MARKET_REFRESH_PRICE);
+
     const reroll = (): void => {
-        dispatch(rerollMarketStock({ nodeId: node.id, price: REROLL_PRICE }));
+        dispatch(rerollMarketStock({ nodeId: node.id, price: refreshPrice, party }));
         playSfx('uiClick');
     };
 
@@ -189,7 +251,13 @@ export default function MarketplaceNode({
             <div className="rs-top">
                 <span className="rs-title">MARKETPLACE</span>
                 <span className="rs-ctx">
-                    {(biomeName ?? 'THIS').toUpperCase()} BIOME · VISIT {stock.visit} · stock re-rolls each visit
+                    {/*
+                      * TICKET 142 §7: this line used to read "VISIT n · stock re-rolls each visit",
+                      * and both halves are now wrong. `stock.visit` counts REFRESHES, not visits,
+                      * and the shelf does not re-roll on re-entry at all - which is the fact the
+                      * player most needs, because it is what makes "buy it now or lose it" true.
+                      */}
+                    {(biomeName ?? 'THIS').toUpperCase()} BIOME · VISIT {node.visited} · this stock is fixed for the run
                 </span>
                 <span className="rs-spacer" />
                 <span className="rs-scrap" aria-label="Scrap held">{scrap} <Icon name="scrap" size={12} /></span>
@@ -211,22 +279,27 @@ export default function MarketplaceNode({
                         </span>
                         <span className="rs-spacer" />
                         {/*
-                          * The re-roll is not in the mockup, and it is kept because it is not
-                          * decoration: `rerollMarketStock` buys exactly the visit-increment that
-                          * walking out and back in would buy (ticket 13), and deleting the button
-                          * would leave the ctx line's "re-rolls each visit" as a claim with no
-                          * reachable second visit at a dead-end market. It sits as a filter chip
-                          * rather than a `.btn` so it never competes with LEAVE.
+                          * TICKET 142 §7 — THE REFRESH IS NOW THE ONLY WAY A SHELF CHANGES.
+                          *
+                          * It used to buy the visit-increment that walking out and back in gave
+                          * away free, which is why it was cheap (10) and why the ctx line promised
+                          * a re-roll each visit. Both are gone: the stock is fixed for the run, so
+                          * this button is not a shortcut any more, it is the whole mechanism -
+                          * *"You can pay scrap to refresh it"* - and it refreshes the WHOLE stall.
+                          *
+                          * Still a filter chip rather than a `.btn`, so it never competes with
+                          * LEAVE. At 50 it costs more than the dearest card, which is the point:
+                          * it should read as an alternative to a purchase, not as a free look.
                           */}
                         <button
                             type="button"
                             className="rs-f"
                             onClick={reroll}
-                            disabled={scrap < REROLL_PRICE}
+                            disabled={scrap < refreshPrice}
                         >
-                            {scrap < REROLL_PRICE
-                                ? `REROLL ${REROLL_PRICE} scrap — ${shortBy(REROLL_PRICE)} SHORT`
-                                : `REROLL STOCK — ${REROLL_PRICE} scrap`}
+                            {scrap < refreshPrice
+                                ? `REFRESH ${refreshPrice} scrap — ${shortBy(refreshPrice)} SHORT`
+                                : `REFRESH STALL — ${refreshPrice} scrap`}
                         </button>
                     </div>
 
@@ -277,6 +350,45 @@ export default function MarketplaceNode({
                       * dead tile — a reducer has no error channel, so this is the only place it can
                       * be said.
                       */}
+                    {/*
+                      * TICKET 142 §7 — ONE BLUEPRINT, and one is the ruling: *"only offer 1 random
+                      * option."* It sits between the cards and the macros because that is its price
+                      * order (50, above the dearest card) and because it is the shelf's one
+                      * non-card body. Absent entirely on a route that can recruit nothing, rather
+                      * than drawn as a dead slot - an empty heading is a bug report waiting.
+                      */}
+                    {blueprintOffer && (
+                        <>
+                            <h2 className="mk-h">BLUEPRINT — one body, this route only</h2>
+                            <div className="mk-grid" style={STALL_TILE}>
+                                <button
+                                    type="button"
+                                    className={`rs-card mk-bp ${blueprintSold ? "sold" : ""}`}
+                                    style={{ ["--el" as string]: colorFor(GetMingmingData(blueprintOffer.speciesId).primaryElement) }}
+                                    disabled={blueprintSold || shortBy(blueprintOffer.price) > 0}
+                                    onClick={() => purchaseBlueprint(blueprintOffer)}
+                                >
+                                    <span className="rs-art" />
+                                    <span className="rs-cnm">{GetMingmingData(blueprintOffer.speciesId).name}</span>
+                                    <span className="rs-desc">
+                                        A blueprint. Spend it at a workshop or the ranch to assemble one.
+                                    </span>
+                                    <span className="rs-tags mk-tags">
+                                        <ElementMark element={GetMingmingData(blueprintOffer.speciesId).primaryElement} />
+                                    </span>
+                                    <span className={`rs-price ${blueprintSold ? "sold" : ""}`}>
+                                        {blueprintSold
+                                            ? "SOLD"
+                                            : shortBy(blueprintOffer.price) > 0
+                                                ? `${blueprintOffer.price} scrap · ${shortBy(blueprintOffer.price)} SHORT`
+                                                : `${blueprintOffer.price} scrap`}
+                                    </span>
+                                    <span className="rs-elbar" />
+                                </button>
+                            </div>
+                        </>
+                    )}
+
                     <h2 className="mk-h">
                         MACROS · {MACRO_SLOTS - macrosHeld}/{MACRO_SLOTS} slots free
                     </h2>
@@ -381,33 +493,61 @@ export default function MarketplaceNode({
                     </div>
                 </div>
 
+                {/*
+                  * TICKET 163b — the upgrade bench, above the sell panel because it is the verb
+                  * that IMPROVES a deck and selling is the one that shrinks it. Henry ruled the
+                  * bench appears at both stops (2026-09-24), so the same component is mounted in
+                  * `WorkshopNode` and at the gym gate; the only thing this call site decides is
+                  * whose once-per-visit allowance is being spent.
+                  */}
+                {/* TICKET 163d — the stall stocks AMPLIFIER (163 §3: "the boring one every OS can
+                    take and the workshop's default stock"). One rider, every body, for scrap. */}
+                {ranch && <PatchBench run={run} ranch={ranch} venue="shop" />}
+
+                <UpgradeBench
+                    run={run}
+                    benchKey={`${node.id}:${node.visited}`}
+                    allowance={UPGRADES_PER_VISIT}
+                    heading="UPGRADE — UP TO TWO CARDS IN YOUR DECK"
+                />
+
                 <div className="rs-panel mk-sell">
                     <h2>SELL — YOUR CARDS <span className="mk-sub">(deck + collection)</span></h2>
                     <div className="mk-rows">
                         {sellable.map((stack) => {
                             const face = cardFace(stack.instances[0].dataId);
-                            const blocked = stack.inDeck && atFloor;
+                            const blocked = stack.junk ? scrap < stack.price : stack.inDeck && atFloor;
                             return (
-                                <button
+                                <div
                                     key={stack.key}
-                                    type="button"
-                                    className="rs-row"
-                                    style={{ ['--el' as string]: colorFor(face.element) }}
-                                    disabled={blocked}
-                                    onClick={() => sell(stack)}
+                                    className="rs-wrap"
+                                    tabIndex={blocked ? 0 : undefined}
+                                    {...peekHandlers({ face, count: stack.instances.length })}
                                 >
-                                    <span className="rs-g">{face.cost}</span>
-                                    <ElementMark element={face.element} compact />
-                                    <span className="rs-rnm">{face.name}</span>
-                                    {stack.instances[0].dataId === GENERIC_HIT && <span className="rs-t">generic</span>}
-                                    <span className="rs-t">{stack.inDeck ? 'deck' : 'collection'}</span>
-                                    {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
-                                    <span className="rs-sellp">+{stack.price} <Icon name="scrap" size={11} /></span>
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="rs-row"
+                                        style={{ ['--el' as string]: colorFor(face.element) }}
+                                        disabled={blocked}
+                                        onClick={() => sell(stack)}
+                                    >
+                                        <span className="rs-g">{face.cost}</span>
+                                        <ElementMark element={face.element} compact />
+                                        <span className="rs-rnm">{face.name}</span>
+                                        {stack.instances[0].dataId === GENERIC_HIT && <span className="rs-t">generic</span>}
+                                        <span className="rs-t">{stack.inDeck ? 'deck' : 'collection'}</span>
+                                        {stack.instances.length > 1 && <span className="rs-x">×{stack.instances.length}</span>}
+                                        {stack.junk
+                                            ? <span className="rs-sellp mk-remove">Remove — {stack.price} <Icon name="scrap" size={11} /></span>
+                                            : <span className="rs-sellp">+{stack.price} <Icon name="scrap" size={11} /></span>}
+                                    </button>
+                                </div>
                             );
                         })}
                         {sellable.length === 0 && <span className="mk-empty">Nothing to sell.</span>}
                     </div>
+
+                    <CardPeek peek={peek} at={at} className="sell-peek" />
 
                     <p className="rs-hint mk-foot">
                         {atFloor
@@ -417,7 +557,7 @@ export default function MarketplaceNode({
                         {CARD_PRICE_BY_ENERGY.join('/')}; always less than buy, so there is no loop to farm.
                     </p>
                     <div className={`rs-pill mk-pill ${atFloor ? 'at-floor' : ''}`}>
-                        DECK <b>{run.deck.length}</b> / floor {floor}
+                        DECK <b>{reading.counted}</b> / floor {floor}{junkNote(reading)}
                     </div>
                 </div>
             </div>

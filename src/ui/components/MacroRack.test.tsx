@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import MacroRack from './MacroRack';
+import { macroTargetId } from '../utils/macroTarget';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import type { MacroSlots } from '../../engine/runTypes';
 
@@ -53,7 +54,7 @@ function board(over: Partial<IBattleState> = {}): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: [unit('p1'), unit('p2', { currentHp: 40 })],
         enemyParty: [unit('e1', { primaryElement: 'Water' })],
         playerDeck: { ownerId: 'PLAYER', deck: [], drawpile: [], hand: [], discard: [], exhaust: [] },
@@ -84,21 +85,12 @@ function render(
 }
 
 describe('MacroRack', () => {
-    it('never prints the word “power”, anywhere, for any macro', () => {
-        // Every macro in one rack is impossible (three slots), so the law is checked a rack at a
-        // time across the whole registry — including the tooltips, which live in `title` attributes
-        // and therefore ARE in the markup.
-        const racks: MacroSlots[] = [
-            ['surge', 'mend', 'venom_shot'],
-            ['kindle', 'rally', 'cripple'],
-            ['salve', 'free_exec', 'echo'],
-            ['cache_pull', 'recharge', 'revive'],
-            ['ping_sweep', null, null],
-        ];
-        for (const rack of racks) {
-            expect(render(rack)).not.toMatch(/power/i);
-        }
-    });
+    /*
+     * RETIRED 2026-09-11 with the law it enforced (Henry: *"Please remove that ruling."*). It swept
+     * every macro in the registry, tooltips included, for the word `power`. A macro may name its
+     * printed figure now, for the reason the ruling was dropped: with no target to measure against,
+     * the printed number is the only way to compare two of them.
+     */
 
     it('shows the TRUE damage a Surge will do, not the figure it is priced at', () => {
         const markup = render(['surge', null, null]);
@@ -153,5 +145,28 @@ describe('MacroRack', () => {
 
     it('says what a macro is: free and single use', () => {
         expect(render([null, null, null])).toContain('free · single use');
+    });
+});
+
+describe('172 — Revive finds the downed ally on its own', () => {
+    // Henry, 2026-09-30: "I can't revive, because I can't select my terminated mingming." The stage
+    // refuses clicks on a unit at 0 HP, so Revive's only legal target could never be picked.
+    it('is live with an enemy picked, landing on the one downed ally', () => {
+        const markup = render(['revive', null, null], { playerParty: [unit('p1'), unit('p2', { currentHp: 0 })] });
+        expect(markup).not.toContain('macro-slot rare blocked');
+        expect(macroTargetId(board({ playerParty: [unit('p1'), unit('p2', { currentHp: 0 })] }), { targeting: 'DOWNED_ALLY' }, 'p1', 'e1')).toBe('p2');
+    });
+
+    it('takes the picked downed ally when two are down, and stays dead with nobody down', () => {
+        const two = board({ playerParty: [unit('p1'), unit('p2', { currentHp: 0 }), unit('p3', { currentHp: 0 })] });
+        expect(macroTargetId(two, { targeting: 'DOWNED_ALLY' }, 'p1', 'p3')).toBe('p3');
+        expect(macroTargetId(two, { targeting: 'DOWNED_ALLY' }, 'p1', null)).toBe('p2');
+        expect(macroTargetId(board(), { targeting: 'DOWNED_ALLY' }, 'p1', null)).toBe('');
+        expect(render(['revive', null, null])).toContain('blocked');
+    });
+
+    it('leaves the other targetings as they were', () => {
+        expect(macroTargetId(board(), { targeting: 'ALLY' }, 'p1', null)).toBe('p1');
+        expect(macroTargetId(board(), { targeting: 'ENEMY' }, 'p1', null)).toBe('');
     });
 });

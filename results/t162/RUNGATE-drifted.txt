@@ -1,0 +1,42 @@
+[balance:run-gate] Ticket 61 — tier-1 run win rates against the three enemy grades.
+[balance:run-gate]   bands      gauntlet  (3 cells: gauntlet:fight0, gauntlet:fight1, gauntlet:fight2)
+[balance:run-gate]   iterations 2 per cell  ->  6 battles, PLAYER moves first (as a run does)
+[balance:run-gate]   sample     12 tuned OS ids, stride-5 rotation; one fresh run seed, region graph and gym offer per sample
+[balance:run-gate]   AI tier    full   maxTurns 60   registry 1:0cb291ad
+
+[balance:run-gate]   gauntlet:fight0 1/2 loss  52.4s into cell, 52s total
+[balance:run-gate]   gauntlet:fight0 2/2 loss  94.9s into cell, 1m 35s total
+[balance:run-gate]   gauntlet:fight1 1/2 loss  91.1s into cell, 3m 06s total
+[balance:run-gate]   gauntlet:fight1 2/2 WIN   140.5s into cell, 3m 55s total
+[balance:run-gate]   gauntlet:fight2 1/2 loss  40.4s into cell, 4m 36s total
+[balance:run-gate]   gauntlet:fight2 2/2 loss  127.4s into cell, 6m 03s total
+
+================================================================================================================
+  RUN GATE — ticket 61   ·   BLIND matchup (party picked without looking at the biome — the population average)
+  boss as shipped
+  BARE ARM — no counter tech. THIS IS THE GRADING ARM (ticket 75 ruling 2).
+  DECK PROGRESSION: engine-plus-3 — ticket 77 Track A. The player side is NOT the 18-card run-start deck every previous gym number was taken with.
+  all three leaders, evenly (unpinned)
+================================================================================================================
+
+  GAUNTLET (the gym's three fights)
+    GRADED ON THE COMPOUND — 0.0% chance of clearing all three fights (the product of the per-fight rates below). The 60% target is a CLEAR rate, not a fight rate;
+    a uniform gauntlet needs ~84.3% per fight to reach it. Pooled per-fight rate, for context: 16.7% (1/6).
+    target 60.0% (window 55.0%-65.0%)   compound 0.0% (1/6, -60.0pt)   95% CI 3.0%-56.4%
+    FAIL — outside the ±5 window by 55.0pt   [362.8s]  <- UNDER-SAMPLED: the 95% interval (±26.7pt) is wider than the ±5 window, so this verdict is not yet evidence
+    gauntlet fight 1/3         3v3    0/2   =   0.0%  decisive=  0.0%  avgTurns= 6.5  ftk=0  stalled=0  94.9s
+      player: 462.0 dmg/turn  payoff=3.50/fight  dead=14.8%  deck=27  | enemy: 515.6 dmg/turn
+    gauntlet fight 2/3         3v3    1/2   =  50.0%  decisive= 50.0%  avgTurns= 4.0  ftk=0  stalled=0  140.5s
+      player: 495.9 dmg/turn  payoff=3.00/fight  dead=24.0%  deck=27  | enemy: 845.6 dmg/turn
+    gauntlet fight 3/3 (boss)  3v3    0/2   =   0.0%  decisive=  0.0%  avgTurns= 3.0  ftk=0  stalled=0  127.4s
+      player: 443.0 dmg/turn  payoff=3.50/fight  dead=19.0%  deck=27  | enemy: 1106.2 dmg/turn
+
+    clears all three (product of the per-fight rates): 0.0%  — UNBANDED, and an UPPER BOUND: the gauntlet carries HP between fights and this
+      harness fights each one from full. See `gauntletCompound` for why.
+
+----------------------------------------------------------------------------------------------------------------
+  1 BAND(S) OUTSIDE WINDOW: gauntlet
+  1 BAND(S) UNDER-SAMPLED (gauntlet): their 95% interval is wider than the ±5 window, so the verdicts above are provisional. Raise --iterations.
+  wall clock 6m 03s (362805 ms) for 6 battles
+  60.5s per battle averaged over every cell
+----------------------------------------------------------------------------------------------------------------

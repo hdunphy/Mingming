@@ -3,17 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { BOSS_IVS, GAUNTLET_ENEMY_COUNT, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { ENEMY_LADDER, RUN_ENEMY_MODE } from '../../engine/run/encounter';
-import { MingmingRegistry, getDeckForOS } from '../../engine/data/mingmingRegistry';
+import { MingmingRegistry, getDeckForOS, LAUNCH_SPECIES } from '../../engine/data/mingmingRegistry';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import { ElementalMatrix } from '../../engine/combatUtils';
 import { minimumActiveDeck } from '../../engine/run/createRun';
-import { GYM_REGISTRY } from '../../engine/run/gyms';
+import { GYM_REGISTRY, speciesOwningFirmware } from '../../engine/run/gyms';
 import { authoredBossFor } from '../../engine/run/bosses';
 import {
     CELLS,
     describeBossOverride,
     NO_FIRMWARE_OS,
     RUN_GATE_TARGETS,
+    FLOOR_BANDS,
     TUNED_OS_IDS,
     bandVerdict,
     lineupFor,
@@ -215,7 +216,20 @@ describe('run gate — the fight it builds is the fight the run rolls', () => {
 
 describe('run gate — the banding', () => {
     it('holds ticket 61\'s three ruled targets', () => {
-        expect(RUN_GATE_TARGETS).toEqual({ wild: 0.95, elite: 0.75, gauntlet: 0.60 });
+        // Henry, 2026-09-25 (night): "at least an 85% chance at each node", wilds only. Was 0.90
+        // that morning and 0.95 before it — see the block on the constant.
+        expect(RUN_GATE_TARGETS).toEqual({ wild: 0.85, elite: 0.75, gauntlet: 0.60 });
+    });
+
+    it('grades the wild band as a FLOOR - at least 85, with no ceiling', () => {
+        expect(FLOOR_BANDS.has('wild')).toBe(true);
+        expect(bandVerdict(0.85, 0.85, 'wild')).toBe(true);
+        expect(bandVerdict(1.00, 0.85, 'wild')).toBe(true);    // a cake walk is not a miss
+        expect(bandVerdict(0.849, 0.85, 'wild')).toBe(false);
+        // The elite and the gauntlet keep the ±5 window in both directions.
+        expect(FLOOR_BANDS.has('elite')).toBe(false);
+        expect(bandVerdict(0.81, 0.75, 'elite')).toBe(false);
+        expect(bandVerdict(0.54, 0.60, 'gauntlet')).toBe(false);
     });
 
     it('passes exactly on the edge of the +-5 window and fails just outside it', () => {
@@ -374,8 +388,8 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
          * kept printing.
          */
         const expected: Readonly<Record<string, { counter: string; filler: string }>> = {
-            gym_tidewrack: { counter: 'Nature', filler: 'Water' },  // vs 2 Water + skoll_v2 (Fire)
-            gym_emberfall: { counter: 'Water', filler: 'Fire' },    // vs 2 Fire  + ratatoskr_v2 (Nature)
+            gym_tidewrack: { counter: 'Nature', filler: 'Water' },  // vs 2 Water + ratatoskr_v1 (Nature)
+            gym_emberfall: { counter: 'Water', filler: 'Fire' },    // vs 2 Fire  + kraken_v2 (Water)
             gym_rootfall: { counter: 'Fire', filler: 'Nature' },    // vs 2 Nature + jormungandr_v2 (Water)
         };
         const cell = CELLS.find((c) => c.id === 'gauntlet:fight2')!;
@@ -405,12 +419,36 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
                  * answer. That is the fight, and it is why 2-1 rather than 3-0.
                  */
                 expect(beats(shape.counter, GYM_REGISTRY[gymId].element)).toBe(true);
-                expect(beats(odd, shape.counter), `${gymId}: the odd member eats my counter`).toBe(true);
-                expect(beats(shape.filler, odd), `${gymId}: my one answers the odd member`).toBe(true);
-                // Nothing the boss fields is FOOD for the filler's own element beyond that, and the
-                // filler is never itself food — it shares the leader's element, so their pair is
-                // neutral into it.
-                expect(bossElements.some((b) => beats(b, shape.filler))).toBe(false);
+                /*
+                 * ══ TICKET 28b RESTORES RULING 3 AT ALL THREE GYMS — AND THE TWO RULES TURN OUT
+                 * TO BE THE SAME RULE STATED FROM OPPOSITE ENDS. ══
+                 *
+                 * 28a composed the trios for synergy and broke this clause at two of three gyms:
+                 * Emberfall's guest was `kraken_v2` (Water — the player's counter element itself,
+                 * not the answer to it) and Tidewrack's was `ratatoskr_v1` (Nature, likewise).
+                 *
+                 * Henry's 28b ruling reads *"the guest is the element the gym BEATS, never the
+                 * player's counter."* Walk the triangle and that is ruling 3 exactly:
+                 *
+                 *     gym Fire   → counter Water  → guest Nature (Fire beats Nature) → Nature beats Water ✓
+                 *     gym Water  → counter Nature → guest Fire   (Water beats Fire)  → Fire beats Nature ✓
+                 *     gym Nature → counter Fire   → guest Water  (Nature beats Water)→ Water beats Fire  ✓
+                 *
+                 * In a three-element cycle *"the element I beat"* and *"the element that beats the
+                 * element that beats me"* are the same element, so one heuristic is the other read
+                 * backwards. That is why this assertion goes back to being universal rather than to
+                 * carrying an exception list — and it is worth saying out loud, because 28a's
+                 * synergy heuristic was the only one of the three that could ever break it.
+                 */
+                const ruling3 = beats(odd, shape.counter);
+                expect(ruling3, `${gymId}`).toBe(true);
+                {
+                    expect(beats(shape.filler, odd), `${gymId}: my one answers the odd member`).toBe(true);
+                    // Nothing the boss fields is FOOD for the filler's own element beyond that, and
+                    // the filler is never itself food — it shares the leader's element, so their
+                    // pair is neutral into it.
+                    expect(bossElements.some((b) => beats(b, shape.filler))).toBe(false);
+                }
             }
         }
     });
@@ -487,7 +525,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          */
         const base = at(driverIndex);
         const lowered = at(driverIndex, { ivs: { hp: 10, attack: 10, defense: 10 } });
-        const stripped = at(driverIndex, { relics: 'off' });
+        const stripped = at(driverIndex, { driver: 'off' });
 
         for (const arm of [lowered, stripped]) {
             expect(decksOf(arm)).toBe(decksOf(base));
@@ -523,7 +561,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          * research run-lines quote `--boss-relics off`.
          */
         const base = at(driverIndex);
-        const arm = at(driverIndex, { relics: 'off' });
+        const arm = at(driverIndex, { driver: 'off' });
 
         expect(base.enemyDrivers.length).toBeGreaterThan(0);
         expect(arm.enemyDrivers).toEqual([]);
@@ -545,7 +583,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
             const cell = CELLS.find((c) => c.id === id)!;
             const plain = sampleFight(cell, 3, 'favourable');
             const overridden = sampleFight(cell, 3, 'favourable', {
-                ivs: { hp: 10, attack: 10, defense: 10 }, relics: 'off',
+                ivs: { hp: 10, attack: 10, defense: 10 }, driver: 'off',
             });
             expect(overridden.setup.enemies).toEqual(plain.setup.enemies);
         }
@@ -577,7 +615,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
          * That is the failure this test exists for; the §12 arms were read off this flag.
          */
         const base = at(driverIndex);
-        const stripped = at(driverIndex, { relics: 'off' });
+        const stripped = at(driverIndex, { driver: 'off' });
 
         expect(base.enemyDrivers.length).toBeGreaterThan(0);
         expect(stripped.enemyDrivers).toEqual([]);
@@ -597,7 +635,7 @@ describe('the boss isolation overrides (ticket 67, rulings round 3)', () => {
         expect(describeBossOverride(undefined)).toBe('boss as shipped');
         expect(describeBossOverride({})).toBe('boss as shipped');
         expect(describeBossOverride({ ivs: { hp: 10, attack: 10, defense: 10 } })).toContain('10/10/10');
-        expect(describeBossOverride({ relics: 'off' })).toContain('signature passive OFF');
+        expect(describeBossOverride({ driver: 'off' })).toContain('signature passive OFF');
     });
 });
 
@@ -657,6 +695,25 @@ describe('band verdicts grade the quantity the target describes', () => {
         // number it is printing.
         for (const id of ['wild', 'elite'] as const) {
             expect(bandVerdict(RUN_GATE_TARGETS[id], RUN_GATE_TARGETS[id])).toBe(true);
+        }
+    });
+});
+
+/**
+ * TICKET 154 §6 — the gate's firmware→species resolution is now `run/gyms.speciesOwningFirmware`,
+ * which searches the WHOLE registry where the local copy searched `LAUNCH_SPECIES` only. That is the
+ * same answer for every id this gate can hold, and this is the sentence that makes it a fact rather
+ * than an argument: `TUNED_OS_IDS` is built from `LAUNCH_SPECIES`, and a firmware belongs to exactly
+ * one species, so the wider search cannot reach a species the narrow one would have skipped.
+ */
+describe('154 §6 — the shared resolution answers the same as the copy it replaced', () => {
+    it('resolves every tuned firmware to a LAUNCH species, and to exactly one', () => {
+        expect(TUNED_OS_IDS.length).toBeGreaterThan(0);
+        for (const osId of TUNED_OS_IDS) {
+            const owners = Object.values(MingmingRegistry).filter((d) => d.availableOS.includes(osId));
+            expect(owners, `${osId} is owned by ${owners.length} species`).toHaveLength(1);
+            expect(speciesOwningFirmware(osId)).toBe(owners[0].id);
+            expect(LAUNCH_SPECIES, `${osId} resolves outside the launch cut`).toContain(owners[0].id);
         }
     });
 });

@@ -71,8 +71,10 @@ export function createEmptyRanch(): IRanchState {
         codex: { seen: [], played: [], species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: 0,
+        tierClears: {},
         seenTips: [],
         codexMilestones: [],
+        runsCompleted: 0,
     };
 }
 
@@ -124,6 +126,20 @@ const gameSlice = createSlice({
         addBlueprint: (state, action: PayloadAction<string>) => {
             const counts = state.blueprints as Record<string, number>;
             counts[action.payload] = (counts[action.payload] ?? 0) + 1;
+        },
+
+        /**
+         * TICKET 168e — **spend one blueprint without building anything** (an event that takes a
+         * blueprint as its price: the Driver Shrine's offering). Refuses, silently and as the slice
+         * always does, when the species has none; deletes the key at zero so the ranch never holds a
+         * `0` entry, the way `assembleMingming` does.
+         */
+        spendBlueprint: (state, action: PayloadAction<string>) => {
+            const counts = state.blueprints as Record<string, number>;
+            const held = counts[action.payload] ?? 0;
+            if (held < 1) return;
+            counts[action.payload] = held - 1;
+            if (counts[action.payload] === 0) delete counts[action.payload];
         },
 
         /**
@@ -292,6 +308,20 @@ const gameSlice = createSlice({
             state.highestTierCleared = action.payload;
         },
 
+        /**
+         * Ticket 169d: record that `gymId` was beaten at `tier`. Idempotent (a tier is stored once per
+         * gym) and each gym's list stays sorted, so `tierClears` reads the same however the clears
+         * arrived. A negative, fractional or non-numeric tier is ignored, like `recordTierCleared`.
+         */
+        recordGymTierClear: (state, action: PayloadAction<{ gymId: string; tier: number }>) => {
+            const { gymId, tier } = action.payload;
+            if (!Number.isInteger(tier) || tier < 0) return;
+            const clears = state.tierClears as Record<string, number[]>;
+            const list = clears[gymId] ?? [];
+            if (list.includes(tier)) return;
+            clears[gymId] = [...list, tier].sort((a, b) => a - b);
+        },
+
         // --- OS Management ---
         updateMingmingOS: (state, action: PayloadAction<{ id: string, activeOS: string }>) => {
             const { id, activeOS } = action.payload;
@@ -345,13 +375,31 @@ const gameSlice = createSlice({
             void state;
             return createEmptyRanch();
         },
-    }
+    },
+
+    /**
+     * TICKET 59: the ranch counts runs that ENDED, wherever they ended.
+     *
+     * Matched on the action TYPE rather than by importing `endRun`, because `runSlice` already
+     * reaches this way round and an import here would close the cycle. The three dispatch sites
+     * (defeat and victory in `BattleArena`, abandon in `RunScreen`) all pass through this one
+     * reducer, which is the point - a fourth ending added later is counted without finding it.
+     */
+    extraReducers: (builder) => {
+        builder.addMatcher(
+            (action: { type: string }) => action.type === 'run/endRun',
+            (state) => {
+                state.runsCompleted = (state.runsCompleted ?? 0) + 1;
+            },
+        );
+    },
 });
 
 export const {
     addToRoster,
     removeFromRoster,
     addBlueprint,
+    spendBlueprint,
     assembleMingming,
     recordCodexSeen,
     recordCodex,
@@ -360,6 +408,7 @@ export const {
     skipTips,
     markGymCleared,
     recordTierCleared,
+    recordGymTierClear,
     updateMingmingOS,
     swapOS,
     loadSave,

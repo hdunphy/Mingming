@@ -6,6 +6,8 @@
   THREE gyms/bosses.
 - **The gym is a GAUNTLET: three fights, NO healing between them.** The boss's team draws
   ONE mingming from each of the run's biomes - the run trains you for its own final exam.
+  *Amended by ticket 173 (Henry, 2026-09-30): every member still standing repairs 30% of max HP
+  between gauntlet fights; the downed stay down until a Revive.*
 - **FULL HEAL between regular nodes** (tuned fights end winners at ~20 HP - carry-over
   would death-spiral). The run-level HP economy lives INSIDE the gauntlet: sustain decks,
   potions, blood costs all matter across the three unhealed fights.

@@ -1,0 +1,19 @@
+
+=== 157-r1 — FIGHT 1, against the ruled target of 95% ===
+
+starter              n    win%   vs target    mean turns   survivor HP
+fenrir_v1           200   71.0%   -24.0pt        2.6        14%
+fenrir_v2           200   84.0%   -11.0pt        3.7        43%
+skoll_v1            200   61.0%   -34.0pt        3.6        22%
+skoll_v2            200   95.0%   +0.0pt         2.7        47%
+kraken_v1           200   94.5%   -0.5pt         3.5        41%
+kraken_v2           200   86.5%   -8.5pt         3.9        31%
+jormungandr_v1      200   19.0%   -76.0pt        5.4         6%
+jormungandr_v2      200   98.0%   +3.0pt         3.7        44%
+ratatoskr_v1        200   73.0%   -22.0pt        5.5        46%
+ratatoskr_v2        200   70.0%   -25.0pt        4.1        23%
+huldra_v1           200   83.0%   -12.0pt        6.4        46%
+huldra_v2           200   75.0%   -20.0pt        6.9        33%
+
+POOLED: 1820/2400 = 75.8%  (95% CI 74.1–77.5)  ·  target 95%  ·  -19.2pt
+10 of 12 starters under target; worst jormungandr_v1 19%, skoll_v1 61%, ratatoskr_v2 70%

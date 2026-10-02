@@ -28,7 +28,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { CELLS, sampleFight } from './runGate';
+import { CELLS, batchOptionsFor, sampleFight, sampleFightFor } from './runGate';
+import { runBatch } from './runBatch';
+import { buildScenarioState } from '../scenarios/buildScenarioState';
+import { DRIVER_ROOT_ROT, getDriver } from '../../engine/data/driverRegistry';
+import { FIRMWARE_REGISTRY } from '../../engine/data/firmwareRegistry';
 import { handbuiltParty } from './handbuiltParties';
 import { GYM_COUNTER_ANSWERS, GYM_SELECTIVE_ANSWERS } from '../../engine/run/marketplace';
 import { applyRegistryTweaks, describeTweaks, tweakEnemyDeck, validateTweaks } from './experimentalTweaks';
@@ -98,7 +102,7 @@ describe('every measureCell option reaches the fight', () => {
 
     it('`--tweak` threads, and does not perturb what a paired arm holds fixed', () => {
         /*
-         * The live knob (`rootfall-rat-v2`) is applied process-wide before any fight is built, so
+         * The live knobs (`root-rot-c1` / `-c3`) are applied process-wide before any fight is built, so
          * what `sampleFight` must guarantee is the NEGATIVE: passing the list changes nothing about
          * the seed, the roll or the deck. The seam is kept even when no knob reads it here, because
          * the threading guarantee was earned by a bug — `--toolbox` declared, parsed, banner-printed
@@ -158,7 +162,7 @@ describe('every measureCell option reaches the fight', () => {
 
         // A3 must be the SAME cards plus generics, or it is not a control for the toolbox arm.
         expect([...blanks.setup.player.deck].slice(0, 18)).toEqual([...bare.setup.player.deck]);
-        expect([...blanks.setup.player.deck].slice(18)).toEqual(['water_slap', 'water_slap', 'water_slap']);
+        expect([...blanks.setup.player.deck].slice(18)).toEqual(['tackle', 'tackle', 'tackle']);
 
         // Nothing a paired arm holds fixed may move.
         for (const armed of [full, plus3, blanks]) {
@@ -176,7 +180,7 @@ describe('every measureCell option reaches the fight', () => {
         const bare = sampleFight(CELL, 0, 'favourable', undefined, GYM, undefined, false, [], undefined, 'bare');
 
         const tuned = new Set(f.lineup.flatMap((os) => getDeckForOS(os.replace(/_v\d+$/, ''), os)));
-        const extras = [...f.setup.player.deck].filter((id) => id !== 'water_slap');
+        const extras = [...f.setup.player.deck].filter((id) => id !== 'tackle');
         for (const id of extras) {
             expect(tuned.has(id), `${id} is not in any member's tuned list`).toBe(true);
         }
@@ -228,8 +232,8 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
         });
     }
 
-    it('an unknown knob names the live one rather than failing vaguely', () => {
-        expect(() => validateTweaks(['nonsense'])).toThrow(/only live knob is "rootfall-rat-v2"/);
+    it('an unknown knob names the live ones rather than failing vaguely', () => {
+        expect(() => validateTweaks(['nonsense'])).toThrow(/live knobs are "root-rot-c1"/);
     });
 
     it('the empty list is accepted and does nothing', () => {
@@ -238,43 +242,155 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
         expect(describeTweaks([])).toEqual([]);
     });
 
-    it('`rootfall-rat-v2` swaps exactly one body of the authored trio', () => {
+    it('`rootfall-rat-v2` is RETIRED — 28a shipped the swap it was there to measure', () => {
         /*
-         * Ticket 76 arm 4. Snapshotted and restored because this mutates a process-global — without
-         * that, every test after this one in the same worker would fight a Rootfall boss nobody
-         * authored, which is the contamination this whole module exists to keep out of the tree.
+         * TICKET 28a (Henry, 2026-09-24). Ticket 76 arm 4's candidate was *"Rootfall fields
+         * ratatoskr_v2 in place of ratatoskr_v1"*, and 28a made that the authored trio — on the
+         * synergy argument rather than on this knob's numbers, which were never run.
+         *
+         * A knob whose experiment has shipped is not left switched off "in case" (this module's own
+         * header): it is retired, and the refusal names the ruling. Asserted rather than deleted,
+         * because the name is printed in committed research docs and shell history.
          */
-        const before = structuredClone(AUTHORED_BOSSES['gym_rootfall']);
-        try {
-            expect(applyRegistryTweaks([ROOT_KNOB])).toEqual([ROOT_KNOB]);
-
-            const after = AUTHORED_BOSSES['gym_rootfall'];
-            expect(after.members.map((m) => m.os))
-                .toEqual(before.members.map((m) => (m.os === 'ratatoskr_v1' ? 'ratatoskr_v2' : m.os)));
-            expect(after.members).toHaveLength(before.members.length);
-            expect(after.members.map((m) => m.species), 'the SPECIES must not move — only the firmware')
-                .toEqual(before.members.map((m) => m.species));
-            expect(after.driver, 'ROOT ROT is a separate arm and must not ride along').toBe(before.driver);
-        } finally {
-            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = before;
+        expect(AUTHORED_BOSSES['gym_rootfall'].members.map((m) => m.os)).toContain('ratatoskr_v2');
+        expect(AUTHORED_BOSSES['gym_rootfall'].members.map((m) => m.os)).not.toContain('ratatoskr_v1');
+        for (const fn of [validateTweaks, describeTweaks, applyRegistryTweaks]) {
+            expect(() => fn([ROOT_KNOB])).toThrow(/28a/);
         }
     });
 
-    it('refuses if the trio no longer fields the body it means to swap', () => {
-        const before = structuredClone(AUTHORED_BOSSES['gym_rootfall']);
-        try {
-            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = {
-                ...before,
-                members: before.members.map((m) => (m.os === 'ratatoskr_v1' ? { ...m, os: 'ratatoskr_v2' } : m)),
-            };
-            expect(() => applyRegistryTweaks([ROOT_KNOB])).toThrow(/no longer fields ratatoskr_v1/);
-        } finally {
-            (AUTHORED_BOSSES as Record<string, typeof before>)['gym_rootfall'] = before;
-        }
+    it('names the ruling that retired it, not a stale-trio error', () => {
+        /*
+         * This case used to assert the knob's OWN staleness guard — *"Rootfall no longer fields
+         * ratatoskr_v1, so this has nothing to swap"* — by mutating the trio to simulate exactly the
+         * change 28a then made for real. The guard fired as designed, which is how the gate caught
+         * 28a in the first place.
+         *
+         * A guard that has done its job is not the message the next reader needs. The knob is
+         * retired now, so the refusal names the RULING (*"COMMITTED by 28a"*) rather than describing
+         * a mismatch and sending them to ticket 76 to find out why.
+         */
+        expect(() => applyRegistryTweaks([ROOT_KNOB])).toThrow(/COMMITTED by steam-release ticket 28a/);
+        expect(() => applyRegistryTweaks([ROOT_KNOB])).not.toThrow(/no longer fields/);
     });
 
     it('`tweakEnemyDeck` returns the pile untouched', () => {
         const pile = ['undertow', 'ink_stream', 'serpents_coil'];
         expect(tweakEnemyDeck(pile, [])).toEqual(pile);
+    });
+});
+
+/*
+ * TICKET 77 TRACK B + C — three new flags, three threading cases, all through `sampleFightFor` /
+ * `batchOptionsFor`: the two functions `measureCell` ACTUALLY calls. The cases above call
+ * `sampleFight` by hand with the right arguments, which is a test of `sampleFight` and not of the
+ * arm; the `--toolbox` bug lived precisely in the gap between the two. These close it for the new
+ * flags, and each one was proven to FAIL with the threading line commented out (research/77 §B.0).
+ */
+describe('ticket 77: the player-side flags reach the fight through measureCell\'s own seams', () => {
+    const ROOTFALL = 'gym_rootfall';
+    const base = { iterations: 1, matchup: 'favourable' as const, gymId: ROOTFALL };
+
+    it('`--player-driver` lands on setup.player.drivers, and on the built player entities', () => {
+        const bare = sampleFightFor(CELL, 0, base);
+        const armed = sampleFightFor(CELL, 0, { ...base, playerDriver: 'driver_antivenom' });
+
+        expect([...bare.setup.player.drivers], 'the bare arm holds no Driver').toEqual([]);
+        expect([...armed.setup.player.drivers]).toEqual(['driver_antivenom']);
+
+        // Nothing a paired arm holds fixed may move.
+        expect(armed.setup.seed).toBe(bare.setup.seed);
+        expect(armed.enemy).toEqual(bare.enemy);
+        expect(armed.lineup).toEqual(bare.lineup);
+        expect([...armed.setup.player.deck]).toEqual([...bare.setup.player.deck]);
+        expect(armed.enemyDrivers).toEqual(bare.enemyDrivers);
+
+        // And the Driver is really ON the fighters, not merely on the setup — `createBattleState`
+        // applies it through the same `applyDrivers` the game uses.
+        const built = buildScenarioState({ ...armed.setup, seed: armed.setup.seed });
+        for (const member of built.playerParty) {
+            expect(member.hooks, `${member.id} did not receive the Driver's hook`).toContain('driver_antivenom_purge');
+        }
+        for (const enemy of built.enemyParty) {
+            expect(enemy.hooks ?? []).not.toContain('driver_antivenom_purge');
+        }
+    });
+
+    it('`--player-driver` with an unknown id throws rather than measuring the bare arm', () => {
+        expect(() => sampleFightFor(CELL, 0, { ...base, playerDriver: 'driver_nonsense' })).toThrow(/unknown --player-driver/);
+    });
+
+    it('`--macros` hands runBatch a policy, and the policy fires on turn 1 of the boss fight', () => {
+        const fight = sampleFightFor(CELL, 0, base);
+        const bareOptions = batchOptionsFor(CELL, fight, base);
+        const armedOptions = batchOptionsFor(CELL, fight, { ...base, macros: 'mixed' });
+
+        expect(bareOptions.playerPolicy, 'the bare arm must carry NO policy').toBeUndefined();
+        expect(armedOptions.playerPolicy).toBeDefined();
+        expect(armedOptions.playerPolicy!.held).toEqual(['surge', 'cripple', 'mend']);
+
+        // One turn of a real 3v3 is enough: rule 2 empties the rack before the first card. A
+        // zero-fire result here would be the VOID arm ticket 77 says to STOP on. The search is
+        // narrowed to its cheapest setting because the CARD AI's quality is not what is under test
+        // — only that the policy is consulted and fires — and a full-lookahead turn is ~70 s.
+        const batch = runBatch(fight.setup, { ...armedOptions, maxTurns: 1, aiBeam: 1, enemyAiTier: 'greedy' });
+        const fired = batch.runs[0].macrosFired ?? [];
+        expect(fired.length, 'the boss-turn-1 rule fires every held macro').toBe(3);
+        expect(fired.map((f) => f.macroId).sort()).toEqual(['cripple', 'mend', 'surge']);
+        for (const f of fired) {
+            expect(f.turn).toBe(1);
+            expect(['boss-turn-1', 'lethal']).toContain(f.rule);
+        }
+        expect(armedOptions.playerPolicy!.held, 'the rack is spent').toEqual([]);
+    });
+
+    it('`--macros` on a LEAD-IN cell builds a policy whose boss rule is off', () => {
+        const fight0 = CELLS.find((c) => c.id === 'gauntlet:fight0')!;
+        const fight = sampleFightFor(fight0, 0, base);
+        const options = batchOptionsFor(fight0, fight, { ...base, macros: 'surge3' });
+        expect(options.playerPolicy).toBeDefined();
+        // Turn 1 of a lead-in: no lethal on a full-HP enemy from a 30-power Surge, no boss rule,
+        // and surge3 holds no Mend — so the policy must yield to the card AI.
+        const built = buildScenarioState({ ...fight.setup, seed: fight.setup.seed });
+        expect(options.playerPolicy!.next(built)).toBeNull();
+        expect(options.playerPolicy!.held).toHaveLength(3);
+    });
+
+    it('`--tweak root-rot-c1` reshapes the Driver the Rootfall boss actually fields', () => {
+        const before = FIRMWARE_REGISTRY[DRIVER_ROOT_ROT];
+        try {
+            expect(applyRegistryTweaks(['root-rot-c1'])).toEqual(['root-rot-c1']);
+
+            const fight = sampleFightFor(CELL, 0, base);
+            expect(fight.enemyDrivers, 'Rootfall\'s boss still runs ROOT ROT by id').toEqual([DRIVER_ROOT_ROT]);
+
+            const driver = getDriver(DRIVER_ROOT_ROT)!;
+            expect(driver.hooks.map((h) => h.id)).toEqual(['driver_root_rot_c1_creep', 'driver_root_rot_c1_reset']);
+            expect(driver.hooks.map((h) => h.id)).not.toContain('driver_root_rot_spread');
+
+            const built = buildScenarioState({ ...fight.setup, seed: fight.setup.seed });
+            for (const enemy of built.enemyParty) {
+                expect(enemy.hooks).toContain('driver_root_rot_c1_creep');
+                expect(enemy.hooks).not.toContain('driver_root_rot_spread');
+            }
+        } finally {
+            FIRMWARE_REGISTRY[DRIVER_ROOT_ROT] = before;
+        }
+    });
+
+    it('`--tweak root-rot-c2` is REFUSED — the target cannot be expressed', () => {
+        expect(() => validateTweaks(['root-rot-c2'])).toThrow(/NOT BUILT/);
+        expect(() => applyRegistryTweaks(['root-rot-c2'])).toThrow(/RANDOM_ENEMY may pick the context target/);
+        expect(() => describeTweaks(['root-rot-c2'])).toThrow();
+    });
+
+    it('a ROOT ROT candidate refuses to stack on another', () => {
+        const before = FIRMWARE_REGISTRY[DRIVER_ROOT_ROT];
+        try {
+            applyRegistryTweaks(['root-rot-c3']);
+            expect(() => applyRegistryTweaks(['root-rot-c1'])).toThrow(/no longer carries driver_root_rot_spread/);
+        } finally {
+            FIRMWARE_REGISTRY[DRIVER_ROOT_ROT] = before;
+        }
     });
 });

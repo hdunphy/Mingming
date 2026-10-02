@@ -1,4 +1,5 @@
 import type { IMingmingDefinition } from "../types";
+import { reportRegistryMiss } from './registryMiss';
 
 export const MingmingRegistry: Record<string, IMingmingDefinition> = {
     "fenrir": {
@@ -28,8 +29,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // (ticket 84), and three cards that read or repair his own bar were the deck doing the
         // OS's job badly. Measured 24.4 -> 59.5 on the full grid.
         decks: {
-            "fenrir_v1": ["ragnarok_edge", "ragnarok_edge", "battle_rhythm", "war_pact", "war_pact", "unbound_fang", "unbound_fang", "blood_rite", "blood_rite"],
-            "fenrir_v2": ["ignite", "ignite", "molten_core", "molten_core", "slag_strike", "water_slap", "pyre_sacrifice", "ash_communion", "cinder_lance"]
+            "fenrir_v1": ["war_pact", "war_pact", "desperate_strike", "unbound_fang", "ragnarok_edge", "ragnarok_edge", "glass_cannon", "forage"],
+            "fenrir_v2": ["ignite", "ignite", "ember_jab", "slag_strike", "cinder_lance", "sharp_edge", "flashover", "forage"]
         },
         /*
          * THE FIVE-CARD ENGINE — ticket 61's amended spec (Henry, 2026-08-26, ratified table).
@@ -54,9 +55,9 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             // v1: the finisher, the 0-cost that builds the pile, and the card the pile buys.
             // Ticket 136i replaced `berserk_rush` and `crimson_draw` here because they left the
             // deck; a kit must be a sub-multiset of it (startKits.test.ts).
-            "fenrir_v1": ["ragnarok_edge", "war_pact", "unbound_fang", "battle_rhythm", "blood_rite"],
+            "fenrir_v1": ["war_pact", "desperate_strike", "ragnarok_edge", "glass_cannon", "forage"],
             // v2: the Burn payoff over its own ignition. `ignite` x2 because one is a coin flip.
-            "fenrir_v2": ["pyre_sacrifice", "ignite", "ignite", "molten_core", "slag_strike"]
+            "fenrir_v2": ["ignite", "ignite", "ember_jab", "slag_strike", "cinder_lance"]
         },
         moves: [
             {
@@ -117,15 +118,25 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // and no Sharp (nothing in the deck scaled off Sharp), and the two surge_protections
         // and two water_slaps became boiling_surge x2 and scald x2 - a Burn setup the boosted
         // hammers then cash. Burn caps at 4, so the two feeds fill it and stop.
+        // Ticket 167d (Henry, 2026-09-28): v1's `slander` became a Nature card, so its slot is a second
+        // `crushing_depths` ("Replace with crushing depths I think"). The Tidewrack boss's Kraken runs this list.
         decks: {
-            "kraken_v1": ["whirlpool_v2", "whirlpool_v2", "pressure_point", "pressure_point", "ink_stream", "ink_stream", "crushing_depths", "undertow"],
-            "kraken_v2": ["maelstrom", "hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge", "scald", "scald"]
+            "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "ink_stream", "pressure_point", "crushing_depths", "crushing_depths"],
+            // TICKET 172 (Henry, 2026-09-30: "I want another damaging card ... just a 1e 30p card"):
+            // `surge_protection` joins the deck so the kit can open on it. A 9th card, not a swap.
+            "kraken_v2": ["capacitor", "capacitor", "tide_pool", "boiling_surge", "boiling_surge", "scald", "hydro_blast", "tackle", "surge_protection"]
         },
         startKits: {
             // v1: the draw payoff over the cards that fill the pile it counts.
-            "kraken_v1": ["ink_stream", "undertow", "whirlpool_v2", "pressure_point", "pressure_point"],
-            // v2: the 3e payoff, the ramp that reaches it, the mitigation that survives to cash it.
-            "kraken_v2": ["hydro_blast", "capacitor", "capacitor", "boiling_surge", "boiling_surge"]
+            "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "pressure_point"],
+            // v2: the 2e payoff (boiling_surge), the ramp that reaches it, and scald to load it.
+            // TICKET 171e took the kit's `tackle` out (with the three generic hits it opened on four
+            // Tackles in eight cards) and put in a second `capacitor`. TICKET 172 (Henry: "Capacitor
+            // is not good. I want another damaging card.") makes that slot `surge_protection`: 25
+            // power for 1e, Water, and its refund rides on `tide_pool`'s draw. Tagged glue, so the
+            // one-payoff rule (157-r1) still counts `boiling_surge` alone; `venom_fang` (30 power)
+            // is tagged a scalar and would have made two.
+            "kraken_v2": ["capacitor", "tide_pool", "boiling_surge", "scald", "surge_protection"]
         },
         moves: [
             {
@@ -240,7 +251,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         decks: {
             // TREACHERY consume-cycle: get hit, grow the pile, DEVOUR it. `crimson_draw`
             // extends the feeding window by keeping her alive inside her own drawback.
-            "skoll_v1": ["sun_devourer", "sun_devourer", "fury_strike", "fury_strike", "brute_force", "battle_rhythm", "crimson_draw", "crimson_draw", "water_slap"],
+            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "flare_burst", "brute_force", "snap", "howl", "forage"],
             // Solar ignition: `strength_burst` lights the core, `overdrive`/`glass_cannon` nuke
             // under +75%. `all_in`'s 3 self-Burn is the first card in the game that expresses
             // symmetric detonation risk - at cap 4 it sits one stray stack from blowing up on
@@ -254,7 +265,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             // 0.35). Three 2-cost cards on a 2-Energy frame was the diagnosis; this removes the
             // third. `fury_strike` is the only 1e attack that FEEDS the OS (+1 Str = +15% on
             // every subsequent hit), so the lost nuke copy partially returns as fuel.
-            "skoll_v2": ["strength_burst", "fury_strike", "fury_strike", "all_in", "desperate_strike", "reckless_charge", "overdrive", "glass_cannon", "water_slap"]
+            "skoll_v2": ["ember_jab", "ember_jab", "brand", "brand", "ignite", "flashover", "heat_wave", "pack_tactics", "forage"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // Both kits keep `fury_strike` x2 because it is the 1e card that FEEDS each OS, and a
@@ -262,8 +273,31 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v1 keeps one `sun_devourer` as the consume payoff; v2 keeps `strength_burst` to light
         // the core and `glass_cannon` to cash it, leaving `all_in`'s self-Burn risk to be drafted.
         startKits: {
-            "skoll_v1": ["sun_devourer", "fury_strike", "fury_strike", "brute_force", "battle_rhythm"],
-            "skoll_v2": ["overdrive", "fury_strike", "fury_strike", "strength_burst", "reckless_charge"]
+            /*
+             * ── TICKET 157-r1(b), RULED BY HENRY 2026-09-24 — **ONE PAYOFF IN THE OPENING FIVE.** ──
+             *
+             * > *"Every player start five must carry exactly ONE payoff card (a scalar or the
+             * > consume) — the engine should be weak, not absent."*
+             *
+             * The audit of all twelve found ten kits already at exactly one. This one had **FOUR**
+             * — `flare_burst` twice, `brute_force` and `snap` — which is the opposite of a weak
+             * engine and is a large part of why skoll_v1 opens at 80-90% while the field mean is
+             * 77.5%.
+             *
+             * The one kept is `flare_burst`, and the choice is a rule rather than a taste: of the
+             * payoffs that read the OS's OWN currency, take the lowest-scoring. TREACHERY_KERNEL
+             * banks Strength and adds it PER HIT, so the multi-hit (15 power twice, 149c 3.00) is
+             * the engine; `brute_force` (3.10) reads Strength too but scores higher, and `snap`
+             * (2.80) reads WEAKENED — huldra's currency, not Sköll's — so it is not this engine at
+             * any score.
+             *
+             * The four freed slots go to the deck's own enablers and glue, which is all that is
+             * left in it: `fury_strike` x2 (the 1e attack that FEEDS the OS — the note below has
+             * said so since ticket 09), `howl`, `forage`. Still a sub-multiset of the deck, still
+             * carrying the kit's glue, still holding no consume.
+             */
+            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "howl", "forage"],
+            "skoll_v2": ["ember_jab", "ember_jab", "brand", "ignite", "flashover"]
         },
         moves: [
             {
@@ -312,8 +346,10 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // 2-Energy world; the card stays in the registry as a ramp draft pick) and `contagion`
         // stayed, because doubling the pile now doubles the amplifier immediately.
         decks: {
-            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "corrosive_leak", "surge_protection", "serpents_coil", "serpents_coil", "ink_stream", "ink_stream"],
-            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "venom_fang", "water_slap", "water_slap", "toxic_surge", "contagion"]
+            // TICKET 172 (Henry, 2026-09-30: "Jorm needs to replace the tackle ... add a 0e poison
+            // card for both v1 and v2"): `tackle` -> `poison_injection` (0e, Apply 1 Poison) in both.
+            "jormungandr_v1": ["undertow", "undertow", "blind_spot", "serpents_coil", "serpents_coil", "surge_protection", "riptide_run", "poison_injection"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "serpent_flurry", "serpents_coil", "toxic_surge", "poison_injection"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // v1 keeps `undertow` x2 - the loop counts Water cards drawn, so the draw half has to
@@ -321,8 +357,24 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 keeps the amplifier pair whole (`corrosive_bolt` x2, `venom_fang` x2) and one
         // payoff; `contagion` doubles a pile that does not exist yet at run start.
         startKits: {
-            "jormungandr_v1": ["ink_stream", "undertow", "undertow", "serpents_coil", "blind_spot"],
-            "jormungandr_v2": ["contagion", "corrosive_bolt", "corrosive_bolt", "toxic_surge", "venom_fang"]
+            /*
+             * TICKET 157-r3 (Henry, 2026-09-25) — one `undertow` becomes `surge_protection`.
+             *
+             * OUROBOROS_LOOP read **19.0% at fight one over 200 runs**, the worst of the twelve by
+             * fifty points, and it was NOT a power problem: this five scored 11.10 by 149c against
+             * `jormungandr_v2`'s 10.80, and that kit reads 98%. What separated them was what the
+             * cards DO — `undertow` is a looping free draw and `blind_spot` is a debuff, so THREE of
+             * the five did not advance the fight and the one payoff was a single copy. It opened on
+             * two live cards against an enemy's five and lost over 5.4 turns with 6% of its pool
+             * left: out-tempoed while it drew, not burst down.
+             *
+             * `surge_protection` is a 25-power hit, so the swap buys a card that acts. It is re-tagged
+             * **glue** rather than scalar in `collection-v2/collection.json` with it — 25 flat power
+             * with a refund rider banks nothing and cashes nothing — which is what keeps 157-r1(b)'s
+             * one-payoff rule counting `serpents_coil` alone.
+             */
+            "jormungandr_v1": ["undertow", "blind_spot", "serpents_coil", "riptide_run", "surge_protection"],
+            "jormungandr_v2": ["corrosive_bolt", "corrosive_bolt", "venom_fang", "serpent_flurry", "poison_injection"]
         },
         moves: [
             {
@@ -523,8 +575,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    is strictly worse than the same effect at 0e in this deck - it costs the whole
         //    turn's Energy AND skips both the echo_chamber token and the OS proc.
         decks: {
-            "ratatoskr_v1": ["forage", "forage", "water_slap", "water_slap", "healing_mist", "shrug_off", "nettle_sting", "nettle_sting", "seed_bomb_v2", "seed_bomb_v2", "echo_chamber_v2"],
-            "ratatoskr_v2": ["pollen_cloud", "pollen_cloud", "water_slap", "water_slap", "nagging_bite", "nagging_bite", "crippling_vine", "slander", "echo_chamber_v2"]
+            "ratatoskr_v1": ["acorn_toss", "acorn_toss", "forage", "forage", "seed_bomb", "tend", "shrug_off", "thorn_whip"],
+            "ratatoskr_v2": ["acorn_toss", "acorn_toss", "heckle", "nagging_bite", "nagging_bite", "pollen_cloud", "sap_strength", "forage"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // Both kits lead with the 0-cost fuel doubled, because these decks win on card VOLUME
@@ -537,8 +589,28 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         startKits: {
             // THE DECK THAT PROVED THE RULE. Round 5: "ratatoskr's startKit carried none of his
             // engine (seed_bomb/echo were untagged), making him pure feed." Both are tagged now.
-            "ratatoskr_v1": ["seed_bomb_v2", "forage", "forage", "echo_chamber_v2", "healing_mist"],
-            "ratatoskr_v2": ["crippling_vine", "pollen_cloud", "pollen_cloud", "nagging_bite", "nagging_bite"]
+            /*
+             * TRIED AND REVERTED, 2026-09-25 — `tend` → `nettle_sting`, measured and put back.
+             *
+             * The fight-one read shows GOSSIP_NODE's opener is the slowest on the table: **8.9 mean
+             * turns and 15 of 200 first fights hit the turn cap**, against 2.7–4.1 elsewhere. It
+             * heals 2.5% of max HP on every 0-cost program and seven of the eight opening cards are
+             * 0-cost, so it out-sustains the fight and cannot close it.
+             *
+             * `nettle_sting` (1e Nature, 22 power + 1 Poison, and the only 1e Nature poison card
+             * whose rider is unconditional) was swapped in for `tend` to buy a clock. **It cost six
+             * points and bought nothing: 91.5% → 85.5%, with the turn count and the cap count
+             * IDENTICAL — 8.9 and 15 both arms.** End HP went 72% → 56%, which is the whole story:
+             * Rat was winning those fights on sustain at 72% of its pool, not losing them for want
+             * of damage. `tend` was load-bearing, and a 1e card earns no GOSSIP_NODE proc besides.
+             *
+             * **So the stall is not a damage problem and a kit swap cannot reach it.** Closing this
+             * opener faster needs a real closer in GOSSIP_NODE's own deck, or `seed_bomb` castable
+             * earlier than 2 energy — a deck pass, and Henry's. Recorded here so the swap is not
+             * proposed a second time.
+             */
+            "ratatoskr_v1": ["acorn_toss", "acorn_toss", "forage", "seed_bomb", "tend"],
+            "ratatoskr_v2": ["acorn_toss", "acorn_toss", "heckle", "nagging_bite", "pollen_cloud"]
         },
         moves: [
             {
@@ -592,8 +664,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         //    (keeping thornguard's conditional live), not on mitigation - a 1e budget buys 7%
         //    maxHP against an OS that grants 50%.
         decks: {
-            "huldra_v1": ["growth", "growth", "soothe", "water_slap", "iron_bark", "iron_bark", "thorn_tithe", "thorn_tithe", "hexbloom"],
-            "huldra_v2": ["sap_vigor", "sap_vigor", "water_slap", "nettle_sting", "nettle_sting", "heartwood", "thornguard", "thornguard", "blightbloom"]
+            "huldra_v1": ["bolster", "bolster", "tend", "thorn_tithe", "sap_strength", "hexbloom", "thorn_whip", "soothe"],
+            "huldra_v2": ["heartwood", "heartwood", "bark_lash", "bark_lash", "shell_share", "thornguard", "bark_smash", "tackle"]
         },
         // Ticket 09 (Henry ratified 2026-08-21): the five cards a run STARTS with, per ticket 08.
         // v1 keeps `growth` x2 so the mirror hook has statuses to mirror from turn one, plus
@@ -602,8 +674,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
         // v2 keeps the shield wall whole (`sap_vigor` x2, `thornguard` x2) and `heartwood`,
         // which earns its slot on shield UPTIME rather than on mitigation.
         startKits: {
-            "huldra_v1": ["hexbloom", "growth", "growth", "iron_bark", "thorn_tithe"],
-            "huldra_v2": ["blightbloom", "sap_vigor", "thornguard", "thornguard", "heartwood"]
+            "huldra_v1": ["bolster", "bolster", "tend", "thorn_tithe", "sap_strength"],
+            "huldra_v2": ["heartwood", "heartwood", "bark_lash", "shell_share", "thornguard"]
         },
         moves: [
             {
@@ -1058,7 +1130,8 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
 export const GetMingmingData = (id: string): IMingmingDefinition => {
     const data = MingmingRegistry[id];
     if (!data) {
-        console.warn(`Mingming ID not found: ${id}`);
+        // TICKET 154a: throws in DEV, warns in a shipped build. The sentinel below is unchanged.
+        reportRegistryMiss('Mingming', id);
         return {
             id: 'missing',
             name: 'Missing Mingming',
@@ -1119,8 +1192,61 @@ export const LAUNCH_SPECIES: ReadonlyArray<string> = ['fenrir', 'skoll', 'kraken
  * Minting a new card would duplicate a shipped one AND add a `ProgramRegistry` entry, which
  * moves `registryHash` and invalidates every stored battle snapshot in `playtest-results/`.
  * Reuse beats churn: the id is misleading, but a rename is a separate, cheaper ticket.
+ *
+ * TICKET 162a: that ticket arrived. Collection v2 renamed the card `tackle` and this constant
+ * follows it, because a CONSTANT is not a record — `water_slap` still opens the same card through
+ * `programAliases`, so the snapshots the note above protects are untouched.
  */
-export const GENERIC_HIT = 'water_slap';
+export const GENERIC_HIT = 'tackle';
+
+/**
+ * ══ TICKET 157-r2 — **THE ONE PAYOFF IN EACH OPENING FIVE, BY NAME.** ══
+ *
+ * 157-r1(b) ruled that every start kit carries exactly one payoff (a scalar or the consume) and
+ * `startKits.test.ts` enforces it. This names WHICH card that is, per firmware, because the enemy
+ * ladder now needs it at RUNTIME: the scripted opening fight fields *"the start kit minus its
+ * payoff, plus generics"* — the engine the player can see and the enemy cannot fire.
+ *
+ * # WHY A TABLE RATHER THAN A LOOKUP
+ *
+ * The shape tag (`enabler` / `consume` / `scalar` / `glue` / `converter` / `hate`) lives in
+ * `collection-v2/collection.json` and the engine has no field for it. It is 98 cards of design
+ * data, and the ladder needs **twelve facts** out of it — one per EA firmware — so this carries the
+ * twelve rather than importing the ninety-eight. That is the same trade 158-r1 made in the other
+ * direction: it moved `cur`/`tempo`/`partners` into the registry because three subsystems needed
+ * them, and this moves one derived fact because one does.
+ *
+ * **It is checked, not trusted.** `startKits.test.ts` asserts every entry here is (1) in that
+ * firmware's kit and (2) tagged `scalar` or `consume` in the design file, so the two sources cannot
+ * drift apart silently. Unlike `KIT_GLUE` in that file — a deliberate second copy of a column —
+ * this one is read by the game, so it is data with a guard rather than a transcription.
+ *
+ * # THE TWO ENTRIES THAT NEED A SENTENCE
+ *
+ * `jormungandr_v2` is 157-r1(b)'s recorded exception: TOXIN_FANG's deck cannot supply a legal five,
+ * so its kit holds TWO payoffs. This names one of them, and the opening fight therefore drops one
+ * and keeps the other. That is the exception travelling rather than being hidden — the fix is a
+ * DECK change, and it is Henry's.
+ *
+ * A firmware absent from this table (every post-EA species) drops nothing, and the opener falls back
+ * to the plain start-kit shape. That is the honest default: an untagged kit is one nobody has
+ * classified, not one classified as having no engine.
+ */
+export const START_KIT_PAYOFF: Readonly<Record<string, string>> = {
+    fenrir_v1: 'ragnarok_edge',
+    fenrir_v2: 'cinder_lance',
+    skoll_v1: 'flare_burst',
+    skoll_v2: 'flashover',
+    kraken_v1: 'ink_stream',
+    kraken_v2: 'boiling_surge',
+    jormungandr_v1: 'serpents_coil',
+    // 157-r1(b)'s exception: this kit holds `venom_fang` AND `serpent_flurry`. See the block above.
+    jormungandr_v2: 'serpent_flurry',
+    ratatoskr_v1: 'seed_bomb',
+    ratatoskr_v2: 'nagging_bite',
+    huldra_v1: 'sap_strength',
+    huldra_v2: 'bark_lash',
+};
 
 /**
  * Ticket 13: per-OS starting decks. Resolves a species' deck for a firmware id,

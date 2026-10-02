@@ -25,6 +25,8 @@ import { describe, expect, it } from 'vitest';
 import { ProgramRegistry } from './programRegistry';
 import { getHook } from '../core/HookRegistry';
 import { initDaemonHooks } from './daemonHooks';
+import { PROGRAM_ALIASES } from './programAliases';
+import HOOKS from './lib/hooks.json';
 
 initDaemonHooks();
 
@@ -186,5 +188,46 @@ describe('the daemon loop audit', () => {
             do: [{ type: 'STATUS', status: 'Sharp' }],
         };
         expect(isGuarded(guardedByDifferentStatus, guardedByDifferentStatus.do![0])).toBe(true);
+    });
+});
+
+/**
+ * THE MERGE OF 2026-09-24, AS A RULE — a renamed id does not come back through a union.
+ *
+ * `steam-prep-september` branched before 162a and still carried the pre-rename spellings of four
+ * daemons: `cinder_armor_daemon`, `core_overclock_daemon`, `feedback_loop_daemon` and
+ * `hoofbeat_daemon`. `lib/hooks.json` conflicted on both sides appending keys, and the thing a
+ * text merge does with that — take both hunks — would have re-created all four under ids nothing
+ * points at any more. They were dropped deliberately when the file was merged as JSON.
+ *
+ * "Deliberately" is a claim about a commit, and a commit is not a guard. This is the guard, and it
+ * is written as the LAW rather than as the four ids, because the next branch to merge late will be
+ * carrying a different four:
+ *
+ *   **No alias SOURCE may be a key in `hooks.json`.** `PROGRAM_ALIASES` exists so that an old
+ *   spelling RESOLVES to the canonical card (`programAliases.ts` explains why the registry itself
+ *   holds one entry per card). A firmware entry under the old spelling is the second copy that
+ *   table was written to avoid — inert, since nothing declares it, and therefore silent: the
+ *   engine's signature failure, where the data is fine and the wiring is missing.
+ */
+describe('a renamed id stays renamed', () => {
+    const LIBRARY = HOOKS as unknown as Record<string, unknown>;
+
+    it('has no hooks.json entry under any id the alias table renamed away', () => {
+        const resurrected = Object.keys(PROGRAM_ALIASES).filter((oldId) => oldId in LIBRARY);
+        expect(resurrected, 'a pre-rename hook key is back — check the last merge of lib/hooks.json').toEqual([]);
+    });
+
+    it('names the four the September merge would have brought back, so the count cannot drift quietly', () => {
+        // The specific half of the claim above. If 162a's rename list changes, this fails and
+        // somebody reads the alias table — which is the intended outcome, not a nuisance.
+        const renamedDaemons = Object.keys(PROGRAM_ALIASES).filter((id) => id.endsWith('_daemon'));
+        expect(renamedDaemons.sort()).toEqual([
+            'cinder_armor_daemon', 'core_overclock_daemon', 'feedback_loop_daemon', 'hoofbeat_daemon',
+        ]);
+        // And the cards they became still have their firmware, so this is not "the hooks are gone".
+        for (const oldId of renamedDaemons) {
+            expect(PROGRAM_ALIASES[oldId] in LIBRARY, `${PROGRAM_ALIASES[oldId]} lost its hook entry`).toBe(true);
+        }
     });
 });

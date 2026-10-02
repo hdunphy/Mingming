@@ -55,16 +55,18 @@ describe('ticket 144 §2 amended — the beam is a rung of the enemy ladder, not
     });
 });
 
-describe('ticket 144 §2 amended — the boss thinks at full depth', () => {
-    it('wild and elite get the beam; the GAUNTLET is beamless', async () => {
+describe('ticket 144 §2 amended — the boss thinks at beam 8', () => {
+    it('every rung gets the beam, the gauntlet included (166f)', async () => {
         const { ENEMY_LADDER, OPENING_FIGHT_LOADOUT } = await import('../run/encounter');
         // Henry, 2026-09-06: "for the AI in the game we want the bosses to use beamless, some of
         // the other AI should use beam 8." Measured at 3v3, the beam costs the winning side ~12.5
         // points of win rate — cheap on a wild you meet twenty times an hour, wrong on the fight
         // the whole run was built to reach.
+        // Henry, 2026-09-27: "lets first try to fix the search bug and narrow the gym's search".
+        // The 12.5 points were measured on bug A1; fixed, beam 8 matches full search 14/15 times.
         expect(ENEMY_LADDER.wild.beam).toBe(GAME_BEAM_WIDTH);
         expect(ENEMY_LADDER.elite.beam).toBe(GAME_BEAM_WIDTH);
-        expect(ENEMY_LADDER.gauntlet.beam).toBe(0);
+        expect(ENEMY_LADDER.gauntlet.beam).toBe(GAME_BEAM_WIDTH);
         expect(OPENING_FIGHT_LOADOUT.beam).toBe(GAME_BEAM_WIDTH);
     });
 
@@ -75,7 +77,7 @@ describe('ticket 144 §2 amended — the boss thinks at full depth', () => {
         }
     });
 
-    it('a real WILD fight carries 8 and a real GYM fight carries 0 — end to end', async () => {
+    it('a real WILD fight carries 8 and a real GYM fight carries 8 — end to end', async () => {
         // The plumbing is what the ticket-127 bug was made of: a width that exists but never
         // reaches the fight. So this asserts the two ends rather than the table.
         const { rollEncounter } = await import('../run/encounter');
@@ -107,6 +109,6 @@ describe('ticket 144 §2 amended — the boss thinks at full depth', () => {
         expect(rollEncounter({ run, node: wild, party }).aiBeam).toBe(GAME_BEAM_WIDTH);
 
         const gym = run.nodes.find(n => n.kind === 'gym')!;
-        expect(rollGauntletFight({ run, node: gym, fightIndex: 0 }).aiBeam).toBe(0);
+        expect(rollGauntletFight({ run, node: gym, fightIndex: 0 }).aiBeam).toBe(GAME_BEAM_WIDTH);
     });
 });

@@ -54,7 +54,25 @@ export const ProgramConstraintType = {
    * condition built on it true on ~91% of turns for every species (HANDOFF 0-DRAW-COUNTER).
    * That is not what "if you drew a card this turn" was ever meant to reward.
    */
-  CardsDrawnTriggered: 'CARDS_DRAWN_TRIGGERED'
+  CardsDrawnTriggered: 'CARDS_DRAWN_TRIGGERED',
+  /**
+   * TICKET 167e (Henry, 2026-09-28): draws an EFFECT caused this turn for the caster's WHOLE SIDE.
+   * `surge_protection`'s refund only. The 2026-08-30 per-caster ruling stands for everything else,
+   * scalers included - see `CARDS_DRAWN_TRIGGERED`.
+   */
+  SideCardsDrawnTriggered: 'SIDE_CARDS_DRAWN_TRIGGERED',
+  /**
+   * TICKET 162a: how many cards THIS CASTER has played this turn, the card already counted.
+   *
+   * Per-caster rather than per-side, for the reason ticket 123 settled for the `CARDS_PLAYED`
+   * scaler: at 3v3 the hand is shared, so a side counter would let an ally's turn pay for your
+   * card. `riptide_run` prints *"if this is the third or later card YOU played this turn"* and
+   * the counter now agrees with the sentence.
+   *
+   * The played card is already in `playsThisTurn` when its actions resolve (`battleReducer`
+   * increments before the action loop), so "the third card" is `value: 3`, not 2.
+   */
+  CardsPlayed: 'CARDS_PLAYED'
 } as const;
 
 export type ProgramConstraintType = typeof ProgramConstraintType[keyof typeof ProgramConstraintType];
@@ -132,14 +150,8 @@ export interface IMingmingState {
   hpIV: number;
 }
 
-// --- System Deemons / Relics ---
-
-export interface IRelic {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly effect: string; // Internal ID for logic
-}
+// TICKET 16: `IRelic` and the four stat relics are gone. Party-wide passives are DRIVERS
+// (`data/driverRegistry.ts`) — hook-bearing entries in `lib/hooks.json`, never a stat table.
 
 /**
  * Volatile Combat State: Existing only during battle.
@@ -162,10 +174,21 @@ export interface IBattleEntity extends IMingmingState {
   readonly currentHp: number;
   readonly currentEnergy: number;
   readonly tempHp: number; // Shields
-  readonly relicBonuses?: { draw: number; energy: number; attackMod: number };
   readonly statusEffects: ReadonlyArray<StatusEffectInstance>;
-  readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Relics, Passives)
+  readonly hooks?: ReadonlyArray<string>; // IDs of active hooks (Drivers, passives)
   readonly activeOS?: string; // Current Operating System ID
+  /**
+   * TICKET 163c — **the patch fitted to this body's firmware**, at most one (`PATCH_SLOTS`).
+   *
+   * Not a second `hooks` list: a patch has no hooks of its own. It is a TRANSFORM applied to the
+   * host OS's hook data when this entity's hooks are collected (`resolutionEngine.entityHooksFor`),
+   * which is what lets two bodies running the same firmware behave differently — the whole point,
+   * and the reason it cannot be baked into `FIRMWARE_REGISTRY` at boot the way a firmware is.
+   *
+   * Run-scoped: it is copied onto the battle entity from `IRunState.patches` at setup, and 163 §5
+   * rules no persistence across runs.
+   */
+  readonly patches?: ReadonlyArray<string>;
   readonly daemons: ReadonlyArray<ProgramEntity>; // Persistent "installed" software
   readonly currentIntent?: IMove | null; // The planned move for the next turn (primarily for enemies)
   readonly artReference?: string;
@@ -303,8 +326,7 @@ export function initializeBattleEntity(instance: IMingmingState, definition: IMi
     hooks: [],
     activeOS: instance.activeOS || definition.availableOS[0], // Default to first available OS
     daemons: [],
-    artReference: definition.artReference,
-    relicBonuses: { draw: 0, energy: 0, attackMod: 1 }
+    artReference: definition.artReference
   };
 }
 
@@ -322,7 +344,7 @@ export function numericBaseCost(baseCost: number | 'X'): number {
 }
 
 // --- Program (Card) Definitions (Preserving previous work) ---
-export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE' | 'REVIVE';
+export type ActionType = 'ATTACK' | 'STATUS' | 'HEAL' | 'DRAW' | 'ENERGY' | 'MAX_ENERGY' | 'GENERATE_CARD' | 'CLEANSE' | 'DISCARD' | 'EXHAUST' | 'RETURN' | 'SEARCH' | 'MULTIPLY_STATUS' | 'TRIGGER_STATUS' | 'PLAY_LAST_CARD' | 'TAUNT' | 'BUFF_NEXT_PROGRAM' | 'REDIRECT_TARGET' | 'FORCE_DISCARD' | 'SHIFT_STANCE' | 'REVIVE';
 
 export type IntentType = 'Attack' | 'Defend' | 'Debuff' | 'Buff' | 'Special' | 'Unknown';
 
@@ -382,7 +404,20 @@ export interface AttackActionData extends ProgramAction {
    * A percentage rescales itself, which is the property this family kept failing to have.
    */
   readonly percentMaxHp?: number;
-  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED' | 'BURN_STACKS' | 'SELF_ANY_STATUS';
+  readonly scaling?: string | 'CARDS_PLAYED' | 'MISSING_HP' | 'STATUS_COUNT' | 'CARDS_DRAWN' | 'CARDS_DRAWN_TRIGGERED' | 'ELEMENT_PLAYED' | 'SHARP_STACKS' | 'STRENGTH_STACKS' | 'DAZED_STACKS' | 'DISTINCT_STATUS' | 'ANY_STATUS' | 'BARKSHIELD_STACKS' | 'CARDS_DISCARDED' | 'ENERGY_SPENT' | 'ENERGY_SPENT_SQUARED' | 'BURN_TIMES_ENERGY' | 'STATUS_CONSUMED' | 'BURN_STACKS' | 'SELF_ANY_STATUS' | 'TARGET_STATUS_STACKS';
+  /**
+   * TICKET 162a — `TARGET_STATUS_STACKS` only: which status on the TARGET the bonus reads.
+   *
+   * The collection's two detonation cards read a pile the DEFENDER is carrying and add to the
+   * power rather than multiplying it: `flashover` is *"50 power. +15 power per Burn on the
+   * target"*, `sap_strength` is *"20 power. +6 power per Weakened on the target"*. Neither shape
+   * existed. `DAZED_STACKS`/`BURN_STACKS` multiply (`power x stacks`), so a base of 50 becomes 0
+   * on a clean board; `SHARP_STACKS` adds but reads the ATTACKER.
+   *
+   * Additive and power-side, which is ticket 26's law: a bonus that rides the POWER is the only
+   * kind `powerscale` can price and the only kind that behaves the same at every level.
+   */
+  readonly scalingStatus?: StatusType;
 }
 
 export interface StatusActionData extends ProgramAction {
@@ -434,6 +469,23 @@ export interface DrawActionData extends ProgramAction {
 
 export interface EnergyActionData extends ProgramAction {
   readonly type: 'ENERGY';
+  readonly amount: number;
+}
+
+/**
+ * TICKET 162a — raise the target's Energy CEILING for the rest of the battle.
+ *
+ * `ENERGY` above hands over this turn's Energy and `Energized` hands over next turn's; neither
+ * moves the bar, so collection v2's `overclock_core` (*"Max Energy +1 for the rest of the
+ * battle"*) had no verb. The hook side already had one — `HookFactory` has handled a `MAX_ENERGY`
+ * hook action since ticket 68, outside the executor registry, with exactly these semantics — so
+ * this is the card-side half of a rule the engine already enforced, not a new rule.
+ *
+ * Permanent within the battle by construction: it writes `maxEnergy`, which nothing resets between
+ * turns. `overclock_core` exhausts, so the ceiling cannot be farmed by replaying it.
+ */
+export interface MaxEnergyActionData extends ProgramAction {
+  readonly type: 'MAX_ENERGY';
   readonly amount: number;
 }
 
@@ -563,6 +615,11 @@ export interface ProgramData {
   readonly isToken?: boolean; // If true, this is a generated token card
   readonly exhaust?: boolean; // If true, card is removed from battle after use
   /**
+   * TICKET 168c — a JUNK card (Corrupted Data): does nothing, costs an Energy to clear. Never
+   * offered, never scored, never counted toward the deck floor, never given to an enemy.
+   */
+  readonly junk?: boolean;
+  /**
    * Ticket 53 - RAMPAGE growth. This card INSTANCE permanently gains +N power on every
    * ATTACK action each time it resolves, for the rest of the battle. Per instance, not per
    * card id: two copies of `zealots_edge` grow independently, and the accumulator is a
@@ -577,6 +634,52 @@ export interface ProgramData {
    * scored at its first cast. See `GROWTH_HORIZON_PLAYS` in powerscale.ts.
    */
   readonly growPerPlay?: number;
+  /**
+   * TICKET 160-e1 — **this card is aimed at a FRIENDLY unit.**
+   *
+   * A flag rather than a new `TargetType`, and that choice is the whole design. `target` says how
+   * WIDE a card reaches — one unit, a side, everything — and every consumer in the engine, the AI
+   * and the UI already reads it that way. Which SIDE it reaches is a second, independent question,
+   * and folding it into the first (an `Ally` and an `AllySide` member) would have meant every
+   * `switch` on `TargetType` growing two cases that behave exactly like `Single` and `Side` in all
+   * but one respect. Two orthogonal facts, two fields.
+   *
+   * - `target: 'Single'` + `allyTarget` — one ally, the caster included. Tend, Bolster, Mend,
+   *   Shell Share, Soothe.
+   * - `target: 'Side'` + `allyTarget` — your whole side. Howl, Verdant Ward, Tidal Battery.
+   * - `target: 'Self'` + `allyTarget` is a contradiction — a Self card has no target to pick —
+   *   and `allyTargeting.test.ts` fails the build for one.
+   *
+   * WHAT ENFORCES IT. Three places, because the picker is not a rule: `targeting.isValidCardTarget`
+   * (what the pointer may drop on), `TacticalAI`'s enumeration (what the AI considers), and
+   * `battleReducer.handlePlayProgram` (what is legal at all). The reducer's check is the one that
+   * matters — a scenario file, a replay and a test all reach it without going near the UI, and
+   * before this flag existed the loosest of the three was the effective rule.
+   */
+  readonly allyTarget?: boolean;
+  /**
+   * TICKET 163a — **this card is the upgraded form of `upgradeOf`.** Its own id is `<base>+`.
+   *
+   * A `+` card is an ordinary registry entry in every respect but one: it is NOT REACHABLE. There
+   * is no pool it belongs to and no way to be offered one — `RewardSystem.isRewardable` returns
+   * false for anything carrying this field, which closes the reward screen, the marketplace's
+   * off-pool slot and the element pools at the single place all three already agree on. Until 163b
+   * builds the workshop's Upgrade tab, the only things that can reach a `+` card are a test, a
+   * scenario file and the scorer.
+   *
+   * That is deliberate and it is the shape of the row: 163a puts the cards in the registry so they
+   * can be read, priced and cast, and putting them into a player's hands is a separate decision on
+   * a separate row.
+   *
+   * ONE RUNG, NOT A LADDER. `<base>+` never has a `+` of its own, and `plusRegistry.test.ts` fails
+   * the build for an `upgradeOf` that points at something already upgraded. Henry ruled one
+   * upgraded form per card (163 §2); a second rung is a new ticket, not a second suffix.
+   *
+   * NOT PRICED AGAINST THE BAND. Henry, 2026-09-23: *"upgrades are supposed to be broken."* 149c
+   * prices a `+` row for the ledger and `powerscale` does not band-flag it — Inferno+, Wildfire+
+   * and Heat Wave+ push Burn past its cap of 4 and detonate, which is the point of the pass.
+   */
+  readonly upgradeOf?: string;
   readonly artReference?: string;
 }
 
@@ -604,7 +707,13 @@ export interface IBattleState {
   readonly turn: number;
   readonly phase: TurnPhase;
   readonly activeSide: 'PLAYER' | 'ENEMY';
-  readonly activeRelics: ReadonlyArray<string>;
+  /**
+   * TICKET 16: the PLAYER side's Driver ids, as `createBattleState` copied them from the run. The
+   * enemy side's travel on the encounter and are attached straight to its members' `hooks`. Was
+   * `activeRelics`; the four stat relics it named are deleted and the field only ever meant
+   * "which party-wide passives is the player running" — which is what a Driver is.
+   */
+  readonly activeDrivers: ReadonlyArray<string>;
 
   readonly playerParty: ReadonlyArray<IBattleEntity>;
   readonly enemyParty: ReadonlyArray<IBattleEntity>;
@@ -694,7 +803,17 @@ export interface IBattleState {
    * harness that plays both sides the player deliberately stays on the process default — grading
    * both would measure two changes at once.
    */
-  readonly enemyAiTier?: 'greedy' | 'lite' | 'full';
+  readonly enemyAiTier?: 'greedy' | 'lite' | 'full' | 'cheap';
+  /**
+   * TICKET 177e — the PLAYER side's grade, for a harness that plays both sides and wants to grade
+   * them separately (the cheap-AI measurement puts `cheap` on one side and `full` on the other).
+   *
+   * The mirror of `enemyAiTier` and read the same way: undefined means the process-wide default
+   * (`TacticalAI.AI_TIER`), which is exactly what the player's half has always taken, so a battle
+   * that leaves it unset plays as it always did. Nothing in the shipped game sets it: the AI does
+   * not play the player's half there. `'cheap'` is for simulations only (ticket 177 C3).
+   */
+  readonly playerAiTier?: 'greedy' | 'lite' | 'full' | 'cheap';
   /**
    * TICKET 144 §2 — THE BEAM, AS A PROPERTY OF THE BATTLE.
    *
@@ -724,6 +843,22 @@ export interface IBattleState {
    * keep compiling; every read defaults to `[]`.
    */
   readonly damageLedger?: ReadonlyArray<IDamageRecord>;
+  /**
+   * TICKET 155, DEEP DIVE 6 — WHERE THIS FIGHT IS HAPPENING.
+   *
+   * 145f built a biome backdrop — the name at 30%, three shafts in the biome's element, a haze and
+   * a ground line — and `BattleStage` read these two fields off the battle state through a cast.
+   * Nothing ever set them, so every fight in the game rendered the `None` fallback and the whole
+   * feature was dead on arrival in the same way 146's hooks were.
+   *
+   * Declared here rather than left to a cast: a field the view invents with `as unknown as` is a
+   * field nobody can find, and that is precisely how this went unnoticed for two tickets.
+   *
+   * Optional because a scenario fixture, a balance run and the gauntlet's own fights have no biome
+   * to name, and a backdrop that says nothing is the right answer there.
+   */
+  readonly biomeName?: string;
+  readonly biomeElement?: Element;
 }
 
 /**
@@ -771,4 +906,11 @@ export interface IDamageRecord {
   /** What HP actually lost, after shields and after the floor at 0. */
   readonly applied: number;
   readonly element: Element;
+  readonly cause?: string;
+  /**
+   * TICKET 184b: this record is a capped status going off (Burn's detonation), and this is what it
+   * left behind. Read by the hover preview, which otherwise sees a pile that shrank while stacks
+   * were added and calls it a loss. Only ever on a status's immediate-damage record.
+   */
+  readonly overflow?: { readonly status: StatusType; readonly detonations: number; readonly remaining: number };
 }

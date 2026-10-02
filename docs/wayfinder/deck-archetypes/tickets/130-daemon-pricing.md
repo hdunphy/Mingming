@@ -1,5 +1,7 @@
 # Ticket 130 — daemons are priced by a guess, and the guess is load-bearing
 
+> **Status: FOLDED INTO TICKET 149 (2026-09-08)** — the measurement and the fix are rows of `149-scorer-pricing.md`; this file stays as the finding. **CLOSED 2026-09-21 — 149c shipped all nine rows** (`149-scorer-pricing.md` §7); the fix that closes this one is named there.
+
 **Status:** OPEN. Widened 2026-09-01 with a second `powerscale` mispricing — see the DRAW section
 at the end.
 
@@ -92,5 +94,16 @@ that is a property of the DECK, not of the card doing the drawing: `kraken_v1` r
 1e cantrip that draws 2 is net +1 card twice a cycle and the deck stops having a card economy.
 
 Worth fixing in the same pass as the proc rates, and worth the same treatment: a measured number
-rather than a constant. Until then, **treat any card that draws more than one as unpriced** and
-gate it on a field arm rather than a score.
+rather than a constant. Until then, ~~treat any card that draws more than one as unpriced and
+gate it on a field arm rather than a score~~.
+
+> **RULE RETIRED 2026-09-21 — 149c-2 and 149c-4.** A drawn card is priced at 20/15/10 power now,
+> set from the measured 3.39 mean scorer value of a card drawn across the 33 shipped decks, and
+> the ten cards in the pool that draw more than one moved with it — the draw-2s went from 23%
+> UNDER their band to 7% over. `whirlpool_v2`, the card this ticket was written about, is 3.2 ->
+> 3.6. Gate them on a score like anything else.
+>
+> What is still true, and is now a printed column rather than a caveat: a draw is worth a card's
+> average value and that is a property of the DECK. 149c-6's ceiling column is the general form
+> of the same insight — the range is 1.39 on nidhoggr_v1 to 7.09 on ymir_v2, and 20 power is
+> deliberately the roster floor rather than the mean.

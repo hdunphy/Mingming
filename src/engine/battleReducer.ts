@@ -21,6 +21,7 @@ import { getMacro, type IMacroDefinition } from './data/macroRegistry';
 import { effectHandlers, checkDefeat } from './effectHandlers';
 import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
+import { actionConditionsMet } from './actions/actionConditions';
 import { ConditionValidator } from './core/ConditionValidator';
 import { generateIntents } from './core/IntentUtils';
 import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
@@ -271,6 +272,24 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
     const programData = GetProgramData(card.dataId);
     const targetEntity = state.playerParty.find(e => e.id === targetId) || state.enemyParty.find(e => e.id === targetId);
 
+    /*
+     * TICKET 160-e1 — an ally card played at an enemy is not a play.
+     *
+     * THE REDUCER IS WHERE THIS HAS TO LIVE, not the picker. `targeting.isValidCardTarget` governs
+     * what a pointer may drop on, and nothing else in the game goes through it: a scenario file, a
+     * replay, the balance harness and the AI all call PLAY_PROGRAM directly. Before this check the
+     * loosest of those paths was the effective rule, which is how a card that reads "an ally gains
+     * 3 Sharp" could hand three Sharp to the opponent.
+     *
+     * Rejected silently, like every other validation failure above it — the UI explains the refusal
+     * through `targetVerdict`, and a log line here would spam the AI's search.
+     */
+    if (programData.allyTarget && targetEntity) {
+        const casterOnPlayerSide = state.playerParty.some(e => e.id === sourceId);
+        const targetOnPlayerSide = state.playerParty.some(e => e.id === targetId);
+        if (casterOnPlayerSide !== targetOnPlayerSide) return state;
+    }
+
     const modifier = sourceEntity.nextProgramModifier;
     // A modifier restricted via appliesTo only DISCOUNTS a card of that
     // category (e.g. UNSTOPPABLE_MASS discounts an Attack). The charge is
@@ -482,37 +501,17 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                     // the REAL reason surge_protection's refund fired on 3,371 of 3,371 casts.
                     // Same family as 0-TARGETLESS: a guard silently always-true because an
                     // argument was not passed.
-                    if (action.conditionals) {
-                        let allMet = true;
-                        // `TARGET` on a conditional means THE CARD'S target, not the target of the
-                        // action the conditional is written on. pressure_point is the case that
-                        // found it: "22 power. If Dazed, draw 1" is a DRAW action whose own target
-                        // is SELF, so `currentTarget` was the CASTER and the rider read the
-                        // caster's statuses - it never fired on a Dazed enemy and fired every time
-                        // on a Dazed caster. Both halves of that are wrong and it was silent.
-                        //
-                        // Per-hit `currentTarget` still wins wherever the action has a target of
-                        // its own, which is what keeps an AoE rider ("burn each target that is
-                        // already Burning") checking each victim rather than the first one.
-                        const cardTarget = finalState.playerParty.find(e => e.id === targetId)
-                            ?? finalState.enemyParty.find(e => e.id === targetId);
-                        const conditionSubject = (action.target === 'SELF' || action.target === 'Self'
-                            || action.type === 'DISCARD')
-                            ? (cardTarget ?? currentTarget)
-                            : currentTarget;
-                        for (const constraint of action.conditionals) {
-                            const subject = constraint.target === 'SELF' ? sourceEntity : conditionSubject;
-                            if (!validateSingleConstraint(constraint, sourceEntity, subject, 0, finalState)) {
-                                allMet = false;
-                                break;
-                            }
-                        }
-                        if (!allMet) continue;
+                    // Action-level Conditionals (Ticket 164e: extracted to actionConditionsMet)
+                    const liveSource = finalState[activePartyKey].find(e => e.id === sourceId) ?? sourceEntity;
+                    if (!actionConditionsMet(finalState, action, targetId, currentTarget, sourceEntity, liveSource)) {
+                        continue;
                     }
 
                     // Modifier Phase
                     const latestSource = finalState[activePartyKey].find(e => e.id === sourceId)!;
-                    const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
+                    // TICKET 162e: `action` rides the per-hit context so a hook can ask about THIS
+                    // swing rather than about the card it came from. See `HookContext.action`.
+                    const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState, action };
                     const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                     if (hitCancelled) continue;
                     finalState = afterMod;
@@ -802,7 +801,7 @@ function handleFireMacro(
         const latestSource = finalState.playerParty.find(e => e.id === sourceId);
         if (!latestSource || latestSource.currentHp <= 0) break;
 
-        const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState };
+        const hitContext: HookContext = { ...context, source: latestSource, target: currentTarget, state: finalState, action };
         const { state: afterMod, isCancelled } = executeResolutionStack('onModifierPhase', hitContext);
         if (isCancelled) continue;
         finalState = afterMod;
@@ -957,7 +956,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 }
 
                 // Modifier Phase
-                const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0 };
+                const hitContext: HookContext = { source: sourceEntity, target: currentTarget, program: dummyProgram, state: finalState, triggerDepth: 0, action };
                 const { state: afterMod, isCancelled: hitCancelled } = executeResolutionStack('onModifierPhase', hitContext);
                 if (hitCancelled) continue;
                 finalState = afterMod;
@@ -1089,7 +1088,11 @@ function tickStatuses(
                 logs.push(`  \u2192 ${entity.name} takes ${damage} damage from ${effect.type}`);
                 globalBattleEventBus.emit({
                     type: 'DAMAGE_TAKEN', targetId: entity.id, amount: damage,
-                    element: effect.type === 'Burn' ? 'Fire' : 'None', timestamp: Date.now(),
+                    element: effect.type === 'Burn' ? 'Fire' : 'None',
+                    // Ticket 146b: the DoT tick. 146f rules this is NOT a hit — no hit-stop, no
+                    // shake, no flash — and `status` is what the float takes its colour from.
+                    cause: 'status', status: effect.type,
+                    timestamp: Date.now(),
                 });
             }
 
@@ -1234,23 +1237,24 @@ function processPostTurn(state: IBattleState): IBattleState {
     return nextState;
 }
 
-function processPreTurn(state: IBattleState): IBattleState {
+/**
+ * Ticket 164c: One path for every turn start across both sides and turn 1.
+ * Covers TURN_START emit, energy refill + Energized, OWNER_TURN_START status tick,
+ * onTurnStart hooks, and the refill draw over living units.
+ */
+export function beginTurn(state: IBattleState, side: 'PLAYER' | 'ENEMY', turnNumber: number): IBattleState {
     globalBattleEventBus.emit({ type: 'PHASE_START', phase: 'PRE_TURN', timestamp: Date.now() });
 
-    // 1. Toggle Active Side
-    const nextSide = state.activeSide === 'PLAYER' ? 'ENEMY' as const : 'PLAYER' as const;
-    const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn;
-
-    const activePartyKey = nextSide === 'PLAYER' ? 'playerParty' : 'enemyParty';
-    const activeDeckKey = nextSide === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
+    const activePartyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
+    const activeDeckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
 
     const activeParty = state[activePartyKey];
 
     // Emit TURN_START
     globalBattleEventBus.emit({
         type: 'TURN_START',
-        turnNumber: nextTurn,
-        activeSide: nextSide,
+        turnNumber,
+        activeSide: side,
         timestamp: Date.now()
     });
 
@@ -1273,9 +1277,13 @@ function processPreTurn(state: IBattleState): IBattleState {
 
     let nextState: IBattleState = {
         ...state,
-        turn: nextTurn,
-        activeSide: nextSide,
-        [activePartyKey]: refreshedParty
+        turn: turnNumber,
+        activeSide: side,
+        [activePartyKey]: refreshedParty,
+        cardsDrawnThisTurn: 0,
+        nonNaturalCardsDrawnThisTurn: 0,
+        cardsPlayedThisTurn: 0,
+        cardsDiscardedThisTurn: 0,
     };
 
     // TICKET 126: Burn, Poison and Regen tick HERE - at the start of their owner's turn.
@@ -1307,27 +1315,21 @@ function processPreTurn(state: IBattleState): IBattleState {
     }
 
     // 3. Draw cards for the active side.
-    nextState = executeDraw(nextState, nextSide, 0, true);
+    nextState = executeDraw(nextState, side, 0, true);
 
     // Refill the active side's hand. The player always uses cards; the enemy
     // only does in enemyMode 'CARDS'. MOVES enemies must NOT draw - their deck
     // is empty by construction, and calling executeDraw with a real count would
     // advance the RNG seed and change every existing MOVES battle and every
     // recorded scenario.
-    //
-    // This was previously gated on `nextSide === 'PLAYER'`, so a CARDS enemy
-    // drew its opening hand at battle creation and then never drew again: once
-    // it had played through those cards it had nothing left, getBestAction
-    // found no plays, and the enemy silently passed every turn for the rest of
-    // the battle.
-    const activeSideUsesCards = nextSide === 'PLAYER' || (nextState.enemyMode ?? 'MOVES') === 'CARDS';
+    const activeSideUsesCards = side === 'PLAYER' || (nextState.enemyMode ?? 'MOVES') === 'CARDS';
     if (activeSideUsesCards) {
         const aliveUnits = nextState[activePartyKey].filter((e: IBattleEntity) => e.currentHp > 0);
         const totalCardDraw = aliveUnits.length === 0
             ? 0
             : aliveUnits.reduce((sum: number, e: IBattleEntity) => sum + e.cardDraw, 0) - aliveUnits.length + 1;
         const cardsToDraw = Math.max(0, Math.min(totalCardDraw, HAND_SIZE_LIMIT - nextState[activeDeckKey].hand.length));
-        nextState = executeDraw(nextState, nextSide, cardsToDraw, true);
+        nextState = executeDraw(nextState, side, cardsToDraw, true);
     }
 
     globalBattleEventBus.emit({ type: 'PHASE_END', phase: 'PRE_TURN', timestamp: Date.now() });
@@ -1336,28 +1338,34 @@ function processPreTurn(state: IBattleState): IBattleState {
     // player can see them) — but only for move-user enemies. Card-user battles
     // (enemyMode === 'CARDS', opt-in at battle creation) never generate intents.
     const finalEnemyParty = (nextState.enemyMode ?? 'MOVES') === 'MOVES'
-        ? generateIntents(nextState.enemyParty, nextState.seed, nextTurn)
+        ? generateIntents(nextState.enemyParty, nextState.seed, turnNumber)
         : nextState.enemyParty;
     const finalPlayerParty = nextState.playerParty;
 
     let newState: IBattleState = {
         ...nextState,
-        turn: nextTurn,
+        turn: turnNumber,
         phase: 'ACTION',
-        activeSide: nextSide,
+        activeSide: side,
         playerParty: finalPlayerParty,
         enemyParty: finalEnemyParty,
-        cardsPlayedThisTurn: 0,
-        cardsDiscardedThisTurn: 0,
         elementPlays: {
             'Fire': 0, 'Water': 0, 'Earth': 0, 'Air': 0, 'Nature': 0,
             'Ice': 0, 'Light': 0, 'Dark': 0, 'None': 0
         }
     };
 
-    newState = addLog(newState, `⚔️ Turn ${nextTurn} — ${nextSide}'s turn begins`);
+    newState = addLog(newState, `⚔️ Turn ${turnNumber} — ${side}'s turn begins`);
 
     return newState;
+}
+
+function processPreTurn(state: IBattleState): IBattleState {
+    // 1. Toggle Active Side
+    const nextSide = state.activeSide === 'PLAYER' ? 'ENEMY' as const : 'PLAYER' as const;
+    const nextTurn = nextSide === 'PLAYER' ? state.turn + 1 : state.turn;
+
+    return beginTurn(state, nextSide, nextTurn);
 }
 // --- General-purpose State Actions ---
 // SET_VITALS / REMOVE_STATUS / ADD_CARD_TO_HAND / SET_INTENT / KILL_ENTITY.

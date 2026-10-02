@@ -11,7 +11,16 @@
  * in isolation without touching engine plumbing.
  */
 
-export type SfxName =
+import type { SampleCue } from './sfxSamples';
+
+/**
+ * The SYNTHESIZED cues — the ones drawn with oscillators and noise, needing no assets.
+ *
+ * Renamed from `SfxName` in ticket 147a, because `SfxName` now means "any cue a caller may ask
+ * for" and that is this union plus the 61 sampled ones. Everything in here has a recipe below,
+ * and the `Record` at the bottom of this file is total over it.
+ */
+export type RecipeName =
     | 'cardPlay'
     | 'cardDraw'
     | 'hit'
@@ -31,11 +40,12 @@ export type SfxName =
     | 'stanceLight'
     | 'discountPrimed'
     | 'breach'
+    | 'driverProc'
     | 'uiClick'
     | 'uiError';
 
-/** Runtime list of every SFX name (kept in sync with the union by the type below). */
-export const ALL_SFX_NAMES = [
+/** Runtime list of every RECIPE name (kept in sync with the union by the type below). */
+export const ALL_RECIPE_NAMES = [
     'cardPlay',
     'cardDraw',
     'hit',
@@ -55,18 +65,41 @@ export const ALL_SFX_NAMES = [
     'stanceLight',
     'discountPrimed',
     'breach',
+    'driverProc',
     'uiClick',
     'uiError',
-] as const satisfies readonly SfxName[];
+] as const satisfies readonly RecipeName[];
+
+/**
+ * Every cue a caller may ask `playSfx` for — ticket 147a.
+ *
+ * The union of the recipes above and the sampled cues in `public/sfx/`. `cardDraw` is in both, on
+ * purpose: the sample plays and the recipe is its own fallback.
+ */
+export type SfxName = RecipeName | SampleCue;
 
 // Compile-time completeness check: the array above must cover the whole union.
-type _AssertAllNames = SfxName extends (typeof ALL_SFX_NAMES)[number] ? true : never;
+type _AssertAllNames = RecipeName extends (typeof ALL_RECIPE_NAMES)[number] ? true : never;
 const _allNamesCovered: _AssertAllNames = true;
 void _allNamesCovered;
 
 export interface SfxOptions {
     /** 0..1 — e.g. damage as a fraction of max HP. Bigger = lower/longer/louder. */
     intensity?: number;
+    /**
+     * WHICH OF A DELIBERATE SERIES this is, counted from 0 — ticket 147b.
+     *
+     * 147b: *"multi-hit plays the impact with a pitch step, never stacked."* A Side card's three
+     * impacts arrive `TRAIL_STAGGER_MS` (40 ms) apart, inside the 60 ms coalescing window, so
+     * without this they would collapse to one hit. Passing `step` does two things: it raises the
+     * pitch by `MULTI_HIT_SEMITONES` per index so the ear counts them, and it exempts the call
+     * from coalescing — because the caller has stated the repeat is intentional, which is exactly
+     * what the coalescer cannot tell on its own.
+     *
+     * It multiplies with `pitch` rather than replacing it, so a stepped impact still drops with
+     * damage.
+     */
+    step?: number;
     /** Frequency multiplier for pitch-varied sounds (statusApply). Default 1. */
     pitch?: number;
 }
@@ -121,7 +154,7 @@ export type SfxRecipe = (s: SynthToolkit, opts: Required<SfxOptions>) => void;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
-export const SFX_RECIPES: Record<SfxName, SfxRecipe> = {
+export const SFX_RECIPES: Record<RecipeName, SfxRecipe> = {
     /** Short filtered whoosh + square blip — a program executing. */
     cardPlay: (s) => {
         s.noise({ duration: 0.09, filterType: 'bandpass', filterFreq: 850, filterEndFreq: 2600, q: 1.1, gain: 0.35 });
@@ -253,6 +286,12 @@ export const SFX_RECIPES: Record<SfxName, SfxRecipe> = {
         s.tone({ freq: 110, endFreq: 220, type: 'sawtooth', attack: 0.05, decay: 0.55, gain: 0.16 });
         s.noise({ duration: 0.6, filterType: 'lowpass', filterFreq: 300, filterEndFreq: 4200, gain: 0.14 });
         s.arp([440, 554.37, 659.25, 880], { delay: 0.28, step: 0.09, type: 'square', decay: 0.2, gain: 0.07 });
+    },
+
+    /** Ticket 16: a Driver procs — a short two-note chime, distinct from the OS's status tick. */
+    driverProc: (s) => {
+        s.tone({ freq: 660, type: 'triangle', attack: 0.005, decay: 0.12, gain: 0.09 });
+        s.tone({ freq: 990, type: 'triangle', delay: 0.07, attack: 0.005, decay: 0.18, gain: 0.08 });
     },
 
     /** Micro tick for buttons/tabs. */

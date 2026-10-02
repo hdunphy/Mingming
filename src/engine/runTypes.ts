@@ -44,6 +44,7 @@
  */
 
 import { z } from 'zod';
+import { effectiveOS } from './run/effectiveOS';
 
 // ---------------------------------------------------------------------------------------------
 // Region graph
@@ -115,6 +116,13 @@ export interface IRegionNode {
      * the honest reading of a map generated without one.
      */
     readonly scout?: boolean;
+    /**
+     * Ticket 17: the Driver this node pays on a win — set on every `elite` and `ambush` at run
+     * creation (`run/driverStakes.ts`) so the map can show the stakes before the player commits.
+     * Optional for the scout's reason: a run saved before this shipped has no stakes, and resumes
+     * as it was rather than failing the parse.
+     */
+    readonly driverStake?: string;
 }
 
 /**
@@ -163,6 +171,23 @@ export interface IRunCard {
     readonly instanceId: string;
     readonly dataId: string;
     readonly ownerId: string | null; // null = bought, drafted, or granted by an event
+    /**
+     * TICKET 163b — **this instance has been upgraded**, and `dataId` is therefore the `+` id.
+     *
+     * The upgrade happens IN PLACE: the instance keeps its `instanceId` and its `ownerId` and
+     * swaps which card it points at. That is what makes *"an upgrade replaces exactly one copy"*
+     * literally true — a mint-and-delete would give the player a card they did not have and take
+     * one they did, which reads the same in a deck list and differently in every log that follows
+     * an instance.
+     *
+     * REDUNDANT WITH `dataId`, AND DELIBERATELY SO. 163b §4 asks for the flag, and the reason is
+     * the persistence door 163 §5 leaves open: *"no persistence across runs to start; the data
+     * shape must leave the door open."* When upgrades survive a run they will be a map on the
+     * collection entry keyed by BASE id, and the thing that has to be read at that point is "was
+     * this copy upgraded", not "does this string end in a plus". `runSlice.upgrade.test.ts` pins
+     * the two agreeing, so the redundancy is checked rather than trusted.
+     */
+    readonly upgraded?: true;
 }
 
 /**
@@ -200,6 +225,12 @@ export interface IGauntletProgress {
     readonly persistedHp: Readonly<Record<string, number>>;
     /** Members at 0 HP, awaiting whatever revive shape playtesting picks. */
     readonly downedMemberIds: ReadonlyArray<string>;
+    /**
+     * TICKET 173a — what the last between-fights repair gave each standing member (30% of max HP,
+     * `gauntletHeal.ts`), so the pit stop can say it. Absent before the first repair and on saves
+     * from before the field.
+     */
+    readonly healedHp?: Readonly<Record<string, number>>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -208,6 +239,12 @@ export interface IGauntletProgress {
 
 export type RunPhase = 'map' | 'encounter' | 'gauntlet' | 'ended';
 export type RunOutcome = 'victory' | 'defeat' | 'abandoned';
+
+/** TICKET 171b — one team member as a shop remembers them: the two fields its pool reads. */
+export interface IMarketPartyEntry {
+    readonly definitionId: string;
+    readonly activeOS?: string;
+}
 
 export interface IRunState {
     /**
@@ -331,6 +368,132 @@ export interface IRunState {
     readonly blueprintDryFights?: number;
 
     /**
+     * How many times each marketplace node's stock has been REFRESHED, by node id.
+     *
+     * Ticket 142 §7 (Henry, 2026-09-11): *"make it static per run so whenever you come back it has
+     * the same stock, which doesn't get replenished — once you buy the card it's gone from the
+     * shop."* Stock used to be a function of `node.visited`, so walking back in was a free re-roll
+     * — the farm the ticket closes. It is now a function of this counter, which only a PAID
+     * refresh moves (142f).
+     *
+     * Keyed by node id rather than a single run-wide number: two markets are two shelves, and
+     * refreshing one must not disturb the other's stock.
+     *
+     * Optional with `.default({})` — the `seenTips` precedent. A run saved before this field is a
+     * run that has refreshed nothing, which is what the default says.
+     */
+    readonly marketRefreshes?: Readonly<Record<string, number>>;
+
+    /**
+     * TICKET 171b — the team each shop was first visited with, by node id. The shelf's card and
+     * macro stock are rolled for THIS team rather than the live one, so recruiting or benching
+     * cannot change a shop you have already seen. Henry: *"It should be frozen with your first
+     * visit."* A paid refresh replaces the entry. See `engine/run/marketParty.ts`.
+     *
+     * Optional: a run saved before this field has frozen nothing, and its next visit to each shop
+     * freezes it then.
+     */
+    readonly marketParties?: Readonly<Record<string, ReadonlyArray<IMarketPartyEntry>>>;
+
+    /**
+     * Which marketplace blueprint slots have been bought, as `nodeId:refreshCount` keys.
+     *
+     * Ticket 142 §7: *"Add blueprints to the shop ... Bought -> gone until a refresh."* A CARD
+     * offer answers "already bought?" from ownership - `isOfferSold` looks for its minted instance
+     * id - and a blueprint cannot, because blueprints are a persistent COUNT on the ranch and
+     * owning a kraken blueprint says nothing about which stall it came from.
+     *
+     * The refresh count is IN the key rather than beside it, so a refresh makes the slot available
+     * again with no clearing step and nothing to forget to clear.
+     */
+    readonly boughtBlueprints?: ReadonlyArray<string>;
+
+    /**
+     * TICKET 163b — which upgrade benches have been used, as `nodeId:visitCount` keys.
+     *
+     * Henry ruled ONE UPGRADE PER VISIT (163 §2) and, on 2026-09-24, that the bench appears at BOTH
+     * stops — the market stall and the workshop — so the allowance is per node per visit and this
+     * is where it is spent. The gym gate's free upgrade is not in here: it is once per gauntlet and
+     * `IGauntletProgress` already knows how far into one you are.
+     *
+     * Keyed on `node.visited` rather than on a refresh count, which is the one place this differs
+     * from `boughtBlueprints` above and is the difference between the two rules. A stall's stock is
+     * a SHELF — buy the card and it is gone until you pay to restock — so its key is the shelf's
+     * identity. An upgrade bench is a SERVICE: walking back in is a new visit and a new allowance,
+     * at the price of re-fighting the wilds on the way, which is ticket 07's answer to farming and
+     * the reason `visited` is a count rather than a boolean.
+     *
+     * Optional with `.default([])`, the `boughtBlueprints` precedent: a run saved before this field
+     * is a run that has upgraded nothing.
+     *
+     * Henry, 2026-09-30, ticket 174: two per visit at the market and workshop (`UPGRADES_PER_VISIT`); event benches and the gym gate keep their own allowances.
+     * Each spend adds the key again, so a key appearing twice means the allowance of two is used.
+     */
+    readonly upgradesTaken?: ReadonlyArray<string>;
+
+    /**
+     * TICKET 166e — which gate patch benches have been used, as `patch:nodeId:visitCount` keys.
+     * The gate's heading has always said "A PATCH FOR ONE BODY"; before 166e nothing enforced it.
+     * Optional with `.default([])`, the `upgradesTaken` precedent.
+     */
+    readonly patchBenchesUsed?: ReadonlyArray<string>;
+
+    /**
+     * TICKET 168: every event resolved this run, in order. The once-per-run and first-visit rules,
+     * and the power cap, read this. Optional with `.default([])`, the `patchBenchesUsed` precedent.
+     */
+    readonly eventHistory?: ReadonlyArray<{
+        readonly nodeId: string;
+        readonly eventId: string;
+        readonly choiceId: string;
+        readonly grants: ReadonlyArray<'driver' | 'patch'>;
+    }>;
+
+    /**
+     * TICKET 168b — **Drivers that last for the next fight only**, and how many fights each has
+     * left. An event's bad outcome (Frayed Signal, Static Haze) lands here rather than in `drivers`:
+     * `drivers` is the run's permanent list and the power cap counts it, while this list empties
+     * itself. `battleSetup` applies both lists; `resolveEncounter`, `advanceGauntlet` and
+     * `finishGauntlet` count it down. Optional with `.default([])`.
+     */
+    readonly tempDrivers?: ReadonlyArray<{ readonly driverId: string; readonly fightsLeft: number }>;
+
+    /**
+     * TICKET 163d — **the patch fitted to each party member's firmware**, by member id.
+     *
+     * RUN STATE, not roster state, on 163 §5 decision 5: *"no persistence across runs to start."*
+     * `IRanchMember` is the individual that survives a run; a patch is something the run found, so
+     * it dies with the run exactly as `drivers` and `scrap` do. Keyed by member id rather than held
+     * on the member for the same reason `partyIds` is a list of ids — one place owns a Mingming,
+     * and it is the roster.
+     *
+     * At most `PATCH_SLOTS` (one) per member. The cap is enforced in the reducer rather than by the
+     * type, because a type cannot say "one" about an array in a way zod will also say.
+     *
+     * Optional with `.default({})`: a run saved before this field is a run that found none.
+     */
+    readonly patches?: Readonly<Record<string, ReadonlyArray<string>>>;
+
+    /**
+     * TICKET 168f — **the firmware an event switched a body to, for this run only**, by member id.
+     *
+     * Firmware Reflash writes here and never to the ranch, so the roster member keeps its own OS for
+     * the next run. Read through `effectiveOS(run, member)` everywhere a run reads a party member's
+     * firmware. The deck is untouched: only the firmware changes. Optional with `.default({})`.
+     */
+    readonly osOverrides?: Readonly<Record<string, string>>;
+
+    /**
+     * TICKET 168g — **this encounter is Ambush Bait's optional fight**, on an `event` node.
+     *
+     * Set by `startEventFight` when the player chooses Fight it, cleared by `resolveEncounter`. While
+     * it is set the fight is classed as a wild (`engine/run/eventFight.ts`) and its win pays double
+     * scrap. Persisted with the run, so an app close mid-fight resumes into the same fight.
+     * Optional with `.default(false)`.
+     */
+    readonly eventFight?: boolean;
+
+    /**
      * Fights resolved so far. `exploration-map.md` targets **8–10 battles plus the gauntlet =
      * 10–13 fights, 35–45 minutes**, and farming means the player can exceed it — so this is the
      * metric the playtest ticket (25) reads to find out whether the target holds, not a cap.
@@ -396,7 +559,19 @@ export interface IRanchState {
     readonly codex: ICodex;
     /** Gym ids beaten — what tiers and gyms are offered at run start. */
     readonly gymsCleared: ReadonlyArray<string>;
+    /**
+     * @deprecated Ticket 169d: this cannot tell "nothing cleared" from "tier 0 cleared" (its default
+     * is 0, and recording a tier-0 clear is a no-op). Use `tierClears`, which records the tiers each
+     * gym has been beaten at. Still written, so an older build reading this save keeps working.
+     */
     readonly highestTierCleared: number;
+    /**
+     * Ticket 169d: the tiers each gym has been beaten at, by gym id, each list sorted ascending. A
+     * tier-N clear on any gym unlocks tier N+1 for every gym (`tiers/tierUnlocks.ts`), and a gym
+     * cleared at tiers 1, 2 and 3 earns its achievement. Add-only, `.default({})` and no version
+     * bump, the `seenTips` argument: a save from before this field is a player with no tier clears.
+     */
+    readonly tierClears: Readonly<Record<string, ReadonlyArray<number>>>;
     /**
      * Onboarding tips already shown (ticket 24). `TipId`s, but typed as plain strings for the same
      * reason the codex stores raw dataIds: the save has to survive a build that renamed or retired
@@ -417,6 +592,24 @@ export interface IRanchState {
      * Henry's numbers — see `CodexMilestone`.
      */
     readonly codexMilestones: ReadonlyArray<string>;
+    /**
+     * How many runs this player has FINISHED, by any outcome (victory, defeat or abandon).
+     *
+     * Ticket 59 (Henry, 2026-09-09): *"for the first run increase blueprint rate by 10% across
+     * the board"*. `RewardSystem`'s own note asks for exactly this shape - early-game generosity
+     * *"belongs as an explicit `firstRun: true` modifier on this table, not as a silent function
+     * of roster length"* - and this counter is what makes `firstRun` answerable.
+     *
+     * **It counts ENDED runs, not started ones, and it lives on the ranch.** A run in progress
+     * cannot change it, so the bonus can never switch off underneath a player mid-run - which is
+     * the failure that made the deleted `getBlueprintRate(rosterSize)` curve wrong. Abandoning
+     * counts: `endRun('abandoned')` is a finished attempt, and not counting it would let a player
+     * farm the first-run rate forever by quitting to the ranch.
+     *
+     * Optional and `.default(0)` for the same reason `seenTips` is: a save written before this
+     * field is a player who has completed no runs, which is what the default says. No version bump.
+     */
+    readonly runsCompleted?: number;
 }
 
 export interface IRanchMember {
@@ -453,12 +646,18 @@ export const RegionNodeSchema = z.object({
     visited: z.number().int().min(0),
     // Ticket 142b. Optional, not defaulted: a pre-142 save has no scout and must resume as it was.
     scout: z.boolean().optional(),
+    // Ticket 17. Optional, not defaulted, for the same reason as `scout`.
+    driverStake: z.string().optional(),
 });
 
 export const RunCardSchema = z.object({
     instanceId: z.string(),
     dataId: z.string(),
     ownerId: z.string().nullable(),
+    // TICKET 163b. `.optional()` and never defaulted: the ABSENCE of the flag is the ordinary
+    // state, and a `false` on every card in every save would be three hundred bytes a run saying
+    // nothing. A card saved before this field is a card nobody had upgraded.
+    upgraded: z.literal(true).optional(),
 });
 
 export const GauntletProgressSchema = z.object({
@@ -466,6 +665,8 @@ export const GauntletProgressSchema = z.object({
     totalFights: z.number().int().min(1),
     persistedHp: z.record(z.string(), z.number().int().min(0)),
     downedMemberIds: z.array(z.string()),
+    // Ticket 173a, add-only: what the last between-fights repair gave each member, for the pit stop.
+    healedHp: z.record(z.string(), z.number().int().min(0)).optional(),
 });
 
 export const RunStateSchema = z.object({
@@ -499,6 +700,30 @@ export const RunStateSchema = z.object({
     // run that predates the field — no fights have gone dry as far as this counter knows — so the
     // parse can supply it and every reader downstream is spared a `?? 0`.
     blueprintDryFights: z.number().int().min(0).default(0),
+    // Ticket 142 §7, add-only like the field above it.
+    marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
+    // Ticket 171b, add-only. `.optional()` rather than `.default({})` so a save without it reads
+    // back byte for byte.
+    marketParties: z.record(z.string(), z.array(z.object({
+        definitionId: z.string(),
+        activeOS: z.string().optional(),
+    }))).optional(),
+    upgradesTaken: z.array(z.string()).default([]),
+    patchBenchesUsed: z.array(z.string()).default([]),
+    tempDrivers: z.array(z.object({
+        driverId: z.string(),
+        fightsLeft: z.number().int().min(1),
+    })).default([]),
+    eventHistory: z.array(z.object({
+        nodeId: z.string(),
+        eventId: z.string(),
+        choiceId: z.string(),
+        grants: z.array(z.enum(['driver', 'patch'])),
+    })).default([]),
+    patches: z.record(z.string(), z.array(z.string())).default({}),
+    osOverrides: z.record(z.string(), z.string()).default({}),
+    eventFight: z.boolean().default(false),
+    boughtBlueprints: z.array(z.string()).default([]),
     fightsResolved: z.number().int().min(0),
     startedAt: z.number().int().min(0),
 })
@@ -562,11 +787,15 @@ export const RanchStateSchema = z.object({
     codex: CodexSchema.default({ seen: [], played: [], species: [], assembled: [], os: [] }),
     gymsCleared: z.array(z.string()).default([]),
     highestTierCleared: z.number().int().min(0).default(0),
+    // Ticket 169d, same add-only shape as `seenTips`: absent means no tier has been cleared anywhere.
+    tierClears: z.record(z.string(), z.array(z.number().int().min(0))).default({}),
     // Ticket 24. `.default([])` and no version bump: a v4 save written before this field existed is
     // a player who has seen no tips, which is exactly what the default says. That is the whole
     // reason the field is add-only and never removed — see `IRanchState.seenTips`.
     seenTips: z.array(z.string()).default([]),
     codexMilestones: z.array(z.string()).default([]),
+    // Ticket 59, same add-only shape as `seenTips` above: absent means zero completed runs.
+    runsCompleted: z.number().int().min(0).default(0),
 });
 
 /**
@@ -664,9 +893,11 @@ export function reconcileLoadedState(rawRanch: unknown, rawRun: unknown): Reconc
     // holding `kraken_v1` beside `kraken_v2` is exactly what the ruling asked for, and a loader
     // still enforcing the old clause would throw that run away on the next launch — the worst
     // possible place for the two rules to disagree, because it costs the run silently.
+    // TICKET 168f: the firmware a body runs in THIS run. A Firmware Reflash can put a body on the OS
+    // a later recruit holds on the ranch; comparing the ranch's own would discard that legal run.
     const builds = run.partyIds.map((id) => {
         const member = byId.get(id)!;
-        return `${member.definitionId}::${member.activeOS ?? ''}`;
+        return `${member.definitionId}::${effectiveOS(run, member) ?? ''}`;
     });
     if (new Set(builds).size !== builds.length) {
         return { ranch, run: null, discarded: 'party-has-duplicate-species' };

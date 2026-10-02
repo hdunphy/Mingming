@@ -50,7 +50,8 @@ import { STATUS_MODEL } from '../../engine/core/Hooks';
 
 import type { ProgramData, ProgramAction } from '../../engine/types';
 import HOOK_LIBRARY from '../../engine/data/lib/hooks.json';
-import { GetProgramData } from '../../engine/data/programRegistry';
+import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
+import { GetProgramData, getInflatedProgramRegistry } from '../../engine/data/programRegistry';
 import { numericBaseCost, HP_MULTIPLIER, NUMBER_SCALE } from '../../engine/types';
 import { DEFAULT_GAME_CONFIG } from '../../engine/data/gameConfig';
 import { BURN_CONFIG } from '../../engine/StatusBehaviors';
@@ -82,6 +83,38 @@ export interface PowerscaleResult {
      */
     damagePortion: number;
     statusPortion: number;
+    /**
+     * ── TICKET 149c-4 — THE SAME CARD, PRICED AT BOTH WIDTHS ─────────────────────────────
+     *
+     * A `Side` card hits one enemy at 1v1 and three at 3v3, and the scorer had exactly one
+     * answer: it charged the 3v3 multiplier always. So every Side card in the pool read as
+     * over-budget in a 1v1 fight it is merely ordinary in — the five Ice cards being the
+     * clearest case — and the report had no way to say which width it was talking about.
+     *
+     * §4.2 rules two scores rather than one, and a verdict rule to go with them: the band
+     * verdict is against `score1v1` unless the card is `Side`/`All`, where **both are printed
+     * and the verdict is the worse of the two**. That last clause is the whole reason this is
+     * not simply "score it at 1v1": a card that is fine at one width and egregious at the
+     * other is still a card Henry has to see.
+     *
+     * `score` above is `score1v1` — the general reading, and what every existing consumer
+     * wants — so nothing that did not ask for width has to learn about it.
+     */
+    score1v1: number;
+    score3v3: number;
+    /**
+     * TICKET 149c-6 — §4.4's two hook columns.
+     *
+     * `hookFloor` is the part of `score` that came from hooks, priced at the ROSTER-MEAN trigger
+     * rate; it is included in `score`. `hookCeiling` is the same hooks at the best home-deck rate
+     * the census saw, and is included in nothing — no card is ever priced at a ceiling.
+     *
+     * Their ratio is the build-around index. A high floor is a card everyone has to take; a low
+     * floor with a high ceiling is a legitimate deck-specific rare. Both are 0 for the 229 cards
+     * that register no hooks.
+     */
+    hookFloor: number;
+    hookCeiling: number;
 }
 
 /**
@@ -91,15 +124,27 @@ export interface PowerscaleResult {
  * finer section 1.2 rules (below) supersede the rest: status weight depends on *which*
  * status, draw has diminishing returns per card, energy is priced directly in power.
  */
+/*
+ * ONLY `ATTACK` AND `HEAL` ARE LIVE — ticket 149c-2.
+ *
+ * Two of these are read (L732, L742). The rest are historical: STATUS, REMOVE_STATUS and ENERGY
+ * are each priced by their own branch in the big switch, and `DRAW` was priced by the ladder
+ * below. `'DRAW': 15` has been DELETED rather than left sitting here, because it was the one that
+ * actively misled — 149b's report opens on it: the live price is the ladder, and a reader looking
+ * up "what is a draw worth" found this number instead and got the wrong answer.
+ *
+ * The other three are left in place because they are §5's next rows' business, not this one's, but
+ * they are dead code too: changing any of them changes nothing.
+ */
 export const ACTION_WEIGHTS: Record<string, number> = {
     'ATTACK': 1,
     // 4 power/1%HP vs damage's 3 power/1%HP => heal's raw `power` field is worth 3/4 as
     // much per point as an attack's (docs/power_curve_spec.md rev 3, "heal costs more than
     // damage").
     'HEAL': 0.75,
+    // Dead: priced by their own branches in `calculatePowerscale`. See the note above.
     'STATUS': 12,
     'REMOVE_STATUS': 8,
-    'DRAW': 15,
     'ENERGY': 20,
 };
 
@@ -112,17 +157,10 @@ export const DEBUFFS = ['Burn', 'Poison', 'Dazed', 'Stunned', 'Weakened', 'Aslee
 /**
  * Section 1.3's target-score table, one band per energy cost.
  *
- * These now sit exactly on the docs/power_curve_spec.md rev 3 damage curve (10/40/90/140
- * power for 0/1/2/3e, divided by 10 to match the ATTACK branch's `power/10` scoring unit).
- * `over` IS the point target now, not a redline above it - rev 3's whole premise is a firm
- * "a 1-energy card should deal 40 power" target, not a range with slack above it. `under`
- * is 80% of `over`, an advisory amber line with no particular derivation beyond "clearly
- * short of the target."
- *
- * The 3+ band has no upper bound of its own - a 4-cost card is expected to reach 19.0
- * (190 power), legitimately above the 3-cost band's 14.0. Read the 3-band's `over` as "a
- * 3-cost card is expected to reach 14, and one far past 14 is the same overbudget problem a
- * 2-cost card past 9 is" - a 4e card is supposed to clear it, that's fine.
+ * Divided by 10 to match the ATTACK branch's `power/10` scoring unit, so `over: 3.0` is a
+ * 30-power target. `over` IS the point target, not a redline above it; `under` is 80% of it, an
+ * advisory amber line. The numbers themselves are Henry's slot tax — see the block above
+ * `BUDGET_BANDS`.
  */
 export interface BudgetBand {
     /** Lowest energy cost this band covers. The last band is open-ended (`3+`). */
@@ -133,16 +171,125 @@ export interface BudgetBand {
     under: number | null;
 }
 
-// rev 3.2 (ticket 24): the curve moved 10/40/90/140 -> 10/35/75/120, so the bands move
-// with it. The POWER UNIT itself is unchanged - a point of power still buys the same
-// fraction of a health pool - so the per-status prices below are deliberately NOT rescaled.
-// What changed is only how much power a card of a given cost is allowed to carry.
+/*
+ * ── HENRY'S SLOT TAX, RULED 2026-09-23 (ticket 162 §4b, adopted by 162b) ──────────────────
+ *
+ * **10 / 30 / 65 / 105 power  ->  12 / 30 / 70 / 120.** Henry: *"keep my numbers."*
+ *
+ * The rule behind the change, in his words: *"you pay for the cost of playing 1 card — 1e ≈ 30,
+ * 2e at least 70"*, and the principle underneath it is that **a 2e or 3e card must beat two 1e
+ * cards**. It spends a hand slot as well as the Energy, and the old curve charged it only for the
+ * Energy — which is why a 2-energy card at 65 was a worse deal than two 1-energy cards at 30 each
+ * and the pool's 2e rung read as a tax on itself.
+ *
+ * WHAT MOVED, AND WHAT DID NOT. The 1e rung is unchanged at 30, so the curve is anchored where the
+ * roster is densest (41 of collection v2's 98 cards) and every price below is still denominated
+ * against the same power unit. `under` stays at 80% of `over`, which is where it has always been.
+ *
+ * WHAT THIS REPRICES. Every costed card in the registry, not only collection v2's 98 — the 170 v1
+ * entries twenty post-EA species still field are audited against this table too. That is the
+ * intended blast radius: one curve, or the audit says two different things about two halves of the
+ * same registry. The v1 entries move by at most a rung's tolerance at 0e and 2e; `results/t162/`
+ * holds the before/after.
+ *
+ * The 3+ band still has no upper bound of its own — a 4-cost card is expected to clear 12.0
+ * legitimately.
+ *
+ * (Was: rev 3.2 / ticket 24's 10/35/75/120 curve, itself down from 10/40/90/140. The POWER UNIT
+ * has never changed through any of these — a point of power still buys the same fraction of a
+ * health pool — so the per-status prices below are deliberately NOT rescaled. What moves is only
+ * how much power a card of a given cost is expected to carry.)
+ */
 export const BUDGET_BANDS: ReadonlyArray<BudgetBand> = [
-    { cost: 0, over: 1.0, under: 0.8 },
+    { cost: 0, over: 1.2, under: 0.96 },
     { cost: 1, over: 3.0, under: 2.4 },
-    { cost: 2, over: 6.5, under: 5.2 },
-    { cost: 3, over: 10.5, under: 8.4 },
+    { cost: 2, over: 7.0, under: 5.6 },
+    { cost: 3, over: 12.0, under: 9.6 },
 ];
+
+/**
+ * ── TICKET 149c-5 — THE BAND IS A TARGET, NOT A CLIFF ─────────────────────────────
+ *
+ * Henry, 2026-08-26, on `frost_bite` scoring 3.3 against a 3.0 ceiling: *"3.3 vs 3 is not a
+ * problem. 3 is not a hard cut off but a general target we can be +/- some percentage."*
+ *
+ * The audit was binary — IN BAND or OVER — so a card 1% over and a card 150% over produced the
+ * same word, and every audit in this repo has treated them the same way. §4.3 rules ±15% with the
+ * percentage always printed.
+ *
+ * **15% is where the pool's own noise sits**, which is why it is 15 and not a round number picked
+ * for being round. `scratch/bandspread.ts` measures the distribution the rule has to describe:
+ * the MEDIAN ABSOLUTE deviation from band across 236 costed non-token cards is **15.4% at 1v1**
+ * and 13.8% at 3v3. A tolerance under that reclassifies the pool's ordinary spread as violations;
+ * one far over it waves through cards that really are mispriced.
+ *
+ * MAD and not standard deviation, on §4.3's explicit ruling, and the numbers say why: the sd is
+ * **68.8%**, four and a half times the MAD, because a handful of cards sit 200–570% over and drag
+ * it. A tolerance built on the sd would be built on `bloodwrath`, not on the pool.
+ */
+export const BAND_TOLERANCE_PCT = 15;
+
+/** The four states §4.3 rules. The strings are what gets printed — there is no second vocabulary. */
+export type BandState = 'IN BAND' | 'WITHIN TOLERANCE' | 'OUT OF BAND' | 'MANUAL REVIEW';
+
+export interface BandVerdict {
+    state: BandState;
+    /** How far past the band, in percent. Negative is under. Always printed, per §4.3. */
+    pct: number;
+    /** The printable form: `OUT OF BAND +37%`, `IN BAND -23%`. */
+    label: string;
+}
+
+/**
+ * Where a score sits against its band, as one of §4.3's four states.
+ *
+ * The MANUAL REVIEW branch is the one worth explaining. A score of zero or less is not an
+ * under-powered card — it is a card the scorer priced as a net NEGATIVE, which in this pool means
+ * a drawback card: `scrubber` scores −1.6 because it sheds an ally's Poison and the model reads
+ * removal-from-an-ally as a downside. §4.7 parks that whole tail behind ticket 138, and this state
+ * is what keeps it out of the under-band list meanwhile. Routing those to "under band" would be
+ * the report asserting nine cards are too weak when what it actually knows is that it cannot
+ * price them.
+ */
+export function bandVerdict(score: number, band: number): BandVerdict {
+    const pct = band > 0 ? Math.round((score / band - 1) * 100) : 0;
+    const signed = `${pct >= 0 ? '+' : ''}${pct}%`;
+
+    // Checked BEFORE the band comparison: a negative score is under every band there is, and the
+    // thing worth saying about it is not "under".
+    if (score <= 0) return { state: 'MANUAL REVIEW', pct, label: `MANUAL REVIEW ${signed}` };
+    if (pct <= 0) return { state: 'IN BAND', pct, label: `IN BAND ${signed}` };
+    if (pct <= BAND_TOLERANCE_PCT) return { state: 'WITHIN TOLERANCE', pct, label: `WITHIN TOLERANCE ${signed}` };
+    return { state: 'OUT OF BAND', pct, label: `OUT OF BAND ${signed}` };
+}
+
+/**
+ * TICKET 163a — **an upgraded card is not scored.**
+ *
+ * Henry, 2026-09-24, closing the row: *"upgrades are supposed to be broken. So no need to score
+ * them."* He had the ledger in front of him — twelve `+` cards flagged as clearing the band two
+ * costs above their own, Ember Ward+ at +439% — and ruled the whole question out rather than any
+ * card in it.
+ *
+ * That is a ruling about what the SCORER IS FOR, not a favour to ninety-eight cards. This file
+ * prices a card against the budget its cost buys, and an upgrade is by definition a card that no
+ * longer pays that budget: the pass exists to break it. A band verdict on a `+` row says only that
+ * ticket 163 did what it was ruled to do, and a report that prints ninety-eight of those buries
+ * the base-card rows it exists to surface.
+ *
+ * So the rows are skipped, not softened — `balanceReport`'s audit passes over them entirely, and
+ * `cardBudgetAudit.test.ts` asserts the width rule against base cards only. `calculatePowerscale`
+ * still WORKS on a `+` card, because it takes card data and knows nothing about tickets; what is
+ * retired is asking anyone to read the answer.
+ *
+ * It is not a licence for the rest of the pool. The base card keeps its band, and `isBandExempt`
+ * is driven by `upgradeOf` rather than by a name ending in `+`, so nothing else can wander in.
+ */
+export function isBandExempt(card: Pick<ProgramData, 'upgradeOf' | 'junk'>): boolean {
+    // TICKET 168c: a junk card is not a card anyone is offered, so it has no budget to be over. It
+    // is skipped, not scored — "fix each by excluding junk, not by giving it a score".
+    return card.upgradeOf !== undefined || card.junk === true;
+}
 
 /** The band a card of this cost is budgeted against. Costs above 3 use the 3+ band. */
 export function budgetBandFor(cost: number): BudgetBand {
@@ -164,6 +311,18 @@ export function budgetBandFor(cost: number): BudgetBand {
  * whenever a frame changes size - ticket 131b's x1.5 had already left it 1.5x stale.
  */
 const ASSUMED_MAX_HP = Math.round(75 * HP_MULTIPLIER * NUMBER_SCALE);
+
+/**
+ * The BOARD-pile assumption: how many stacks of a status a card can expect to find when it reads
+ * one. Stays at 3 - Henry, 2026-08-15, after the roster-wide census.
+ *
+ * This is a FLOOR, not a price: a static pass cannot see the board, and several paths that use it
+ * meet larger piles in play (see research/status-pile-census.md). Ticket 149c-7 moved it to module
+ * scope so `scoreOS` prices a flat-bonus firmware hook against this number rather than inventing a
+ * second one - the census read 9.4 Poison stacks for TOXIN_FANG and 13 Sharp for KINETIC_RAM on
+ * the decks that ship them, and those decks are built to feed the hook.
+ */
+const ASSUMED_BOARD_STATUS_COUNT = 3;
 /** docs/power_curve_spec.md: damage costs 3 power per 1% of a health pool. */
 const POWER_PER_PERCENT_MAXHP = 3;
 
@@ -458,22 +617,88 @@ function tier(n: number): number {
 }
 
 /** Action types whose value depends on board state a static pass can't see - flag, don't guess. */
-/**
- * Ticket 32: daemons carry empty `actions` - their whole value is in hooks, so the static model
- * scored every one of them 0.00 and the existing "Daemon Premium x1.5" multiplied nothing.
- * Price one proc's worth of the hook's `do` actions against a fixed expected-proc count.
+/*
+ * `EXPECTED_DAEMON_PROCS = 4` STOOD HERE UNTIL TICKET 149c-6, and its own comment said what was
+ * wrong with it: *"This is a FLOOR, not a price. powerscale has no deck context, so a daemon in a
+ * deck built around it runs at roughly twice this."* Ticket 32 was right about the shape and had
+ * no way to measure it, so it picked one number for fourteen cards.
  *
- * This is a FLOOR, not a price. powerscale has no deck context (the same limitation ticket 29
- * documented for `brute_force`), so a daemon in a deck built around it - echo_chamber in
- * ratatoskr_v1, where five 0-costs each proc it - runs at roughly twice this.
+ * 149b measured all fourteen. The replacement is `TRIGGER_RATE_FLOOR` / `TRIGGER_RATE_CEILING`
+ * and `scoreHook` below: a rate per trigger class, and the "roughly twice" is now a printed
+ * column rather than a caveat in a comment.
  */
-const EXPECTED_DAEMON_PROCS = 4;
+
+/**
+ * What a drawn card is worth — the 1st, 2nd and 3rd-or-later card of one DRAW action, in power.
+ *
+ * TICKET 149c-2, §4.1: **20/15/10**, up from 15/10/5.
+ *
+ * 149b measured the thing the old numbers were guessing at: the mean scorer value of a card drawn
+ * across the 33 shipped decks is **3.39** in /10 units, i.e. 33.9 power, and it is under the deck
+ * mean in 31 of the 33 (range 1.39 on nidhoggr_v1 to 7.09 on ymir_v2 —
+ * `research/scorer-pricing.md` §2). 15 power was therefore selling the first card at 44% of what
+ * a card is worth on an average deck.
+ *
+ * The raise is deliberately short of the measurement. A scorer that paid the full 33.9 would price
+ * a draw as the best line in the game on every deck, which is a deck property rather than a card
+ * one — Henry's framing for the whole ticket: *"its numbers are not meant to work for a specific
+ * width or deck."* 20 is the general floor; the decks that beat it are the decks built to.
+ *
+ * The shape is unchanged and is not a guess: a second card joins a hand that is already deciding,
+ * so it is worth less than the first, and a third less again.
+ */
+const DRAW_LADDER_POWER: ReadonlyArray<number> = [20, 15, 10];
+
+/** The two widths a card is priced at — ticket 149c-4. */
+export type ScoreWidth = '1v1' | '3v3';
+
+/**
+ * What hitting the enemy SIDE is worth, per width.
+ *
+ * 1v1 is ×1.0 because there is one enemy: a Side card is a single-target card in that fight,
+ * and charging it 2.2 was the scorer stating a fact about a different game.
+ *
+ * 3v3 is ×2.2 and it is measured, not counted. Three targets does not mean three times the
+ * value — 149b measured 1.9–2.2 delivered per cast across the pool, because units die and the
+ * third target is often already dead or irrelevant. A pure-debuff Side card reads 2.6, and
+ * §4.2 rules 2.2 for all of them rather than splitting the constant on a card property the
+ * scorer would then have to keep classifying (`research/scorer-pricing.md` §1).
+ */
+export const SIDE_SCOPE_MULTIPLIER: Record<ScoreWidth, number> = { '1v1': 1.0, '3v3': 2.2 };
+
+/**
+ * The same, for `All` scope.
+ *
+ * **No card in the pool has `target: 'All'`** — 158 Single, 63 Self, 22 Side, 0 All — so this
+ * constant prices nothing today and the ledger cannot move on it. It collapses to ×1.0 at 1v1
+ * for the same reason Side does, and keeps its historical ×4.0 at 3v3 rather than inheriting
+ * Side's 2.2: 2.2 is a MEASURED delivery rate for Side cards and there is no All card to have
+ * measured. Carrying a number across from a different scope would read as a measurement.
+ *
+ * If an `All` card is ever authored, this wants measuring before it is trusted.
+ */
+export const ALL_SCOPE_MULTIPLIER: Record<ScoreWidth, number> = { '1v1': 1.0, '3v3': 4.0 };
 
 const MANUAL_REVIEW_TYPES = new Set([
     // Ticket 46: CLEANSE left this set - it is priced from measured debuff load now.
     'SEARCH', 'PLAY_LAST_CARD', 'TRIGGER_STATUS',
     'GENERATE_CARD', 'DISCARD', 'EXHAUST', 'RETURN', 'TAUNT',
     'BUFF_NEXT_PROGRAM', 'REDIRECT_TARGET', 'FORCE_DISCARD',
+    /*
+     * TICKET 162b: `MAX_ENERGY` is listed EXPLICITLY, and the distinction matters.
+     *
+     * It already scored 0 — through the `else` branch at the bottom of the switch, whose comment
+     * reads "Unknown/future action type - don't silently score 0 without saying so". That was the
+     * right default for a verb nobody had seen. It is the wrong LABEL for this one: `MAX_ENERGY` is
+     * a shipped card action (`overclock_core`) and a shipped hook action (GENESIS_FIRMWARE), and
+     * reporting it as unknown invites someone to "fix" the scorer by adding a number.
+     *
+     * The number is not available statically. A permanent +1 max Energy is worth 40 power per point
+     * PER REMAINING REFILL, so its price is `40 x (turns the caster has left)` — a horizon nothing
+     * on the card knows. `GROWTH_HORIZON_PLAYS` is the precedent for measuring such a horizon and
+     * writing it down; until somebody does that for this verb, the honest reading is "unmeasured".
+     */
+    'MAX_ENERGY',
 ]);
 
 /**
@@ -489,35 +714,247 @@ const MANUAL_REVIEW_TYPES = new Set([
  * damage multiplier like core_overclock_daemon), which correctly leaves those scoring 0 rather
  * than inventing a number for an effect this model cannot see.
  */
-function daemonHookActions(card: ProgramData): ProgramAction[] {
+/*
+ * ══ TICKET 149c-6 — HOOKS GET A FORMULA, AND THE FORMULA IS MEASURED ══════════════════
+ *
+ * `EXPECTED_DAEMON_PROCS = 4` was one number for fourteen cards whose triggers fire at rates an
+ * order of magnitude apart. 149b measured every one of them with probe hooks over **22,780
+ * unit-turns at 1v1** (`research/scorer-pricing.md` §2), and the constant turned out to be right
+ * for exactly one trigger class and wrong by up to 5× for another:
+ *
+ *   - turn start / turn end fires 0.79 per unit-turn — about 3.9 a game, so 4 was right **by
+ *     accident of game length**, which is not the same as being right;
+ *   - opponent card played fires **4.2**, roughly 20 a game: `riptide` was priced at a fifth of
+ *     what it does;
+ *   - Light attack fires **0.00** — no shipped deck has a Light attacker, so `einherjar` was
+ *     being charged four procs of an effect that has never once happened.
+ *
+ * §4.4 replaces the constant with `payoff × rate × horizon`, printed TWICE: a FLOOR at the
+ * roster-mean rate and a CEILING at the best home-deck rate the census saw. The ratio between
+ * them is the build-around index, and it is the number that answers a question a single score
+ * cannot: a high floor is a card everyone has to take, while a low floor with a high ceiling is
+ * a legitimate deck-specific rare. `echo_chamber_v2` on ratatoskr_v1 procs 3.3× the roster mean;
+ * that is the card working as designed, not a balance problem, and the old single number had no
+ * way to say so.
+ */
+
+/** The trigger classes the 149b census measured. One rate per class, not per hook. */
+export type TriggerClass =
+    | 'TURN_BOUNDARY'
+    | 'OWN_ZERO_COST_PLAY'
+    | 'OWN_TRIGGERED_DRAW'
+    | 'BURN_ON_SELF'
+    | 'LIGHT_ATTACK'
+    | 'OPPONENT_CARD_PLAYED'
+    | 'OPPONENT_TRIGGERED_DRAW'
+    | 'DAMAGE_TAKEN';
+
+/**
+ * Procs per unit-turn at the ROSTER MEAN — what this trigger does on a deck not built for it.
+ *
+ * Every figure is `research/scorer-pricing.md` §2, measured over 22,780 unit-turns at 1v1 with
+ * probe hooks counted outside AI lookahead. This is the rate a card is PRICED at, because the
+ * scorer prices cards for the registry — anyone can draft them — and not for the one deck that
+ * ships them. The same choice ticket 66 made for the board-pile constants.
+ */
+export const TRIGGER_RATE_FLOOR: Record<TriggerClass, number> = {
+    TURN_BOUNDARY: 0.8,             // measured 0.79; 0-3% of units never see it
+    OWN_ZERO_COST_PLAY: 1.0,        // echo_chamber, hoofbeat. 6% of units never see it
+    OWN_TRIGGERED_DRAW: 0.33,       // feedback_loop. 67% of units never see it at all
+    BURN_ON_SELF: 0.14,             // cinder_armor. 84% of units never see it
+    LIGHT_ATTACK: 0.0,              // einherjar. 100% of units never see it - no Light attacker ships
+    OPPONENT_CARD_PLAYED: 4.2,      // riptide. 0% miss it; ~20 procs a game
+    OPPONENT_TRIGGERED_DRAW: 0.84,  // short_circuit. 41% of units never see it
+    DAMAGE_TAKEN: 2.2,              // reactive_plating. Capped by its own counter, see below
+};
+
+/**
+ * The highest rate the census saw on a deck BUILT for the trigger — the ceiling column.
+ *
+ * Only two classes have a home deck that beats the roster: `own 0-cost play` reaches 3.3 on
+ * ratatoskr_v1 (five 0-costs, each one a proc) and `own triggered draw` reaches 1.4 on kraken_v1.
+ * Every other class is its own floor, and that is a finding rather than a gap in the data: an
+ * opponent-triggered hook cannot be built around, because the rate is the OPPONENT's behaviour.
+ *
+ * Nothing is ever priced at these. They exist so the report can say how much headroom a card has
+ * on the deck that wants it, which is §4.4's build-around index.
+ */
+export const TRIGGER_RATE_CEILING: Record<TriggerClass, number> = {
+    ...TRIGGER_RATE_FLOOR,
+    OWN_ZERO_COST_PLAY: 3.3,        // ratatoskr_v1
+    OWN_TRIGGERED_DRAW: 1.4,        // kraken_v1
+};
+
+/**
+ * When a daemon lands and how long it has to work — §4.4.
+ *
+ * The AI casts shipped daemons on turn 1.9 mean, median 2, so 2 is the cast turn. The horizon is
+ * 3 turns, which is Henry's bar from the design session: a daemon should be worth its energy even
+ * when it lands late. Pricing at the full remaining game would flatter every daemon in the pool.
+ */
+export const DAEMON_CAST_TURN = 2;
+export const DAEMON_HORIZON_TURNS = 3;
+
+/** An OS is installed from turn 0 and never leaves, so it gets the longer horizon (§4.4). */
+export const OS_HORIZON_TURNS = 5;
+
+/**
+ * The daemon premium, kept at 1.5 and finally named for what it is.
+ *
+ * §4.4: daemons keep it, *"now stated as the size of the sanctioned rare"*. It is not a claim
+ * that a daemon delivers 50% more than its actions say — it is Henry's ruling that a daemon is
+ * ALLOWED to be over band by half, because *"some rare over-band cards are wanted so players win
+ * easier, and daemons may be that rare"*.
+ */
+export const DAEMON_RARE_PREMIUM = 1.5;
+
+/**
+ * Which measured class a hook's trigger belongs to, or `null` when the census never saw it.
+ *
+ * `null` is a real answer and is handled as one by the caller: a hook the census did not measure
+ * is left UNPRICED and flagged for manual review, rather than falling back to a default rate. A
+ * default here would read as a measurement, which is the failure mode ticket 66 spent a whole
+ * census correcting.
+ */
+export function classifyHook(hook: HookRecord): TriggerClass | null {
+    const trigger = hook.trigger ?? '';
+    const from = (hook.when?.source ?? 'SELF').toUpperCase();
+    const opponent = from === 'OPPONENT';
+
+    if (trigger === 'onTurnStart' || trigger === 'onTurnEnd') return 'TURN_BOUNDARY';
+    if (trigger === 'onCardDraw') {
+        // `isNaturalDraw: false` is the discriminator: the census counted EFFECT draws only,
+        // because the draw-phase refill happens once a turn for everyone and is not a trigger a
+        // card can be built around.
+        if (hook.when?.isNaturalDraw !== false) return null;
+        return opponent ? 'OPPONENT_TRIGGERED_DRAW' : 'OWN_TRIGGERED_DRAW';
+    }
+    if (trigger === 'onActionStart') {
+        if (opponent) return 'OPPONENT_CARD_PLAYED';
+        // The 0-cost gate is what the census measured: echo_chamber and hoofbeat both carry
+        // `baseCost: 0, isToken: false`. A hypothetical any-cost own-play hook is a different
+        // rate and has never been measured.
+        return hook.when?.baseCost === 0 ? 'OWN_ZERO_COST_PLAY' : null;
+    }
+    if (trigger === 'onActionEnd') return opponent ? 'OPPONENT_CARD_PLAYED' : null;
+    if (trigger === 'onStatusApplied') {
+        return hook.when?.statusApplied === 'Burn' && !opponent ? 'BURN_ON_SELF' : null;
+    }
+    if (trigger === 'onDamageCalculated') {
+        return (hook.when?.programElement ?? '').toUpperCase() === 'LIGHT' ? 'LIGHT_ATTACK' : null;
+    }
+    if (trigger === 'onPostDamage') return opponent ? 'DAMAGE_TAKEN' : null;
+    return null;
+}
+
+/**
+ * §4.4's formula: **per-proc payoff × trigger rate × horizon**.
+ *
+ * Three inputs, each of which is somebody's measurement rather than this function's opinion: the
+ * payoff comes from scoring the hook's own actions through the ordinary card formula, the rate
+ * from the 149b census, and the horizon from §4.4's cast-turn ruling. That is the whole point of
+ * replacing `EXPECTED_DAEMON_PROCS` — the old number silently blended all three.
+ */
+export function scoreHook(perProcScore: number, opts: { rate: number; horizon: number }): number {
+    return perProcScore * opts.rate * opts.horizon;
+}
+
+/** A hook as the library stores it, with only the fields the scorer reads. */
+export interface HookRecord {
+    id: string;
+    trigger?: string;
+    when?: {
+        source?: string;
+        statusApplied?: string;
+        programElement?: string;
+        isNaturalDraw?: boolean;
+        baseCost?: number;
+    };
+    multiplier?: number;
+    do?: ReadonlyArray<ProgramAction>;
+}
+
+/**
+ * Every hook a card registers, as records rather than a flat list of actions.
+ *
+ * TICKET 149c-6 changed the shape here, and the reason is `reactive_plating`: it registers TWO
+ * hooks on different triggers (one on damage taken, one on turn start), and the old flattening
+ * put both sets of actions in one bag to be multiplied by one proc count. Once each trigger has
+ * its OWN measured rate, a bag is not something that can be priced — the hooks have to stay
+ * apart.
+ */
+export function hooksOf(card: ProgramData): HookRecord[] {
     const ids = (card as unknown as { hooks?: ReadonlyArray<string> }).hooks;
     if (!ids || ids.length === 0) return [];
     const wanted = new Set(ids);
-    const out: ProgramAction[] = [];
+    const out: HookRecord[] = [];
     for (const entry of Object.values(HOOK_LIBRARY as Record<string, unknown>)) {
-        const hooks = (entry as { hooks?: ReadonlyArray<{ id: string; do?: ReadonlyArray<ProgramAction> }> }).hooks;
+        const hooks = (entry as { hooks?: ReadonlyArray<HookRecord> }).hooks;
         if (!hooks) continue;
-        for (const h of hooks) {
-            if (!wanted.has(h.id) || !h.do) continue;
-            for (const a of h.do) if ((a.type as string) !== 'LOG') out.push(a);
-        }
+        for (const h of hooks) if (wanted.has(h.id)) out.push(h);
     }
     return out;
 }
 
-export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string> = new Set()): PowerscaleResult => {
+/** A hook's `do` actions, LOG entries dropped - they are flavour, not value. */
+export function hookActions(hook: HookRecord): ProgramAction[] {
+    if (!hook.do) return [];
+    return hook.do.filter(a => (a.type as string) !== 'LOG');
+}
+
+/**
+ * One width's worth of the formula — everything `calculatePowerscale` used to be.
+ *
+ * Split out by ticket 149c-4 so the public entry point can run it twice. It is a pure function
+ * of `(card, width)`, so running it twice costs two passes over 243 cards and buys the width
+ * honesty §4.2 asks for; the alternative was threading a second running total through every
+ * `score +=` in the body, which is the same arithmetic written twice and one place for the two
+ * copies to drift.
+ */
+const scoreAtWidth = (
+    card: ProgramData,
+    width: ScoreWidth,
+    seen: ReadonlySet<string> = new Set(),
+): Omit<PowerscaleResult, 'score1v1' | 'score3v3'> => {
     let score = 0;
+    /*
+     * Ticket 149c-6: the hook half of `score`, at the roster-mean rate and at the best home-deck
+     * rate the census saw. `hookFloor` is INCLUDED in `score`; `hookCeiling` never is - nothing
+     * is priced at a ceiling. Their ratio is section 4.4's build-around index.
+     */
+    let hookFloor = 0;
+    let hookCeiling = 0;
     const manualReview: string[] = [];
 
     // Baseline assumptions
     const ASSUMED_CARDS_PLAYED = 2.5;
     const ASSUMED_HP_PERCENT = 0.5;
     const ASSUMED_DISCARD_SIZE = 8;
-    // The BOARD-pile assumption: how many stacks of a status a card can expect to find when it
-    // reads one. Stays at 3 - Henry, 2026-08-15, after the roster-wide census. This is a FLOOR,
-    // not a price: a static pass cannot see the board, and several paths that use it meet
-    // larger piles in play (see research/status-pile-census.md).
-    const ASSUMED_STATUS_COUNT = 3;
+    /*
+     * ── TICKET 149c-3 — `CARDS_DISCARDED` HAD NO BRANCH AT ALL ────────────────────────────
+     *
+     * `carrion_swoop` is "11 power for every card discarded this turn", and the scorer read the
+     * printed 11 with no scaling and no `manualReview` flag — the flag at L724 covers only
+     * BURN_STACKS and SELF_ANY_STATUS. 149b called it *"the largest single miss in either
+     * table"*: a 1-energy card that lands **2.2 fire_punches a cast** (16.6% of a target's pool,
+     * 1.6 casts a game on hraesvelgr_v1) and scored **1.1**. Not over-priced or under-priced —
+     * unseen, and silently, which is the failure mode ticket 66 spent a whole census closing.
+     *
+     * **2, not the measured 5.03.** The 5.03 is hraesvelgr_v1's number, and hraesvelgr_v1 IS the
+     * discard engine — every card in it feeds this one. `carrion_swoop` on sleipnir_v2, which has
+     * no engine, discards about one and prices exactly. Henry's framing governs which of those
+     * the constant is: *"its numbers are not meant to work for a specific width or deck."* So the
+     * constant is the roster-general low end, and the 5.03 is what the ceiling column in 149c-6
+     * is for. Pricing the engine's number here would redline the card for everyone who cannot
+     * build it.
+     *
+     * Cited: `results/t149_oscensus/FINDINGS.md` line 64 (1,200 games, 1,951 casts, 5.03 cards
+     * discarded per cast on the owning deck) and `research/scorer-pricing.md` §4.
+     */
+    const ASSUMED_CARDS_DISCARDED = 2;
+    // The board-pile assumption, hoisted to module scope by ticket 149c-7 so `scoreOS` can price
+    // a flat-bonus firmware hook against the same number rather than a second copy of it.
+    const ASSUMED_STATUS_COUNT = ASSUMED_BOARD_STATUS_COUNT;
 
     // The CONSUMED-pile assumption, which is a different question and gets a different number:
     // how many stacks are actually on your own pile at the moment you cash it in. Ticket 58
@@ -686,6 +1123,10 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // and TREACHERY's measured feed is 4.8, so the sim gate decides this card, not §1.3.
             if (action.scaling === 'STATUS_CONSUMED') power *= consumedCount(consumedStatusOnThisCard);
             else if (action.scaling === 'CARDS_PLAYED') power *= ASSUMED_CARDS_PLAYED;
+            // Ticket 149c-3: the mirror of CARDS_PLAYED above, and it was simply missing. See
+            // `ASSUMED_CARDS_DISCARDED` for why the constant is the roster's 2 and not the
+            // owning deck's measured 5.03.
+            else if (action.scaling === 'CARDS_DISCARDED') power *= ASSUMED_CARDS_DISCARDED;
             // Ticket 26: MISSING_HP is power-side now, priced at the cap - ASSUMED_HP_PERCENT
             // 0.5 means "assume half HP", which IS the MISSING_HP_PCT_CAP of 50.
             else if (action.scaling === 'MISSING_HP') power += (action.scalingPower || 0) * 50;
@@ -722,6 +1163,32 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             // A guessed constant here would read as a measurement, which is the failure mode
             // ticket 66 spent a whole census correcting.
             else if (action.scaling === 'BURN_STACKS' || action.scaling === 'SELF_ANY_STATUS') {
+                manualReview.push(`ATTACK:${action.scaling}`);
+            }
+            /*
+             * TICKET 163a — three more scalings this scorer cannot price, found by the `+` ledger.
+             *
+             * `SHARP_STACKS`, `STRENGTH_STACKS` and `TARGET_STATUS_STACKS` fell off the end of this
+             * chain and contributed NOTHING, with no flag. That is the one outcome the paragraph
+             * above rules out: a silent zero reads as a price, and six shipped cards were priced at
+             * their printed base with their whole rider invisible — `flashover` (50 **+15 per
+             * Burn**), `cinder_lance` (40 +6 per Sharp), `sap_strength` (20 +6 per Weakened),
+             * `thorn_whip` and `spike_launch` (15 +5 per Sharp), and `unbound_fang`, whose power is
+             * MULTIPLIED by the pile and was therefore read at 5.
+             *
+             * Found because 163a's ledger asks a question 162b's could not: the `+` pass moved every
+             * one of those riders and the scorer reported a lift of **exactly zero** on all five
+             * that have one. A card that does not move when its only number moves is an instrument
+             * fault, not a dud upgrade.
+             *
+             * FLAGGED, NOT PRICED, on this file's own rule: every `ASSUMED_` constant here came out
+             * of ticket 66's census of real battles, and the Sharp, Strength and target-Burn piles
+             * have not been measured. A number invented here would read as a measurement. So these
+             * say UNPRICED and the ledger prints it, which is the honest state until somebody runs
+             * the census — and it is a smaller claim than the zero they were making before.
+             */
+            else if (action.scaling === 'SHARP_STACKS' || action.scaling === 'STRENGTH_STACKS'
+                || action.scaling === 'TARGET_STATUS_STACKS') {
                 manualReview.push(`ATTACK:${action.scaling}`);
             }
 
@@ -802,11 +1269,24 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             }
         } else if (action.type === 'DRAW') {
             const count = action.amount || action.count || 1;
-            // 15/10/5 power for 1st/2nd/3rd+ card (docs/power_curve_spec.md), in /10 units.
+            /*
+             * The ladder, in /10 units. `DRAW_LADDER_POWER` is the price; the table above is not.
+             *
+             * Ticket 149c-2 raised it from 15/10/5 to 20/15/10 on §4.1. 149b measured what 15
+             * power was buying: the mean scorer value of a card drawn across the 33 shipped decks
+             * is **3.39** — 2.26× the 1.5 the first card was priced at, and under the deck mean
+             * in 31 of the 33 (`research/scorer-pricing.md` §2). The scorer was selling a card for
+             * less than half what a card is worth, which is why every draw-2 in the pool read as
+             * under-band while ticket 131's field test had the draw-2 arm of `whirlpool_v2` at
+             * 73.9% against the shipped arm's 47.1%.
+             *
+             * 20/15/10 rather than 34/34/34: the ladder's SHAPE is right even where its level was
+             * not. The second card off a refill is worth less than the first because the hand it
+             * joins is already making the decision, and the third less again — what changes here
+             * is the floor, not the slope.
+             */
             for (let i = 1; i <= count; i++) {
-                if (i === 1) actionScore += 1.5;
-                else if (i === 2) actionScore += 1.0;
-                else actionScore += 0.5;
+                actionScore += DRAW_LADDER_POWER[Math.min(i, DRAW_LADDER_POWER.length) - 1] / 10;
             }
         } else if (action.type === 'ENERGY') {
             const amount = action.amount || 0;
@@ -869,8 +1349,9 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         // GENERATE_CARD is already a whole-card score (scope included) - do not scope it twice.
         if (action.type === 'GENERATE_CARD') { /* no scope multiplier */ }
         else if (scope === 'SELF') actionScore *= 0.9;
-        else if (scope === 'SIDE') actionScore *= 2.2;
-        else if (scope === 'ALL') actionScore *= 4.0;
+        // Ticket 149c-4: these two are the only terms that know how wide the fight is.
+        else if (scope === 'SIDE') actionScore *= SIDE_SCOPE_MULTIPLIER[width];
+        else if (scope === 'ALL') actionScore *= ALL_SCOPE_MULTIPLIER[width];
         else actionScore *= 1.0;
 
         // Condition Discount
@@ -889,14 +1370,33 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             actionScore *= asleepGated ? 0.5 : 0.7;
         }
 
+        /*
+         * ── TICKET 162b — WHOSE SIDE DOES THIS LAND ON ────────────────────────────────────
+         *
+         * Every sign flip below asks one question: is this effect happening to ME or to THEM. It
+         * asked it as `action.target === 'SELF'`, which was the same question until 160-e1, because
+         * `TARGET` could only ever mean an enemy.
+         *
+         * It cannot now. An `allyTarget` card's payload is written on `TARGET` and lands on a
+         * FRIENDLY body, so the old test read every one of them backwards: `soothe` ("remove 1
+         * stack of a debuff from an ally") priced at **-0.8**, a card that helps you scored as a
+         * cost. That is ticket 47's bug exactly, re-created from the other direction — and ticket
+         * 47's note is still three lines below, describing the shape.
+         *
+         * `scope` above is deliberately NOT changed. It asks how WIDE the card reaches, and an ally
+         * card reaches one body or three by the same arithmetic an enemy card does. Only the signs
+         * were ever about sides.
+         */
+        const landsOnOwnSide = actionIsSelfFacing || card.allyTarget === true;
+
         // Penalties
         if (action.type === 'ATTACK' && actionIsSelfFacing) {
             actionScore *= -1;
         } else if (action.type === 'STATUS') {
             const isBuff = BUFFS.includes(action.status);
             const isDebuff = DEBUFFS.includes(action.status);
-            if (isDebuff && actionIsSelfFacing) actionScore *= -1;
-            if (isBuff && !actionIsSelfFacing && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
+            if (isDebuff && landsOnOwnSide) actionScore *= -1;
+            if (isBuff && !landsOnOwnSide && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
             // Ticket 43: removing a status is worth the negation of applying it, which gives the
             // right sign in all four cases once the two flips above have run - cleansing a debuff
             // off yourself is a gain, eating a debuff you placed on the enemy is a loss.
@@ -909,16 +1409,39 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
             if ((action.stacks ?? 0) < 0) actionScore *= -1;
         } else if (action.type === 'ENERGY') {
             const amount = action.amount || 0;
-            if (amount < 0 && actionIsSelfFacing) actionScore *= -1;
-            if (amount > 0 && !actionIsSelfFacing && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
+            if (amount < 0 && landsOnOwnSide) actionScore *= -1;
+            if (amount > 0 && !landsOnOwnSide && card.actions.some(a => a.type === 'ATTACK')) actionScore *= -1;
         }
 
         const key = exclusivityKey(action);
+        /*
+         * ── TICKET 149c-8 (§4.8) — CONSUMING YOUR OWN PILE IS NOT REMOVAL ────────────────
+         *
+         * `REMOVAL_PREMIUM` exists because shedding a debuff undoes an OPPONENT's card as well as
+         * helping you — two cards' worth of swing for one, which is why ticket 51 priced it above
+         * plain application. That rationale does not survive contact with a `consume`.
+         *
+         * `umbral_feast` and `bloodwrath` consume **their own Poison**, which their own deck put
+         * there on purpose as fuel. Nothing is being neutralised; the pile is being cashed. They
+         * were collecting a 25% premium for spending a resource they built themselves, and §4.8
+         * rules it off: the shed term goes 12.15 -> 9.7.
+         *
+         * The discriminator is `consume`, not the target. A `stacks: -N` shed on yourself is still
+         * removal in the sense the premium means — the Poison on you is usually the opponent's —
+         * and keeps it. A `consume` takes the WHOLE pile as fuel, which is a card design that only
+         * makes sense when the pile is yours.
+         */
+        const isConsumeAction = (action as unknown as { consume?: boolean }).consume === true;
         const removesOwnDebuff = action.type === 'STATUS'
             && actionIsSelfFacing
             && DEBUFFS.includes(action.status)
-            && ((action.stacks ?? 0) < 0 || (action as unknown as { consume?: boolean }).consume === true);
-        if (removesOwnDebuff && key === null) {
+            && (action.stacks ?? 0) < 0;
+        if (isConsumeAction && actionIsSelfFacing && action.type === 'STATUS'
+            && DEBUFFS.includes(action.status) && key === null) {
+            // Scored at face value, with no premium and no separate accounting.
+            score += actionScore;
+            statusPortion += actionScore;
+        } else if (removesOwnDebuff && key === null) {
             removalScore += actionScore;
         } else if (key === null) {
             score += actionScore;
@@ -952,32 +1475,99 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
     score += chargedRemoval;
     statusPortion += chargedRemoval;
 
-    // Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
-    // `do` actions once and multiply by the expected proc count. Recursion is bounded by
-    // `seen`: a token that generates itself is scored once and then contributes nothing, so
-    // feedback_token -> feedback_token cannot spin.
-    if (card.category === 'Daemon' && score === 0) {
-        const doActions = daemonHookActions(card);
-        if (doActions.length > 0) {
-            const proc = calculatePowerscale({
+    /*
+     * Ticket 32: a daemon's `actions` is empty by construction - score its registered hooks'
+     * `do` actions once and multiply by the expected proc count. Recursion is bounded by
+     * `seen`: a token that generates itself is scored once and then contributes nothing, so
+     * feedback_token -> feedback_token cannot spin.
+     *
+     * ── TICKET 149c-1 — THE HOOKS ARE ADDED, NOT SUBSTITUTED ───────────────────────────
+     *
+     * This was gated on `score === 0` and ASSIGNED rather than added, which made it a fallback
+     * for "the card scored nothing" instead of a price for "the card has hooks". A daemon with
+     * BOTH an on-cast action and a hook had its hook silently dropped — 149b measured it: an
+     * in-memory `feedback_loop_daemon` with an added on-cast ATTACK 10 scored **1.2 instead of
+     * 3.2**, the on-cast action alone, with the entire reason the card exists priced at zero.
+     *
+     * No shipped daemon trips it today, and that was checked rather than taken from the ticket:
+     * of the fourteen daemons in the pool, thirteen carry `actions: []` and the one that does not
+     * (`battery_pack`) registers no hooks. So §1.3 is byte-identical and this is a trap removed
+     * before anyone stands on it, not a repricing.
+     *
+     * `+=` rather than `=` is the whole fix. A daemon is worth what it does on cast PLUS what its
+     * hooks do, and there is no reading of the card on which one replaces the other.
+     */
+    /*
+     * ── TICKET 149c-6 — ONE RATE PER TRIGGER, NOT ONE CONSTANT FOR FOURTEEN CARDS ────────
+     *
+     * The hooks are priced one at a time now, each at its OWN measured rate. `reactive_plating`
+     * is why they cannot be pooled: it registers a damage-taken hook and a turn-start hook, and
+     * those fire at 2.2 and 0.8 per unit-turn. One bag of actions times one proc count cannot
+     * express that.
+     *
+     * See `TRIGGER_RATE_FLOOR` for the census and for why the FLOOR is what gets charged.
+     */
+    if (card.category === 'Daemon') {
+        for (const hook of hooksOf(card)) {
+            const triggerClass = classifyHook(hook);
+            if (triggerClass === null) {
+                /*
+                 * A trigger the census never measured. Flagged, not defaulted: a fallback rate
+                 * here would read as a measurement, which is exactly the failure ticket 66 spent
+                 * a whole census correcting. `core_overclock_daemon`'s damage multiplier lands
+                 * here, and 149c-7 is where multiplier hooks get a price.
+                 */
+                manualReview.push(`HOOK:${hook.trigger ?? hook.id}`);
+                continue;
+            }
+
+            const floorRate = TRIGGER_RATE_FLOOR[triggerClass];
+            const ceilingRate = TRIGGER_RATE_CEILING[triggerClass];
+            /*
+             * An HONEST ZERO, and the one place a zero is an answer rather than a gap.
+             * `einherjar_standard` triggers on a Light attack, and the census measured that at
+             * 0.00 across 22,780 unit-turns because no shipped deck has a Light attacker. The
+             * card is worth nothing today; saying so is the measurement doing its job, and
+             * flagging it for review would be asking a human to re-derive a number we have.
+             */
+            if (floorRate === 0 && ceilingRate === 0) continue;
+
+            const actions = hookActions(hook);
+            if (actions.length === 0) {
+                // A modifier hook - its value is in `multiplier`, which needs the deck's mean
+                // attack score to price. 149c-7's business; flagged rather than read as 0.
+                if (hook.multiplier !== undefined) manualReview.push(`HOOK_MULTIPLIER:${hook.id}`);
+                continue;
+            }
+
+            const proc = scoreAtWidth({
                 ...card,
                 category: 'Skill',
                 exhaust: false,
                 isToken: false,
-                actions: doActions,
-            } as ProgramData, new Set([...seen, card.id]));
-            score = proc.score * EXPECTED_DAEMON_PROCS;
-            damagePortion = proc.damagePortion * EXPECTED_DAEMON_PROCS;
-            statusPortion = proc.statusPortion * EXPECTED_DAEMON_PROCS;
+                actions,
+                // Ticket 149c-4: the hook is priced at the SAME width as the card carrying it.
+            } as ProgramData, width, new Set([...seen, card.id]));
+
+            const horizon = DAEMON_HORIZON_TURNS;
+            const atFloor = scoreHook(proc.score, { rate: floorRate, horizon });
+            score += atFloor;
+            damagePortion += scoreHook(proc.damagePortion, { rate: floorRate, horizon });
+            statusPortion += scoreHook(proc.statusPortion, { rate: floorRate, horizon });
+            hookFloor += atFloor;
+            hookCeiling += scoreHook(proc.score, { rate: ceilingRate, horizon });
             for (const m of proc.manualReview) manualReview.push(m);
         }
     }
 
-    // Daemon Premium
+    // Daemon Premium - ticket 149c-6 named it `DAEMON_RARE_PREMIUM`; see that constant for what
+    // it is actually asserting, which is a ruling rather than a measurement.
     if (card.category === 'Daemon') {
-        score *= 1.5;
-        damagePortion *= 1.5;
-        statusPortion *= 1.5;
+        score *= DAEMON_RARE_PREMIUM;
+        damagePortion *= DAEMON_RARE_PREMIUM;
+        statusPortion *= DAEMON_RARE_PREMIUM;
+        hookFloor *= DAEMON_RARE_PREMIUM;
+        hookCeiling *= DAEMON_RARE_PREMIUM;
     }
 
     // Exhaust/Token Discount
@@ -985,6 +1575,10 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         score *= 0.9;
         damagePortion *= 0.9;
         statusPortion *= 0.9;
+        // The two hook columns take it too, so `hookFloor` stays a component of `score` that a
+        // reader can subtract rather than a parallel number on a different scale.
+        hookFloor *= 0.9;
+        hookCeiling *= 0.9;
     }
 
     const costFactor = Math.pow(Math.max(numericBaseCost(card.baseCost), 0.5), 1.25);
@@ -996,5 +1590,408 @@ export const calculatePowerscale = (card: ProgramData, seen: ReadonlySet<string>
         manualReview,
         damagePortion: Math.round(damagePortion * 10) / 10,
         statusPortion: Math.round(statusPortion * 10) / 10,
+        hookFloor: Math.round(hookFloor * 10) / 10,
+        hookCeiling: Math.round(hookCeiling * 10) / 10,
     };
 };
+
+/**
+ * Section 1.1's score for a card, at both widths — ticket 149c-4.
+ *
+ * `score`, `perEnergy` and the two portions are the **1v1** reading, because that is the general
+ * one and it is what every consumer that does not ask about width means. `score3v3` sits beside
+ * them for the report's Side/All rows and for §4.2's "the verdict is the worse of the two".
+ *
+ * Identical for the 221 of 243 cards that are not Side or All: the two passes differ in exactly
+ * two multipliers, so a card with no Side action gets the same number twice. That is not waste
+ * worth optimising — the whole registry scores in milliseconds either way, and a fast path here
+ * would be a second place for the widths to disagree.
+ */
+export const calculatePowerscale = (
+    card: ProgramData,
+    seen: ReadonlySet<string> = new Set(),
+): PowerscaleResult => {
+    const narrow = scoreAtWidth(card, '1v1', seen);
+    const wide = scoreAtWidth(card, '3v3', seen);
+    return { ...narrow, score1v1: narrow.score, score3v3: wide.score };
+};
+
+/*
+ * ══ TICKET 149c-7 — FIRMWARE GETS A BAND OF ITS OWN ═══════════════════════════════════════
+ *
+ * §4.5: OSes are scored in **delivered value per game as a percentage of a health pool** — the
+ * census unit — with **15–40% in band and anything above 50% flagged**.
+ *
+ * A percentage of a pool rather than a card score, because an OS is not a card. It costs no
+ * energy, occupies no slot, is chosen once and then runs for the whole game; there is no budget
+ * band to hold it against. What CAN be asked is "how much of a health pool does this firmware
+ * move over a game", and the census answered it for 33 of them.
+ *
+ * ── WHERE THE RATES COME FROM, AND WHY NOT §5's "HORIZON 5" ───────────────────────────────
+ *
+ * §5 said "Σ hooks via 149c-6 with horizon 5", i.e. the daemon trigger table times five turns.
+ * That table cannot reach firmware: it has eight classes, drawn from the fourteen DAEMON hooks,
+ * and the OS hooks fire on `onHeal`, `onDiscarded`, `onDeckShuffled`, `onHpThresholdCrossed`,
+ * `onStatusRemoved` and any-cost own-play — none of which the daemon census measured. Applying
+ * it would have returned MANUAL REVIEW for most of the roster.
+ *
+ * The firmware census measured each OS directly instead, in **procs per game**, which is the
+ * denominator §4.5's band is already expressed in. So `OS_PROC_RATE` is per-hook and measured,
+ * and there is no horizon to multiply by — a per-game rate already spans the game, and
+ * multiplying it by five would be counting the same procs five times.
+ *
+ * This keeps 149c-6's split exactly: **the payoff is computed from the card data, the rate is
+ * measured**. Re-tune what a hook does and the score follows; change how often it fires and the
+ * census has to be re-run, which is the honest dependency rather than a hidden one.
+ */
+
+/** §4.5's band, in percent of a health pool delivered per game. */
+export const OS_BAND_MIN_PCT = 15;
+export const OS_BAND_MAX_PCT = 40;
+export const OS_FLAG_PCT = 50;
+
+/**
+ * Procs per game, per HOOK, from the ticket-63 firmware census delivered under 149 §3d
+ * (`research/firmware-power-census.md`, tables 1–3; the parenthesised "offers" column there is
+ * how often the trigger CONDITION was met, this is how often the hook actually fired).
+ *
+ * Per hook and not per OS because several OSes register more than one, at different rates:
+ * `fenrir_v1` fires its own-attack hook and its ally-attack hook 6.09 times each, while
+ * `jormungandr_v1` counts on every ally action and only pays out on the fifth, 1.63 times.
+ *
+ * An OS absent from this table is NOT scored 0 — it is reported as unmeasured. A default here
+ * would read as a measurement, which is the failure mode ticket 66 spent a whole census
+ * correcting.
+ */
+export const OS_PROC_RATE: Record<string, number> = {
+    // ── Table 1: HP-denominated payoffs ──
+    valk_v2_rebirth: 14.12,             // valkyrie_v2 REBIRTH_CYCLE_OS, on reshuffle
+    hraes_v1_gale: 12.80,               // hraesvelgr_v1 GALE_FORCE_OS, on voluntary discard
+    ratatoskr_v1_hook: 53.8,            // ratatoskr_v1 GOSSIP_NODE — the largest rate in the census
+    fenrir_v1_hook: 6.09,               // fenrir_v1 UNBOUND_KERNEL, own attack
+    fenrir_v1_ally_hook: 6.09,          // ...and the ally half, same rate (SELF is an ally at 1v1)
+
+    // ── Table 2: modifier hooks ──
+    jorm_v2_toxin_fang: 5.70,           // jormungandr_v2 TOXIN_FANG_OS
+    draugr_v2_chill: 8.70,              // draugr_v2 GRAVE_CHILL_OS, fires on 35% of hits
+    gullin_v2_ram: 23.39,               // gullinbursti_v2 KINETIC_RAM_OS, on her multi-hit list
+    kraken_v2_hook: 3.00,               // kraken_v2 TIDAL_CRUSH_OS
+
+    // ── Table 3: stat / resource grants ──
+    huldra_v1_hook: 20.34,              // huldra_v1 ALLURE_PROXY
+    kraken_v1_hook: 6.58,               // kraken_v1 ABYSSAL_INK_SYS
+    ratatoskr_v2_hook: 12.55,           // ratatoskr_v2 INSTIGATOR_OS
+    nidhoggr_v2_bloodscent: 2.11,       // nidhoggr_v2 BLOOD_SCENT_OS
+    nidhoggr_v1_root: 2.66,             // nidhoggr_v1 ROOT_CORRUPTION
+    ymir_v1_hook: 7.90,                 // ymir_v1 GLACIER_HEART_SYS
+    aud_v2_milk: 10.20,                 // audhumbla_v2 PRIMORDIAL_MILK
+    fafnir_v2_corrupted: 3.08,          // fafnir_v2 CORRUPTED_GOLD_OS
+    fenrir_v2_hook: 9.24,               // fenrir_v2 CINDER_WALL_OS
+    skoll_v2_solar_charge: 4.98,        // skoll_v2 solar_charge (the Strengthened half)
+    jorm_v1_trigger: 1.63,              // jormungandr_v1 OUROBOROS_LOOP, the 5th-card payout
+    draugr_v1_wake: 0.91,               // draugr_v1 PERMAFROST_WAKE
+    hel_v1_cadence_dark: 6.02,          // hel_v1 TWILIGHT_CADENCE, Dark half
+    hel_v1_cadence_light: 5.89,         // ...and Light half
+    skoll_v1_hook: 10.90,               // skoll_v1 TREACHERY_KERNEL
+    sleipnir_v1_hook: 10.74,            // sleipnir_v1 MOMENTUM_DRIVE
+    sleipnir_v2_hook: 8.80,             // sleipnir_v2 WAR_STEED_OS
+    aud_v1_genesis: 1.87,               // audhumbla_v1 GENESIS_FIRMWARE, the overheal payout
+    gullin_v1_prepare: 0.00,            // gullinbursti_v1 UNSTOPPABLE_MASS — see the note below
+};
+
+/**
+ * Hooks whose measured rate is a real zero rather than a gap, with the reason.
+ *
+ * `gullin_v1_prepare` is `BUFF_NEXT_PROGRAM`, which leaves no state delta the census probe could
+ * read — 42.84 offers and nothing measurable. That is a limit of the INSTRUMENT, not a fact about
+ * the card, so a zero here would be the report asserting the firmware does nothing.
+ *
+ * `hel_v2_lifeblood` stood here too, at a genuine zero: an `onHealCalculated` multiplier of 1.0,
+ * which 149b measured as **inert** and reported as one of the two findings that were not on the
+ * ticket. **Ticket 150a deleted the hook**, so there is nothing left to rate. The entry is gone
+ * rather than kept at zero, because a rate for a hook that does not exist is not a measurement.
+ */
+export const OS_RATE_ZERO_REASON: Record<string, string> = {
+    gullin_v1_prepare: 'BUFF_NEXT_PROGRAM leaves no state delta the census probe reads (42.8 offers)',
+};
+
+/** How one hook contributes to its OS's per-game total. */
+export interface OsHookContribution {
+    hookId: string;
+    /** `ACTIONS` scores the hook's own `do`; `MULTIPLIER` and `FLAT_BONUS` are priced below. */
+    kind: 'ACTIONS' | 'MULTIPLIER' | 'FLAT_BONUS' | 'UNREADABLE';
+    /** Procs per game from the census, or null when this hook was never measured. */
+    procsPerGame: number | null;
+    /** The payoff of one proc, in the scorer's /10 power units. */
+    perProcScore: number;
+    /** `perProcScore x procsPerGame`, converted to percent of a health pool. */
+    pctOfPool: number;
+}
+
+export type OsVerdict = 'UNDER BAND' | 'IN BAND' | 'OVER BAND' | 'FLAGGED' | 'UNMEASURED';
+
+export interface OsScore {
+    id: string;
+    name: string;
+    /** §4.5's unit: delivered value per game as a percentage of a health pool. */
+    pctOfPoolPerGame: number;
+    verdict: OsVerdict;
+    contributions: OsHookContribution[];
+    /** Hook ids this OS registers that the census never measured. */
+    unmeasured: string[];
+    /**
+     * Action types inside a hook's payoff that the static formula cannot honestly price -
+     * `MAX_ENERGY`, `COUNTER`, `BUFF_NEXT_PROGRAM` and the rest of `MANUAL_REVIEW_TYPES`.
+     *
+     * A percentage with entries here is a FLOOR, not a price, in exactly the way a card's score
+     * is when its `manualReview` is non-empty. `audhumbla_v1` GENESIS_FIRMWARE is the clearest
+     * case: its whole payoff is `MAX_ENERGY`, so its honest reading is "unmeasured", not "0%".
+     */
+    unpriced: string[];
+    /**
+     * True when the OS registers no hooks at all in `hooks.json` — its behaviour lives in
+     * `CustomFirmware` rather than in data, so a hook-walking scorer cannot see it. Six of them:
+     * reported as such rather than scored 0, which would read as "this firmware does nothing".
+     */
+    codeDriven: boolean;
+}
+
+/**
+ * The pool's mean ATTACK-card score, for pricing multiplier hooks.
+ *
+ * §4.5 prices a modifier hook as `(multiplier - 1) x the deck's mean attack score x rate`, and
+ * the scorer has no deck. The ROSTER mean is the general form of the same quantity, and it is
+ * the same choice every other constant in this file makes: price for the registry, because
+ * anyone can draft the mingming.
+ *
+ * Computed from the live registry rather than frozen as a literal, so a repricing of attacks
+ * carries through instead of leaving this behind as a stale number with a citation on it.
+ */
+let meanAttackScoreCache: number | null = null;
+export function meanAttackScore(): number {
+    if (meanAttackScoreCache !== null) return meanAttackScoreCache;
+    const registry = getInflatedProgramRegistry();
+    const attacks = (Object.values(registry) as ProgramData[]).filter(
+        // TICKET 163a: BASE cards only. This mean is the scorer's own reference rate — §4.5 prices
+        // an OS multiplier as `(m - 1) x meanAttackScore()` — so letting ninety-eight upgraded
+        // attacks into it would have raised every firmware's price because the UPGRADE PASS
+        // shipped, which is a balance instrument reading its own reflection.
+        c => (c.actions ?? []).some(a => (a.type as string) === 'ATTACK') && !c.isToken && !c.upgradeOf,
+    );
+    const total = attacks.reduce((sum: number, c) => sum + Math.max(0, scoreAtWidth(c, '1v1').score), 0);
+    meanAttackScoreCache = attacks.length > 0 ? total / attacks.length : 0;
+    return meanAttackScoreCache;
+}
+
+/** A score in /10 power units, as a percentage of one health pool. */
+function pctOfPool(score: number): number {
+    // `POWER_PER_PERCENT_MAXHP` is the scorer's own power->HP table: 3 power buys 1% of a pool.
+    return Math.round((score * 10 / POWER_PER_PERCENT_MAXHP) * 10) / 10;
+}
+
+/**
+ * What one firmware delivers per game, as a percentage of a health pool — §4.5.
+ *
+ * Three hook shapes, priced three ways, and a fourth that is not priced at all:
+ *
+ *   - `do` actions    scored through the ordinary card formula, exactly as a daemon's are;
+ *   - `multiplier`    `(m - 1) x meanAttackScore()`, §4.5's rule;
+ *   - `bonus`         a FLAT HP bonus per stack (TOXIN_FANG, KINETIC_RAM). Priced at the
+ *                     scorer's roster-general stack assumption, which is a FLOOR: the census
+ *                     read 9.4 Poison stacks for TOXIN_FANG and 13 Sharp for KINETIC_RAM on the
+ *                     decks that ship them, and those decks are built to feed the hook;
+ *   - anything else   `UNREADABLE`, and it says so rather than contributing a silent zero.
+ */
+export function scoreOS(osId: string): OsScore {
+    const entry = (HOOK_LIBRARY as Record<string, unknown>)[osId] as
+        { id?: string; name?: string; hooks?: HookRecord[] } | undefined;
+    return scoreHookList(osId, entry?.hooks ?? [], entry?.name ?? osId);
+}
+
+/**
+ * The body of `scoreOS`, taken a HOOK LIST rather than a firmware id — ticket 163g.
+ *
+ * Split out so the same pricing can be asked of hooks that are not in `hooks.json`: specifically
+ * a PATCHED firmware, which exists only as a transform's output. `scoreOS(osId)` is exactly
+ * `scoreHookList(osId, HOOK_LIBRARY[osId].hooks)`, so nothing about the shipped report moves.
+ *
+ * `osId` is still required and still matters — the proc rates in `OS_PROC_RATE` are keyed by HOOK
+ * id, and a patched hook keeps its id, which is what lets a patched firmware be priced at the
+ * measured rate of the firmware it patches. That is an assumption and it is worth stating: **a
+ * patch is assumed not to change how often the hook fires.** For five of the six that is true by
+ * construction (they change amounts, actors and targets). For REPEATER it is the thing in
+ * question, and the delta will under-read it.
+ */
+export function scoreHookList(osId: string, hooks: ReadonlyArray<HookRecord>, name = osId): OsScore {
+    const contributions: OsHookContribution[] = [];
+    const unmeasured: string[] = [];
+    const unpriced: string[] = [];
+    let total = 0;
+
+    for (const hook of hooks) {
+        const rate = Object.prototype.hasOwnProperty.call(OS_PROC_RATE, hook.id)
+            ? OS_PROC_RATE[hook.id]
+            : null;
+
+        let kind: OsHookContribution['kind'] = 'UNREADABLE';
+        let perProc = 0;
+
+        const actions = hookActions(hook);
+        const bonus = (hook as unknown as { bonus?: number }).bonus;
+        if (actions.length > 0) {
+            kind = 'ACTIONS';
+            const scored = scoreAtWidth({
+                id: `${osId}__${hook.id}`,
+                name: hook.id,
+                description: '',
+                element: 'None',
+                target: 'Single',
+                category: 'Skill',
+                rarity: 'Common',
+                baseCost: 1,
+                constraints: [],
+                actions,
+            } as unknown as ProgramData, '1v1');
+            perProc = scored.score;
+            for (const m of scored.manualReview) if (!unpriced.includes(m)) unpriced.push(m);
+        } else if (hook.multiplier !== undefined) {
+            kind = 'MULTIPLIER';
+            /*
+             * THE SIGN DEPENDS ON WHOSE DAMAGE IS BEING MULTIPLIED, and getting it wrong is the
+             * easy mistake here. A hook on the OWNER's damage is worth `(m - 1)`: TIDAL_CRUSH at
+             * x1.3 adds three tenths of an attack. A hook on the OPPONENT's damage is worth
+             * `(1 - m)`: GRAVE_CHILL at x0.8 REDUCES what Draugr takes, which is a fifth of an
+             * attack's worth of value TO HIM. Priced as `(m - 1)` it came out at -23% of a pool,
+             * i.e. the report calling a defensive firmware a liability.
+             */
+            const onOpponentsDamage = (hook.when?.source ?? 'SELF').toUpperCase() === 'OPPONENT';
+            perProc = (onOpponentsDamage ? 1 - hook.multiplier : hook.multiplier - 1) * meanAttackScore();
+        } else if (typeof bonus === 'number') {
+            kind = 'FLAT_BONUS';
+            const stacks = ASSUMED_BOARD_STATUS_COUNT;
+            /*
+             * TICKET 150c — THE UNIT DEPENDS ON THE TRIGGER, AND READING IT WRONG IS A 4x ERROR.
+             *
+             * An `onDamageCalculated` bonus is flat HP applied AFTER the pace divisor, so it has
+             * to come back through the scorer's own HP table to become power. An
+             * `onPowerCalculated` bonus (ticket 150b) is already power and goes straight in —
+             * running it through the HP table would divide it by the frame a second time.
+             *
+             * Measured on TOXIN_FANG, which 150c moved from `bonus: 10` HP to `bonus: 4` power:
+             * those are the same OS by the field (53.2% against 55.0%), and a scorer that read
+             * the second as HP would price it at a fraction of the first.
+             */
+            perProc = hook.trigger === 'onPowerCalculated'
+                ? (bonus * stacks) / 10
+                : (bonus * stacks / ASSUMED_MAX_HP) * 100 * POWER_PER_PERCENT_MAXHP / 10;
+        }
+
+        if (rate === null) {
+            unmeasured.push(hook.id);
+            contributions.push({ hookId: hook.id, kind, procsPerGame: null, perProcScore: perProc, pctOfPool: 0 });
+            continue;
+        }
+
+        const delivered = perProc * rate;
+        total += delivered;
+        contributions.push({
+            hookId: hook.id,
+            kind,
+            procsPerGame: rate,
+            perProcScore: Math.round(perProc * 100) / 100,
+            pctOfPool: pctOfPool(delivered),
+        });
+    }
+
+    const pct = pctOfPool(total);
+    /*
+     * A zero the census could not measure is not a zero. `gullin_v1_prepare` is BUFF_NEXT_PROGRAM
+     * and left no state delta the probe could read across 42.8 offers - that is a limit of the
+     * INSTRUMENT, and reporting UNSTOPPABLE_MASS as "0% of a pool, under band" would be the
+     * report asserting the firmware does nothing.
+     *
+     * The exception that used to sit here — `hel_v2_lifeblood`, a genuinely inert x1.0 multiplier
+     * measured at 0 procs — is gone with the hook itself (ticket 150a).
+     */
+    const instrumentBlind = hooks.some(h => OS_RATE_ZERO_REASON[h.id] !== undefined
+        && OS_PROC_RATE[h.id] === 0);
+
+    let verdict: OsVerdict;
+    if (hooks.length === 0 || instrumentBlind || (total === 0 && (unmeasured.length > 0 || unpriced.length > 0))) {
+        verdict = 'UNMEASURED';
+    }
+    else if (pct > OS_FLAG_PCT) verdict = 'FLAGGED';
+    else if (pct > OS_BAND_MAX_PCT) verdict = 'OVER BAND';
+    else if (pct < OS_BAND_MIN_PCT) verdict = 'UNDER BAND';
+    else verdict = 'IN BAND';
+
+    return {
+        id: osId,
+        name,
+        pctOfPoolPerGame: pct,
+        verdict,
+        contributions,
+        unmeasured,
+        unpriced,
+        codeDriven: hooks.length === 0,
+    };
+}
+
+/**
+ * The 33 shipped firmware, scored. The input to report section 1.4.
+ *
+ * Driven from `MingmingRegistry`'s `availableOS` lists rather than from the hook library's keys,
+ * because that file also holds the daemon CARDS' hooks - `riptide`, `echo_chamber`, `drip_feed`
+ * and the rest sit in it beside the firmware. Walking its keys produced a 51-row firmware section
+ * containing eighteen cards, which is a category error the reader would have had to undo by hand.
+ */
+export function osRoster(): string[] {
+    const ids = new Set<string>();
+    for (const mingming of Object.values(MingmingRegistry)) {
+        for (const os of (mingming as unknown as { availableOS?: string[] }).availableOS ?? []) {
+            ids.add(os);
+        }
+    }
+    return [...ids].sort();
+}
+
+export function scoreAllOS(): OsScore[] {
+    return osRoster()
+        .map(scoreOS)
+        .sort((a, b) => b.pctOfPoolPerGame - a.pctOfPoolPerGame || (a.id < b.id ? -1 : 1));
+}
+
+// =================================================================================================
+// TICKET 163g — WHAT A PATCH IS WORTH TO A BODY
+// =================================================================================================
+
+/**
+ * The 149c-scored value a patch ADDS to one firmware: the host's hook value after, minus before.
+ *
+ * **This replaces `patchTouchCount` as the ranking, and the reason is that the touch count ranked
+ * by construction rather than by value.** 163 §3 asks for the scored delta in as many words; the
+ * count shipped in 163d as an explicit stand-in, and 163e then measured what it produced —
+ * `amplifier ×27`, every patch the walker ever fitted. Amplifier touches an `amount` field and
+ * almost every hook has one, so it wins a count on every body before any question of worth.
+ *
+ * Both sides are priced by the SAME function at the SAME rates, so everything the scorer cannot
+ * see cancels: an unmeasured hook contributes 0 to both terms and a manual-review action is
+ * mispriced identically in both. What survives is the part the patch changed, which is the only
+ * quantity this number claims to be.
+ *
+ * **A delta of 0 is a real answer and means the rider is inert on this body** — either it found
+ * nothing to transform, or it changed something the scorer prices at zero. Distinguishing those
+ * two is `patchTouchCount`'s remaining job, and it is why that function stays.
+ *
+ * Units are `OsScore.pctOfPoolPerGame` — percent of a health pool per game — so a delta is
+ * directly comparable with the 15/40/50 band this file already grades firmware against.
+ */
+export function patchScoreDelta(
+    hooks: ReadonlyArray<HookRecord>,
+    apply: (hook: HookRecord) => HookRecord,
+    osId = 'patched',
+): number {
+    const before = scoreHookList(osId, hooks).pctOfPoolPerGame;
+    const after = scoreHookList(osId, hooks.map(apply)).pctOfPoolPerGame;
+    return Math.round((after - before) * 100) / 100;
+}

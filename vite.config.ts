@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { execSync } from 'node:child_process'
 
 /*
  * TICKET 42: `base` is the ONE build difference between the web app and the desktop one, and ticket
@@ -20,6 +21,21 @@ import react from '@vitejs/plugin-react'
  */
 const DESKTOP = process.env.MINGMING_DESKTOP === '1'
 
+/*
+ * TICKET 181a: the build label and the commit are baked in at build time so a tester's bug report
+ * can name the build it came from. `VITE_BUILD_LABEL` unset reads `dev`; no git (a tarball, a
+ * stripped CI checkout) reads `unknown`. The deploy workflow sets the label from `PLAYTEST_LABEL`.
+ */
+const BUILD_LABEL = process.env.VITE_BUILD_LABEL?.trim() || 'dev'
+
+function buildCommit(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
 export default defineConfig({
   base: DESKTOP ? './' : '/Mingming/',
   plugins: [react()],
@@ -28,5 +44,8 @@ export default defineConfig({
     // from throwing in the browser — and is why every debug CLI in this repo takes flags rather
     // than environment variables.
     'process.env': {},
+    // Ticket 181a. Read through `src/ui/buildInfo.ts`, which supplies the defaults.
+    __BUILD_LABEL__: JSON.stringify(BUILD_LABEL),
+    __BUILD_COMMIT__: JSON.stringify(buildCommit()),
   },
 })

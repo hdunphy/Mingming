@@ -50,7 +50,7 @@ function stateWith(hand: ProgramEntity[], energy: number, enemyOverrides: Partia
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: [unit('p1', 'Hraesvelgr', { currentEnergy: energy })],
         enemyParty: [unit('e1', 'Enemy', { definitionId: 'fenrir', primaryElement: 'None', ...enemyOverrides })],
         playerDeck: { ownerId: 'PLAYER', hand, drawpile: [], discard: [], exhaust: [], deck: [] },

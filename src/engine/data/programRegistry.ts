@@ -1,6 +1,8 @@
 import type { ProgramAction, ProgramConstraint, ProgramData } from '../types';
 import programsData from './programs.json';
 import { initDaemonHooks } from './daemonHooks';
+import { resolveProgramId } from './programAliases';
+import { reportRegistryMiss } from './registryMiss';
 
 export const BURNED_CONSTRAINT = { type: 'HAS_STATUS' as const, target: 'TARGET' as const, value: 'Burn' }
 export const DAZED_CONSTRAINT = { type: 'HAS_STATUS' as const, target: 'TARGET' as const, value: 'Dazed' }
@@ -105,14 +107,18 @@ export const clearProgramDataCache = (): void => {
     inflatedCache = null;
 };
 
-export const GetProgramData = (id: string): ProgramData => {
+export const GetProgramData = (rawId: string): ProgramData => {
     initDaemonHooks();
+    // TICKET 162a: the thirteen v2 renames resolve here, so every fixture, run log and non-EA deck
+    // that still says `water_slap` opens `tackle`. See `programAliases.ts` for why the table is
+    // consulted rather than folded into the registry as extra keys.
+    const id = resolveProgramId(rawId);
     const memo = inflatedByIdCache.get(id);
     if (memo) return memo;
     const rawData = ProgramRegistry[id] || InternalTestRegistry[id];
     if (!rawData) {
-        console.warn(`Program ID not found: ${id}`);
-        if (!id) console.trace();
+        // TICKET 154a: throws in DEV, warns in a shipped build. The sentinel below is unchanged.
+        reportRegistryMiss('Program', id);
         return {
             id: 'missing',
             name: 'Missing Program',

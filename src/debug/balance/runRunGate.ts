@@ -12,6 +12,7 @@
  *     npm run balance:run-gate -- --bands gauntlet --iterations 24
  *     npm run balance:run-gate -- --cells wild:biome0 --iterations 400   # the cheap cells, to real precision
  *     npm run balance:run-gate -- --strict                      # exit 1 if any band is outside ±5
+ *     npm run balance:run-gate -- --gate-structural             # exit 1 on FTK or a stall (ticket 40's push gate)
  *     npm run balance:run-gate -- --list                        # every cell id, and nothing else
  *
  * `--cells` exists because **the nine cells differ in cost by a factor of two hundred** (see
@@ -45,7 +46,7 @@
  * recording rather than papering over, because it is a fact about the engine and not about this
  * script.** Six of the nine cells are 3v3, a 3v3 battle costs 30-70 seconds, and nothing this file
  * controls changes that: `TacticalAI`'s same-turn search enumerates casters x hand x targets, so a
- * 3v3 decision is ~200x a 1v1 one (`runGate.ts`'s cost table, and `gauntlet-boss.balance.ts` reached
+ * 3v3 decision is ~200x a 1v1 one (`runGate.ts`'s cost table, and ticket 18's deleted boss suite reached
  * the same wall independently). The gate needs 3v3 because the run does — a trio at biome 2 and a
  * trio at the gym are what ticket 61 named as the representative decks.
  *
@@ -69,7 +70,7 @@
  *
  * # WHAT THE FIRST REAL MEASUREMENT SAID (2026-08-26, registry `1:1ad8616b`)
  *
- * Recorded here the way `gauntlet-boss.balance.ts` records its first smoke run: **not as a threshold
+ * Recorded here the way ticket 18's boss suite recorded its first smoke run: **not as a threshold
  * and not as a claim about what the game should be**, but so the next person to run this knows what
  * moved and what did not. Every number is a measurement, not a target. All three bands are far
  * outside their windows, and **none of the three misses is a sampling artefact** — the two cheapest
@@ -116,14 +117,18 @@ import { AI_TIER } from '../../engine/ai/TacticalAI';
 import { DEFAULT_MAX_TURNS } from './runBatch';
 import { HANDBUILT_PARTIES, handbuiltParty, type HandbuiltParty } from './handbuiltParties';
 import { applyRegistryTweaks, describeTweaks, validateTweaks } from './experimentalTweaks';
+import { MACRO_LOADOUT_NAMES, describeMacroLoadout, isMacroLoadout, type MacroLoadout } from './macroPolicy';
+import { DRIVER_IDS } from '../../engine/data/driverRegistry';
 
 import {
     CELLS,
     RUN_GATE_TARGETS,
+    FLOOR_BANDS,
     RUN_GATE_TOLERANCE,
     TUNED_OS_IDS,
     gauntletCompound,
     describeBossOverride,
+    describePlayerDriver,
     measureBand,
     type BossOverride,
     type MatchupMode,
@@ -178,6 +183,12 @@ interface Args {
     iterations: number;
     maxTurns: number;
     strict: boolean;
+    /**
+     * TICKET 40: exit 1 on FTK or a stall in any cell run — ticket 18's two standing gates, and
+     * NOT the bands. Separate from `--strict` because the bands are ruled noise on v2 and this is
+     * not; see the block at the foot of `main`.
+     */
+    gateStructural: boolean;
     /** Print the sampled lineups and enemy rosters per cell. Off by default — it is a wall of text. */
     verbose: boolean;
     /** Print the cell ids and exit. */
@@ -244,6 +255,35 @@ interface Args {
      * two-knob arm can be run once the single-knob arms say which two are worth combining.
      */
     tweaks: ReadonlyArray<string>;
+    /**
+     * `--player-driver <id>`: the PLAYER side runs this Driver — ticket 77 Track B2.
+     *
+     * What `run.drivers` holds after an elite drop (ticket 17), handed to the arm directly. Validated
+     * against `DRIVER_IDS` at parse time: an unknown id throws rather than measuring the bare arm
+     * under a banner that names a Driver.
+     */
+    playerDriver?: string;
+    /**
+     * `--macros surge3|mixed`: the player holds a macro rack and the harness policy fires it —
+     * ticket 77 Track B1. See `macroPolicy.ts` for the three rules and why the rack is per cell.
+     */
+    macros?: MacroLoadout;
+}
+
+/** `--player-driver <id>`. Rejects an unknown Driver loudly — the `--toolbox` lesson, again. */
+function parsePlayerDriver(value: string | undefined): string | undefined {
+    if (value === undefined) return undefined;
+    if (!DRIVER_IDS.includes(value)) {
+        throw new Error(`[run-gate] --player-driver expects one of ${DRIVER_IDS.join(', ')} — got "${value}"`);
+    }
+    return value;
+}
+
+/** `--macros surge3|mixed`. Rejects anything else rather than silently running rackless. */
+function parseMacros(value: string | undefined): MacroLoadout | undefined {
+    if (value === undefined) return undefined;
+    if (isMacroLoadout(value)) return value;
+    throw new Error(`[run-gate] --macros expects ${MACRO_LOADOUT_NAMES.join(' | ')} — got "${value}"`);
 }
 
 /** `--boss-ivs 10` or `--boss-ivs 10/12/14`. Uniform is the common case; the triple is for a lever
@@ -338,11 +378,16 @@ function parseArgs(argv: string[]): Args {
         lean: get('--lean'),
         deckMode: parseDeckMode(get('--deck')),
         tweaks: tweaks ?? [],
+        playerDriver: parsePlayerDriver(get('--player-driver')),
+        macros: parseMacros(get('--macros')),
         bossOverride: {
             ivs: parseBossIvs(get('--boss-ivs')),
-            relics: get('--boss-relics') === 'off' ? 'off' : undefined,
+            // Ticket 16: the flag is `--boss-driver`; `--boss-relics` is kept as an alias so the run
+            // lines recorded in tickets 67-72 still paste.
+            driver: (get('--boss-driver') ?? get('--boss-relics')) === 'off' ? 'off' : undefined,
         },
         strict: argv.includes('--strict'),
+        gateStructural: argv.includes('--gate-structural'),
         verbose: argv.includes('--verbose'),
         list: argv.includes('--list'),
     };
@@ -409,8 +454,17 @@ function diagnosticsLine(cell: CellMeasurement): string {
         `payoff=${d.payoffCastsPerFight.toFixed(2)}/fight  ` +
         `dead=${(d.deadCardRatio * 100).toFixed(1)}%  ` +
         `deck=${d.deckSize.toFixed(0)}  ` +
-        `| enemy: ${d.enemyDamagePerTurn.toFixed(1)} dmg/turn`
+        `| enemy: ${d.enemyDamagePerTurn.toFixed(1)} dmg/turn` +
+        `\n      macros=${d.macrosFiredPerFight.toFixed(2)}/fight${macroRulesNote(d.macroRules)}  ` +
+        `procs: player=${d.playerProcsPerFight.toFixed(2)}/fight  enemy=${d.enemyProcsPerFight.toFixed(2)}/fight`
     );
+}
+
+/** ` (lethal 12, boss-turn-1 160)` — which rule fired the macros, or nothing when none did. */
+function macroRulesNote(rules: Readonly<Partial<Record<string, number>>>): string {
+    const entries = Object.entries(rules).filter(([, n]) => (n ?? 0) > 0);
+    if (entries.length === 0) return '';
+    return ` (${entries.map(([rule, n]) => `${rule} ${n}`).join(', ')})`;
 }
 
 /**
@@ -435,7 +489,8 @@ const underSampled = (band: BandMeasurement): boolean =>
  */
 function bandLines(band: BandMeasurement): string[] {
     const target = RUN_GATE_TARGETS[band.band];
-    const window = `${pct(target - RUN_GATE_TOLERANCE)}-${pct(target + RUN_GATE_TOLERANCE)}`;
+    const floor = FLOOR_BANDS.has(band.band);
+    const window = floor ? `at least ${pct(target)}` : `${pct(target - RUN_GATE_TOLERANCE)}-${pct(target + RUN_GATE_TOLERANCE)}`;
     /*
      * THE GRADED NUMBER, and it is not always the pooled one.
      *
@@ -471,9 +526,11 @@ function bandLines(band: BandMeasurement): string[] {
         `${band.compound === undefined ? 'measured' : 'compound'} ${pct(graded)} ` +
         `(${band.wins}/${band.battles}, ${signed})   ` +
         `95% CI ${pct(band.low)}-${pct(band.high)}`,
-        `    ${band.inBand ? 'PASS' : 'FAIL'} — ${band.inBand
-            ? 'inside the ±5 window'
-            : `outside the ±5 window by ${((Math.abs(delta) - RUN_GATE_TOLERANCE) * 100).toFixed(1)}pt`}` +
+        `    ${band.inBand ? 'PASS' : 'FAIL'} — ${floor
+            ? (band.inBand ? 'at or above the floor' : `under the floor by ${(Math.abs(delta) * 100).toFixed(1)}pt`)
+            : band.inBand
+                ? 'inside the ±5 window'
+                : `outside the ±5 window by ${((Math.abs(delta) - RUN_GATE_TOLERANCE) * 100).toFixed(1)}pt`}` +
         `   [${secs(band.elapsedMs)}]${caveat}`,
         ...band.cells.map(cellLine),
     ];
@@ -563,6 +620,8 @@ async function main(): Promise<void> {
             lean: args.lean,
             deckMode: args.deckMode,
             tweaks: args.tweaks,
+            playerDriver: args.playerDriver,
+            macros: args.macros,
             onProgress: (cell, sampleIndex, elapsedMs, won) => {
                 say(
                     `[balance:run-gate]   ${cell.id} ${sampleIndex}/${args.iterations} ` +
@@ -590,6 +649,13 @@ async function main(): Promise<void> {
     if (args.deckMode !== undefined && args.deckMode !== 'bare') {
         say(`  DECK PROGRESSION: ${args.deckMode} — ticket 77 Track A. The player side is NOT the 18-card `
             + 'run-start deck every previous gym number was taken with.');
+    }
+    if (args.playerDriver !== undefined) {
+        say(`  PLAYER DRIVER: ${describePlayerDriver(args.playerDriver)} — ticket 77 Track B2. The player side `
+            + 'runs a Driver the bare arm never held; procs/fight is printed under each cell.');
+    }
+    if (args.macros !== undefined) {
+        say(`  MACRO ARM ${describeMacroLoadout(args.macros)}`);
     }
     if (args.lean !== undefined) {
         say(`  PARTY LEAN: ${args.lean} — the lineup picker is aimed at ${args.lean} instead of the gym's counter (ticket 76).`);
@@ -660,6 +726,38 @@ async function main(): Promise<void> {
             `[balance:run-gate] --strict: ${failures.length} band(s) outside ±${(RUN_GATE_TOLERANCE * 100).toFixed(0)} points.`,
         );
         process.exitCode = 1;
+    }
+
+    /*
+     * ══ TICKET 40's PUSH GATE — **FTK AND STALLS, NEVER THE BANDS.** ══
+     *
+     * `--gate-structural` is what CI runs, and it is deliberately a DIFFERENT gate from `--strict`.
+     *
+     * The bands cannot be a push gate and that is a ruling, not a limitation: the 2026-09-24 note on
+     * ticket 40 records *"the run gate's bands are ruled NOISE on v2 until 157's walker"*, and 157's
+     * own read has since shown why — fight one moved 17 points on one deck rule. A CI job that went
+     * red on a win rate would be failing builds over a number nobody is tuning to yet.
+     *
+     * **FTK and stalls are different in kind.** They are structural claims about the fight rather
+     * than measurements of it — *"no side kills on turn one before the other has acted"* and *"no
+     * fight runs past the turn cap"* — and both are ticket 18's own standing gates, unchanged by
+     * any amount of balance drift. A regression in either is a bug in the engine or a deck that has
+     * become unplayable, not a tuning question, so it SHOULD stop a push.
+     *
+     * Scoped to whichever cells were run. CI runs the two 1v1 cells; see `npm run canary:short` for
+     * why it cannot run the 3v3 ones.
+     */
+    if (args.gateStructural) {
+        const offenders = results.flatMap((band) => band.cells
+            .filter((cell) => cell.ftkCount > 0 || cell.truncatedCount > 0)
+            .map((cell) => `${cell.id}: ftk=${cell.ftkCount} stalled=${cell.truncatedCount}`));
+        if (offenders.length > 0) {
+            console.error('[balance:run-gate] --gate-structural FAILED — ticket 18\'s standing gates:');
+            for (const line of offenders) console.error(`[balance:run-gate]   ${line}`);
+            process.exitCode = 1;
+        } else {
+            say('  --gate-structural: FTK 0 and no stalls in every cell run. PASS.');
+        }
     }
 }
 

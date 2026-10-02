@@ -53,7 +53,10 @@ import { createRanchMember } from '../gameTypes';
 import { PARTY_SIZE, partyBlockFor, type PartyBlock, type PartyMember } from '../party';
 import { RECRUIT_KIT_SIZE, recruitDeckFor, startKitIdsFor } from './createRun';
 import { toMingmingState } from './battleSetup';
+import { withEffectiveOS } from './effectiveOS';
 import { nodeSeed } from './nodeSeed';
+import { recruitingBlocked } from './modifiers/noRecruits';
+import { shopPrice } from './modifiers/shopPrice';
 import type { IRanchMember, IRanchState, IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
 
 // =================================================================================================
@@ -263,7 +266,11 @@ export interface IWorkshopSpecies {
  * mask the duplicate clause.
  */
 function partyMembersOf(ranch: IRanchState, run: IRunState): PartyMember[] {
-    return run.partyIds.map((id) => ranch.roster.find((m) => m.id === id) ?? { id, definitionId: `unresolved:${id}` });
+    // TICKET 168f: the duplicate clause reads the OS a body runs in THIS run (Firmware Reflash).
+    return run.partyIds.map((id) => {
+        const member = ranch.roster.find((m) => m.id === id);
+        return member ? withEffectiveOS(run, member) : { id, definitionId: `unresolved:${id}` };
+    });
 }
 
 /** Every firmware a species offers, in registry order. Empty for a species nothing knows. */
@@ -436,6 +443,9 @@ function uniqueMemberId(id: string, ranch: IRanchState): string {
 export function planRecruit(input: RecruitPlanInput): IRecruitPlan | null {
     const { ranch, run, node, speciesId, osId } = input;
 
+    // TICKET 169h: No Recruits. The one choke point every workshop and event recruit passes through.
+    if (recruitingBlocked(run)) return null;
+
     /*
      * The firmware this plan will actually build, resolved BEFORE the legality check.
      *
@@ -463,7 +473,7 @@ export function planRecruit(input: RecruitPlanInput): IRecruitPlan | null {
     // keeps `ownerId` for, broken.
     const cards = recruitDeckFor(toMingmingState(member), deckStream);
 
-    return { member, cards, scrap: WORKSHOP_ASSEMBLY_SCRAP };
+    return { member, cards, scrap: shopPrice(run, WORKSHOP_ASSEMBLY_SCRAP) };
 }
 
 /**
@@ -575,5 +585,5 @@ export function planReflash(input: {
     const seed = nodeSeed(run, node, 'workshop');
     const stream = new SeedStream(new SeedStream(seed).fork(`reflash-deck:${member.id}:${targetOS}`));
 
-    return { member: after, retireIds, cards: recruitDeckFor(toMingmingState(after), stream), scrap: WORKSHOP_REFLASH_SCRAP };
+    return { member: after, retireIds, cards: recruitDeckFor(toMingmingState(after), stream), scrap: shopPrice(run, WORKSHOP_REFLASH_SCRAP) };
 }

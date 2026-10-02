@@ -52,6 +52,20 @@ export const ConditionValidator = {
             if (condition.target === 'OPPONENT' && isOwnerPlayer === isTargetPlayer) return false;
         }
 
+        // 1b. THIS ACTION Check — ticket 162e.
+        //
+        // `actionType` below asks about the CARD ("does it have an ATTACK anywhere"); this asks
+        // about the SWING. A per-hit hook needs the second question, and the field that was meant
+        // to answer it had been in the schema since ticket 103 with nothing reading it. See
+        // `HookCondition.isAttack` for what that cost `ember_ward`.
+        //
+        // `context.action` is set only at the per-hit dispatches, so `isAttack: true` is false at
+        // `onActionStart` / `onActionEnd` / `runVitalsHook` rather than accidentally true — a hook
+        // that wants a swing cannot get one from a dispatch that has no swing.
+        if (condition.isAttack !== undefined) {
+            if ((context.action?.type === 'ATTACK') !== condition.isAttack) return false;
+        }
+
         // 2. Program Checks
         if (condition.actionType && context.program) {
             // A program satisfies the actionType check if ANY of its actions match
@@ -158,10 +172,24 @@ export const ConditionValidator = {
             if (operator === 'EQ' && !(currentVal === value)) return false;
         }
 
-        // 10. Current Energy Check
+        /*
+         * 10. Current Energy Check — **the SOURCE's Energy, not the hook owner's.**
+         *
+         * TICKET 162a: it read `owner.currentEnergy`, and that had never been observed because the
+         * field had no user until `short_fuse` ("an enemy that ends its turn with unspent Energy
+         * takes 10 power per point"). Its condition is `{ source: 'OPPONENT', currentEnergy: > 0 }`,
+         * which the old reading turned into *"an enemy acted AND **I** still have Energy"* — so the
+         * daemon taxed an enemy who had spent out, as long as its own host was holding some. The
+         * card's whole point is the CONDITION, and the condition was about the wrong body.
+         *
+         * `context.source` is the entity every trigger names as the actor — `onTurnEnd` dispatches
+         * one hook per unit with `source: entity`, which is exactly the unit whose Energy this asks
+         * about. Falls back to the owner when a trigger carries no source, so a future hook that
+         * writes `currentEnergy` with no `source` clause still means something.
+         */
         if (condition.currentEnergy) {
             const { operator, value } = condition.currentEnergy;
-            const currentVal = owner.currentEnergy;
+            const currentVal = (context.source ?? owner).currentEnergy;
             if (operator === 'LT' && !(currentVal < value)) return false;
             if (operator === 'GT' && !(currentVal > value)) return false;
             if (operator === 'LTE' && !(currentVal <= value)) return false;
@@ -244,6 +272,38 @@ export const ConditionValidator = {
                  * inconsistency the ruling removed.
                  */
                 if ((source.nonNaturalDrawsThisTurn ?? 0) < (constraint.value as number)) return false;
+                break;
+
+            case 'SIDE_CARDS_DRAWN_TRIGGERED': {
+                /*
+                 * TICKET 167e (Henry, 2026-09-28): *"make its refund count the whole team's draws."*
+                 * The refund only - `CARDS_DRAWN_TRIGGERED` above stays per-caster, and so does every
+                 * scaler, because the 2026-08-30 ruling was about damage. Every body on the side counts,
+                 * living or not: a draw that happened this turn happened.
+                 */
+                if (!state) return true; // Fail safe, same as CARDS_DRAWN_TRIGGERED
+                const side = state.playerParty.some((e) => e.id === source.id) ? state.playerParty : state.enemyParty;
+                const drawn = side.reduce((total, e) => total + (e.nonNaturalDrawsThisTurn ?? 0), 0);
+                if (drawn < (constraint.value as number)) return false;
+                break;
+            }
+
+            case 'CARDS_PLAYED':
+                /*
+                 * TICKET 162a - how many cards THIS CASTER has played this turn, `riptide_run`'s
+                 * refund gate.
+                 *
+                 * `source.playsThisTurn` rather than `state.cardsPlayedThisTurn`, for the reason
+                 * ticket 123 settled for the scaler of the same name: at 3v3 the hand is SHARED,
+                 * so the side counter lets an ally's turn pay for your card. The card's own text
+                 * says "you".
+                 *
+                 * No `if (!state) return true` fail-safe here, unlike the two cases above: the
+                 * counter lives on the entity, so there is nothing to fail safe ABOUT - and a
+                 * fail-safe that returns true is how surge_protection's refund fired on 3,371 of
+                 * 3,371 casts (see the CARDS_DRAWN_TRIGGERED note).
+                 */
+                if ((source.playsThisTurn ?? 0) < (constraint.value as number)) return false;
                 break;
 
             case 'NOT_STATUS':

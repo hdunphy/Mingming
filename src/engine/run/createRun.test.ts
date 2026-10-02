@@ -26,7 +26,9 @@ import {
     startDeckFor,
 } from './createRun';
 import { offerGyms } from './gyms';
+import { CARD_PRICE_BY_ENERGY } from './marketplace';
 import { generateRegionGraph } from './regionGraph';
+import { WORKSHOP_ASSEMBLY_SCRAP } from './workshop';
 
 const SEED = 'run-seed-1';
 
@@ -80,24 +82,31 @@ describe('startDeckFor', () => {
         expect(without.filter((c) => c.dataId === GENERIC_HIT)).toHaveLength(0);
     });
 
-    it('transcribes the ratified kit in order, payoff first, duplicates included', () => {
+    it('transcribes the ratified kit in order, duplicates included', () => {
         const deck = startDeckFor(KRAKEN, new SeedStream(SEED), true);
         const kit = ratifiedKit('kraken', 'kraken_v1');
         expect(deck.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([...kit]);
-        // Spelled out rather than only compared to the registry, because the ORDER is the design:
-        // ticket 61's kit is a five-card engine, `ink_stream` (the payoff the OS is actually paying
-        // for) in front and the four cards that fill the pile it counts behind it. A sort or a set
-        // comparison would pass while deleting that.
+        /*
+         * Spelled out rather than only compared to the registry, because the ORDER is the design:
+         * `startKitIdsFor` transcribes the list in order, so a sort or a set comparison would pass
+         * while deleting it.
+         *
+         * TICKET 162a moved both lists to collection v2's kits, and dropped "payoff first" from the
+         * name of this test. 161 §2 rules the opening five to hold NO CONSUME — the payoff and the
+         * second lane are found in the run — so kraken_v1 now opens on its two `whirlpool` rather
+         * than on `ink_stream`, and `crushing_depths` (the Dazed consume that used to lead) sits at
+         * `startCopies: 0`. See the retirement note in `startKits.test.ts`.
+         */
         expect(deck.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([
-            'ink_stream', 'undertow', 'whirlpool_v2', 'pressure_point', 'pressure_point',
+            'whirlpool', 'whirlpool', 'undertow', 'ink_stream', 'pressure_point',
         ]);
-        // `kraken_v1`'s fifth tag doubles `pressure_point`, so the duplicate case is demonstrated
-        // twice over here — but `fenrir_v2` is kept as the second witness because its doubling is
-        // load-bearing in a different way: it doubles `ignite` because one is a coin flip and two
-        // is an ignition, and a dedupe here would silently hand Fenrir a four-card kit.
+        // `kraken_v1`'s kit doubles `whirlpool`, so the duplicate case is demonstrated twice over
+        // here — but `fenrir_v2` is kept as the second witness because its doubling is load-bearing
+        // in a different way: it doubles `ignite` because one is a coin flip and two is an
+        // ignition, and a dedupe here would silently hand Fenrir a four-card kit.
         const fenrir = startDeckFor(FENRIR, new SeedStream(SEED), true);
         expect(fenrir.slice(0, START_KIT_SIZE).map((c) => c.dataId)).toEqual([
-            'pyre_sacrifice', 'ignite', 'ignite', 'molten_core', 'slag_strike',
+            'ignite', 'ignite', 'ember_jab', 'slag_strike', 'cinder_lance',
         ]);
     });
 
@@ -207,8 +216,10 @@ describe('recruitDeckFor', () => {
         expect(deck.slice(0, RECRUIT_KIT_SIZE).map((c) => c.dataId)).toEqual([
             ...ratifiedKit('huldra', 'huldra_v1'),
         ]);
+        // TICKET 162a: huldra_v1's collection-v2 kit. `hexbloom` (the Weakened consume that used
+        // to lead) is `startCopies: 0` under 161 §2's no-consume rule.
         expect(deck.map((c) => c.dataId)).toEqual([
-            'hexbloom', 'growth', 'growth', 'iron_bark', 'thorn_tithe',
+            'bolster', 'bolster', 'tend', 'thorn_tithe', 'sap_strength',
         ]);
         // Stated as its own assertion because "no filler" is the half of the ruling a future
         // "a recruit should feel like a fresh start" patch would undo without touching the kit
@@ -308,7 +319,10 @@ describe('createRun', () => {
     it('opens on the region graph generated from the same seed', () => {
         const run = createRun(soloInput());
         const graph = generateRegionGraph(SEED);
-        expect(run.nodes).toEqual(graph.nodes);
+        // Ticket 17 stamps a `driverStake` onto every elite and ambush after generation; the graph
+        // itself — ids, kinds, layers, edges — is the generator's, untouched.
+        expect(run.nodes.map(({ driverStake: _stake, ...node }) => node)).toEqual(graph.nodes);
+        expect(run.nodes.filter((n) => n.kind === 'elite' || n.kind === 'ambush').every((n) => n.driverStake)).toBe(true);
         expect(run.currentNodeId).toBe(graph.entryNodeId);
         expect(run.nodes.some((n) => n.id === run.currentNodeId)).toBe(true);
     });
@@ -373,23 +387,33 @@ describe('createRun', () => {
         expect(createRun(soloInput({ party: [KRAKEN, FENRIR, HULDRA] })).collection).toEqual([]);
     });
 
-    it('starts with the ruled 20 opening scrap, and no macros, no drivers and no modifiers', () => {
+    it('opens with enough scrap for the first workshop recruit AND a first card, without grinding (ticket 174)', () => {
         /*
-         * **Was 0; Henry granted 20 on 2026-08-24.** Ticket 09's zero had the right argument —
+         * Henry, 2026-09-30: *"I find myself needing a lot of scrap early on."* Biome 0 is where the
+         * recruits and the first cards are bought and it pays the least (a wild win is 10), so the
+         * opening grant has to cover the two things the first biome sells: a recruit (25) and a
+         * first card (15 at the cheap end of the table; a 1e card at 25 would need 5 more). Written against the prices, not a
+         * copied 45, so a price rise has to move the grant with it.
+         */
+        const firstCard = CARD_PRICE_BY_ENERGY[0];
+        expect(createRun(soloInput()).scrap).toBeGreaterThanOrEqual(WORKSHOP_ASSEMBLY_SCRAP + firstCard);
+    });
+
+    it('starts with the opening scrap grant, and no macros, no drivers and no modifiers', () => {
+        /*
+         * **Was 0; Henry granted 20 on 2026-08-24, and raised it to 45 on 2026-09-30 (ticket 174).** Ticket 09's zero had the right argument —
          * *"carrying any in would make the first marketplace a function of the previous run"* — but
-         * that argument is about CARRYING, and a fixed grant carries nothing: it is the same 20
+         * that argument is about CARRYING, and a fixed grant carries nothing: it is the same grant
          * after a win and after a wipe, so no run can bank into the next one and the anti-mudflation
          * rule is untouched. What the 0 cost was measured in the same playtest: early fights pay
          * 10-15, a recruit is 25 and a removal 20, and the first shop lands 1-3 fights in, so the
          * opening shop was a shop you walked past.
          *
-         * Pinned as a LITERAL as well as against the constant, because 20 is itself the ruling —
-         * *not* 25, which would silently BE a free recruit and take the first workshop's choice away
-         * again. Asserting only `STARTING_SCRAP` would let that retune through green.
+         * Asserted against the constant, not a copied number (ticket 174): the value is the
+         * ruling and lives in one place, `createRun.STARTING_SCRAP`.
          */
         const run = createRun(soloInput());
         expect(run.scrap).toBe(STARTING_SCRAP);
-        expect(run.scrap).toBe(20);
         expect(run.macros).toHaveLength(MACRO_SLOTS);
         expect(run.macros.every((slot) => slot === null)).toBe(true);
         expect(run.drivers).toEqual([]);

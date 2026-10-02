@@ -55,12 +55,16 @@
 
 import { SeedStream } from '../core/SeedStream';
 import { MACRO_IDS, MacroRegistry } from '../data/macroRegistry';
+import { LAUNCH_SPECIES } from '../data/mingmingRegistry';
 import { ProgramRegistry } from '../data/programRegistry';
-import { isRewardable, rewardCardPool, type IRewardPartyMember } from '../RewardSystem';
+import { NEUTRAL_UTILITY_IDS } from '../data/speciesPools';
+import { resolveProgramId } from '../data/programAliases';
+import { hasUpgrade, upgradeIdFor } from '../data/plusRegistry';
+import { isRewardable, rewardCardPool, type IRewardPartyMember, usesV2Pool, inV2RunPool } from '../RewardSystem';
 import { numericBaseCost } from '../types';
 import type { Element } from '../types';
 import type { IRegionNode, IRunCard, IRunState, NodeKind } from '../runTypes';
-import { nodeSeed } from './nodeSeed';
+import { shopPrice } from './modifiers/shopPrice';
 
 // =================================================================================================
 // THE MARKETPLACE KNOB — some of it RULED by Henry in ticket 56, the rest still a proposal
@@ -223,52 +227,13 @@ export const MARKET_TOTAL_SLOTS = MARKET_STOCK_SIZE + MARKET_NEUTRAL_SLOTS + MAR
  * Ordered, not sorted, so the file reads as a curated list and a diff shows an addition as an
  * addition.
  */
-export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = [
-    // The ruled seed entry (67 R4.3). The answer to an escalating Strengthened aura, buyable by a
-    // party that brought none of it.
-    'hamstring',
-    // 18 power + 2 Strengthened. The other side of the same duality, for a party with no buff of
-    // its own.
-    'adrenaline',
-    // Draw 2 at 1e. Card flow is the one thing every archetype wants and several launch decks have
-    // no source of.
-    'squirrel_away',
-    // Daemon: gain 1 Sharp. A permanent, and the only neutral one.
-    'harden_daemon',
-    /*
-     * TICKET 69's TIDEWRACK ENTRIES, printed 2026-08-30 (Henry: *"riptide and short circuit need to
-     * be added"*). Ruled in that ticket as direction; the numbers below are the printing.
-     *
-     * Both answer the same thing — Tidewrack converts its own card flow into damage TWICE within a
-     * turn (`ink_stream` x4 at 33 power per triggered draw, `serpents_coil` x2 at 10 per card
-     * played) — and mitigation cannot: Sharp and Weakened are worth 1 power a stack against hits
-     * printed at 33-105. The lever is the flow itself, so these tax the flow.
-     *
-     * They are deliberately NOT redundant. `riptide` taxes BREADTH (how many cards a turn) and
-     * `short_circuit` taxes DEPTH (how much of that is engine rather than the natural draw), which
-     * is why a zoo pays both and an ordinary enemy pays almost nothing.
-     */
-    'riptide',
-    'short_circuit',
-    /*
-     * THE REMAINING FIVE (`research/69-toolbox-printings.md`, Henry 2026-08-30). With these the
-     * standing law is satisfied for all three gyms: every boss has at least three counter flavors
-     * reachable by any party, none of them element-locked.
-     *
-     * By gym, so the list can be read as the answer set it is:
-     *   Emberfall (WAR FOOTING, a Strengthened aura) -> `hamstring`, `discharge`, `reactive_plating`
-     *   Tidewrack (TIDAL SURGE, a draw-zoo)          -> `riptide`, `short_circuit`, `reactive_plating`
-     *   Rootfall  (ROOT ROT, a poison clock)         -> `scrubber`, `vent`, `drip_feed`
-     *
-     * `reactive_plating` answers two of the three on purpose (ruled): a Strengthened aura and a zoo
-     * of small hits are the same problem from the defender's side.
-     */
-    'reactive_plating',
-    'discharge',
-    'scrubber',
-    'vent',
-    'drip_feed',
-];
+/*
+ * TICKET 162a moved the IDS to `data/speciesPools.ts` and left the reasoning above where it was
+ * written. One list, because the v2 pool gate has to see the same ids this slot offers — a card
+ * the shop guarantees and the pool excludes is the disagreement ticket 69 closed from the other
+ * side. The notes on each entry are in that file.
+ */
+export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = NEUTRAL_UTILITY_IDS;
 
 /**
  * THE RULED ANSWER SET PER GYM — ticket 69's standing law, as data rather than as prose.
@@ -389,10 +354,22 @@ export const SELL_PRICE_BY_ENERGY: ReadonlyArray<number> = [5, 10, 15, 20];
 
 /** What the market pays for one card. Above `MAX_PRICED_ENERGY` sells as the top rung, as it buys. */
 export function sellPrice(dataId: string): number {
-    const data = ProgramRegistry[dataId];
+    const data = ProgramRegistry[resolveProgramId(dataId)];
     const energy = Math.min(numericBaseCost(data?.baseCost ?? 0), MAX_PRICED_ENERGY);
     return SELL_PRICE_BY_ENERGY[Math.max(0, energy)];
 }
+
+/**
+ * WHAT IT COSTS TO REMOVE A JUNK CARD — **25 scrap** (ticket 168c).
+ *
+ * Henry, on the events ticket: *"Yes junk cards. Also you have to pay to remove them instead of
+ * selling them for scrap at the shop."* So Corrupted Data is the one card the market does not buy:
+ * its row in the sell list reads "Remove — 25 scrap" and the scrap goes the other way. It is not a
+ * revival of the deleted paid removal below (which charged to shrink a deck the player could shrink
+ * for free); junk is a card the player did not choose, and clearing it is the price of the event
+ * that gave it. It is never blocked by the deck floor, because junk does not count toward it.
+ */
+export const JUNK_REMOVAL_PRICE = 25;
 
 /*
  * PAID REMOVAL IS DELETED — Henry, 2026-08-26. `REMOVAL_PRICE` (20) and its whole derivation lived
@@ -411,23 +388,37 @@ export function sellPrice(dataId: string): number {
  */
 
 /**
- * A REROLL COSTS 10 SCRAP — and this is **the one number in the shop ticket 56 did not rule**, so
- * the arithmetic is here in full and it is the first thing to argue with.
+ * A REFRESH COSTS 50 SCRAP — **RULED by Henry, ticket 142 §7 (2026-09-11)**, replacing the 10-scrap
+ * card reroll that ticket 57 derived.
  *
- * Ticket 13 priced it at 20 with a stated law: *"priced BELOW the cheapest card, because a reroll
- * buys nothing but a new set of choices, so it must never be the most expensive thing on the
- * screen — and close to it, so it is never free variance."* Under ticket 56's table the cheapest
- * card is **15**, which makes the old 20 break its own rule: rerolling would cost more than buying.
+ * *"You can pay scrap to refresh it."* And, on the number: *"we might need to go higher"* — so it
+ * is a constant with this comment rather than a derivation, and the run walker reports scrap-at-gym
+ * so it can be retuned against a real run.
  *
- * Ticket 57's instruction is *"rescale, do not re-derive"*, so the ratio is what carries across:
- * 20/24 of the cheapest card is 0.83, and 0.83 x 15 = 12.5, which lands on **10** once the
- * deck-archetypes "numbers move in 5s" rule (`map` § Notes) rounds it. 10 is two thirds of the
- * cheapest card and half of a removal — cheap enough to be a real option at a poor visit, dear
- * enough that reroll-until-happy costs a card.
+ * # WHY THE OLD DERIVATION DOES NOT SURVIVE THE RULING
  *
- * **FLAGGED:** derived, not ruled. If it is wrong it is wrong by 5.
+ * Ticket 13's law was *"priced BELOW the cheapest card, because a reroll buys nothing but a new set
+ * of choices"*, and ticket 57 rescaled that to 10 (two thirds of the cheapest card). Both reasoned
+ * about a shelf that **re-rolled for free on re-entry** — the paid reroll only bought you the
+ * increment early, so it had to be cheap or nobody would ever pay for what walking out gave away.
+ *
+ * §7 deletes the free version. A refresh is now the ONLY way a shelf ever changes, which makes it a
+ * different purchase: not "skip the walk" but "this stall has nothing for me, buy a new one". At 10
+ * that is strictly better than saving for a card at almost any moment; at 50 it costs more than the
+ * dearest card (45) and is a real alternative to one, which is the shape a last-resort button wants.
+ *
+ * **It refreshes the WHOLE stall** — cards, macros and the blueprint slot — because they now share
+ * one seed (`marketStockSeed`) and a refresh that moved only the cards would leave two thirds of the
+ * shelf as the thing you just paid to get away from.
  */
-export const REROLL_PRICE = 10;
+export const MARKET_REFRESH_PRICE = 50;
+
+/**
+ * @deprecated Ticket 142 §7 renamed this to `MARKET_REFRESH_PRICE` and repriced it 10 -> 50. Kept
+ * as an alias for one release so a stale import fails loudly at review rather than silently
+ * charging the old price.
+ */
+export const REROLL_PRICE = MARKET_REFRESH_PRICE;
 
 // =================================================================================================
 // Prices
@@ -445,12 +436,98 @@ export const REROLL_PRICE = 10;
  * priced as the expensive card it plays as.
  */
 export function cardPrice(dataId: string): number {
-    const data = ProgramRegistry[dataId];
+    const data = ProgramRegistry[resolveProgramId(dataId)];
     // An unknown id prices as the cheapest rung rather than throwing: a price is asked for by a
     // render, and a shop row that crashes is worse than one that is wrong by 30 scrap.
     if (!data) return CARD_PRICE_BY_ENERGY[0];
     const energy = Math.min(Math.max(numericBaseCost(data.baseCost), 0), MAX_PRICED_ENERGY);
     return CARD_PRICE_BY_ENERGY[energy];
+}
+
+/**
+ * TICKET 163b — **what an upgrade costs**, on Henry's band of 25–40 scrap (163 §2).
+ *
+ * By the card's ENERGY, exactly as `cardPrice` is, and for the reason that header gives: the cost
+ * is the only property of a card this file is allowed to read, because a price that reads power or
+ * rarity is a second balance opinion living in a shop. Four rungs across the ruled band:
+ *
+ *     0e 25   ·   1e 30   ·   2e 35   ·   3e 40
+ *
+ * IT IS FLATTER THAN BUYING, and that is the design rather than an accident of the band. Buying
+ * spans 15–45 — three times — because a 3e card is three times the card a 0e one is. An UPGRADE is
+ * roughly the same size of favour whatever it lands on: a rung of stacks, forty percent, one more
+ * swing. The band Henry ruled is 25–40, which is 1.6x across the same four rungs, and that ratio is
+ * the ruling's content.
+ *
+ * TUNE FROM THE RUN LOG, which 163b says out loud. `CARD_UPGRADED` records the price paid, so the
+ * question *"is 30 scrap a real decision at fight four"* is answerable from a walker run rather
+ * than from this comment. Until it is answered these are Henry's numbers and not a derivation.
+ */
+export const UPGRADE_PRICE_BY_ENERGY: ReadonlyArray<number> = [25, 30, 35, 40];
+
+/** What upgrading this card costs. Unknown ids price at the cheapest rung, as `cardPrice` does. */
+export function upgradePrice(dataId: string): number {
+    const data = ProgramRegistry[resolveProgramId(dataId)];
+    if (!data) return UPGRADE_PRICE_BY_ENERGY[0];
+    const energy = Math.min(Math.max(numericBaseCost(data.baseCost), 0), UPGRADE_PRICE_BY_ENERGY.length - 1);
+    return UPGRADE_PRICE_BY_ENERGY[energy];
+}
+
+/**
+ * How many upgrades one visit to the market or the workshop may buy.
+ *
+ * Henry, 2026-09-30, ticket 174: two per visit at the market and the workshop (was one, 163 §2).
+ * Late runs had scrap and upgradeable cards but nowhere to spend it. The gym gate's free upgrade
+ * (once) and the Overclock Rig event bench (two, free) keep their own allowances and do not read
+ * this.
+ */
+export const UPGRADES_PER_VISIT = 2;
+
+/**
+ * The gym gate's upgrade is FREE — 163 §2, *"and a free upgrade at the gym gate (the rest-site
+ * venue). Both answer 153's 'scrap is not scarce'."*
+ *
+ * A named constant rather than a literal 0 at the call site, so the reducer that charges it is the
+ * same reducer that charges the bench and there is no second code path to keep honest.
+ */
+export const GYM_GATE_UPGRADE_PRICE = 0;
+
+/**
+ * TICKET 163f (Henry, 2026-09-23) — **ONE `+` CARD IN THE STALL, AND THE ONLY EXCEPTION TO THE RULE
+ * THAT `+` CARDS ARE NEVER OFFERED.**
+ *
+ * > *"An upgraded card may be found in the market stall for sale, priced below buying the base and
+ * > upgrading it — less than buying then upgrading the card, like 10–20% discount."*
+ *
+ * `isRewardable` refuses every `+` everywhere else — rewards, enemy decks, the stranger slot, the
+ * codex denominator — because the only way to hold one is to UPGRADE the base (163a). This shelf is
+ * the single door that is allowed to skip the bench, and it is a door rather than a hole: **at most
+ * one per run**, on the static stock, drawn from the party's own v2 pool.
+ *
+ * # THE PRICE IS DERIVED, NOT TASTED
+ *
+ * Henry's rule is *"less than buying then upgrading"*, with a 10–20% discount. Buying then upgrading
+ * is `CARD_PRICE_BY_ENERGY + UPGRADE_PRICE_BY_ENERGY` — 40 / 55 / 70 / 85 — and 0.85 of that, to
+ * the nearest five, is:
+ *
+ *     0e 35   ·   1e 45   ·   2e 60   ·   3e 70
+ *
+ * A 15% discount, the middle of the ruled band, and the only multiplier in 5%-steps that keeps all
+ * four rungs on a multiple of five without rounding two of them the wrong way. Derived here rather
+ * than written as a literal table, so a move to either price table carries this one with it — the
+ * discount is the ruling, not the four numbers.
+ */
+export const UPGRADED_CARD_DISCOUNT = 0.85;
+
+/** At most one `+` on the shelf per RUN, not per visit. 163f: a door, not a hole. */
+export const UPGRADED_STOCK_PER_RUN = 1;
+
+export function upgradedCardPrice(dataId: string): number {
+    const base = resolveProgramId(dataId).endsWith('+')
+        ? resolveProgramId(dataId).slice(0, -1)
+        : resolveProgramId(dataId);
+    const full = cardPrice(base) + upgradePrice(base);
+    return Math.round((full * UPGRADED_CARD_DISCOUNT) / 5) * 5;
 }
 
 // =================================================================================================
@@ -548,13 +625,21 @@ export interface IMarketOffer {
 }
 
 /** Where an offer came from. See `IMarketOffer.slot`. */
-export type MarketSlot = 'pool' | 'neutral' | 'stranger';
+export type MarketSlot = 'pool' | 'neutral' | 'stranger' | 'upgraded';
 
+/** The stall's single blueprint slot (ticket 142 §7). One option, or none on a bare route. */
+export interface IBlueprintOffer {
+    readonly speciesId: string;
+    readonly price: number;
+}
 export interface IMarketStock {
     readonly offers: ReadonlyArray<IMarketOffer>;
-    /** `nodeSeed(run, node, 'market')` — handed back so a test can prove what the roll depended on. */
+    /** `marketStockSeed(run, node)` — handed back so a test can prove what the roll depended on. */
     readonly seed: string;
-    /** The visit this stock belongs to. Two visits are two stocks; see the module header. */
+    /**
+     * The REFRESH this stock belongs to. Ticket 142 §7 renamed the axis: two visits are one
+     * stock now, and two refreshes are two stocks.
+     */
     readonly visit: number;
 }
 
@@ -614,10 +699,140 @@ function drawDistinct(source: ReadonlyArray<string>, count: number, stream: Seed
  * Instance ids come from a third fork, so that a future change to *how many* things are on sale
  * cannot change the identity of the cards already in a resumed run's stock.
  */
+/**
+ * THE SHELF'S SEED — ticket 142 §7 (Henry, 2026-09-11).
+ *
+ * *"Make it static per run so whenever you come back it has the same stock, which doesn't get
+ * replenished — once you buy the card it's gone from the shop."*
+ *
+ * `nodeSeed` folds `node.visited` into its key, which is exactly right for a wild (a re-entered
+ * node should roll a different fight) and exactly wrong for a shelf: walking out and back in was a
+ * FREE re-roll, and the module header's no-farm rule was enforced only by the visit cap. The stock
+ * is now keyed on the node's REFRESH count instead — a number only a paid refresh moves (142f) —
+ * so the no-farm rule holds by construction rather than by a ceiling on visits.
+ *
+ * The purpose string keeps `market` so that a run saved before this change, with no refreshes,
+ * resumes on the same shelf it had at visit 0. Runs saved mid-visit-2 get a different shelf on
+ * resume; that is a one-time cost of the ruling and cheaper than a save migration for a field
+ * whose whole point is that it is derived.
+ */
+/**
+ * A BLUEPRINT ON THE SHELF — ticket 142 §7, RULED by Henry 2026-09-11.
+ *
+ * *"Add blueprints to the shop, but they should be expensive and only offer 1 random option."*
+ *
+ * **50 scrap, the same as a refresh, and that equality is the design.** The two are the only
+ * things at a stall that are not a card, and they are the two ways to answer a shelf that has
+ * nothing for you: buy a body, or buy a different shelf. Pricing them alike makes that a choice
+ * rather than an ordering. It is also above the dearest card (45), which is what Henry asked for -
+ * a blueprint is a whole mingming, and it should cost more than any single card on the wall.
+ */
+export const MARKET_BLUEPRINT_PRICE = 50;
+
+/**
+ * Every species the shop may sell a blueprint for — the WHOLE Early Access roster.
+ *
+ * # THIS WAS ROUTE-RESTRICTED, AND THAT WAS MY MISREADING OF 142d
+ *
+ * The first version derived the pool from `run.biomes` and argued that a stall selling a kraken
+ * blueprint on the Rootfall road would hand back the thing the route was built to withhold.
+ * **The route was never built to withhold anything.** Henry, 2026-09-12:
+ *
+ * > *"We aren't intentionally withholding blueprints. The stall can sell a kraken blueprint, it
+ * > just felt bad trying to prepare for a NNW deck by going through an entire water biome when you
+ * > want to focus on your fire team ... It's not about limiting, it was about avoiding having to
+ * > drop your fire starters to get through the biome then last minute switch back to FFN party."*
+ *
+ * The complaint 142d answers is about being FORCED to walk a biome you have no team for, and the
+ * shop is the opposite of that problem: it is how you reach an off-route body **without** the
+ * detour. Restricting it turned a fix for a routing annoyance into a content lock, which is a
+ * different game — Henry names the play it would have deleted: *"maybe you want to try a certain
+ * deck archetype and take the type disadvantage, or maybe it's an achievement to beat a grass boss
+ * with water mingmings."*
+ *
+ * `LAUNCH_SPECIES` rather than `PLAYABLE_SPECIES`: the other ten live in the registry for the
+ * balance harness and are not Early Access content, so a stall must not sell one.
+ */
+export function blueprintPool(): string[] {
+    return [...LAUNCH_SPECIES];
+}
+
+/**
+ * The one blueprint this shelf is selling, or `null` where the route offers nothing.
+ *
+ * Its own fork of the shelf seed, for the reason every fork here has one: adding the slot must not
+ * shift which cards or macros the other slots drew. It therefore holds and refreshes exactly as
+ * they do, which is what makes *"once you buy the card it's gone"* true of the blueprint too.
+ */
+export function rollBlueprintOffer(run: IRunState, node: IRegionNode): IBlueprintOffer | null {
+    const pool = blueprintPool();
+    if (pool.length === 0) return null;
+    const stream = new SeedStream(new SeedStream(marketStockSeed(run, node)).fork('market-blueprint'));
+    return { speciesId: pool[stream.nextInt(0, pool.length - 1)], price: shopPrice(run, MARKET_BLUEPRINT_PRICE) };
+}
+
+/**
+ * Has this shelf's blueprint already been bought?
+ *
+ * A card offer answers this from OWNERSHIP (`isOfferSold` looks for its minted instance id), and a
+ * blueprint cannot: blueprints are a persistent COUNT on the ranch, so "I own a kraken blueprint"
+ * says nothing about whether this stall is where it came from. So the run records the purchase,
+ * keyed by node AND refresh - which means a refresh makes the slot available again for free, with
+ * no clearing step and nothing to forget to clear.
+ */
+export function blueprintSlotKey(run: IRunState, node: IRegionNode): string {
+    return `${node.id}:${run.marketRefreshes?.[node.id] ?? 0}`;
+}
+
+export function isBlueprintSlotSold(run: IRunState, node: IRegionNode): boolean {
+    return (run.boughtBlueprints ?? []).includes(blueprintSlotKey(run, node));
+}
+export function marketStockSeed(run: IRunState, node: IRegionNode): string {
+    const refreshes = run.marketRefreshes?.[node.id] ?? 0;
+    return new SeedStream(run.seed).fork(`market:${node.id}:${refreshes}`);
+}
+/**
+ * TICKET 163f — **which market carries the run's one `+` card, and which card it is.**
+ *
+ * Returns the `+` id for the ONE market node in this run that carries the slot, and `null` for every
+ * other market and every other visit to that one.
+ *
+ * **Chosen by a draw over the run's own market nodes**, off a fork of the run seed, rather than by
+ * counting how many have been visited. A counter would need run state that survives a save and would
+ * make "have I already seen it" a thing the shop has to remember; a draw over the graph is a
+ * property of the RUN and is the same answer every time it is asked, which is also what stops a
+ * refresh farming for it — `marketStockSeed` moves with `marketRefreshes` and this does not.
+ *
+ * The card is an upgrade of something in the PARTY's pool, so the slot is an offer this team can
+ * use. A pool with nothing upgradable yields `null`, which is honest: the alternative is reaching
+ * outside the pool for a `+`, and a stranger you cannot bench is the shape 163a refused.
+ */
+export function upgradedOfferFor(
+    run: IRunState,
+    node: IRegionNode,
+    pool: ReadonlyArray<string>,
+): string | null {
+    const markets = run.nodes.filter((candidate) => isMarketNode(candidate.kind)).map((candidate) => candidate.id);
+    if (markets.length === 0 || !markets.includes(node.id)) return null;
+
+    const stream = new SeedStream(new SeedStream(run.seed).fork('market-upgraded'));
+    const chosen = markets[stream.nextInt(0, markets.length - 1)];
+    if (chosen !== node.id) return null;
+
+    const upgradable = pool
+        .filter((dataId) => hasUpgrade(dataId))
+        .map((dataId) => upgradeIdFor(dataId))
+        .filter((dataId): dataId is string => dataId !== undefined);
+    if (upgradable.length === 0) return null;
+    // One draw, from a stream forked off the same label, so which market and which card move
+    // together and neither can shift the other's answer.
+    return upgradable[stream.nextInt(0, upgradable.length - 1)];
+}
+
 export function rollMarketStock(input: MarketStockInput): IMarketStock {
     const { run, node, party, fallbackElement = 'None' } = input;
 
-    const seed = nodeSeed(run, node, 'market');
+    const seed = marketStockSeed(run, node);
     const poolStream = new SeedStream(new SeedStream(seed).fork('market-pool'));
     const wildStream = new SeedStream(new SeedStream(seed).fork('market-wildcard'));
     // Its own fork, for the reason every fork here has one: adding or removing the neutral slot must
@@ -661,6 +876,8 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
 
     // The neutral slot is a RESERVATION, not an outsider: `hamstring` and friends are in every
     // party's pool now, and the point of the slot is that a 33-card draw cannot crowd them out.
+    // Ticket 162a keeps that true under the v2 pool gate by putting this list IN the pool — see
+    // `NEUTRAL_UTILITY_IDS` in `speciesPools.ts`, which is where these ids now live.
     const neutral = MARKET_NEUTRAL_UTILITY.filter((id) => isRewardable(id));
 
     /*
@@ -672,13 +889,47 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
      * registry entries in no playable deck, so they sit squarely in this complement; they reached
      * the shelf at ~3% a visit before ticket 69, and restoring this slot would have put them back.
      */
+    /*
+     * TICKET 25-pre (Henry, 2026-09-24) — **THE STRANGER IS STILL A CARD THE GAME SHIPS.**
+     *
+     * This slot drew from `ProgramRegistry` entire, so an all-EA party could be sold a card from the
+     * archived v1 collection or from one of the ten post-EA species — on the one shelf whose whole
+     * job is *"this is not one of your team's cards"*. It is: it is not anyone's.
+     *
+     * Narrowed exactly as `rewardCardPool` narrows the reward pool, and gated on the same
+     * `usesV2Pool` test, so a party with a post-EA member keeps the full complement rather than
+     * being handed a shelf that cannot speak for it. `inV2RunPool` already carries the neutral and
+     * run-only ids, so nothing reachable before is lost.
+     */
+    const eaOnly = usesV2Pool(party);
     const stranger = Object.keys(ProgramRegistry)
-        .filter((id) => isRewardable(id) && !pool.includes(id) && !MARKET_NEUTRAL_UTILITY.includes(id));
+        .filter((id) => isRewardable(id) && !pool.includes(id) && !MARKET_NEUTRAL_UTILITY.includes(id))
+        .filter((id) => !eaOnly || inV2RunPool(id));
+
+    /*
+     * TICKET 163f — **THE ONE `+` CARD, AT ONE MARKET, ONCE A RUN.**
+     *
+     * Henry ruled an upgraded card may be found in the stall, *"priced below buying the base and
+     * upgrading it"*. `isRewardable` refuses `+` cards everywhere else and keeps doing so: this is
+     * the single explicit exception, and it is bounded on three sides at once —
+     *
+     *   - **one market per run carries it**, chosen by a seeded draw over the run's own market nodes
+     *     rather than by a counter, so it needs no new run state and cannot be farmed by refreshing
+     *     (the choice does not read `marketRefreshes`);
+     *   - **it is drawn from the PARTY's pool**, so it is an upgrade of a card this team can use,
+     *     which is what stops the slot being a second stranger;
+     *   - **it is an extra slot**, not one of the five, so a run that meets it loses nothing.
+     *
+     * `upgradedOfferFor` is separated out so the "which market" decision is testable on its own —
+     * it is the half that is easy to get subtly wrong and impossible to see in a stall.
+     */
+    const upgraded = upgradedOfferFor(run, node, pool);
 
     const drawn: Array<{ dataId: string; slot: MarketSlot }> = [
         ...take(pool, MARKET_STOCK_SIZE, poolStream).map((dataId) => ({ dataId, slot: 'pool' as const })),
         ...take(neutral, MARKET_NEUTRAL_SLOTS, neutralStream).map((dataId) => ({ dataId, slot: 'neutral' as const })),
         ...take(stranger, MARKET_WILDCARD_SLOTS, wildStream).map((dataId) => ({ dataId, slot: 'stranger' as const })),
+        ...(upgraded === null ? [] : [{ dataId: upgraded, slot: 'upgraded' as const }]),
     ];
 
     const offers: IMarketOffer[] = drawn.map(({ dataId, slot }) => ({
@@ -690,12 +941,15 @@ export function rollMarketStock(input: MarketStockInput): IMarketStock {
             // `RunScreen`'s per-member card counts honest.
             ownerId: null,
         },
-        price: cardPrice(dataId),
+        // 163f: the `+` slot is priced by its own rule (base + bench, less 15%), not by the card
+        // table — an upgraded card's `baseCost` is its base's, so `cardPrice` would sell it for the
+        // price of the card it improves on.
+        price: shopPrice(run, slot === 'upgraded' ? upgradedCardPrice(dataId) : cardPrice(dataId)),
         slot,
         wildcard: slot === 'stranger',
     }));
 
-    return { offers, seed, visit: node.visited };
+    return { offers, seed, visit: run.marketRefreshes?.[node.id] ?? 0 };
 }
 
 // =================================================================================================
@@ -747,11 +1001,11 @@ export interface IMacroOffer {
  */
 export function rollMacroStock(input: MarketStockInput): ReadonlyArray<IMacroOffer> {
     const { run, node } = input;
-    const seed = nodeSeed(run, node, 'market');
+    const seed = marketStockSeed(run, node);
     const macroStream = new SeedStream(new SeedStream(seed).fork('market-macros'));
 
     return drawDistinct([...MACRO_IDS], MACRO_STOCK_SIZE, macroStream)
-        .map((macroId) => ({ macroId, price: macroPrice(macroId) }));
+        .map((macroId) => ({ macroId, price: shopPrice(run, macroPrice(macroId)) }));
 }
 
 /**

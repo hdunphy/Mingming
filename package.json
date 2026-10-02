@@ -5,16 +5,26 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/assert-no-debug.mjs",
+    "build": "tsc -b && vite build && node scripts/assert-no-debug.mjs && node scripts/assert-sfx.mjs",
     "lint": "eslint .",
+    "gate": "npm run lint && tsc -b && vitest run && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "balance": "vitest run --config vitest.balance.config.ts",
     "balance:deck": "vite-node src/debug/balance/runDeckReport.ts",
+    "runread": "vite-node src/debug/balance/runRunRead.ts",
+    "balance:scrap-curve": "vite-node src/debug/balance/runScrapCurve.ts",
+    "balance:scrap-walk": "vite-node src/debug/balance/runScrapCurveWalk.ts",
+    "balance:scrap-report": "vite-node src/debug/balance/runScrapCurveReport.ts",
     "decks": "vite-node src/debug/balance/runDeckBrowser.ts",
     "balance:run-gate": "vite-node src/debug/balance/runRunGate.ts",
+    "balance:walk": "vite-node src/debug/balance/runRunWalker.ts",
     "desktop:build": "node scripts/desktop-build.mjs",
-    "balance:snowball": "vite-node src/debug/balance/runSnowball.ts"
+    "balance:snowball": "vite-node src/debug/balance/runSnowball.ts",
+    "balance:77": "node scripts/ticket77-arms.mjs",
+    "balance:drivers": "vite-node src/debug/balance/runDriverCanary.ts",
+    "release-check": "node scripts/release-check.mjs",
+    "canary:short": "vite-node src/debug/balance/runRunGate.ts -- --cells wild:biome0,elite:biome0 --iterations 60 --gate-structural"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",

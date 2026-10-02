@@ -44,7 +44,10 @@ describe('battleSlice.startBattle forwards BattleOptions', () => {
             options: { enemyMode: 'CARDS' }
         }));
         expect(state.battle!.enemyMode).toBe('CARDS');
-        expect(state.battle!.enemyDeck.hand.length).toBeGreaterThan(0);
+        // CARDS is visible as a stocked drawpile. The hand is empty until the enemy's own turn
+        // starts (2026-09-25: no opening deal - see `createBattleState`).
+        expect(state.battle!.enemyDeck.drawpile.length).toBeGreaterThan(0);
+        expect(state.battle!.enemyDeck.hand).toEqual([]);
     });
 
     it('a seed passed through the slice reproduces the same battle', () => {

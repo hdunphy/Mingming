@@ -74,11 +74,14 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
-import { RUN_ENEMY_MODE, isFightNode, rollEncounter } from '../../engine/run/encounter';
+import { withEffectiveOS } from '../../engine/run/effectiveOS';
+import { fightNodeFor, isEventFight } from '../../engine/run/eventFight';
+import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
-import type { IRegionNode, NodeKind } from '../../engine/runTypes';
+import { PARTY_SIZE } from '../../engine/party';
+import type { IRegionNode } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import { getMacro, isBiomeRevealed, revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import { startBattle } from '../store/battleSlice';
@@ -94,24 +97,12 @@ import Callout from '../components/Callout';
 import { nextMapTip } from '../../engine/tips';
 import RunSummary from './RunSummary';
 import WorkshopNode from './WorkshopNode';
+import EventNode from './EventNode';
 import { NODE_ICON, NODE_LABEL } from './regionLayout';
 import { Icon } from '../theme/Icon';
-
-/**
- * The kinds that have no handler yet, and the ticket that gives them one.
- *
- * Named rather than lumped into one "coming soon" because the point of showing this at all is to be
- * checkable: standing on a workshop and reading "ticket 14" tells you the trigger fired and which
- * ticket owes you the rest. A silent node would look exactly like a broken one.
- *
- * **`marketplace` left this table in ticket 13 and `workshop` in ticket 14** — both have screens
- * now, so neither is pending. The entries are removed rather than pointed at the landed tickets,
- * because the table's meaning is "nothing happens here", and a kind that renders a shop or a bench
- * would be a false entry in it.
- */
-const PENDING_NODE_TICKET: Partial<Record<NodeKind, number>> = {
-    event: 30,
-};
+import RunTierLabel from './RunTierLabel';
+import type { Element as MingmingElement } from '../../engine/types';
+import { partyElementsOf } from '../../engine/run/driverStakes';
 
 export default function RunScreen(): ReactNode {
     const dispatch = useDispatch();
@@ -137,6 +128,13 @@ export default function RunScreen(): ReactNode {
     const [closedNodeId, setClosedNodeId] = useState<string | null>(null);
 
     /**
+     * The event node the player has left, as `nodeId:visit`. Per VISIT rather than per node (unlike
+     * `closedNodeId`): a spent event node shows "The relay is dark" each time it is walked into, so
+     * walking back in must reopen that panel.
+     */
+    const [leftEventKey, setLeftEventKey] = useState<string | null>(null);
+
+    /**
      * Whether the shared `LoadoutEditor` is open, and what its context line should read. Null is
      * the ordinary state. The four surfaces all set this and nothing else, which is what keeps
      * "exactly four doors" checkable by reading one file.
@@ -157,8 +155,15 @@ export default function RunScreen(): ReactNode {
     const marketParty = useMemo(
         () => (run?.partyIds ?? [])
             .map((id) => roster.find((m) => m.id === id))
-            .filter((m): m is (typeof roster)[number] => m !== undefined),
+            .filter((m): m is (typeof roster)[number] => m !== undefined)
+            // TICKET 168f: the shop rolls its stock for the OS a body runs in this run.
+            .map((m) => withEffectiveOS(run!, m)),
         [run, roster],
+    );
+    /** TICKET 172: the elements this team fields, so the map names the Driver a win really pays. */
+    const partyElements = useMemo(
+        () => partyElementsOf(marketParty.map((m) => GetMingmingData(m.definitionId))),
+        [marketParty],
     );
 
     /**
@@ -186,7 +191,8 @@ export default function RunScreen(): ReactNode {
         if (!run || run.phase !== 'encounter') return;
 
         const node = run.nodes.find((n) => n.id === run.currentNodeId);
-        if (!node || !isFightNode(node.kind)) return;
+        // TICKET 168g: an event node fights too while Ambush Bait's fight is on (as a wild).
+        if (!node || !(isFightNode(node.kind) || isEventFight(run, node))) return;
 
         /*
          * TICKET 18: THE GYM IS A FIGHT KIND, BUT IT IS NOT *A* FIGHT.
@@ -208,14 +214,21 @@ export default function RunScreen(): ReactNode {
         const party: IMingmingState[] = [];
         for (const id of run.partyIds) {
             const member = roster.find((m) => m.id === id);
-            if (member) party.push(toMingmingState(member));
+            if (member) party.push(toMingmingState(withEffectiveOS(run, member)));
         }
         if (party.length === 0) return;
 
-        const encounter = rollEncounter({ run, node, party });
+        const encounter = rollEncounter({ run, node: fightNodeFor(run, node), party });
+
+        // 155 deep dive 6: the backdrop's two fields, from the map this node sits on.
+        const nodeBiome = run.biomes[node.biomeIndex];
 
         dispatch(startBattle({
             setup: buildBattleSetup(ranch, run, encounter),
+            biome: nodeBiome
+                // `Element` unqualified here is the DOM's, not the engine's — hence the alias.
+                ? { name: nodeBiome.name, element: (nodeBiome.elements[0] ?? 'None') as MingmingElement }
+                : undefined,
             // The pre-rolled encounter answers both of these; they are the pre-run generator's
             // parameters and this path does not use it.
             enemyIds: [],
@@ -344,6 +357,7 @@ export default function RunScreen(): ReactNode {
                     node={current}
                     party={marketParty}
                     biomeName={biome?.name}
+                    ranch={ranch}
                     onEditLoadout={() => setEditorContext(contextLine('MARKETPLACE'))}
                     onLeave={() => setClosedNodeId(current.id)}
                 />
@@ -369,6 +383,22 @@ export default function RunScreen(): ReactNode {
     }
 
     /**
+     * The event node — **ticket 168.** Opens on entry, like the stall and the bay, and closes only
+     * once it is spent: an unresolved event has no Leave of its own.
+     */
+    if (current.kind === 'event' && leftEventKey !== `${current.id}:${current.visited}`) {
+        return (
+            <EventNode
+                run={run}
+                node={current}
+                ranch={ranch}
+                biomeName={biome?.name}
+                onLeave={() => setLeftEventKey(`${current.id}:${current.visited}`)}
+            />
+        );
+    }
+
+    /**
      * The gauntlet takes the whole screen — **ticket 18.**
      *
      * Not a panel over the map like the shop and the bench, because the gauntlet is the one node you
@@ -384,7 +414,7 @@ export default function RunScreen(): ReactNode {
                     <h1><Icon name="gym" size={20} /> {gym?.name ?? run.gymId}</h1>
                     <div className="ranch-run-meta">
                         Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                        {' '}{run.fightsResolved} fights · {run.scrap} scrap
+                        {' '}<RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
                     </div>
                     {abandonControl()}
                 </header>
@@ -402,8 +432,6 @@ export default function RunScreen(): ReactNode {
         );
     }
 
-    const pendingTicket = PENDING_NODE_TICKET[current.kind];
-
     /** The biome the alert is about, or undefined when no alert is owed. */
     const boundaryBiome = run.boundaryBiome !== undefined ? run.biomes[run.boundaryBiome] : undefined;
 
@@ -413,7 +441,7 @@ export default function RunScreen(): ReactNode {
                 <h1>{gym?.name ?? run.gymId}</h1>
                 <div className="ranch-run-meta">
                     Biome {current.biomeIndex + 1}/3 · {biome?.name} ({biome?.elements.join(' / ')}) ·
-                    layer {current.layer} · {run.fightsResolved} fights · {run.scrap} scrap
+                    layer {current.layer} · <RunTierLabel run={run} /> · {run.fightsResolved} fights · {run.scrap} scrap
                 </div>
                 <button type="button" className="ranch-button subtle" onClick={abandon}>Abandon run</button>
             </header>
@@ -422,14 +450,6 @@ export default function RunScreen(): ReactNode {
                 <div className="ranch-section-head">
                     <h2><Icon name={NODE_ICON[current.kind]} size={18} /> {NODE_LABEL[current.kind]}{current.pocket ? ' (pocket)' : ''}</h2>
                 </div>
-
-                {pendingTicket !== undefined && (
-                    <p className="ranch-note">
-                        You are standing in the {NODE_LABEL[current.kind].toLowerCase()} — nothing
-                        here yet (ticket {pendingTicket}). Entering it counted as a visit, so walking
-                        back in later will roll it fresh.
-                    </p>
-                )}
 
                 {/*
                   * The stall and the bay took the whole screen above. What is left here is the way
@@ -509,8 +529,17 @@ export default function RunScreen(): ReactNode {
                 <RegionMap
                     nodes={run.nodes}
                     currentNodeId={run.currentNodeId}
+                    partyElements={partyElements}
                     biomeNames={run.biomes.map((b) => b.name)}
                     biomeElements={run.biomes.map((b) => b.elements[0])}
+                    // Ticket 142c: what a rival fields in each biome, off-biome element first — the
+                    // same order `rivalElementPlan` deals the bodies in, so the map and the fight
+                    // agree by construction rather than by two copies of one rule.
+                    rivalElements={run.biomes.map((_, i) => rivalElementPlan(
+                        run,
+                        { biomeIndex: i, kind: 'rival' } as IRegionNode,
+                        PARTY_SIZE,
+                    ))}
                     // Ticket 15: the fog's third clause. Derived here rather than inside the map,
                     // because `regionLayout` is a pure function of the node set and knows nothing
                     // about a run — see its header.

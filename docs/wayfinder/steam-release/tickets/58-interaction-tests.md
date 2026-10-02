@@ -1,8 +1,8 @@
 # Interaction tests: a click-level harness over the core loop (ticket 58)
 
 - Type: wayfinder:task
-- Status: open
-- Assignee: 
+- Status: closed
+- Assignee: 58-interaction (2026-09-08)
 - Blocked by: [03](03-ci-gate.md)
 - Phase: Foundations
 
@@ -55,4 +55,34 @@ A small, deliberately shallow set of interaction tests over the core loop — th
 
 ## Resolution
 
-_(open)_
+**Closed 2026-09-08 (session 58-interaction). Built exactly as specified; every one of the seven tests fails when its subject is reverted; suite +3.3 s.**
+
+### What shipped
+
+1. **`src/testing/interaction.tsx`** — the shared harness, ~80 lines of code. `makeStore()` (the production reducer map without `store.ts`'s autosave subscriber), `mount(store, tree, options)`, `mountApp(store, options)`, `flush()`, `fire(el, type)`, `click(el)`, `findText(host, text, selector)`, `clickText(host, text, selector)`. It registers its own `afterEach` (unmount every root it created, restore spies) so a test file needs no lifecycle boilerplate — the three existing files lost 30–40 lines each. Test files carry `// @vitest-environment jsdom` themselves; the harness is a plain module.
+2. **The `console.error` trap.** `mount` spies `console.error` and the harness's `afterEach` fails the test with the captured messages if it was called, unless the test passed `allowConsoleError: true`. `App.errorBoundary.test.tsx` is the one opt-out (it throws on purpose). Unhandled rejections already fail a vitest run, so nothing was added for them. **Verified against bug 2:** restoring the synchronous `dispatch` in `useCodexRecorder.ts:100` makes the card test fail twice — once on its own assertion and once on the trap, which quotes Henry's console error verbatim: *"You may not call store.getState() while the reducer is executing."*
+3. **`src/App.loop.test.tsx`** — seven click-level tests over the spine, each asserting a store change. They walk to their screen through the real clicks of the earlier steps rather than a fixture (the loop is the fixture), and the run seed is pinned by mocking `rollSeed` so the offer, graph and opening hand are identical every run. Wall time 4.5 s for all seven; three consecutive runs green.
+
+   | Test | Click path | Store assertion | Reverted line that makes it FAIL |
+   |---|---|---|---|
+   | starter picked | the KRAKEN `motion.div` | `blueprints.kraken === 1`, picker gone, Assembly bay up | `App.tsx:178` gate back to `rosterSize === 0` (the original soft-lock) |
+   | blueprint spent | Assemble (1 blueprint) → Spend blueprint | `roster.length 0 → 1`, blueprint consumed | `RanchScreen.tsx:232` drop `dispatch(assembleMingming)` |
+   | run started | Expedition → first offer → first roster card → Begin run | `run.run` exists, `partyIds` = the member, `phase 'map'` | `RunStart.tsx:88` drop `dispatch(startRun(...))` |
+   | node entered | first `.rm-travel-button` | `battle.battle` exists with the party, `phase 'encounter'` | `RunScreen.tsx:246` drop `dispatch(enterNode)` |
+   | card played | click caster → pointerdown card → pointerup enemy | played id gone from hand, enemy HP down, selection cleared | `useCodexRecorder.ts:100` synchronous dispatch (bug 2) — fails AND trips the trap |
+   | END TURN | END TURN, then fake timers advanced until the side returns | `activeSide 'PLAYER'`, `turn + 1`, player HP down or log grew | `BattleArena.tsx:499` drop the AI's `dispatch(endTurn())` |
+   | fight won | enemy set to 1 HP → card → VIEW REWARDS → SKIP → CONTINUE SYNCHRONIZATION | `battle null`, `phase 'map'`, `fightsResolved + 1`, map on screen | `BattleArena.tsx:960` drop `dispatch(resolveEncounter())` |
+
+4. **The three existing files collapse onto the harness**, as the ticket asked: `App.errorBoundary.test.tsx` (now `mount(...)` with `allowConsoleError` + `keepStorage`), `App.starterPicker.test.tsx` (keeps the four gate tests; the transition test is folded into the loop), `useCodexRecorder.test.tsx` (`mount(store, <Recorder />)` — and now runs under the trap).
+5. **The repo rule** is written into HANDOFF § Repo rules and map § Notes: *a ticket that adds or changes a screen the player clicks adds one interaction test for the click — one, not a suite.*
+
+### Gates
+
+`npx tsc -b` clean, `eslint .` 0 errors, `vite build` + `assert-no-debug` OK, `npx vitest run` **168 files / 2247 tests** green (was 167 / 2240). **CI time: 161.4 s before → 164.7 s after, +3.3 s** against the +15 s gate (same jsdom worker, the loop file is 4.5 s of it).
+
+### Two things learned building it, worth keeping
+
+- **The card-play gesture needs the caster selected first.** `startBattle` leaves `selectedSourceId` null and `handlePlay` refuses without one, so a pointerup on the enemy with a card selected but no caster does nothing — silently. That is the shipped behaviour and the test does what a player does (click your unit first); it is noted here because it is the kind of inert-control the MacroRack convention (*"never inert without a sentence"*) would normally flag, and nothing on the battle screen says why the drop was refused.
+- **A first fight's hand is not always four cards after one play.** The kraken v1 kit cantrips, so the first assertion draft (*"hand is one shorter"*) was wrong; the test asserts the played instance id is gone, which is what the 2026-08-24 defect actually violated.
+
+Out of scope, untouched: the ~40 `renderToStaticMarkup` files, `@testing-library/react` (still not installed, still not needed), any second browser runtime.

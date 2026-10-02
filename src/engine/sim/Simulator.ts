@@ -73,7 +73,7 @@ export function simulate1v1(
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         logs: [],
         playerParty: [entityA],
         enemyParty: [entityB],

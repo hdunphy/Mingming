@@ -24,8 +24,9 @@
  * grab all the cards even if you don't plan to use them."*
  *
  * And that is why these cases are click-level too, and why the last assertion in each is again what
- * `onContinue` receives. `storedInstanceIds` is a THIRD argument, optional, on a callback whose two
- * existing arguments are unchanged — the least visible signature in the codebase to get wrong. A
+ * `onContinue` receives. `storedInstanceIds` is a SECOND argument, optional (it was the third until
+ * ticket 16 deleted the relic pick between them), on a callback whose first argument is unchanged —
+ * the least visible signature in the codebase to get wrong. A
  * screen that renders both buttons, highlights the one you pressed, and then hands the run every
  * card for the deck anyway looks completely correct from the outside, and the only place the
  * difference shows up is in a deck that grew when the player told it not to.
@@ -48,7 +49,11 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const owned = (dataId: string, n: number): IOwnedProgram =>
     ({ instanceId: `${dataId}_${n}`, dataId } as IOwnedProgram);
 
-/** Two picks, as a 2v2 win pays: one per defeated body. */
+/**
+ * Two picks. A real fight pays ONE since ticket 179 (see `BattleReport.onePick.test.tsx`), but the
+ * screen is generic over `cardChoices`, and a two-pick bundle is what exercises the per-pick state
+ * machine (a skip on one pick must not touch the other).
+ */
 const BUNDLE: IRewardBundle = {
     scraps: 15,
     blueprints: [],
@@ -134,9 +139,9 @@ async function take(index: number, option = 0): Promise<HTMLElement> {
     return card as HTMLElement;
 }
 
-/** The third argument of the one `onContinue` call — the ids routed to the collection. */
+/** The second argument of the one `onContinue` call — the ids routed to the collection. */
 const storedArg = (): ReadonlyArray<string> =>
-    onContinue.mock.calls[0][2] as ReadonlyArray<string>;
+    onContinue.mock.calls[0][1] as ReadonlyArray<string>;
 
 describe('skipping a card pick', () => {
     it('blocks CONTINUE while a pick is neither taken nor declined', async () => {

@@ -4,16 +4,19 @@ import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
-import { GetRelic } from '../../engine/data/relicRegistry';
+import { getPatch } from '../../engine/data/patchRegistry';
+import { describeDriver } from '../../engine/data/driverRegistry';
 import RevealCard, { REVEAL_STAGGER_MS } from './RevealCard';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
+import { MacroRewardPick } from './MacroRewardPick';
+import PatchHolders from './PatchHolders';
 
 /**
  * The post-fight reward screen — refitted by ticket 12.
  *
  * What it shows is now exactly what a fight pays: **scrap**, **any blueprint**, and **one
- * pick-1-of-3 per defeated enemy**. There is no XP panel (ticket 21 deleted levelling; ticket 12
+ * pick-1-of-3 per fight** (ticket 179; it was per defeated enemy). There is no XP panel (ticket 21 deleted levelling; ticket 12
  * removed the last field), and the gym-clear draft is parked for ticket 18 — see `draftRounds`
  * below.
  *
@@ -25,6 +28,12 @@ import { playSfx } from '../audio/AudioEngine';
 interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
+    macroRack?: ReadonlyArray<string | null>;
+    /**
+     * TICKET 167j: the patches the run's bodies already hold (`rosterId -> patchIds`), so the patch
+     * offer can say who has what. Defaults to none.
+     */
+    heldPatches?: Readonly<Record<string, ReadonlyArray<string>>>;
     /** Picked cards, in choice order. `BattleArena` mints them into `IRunState.deck`. */
     /**
      * `storedInstanceIds` is ticket 61 §2: the instance ids among `chosenCards` the player chose to
@@ -34,8 +43,11 @@ interface BattleReportProps {
      */
     onContinue: (
         chosenCards: IOwnedProgram[],
-        chosenRelic?: string,
         storedInstanceIds?: ReadonlyArray<string>,
+        /** TICKET 163d: which body the elite's patch was fitted to, when the bundle offered one. */
+        chosenPatch?: { readonly memberId: string; readonly patchId: string },
+        /** TICKET 166d: which macro the player chose, when the bundle offered macros. */
+        chosenMacro?: { readonly macroId: string; readonly replaceSlot?: number },
     ) => void;
 }
 
@@ -85,7 +97,13 @@ const CountUp: React.FC<{ value: number; delayMs?: number; durationMs?: number }
 // pool), both of which `BattleArena` resolves before it rolls, so the report is handed a finished
 // bundle and never has to ask who survived. Left in the interface for ticket 19's run-end screen,
 // which is the next thing likely to want the surviving party. Destructured out and voided.
-const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue }) => {
+const BattleReport: React.FC<BattleReportProps> = ({
+    bundle,
+    winners,
+    macroRack = [null, null, null],
+    heldPatches = {},
+    onContinue,
+}) => {
     void winners;
     const [selections, setSelections] = useState<Record<number, IOwnedProgram | null>>({});
     /**
@@ -113,7 +131,10 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
      * cards even if you don't plan to use them."*
      */
     const [stored, setStored] = useState<Record<number, boolean>>({});
-    const [selectedRelic, setSelectedRelic] = useState<string | null>(null);
+    // TICKET 163d: which body the patch goes on, when the elite offered one. Null is a real answer.
+    const [selectedPatch, setSelectedPatch] = useState<string | null>(null);
+    // TICKET 166d: which macro the player chose, when the gauntlet offered macros.
+    const [selectedMacro, setSelectedMacro] = useState<{ macroId: string; replaceSlot?: number } | null>(null);
 
     // --- Gym-clear mini-draft (3 sequential pick-1-of-3 rounds) ---
     //
@@ -144,12 +165,18 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
     const isResolved = (index: number): boolean => !!selections[index] || skipped[index] === true;
     const allCardsResolved = bundle.cardChoices.every((_, index) => isResolved(index));
 
-    const needsRelic = !!bundle.relicChoices && bundle.relicChoices.length > 0;
-    // The relic is still mandatory, and deliberately: there is at most one per run (the last
-    // gauntlet fight), it is a party-wide passive rather than a card in the deck, and it cannot
-    // dilute anything. Nothing in the playtest complained about it.
-    const relicSelected = !needsRelic || selectedRelic !== null;
-    const canContinue = allCardsResolved && relicSelected;
+    /*
+     * TICKET 163d — the elite's patch, and it does NOT gate CONTINUE.
+     *
+     * It used to sit beside a mandatory relic pick. Ticket 16 removed relics and ticket 17 made
+     * the Driver an elite's VISIBLE STAKES rather than a post-fight choice, so this is the only
+     * pick left on this screen that is not a card — and it stays optional, because a patch is a
+     * commitment with no undo. A player who has just met a firmware they do not understand is
+     * allowed to walk past it.
+     */
+    const patchOffers = bundle.patchChoices ?? [];
+    // Ticket 16: the "choose one sector relic" group that used to gate this is gone with the relics.
+    const canContinue = allCardsResolved;
 
     const handleSelect = (choiceIndex: number, card: IOwnedProgram) => {
         // Taking a card un-declines the pick, so a mis-click on SKIP is one click to undo.
@@ -180,7 +207,12 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
             .filter(([, on]) => on)
             .map(([index]) => selections[Number(index)]?.instanceId)
             .filter((id): id is string => id !== undefined);
-        onContinue(chosen, selectedRelic || undefined, storedIds);
+        onContinue(
+            chosen,
+            storedIds,
+            (bundle.patchChoices ?? []).find((offer) => offer.memberId === selectedPatch),
+            selectedMacro ?? undefined,
+        );
     };
 
     /** Advance the draft; card=null means the round was skipped. */
@@ -378,6 +410,34 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                                     ))}
                                 </motion.div>
                             )}
+                            {/*
+                              * TICKET 17: the Driver an elite or an ambush pays. It was the stake on the
+                              * map node before the player committed, so this is a receipt rather than a
+                              * reveal — name and rule text, in the Driver chip's violet, installed on
+                              * CONTINUE alongside the cards. Not a choice: the node promised ONE Driver.
+                              */}
+                            {bundle.driver && (
+                                <motion.div
+                                    initial={prefersReducedMotion() ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    transition={{ delay: BLUEPRINT_POP_DELAY_S, duration: 0.35, ease: 'easeOut' }}
+                                    className="driver-won"
+                                    data-testid="reward-driver"
+                                    style={{
+                                        marginTop: '12px',
+                                        padding: '12px',
+                                        background: 'rgba(124, 58, 237, 0.12)',
+                                        border: '1px solid #a78bfa',
+                                        borderRadius: '6px'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.7rem', color: '#c4b5fd', fontWeight: '900', textTransform: 'uppercase', marginBottom: '5px' }}>
+                                        Driver Installed
+                                    </div>
+                                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>{describeDriver(bundle.driver).name}</div>
+                                    <div style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: '1.4', marginTop: '4px' }}>{describeDriver(bundle.driver).description}</div>
+                                </motion.div>
+                            )}
 
                         </div>
 
@@ -393,38 +453,50 @@ const BattleReport: React.FC<BattleReportProps> = ({ bundle, winners, onContinue
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            {/* Relic Choices */}
-                            {needsRelic && (
-                                <div
-                                    className={selectedRelic === null ? 'choice-group-pending' : undefined}
-                                    style={{ padding: '12px 14px', background: 'rgba(255,165,0,0.1)', borderRadius: '8px', border: '1px solid rgba(255,165,0,0.5)' }}
-                                >
-                                    <div style={{ fontSize: '0.75rem', color: '#ffa500', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>CHOOSE ONE SECTOR RELIC</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
-                                        {bundle.relicChoices!.map((relicId) => {
-                                            const relic = GetRelic(relicId);
-                                            const isSelected = selectedRelic === relicId;
+                            {/* TICKET 163d — the elite's patch, one row per body that can take one.
+                                The CHOICE is which member to improve, not which rider: each body is
+                                already offered the one that changes the most about its own firmware
+                                (`elitePatchOffer`), because a random patch is a no-op on most. */}
+                            {patchOffers.length > 0 && (
+                                <div style={{ padding: '12px 14px', background: 'rgba(255,212,121,0.08)', borderRadius: '8px', border: '1px solid rgba(255,212,121,0.4)' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#ffd479', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>FIRMWARE PATCH — FIT IT TO ONE BODY</div>
+                                    <div style={{ fontSize: '0.7rem', color: '#9aa3ad', marginBottom: '10px' }}>One slot each, and it cannot be swapped later. Walking past it is allowed.</div>
+                                    <PatchHolders winners={winners} heldPatches={heldPatches} />
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+                                        {patchOffers.map((offer) => {
+                                            const patch = getPatch(offer.patchId);
+                                            const body = winners.find((w) => w.id === offer.memberId);
+                                            const isSelected = selectedPatch === offer.memberId;
                                             return (
                                                 <div
-                                                    key={relicId}
-                                                    onClick={() => { playSfx('rewardClaim'); setSelectedRelic(relicId); }}
+                                                    key={offer.memberId}
+                                                    onClick={() => { playSfx('rewardClaim'); setSelectedPatch(isSelected ? null : offer.memberId); }}
                                                     style={{
-                                                        padding: '15px',
-                                                        background: isSelected ? 'rgba(255,165,0,0.3)' : 'rgba(0,0,0,0.4)',
-                                                        border: `2px solid ${isSelected ? '#ffa500' : 'rgba(255,255,255,0.1)'}`,
+                                                        padding: '12px',
+                                                        background: isSelected ? 'rgba(255,212,121,0.25)' : 'rgba(0,0,0,0.4)',
+                                                        border: `2px solid ${isSelected ? '#ffd479' : 'rgba(255,255,255,0.1)'}`,
                                                         borderRadius: '8px',
                                                         cursor: 'pointer',
-                                                        textAlign: 'center'
                                                     }}
                                                 >
-                                                    <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>🏆</div>
-                                                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px' }}>{relic.name}</div>
-                                                    <div style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: '1.4' }}>{relic.description}</div>
+                                                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }}>{body?.name ?? offer.memberId}</div>
+                                                    <div style={{ color: '#ffd479', fontSize: '0.8rem', margin: '4px 0' }}>{patch?.name}</div>
+                                                    <div style={{ color: '#aaa', fontSize: '0.72rem', lineHeight: '1.4' }}>{patch?.text}</div>
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 </div>
+                            )}
+
+                            {/* TICKET 166d — the macro choice, when the fight offers one (gauntlet fights 1 and 2). */}
+                            {(bundle.macroChoices ?? []).length > 0 && (
+                                <MacroRewardPick
+                                    choices={bundle.macroChoices ?? []}
+                                    rack={macroRack}
+                                    value={selectedMacro}
+                                    onChange={setSelectedMacro}
+                                />
                             )}
 
                             {/* Gym-clear draft summary (draft already resolved above) */}

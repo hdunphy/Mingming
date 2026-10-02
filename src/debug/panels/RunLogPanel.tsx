@@ -25,6 +25,8 @@ import {
     type IRunEvent,
     type IRunLog,
 } from '../../engine/run/runLog';
+import { scrapCurve } from '../../engine/run/scrapCurve';
+import { formatScrapCurve } from '../balance/scrapCurveTable';
 
 const RAW_ROW_LIMIT = 60;
 
@@ -71,10 +73,35 @@ function Curve({ points, color, label, max }: {
 }
 
 /** One raw row, rendered as its kind plus whatever else it carries. */
+/**
+ * One value, small enough to sit on a line — ticket 156.
+ *
+ * The raw view is deliberately kind-agnostic, which is what let 156's rows land here without this
+ * panel knowing about them. What it could not do is print them: `String(value)` on an object gives
+ * `[object Object]`, and 156's rows carry arrays of them (`FIGHT_DECK.party`,
+ * `FIGHT_TURN.cardsPlayed`) plus, in `FIGHT_LOG`, four hundred strings that would drown the window.
+ *
+ * So: objects flatten to `a:b:c` in key order, and any list past `LIST_PREVIEW` prints its head and
+ * says how many it kept back. Still kind-agnostic — a row added tomorrow gets the same treatment.
+ */
+const LIST_PREVIEW = 6;
+
+function short(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (Array.isArray(value)) {
+        const head = value.slice(0, LIST_PREVIEW).map(short).join('/');
+        return value.length > LIST_PREVIEW ? `${head}/+${value.length - LIST_PREVIEW}` : head;
+    }
+    if (typeof value === 'object') {
+        return Object.values(value as Record<string, unknown>).map(short).join(':');
+    }
+    return String(value);
+}
+
 function rawLine(event: IRunEvent): string {
     const { seq, fightIndex, deckSize, scrap, kind, ...rest } = event as IRunEvent & Record<string, unknown>;
     const detail = Object.entries(rest)
-        .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join('/') : String(value)}`)
+        .map(([key, value]) => `${key}=${short(value)}`)
         .join(' ');
     return `#${seq} f${fightIndex} d${deckSize} $${scrap}  ${kind}${detail ? '  ' + detail : ''}`;
 }
@@ -98,6 +125,7 @@ export default function RunLogPanel() {
     const curves = runCurves(log);
     const sinks = scrapByReason(log);
     const flow = cardFlow(log);
+    const biomeScrap = scrapCurve(log);
     const ended = log.events.find((event) => event.kind === 'RUN_ENDED');
     const rows = log.events.slice(-RAW_ROW_LIMIT);
 
@@ -123,7 +151,8 @@ export default function RunLogPanel() {
                         // transcript, because it answers the questions confidently and wrongly.
                         <strong style={{ color: '#ffcc66' }}> · {log.droppedEvents} DROPPED (capped)</strong>
                     )}
-                    {ended?.kind === 'RUN_ENDED' && ` · ${ended.outcome} at biome ${ended.biomeReached}`}
+                    {/* The run log counts biomes from 0; the run summary and the telemetry say "biome 1 of 3". Printed the player's way. */}
+                    {ended?.kind === 'RUN_ENDED' && ` · ${ended.outcome} at biome ${ended.biomeReached + 1}`}
                 </span>
             </div>
 
@@ -158,6 +187,16 @@ export default function RunLogPanel() {
                         </span>
                     </div>
                 ))}
+            </div>
+
+            <div style={boxStyle}>
+                {/* Ticket 174a: the same table `npm run balance:scrap-curve` prints, so a playtest is
+                    readable the moment the run ends. Low point and scrap at end are the two numbers
+                    174 was opened for: the early squeeze and the late surplus. */}
+                <div style={labelStyle}>Scrap by biome</div>
+                {biomeScrap.length === 0 ? <div style={{ opacity: 0.6 }}>no fights yet</div> : (
+                    <pre style={{ ...monoStyle, margin: 0, whiteSpace: 'pre-wrap' }}>{formatScrapCurve(biomeScrap)}</pre>
+                )}
             </div>
 
             <div style={boxStyle}>

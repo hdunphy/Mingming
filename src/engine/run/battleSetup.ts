@@ -16,6 +16,8 @@
  */
 
 import type { IBattleSetup } from '../data/battleFactories';
+import { withEffectiveOS } from './effectiveOS';
+import { tempDriverIds } from './tempDrivers';
 import type { IRanchMember, IRanchState, IRunState } from '../runTypes';
 import type { IMingmingState } from '../types';
 
@@ -28,6 +30,9 @@ import type { IMingmingState } from '../types';
  * the per-individual number and nothing writes it. It is zero here because the type still demands
  * it, not because zero means anything; when `IMingmingState` loses the field, this line goes with
  * it.
+ *
+ * TICKET 168f: this takes the member as given. To build the body a RUN fields, pass
+ * `withEffectiveOS(run, member)` (`buildBattleSetup` does), so a reflashed body is on its new OS.
  */
 export function toMingmingState(member: IRanchMember): IMingmingState {
     return {
@@ -82,13 +87,17 @@ export function buildBattleSetup(
     const party: IMingmingState[] = [];
     for (const id of run.partyIds) {
         const member = byId.get(id);
-        if (member) party.push(toMingmingState(member));
+        if (member) party.push(toMingmingState(withEffectiveOS(run, member)));
     }
 
     return {
         party,
         deck: run.deck.map((card) => card.dataId),
-        drivers: [...run.drivers],
+        // TICKET 168b: the run's Drivers, then any temporary ones the next fight runs under.
+        drivers: [...run.drivers, ...tempDriverIds(run)],
+        // TICKET 163d: copied for the reason the comment below gives about `persistedHp` — the run
+        // is deeply readonly and the factory is free to read this however it likes.
+        patches: { ...(run.patches ?? {}) },
         // Copied rather than aliased: `IRunState` is deeply readonly and `IBattleSetup` is handed to
         // a factory that is free to read it however it likes. A zero in here is a downed member —
         // see the header, and `IBattleSetup.persistedHp`.

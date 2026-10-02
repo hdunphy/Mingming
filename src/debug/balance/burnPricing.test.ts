@@ -169,11 +169,19 @@ describe('the 1.5 consumed-stack assumption is BURN-ONLY', () => {
         // Ticket 66 moved `umbral_feast` 3.0 -> 14.9: it consumes POISON, and the census set that
         // assumption from 3 to 8 (measured 11.47, priced conservatively). This pin asserted the
         // OLD constant and is updated, not deleted - it is doing its job by failing here.
-        // `ash_communion` consumes BURN at 1.5 and is unmoved, which is the point of the block.
+        // `ash_communion` consumes BURN at 1.5, which is the point of the block.
+        //
+        // TICKET 149c-8 moved BOTH, and this pin failed again, correctly. Section 4.8 rules that
+        // the x1.25 removal premium does not apply to a pile the caster built itself: these cards
+        // CONSUME their own debuff as fuel rather than neutralising an opponent's card, so there
+        // is no second card's worth of swing to pay for. 14.9 -> 12.4 and 4.6 -> 4.3.
+        //
+        // The Burn-vs-Poison contrast this block exists to assert is untouched - both cards lost
+        // the same 25% on the same term, and the 8-against-1.5 gap between them is intact.
         const ash = GetProgramData('ash_communion');
         const umbral = GetProgramData('umbral_feast');
         // Ticket 93: ash_communion consumes Burn, so permanence re-prices what it eats.
-        if (ash) expect(calculatePowerscale(ash).score).toBe(4.6);
-        if (umbral) expect(calculatePowerscale(umbral).score).toBe(14.9);
+        if (ash) expect(calculatePowerscale(ash).score).toBe(4.3);
+        if (umbral) expect(calculatePowerscale(umbral).score).toBe(12.4);
     });
 });

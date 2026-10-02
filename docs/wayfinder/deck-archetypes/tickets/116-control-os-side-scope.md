@@ -1,5 +1,7 @@
 # Ticket 116 — side-wide firmware for kraken and huldra
 
+> **Status: CLOSED 2026-09-08** — done — kraken side-scope shipped 2026-08-26; huldra half explicitly not taken. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** **KRAKEN SHIPPED 2026-08-26** (*"I'm good with the Kraken OS change"*). Huldra NOT taken.
 Opened 2026-08-24 on Henry's request: *"I'd be curious about adding some side debuffs to kraken and
 huldra before we look to change the deck. so do some OS testing then try swapping some cards"*.

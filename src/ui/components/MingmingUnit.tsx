@@ -1,124 +1,21 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import type { IBattleEntity, ProgramData, StatusType } from '../../engine/types';
+import type { IBattleEntity, ProgramData } from '../../engine/types';
 import type { IBattleState } from '../../engine/types';
-import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { calculateDamage } from '../../engine/combatUtils';
-import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
+import { StatusBadgeRow, HUD_STATUS_BUDGET } from './StatusBadges';
+import { DaemonTags, FirmwareChip, UnitPreview } from './UnitReadouts';
 import { computeDamagePreview, type DamagePreview } from '../utils/damagePreview';
 import { targetVerdict } from '../utils/targeting';
-import { readableTextOn, badgeTextShadow, getElementAccent } from '../utils/contrastText';
-import { formatMultiplier } from './elementMatchups';
+import { readableTextOn, badgeTextShadow } from '../utils/contrastText';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
+import MonsterArtPlaceholder from './MonsterArtPlaceholder';
+import { MONSTER_ART_ENABLED } from './monsterArtPolicy';
 
-/**
- * Status badge with a hover tooltip explaining the mechanic.
- * Rendered through a portal (same pattern as the OS/intent tooltips)
- * so parent overflow never clips it.
- */
-const StatusBadge: React.FC<{ type: StatusType; stacks: number }> = ({ type, stacks }) => {
-    const [showTooltip, setShowTooltip] = React.useState(false);
-    // Ticket 55: measured after layout rather than read during render — see `useAnchoredRect`.
-    const { ref: badgeRef, rect } = useAnchoredRect<HTMLDivElement>(showTooltip);
-    const info = statusGlossary[type];
-    const color = STATUS_COLORS[type] ?? '#ccc';
-    // BarkShield stacks are now a %maxHp float (docs/power_curve_spec.md rev 3) that
-    // decays by a multiplicative 20%/turn, so it won't land on a whole number most
-    // turns — round just for display, the stored value stays precise.
-    const displayStacks = Math.round(stacks * 10) / 10;
-
-    return (
-        <div
-            ref={badgeRef}
-            className="hud-status-badge"
-            style={{ borderColor: color, color }}
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-        >
-            <span className="hud-status-icon">{info?.icon ?? '✦'}</span>
-            {stacks > 1 && <span className="hud-status-stacks">×{displayStacks}</span>}
-
-            {showTooltip && info && rect !== null && createPortal(
-                <div
-                    className="os-tooltip-portal"
-                    style={(() => {
-                        const isRightSide = rect.left > window.innerWidth / 2;
-                        return {
-                            position: 'fixed' as const,
-                            left: isRightSide ? 'auto' : rect.right + 12,
-                            right: isRightSide ? (window.innerWidth - rect.left) + 12 : 'auto',
-                            top: rect.top,
-                            transform: 'translateY(-30%)',
-                            borderColor: color,
-                            boxShadow: `0 0 20px ${color}55`
-                        };
-                    })()}
-                >
-                    <div className="tooltip-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-                        <span className="tooltip-os-name" style={{ color }}>{info.name.toUpperCase()}</span>
-                        <span style={{ color, opacity: 0.85, fontSize: '0.7rem', fontWeight: 700 }}>×{displayStacks}</span>
-                    </div>
-                    <div className="tooltip-divider" />
-                    <div className="tooltip-body">{info.description}</div>
-                    <div className="tooltip-footer">STATUS READOUT</div>
-                </div>,
-                document.body
-            )}
-        </div>
-    );
-};
-
-/**
- * The `+k` chip that stands in for every status past `STATUS_BADGE_BUDGET`. Same portal-tooltip
- * pattern as `StatusBadge` so the list it carries is never clipped by the row that made it
- * necessary.
- */
-const StatusOverflowBadge: React.FC<{ hidden: ReadonlyArray<{ type: StatusType; stacks: number }> }> = ({ hidden }) => {
-    const [showTooltip, setShowTooltip] = React.useState(false);
-    const { ref: badgeRef, rect } = useAnchoredRect<HTMLDivElement>(showTooltip);
-
-    return (
-        <div
-            ref={badgeRef}
-            className="hud-status-badge hud-status-more"
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-        >
-            <span className="hud-status-stacks">+{hidden.length}</span>
-
-            {showTooltip && rect !== null && createPortal(
-                <div
-                    className="os-tooltip-portal"
-                    style={(() => {
-                        const isRightSide = rect.left > window.innerWidth / 2;
-                        return {
-                            position: 'fixed' as const,
-                            left: isRightSide ? 'auto' : rect.right + 12,
-                            right: isRightSide ? (window.innerWidth - rect.left) + 12 : 'auto',
-                            top: rect.top,
-                            transform: 'translateY(-30%)',
-                            borderColor: 'rgba(148, 163, 184, 0.55)',
-                        };
-                    })()}
-                >
-                    <div className="tooltip-title">ALSO ACTIVE</div>
-                    {hidden.map(se => (
-                        <div key={se.type} style={{ color: STATUS_COLORS[se.type] ?? '#ccc' }}>
-                            {statusGlossary[se.type]?.icon ?? '\u2726'} {se.type}
-                            {se.stacks > 1 ? ` \u00d7${Math.round(se.stacks * 10) / 10}` : ''}
-                        </div>
-                    ))}
-                </div>,
-                document.body
-            )}
-        </div>
-    );
-};
 
 /** Maps element names to neon accent colors */
 const ELEMENT_COLORS: Record<string, string> = {
@@ -185,59 +82,7 @@ interface MingmingUnitProps {
  */
 export const ENERGY_PIP_BUDGET = 6;
 
-/**
- * How many status badges the row shows before the rest collapse into one `+k` chip.
- *
- * Henry, 2026-09-07, with a screenshot of a six-status enemy: *"statuses can go so far and cover
- * the picture."* The badges lived in `.hud-top-row` with `flex-shrink: 0` and no ceiling inside a
- * `.hud-card` that is `overflow: visible`, so the surplus painted over the art. Offered a 2-badge
- * budget or a taller card, Henry took the taller card — so the badges have their own row now and
- * this number is SIX rather than the two that fitted beside the name.
- *
- * Six is not a compromise: sampled every step across 360 games (10 firmwares round robin), a live
- * entity carries 0–6 distinct statuses, **98.8% of the time four or fewer, and six is the maximum
- * ever seen** — the exact board in the screenshot. So this is the ceiling for a pathological case
- * rather than a routine one. The pixel arithmetic that turns 195px of row into six badges lives on
- * `.hud-status-badges` in index.css, and `scratch/fitcheck.mjs` re-measures it.
- *
- * The overflow is still a CHIP, not a clip. A hidden status decides whether a card is safe to play,
- * so the `+k` names every one of them and its stacks on hover — the same bargain
- * `ENERGY_PIP_BUDGET` makes when it swaps seven pips for a bar.
- */
-export const STATUS_BADGE_BUDGET = 6;
 
-/**
- * The badges the row shows, deepest pile first, and the ones it hides.
- *
- * Sorted by STACKS rather than by application order, which matters only past the budget — but that
- * is exactly the case where it matters: `Dazed ×7`, the number the player is deciding a `slander`
- * on, must not be the one that fell off the end. Ties keep their original order (`Array.sort` is
- * stable), so a board of 1-stack statuses does not shuffle itself every turn.
- */
-/* Not exported: `react-refresh/only-export-components` allows a constant beside a component but
-   not a function, and one helper does not earn its own module the way `combatLogModel` did. */
-function visibleStatuses<T extends { stacks: number }>(all: ReadonlyArray<T>): { shown: T[]; hidden: T[] } {
-    const ranked = [...all].sort((a, b) => b.stacks - a.stacks);
-    // The chip COSTS a slot, so the ceiling is not the same number in both cases: six badges are
-    // 190px of the 195px row and fit exactly, but six badges plus an 18px chip are 211px and do
-    // not. Past the budget the row therefore shows one fewer, which is what keeps `+k` from being
-    // the thing that clips the row it exists to prevent clipping.
-    if (ranked.length <= STATUS_BADGE_BUDGET) return { shown: ranked, hidden: [] };
-    return { shown: ranked.slice(0, STATUS_BADGE_BUDGET - 1), hidden: ranked.slice(STATUS_BADGE_BUDGET - 1) };
-}
-
-/** Ticket 90: human labels for the post-damage scalings the preview now shows. */
-const SCALING_LABEL: Record<string, string> = {
-    CARDS_PLAYED: 'CARDS PLAYED',
-    CARDS_DRAWN: 'CARDS DRAWN',
-    CARDS_DRAWN_TRIGGERED: 'TRIGGERED DRAWS',
-    CARDS_DISCARDED: 'CARDS DISCARDED',
-    ENERGY_SPENT: 'ENERGY SPENT',
-    ENERGY_SPENT_SQUARED: 'ENERGY SPENT²',
-    ELEMENT_PLAYED: 'ELEMENT PLAYS',
-    STATUS_COUNT: 'TARGET STATUSES',
-    BURN_TIMES_ENERGY: 'BURN × ENERGY',
-};
 
 const MingmingUnit: React.FC<MingmingUnitProps> = ({
     entity,
@@ -256,9 +101,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
 }) => {
     const controls = useAnimation();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
-    const [showOSTooltip, setShowOSTooltip] = React.useState(false);
     const [showIntentTooltip, setShowIntentTooltip] = React.useState(false);
-    const osIconRef = React.useRef<HTMLDivElement>(null);
     const intentIconRef = React.useRef<HTMLDivElement>(null);
     const prevHpRef = React.useRef(entity.currentHp);
     // Pending timeouts, cleared on unmount so we never setState on an unmounted component.
@@ -432,7 +275,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             )}
             {/* ── Sidebar: Art + Level ── */}
             <div className="hud-sidebar" style={{ background: `linear-gradient(180deg, ${accent}55 0%, ${accent}22 100%)` }}>
-                {entity.artReference ? (
+                {MONSTER_ART_ENABLED && entity.artReference ? (
                     <motion.img
                         src={new URL(`../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
                         alt={entity.name}
@@ -443,9 +286,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         transition={{ duration: 0.4 }}
                     />
                 ) : (
-                    <div className="hud-art-placeholder" style={{ color: accent }}>
-                        {entity.primaryElement[0]}
-                    </div>
+                    <MonsterArtPlaceholder className="hud-art-wip" style={{ color: accent }} />
                 )}
             </div>
 
@@ -532,85 +373,16 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                         </div>
                     )}
 
-                    {entity.activeOS && (() => {
-                        const behavior = getOSBehavior(entity.activeOS);
-                        return (
-                            <div
-                                ref={osIconRef}
-                                className="hud-os-icon-container"
-                                onMouseEnter={() => setShowOSTooltip(true)}
-                                onMouseLeave={() => setShowOSTooltip(false)}
-                            >
-                                <span className="hud-os-icon">💾</span>
-                                <span className="hud-os-version">{entity.activeOS.includes('_v2') ? 'V2' : 'V1'}</span>
-
-                                {showOSTooltip && createPortal(
-                                    <div
-                                        className="os-tooltip-portal"
-                                        style={osIconRef.current ? (() => {
-                                            const rect = osIconRef.current.getBoundingClientRect();
-                                            const isRightSide = rect.left > window.innerWidth / 2;
-                                            return {
-                                                position: 'fixed',
-                                                left: isRightSide ? 'auto' : rect.right + 15,
-                                                right: isRightSide ? (window.innerWidth - rect.left) + 15 : 'auto',
-                                                top: rect.top,
-                                                transform: 'translateY(-30%)'
-                                            };
-                                        })() : {}}
-                                    >
-                                        <div className="tooltip-header">
-                                            <span className="tooltip-os-name">{behavior?.name}</span>
-                                            <span className="tooltip-os-version">{entity.activeOS.includes('_v2') ? 'v2.0' : 'v1.0'}</span>
-                                        </div>
-                                        <div className="tooltip-divider" />
-                                        <div className="tooltip-body">
-                                            {behavior?.description}
-                                        </div>
-                                        <div className="tooltip-footer">TECHNICAL READOUT // SECTOR 0</div>
-                                    </div>,
-                                    document.body
-                                )}
-                            </div>
-                        );
-                    })()}
-
+                    {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
+                    <FirmwareChip entity={entity} battleState={battleState} />
                 </div>
 
-                {/* Daemons Row */}
-                {entity.daemons && entity.daemons.length > 0 && (
-                    <div className="hud-daemons-row">
-                        {entity.daemons.map((daemon, idx) => {
-                            if (!daemon.id) {
-                                console.warn(`[MingmingUnit] Daemon at index ${idx} on ${entity.name} has an empty ID!`);
-                            }
-                            const data = GetProgramData(daemon.dataId);
-                            return (
-                                <div
-                                    key={daemon.id || `daemon-${idx}`}
-                                    className="hud-daemon-tag"
-                                    title={data.description}
-                                >
-                                    <span className="hud-daemon-icon">⚙️</span>
-                                    <span className="hud-daemon-name">{data.name}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
+                <DaemonTags entity={entity} battleState={battleState} />
 
                 {/* Status Row (ticket 145): its own line, so six badges fit and the art stays clear. */}
-                {entity.statusEffects.length > 0 && (() => {
-                    const { shown, hidden } = visibleStatuses(entity.statusEffects);
-                    return (
-                        <div className="hud-status-badges">
-                            {shown.map((se, i) => (
-                                <StatusBadge key={se.id || `${se.type}-${i}`} type={se.type} stacks={se.stacks} />
-                            ))}
-                            {hidden.length > 0 && <StatusOverflowBadge hidden={hidden} />}
-                        </div>
-                    );
-                })()}
+                {/* Ticket 145b: one implementation, shared with the stage plaque — see StatusBadges. */}
+                <StatusBadgeRow statuses={entity.statusEffects} budget={HUD_STATUS_BUDGET} chipCostsSlot />
 
                 {/* HP Row */}
                 <div className="hud-bar-row">
@@ -658,69 +430,8 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                     own condition, because a status-only card has no damage to explain - it
                     previously showed nothing at all. Read from a diff of the simulated play,
                     so it covers every status card rather than hexbloom specifically. */}
-                {preview && preview.statusChanges.length > 0 && (
-                    <div className="hud-preview-tags">
-                        {preview.statusChanges.map(({ status, delta }) => (
-                            <span
-                                key={status}
-                                className={`hud-preview-chip ${delta > 0 ? 'hud-preview-chip-super' : 'hud-preview-chip-weak'}`}
-                            >
-                                {delta > 0 ? '+' : ''}{delta} {status.toUpperCase()}
-                            </span>
-                        ))}
-                    </div>
-                )}
-                {/* Elemental breakdown of the hover preview: STAB / type effectiveness / Sharp scaling */}
-                {preview && previewDamage > 0 && (preview.stab || preview.effectiveness !== 1 || preview.sharpBonus > 0 || preview.scalingMultiplier !== 1 || preview.hitCount > 1 || preview.lethal) && (
-                    <div className="hud-preview-tags">
-                        {preview.stab && (
-                            <span
-                                className="hud-preview-chip"
-                                style={{ color: getElementAccent(preview.element), borderColor: getElementAccent(preview.element) }}
-                            >
-                                ×1.5 STAB
-                            </span>
-                        )}
-                        {/* TICKET 104: the multi-hit chip. The number above is the TOTAL the
-                            target loses - `blood_rite` reads 8, not "4" and then a surprise
-                            second 4. This says how that total arrives, which is the half of
-                            the information Henry was missing when he wrote "it did 5 damage +
-                            another 5 dmg". */}
-                        {preview.hitCount > 1 && (
-                            <span className="hud-preview-chip">
-                                ×{preview.hitCount} HITS
-                            </span>
-                        )}
-                        {preview.lethal && (
-                            <span className="hud-preview-chip hud-preview-chip-lethal">
-                                LETHAL
-                            </span>
-                        )}
-                        {preview.sharpBonus > 0 && (
-                            <span className="hud-preview-chip">
-                                +{preview.sharpBonus} SHARP
-                            </span>
-                        )}
-                        {/* Ticket 90: the turn-history multiplier, named. A `stampede` reading
-                            "x4 CARDS PLAYED" explains its own number; before this the preview
-                            silently showed the card's printed power. */}
-                        {preview.scalingMultiplier !== 1 && (
-                            <span className="hud-preview-chip">
-                                ×{formatMultiplier(preview.scalingMultiplier)} {SCALING_LABEL[preview.scalingKind ?? ''] ?? 'SCALING'}
-                            </span>
-                        )}
-                        {preview.effectiveness > 1 && (
-                            <span className="hud-preview-chip hud-preview-chip-super">
-                                SUPER EFFECTIVE ×{formatMultiplier(preview.effectiveness)}
-                            </span>
-                        )}
-                        {preview.effectiveness < 1 && (
-                            <span className="hud-preview-chip hud-preview-chip-weak">
-                                NOT VERY EFFECTIVE ×{formatMultiplier(preview.effectiveness)}
-                            </span>
-                        )}
-                    </div>
-                )}
+                {/* Ticket 145b: shared with the stage plaque — see UnitReadouts. */}
+                <UnitPreview preview={preview} />
 
                 {/* Energy Row — pips up to ENERGY_PIP_BUDGET, the compact bar past it */}
                 <div className="hud-bar-row">

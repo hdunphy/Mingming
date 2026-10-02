@@ -36,8 +36,55 @@ body {
   overflow: hidden;
 }
 
+/*
+ * TICKET 38 — the standard visually-hidden utility. Present in the accessibility tree and in the
+ * document's heading outline, painted nowhere. Used for the battle screen's `h1`, which a sighted
+ * player does not need (the top strip already says where they are) and a screen-reader user does.
+ *
+ * The clip-rect idiom rather than `display:none` or `visibility:hidden`, because both of those
+ * remove the element from the accessibility tree as well — which would leave the heading as absent
+ * as it was before.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * TICKET 38 — the landmark every screen lands in. Each of `App`'s four branches wraps its screen
+ * in `<main className="app-main">`, so a screen reader has one landmark to jump to whichever
+ * screen is up; before this only the ranch shell had one, and it carried these rules inline.
+ * Purely structural: it fills the frame exactly as that inline style did, so nothing moved.
+ */
+.app-main {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Battle Layout */
 .battle-screen {
+  /* ── TICKET 155c — NO TEXT SELECTION IN A FIGHT.
+
+     Henry: *"any time I drag a card all the text gets highlighted"*. The old
+     `.program-card` set `user-select: none`; the `.rs-card` chassis the hand
+     adopted in 145d never did, and a drag that starts on a card name is a text
+     selection as far as the browser is concerned.
+
+     On the SCREEN rather than on the card, because the drag crosses the whole
+     board — it starts on a card and ends on a sprite, and selecting the plaque
+     text on the way is the same bug. Nothing in a fight is text to copy. */
+  user-select: none;
+  -webkit-user-select: none;
   width: 100%;
   height: 100%;
   display: flex;
@@ -61,8 +108,21 @@ body {
 }
 
 .console-area {
-  /* 265: fits the enlarged hand row (195px) + footer without squeezing. */
-  flex: 0 0 265px;
+  /* ── TICKET 155b — THE BAND IS A NUMBER, NOT AN OUTCOME ──
+
+     This was `flex: 0 0 265px` with `min-height: auto`, which is not a fixed
+     height: a flex item's automatic minimum is its content, so the band grew to
+     whatever the hand row plus a two-row footer needed — about 390px. Meanwhile
+     `stageGeometry` computed the stage against `CONSOLE_H` (210). The stage was
+     therefore 180px shorter than the geometry believed, and the third ally and
+     third enemy were drawn below the fold at every viewport.
+
+     `--console-h` is set by `BattleArena` from `CONSOLE_H x scale` — the SAME
+     number `place()` subtracts — so the two cannot disagree again. `min-height:
+     0` is what makes the flex basis binding rather than advisory, and it is the
+     line that actually fixes Henry's *"the hand takes up too much space"*. */
+  flex: 0 0 var(--console-h, 210px);
+  min-height: 0;
   background: #0a0a0f;
   border-top: 2px solid var(--glass-border);
   position: relative;
@@ -162,15 +222,11 @@ body {
   filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
 }
 
-.hud-art-placeholder {
+.hud-art-wip {
   width: 56px;
   height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  font-weight: 900;
-  opacity: 0.6;
+  font-size: 0.95rem;
+  opacity: 0.75;
 }
 
 .hud-level-overlay {
@@ -264,6 +320,54 @@ body {
   font-weight: 900;
   color: #00d2ff;
   letter-spacing: 0.5px;
+}
+
+/* TICKET 163c — THE PATCH CHIP, one letter beside the firmware version.
+   A patch is a rider ON the firmware, so it sits on the firmware chip rather than taking a badge
+   row of its own — the status row is already the thing ticket 145 had to defend from overflow, and
+   a seventh mark on a body would be spending that budget on something the player fits once a run.
+   Amber against the chip's cyan: a different currency, not a louder one. */
+.hud-os-patch {
+  font-size: 0.5rem;
+  font-weight: 900;
+  color: #ffd479;
+  border: 1px solid #ffd47955;
+  border-radius: 2px;
+  padding: 0 2px;
+  margin-left: 2px;
+  line-height: 1.2;
+}
+
+/* ── TICKET 184c — THE COUNTER PIP (`CounterPip`), beside a firmware chip, daemon tag or Driver
+   chip. Same footprint as the patch letter above; the colour says the state, the text the count. */
+.counter-pip {
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-left: 3px;
+  line-height: 1.25;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.counter-pip-counting { color: #c9d1dc; border-color: #c9d1dc66; }
+.counter-pip-ready { color: #1a1300; background: #ffcc00; border-color: #ffcc00; }
+.counter-pip-spent { color: #8a8f98; border-color: #8a8f9855; opacity: 0.75; }
+.counter-pip-armed { color: #7fe0a3; border-color: #7fe0a388; }
+.counter-pip-live { color: #ff9a4d; border-color: #ff9a4d88; }
+/* The tooltip line under the firmware's own sentence: what the counter stands at right now. */
+.tooltip-os-counter { display: block; margin-top: 6px; color: #ffcc00; }
+
+/* The rider's rule, under the firmware's own sentence in the plaque tooltip. Its own line and its
+   own colour, because it is a SECOND rule rather than a longer first one. */
+.tooltip-os-patch {
+  display: block;
+  margin-top: 6px;
+  color: #ffd479;
+  font-size: 0.72rem;
 }
 
 /* ── Status Badges ─────────────────────────────────────────────────────
@@ -604,8 +708,19 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 15px 0;
+  /* ── TICKET 155b — THE BAND'S OWN ARITHMETIC.
+
+     210 = 8 (top) + 176 (the card) + 14 (the one-line underline) + 6 (bottom),
+     with 6 to spare. It was `15px 0` around a 176 card and a 14px line, which
+     comes to 220 and pushed the cards down through the hotkey strip — visible
+     in the 2026-09-19 capture as text running across the card feet.
+
+     `flex-end` rather than `space-between`: the fan sits ON the underline and
+     overflows UPWARD into the stage's empty lower third, which is the 2026-09-10
+     ruling (*"plenty of space under the cards to extend into"*) and is what buys
+     a scaled card its height without the console taking it from the board. */
+  justify-content: flex-end;
+  padding: 8px 0 6px;
   box-sizing: border-box;
 }
 
@@ -613,11 +728,72 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: 195px;
+  /* 155b: the piles live IN this row now (145 §2c: draw | fan | discard), so it
+     spans the console rather than only the fan's own width. */
+  gap: 18px;
+  /*
+   * 208, not the card's 255. Henry, 2026-09-10: *"there is plenty of space under the cards to
+   * extend into"* - so the row grows 13px into the console's own slack and the card's remaining
+   * height overflows UPWARD (`overflow: visible`, cards `align-items: flex-end`) into the empty
+   * lower third of the stage. A hand of cards overlapping the board is what a hand looks like,
+   * and it buys the face its full 255px without shrinking the board to pay for it.
+   */
+  /* AUTO, not 208. The row used to be a fixed height chosen against a 255px
+     card; with the card scaling (155b) a fixed row either clips it or leaves a
+     band of dead space. The console's own height is the budget now. */
+  height: auto;
   width: 100%;
   padding: 0 20px;
   box-sizing: border-box;
   overflow: visible;
+}
+
+/* ── 155b — THE PILES SIT IN THE HAND ROW, which is what 145 §2c drew.
+
+   They were in a `.hand-footer` under it, and that second row was most of the
+   150px the console had taken from the board. `draw | fan | discard` on one
+   line is the spec, and it reads better: the two piles bracket the hand they
+   feed. The caster line and the hotkeys go under the fan as ONE line. */
+.hand-piles {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  padding-bottom: 6px;
+}
+
+.hand-fan {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: visible;
+}
+
+/* The fan is z-indexed per card; without a stacking context of its own the
+   arch painted over the piles beside it — "DISCARD" read as "RD" in Henry's
+   screenshot. `isolation` gives the cards a context to fight inside. */
+.hand-fan { isolation: isolate; }
+
+.hand-underline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  gap: 10px;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  /*
+   * TICKET 38 — 0.45 → 0.52, the same nudge and the same reason as `.pile-label`. This is the
+   * caster banner under the hand ("NO CASTER — PRESS W / E / R"), which axe measured at **4.48
+   * against a required 4.5** on `#0a0a0f`.
+   *
+   * `rgba(255, 255, 255, 0.45)` was the house value for quiet small text and it sat two hundredths
+   * under the line everywhere it was used on the battle's near-black. Both users are fixed; the
+   * only 0.45 left in the sheet is a box-SHADOW, where contrast rules do not apply.
+   */
+  color: rgba(255, 255, 255, 0.52);
+  padding: 2px 0 6px;
+  min-height: 14px;
 }
 
 .hand-row .program-card {
@@ -772,7 +948,8 @@ body {
   bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  width: 190px;
+  /* 240, up from 190: it carries the status glossary lines now. */
+  width: 240px;
   background: rgba(15, 15, 30, 0.95);
   border: 1px solid var(--accent-primary);
   border-radius: 10px;
@@ -810,6 +987,20 @@ body {
   color: #ff9944;
 }
 
+/* A conditional effect in the tooltip: green when it will fire, muted when not. */
+.tooltip-cond { color: rgba(255, 255, 255, 0.55); font-size: 0.62rem; }
+.tooltip-action.is-met .tooltip-cond { color: #4ade80; font-weight: 700; }
+.tooltip-action.is-unmet { color: rgba(255, 255, 255, 0.55); }
+
+/* The statuses and keywords the hand card no longer prints (2026-09-25). */
+.tooltip-glossary {
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.72);
+  padding: 2px 0;
+}
+.tooltip-glossary-name { font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; }
+
 /* Element Badges */
 .element-badge {
   display: inline-flex;
@@ -837,6 +1028,16 @@ body {
 /* Combat Log — hangs from the top CENTER of the stage. The spotlights sit on
    the bottom-left / mid-right diagonal, so the top-middle band is the one spot
    neither big sprite reaches. */
+/* ── THE PANEL CLEARS THE TOP BAR — Henry, 2026-09-22: "I cannot close the combat log."
+
+   This was `top: 0` at `z-index: 50` while `.battle-topbar` is `top: 0` at `z-index: 1500`, so
+   the panel's first 44px — which is exactly its own `.log-header`, the ▲ that closes it — was
+   drawn BEHIND the bar and could not be clicked. The bar's chevron only opened (fixed in
+   `BattleTopBar`), so between the two there was no way out of an open log.
+
+   `44px` is `TOP_BAR_H` from `stageGeometry`, the same constant and the same fix ticket 155's
+   deep dive 6 made for `.stage-biome-name`: the bar OVERLAYS rather than displaces, so anything
+   absolutely positioned at the top of the stage has to add it by hand. */
 .combat-log-container {
   width: 280px;
   background: var(--glass-bg);
@@ -849,7 +1050,7 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  top: 0;
+  top: 44px;
   z-index: 50;
 }
 
@@ -1343,54 +1544,202 @@ body {
   border: 2px solid var(--accent-primary);
 }
 
-/* ── Pile Indicators ── */
-.hand-footer {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  justify-content: space-between;
-  padding: 0 60px;
-  box-sizing: border-box;
-  position: relative;
+/* TICKET 171h: END TURN pressed with Energy still spendable. The button flashes three times and
+   the cards that could spend it glow gold; the second press ends the turn. No popup (Henry). */
+.action-button.end-turn.nudge {
+  border-color: #ffd24a;
+  animation: end-turn-nudge 0.45s ease-in-out 3;
+}
+@keyframes end-turn-nudge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 74, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 210, 74, 0.85); }
+}
+.rs-card.hand-card.nudge-playable {
+  border-color: #ffd24a;
+  box-shadow: 0 0 0 2px #ffd24a, 0 0 18px 4px rgba(255, 210, 74, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-button.end-turn.nudge { animation: none; box-shadow: 0 0 0 3px rgba(255, 210, 74, 0.85); }
 }
 
+/* ── Pile Indicators ── */
+/* Ticket 145d: the console is macro stack · draw · fan · discard, and END TURN sits inside
+   the discard column directly under its pile (§2c) rather than floating between them. */
+/*
+ * `.hand-footer` is gone with ticket 155b — the row it drew is the reason the console was 390px
+ * tall against a geometry that assumed 210. Its contents moved: the piles into `.hand-row`
+ * (145 §2c's `draw | fan | discard`), the caster line and hotkeys into `.hand-underline` as one
+ * line. The rule is deleted rather than emptied so nothing can drift back into it.
+ */
+
+/* ── The piles, ticket 145d §2c ──
+   Each pile is a face-down CARD with its count on its corner, not a labelled box with a number.
+   Two things follow from that. A card back says "these are cards" without a label, and the count
+   sits ON the thing it counts — which is exactly where §1 moved it TO, having cut the deck / hand /
+   discard counts out of the top bar. */
 .pile-indicator {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  min-width: 60px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
-.pile-icon {
-  font-size: 1.2rem;
+.pile-card {
+  position: relative;
+  width: 58px;
+  height: 80px;
+  border-radius: 6px;
+  border: 1px solid #303a48;
+  /* The same diagonal hatch the mock's card backs use, over the shop chassis' gradient — so a
+     face-down card is legibly the BACK of the card the fan shows face-up. */
+  background:
+    repeating-linear-gradient(45deg, transparent 0 5px, rgba(255, 255, 255, 0.04) 5px 10px),
+    linear-gradient(180deg, #171d27 0%, #10151d 100%);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* A pile of one and a pile of thirty must not look identical. The number carries the precision;
+   the stack carries the glance. Two offset shadows rather than N real cards, because the count is
+   already exact three pixels away. */
+.pile-card-stacked::before,
+.pile-card-stacked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  border: 1px solid #303a48;
+  background: linear-gradient(180deg, #171d27 0%, #10151d 100%);
+  z-index: -1;
+}
+
+.pile-card-stacked::before { transform: translate(3px, 3px); }
+.pile-card-stacked::after { transform: translate(6px, 6px); }
+
+/* ── TICKET 155f — THE COUNT ANCHORS TO THE CARD, NOT THE COLUMN.
+
+   `.pile-count` is absolute and its containing block was `.pile-indicator` —
+   the whole column, which holds the label, the card, the "+N/turn" line and
+   (on the discard) the End Turn button. So the discard count rendered on the
+   button and the draw count rendered over "+4/turn". Henry: *"the discard
+   count is on the End Turn button"*.
+
+   `.pile-stack` wraps only the card back, which is the thing the number was
+   always describing. */
+.pile-stack {
+  position: relative;
+  display: inline-flex;
 }
 
 .pile-count {
-  font-size: 1.1rem;
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: #eee;
+  color: #0a0a0f;
+  background: #ffcc00;
+  box-shadow: 0 0 0 2px #0a0a0f;
 }
 
 .pile-label {
-  font-size: 0.6rem;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  /*
+   * TICKET 38 — 0.45 → 0.52. axe measured the rendered ink at `#78787b` on `#0a0a0f` for a ratio of
+   * **4.48 against a required 4.5** — failing by two hundredths, which is the kind of miss no
+   * eyeball finds and no reviewer argues with. These are the DRAW / DISCARD / MACROS labels at
+   * 9.28px, so the small text is exactly where the margin had gone.
+   *
+   * It surfaced only after the macro slot's `opacity` came off in this same row: axe reports one
+   * contrast violation per distinct colour pair, and the louder failure was masking this one.
+   */
+  color: rgba(255, 255, 255, 0.52);
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .draw-pile {
-  border-color: rgba(59, 130, 246, 0.3);
+  gap: 6px;
 }
 
 .discard-pile {
-  border-color: rgba(239, 68, 68, 0.3);
+  gap: 6px;
 }
+
+/* ── 2026-09-25 — THE DISCARD OPENS ONTO ITS CARDS (`DiscardPileViewer`).
+   The toggle is the card back itself, unstyled, so the pile looks exactly as it did; the list sits
+   ABOVE the pile, right-aligned to it, because below it is the End Turn button. */
+.dpv { position: relative; }
+.dpv-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.dpv-toggle:focus-visible { outline: 2px solid #ffcc00; outline-offset: 4px; border-radius: 6px; }
+.dpv-list {
+  text-align: left;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  width: 290px;
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 60;
+  text-align: left;
+}
+/* 184a: each list hangs from the pile's edge that faces the middle of the console. */
+.dpv-list-right { right: 0; }
+.dpv-list-left { left: 0; }
+.dpv-list h2 { margin: 0 0 6px; font-size: 0.72rem; letter-spacing: 0.12em; }
+.dpv-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+/* The row borrows `.rs-row`'s look (element stripe, cost disc, element code) but NOT its fixed
+   27px height: `.rs-row` is a one-line deck row, and this one carries the card's text under its
+   name. Left at 27px the text spilled out of every row and over the next one (Henry's 09-26
+   screenshot). So the height grows with the text and everything hangs from the top.
+   Two classes deep on purpose: `runShell.css` loads AFTER this sheet, so a lone `.dpv-row` loses
+   to `.rs-row` on order at equal specificity - which is exactly how the first version shipped. */
+.dpv-rows .dpv-row {
+  cursor: default;
+  height: auto;
+  min-height: 27px;
+  align-items: flex-start;
+  padding: 5px 7px;
+  text-align: left;
+}
+.dpv-rows .dpv-row .rs-g,
+.dpv-rows .dpv-row .rs-elc { margin-top: 1px; }
+/* FIR and NEU are different widths; a fixed slot lines every card's text up in one column. */
+.dpv-rows .dpv-row .rs-elc { min-width: 24px; }
+.dpv-count { font-weight: 600; opacity: 0.8; }
+.dpv-latest { outline: 1px solid rgba(255, 204, 0, 0.55); }
+.dpv-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  text-align: left;
+}
+.dpv-name { font-weight: 700; }
+.dpv-tag { font-size: 0.6rem; color: #ffcc00; text-transform: uppercase; letter-spacing: 0.08em; }
+.dpv-desc { opacity: 0.8; white-space: normal; overflow-wrap: anywhere; }
+.dpv-empty { margin: 0; font-size: 0.72rem; opacity: 0.75; }
 
 /* === Navigation Bar === */
 .main-nav {
@@ -1946,6 +2295,22 @@ body {
   font-size: 1.2rem;
 }
 
+.hud-float-proc {
+  /* Ticket 16: a Driver's name off the member it fired on. Smaller than a heal, tracked like a
+     label rather than a number, and in the chip's violet so the two read as one event. */
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hud-float-status {
+  /* Ticket 166b: "Sharp ×7" - a label, smaller than a heal, in the status's own colour. */
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
 .hud-float-absorbed {
   font-size: 0.85rem;
   font-weight: 700;
@@ -2498,218 +2863,523 @@ body {
 :root[data-reduced-motion="on"] .card-cost.card-cost-discounted { animation: none; }
 
 /* ═══════════════════════════════════════════════════
-   Battle Stage — Pokémon-style center spotlights
-   (player back-sprite bottom-left, focus enemy top-right)
+   THE TOP BAR — ticket 145c
+
+   44px, and it OWNS the strip. What it replaced was three fixed-position
+   islands from three different tickets — the gauntlet banner (18), the
+   TURN/CARDS PLAYED pills (90) and a floating AudioControls — none of which
+   knew about the others, so they overlapped the party columns at some widths
+   and each other at others.
+
+   Deliberately absent: the deck / hand / discard counts. §1 lists them among
+   what Henry cut from the bar, and 145d puts each count on the pile it counts.
    ═══════════════════════════════════════════════════ */
 
-.battle-stage {
+.battle-topbar {
   position: absolute;
   top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  background: rgba(5, 5, 8, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.69rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7d8ea1;
+  z-index: 1500;
+}
+
+.battle-topbar .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 24, 0.75);
+  color: #dfe4ea;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.battle-topbar .pill b { color: #22d3ee; font-weight: 600; }
+
+/* PLAYED n is a plain number, not pips, and §2a is precise rather than lazy about
+   it: draws mean there is no known maximum, so a pip row would draw a denominator
+   the game does not have. Ticket 22 chose pips for ENERGY for the mirror reason. */
+.battle-topbar-played b { color: #8a837b; }
+.battle-topbar-played.is-live { border-color: rgba(255, 204, 0, 0.45); }
+.battle-topbar-played.is-live b { color: #ffcc00; }
+
+/* The log line takes the slack, so the pills keep their size and the SENTENCE is
+   what shortens on a narrow window. */
+.battle-topbar-log {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c6ccd4;
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.75rem;
+  padding: 0;
+}
+
+.battle-topbar-log-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.battle-topbar-chevron { opacity: 0.6; flex: 0 0 auto; }
+.battle-topbar-log:hover { color: #f0f0f5; }
+.battle-topbar-log:hover .battle-topbar-chevron { opacity: 1; }
+
+.battle-topbar-place { letter-spacing: 0.12em; }
+
+.battle-topbar-gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 24, 0.75);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+/* The bar swallowed AudioControls, so its own fixed positioning has to stop
+   applying inside the strip. */
+.battle-topbar .audio-controls { position: static; flex: 0 0 auto; }
+
+/* ── The Drivers row (§2a) ──
+   A Driver is the gym leader's standing rule for the WHOLE run. Ticket 68 ruling
+   4 put it on the offer screen because the route is irreversible; this is the
+   other half — it is still true while you are fighting, and a rule you cannot see
+   is a rule you cannot play around. Not a unit's daemons, which live on its
+   plaque. */
+.battle-drivers {
+  position: absolute;
+  top: 54px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1400;
+}
+
+.battle-drivers-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #5f6b7a;
+}
+
+.battle-driver-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 58, 237, 0.55);
+  background: rgba(124, 58, 237, 0.12);
+  color: #dfe4ea;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.battle-driver-chip i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7c3aed;
+  box-shadow: 0 0 6px #7c3aed;
+}
+
+/* Ticket 16: the PROC-VISIBLE law's other half. `BattleTopBar` re-keys the chip on every
+   DRIVER_PROC it hears for that Driver, so the animation restarts even when two procs land in
+   the same second. Colour, not motion, for the chip itself — the float on the unit is the motion. */
+.battle-driver-chip.is-proc {
+  animation: driver-chip-proc 900ms ease-out;
+}
+
+.battle-driver-chip.is-proc i {
+  animation: driver-dot-proc 900ms ease-out;
+}
+
+@keyframes driver-chip-proc {
+  0%   { background: rgba(196, 181, 253, 0.85); border-color: #ede9fe; color: #1a1030; box-shadow: 0 0 18px rgba(167, 139, 250, 0.9); }
+  35%  { background: rgba(167, 139, 250, 0.45); border-color: #c4b5fd; color: #f5f3ff; box-shadow: 0 0 12px rgba(167, 139, 250, 0.6); }
+  100% { background: rgba(124, 58, 237, 0.12); border-color: rgba(124, 58, 237, 0.55); color: #dfe4ea; box-shadow: none; }
+}
+
+@keyframes driver-dot-proc {
+  0%   { transform: scale(2.2); background: #fff; box-shadow: 0 0 14px #fff; }
+  100% { transform: scale(1); background: #7c3aed; box-shadow: 0 0 6px #7c3aed; }
+}
+
+/* Past three Drivers the chips go icon-only with the name on hover (§2a): five
+   named chips is a second top bar. */
+.battle-drivers:has(.battle-driver-chip:nth-child(5)) .battle-driver-chip {
+  padding: 0 8px;
+  font-size: 0;
+  gap: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   BATTLE STAGE — the stagger stage (ticket 145a)
+
+   Both parties as three-row columns with the plaques on the OUTSIDE and a
+   ~300px reveal lane between them. Every RECTANGLE comes from
+   `stageGeometry.ts` and is applied as an inline left/top/width — this file
+   owns look, not position. That split is ticket 145 §3: the slots are an
+   interface ticket 146 fires particles at, so they have to be derivable and
+   testable rather than emergent from a stylesheet.
+
+   What it replaced: two spotlights, one huge ally lower-left and one focus
+   enemy upper-right, with the other four units alive only as sidebar HUD
+   cards. Henry: *"the active Mingming is really awkward"* — and, rejecting the
+   obvious fix in the same breath, *"we need vertical spacing for the
+   Mingmings, otherwise the card draw becomes an issue."*
+   ═══════════════════════════════════════════════════ */
+
+/* ── The backdrop (ticket 145f §2b) ──
+   The MINIMUM that makes the stage read as a place: the biome's name, three shafts of its light,
+   a haze at the foot and a ground line. Art is steam-release 33/34 and motion is 146; this is the
+   floor under both, and everything in it takes `--biome` so the thing that changes between biomes
+   is the thing the player already tracks. */
+.stage-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stage-shaft {
+  position: absolute;
+  top: -40px;
+  width: 140px;
+  height: 520px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--biome) 10%, transparent), transparent);
+  transform: skewX(-12deg);
+  filter: blur(6px);
+}
+
+.stage-haze {
+  position: absolute;
+  left: 0;
+  right: 0;
   bottom: 0;
-  left: 350px;
-  right: 350px;
-  z-index: 5;
+  height: 140px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--biome) 8%, transparent));
+}
+
+.stage-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--biome) 40%, transparent), transparent);
+}
+
+/* ── TICKET 155, DEEP DIVE 6 — CLEAR OF THE TOP BAR.
+
+   `.battle-topbar` is `position: absolute; top: 0` and therefore takes no room
+   in the flow, so `.stage-area` — and the backdrop inside it — starts at the
+   VIEWPORT top rather than under the bar. `top: 14px` put the biome's name on
+   the same line as the combat log.
+
+   `44px` is `TOP_BAR_H`, the same constant `stageGeometry` uses. Stated here
+   because the bar overlays rather than displaces: every other child of the
+   stage is placed by `place()`, which already adds it. */
+.stage-biome-name {
+  position: absolute;
+  left: 50%;
+  top: 58px;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--biome) 70%, transparent);
+}
+
+/* ── The reveal lane's card (ticket 145f §2b) ──
+   148x196 at -4 degrees. The tilt is doing work: an upright card in the middle of an upright board
+   reads as a modal, and this is not one — the fight continues behind it. */
+/*
+ * UPRIGHT, since Henry's 2026-09-10 playtest: *"the card in the middle is titled"*.
+ *
+ * 145f tilted it -4deg on the mock's geometry, arguing an upright card in an upright board
+ * would read as a modal. It does not - the caption under it and the fight continuing behind it
+ * already say that - and at 3v3 the tilt reads as a rendering fault rather than as style,
+ * because every other card on screen (the hand, the shop, the editor) is square to the board.
+ */
+.reveal-card { transform: none; }
+
+.reveal-caption {
+  margin-top: 14px;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Ticket 145e: the target chip under the name, and the foot carrying only the element. */
+.card-target {
+  align-self: center;
+  margin: 2px 0 4px;
+  padding: 1px 6px;
+  border: 1px solid #303a48;
+  border-radius: 3px;
+  background: #0f131a;
+  font-size: 0.53rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb4c8;
+  white-space: nowrap;
+}
+.battle-stage {
+  position: absolute;
+  inset: 0;
+  /* A coordinate space, not a surface: only the slots take pointer events, so
+     the empty reveal lane never eats a drag. */
   pointer-events: none;
 }
 
-.stage-spot {
+/* ── TICKET 146a — ONE STACKING CONTEXT FOR THE WHOLE BOARD.
+
+   `.battle-stage` used to carry `z-index: 5`, which made it a stacking context
+   and sealed its children's z-indices inside it. That was harmless while the
+   stage only had to sit under the reveal-lane card (z 60, a sibling in
+   `.stage-area`) — but 146a puts the particle canvas ABOVE that card and below
+   the plaques, and no z-index inside a sealed context can straddle a sibling of
+   its parent.
+
+   So the z-index comes off, `.battle-stage` stops creating a context (it is
+   `position: absolute` with `z-index: auto`), and its children order themselves
+   against the lane card directly. One ladder for the board, listed here because
+   it is now spread across four rules and a component:
+
+     0   .stage-backdrop      the room
+     2   .stage-sprite-frame  the bodies
+     60  .reveal-card         the card that was just played (PlayedCardReveal)
+     61  .stage-particles     146c's trail crosses IN FRONT of the lane card
+     62  .stage-plaque        a number the player has to read is never behind FX
+
+   The gap from 2 to 60 is the lane card's existing number, kept rather than
+   renumbered: moving it would touch the reward and celebration screens that
+   reuse `.reveal-card`. ── */
+
+
+/* ── TICKET 146a — THE PARTICLE CANVAS.
+
+   `inset: 0` over `.battle-stage`, which is itself `inset: 0` over the stage
+   area, so the canvas box is exactly the coordinate space the anchors describe.
+   The layer translates viewport coordinates into this box in its own context
+   transform; nothing here needs to know the offset.
+
+   `pointer-events: none` because the stage is a coordinate space and only the
+   slots take input (see `.battle-stage`) — a canvas that swallowed clicks would
+   make every unit untargetable the moment something caught fire.
+
+   z-index 61 puts it above the sprites AND the reveal-lane card (§2a: *"above
+   the sprites and the reveal-lane card, below the plaques and the top bar"*),
+   which 146c depends on — its trail crosses the board in front of the played
+   card. The plaques sit above it at 62, so a number the player has to read is
+   never behind a particle. The full ladder is at `.battle-stage`.
+
+   No `@media (prefers-reduced-motion)` rule here on purpose — the layer removes
+   itself from the tree entirely, so there is nothing left to style. ── */
+/* ── TICKET 146g — THE FIRMWARE CHIP FLASH.
+
+   §2g's family default, and the half of every authored signature that is the
+   same for all of them: when an OS or daemon fires, the owner's chip lights.
+   That is what attributes whatever just played to the thing that did it.
+
+   Driven by `data-os-flash`, set for 320ms by `osTells.ts`. A keyframe rather
+   than a transition so a second trigger inside the window restarts it — an OS
+   that fires twice in a turn must flash twice, and a transition would simply
+   stay lit.
+
+   `data-animations="off"` kills it, the same switch the rest of 146 reads. It
+   is deliberately NOT under `vfx`: the chip flash is the cheapest attribution
+   in the game and the last thing worth losing. ── */
+@keyframes os-chip-flash {
+  0%   { filter: none; transform: scale(1); }
+  25%  { filter: brightness(2.6) drop-shadow(0 0 6px currentColor); transform: scale(1.22); }
+  100% { filter: none; transform: scale(1); }
+}
+[data-os-flash="on"] .hud-os-icon {
+  animation: os-chip-flash 320ms ease-out;
+}
+[data-animations="off"] [data-os-flash="on"] .hud-os-icon {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduced-motion="off"]) [data-os-flash="on"] .hud-os-icon { animation: none; }
+}
+
+.stage-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 61;
+}
+
+.stage-slot {
   position: absolute;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: center;
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
 }
 
-.stage-spot-player {
-  left: 17%;
-  bottom: 70px;
-}
-
-.stage-spot-enemy {
-  right: 13%;
-  /* Pulled down off the top edge (toward vertical center) so the enemy stack
-     clears the top-center combat log; clamped so it never sinks into the
-     console on short viewports. */
-  top: clamp(115px, 21vh, 165px);
-}
-
-/* Sprite frames scale with viewport width so the inward-shifted spotlights
-   still clear the centered combat log on narrower windows. */
-.stage-spot-player .stage-sprite-frame {
-  width: clamp(180px, 16vw, 260px);
-  height: clamp(180px, 16vw, 260px);
-}
-
-.stage-spot-enemy .stage-sprite-frame {
-  width: clamp(150px, 13vw, 215px);
-  height: clamp(150px, 13vw, 215px);
-}
-
-/* ── Floor platform: subtle element-tinted ellipse + perspective grid ── */
-.stage-platform {
+.stage-floor {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 280px;
-  height: 84px;
   border-radius: 50%;
-  border: 1px solid transparent;
   pointer-events: none;
   z-index: 0;
-  transition: box-shadow 0.25s ease;
 }
 
-.stage-spot-player .stage-platform {
-  bottom: 64px;
-}
-
-.stage-spot-enemy .stage-platform {
-  bottom: -12px;
-}
-
-.stage-platform-grid {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  opacity: 0.3;
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 28px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 14px);
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
-  mask-image: radial-gradient(ellipse at center, #000 35%, transparent 72%);
-}
-
-/* ── Swap wrapper (fade/slide between spotlighted units) ── */
-.stage-swap-wrap {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── The big sprite frame (relative box the shared FX overlays mount into) ── */
+/* ── The sprite frame: the relative box the shared FX overlays mount into.
+   Sized inline from the slot, because six of these exist at once now and the
+   cap at 190px (§4.1) is arithmetic, not a media query. ── */
 .stage-sprite-frame {
   position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  z-index: 2;
 }
 
 .stage-art {
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  image-rendering: auto;
+  pointer-events: none;
 }
 
-.stage-art-disc {
-  width: 78%;
-  height: 78%;
-  margin: auto;
-  border-radius: 50%;
-  border: 1px solid;
+/* The WIP block stands in for a monster's artwork (see monsterArtPolicy.ts). It keeps the old
+   fallback's footprint and inline state styling (accent, rim light, dead dimming), so a
+   placeholder unit still reads as acting or dead. */
+.wip-art-block {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 4rem;
+  gap: 2px;
+  border: 2px dashed currentColor;
+  border-radius: 10px;
   font-weight: 900;
-  text-shadow: 0 0 18px currentColor;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  user-select: none;
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 8px, transparent 8px 16px);
 }
 
-.stage-sprite-dead {
-  filter: grayscale(100%) brightness(55%);
+.wip-art-sub {
+  font-size: 0.45em;
+  font-weight: 700;
+  opacity: 0.7;
 }
 
-/* Death glitch reuses the HUD keyframes at stage scale */
-.stage-death-glitch {
-  animation: hud-death-glitch 0.45s steps(1) both;
+.stage-art-wip {
+  width: 78%;
+  aspect-ratio: 1;
+  font-size: 2.2rem;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root:not([data-reduced-motion]) .stage-death-glitch {
-    animation: hud-death-fade 0.45s ease-out both;
-  }
+/* TICKET 145b: the dead state is a filter on the ART, not an opacity on the frame — an opacity
+   here would fade the TERMINATED stamp with it, and ticket 34 settled that the stamp keeps its
+   neon red. §2b asks for a 40%-brightness silhouette; `StageSprite` applies it. This class stays
+   as the hook 146 will want for the death beat. */
+.stage-sprite-dead { }
+
+.stage-death-glitch { animation: stage-glitch 0.5s steps(2, end) 3; }
+
+@keyframes stage-glitch {
+  0% { transform: translateX(0); filter: none; }
+  50% { transform: translateX(-4px); filter: hue-rotate(90deg) saturate(3); }
+  100% { transform: translateX(0); filter: none; }
 }
 
-:root[data-reduced-motion="on"] .stage-death-glitch {
-  animation: hud-death-fade 0.45s ease-out both;
-}
-
-/* Stage floats read larger than the HUD-card ones */
-.stage-sprite-frame .hud-float-damage {
-  font-size: 1.8rem;
-}
-
-.stage-sprite-frame .hud-float-crit {
-  font-size: 2.5rem;
-}
-
-.stage-sprite-frame .hud-float-heal {
-  font-size: 1.6rem;
-}
-
-.stage-sprite-frame .hud-float {
-  top: 10%;
-}
-
-/* Round the overlay flashes to the sprite silhouette region */
+.stage-sprite-frame .hud-float-damage { font-size: 1.6rem; }
+.stage-sprite-frame .hud-float-crit { font-size: 2rem; }
+.stage-sprite-frame .hud-float-heal { font-size: 1.5rem; }
+.stage-sprite-frame .hud-float { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
 .stage-sprite-frame .hud-hit-flash,
-.stage-sprite-frame .hud-heal-pulse {
-  border-radius: 16px;
-}
+.stage-sprite-frame .hud-heal-pulse { border-radius: 50%; }
+.stage-sprite-frame .hud-status-ring { border-radius: 50%; }
 
-.stage-sprite-frame .hud-status-ring {
-  border-radius: 20px;
-}
-
-/* ── Compact plaques (full HUD stays in the sidebars) ── */
+/* ── Plaque: `rgba(18,18,24,.85)` on a 1px hairline (§2b). Positioned by the
+   geometry module, sized by its content — a name is as long as it is. ── */
 .stage-plaque {
-  position: relative;
-  z-index: 2;
-  width: 220px;
-  margin-top: 6px;
-  padding: 6px 10px 7px;
-  background: rgba(8, 8, 16, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  position: absolute;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 6px 8px;
+  background: rgba(18, 18, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  z-index: 62;   /* see the ladder at .battle-stage */
+  box-sizing: border-box;
 }
 
-.stage-plaque-enemy {
-  margin-top: 4px;
-  margin-bottom: 10px;
+/* The active ally's border takes its element colour, set inline. On the plaque
+   rather than the sprite: it reads at a glance without touching the art. */
+.stage-plaque-active {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 20px rgba(0, 0, 0, 0.5);
 }
+
+.stage-plaque-dead { opacity: 0.45; }
 
 .stage-plaque-name {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: #eee;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.83em;
+  color: #f0f0f5;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stage-plaque-dot {
-  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-}
-
-.stage-plaque-level {
-  margin-left: auto;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #9aa;
+  flex: 0 0 auto;
 }
 
 .stage-plaque-row {
@@ -2718,64 +3388,123 @@ body {
   gap: 6px;
 }
 
-.stage-plaque-label {
-  flex: 0 0 16px;
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  color: #778;
+.stage-plaque-value {
+  font-size: 0.83em;
+  color: #c6ccd4;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
-.stage-plaque-value {
-  flex: 0 0 auto;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #bcc;
-  font-variant-numeric: tabular-nums;
+/* EP as PIPS, not a bar (§2b). Ticket 22 settled the argument on the HUD card:
+   "roughly two-thirds of a 6px bar" is not a number a player can plan a turn
+   with, and a countable pip is. */
+.stage-plaque-pips { display: flex; gap: 3px; }
+
+.stage-plaque-pips i {
+  width: 14px;
+  height: 6px;
+  border-radius: 2px;
+  background: #3b82f6;
+  display: block;
 }
+
+.stage-plaque-pips i.off { background: #1e242c; }
+
+/* The plaque's status row. The plaque is `pointer-events: none` so it can never eat a drag aimed
+   at the sprite behind it — but a badge whose tooltip cannot be hovered has stopped explaining
+   itself, so the row alone takes them back. */
+.stage-plaque-statuses {
+  pointer-events: auto;
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+/* TICKET 145b (second pass) — the three readouts Henry asked back onto the plaque.
+
+   The name row now carries the firmware chip, so the NAME is the item that gives up width: the
+   chip is a fixed 34px and a species name is as long as it is. */
+.stage-plaque-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.stage-plaque-name .hud-os-icon-container {
+  margin-left: auto;
+  pointer-events: auto;
+  flex: 0 0 auto;
+}
+
+/* Daemons get their own row: a daemon is NAMED, not iconified, and a word does not share 152px
+   with four status badges. Wraps rather than clips — two daemons is the shipped maximum. */
+.stage-plaque-daemons {
+  pointer-events: auto;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+/* THE PREVIEW IS OUT OF FLOW. Not cosmetic: it appears and disappears as the pointer crosses a
+   target, and a plaque that changed height on hover would move every row under it on a board
+   whose geometry ticket 145 3 promises holds still. Anchored under the plaque instead. */
+.stage-plaque-preview {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.stage-preview-row {
+  position: static;
+  transform: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+/* The damage the held card would do, inline in the HP readout — the same `(-N)` the HUD card
+   printed, in the same red. */
+.stage-plaque-preview-hp { color: #ff4444; }
 
 .stage-bar-track {
-  flex: 1 1 auto;
+  flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
+  background: #1e242c;
   overflow: hidden;
+  min-width: 0;
 }
 
-.stage-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-}
+.stage-bar-fill { height: 100%; border-radius: 3px; }
 
-/* ── Enemy intent chip (icon + move name) above the focus enemy ── */
-.stage-intent-chip {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 12px;
-  margin-bottom: 6px;
-  border: 1px solid rgba(255, 80, 80, 0.45);
-  border-radius: 999px;
-  background: rgba(20, 4, 6, 0.8);
-  color: #ff9a9a;
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 2px;
+/* Ticket 22's before-you-commit verdict, unchanged in substance — it just has
+   six places to appear now instead of two. */
+.stage-slot-legal .stage-sprite-frame { filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.5)); }
+.stage-slot-illegal .stage-sprite-frame { opacity: 0.55; }
+.stage-slot-targeted .stage-sprite-frame { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.55)); }
+
+.stage-target-flag {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
   white-space: nowrap;
-  box-shadow: 0 0 12px rgba(255, 60, 60, 0.18);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  z-index: 8;
 }
 
-.stage-intent-icon {
-  font-size: 0.85rem;
-}
-
-/* Targeted enemy spotlight gets the same red signal as its HUD card */
-.stage-spot-targeted .stage-plaque {
-  border-color: rgba(239, 68, 68, 0.7);
-  box-shadow: 0 0 16px rgba(239, 68, 68, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6);
-}
+.stage-target-flag.legal { background: rgba(34, 197, 94, 0.85); color: #04140a; }
+.stage-target-flag.illegal { background: rgba(239, 68, 68, 0.85); color: #fff; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TICKET 22 — 3v3 GAME-SIDE COMPLETION
@@ -2940,13 +3669,27 @@ body {
   font-weight: 900;
 }
 
-.hand-hotkeys {
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  color: rgba(255, 255, 255, 0.3);
-  white-space: nowrap;
+/* ── TICKET 155, DEEP DIVE 4 — the key map is a `?`, not a strip.
+
+   `.hand-hotkeys` printed the whole legend at `0.5rem` — 8px — in a column
+   between the piles that the fan painted over. Raised to a readable size the
+   legend is simply too wide for one line and ran under the macro rack, so the
+   ticket's other option wins: one `?` carrying the map in its tooltip. */
+.hand-hotkeys-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: help;
 }
+.hand-hotkeys-hint:hover,
+.hand-hotkeys-hint:focus-visible { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
 
 /* The draw formula's answer, beside the pile the player already reads. The full
    arithmetic is in the tooltip - see drawFormula.ts for why it is spelled out. */
@@ -3004,3 +3747,286 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.5);
   font-weight: 600;
 }
+
+/* ============================================================================================
+ * THE HAND CARD, ON TICKET 66'S CHASSIS — Henry, 2026-09-11:
+ * *"I want them to use the same style as the card shop."*
+ *
+ * `HandCardFace` draws the shop's own markup, so everything below is SIZE and the two rows the
+ * shop does not have. The chassis' variables are the whole mechanism: `.rs-card` reads `--cw` and
+ * `--ch`, so a bigger fight card is two custom properties rather than a second set of rules.
+ * ============================================================================================ */
+
+.hand-card {
+  /* ── TICKET 155b — THE SIZE COMES FROM THE FAN, NOT FROM HERE.
+
+     These were hardcoded `180px / 255px`, and that is how the card stayed big
+     after `fanGeometry` was changed: the fan set the WRAPPER's width and height
+     while `.rs-card` sized itself from these variables, so the two disagreed and
+     the face won. The fallbacks are the reference-scale pair, for any caller
+     that renders a `.hand-card` outside the fan.
+
+     `--ah` is the art band. It rides the same scale: an art band that stayed 44px
+     on a 140px card is a different card. */
+  --cw: 140px;
+  --ch: 176px;
+  --ah: 44px;
+  text-align: left;
+  /*
+   * BORDER-BOX, and it is not a tidy-up. `.rs-card` sizes content-box, so `--ch: 255px` plus its
+   * own 8px padding and 1px border renders a 273px tile — 18px taller than the height the fan
+   * reserves for it, which the readout row pays for by hanging out of the bottom of the card.
+   * The shop never noticed because its tiles sit in a grid that grows; a fan cannot.
+   */
+  box-sizing: border-box;
+}
+
+/* The shop centres its tiles; a hand is read down the left edge, one card after another. */
+.hand-card .rs-cnm { text-align: left; font-size: 12.5px; }
+
+/* ── TICKET 155e — THE ROW BUDGET, so the description survives.
+
+   A fixed-height card is a fixed budget, and the description is the only row
+   with `flex: 1` — so it pays for everything else. Measured on the live hand
+   before this block: three of four cards clipped, and `war_pact` was down to
+   6px of a 41px description. Henry's 2026-09-10 complaint was exactly this, and
+   it is what the 180x255 card was papering over.
+
+   Three caps, so the text gets a floor rather than the remainder:
+
+   1. The NAME takes at most two lines. "Ragnarok Edge" wrapped to three and
+      took 33px off the card's most important row.
+   2. The CHIPS take at most one. Three statuses wrapped to three rows, which is
+      how a card with a rich description ended up with none of it visible.
+   3. The DESCRIPTION has a floor of about three lines, which is what the
+      registry's text actually needs. */
+.hand-card .rs-cnm {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hand-card .rs-desc {
+  text-align: left;
+  font-size: 10px;
+  line-height: 1.35;
+  min-height: 40px;
+}
+
+/* ── THE DESCRIPTION WAS A HOVER READ (Henry, 2026-09-20: hide it, the next
+   card covers its right half at a wide hand) — REVERSED 2026-09-25 — Henry: *"I don't like that the descriptions are
+   hidden while in hand. The statuses that show on the bottom should just be in
+   the tooltip."* The description is always painted now, and the keyword/status
+   chip row is gone from the hand card (it lives in `.card-tooltip`), so the
+   description also gets that row's height back. At a wide hand the next card
+   still covers the right side of this one; hover lifts it clear, as before. */
+
+/* A conditional that is TRUE for this caster and target — same green as a legal
+   drop target (`.stage-target-flag`), so "this will happen" reads one way. */
+.hand-card .rs-lit {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.14);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+  font-weight: 700;
+}
+
+.hand-card.selected { border-color: #fff; box-shadow: 0 0 26px rgba(255, 255, 255, 0.45); }
+.hand-card.grayscale { filter: grayscale(0.6); }
+.hand-card.stab-match { border-color: var(--stab-color, var(--el)); box-shadow: 0 0 14px var(--stab-glow, transparent); }
+
+/* The printed cost, kept beside the live pips so a discount reads as a change. */
+.hc-cost-was {
+  position: absolute; top: 6px; left: 34px;
+  font-size: 9px; font-weight: 700; color: #6f7d8c;
+  text-decoration: line-through;
+}
+.hc-cost-blocked { position: absolute; top: 5px; left: 34px; font-size: 11px; color: #ff6b6b; font-weight: 900; }
+
+/* ── TICKET 155e — THE NAME ROW CARRIES THE TARGET ──
+
+   `.hc-stab` is gone with the `×1.5` text it painted: ticket 66 ruled no STAB
+   text and 155e restates it. The `--el` glow on the wrapper is the cue.
+
+   The target moved off its own row and onto the name's. It was costing the
+   description a full line — and the description is the only flexing row on the
+   tile, which is how `brute_force` came to clip mid-sentence in Henry's
+   screenshot. As a tag beside the name it costs nothing and reads better: the
+   name and where it can land are one thought. */
+.rs-nmrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.rs-nmrow .rs-cnm { margin-bottom: 0; flex: 1 1 auto; min-width: 0; }
+
+.rs-tgt {
+  flex: 0 0 auto;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9fb0c4;
+  background: #ffffff0d;
+  border: 1px solid #ffffff14;
+  border-radius: 3px;
+  padding: 1px 3px;
+  white-space: nowrap;
+}
+
+.hc-replay { font-size: 9px; color: #5fd4e4; margin-top: 3px; flex: none; }
+
+/*
+ * THE READOUT RIDES THE TAG LINE — ticket 155e.
+ *
+ * It used to BE the last row, replacing the chassis' `FIRE · pick`. Now it sits inside that row
+ * after the element word: `FIRE · 96 DMG vs SKOLL`. Two reasons. The element word was a ruled
+ * decision (four of the nine hues are blues; the word is what settles the colour), and taking the
+ * row outright meant the fight's card and the shop's card had different last lines — which is the
+ * divergence Henry was reporting.
+ *
+ * `inline-flex`, so it flows after the element word rather than starting a line of its own.
+ */
+.rs-tags .hc-readout {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px;
+  margin-left: 4px;
+  letter-spacing: 0;
+}
+.hc-figure { font-size: 10.5px; font-weight: 900; color: #ff8a7a; text-shadow: 0 0 8px #ff8a7a55; }
+.hc-readout.is-lethal .hc-figure { color: #ffd479; text-shadow: 0 0 10px #ffd47966; }
+.hc-vs { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; color: #8b98a8; text-transform: uppercase; }
+.hc-chip {
+  font-size: 7.5px; font-weight: 800; letter-spacing: 0.05em;
+  padding: 1px 3px; border-radius: 3px;
+  background: #ffffff12; color: #c3cedb; text-transform: uppercase;
+}
+.hc-chip.is-super { background: #2f6b3a; color: #b6f0c2; }
+.hc-chip.is-weak { background: #4a3a5e; color: #d9c6f0; }
+.hc-chip.is-lethal { background: #7a5a12; color: #ffe9b0; }
+.hc-chip.is-shielded { background: #24405c; color: #bcd9f2; }
+/* The no-damage row: what the card PUTS ON something. `↺` is on the caster, `→` outward. */
+.hc-chip.is-status { background: #1d3a4d; color: #a9d4ea; font-size: 8px; }
+.hc-chip.is-status.is-self { background: #33304f; color: #cdc4ee; }
+
+/* ── TICKET 159b — THE ENEMY HAND: AN EDGE TAB THAT SLIDES A PANEL OVER THE PLAQUES ──────────
+
+   Henry picked prototype C (2026-09-21: *"Just C is good"*) from the four in
+   `159-mock/159-mock.html`, and the geometry here is that mock's `.eh.pc` rather than a
+   re-invention: `right: 8px; top: 56px; width: 270px`, parked at `translateX(calc(100% - 34px))`
+   so exactly the tab shows, `transform: none` when open.
+
+   C is the only one of the four that costs the board nothing while closed: A moved the enemy row
+   150px left to make room, B collided with the cast lane, D buried the list behind a plaque.
+
+   `transform` and not `right`: this sits over a live stage, and animating a layout property would
+   relayout the whole board on every frame of the slide.
+
+   ── POINTER EVENTS ───────────────────────────────────────────────────────────────────────────
+   `.battle-stage` is `pointer-events: none` on purpose — *"a coordinate space, not a surface, so
+   the empty reveal lane never eats a drag"*. Every child that wants the pointer has to opt back
+   in, and the first cut of this panel did not: the tab was there, drawn, and completely
+   unclickable because `.stage-area` took the pointer instead. Found in a browser, not by a test.
+
+   ── WHERE IT SITS IN 146a's LADDER ───────────────────────────────────────────────────────────
+   That ladder is 0 backdrop, 2 sprites, 60 reveal card, 61 particles, 62 plaques. §5 says the
+   panel *"slides over the enemy plaques"*, which puts it above 62 — so 63. The same ruling also
+   says *"a cast in flight plays over them"*, and those two cannot both be z-order: the plaques
+   are already above the lane card. Read as behaviour rather than as numbers, the panel covering
+   the plaques is the part that is observable, so that is the one implemented. Flagged for Henry
+   rather than split the difference silently. */
+/* TICKET 167g: `right: 8px`, `width: 270px` and the 34px tab below are also `EHP_RIGHT_INSET`,
+   `EHP_OPEN_WIDTH` and `EHP_TAB_WIDTH` in `stageGeometry.ts`, which `enemyShiftFor` reads to slide
+   the enemies to this panel's edge. Change them together. */
+.ehp {
+  position: absolute;
+  top: 56px;                 /* clear of TOP_BAR_H (44), the mock's number */
+  right: 8px;
+  width: 270px;
+  box-sizing: border-box;
+  z-index: 63;               /* over the plaques (62), which is what "slides over them" means */
+  /* Opt back in: the stage itself takes no pointer events. */
+  pointer-events: auto;
+  transform: translateX(calc(100% - 34px));
+  transition: transform 200ms ease;
+}
+.ehp.open { transform: none; }
+
+/* Off means off — 146a's rule for the VFX switches, applied to the slide. */
+:root[data-animations="off"] .ehp { transition: none; }
+
+/* TICKET 167g: the enemies slide to meet the panel with the panel's own 200 ms, and not at all
+   with animations off. Enemies only: an ally's active-step has never animated and must not start. */
+.stage-enemy-shift { transition: left 200ms ease; }
+:root[data-animations="off"] .stage-enemy-shift { transition: none; }
+
+.ehp-tab {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 34px;
+  height: 150px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px 0 0 6px;
+  background: #12171f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.ehp-tab span {
+  /* Rotated rather than `writing-mode`: the mock's, and it keeps the count upright beside the
+     label instead of standing every digit on its side. */
+  transform: rotate(-90deg);
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #9fb4c8;
+}
+.ehp-tab b { color: #ffd479; margin-left: 6px; }
+.ehp-tab:hover span,
+.ehp-tab:focus-visible span { color: #fff; }
+
+/* The panel's content clears the tab that is sitting on its left edge. */
+.ehp-inner {
+  margin-left: 34px;
+  max-height: calc(100vh - 220px);
+  overflow: hidden auto;
+  /* Already a column: `.rs-panel` is. (167f: the card tile is a tooltip now, so this panel no
+     longer needs its own rule to leave the old in-panel tile room.) */
+}
+
+.ehp-inner h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ehp-ep { font-size: 0.6rem; font-weight: 800; color: #ffd76a; letter-spacing: 0.08em; }
+
+.ehp-rows { display: flex; flex-direction: column; gap: 3px; }
+
+/* A card no living enemy can pay for on the turn this list is about. Greyed rather than hidden:
+   "it has this and cannot use it yet" is information, and hiding it would make the count on the
+   tab disagree with the list under it. */
+.ehp-poor { opacity: 0.38; }
+.ehp-poor .rs-g { background: #3a4150; color: rgba(255, 255, 255, 0.5); }
+
+/* The reshuffle tail: cards they WILL draw, out of a discard that has not been shuffled yet. It
+   reads as a row so it sits in the same column as the cards it is counting, but it is not a
+   button — there is nothing to peek at, and a hoverable row that never shows a tile would be a
+   control that does nothing. */
+.ehp-unknown {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+/* TICKET 159c — the switch, as one rule.
+
+   `display: none` rather than `visibility` or an opacity: off has to mean out of the layout, out
+   of hit-testing and out of the accessibility tree, or a screen reader still announces a panel the
+   player turned off. The attribute is stamped by `applySettings`, so flipping the switch in the
+   overlay updates the fight underneath it immediately rather than at the next fight. */
+:root[data-enemy-hand='off'] .ehp { display: none; }
+.ehp-unknown .rs-g { background: #2c3240; color: #9fb4c8; }

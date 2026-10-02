@@ -1,7 +1,9 @@
 # The player side has never been in the graded arm: leveling, macros, Drivers, and ROOT ROT reshaped (ticket 77)
 
+> **2026-09-24 — PRE-v2 NUMBERS. Every figure in this ticket was measured on the v1 card pool and v1 start kits (before deck-archetypes 162 archived the pool: 98 cards, 12 kits, slot-tax bands; and 163 added `+` upgrades and OS patches). The question survives; the cells do not. All 17 arms and Track A ran at `e14cfd0`, before the archive. The start deck is still 5 kit + 3 generics (8/13/18; the generic is `tackle`), but the kits are 161's shape and 163 adds power WITHOUT adding cards (in-place `+`, one patch per body) — which is exactly Track B's conclusion ("the only measured route to player power that does not cost a card slot"). Henry ruled 09-24: the deck DOES grow, to about 20–25 at the gauntlet, mostly by replacing (sell + pick); no extra Strike/Block filler. The Done-when's 60±5 re-measure is 157's walker; the n=60 arms are not re-run by hand.**
+
 - Type: wayfinder:grilling (measurement first — the arms below run before Henry's session)
-- Status: open
+- Status: closed
 - Assignee: arms: agent; session: Henry
 - Blocked by: nothing for Track A; Track B needs two small harness builds (below); Track C needs one knob type
 - Phase: Vertical Slice
@@ -183,6 +185,62 @@ route to player power that does not cost a card slot.
 smaller deck cycles its engine faster" — both predict every row above. The arm that would separate
 them is bare plus three DUPLICATES of the deck's own cards, and it has not been run.
 
+## TRACK B + C REPORTED — 2026-09-19. Built, threading-proven, piloted at n=12; the n=60 arms are Henry's machine.
+
+Code: `1dc712a` (Track B: `--macros surge3|mixed` via `src/debug/balance/macroPolicy.ts`, `--player-driver <id>`,
+the `sampleFightFor` / `batchOptionsFor` seams, procs and macros on every cell line) and `e53198b` (Track C:
+`--tweak root-rot-c1|c3`, a Driver HOOK substitution — a new knob shape with its own threading case). Every new
+flag was proven to FAIL its threading test with the threading line commented out. Gates: tsc -b, eslint 0,
+**179 files / 2394 tests**, vite build. Full write-up and the n=60 run lines:
+[research/77-player-side-arms.md](../research/77-player-side-arms.md) §B.
+
+**Two STOPs, reported not worked around:**
+
+1. **C2 SPREADING ROT is not built.** "Another enemy than the target" has no hook target — `RANDOM_ENEMY` may
+   pick the context target itself. Expressing it is a new engine target, not a knob. `--tweak root-rot-c2`
+   throws saying so.
+2. **The bare row does not match research/77's.** 45 commits moved the tree (`6bafc12..6c61a4b`: 149b/150/151
+   card and OS changes, the single-candidate PRNG guard, the Drivers, the damage/HP rescale). Research/76's
+   *56.7 / 83.3* and the *scrubber p = 1.00* are cross-tree; every comparison below is to the day's bare.
+
+**Pilot, Rootfall boss cell, n=12, paired seeds, one tree** (under-powered; ±25pt intervals):
+
+| arm | boss cell | flips →win : →loss | p | instrument |
+| --- | --- | --- | --- | --- |
+| bare | 33.3% (4/12) | — | — | — |
+| `--boss-driver off` | 91.7% | 7 : 0 | **0.016** | — |
+| C1 Creeping Rot | 83.3% | 6 : 0 | **0.031** | 3.83 procs/fight |
+| C3 Festering | 41.7% | 2 : 1 | 1.00 | 29.75 procs/fight |
+| B1b macros mixed | 41.7% | 3 : 2 | 1.00 | 3.00 macros/fight, all boss-turn-1, **0 lethals** |
+| B2 antivenom | 33.3% | 1 : 1 | 1.00 | 1.67 procs/fight |
+
+Read: ROOT ROT is still the wall on this tree (+58pt off). **C1 is ROOT ROT removed, not reshaped** — one battle
+from *off*; per-turn-per-body deletes the quadratic term. **C3 is the only candidate in the between-band** and it
+fires ~30×/fight. Three macros at the boss are +8 (null at n=12) and the lethal rule never fired — a 30-power
+Surge is not a finisher against pools of ~1,000+. ANTIVENOM is a flat null at the boss, as the card was.
+
+**Harness caveats, stated:** the rack is per CELL (each gauntlet cell fights from a full rack as it fights from full
+HP — an upper bound, like `gauntletCompound`); C1's proc fires on the side's turn-end whether or not a stack lands.
+
+## TRACKS B + C AT n=60 — 2026-09-23. All 17 arms in; Emberfall has collapsed; FIRE DRIVER is the lever.
+
+2,700 battles, one tree (`e14cfd0`), paired seeds, day's bare beside every arm. Full tables: [research/77 §B](../research/77-player-side-arms.md). Runner: `npm run balance:77` (resumable, `scripts/ticket77-arms.mjs`). Ran in a cloud container over three days (the device bridge cannot keep a process alive); `77-runs/` has every report.
+
+| | Rootfall (bare 22.1 compound) | Emberfall (bare 13.3 compound) |
+| --- | --- | --- |
+| **bare vs Track A** | 27.7 → 22.1 (noise) | **62.4 → 13.3** — boss is a 3-turn race at 971 dmg/turn |
+| A3 +3 blanks | 19.0 (−3.1; f1 2:10 p=0.039) | 10.4 (−2.9; all cells null) |
+| C: ROOT ROT off / C1 / C3 (boss) | 30.0 → **68.3** (25:2) / **61.7** (21:2; vs off 0:4 p=0.125) / **21.7** (3:8, 30 procs/fight) | — |
+| B2 ANTIVENOM | 24.6 (+2.5; boss 3:1) | 13.3 (0.0; every cell null) |
+| B2 TENTH STRIKE | 27.2 (+5.1; boss 7:1 p=0.07) | 21.1 (+7.8; f2 6:0 p=0.031, boss 8:1 p=0.039) |
+| B2 element (fire / water) | **37.0 (+14.9; boss 30→53.3, 15:1 p=0.001)** | 19.0 (+5.7; 7:3 every cell) |
+| B1a 3×Surge (rack per FIGHT — ceiling; boss cell = per-run) | 35.1; **boss 46.7 (15:5 p=0.041)** | 15.6; boss 33.3 (4:5) |
+| B1b Surge+Cripple+Mend (ceiling) | 26.5; boss 36.7 (13:9) | 18.3; f2 75.0 (7:0 p=0.016); boss 36.7 (4:3) |
+
+**Reads.** (1) The deck-size tax survives in direction and is −3 on this tree, not −9/−31. (2) ROOT ROT is +38pt; **C1 keeps ~a fifth of it** (in the between-band, near the top); **C3 is a buff** — withdrawn; nothing built lands mid-band, and C2 (the shape that would) needs an engine target. (3) **FIRE DRIVER at Rootfall is the largest player-side lever measured** (+23 boss, +15 compound) — type preparation pays through a Driver that rewards the party's lean; WATER at Emberfall is the same shape at a third the size. TENTH STRIKE is real at Emberfall, directional at Rootfall. ANTIVENOM null everywhere. (4) Three Surges brought to the Rootfall boss are +16.7 at zero slot cost; the mixed rack is worth less at the boss and more in Emberfall's lead-ins (Mend-under-40 fires ~0.9/fight there); nothing moves Emberfall's boss. (5) The lethal rule fires 1.5–1.9×/fight in lead-ins and never at the boss — the floor spends the rack on turn 1 (R1's "under-reads timing", confirmed).
+
+**Before any Track B/C ruling: find what moved Emberfall.** 62.4 → 13.3 in 45 commits is the largest number in the ticket and none of Tracks A–C measured it.
+
 ## What this ticket does NOT do
 
 - No encounter nerfs beyond Track C, and Track C is one Driver at one gym.
@@ -213,4 +271,4 @@ or the residual explicitly accepted, with the player-side lever named as the one
 
 ## Resolution
 
-_(open)_
+**CLOSED 2026-10-01 (Henry).** Superseded: the arms were measured on the v1 pool, and the gauntlet compound they chased was settled by deck-archetypes 172/173 (30% repair, Revive targeting).

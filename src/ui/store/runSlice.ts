@@ -81,7 +81,12 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { isFightNode } from '../../engine/run/encounter';
 import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
-import { isMarketNode } from '../../engine/run/marketplace';
+import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
+import { snapshotMarketParty } from '../../engine/run/marketParty';
+import { healBetweenFights } from '../../engine/run/gauntletHeal';
+import type { IRewardPartyMember } from '../../engine/RewardSystem';
+import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
+import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { REGION_PARAMS } from '../../engine/run/regionGraph';
 import {
     biomeRevealModifier,
@@ -91,9 +96,15 @@ import {
     macroOfferBlockFor,
     macroRackBlockFor,
 } from '../../engine/data/macroRegistry';
+import { upgradeIdFor } from '../../engine/data/plusRegistry';
+import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { PARTY_SIZE } from '../../engine/party';
+import { isTemporaryDriver } from '../../engine/data/driverRegistry';
 import { minimumActiveDeck } from '../../engine/run/createRun';
+import { speciesOwningFirmware } from '../../engine/run/gyms';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
+import { afterFight, withTempDriver } from '../../engine/run/tempDrivers';
+import { countedDeckSize, isJunkCard } from '../../engine/run/junk';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome } from '../../engine/runTypes';
 
@@ -235,6 +246,9 @@ const runSlice = createSlice({
             if (!run) return { run: null };
 
             const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            // TICKET 168g: an Ambush Bait fight ends with the encounter. Dropped, not set false, so a
+            // run that never fought one stays byte for byte what it was.
+            const { eventFight: _eventFight, ...rest } = run;
             const gate = here !== undefined
                 && here.kind === 'elite'
                 && here.layer === REGION_PARAMS.layersPerBiome - 1
@@ -242,9 +256,10 @@ const runSlice = createSlice({
 
             return {
                 run: {
-                    ...run,
+                    ...rest,
                     phase: 'map',
                     fightsResolved: run.fightsResolved + 1,
+                    tempDrivers: afterFight(run.tempDrivers),
                     ...(gate ? { boundaryBiome: here!.biomeIndex + 1 } : {}),
                 },
             };
@@ -377,6 +392,164 @@ const runSlice = createSlice({
         },
 
         /**
+         * TICKET 163b — **UPGRADE ONE CARD IN THE ACTIVE DECK.** The bench's whole verb.
+         *
+         * One reducer for all three venues (the market stall, the workshop, the gym gate), which is
+         * the `buyMarketCard` convention held to: scrap-down and thing-changes are ONE action, the
+         * affordability check lives beside the mutation, and an ineligible dispatch is a SILENT
+         * NO-OP rather than a throw. **The gym gate differs in exactly one fact: the price it names
+         * is free.** Its once-per is the same `benchKey` every other bench spends, because a gym
+         * node walked back into is a new attempt at the gauntlet and a new allowance — the same
+         * answer ticket 07 gives every other revisit, paid for in the wilds on the way.
+         *
+         * THE PRICE IS NOT TRUSTED FROM THE PAYLOAD. `buyMarketCard` takes the caller's price
+         * because a shop offer's price is rolled with the stock and the reducer has no way to
+         * re-derive it. An upgrade's price is a pure function of the card, so this one RE-DERIVES it
+         * and ignores anything else it is handed — except a free one, which is a venue fact rather
+         * than a card fact and is therefore the one thing `free` is allowed to say.
+         *
+         * IN PLACE, KEEPING THE INSTANCE. The copy keeps its `instanceId` and its `ownerId` and
+         * changes which card it points at, so "an upgrade replaces exactly one copy" is literally
+         * what happens — see `IRunCard.upgraded`. A player holding two Venom Fang upgrades one of
+         * them, and the other is untouched, which a mint-and-delete would have made a coin flip.
+         *
+         * THE COLLECTION IS NOT TOUCHED, on 163 §2's word: *"pick a card in the ACTIVE DECK."* A
+         * card in the collection is not in play, and letting the bench reach it would make the
+         * upgrade a stockpiling decision rather than a deck-building one.
+         */
+        upgradeDeckCard: (
+            state,
+            action: PayloadAction<{ instanceId: string; benchKey?: string; free?: boolean; allowance?: number }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { instanceId, benchKey, free, allowance } = action.payload;
+
+            // One per visit, per bench. `benchKey` is `nodeId:visitCount` (see `upgradesTaken`).
+            // Optional rather than required so a test, a scenario or a future venue can exercise
+            // the verb without inventing a bench — not because any shipped venue omits it.
+            // TICKET 168c: `allowance` (default 1) is how many upgrades one bench key may spend; the
+            // Overclock Rig's event bench allows two. Each spend adds the key again.
+            const spent = run.upgradesTaken ?? [];
+            if (benchKey !== undefined && spent.filter((key) => key === benchKey).length >= (allowance ?? 1)) return { run };
+
+            const index = run.deck.findIndex((card) => card.instanceId === instanceId);
+            if (index === -1) return { run };
+            const card = run.deck[index];
+            // `upgradeIdFor` answers "already upgraded", "no `+` authored" and "not a real card"
+            // with the same undefined, which are the same answer at a bench.
+            const to = upgradeIdFor(card.dataId);
+            if (to === undefined) return { run };
+
+            const price = free === true ? 0 : shopPrice(run, upgradePrice(card.dataId));
+            if (run.scrap < price) return { run };
+
+            const deck = [...run.deck];
+            deck[index] = { ...card, dataId: to, upgraded: true };
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    deck,
+                    upgradesTaken: benchKey === undefined ? spent : [...spent, benchKey],
+                },
+            };
+        },
+
+        /**
+         * TICKET 163d — **FIT A PATCH to one party member's firmware.**
+         *
+         * One slot per body (163 §5 decision 4: one, and no second at the gym), so this REPLACES
+         * nothing: a member who already carries one is refused, silently, the way every other
+         * ineligible dispatch in this slice is. Replacing would be a different decision — it turns
+         * a patch from a commitment into an inventory slot — and Henry has not made it.
+         *
+         * FREE BY DEFAULT, because two of the three doors have already charged: an elite was fought
+         * for, and the gate's choice of two is 163 §3's free one. The SHOP is the third door and it
+         * takes scrap, so the price rides the action — scrap-down and thing-arrives in ONE reducer,
+         * which is the convention `buyMarketCard` sets and the reason there is no `spendRunScrap`
+         * call anywhere near a purchase.
+         *
+         * Refuses a member who is not in the party. The bench is not a body in this fight, and a
+         * patch fitted to someone standing outside it is a rule nobody could see working.
+         */
+        /**
+         * TICKET 163d/166e — fit a patch to a body's firmware.
+         *
+         * Ticket 166e: accepts an optional `benchKey?: string`. If `benchKey` is provided and has
+         * already been recorded in `run.patchBenchesUsed`, the fitting is refused (the gate offers
+         * exactly one patch per visit). On success with a `benchKey`, it is appended to `patchBenchesUsed`.
+         */
+        fitPatch: (
+            state,
+            action: PayloadAction<{ memberId: string; patchId: string; price?: number; benchKey?: string }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { memberId, patchId, price = 0, benchKey } = action.payload;
+            if (benchKey && (run.patchBenchesUsed ?? []).includes(benchKey)) return { run };
+            if (!run.partyIds.includes(memberId)) return { run };
+            if (getPatch(patchId) === undefined) return { run };
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+            const held = run.patches?.[memberId] ?? [];
+            if (held.length >= PATCH_SLOTS) return { run };
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    patches: { ...(run.patches ?? {}), [memberId]: [...held, patchId] },
+                    ...(benchKey ? { patchBenchesUsed: [...(run.patchBenchesUsed ?? []), benchKey] } : {}),
+                },
+            };
+        },
+
+        /**
+         * TICKET 168g — Ambush Bait: start its optional fight on the event node the run stands on.
+         *
+         * Sets `phase: 'encounter'` and `eventFight: true`; `RunScreen` sees the encounter phase and
+         * rolls a wild on this node (`engine/run/eventFight.ts`), and `resolveEncounter` clears the
+         * flag when the fight is won. Refused, silently and byte for byte, off an event node and
+         * when the run is not on the map: a fight already under way cannot be started twice.
+         *
+         * The event is recorded as resolved by `applyChoice` BEFORE this is dispatched, so a loss or
+         * a crash cannot offer it again.
+         */
+        startEventFight: (state): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            if (run.phase !== 'map') return { run };
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            if (here?.kind !== 'event') return { run };
+            return { run: { ...run, phase: 'encounter', eventFight: true } };
+        },
+
+        /**
+         * TICKET 168f — Firmware Reflash: put a body on another OS **for this run**.
+         *
+         * Writes `run.osOverrides` and nothing else; the ranch member keeps its own `activeOS`, so the
+         * switch ends with the run. The cards do not change.
+         *
+         * Refuses, silently and byte for byte, a member who is not in the party, a member with a
+         * patch (a patch is fitted to a firmware), and an OS no species has. It cannot check that the
+         * OS belongs to THIS member's species, because a run holds ids and the roster is the ranch's;
+         * `eventReflash.reflashTargetFor` picks the OS from the species' own list, and the screen and
+         * the walker only ever send that one.
+         */
+        reflashMember: (
+            state,
+            action: PayloadAction<{ memberId: string; osId: string }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { memberId, osId } = action.payload;
+            if (!run.partyIds.includes(memberId)) return { run };
+            if ((run.patches?.[memberId] ?? []).length > 0) return { run };
+            if (speciesOwningFirmware(osId) === undefined) return { run };
+            return { run: { ...run, osOverrides: { ...(run.osOverrides ?? {}), [memberId]: osId } } };
+        },
+
+        /**
          * THE FOUR EDIT SURFACES' VERBS — ticket 61 §3 (Henry, 2026-08-26).
          *
          * Free, unpriced, and reachable only at a marketplace, a workshop, a biome boundary or the
@@ -392,11 +565,13 @@ const runSlice = createSlice({
         moveCardToCollection: (state, action: PayloadAction<string>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
-            // The floor counts the PARTY, so benching a member lowers it in the same edit session.
-            if (run.deck.length <= minimumActiveDeck(run.partyIds.length)) return { run };
             const instanceId = action.payload;
             const card = run.deck.find((held) => held.instanceId === instanceId);
             if (!card) return { run };
+            // The floor counts the PARTY, so benching a member lowers it in the same edit session.
+            // Junk (168c) does not count toward it, so sending junk out is never floor-blocked and
+            // a deck at its floor plus a junk card still refuses to shed a real one.
+            if (!isJunkCard(card.dataId) && countedDeckSize(run.deck) <= minimumActiveDeck(run.partyIds.length)) return { run };
             return {
                 run: {
                     ...run,
@@ -454,6 +629,41 @@ const runSlice = createSlice({
                     bench: bench.map((id) => (id === inId ? outId : id)),
                     deck: [...run.deck.filter((card) => card.ownerId !== outId), ...incoming],
                     collection: [...collection.filter((card) => card.ownerId !== inId), ...outgoing],
+                },
+            };
+        },
+
+        /**
+         * TICKET 171a — **bring a benched member back into an EMPTY party slot.**
+         *
+         * Henry, 2026-09-29 playtest: *"I can't unbench Skoll. When I press confirm she stays
+         * benched."* The party was two of three with Sköll on the bench, and nothing could put her
+         * back: `swapBenchMember` needs someone to trade out, `benchPartyMember` only goes one way,
+         * and `recruitIntoParty` only takes a NEW body. This is the missing direction.
+         *
+         * Her engine follows her, the mirror of `benchPartyMember`: every card she owns that is in
+         * the collection goes to the deck. Cards of hers already in the deck (the editor lets you
+         * move them in by hand) stay where they are, so nothing is dealt twice. The party grows by
+         * one and the deck by at most five, so the floor (8/13/18) can only be met, never broken.
+         *
+         * Refuses, silently and byte for byte, a member who is not on the bench and a party that is
+         * already full (a full party swaps instead).
+         */
+        unbenchMember: (state, action: PayloadAction<string>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const memberId = action.payload;
+            const bench = run.bench ?? [];
+            if (!bench.includes(memberId) || run.partyIds.length >= PARTY_SIZE) return { run };
+            const collection = run.collection ?? [];
+            const returning = collection.filter((card) => card.ownerId === memberId);
+            return {
+                run: {
+                    ...run,
+                    partyIds: [...run.partyIds, memberId],
+                    bench: bench.filter((id) => id !== memberId),
+                    deck: [...run.deck, ...returning],
+                    collection: collection.filter((card) => card.ownerId !== memberId),
                 },
             };
         },
@@ -522,8 +732,12 @@ const runSlice = createSlice({
             const { instanceId, price } = action.payload;
             if (!Number.isInteger(price) || price < 0) return { run };
 
+            // TICKET 168c: junk is not sold — it is removed for a price (`removeJunkCard`).
+            const held = [...run.deck, ...(run.collection ?? [])].find((card) => card.instanceId === instanceId);
+            if (held && isJunkCard(held.dataId)) return { run };
+
             const fromDeck = run.deck.some((card) => card.instanceId === instanceId);
-            if (fromDeck && run.deck.length <= minimumActiveDeck(run.partyIds.length)) return { run };
+            if (fromDeck && countedDeckSize(run.deck) <= minimumActiveDeck(run.partyIds.length)) return { run };
 
             const deck = run.deck.filter((card) => card.instanceId !== instanceId);
             const collection = (run.collection ?? []).filter((card) => card.instanceId !== instanceId);
@@ -532,6 +746,34 @@ const runSlice = createSlice({
             if (!soldFromDeck && !soldFromCollection) return { run };
 
             return { run: { ...run, scrap: run.scrap + price, deck, collection } };
+        },
+
+        /**
+         * TICKET 168c — **pay to remove a junk card** (Corrupted Data), from the deck or the
+         * collection. The price rides the action and the scrap and the card move in one step (the
+         * `buyMarketCard` rule), so a crash cannot take the scrap and leave the card.
+         *
+         * Refused for a card that is not junk (a real card is sold, not removed), for an unaffordable
+         * price and for an unknown instance. **Never blocked by the floor**: junk does not count
+         * toward it, so removing it cannot leave a deck under.
+         */
+        removeJunkCard: (state, action: PayloadAction<{ instanceId: string; price: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { instanceId, price } = action.payload;
+            if (!Number.isInteger(price) || price < 0 || run.scrap < price) return { run };
+
+            const held = [...run.deck, ...(run.collection ?? [])].find((card) => card.instanceId === instanceId);
+            if (!held || !isJunkCard(held.dataId)) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    deck: run.deck.filter((card) => card.instanceId !== instanceId),
+                    collection: (run.collection ?? []).filter((card) => card.instanceId !== instanceId),
+                },
+            };
         },
 
         /**
@@ -548,7 +790,22 @@ const runSlice = createSlice({
          * checks a node's kind before mutating it. A stray dispatch naming a wild would otherwise
          * increment *that* node's visit count and silently re-roll a fight the player is standing in.
          */
-        rerollMarketStock: (state, action: PayloadAction<{ nodeId: string; price: number }>): RunSliceState => {
+        /**
+         * Buy the stall's blueprint (ticket 142 §7).
+         *
+         * # THIS IS HALF A TRANSACTION, like the workshop's recruit
+         *
+         * The scrap and the slot-is-spent record are RUN state; the blueprint itself is a
+         * persistent count on the RANCH (`gameSlice.addBlueprint`). No reducer writes two slices,
+         * so the screen dispatches both — and **the ranch goes first**, by the same argument the
+         * workshop's recruit makes: if the app dies between them, a player who paid and got nothing
+         * has lost scrap, while a player who got the blueprint and was not charged has been given a
+         * present. Only one of those is a bug report.
+         *
+         * Refuses rather than throws, as every reducer on this slice does: a bad price, a poor
+         * player, a node that is not a market, or a slot already spent all leave the run untouched.
+         */
+        buyMarketBlueprint: (state, action: PayloadAction<{ nodeId: string; price: number }>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
             const { nodeId, price } = action.payload;
@@ -558,10 +815,77 @@ const runSlice = createSlice({
             const target = run.nodes.find((node) => node.id === nodeId);
             if (!target || !isMarketNode(target.kind)) return { run };
 
-            const nodes: IRegionNode[] = run.nodes.map((node) => (
-                node.id === target.id ? { ...node, visited: node.visited + 1 } : node
-            ));
-            return { run: { ...run, scrap: run.scrap - price, nodes } };
+            const key = `${nodeId}:${run.marketRefreshes?.[nodeId] ?? 0}`;
+            // Idempotent: a double-click must not charge twice for one slot.
+            if ((run.boughtBlueprints ?? []).includes(key)) return { run };
+
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    boughtBlueprints: [...(run.boughtBlueprints ?? []), key],
+                },
+            };
+        },
+        rerollMarketStock: (
+            state,
+            action: PayloadAction<{ nodeId: string; price: number; party?: ReadonlyArray<IRewardPartyMember> }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { nodeId, price, party } = action.payload;
+            if (!Number.isInteger(price) || price < 0) return { run };
+            if (run.scrap < price) return { run };
+
+            const target = run.nodes.find((node) => node.id === nodeId);
+            if (!target || !isMarketNode(target.kind)) return { run };
+
+            /*
+             * TICKET 142 §7 — REFRESHES, NOT VISITS. This used to buy a `visited` increment,
+             * because the stock was keyed on it. That made walking out and back in a FREE refresh,
+             * which is the farm Henry closed: *"make it static per run ... once you buy the card
+             * it's gone from the shop."* `marketStockSeed` reads this counter now, and nothing but
+             * a paid refresh moves it. `visited` goes back to meaning what it means everywhere
+             * else — how many times the player has walked in.
+             */
+            const refreshes = { ...(run.marketRefreshes ?? {}) };
+            refreshes[target.id] = (refreshes[target.id] ?? 0) + 1;
+            // TICKET 171b: a refresh is a new shelf, so it is rolled for the team you have NOW and
+            // frozen again at that team. Without a `party` (older callers) the old snapshot stands.
+            const marketParties = party
+                ? { ...(run.marketParties ?? {}), [target.id]: snapshotMarketParty(party) }
+                : run.marketParties;
+            return {
+                run: {
+                    ...run,
+                    scrap: run.scrap - price,
+                    marketRefreshes: refreshes,
+                    ...(marketParties ? { marketParties } : {}),
+                },
+            };
+        },
+
+        /**
+         * TICKET 171b — **freeze a shop's shelf at the first visit.** Records the team this market
+         * was first seen with; `marketPartyFor` rolls the stock for it from then on. A no-op for a
+         * shop that is already frozen, and for a node that is not a market.
+         */
+        freezeMarketParty: (
+            state,
+            action: PayloadAction<{ nodeId: string; party: ReadonlyArray<IRewardPartyMember> }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { nodeId, party } = action.payload;
+            const target = run.nodes.find((node) => node.id === nodeId);
+            if (!target || !isMarketNode(target.kind)) return { run };
+            if (run.marketParties?.[nodeId] !== undefined) return { run };
+            return {
+                run: {
+                    ...run,
+                    marketParties: { ...(run.marketParties ?? {}), [nodeId]: snapshotMarketParty(party) },
+                },
+            };
         },
 
         // --- The workshop's run half (ticket 14) ---
@@ -618,6 +942,8 @@ const runSlice = createSlice({
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
+            // TICKET 169h: No Recruits. `planRecruit` already yields nothing, so no action should arrive; one that does changes nothing.
+            if (recruitingBlocked(run)) return { run };
             const { memberId, cards, price } = action.payload;
 
             if (!Number.isInteger(price) || price < 0) return { run };
@@ -674,6 +1000,8 @@ const runSlice = createSlice({
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
+            // TICKET 169h: No Recruits. `planRecruit` already yields nothing, so no action should arrive; one that does changes nothing.
+            if (recruitingBlocked(run)) return { run };
             const { memberId, cards, price } = action.payload;
 
             if (!Number.isInteger(price) || price < 0) return { run };
@@ -759,12 +1087,17 @@ const runSlice = createSlice({
                 }
             }
 
+            // TICKET 168f follow-up (Henry): this is the permanent reflash, which rewrites the ranch
+            // member and swaps its engine. An event's run-only OS switch on the same body would win
+            // over it in every fight, so it is dropped: the body follows the OS the workshop wrote.
+            const { [memberId]: _superseded, ...otherOverrides } = run.osOverrides ?? {};
             return {
                 run: {
                     ...run,
                     scrap: run.scrap - price,
                     deck: [...keep, ...cards],
                     collection: [...(run.collection ?? []), ...retired],
+                    ...(run.osOverrides !== undefined && memberId in run.osOverrides ? { osOverrides: otherOverrides } : {}),
                 },
             };
         },
@@ -823,6 +1156,22 @@ const runSlice = createSlice({
             const macroId = action.payload;
             if (macroRackBlockFor(run.macros, macroId) !== null) return { run };
             return { run: { ...run, macros: withMacroSlot(run.macros, firstFreeMacroSlot(run.macros), macroId) } };
+        },
+
+        /**
+         * TICKET 166d — take a macro won on the reward screen. Fills the first empty slot; when the rack is
+         * full it REPLACES `replaceSlot`, which the player chose on the same screen. A full rack with no
+         * slot named is a no-op (the player walked past the prize). Unknown ids are refused.
+         */
+        takeRewardMacro: (state, action: PayloadAction<{ macroId: string; replaceSlot?: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { macroId, replaceSlot } = action.payload;
+            if (!getMacro(macroId)) return { run };
+            const free = firstFreeMacroSlot(run.macros);
+            if (free !== -1) return { run: { ...run, macros: withMacroSlot(run.macros, free, macroId) } };
+            if (replaceSlot === undefined || !Number.isInteger(replaceSlot) || replaceSlot < 0 || replaceSlot >= MACRO_SLOTS) return { run };
+            return { run: { ...run, macros: withMacroSlot(run.macros, replaceSlot, macroId) } };
         },
 
         /**
@@ -887,6 +1236,65 @@ const runSlice = createSlice({
                     ...run,
                     macros: withMacroSlot(run.macros, slot, null),
                     modifiers: [...run.modifiers, biomeRevealModifier(here.biomeIndex)],
+                },
+            };
+        },
+
+        /**
+         * TICKET 168a — **reveal the biome the run is standing in, with no macro involved.**
+         *
+         * The Relay Tower's Survey. `fireMapReveal` above is the Ping Sweep macro's verb: it takes a
+         * macro SLOT and burns the consumable in it, so an event cannot call it (there is no slot to
+         * name, and passing one would spend a macro the player did not choose to spend). This is its
+         * sibling: the same record, the same helpers (`biomeRevealModifier`, `isBiomeRevealed`), no
+         * macro. Refused when the biome is already surveyed, for `fireMapReveal`'s reason.
+         */
+        revealCurrentBiome: (state): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            if (!here) return { run };
+            if (isBiomeRevealed(run, here.biomeIndex)) return { run };
+            return { run: { ...run, modifiers: [...run.modifiers, biomeRevealModifier(here.biomeIndex)] } };
+        },
+
+        /**
+         * TICKET 168b — **gain a Driver for the next fight only** (an event's penalty).
+         *
+         * Goes in `tempDrivers`, never `drivers`, so it neither survives the fight nor spends the
+         * run's one event-granted Driver. One already held has its fights added to. A fight count
+         * under 1 is refused, and so is an id that is not a temporary Driver: the list is not a
+         * back door for a permanent one.
+         */
+        addTempDriver: (state, action: PayloadAction<{ driverId: string; fights: number }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { driverId, fights } = action.payload;
+            if (!isTemporaryDriver(driverId)) return { run };
+            return { run: { ...run, tempDrivers: withTempDriver(run.tempDrivers, driverId, fights) } };
+        },
+
+        /**
+         * TICKET 168a — **an event node's choice was made.** Appends to `eventHistory` and does nothing
+         * else: the outcomes are dispatched separately (they touch the ranch slice too), and BEFORE
+         * this, so a crash in between leaves the event unresolved rather than paid and lost.
+         *
+         * Refused when this node already has an entry — that is the first-visit rule's teeth. The
+         * test is "this node has a resolved event", not `visited === 1`, so a player who closes the
+         * app mid-event gets the same event back on resume.
+         */
+        resolveEvent: (
+            state,
+            action: PayloadAction<{ nodeId: string; eventId: string; choiceId: string; grants: ReadonlyArray<'driver' | 'patch'> }>,
+        ): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            const { nodeId, eventId, choiceId, grants } = action.payload;
+            if ((run.eventHistory ?? []).some((entry) => entry.nodeId === nodeId)) return { run };
+            return {
+                run: {
+                    ...run,
+                    eventHistory: [...(run.eventHistory ?? []), { nodeId, eventId, choiceId, grants: [...grants] }],
                 },
             };
         },
@@ -997,7 +1405,8 @@ const runSlice = createSlice({
          */
         advanceGauntlet: (
             state,
-            action: PayloadAction<ReadonlyArray<{ memberId: string; hp: number }>>,
+            // TICKET 173a: `maxHp`, when the caller has it, turns on the between-fights repair.
+            action: PayloadAction<ReadonlyArray<{ memberId: string; hp: number; maxHp?: number }>>,
         ): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
@@ -1007,13 +1416,18 @@ const runSlice = createSlice({
 
             const persistedHp: Record<string, number> = { ...gauntlet.persistedHp };
             const downed = new Set(gauntlet.downedMemberIds);
+            const healedHp: Record<string, number> = {};
 
             for (const entry of action.payload) {
                 // Only the party. A battle can contain entities the run does not own (nothing does
                 // that today), and writing one into `persistedHp` would leave a key no member
                 // matches — harmless until the day something iterates it.
                 if (!run.partyIds.includes(entry.memberId)) continue;
-                const hp = Number.isFinite(entry.hp) ? Math.max(0, Math.floor(entry.hp)) : 0;
+                const left = Number.isFinite(entry.hp) ? Math.max(0, Math.floor(entry.hp)) : 0;
+                // TICKET 173a: standing members repair 30% of max HP between fights; the downed stay at 0.
+                const repair = entry.maxHp !== undefined ? healBetweenFights(left, entry.maxHp) : { hp: left, healed: 0 };
+                const hp = repair.hp;
+                if (entry.maxHp !== undefined) healedHp[entry.memberId] = repair.healed;
                 persistedHp[entry.memberId] = hp;
                 if (hp <= 0) downed.add(entry.memberId);
                 else downed.delete(entry.memberId);
@@ -1023,11 +1437,14 @@ const runSlice = createSlice({
                 run: {
                     ...run,
                     fightsResolved: run.fightsResolved + 1,
+                    tempDrivers: afterFight(run.tempDrivers),
                     gauntlet: {
-                        ...gauntlet,
                         fightIndex: gauntlet.fightIndex + 1,
+                        totalFights: gauntlet.totalFights,
                         persistedHp,
                         downedMemberIds: [...downed],
+                        // The last fight's repair is not this one's: rewritten each fight, never merged.
+                        ...(Object.keys(healedHp).length > 0 ? { healedHp } : {}),
                     },
                 },
             };
@@ -1112,6 +1529,7 @@ const runSlice = createSlice({
                     phase: 'map',
                     gauntlet: null,
                     fightsResolved: run.fightsResolved + 1,
+                    tempDrivers: afterFight(run.tempDrivers),
                 },
             };
         },
@@ -1207,21 +1625,33 @@ export const {
     addRunCollection,
     removeRunCard,
     buyMarketCard,
+    upgradeDeckCard,
+    fitPatch,
+    reflashMember,
+    startEventFight,
     // `removeRunCardForScrap` was exported here until 2026-08-26. Paid removal is deleted; free
     // editing at the four surfaces replaced it, and `sellRunCard` is the verb that pays.
     sellRunCard,
     moveCardToCollection,
     moveCardToDeck,
     swapBenchMember,
+    unbenchMember,
     benchPartyMember,
+    buyMarketBlueprint,
     rerollMarketStock,
+    freezeMarketParty,
     recruitIntoParty,
     recruitToBench,
     reflashEngine,
     buyMacro,
     grantMacro,
+    takeRewardMacro,
     consumeMacro,
     fireMapReveal,
+    revealCurrentBiome,
+    resolveEvent,
+    addTempDriver,
+    removeJunkCard,
     beginGauntlet,
     advanceGauntlet,
     reviveGauntletMember,

@@ -1,0 +1,48 @@
+/*
+ * EVENT NODE — ticket 168a. The shared shell (top bar, buttons, panel, card tile) is `runShell.css`;
+ * what is left here is one centred panel: the text, and a column of choice buttons.
+ */
+
+.ev-body {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 24px 18px;
+    min-height: 0;
+    overflow: auto;
+}
+
+.ev-panel { width: 100%; max-width: 640px; gap: 16px; align-self: flex-start; }
+
+.ev-text { font-size: 14px; line-height: 1.5; color: #c9d3de; margin: 0; }
+
+.ev-choices { display: flex; flex-direction: column; gap: 8px; }
+.ev-choices.ev-row { flex-direction: row; justify-content: center; }
+
+/* A choice is a real button with the label on top and what it does underneath. */
+.ev-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    padding: 10px 14px;
+}
+.ev-label { font-size: 13px; font-weight: 700; }
+.ev-detail { font-size: 11px; color: #9fb4c8; }
+.ev-choice:disabled .ev-detail { color: #6d7886; }
+
+.ev-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--cw));
+    gap: 14px;
+    justify-content: center;
+}
+.ev-cards .rs-card.picked { outline: 2px solid #ffd479; outline-offset: 2px; }
+
+.ev-destination { display: flex; gap: 8px; justify-content: center; }
+.ev-destination .rs-f[aria-pressed='true'] { color: #ffd479; border-color: #ffd479; }
+
+.ev-note { font-size: 13px; color: #ffd479; margin: 0; }
+
+.ev-choice.picked { outline: 2px solid #ffd479; outline-offset: 1px; }

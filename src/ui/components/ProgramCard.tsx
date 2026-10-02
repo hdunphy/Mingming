@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import type { ProgramData } from '../../engine/types';
 import CardKeywordChips from './CardKeywordChips';
+import { describeLegalTargets } from '../utils/targeting';
 import ElementMatchupHover from './ElementMatchupTooltip';
 import { getElementTextColor, getElementBadgeBg, badgeTextShadow, getElementAccent } from '../utils/contrastText';
 // Ticket 55: the icon/colour lookups moved to their own module so this file exports only a
@@ -31,11 +32,13 @@ interface Props {
     onRemove?: () => void;
     addDisabled?: boolean;
     removeDisabled?: boolean;
+    /** Ticket 145e: show the target chip under the name. The hand does; the shop does not. */
+    showTarget?: boolean;
     /** Optional: party members whose element matches this card — shown as tiny ×1.5 STAB dots. */
     stabMatches?: StabMatch[];
 }
 
-const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onContextMenu, showBadge, className = '', onAdd, onRemove, addDisabled, removeDisabled, stabMatches }) => {
+const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onContextMenu, showBadge, className = '', onAdd, onRemove, addDisabled, removeDisabled, showTarget, stabMatches }) => {
     const [tooltipPos, setTooltipPos] = React.useState<{ top: number; left: number } | null>(null);
     const isHovered = tooltipPos !== null;
     const hasHoverActions = Boolean(onAdd || onRemove);
@@ -133,6 +136,23 @@ const ProgramCard: React.FC<Props> = ({ data, count, isSelected, onClick, onCont
                     </span>
                 )}
             </div>
+
+            {/*
+              * TICKET 145e — THE TARGET CHIP, directly under the name.
+              *
+              * §2c's one addition to the card face, and the reason is the reveal lane: with every
+              * unit on the board at once, "who does this hit" stopped being obvious from the fact
+              * that there was one enemy. `describeLegalTargets` is the same predicate
+              * `targetVerdict` refuses a drop with, so the chip and the refusal can never disagree
+              * about what a card may be aimed at.
+              *
+              * Opt-in via `showTarget` rather than always on: the marketplace, the codex and the
+              * ranch all draw this card to answer "what does it do", and only the hand answers
+              * "where can I put it".
+              */}
+            {showTarget && (
+                <div className="card-target-chip">{describeLegalTargets(data)}</div>
+            )}
 
             <CardKeywordChips data={data} />
 

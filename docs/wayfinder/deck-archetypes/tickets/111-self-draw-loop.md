@@ -1,5 +1,7 @@
 # Ticket 111 — a 0-cost card can draw itself forever, in four cards across seven shipped decks
 
+> **Status: CLOSED 2026-09-08** — done — fixed. Henry ruling stands: players may break decks, base enemy decks may not loop. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 **Status:** OPEN. Diagnosed and reproduced 2026-08-21 on `legion/balance`. **No engine change made** —
 the fix waits until ticket 110's probe has finished measuring, so an engine edit cannot contaminate it.
 **Needs no ruling from Henry**; it is a correctness bug, not a balance decision.

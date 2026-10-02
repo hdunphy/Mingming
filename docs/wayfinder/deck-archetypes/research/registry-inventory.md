@@ -170,3 +170,109 @@ Two cards left a deck for the first time in ticket 55 and landed here:
 on turn T is gone before the applier's turn T+1, because `StunnedBehavior.endTurn` always returns
 `null`), and kept it as a drop-only card. `entangle` and `stunning_strike` above carry the same
 mechanic and have never been re-checked against that finding.
+
+
+## Triage (ticket 59)
+
+*Read at the shipped registry on 2026-09-08, 239 cards.*
+
+**THE LIST ABOVE IS STALE, AND RE-DERIVING IT IS THE FIRST FINDING.** The inventory was
+generated at registry `1:b66be225` for ticket 55; since then 136 rebuilt eleven decks, 140
+added three cards, 141 moved `sun_devourer`, 143 added two, and the registry has grown 213 →
+239. Walking the shipped deck lists and start kits now gives **71 non-token cards in no deck**,
+not 53. Everything below is computed from the JSON, per the ticket's first rule.
+
+**THE SECOND FINDING IS THE ONE THAT MATTERS: not one of them is unreachable.**
+`isRewardable` is false for **0** of the 71. Henry's 2026-08-28 ruling — *"the main 5
+should be any card from your element not just your deck"* — made `rewardCardPool` the party's
+ELEMENTS rather than its deck lists, and the sixteen playable species between them cover all
+eight real elements. So a card in no deck is not dead weight; it is **draft-pool content by
+construction**, which is what this document's own introduction guessed a month before the
+ruling made it true.
+
+That is why there are **no KILL-CANDIDATE rows below**. The ticket asks for orphaned
+mechanics whose enabler never shipped; under the element pool there is no such thing as an
+orphaned card, only a card no starting deck happens to run. The rows worth Henry's time are
+the REWORK-CANDIDATEs, and there are 17.
+
+| recommendation | count |
+|---|---|
+| KEEP-DRAFT | 32 |
+| KEEP-FLAGGED | 19 |
+| RETIRED-TWIN | 3 |
+| REWORK-CANDIDATE | 17 |
+
+| id | name | cost/element | in-game text | score vs band | recommendation | rationale |
+|---|---|---|---|---|---|---|
+| `aegis` | Aegis | 1e Light | Gain StableOS (CC immunity for a turn). | 1.80 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `ash_reclamation` | Ash Reclamation | 1e Fire | Consume Burn. Heal with 30 power per stack consumed. | 1.70 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `bloodlust` | Bloodlust | 1e Fire | 13 power. +0.35 power per 1% of your max HP missing (max 50%). | 3.10 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `chorus` | Chorus | 1e Nature | Draw 1. Apply 1 Sharp to side. | 2.10 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `cold_snap` | Cold Snap | 1e Ice | 8 power. Apply 2 Weakened. Draw a card. | 2.90 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `creeping_dread` | Creeping Dread | 2e Dark | 8 power to side. Apply 1 Weakened and 1 Dazed to side. Draw 2. | 5.90 / 5.2-6.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `dawns_respite` | Dawn's Respite | 1e Dark | Heal with 25 power. Shift into Light Stance: -45% damage taken while it holds. | 3.00 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `drain_life` | Drain Life | 2e Dark | 22 power. Heal with 60 power. | 6.30 / 5.2-6.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `dust_devil` | Dust Devil | 1e Air | 25 power. Apply 1 Dazed. | 3.00 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `ember_mend` | Ember Mend | 0e Fire | Heal 2.5% of your max HP. | 0.70 / 0.8-1 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `equilibrium` | Equilibrium | 1e Nature | If health > 50%, 3 Strength. Else heal with 40 power. | 1.90 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `gale_slash` | Gale Slash | 1e Air | Deal 11 power x2 hits. | 2.20 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `hallow` | Hallow | 1e Light | Gain 2 Strengthened. Heal with 15 power. | 1.90 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `heat_wave` | Heat Wave | 2e Fire | Double a side's Burn stacks. | 5.60 / 5.2-6.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `ink_cloud` | Ink Cloud | 2e Water | 18 power to side. Apply 2 Dazed to side. | 6.20 / 5.2-6.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `natures_touch` | Nature's Touch | 1e Nature | Heal your side with 15 power. | 2.50 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `night_terror` | Night Terror | 2e Dark | 54 power. Apply 2 Weakened. | 6.10 / 5.2-6.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `nightfall_edge` | Nightfall Edge | 1e Dark | 9 power. Shift into Dark Stance: +45% damage while it holds. | 2.30 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `overgrowth` | Overgrowth | 1e Nature | Apply 3 Regen. | 3.60 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `photosynthesis_v2` | Photosynthesis | 1e Nature | Gain 1 Energy next turn. | 3.20 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `rejuvenation` | Rejuvenation | 1e Nature | Draw a card. Heal with 25 power. | 3.00 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `shatter` | Shatter | 1e Ice | 19 power. +15 power if target is Stunned. | 2.90 / 2.4-3 | **KEEP-DRAFT** | Documented intentional keep (ticket 50 / ticket 55). |
+| `sky_dance` | Sky Dance | 1e Air | Deal 8 power x3 hits. | 2.40 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `slag_shed` | Slag Shed | 1e Earth | Remove 2 Poison and 2 Burn from yourself. | 3.00 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `spike_launch` | Spike Launch | 1e Earth | 15 power. +5 power per Sharp stack you have. | 1.50 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `spreading_rot` | Spreading Rot | 1e Water | 2 stacks of Poison to side. | 2.00 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `tidal_wave_v2` | Tidal Wave | 3e Water | 45 power to side. | 9.90 / 8.4-10.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `tide_reading` | Tide Reading | 1e Water | Read the tides: draw 2 cards. | 2.30 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `toxic_cloud` | Toxic Cloud | 3e Water | 5 stacks of Poison to side. | 9.90 / 8.4-10.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `trample` | Trample | 1e Air | 19 power. If you are Strengthened, draw a card. | 2.80 / 2.4-3 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `uplift` | Uplift | 2e Light | Strengthen side by 2 stacks. Heal side with 26 power. | 5.20 / 5.2-6.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `winters_grasp` | Winter's Grasp | 2e Ice | 22 power to side. Apply 2 Weakened to side. | 6.40 / 5.2-6.5 | **KEEP-DRAFT** | In band or within 1.0 of it, and its element's pool can offer it — draft material by construction. |
+| `berserk_rush` | Berserk Rush | 1e Fire | 17 power. +17 power if you are below 50% HP. | 2.90 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by CustomFirmware.ts. The ticket's rule: a referenced card is never a kill. |
+| `cinder_slash` | Cinder Slash | 1e Fire | 1 Strength if target is burned. 21 power attack. | 2.40 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by battleFactories.ts. The ticket's rule: a referenced card is never a kill. |
+| `dark_pact` | Dark Pact | 0e Dark | Gain 1 Strength. Lose 3% of your max HP. | -0.40 / 0.8-1 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by Hooks.ts. The ticket's rule: a referenced card is never a kill. |
+| `discharge` | Discharge | 1e None | Remove up to 4 Strengthened from the target. Apply 1 Burn per 2 removed. | -1.30 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by daemonHooks.ts, marketplace.ts. The ticket's rule: a referenced card is never a kill. |
+| `drip_feed` | Drip Feed | 2e None | Daemon: At the end of your turn, each poisoned ally gains 1 Regen. | 5.90 / 5.2-6.5 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by HookFactory.ts, HookTypes.ts, HookSchema.ts, daemonHooks.ts, hooks.json, marketplace.ts. The ticket's rule: a referenced card is never a kill. |
+| `einherjar_standard` | Einherjar Standard | 2e Light | Daemon: for every other active Mingming on your side, your Light attacks deal +10% damage. | 0.00 / 5.2-6.5 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by CustomFirmware.ts, daemonHooks.ts, hooks.json. The ticket's rule: a referenced card is never a kill. |
+| `feedback_loop_daemon` | FEEDBACK_LOOP | 1e Water | Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count. | 3.20 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by battleFactories.ts, daemonHooks.ts, hooks.json. The ticket's rule: a referenced card is never a kill. |
+| `fire_poke` | Fire Poke | 1e Fire | 22 power. Apply 1 Burn. | 3.10 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by battleFactories.ts. The ticket's rule: a referenced card is never a kill. |
+| `fire_punch_v2` | Fire Punch | 1e Fire | 30 power. | 3.00 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by battleFactories.ts. The ticket's rule: a referenced card is never a kill. |
+| `harden_daemon` | Harden | 1e None | Daemon: Gain 1 Sharp. | 1.60 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by marketplace.ts. The ticket's rule: a referenced card is never a kill. |
+| `hoarders_cache` | Hoarder's Cache | 2e Nature | Return every 0-cost card from your discard pile to your hand, up to your hand limit. | 0.00 / 5.2-6.5 | **KEEP-FLAGGED** | The SCORER cannot read it, not the card that is weak — rev 3.6's "the static score is a FLOOR, not a price". Evidence for ticket 149. |
+| `poison_injection` | Poison Injection | 0e Water | Add one stack of Poison. | 0.30 / 0.8-1 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by battleFactories.ts. The ticket's rule: a referenced card is never a kill. |
+| `purify` | Purify | 1e Light | Remove 1 Poison, 1 Burn, 2 Weakened and 2 Dazed from yourself. | 3.30 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by Hooks.ts, bosses.ts. The ticket's rule: a referenced card is never a kill. |
+| `reprogram` | Reprogram | 2e Water | Play last card again. | 0.00 / 5.2-6.5 | **KEEP-FLAGGED** | The SCORER cannot read it, not the card that is weak — rev 3.6's "the static score is a FLOOR, not a price". Evidence for ticket 149. |
+| `scavenge_data` | Scavenge Data | 1e Water | Draw Water card. | 0.00 / 2.4-3 | **KEEP-FLAGGED** | The SCORER cannot read it, not the card that is weak — rev 3.6's "the static score is a FLOOR, not a price". Evidence for ticket 149. |
+| `scorch` | Scorch | 2e Fire | 25 power. Apply 3 Burn. | 5.50 / 5.2-6.5 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by battleFactories.ts. The ticket's rule: a referenced card is never a kill. |
+| `scrubber` | Scrubber | 2e None | Daemon: At the end of your turn, remove 1 Poison from each ally. | -1.60 / 5.2-6.5 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by daemonHooks.ts, hooks.json, marketplace.ts. The ticket's rule: a referenced card is never a kill. |
+| `thistle_barrage` | Thistle Barrage | 1e Nature | Deal 8 power x4 hits. | 3.20 / 2.4-3 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by battleFactories.ts. The ticket's rule: a referenced card is never a kill. |
+| `vent` | Vent | 0e None | Remove 3 Poison from an ally. | -1.60 / 0.8-1 | **KEEP-FLAGGED** | Live content whatever no deck runs it — named by daemonHooks.ts, marketplace.ts. The ticket's rule: a referenced card is never a kill. |
+| `frost_jab` | Frost Jab | 0e Ice | 10 power. | 1.00 / 0.8-1 | **RETIRED-TWIN** | Ticket 04 retired the poke twins into `water_slap`. Supposed to be here. |
+| `hoarfrost` | Hoarfrost | 0e Ice | 6 power. Apply 1 Weakened. | 1.00 / 0.8-1 | **RETIRED-TWIN** | Ticket 04 retired the poke twins into `water_slap`. Supposed to be here. |
+| `rock_throw` | Rock Throw | 0e Earth | 10 power. | 1.00 / 0.8-1 | **RETIRED-TWIN** | Ticket 04 retired the poke twins into `water_slap`. Supposed to be here. |
+| `acid_splash` | Acid Splash | 1e Water | Add 1 stack of Poison + 1 Dazed. | 0.80 / 2.4-3 | **REWORK-CANDIDATE** | Under its 1e band by 1.60 with the scorer able to read it. |
+| `battery_pack` | Battery Pack | 4e Water | Daemon: Max Energy +1. | 4.90 / 8.4-10.5 | **REWORK-CANDIDATE** | Under its 4e band by 3.50 with the scorer able to read it. |
+| `cinder_armor_daemon` | CINDER_ARMOR | 2e Fire | Daemon: Cards that add burn also add 1 Sharp to host. | 1.60 / 5.2-6.5 | **REWORK-CANDIDATE** | Under its 2e band by 3.60 with the scorer able to read it. |
+| `core_overclock_daemon` | CORE_OVERCLOCK | 2e Fire | Daemon: +20% damage per stack of Strength (max 8 stacks). | 0.00 / 5.2-6.5 | **REWORK-CANDIDATE** | TEXT DISAGREES WITH THE ENGINE — three descriptions, none matching: the card says "+20% per stack (max 8 stacks)", `hooks.json` says "Strength bonus is doubled", and the engine multiplies `1 + 0.2n` UNCAPPED since 136h retired `STRENGTH_STACK_CAP` — x2.8 at 9 Strength, x5.0 at 20. Henry's standing rule is no hidden math. |
+| `cyclone` | Cyclone | 2e Air | 18 power to side. | 4.00 / 5.2-6.5 | **REWORK-CANDIDATE** | Under its 2e band by 1.20 with the scorer able to read it. |
+| `entangle` | Entangle | 3e Nature | Stun whole side. | 12.10 / 8.4-10.5 | **REWORK-CANDIDATE** | Over its 3e band by 1.60 with the scorer able to read it. |
+| `fertile_ground_daemon` | FERTILE_GROUND | 2e Nature | Daemon: Draw extra card each turn. | 7.60 / 5.2-6.5 | **REWORK-CANDIDATE** | Over its 2e band by 1.10 with the scorer able to read it. |
+| `inferno` | Inferno | 2e Fire | Apply 2 Burn to whole side. | 4.00 / 5.2-6.5 | **REWORK-CANDIDATE** | Under its 2e band by 1.20 with the scorer able to read it. |
+| `overheat` | Overheat | 3e Fire | 75 power + 1 Burn self. | 6.70 / 8.4-10.5 | **REWORK-CANDIDATE** | Under its 3e band by 1.70 with the scorer able to read it. |
+| `reactive_plating` | Reactive Plating | 2e None | Daemon: When an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 Sharp granted per turn. | 1.60 / 5.2-6.5 | **REWORK-CANDIDATE** | Under its 2e band by 3.60 with the scorer able to read it. |
+| `riptide` | Riptide | 2e None | Daemon: whenever an enemy plays a card, deal 8 power to it. | 3.80 / 5.2-6.5 | **REWORK-CANDIDATE** | Under its 2e band by 1.40 with the scorer able to read it. |
+| `scry` | Scry | 2e Light | Draw 2 cards and gain 2 Sharp. | 2.90 / 5.2-6.5 | **REWORK-CANDIDATE** | Under its 2e band by 2.30 with the scorer able to read it. |
+| `short_circuit` | Short Circuit | 2e None | Daemon: whenever an enemy draws a card outside its draw phase, deal 15 power to it. | 7.60 / 5.2-6.5 | **REWORK-CANDIDATE** | Over its 2e band by 1.10 with the scorer able to read it. |
+| `sleep_powder` | Sleep Powder | 1e Nature | Apply Sleep. | 4.50 / 2.4-3 | **REWORK-CANDIDATE** | Over its 1e band by 1.50 with the scorer able to read it. |
+| `stunning_strike` | Stunning Strike | 2e Nature | 29 power + Stun. | 8.40 / 5.2-6.5 | **REWORK-CANDIDATE** | Over its 2e band by 1.90 with the scorer able to read it. |
+| `tidal_battery` | Tidal Battery | 2e Water | Side gains 1 Energy next turn. | 7.70 / 5.2-6.5 | **REWORK-CANDIDATE** | Over its 2e band by 1.20 with the scorer able to read it. |
+| `tremor` | Tremor | 2e Earth | 18 power to side. | 4.00 / 5.2-6.5 | **REWORK-CANDIDATE** | Under its 2e band by 1.20 with the scorer able to read it. |
+

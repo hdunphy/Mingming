@@ -21,7 +21,7 @@ import { Provider } from 'react-redux';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import CombatLog from './CombatLog';
-import { visibleEntries, isPinnedToBottom, EXPANDED_ENTRY_COUNT } from './combatLogModel';
+import { visibleEntries, isPinnedToBottom } from './combatLogModel';
 import battleSliceReducer from '../store/battleSlice';
 import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
@@ -46,31 +46,37 @@ function renderWith(logs: string[]): string {
     return renderToStaticMarkup(<Provider store={store}><CombatLog /></Provider>);
 }
 
-describe('143c — the log opens collapsed and shows the newest line', () => {
-    it('renders the strip, not the panel, on first mount', () => {
+/*
+ * SUPERSEDED BY 145c, FINISHED 2026-09-10. This block used to assert that a collapsed log renders
+ * its own `.log-strip` carrying the newest line. 145c moved that surface to the top bar and left
+ * this component still drawing it, so both appeared - Henry, 2026-09-10: *"The combat log is
+ * duplicated."* `.combat-log-container` is `position: absolute; top: 0` centred, the same place the
+ * bar's latest-line button sits, so the newest line was printed twice, one over the other.
+ *
+ * The contract now: COLLAPSED DRAWS NOTHING. The bar is the collapsed state; this component is the
+ * panel and only the panel. What the bar shows is `BattleTopBar.latestLogLine`'s business.
+ */
+describe('145c — collapsed draws nothing; the top bar is the collapsed surface', () => {
+    it('renders no container at all on first mount', () => {
         const html = renderWith(['first thing', 'second thing', 'the newest thing']);
-        expect(html).toContain('log-strip');
+        expect(html).toBe('');
+    });
+
+    it('does not print the newest line — that would be the duplicate', () => {
+        const html = renderWith(['first thing', 'second thing', 'the newest thing']);
+        expect(html).not.toContain('the newest thing');
+        expect(html).not.toContain('log-strip');
         expect(html).not.toContain('log-messages');
     });
 
-    it('the strip carries the NEWEST entry and only that one', () => {
-        const html = renderWith(['first thing', 'second thing', 'the newest thing']);
-        expect(html).toContain('the newest thing');
-        expect(html).not.toContain('first thing');
-        expect(html).not.toContain('second thing');
+    it('draws nothing before the first action either', () => {
+        // The "awaiting first action" placeholder belongs to the bar now, for the same reason.
+        expect(renderWith([])).toBe('');
     });
 
-    it('says something rather than nothing before the first action', () => {
-        // An empty strip is indistinguishable from a broken one, and a battle opens with no logs.
-        const html = renderWith([]);
-        expect(html).toContain('log-strip');
-        expect(html).toContain('awaiting first action');
-    });
-
-    it('is collapsed for the ENEMY turn too — the state is per session, never persisted', () => {
-        // Two independent mounts, because a persisted toggle would make the second one expanded.
-        expect(renderWith(['a'])).toContain('log-strip');
-        expect(renderWith(['a', 'b'])).toContain('log-strip');
+    it('stays closed across mounts — the state is per session, never persisted', () => {
+        expect(renderWith(['a'])).toBe('');
+        expect(renderWith(['a', 'b'])).toBe('');
     });
 });
 
@@ -81,11 +87,38 @@ describe('143c — which entries the panel shows', () => {
         expect(visibleEntries(many, true)).toEqual([entry(29)]);
     });
 
-    it('expanded: the last 8, oldest first so the newest sits at the bottom', () => {
+    it('expanded: the WHOLE fight, oldest first so the newest sits at the bottom', () => {
+        /*
+         * This asserted the last EIGHT until 2026-09-22. Henry: *"the enemy played like 10 cards
+         * that I don't see in the log. Does it trim it?"* It did. Ten card plays is upwards of
+         * twenty lines, so the turn he was trying to read was gone before he opened the panel.
+         *
+         * The cap was also defeating the scrolling 143c asked for in the same sentence: eight
+         * entries in a scroll box have nothing to scroll to. `.log-messages` is a fixed-height
+         * `overflow-y: auto`, so the entry count never controlled the panel's SIZE - only how
+         * far back a reader could go.
+         */
         const shown = visibleEntries(many, false);
-        expect(shown).toHaveLength(EXPANDED_ENTRY_COUNT);
-        expect(shown[0]).toEqual(entry(22));
+        expect(shown).toHaveLength(many.length);
+        expect(shown[0]).toEqual(entry(0));
         expect(shown[shown.length - 1]).toEqual(entry(29));
+    });
+
+    it('keeps a full enemy turn, which is the case that reported this', () => {
+        // Ten card plays at two lines each, inside a fight that had already run a while. Under
+        // the old slice, none of the plays survived to be read.
+        const fight = Array.from({ length: 40 }, (_, i) => entry(i));
+        const enemyTurn = Array.from({ length: 20 }, (_, i) => entry(40 + i));
+        const shown = visibleEntries([...fight, ...enemyTurn], false);
+
+        for (const line of enemyTurn) expect(shown).toContainEqual(line);
+        // And the turn before it is still reachable, so "what happened" is not one turn deep.
+        expect(shown).toContainEqual(entry(0));
+    });
+
+    it('does not hand back the caller own array, which a scroll effect could mutate', () => {
+        const source = [entry(0), entry(1)];
+        expect(visibleEntries(source, false)).not.toBe(source);
     });
 
     it('a short fight shows what there is, without padding', () => {

@@ -1,5 +1,7 @@
 # Art direction and budget: AI-assisted vs commissioned, disclosure, what cards look like (ticket 32)
 
+> **2026-09-29: RULING 2 REVERSED (Henry). No AI art ships.** Early Access is six species (ticket 05, 2026-09-22), four of which are already the commissioned heroes, so all six are commissioned: Fenrir, Ratatoskr, Kraken and Jörmungandr, plus Sköll and Huldra. The AI species set is cancelled. The three current PNGs (Fenrir, Kraken, Ratatoskr) are AI-generated and are placeholders only: they must not appear on the store page, in screenshots or in the trailer, and the commissions replace them. The ten post-EA species are commissioned from revenue. Budget: ~$375–390 for six species plus ~$250 for the capsule, about $625–650 against the original $500. **AI-drafted in-game text stays and is disclosed** (Henry: "For now plan to disclose"); see ticket 45 for the text.
+
 - Type: wayfinder:grilling
 - Status: closed
 - Assignee: wayfinder (Henry grilling session)
@@ -28,3 +30,7 @@ _(open)_
 4. **Neon Industrial is CONFIRMED** as the direction for capsule brief, species prompts and UI theming; Art_Prompts.md's counts are stale (Surtr, 114 cards) - content refreshes, direction stands.
 
 Tickets 33/34/45 are sized by this; the disclosure text drafts in ticket 45.
+
+**Amended 2026-09-29:** ruling 2 is reversed; see the note at the top.
+
+**Amended 2026-09-29 (Henry): ruling 4 refined.** From three concept directions (cyberpunk high-tech, bio-engineered elemental, Pokémon-inspired stylized), the style is **stylized creature-collector shapes with Neon Industrial accents**: chunky, readable, collectible silhouettes; dark metal plating with seams; one dominant glowing element colour per creature; Norse motifs. Neon Industrial stands as the accent layer rather than the whole look. The full brief is `research/33-hero-commission-brief.md`.

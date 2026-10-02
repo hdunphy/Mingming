@@ -1,0 +1,65 @@
+# 162c at 3v3 — six comps from collection v2's own partner map, 1 iterations a pair, both turn orders
+
+  strength      skoll_v1 + fenrir_v1 + huldra_v1
+                 Sköll v1 makes Strength (Howl, TREACHERY), Fenrir v1 spends it; Huldra v1 Weakens the attackers so the recoil deck lives
+  detonation    skoll_v2 + fenrir_v2 + kraken_v2
+                 Sköll v2 adds Burn, Fenrir v2 turns every Burn into Sharp, Kraken v2's steam pre-loads the pile
+  water-engine  jormungandr_v1 + kraken_v1 + ratatoskr_v1
+                 Undertow serves both OUROBOROS and ABYSSAL_INK; Rat v1's 0e Water cards proc all three
+  poison        jormungandr_v2 + huldra_v2 + ratatoskr_v2
+                 Huldra v2's Thornguard and Rat v2's Dazed both feed TOXIN_FANG's per-stack attacks
+  dazed         kraken_v1 + ratatoskr_v2 + huldra_v1
+                 Two Dazed engines and one Crushing Depths; Huldra v1's Weakened is the second currency
+  keeper        huldra_v1 + ratatoskr_v1 + fenrir_v1
+                 GOSSIP heals the HP the berserker spends; Bolster's Sharp lands on whoever is being hit
+
+  strength      vs detonation      0/2   =   0.0%   avgTurns 3.0   70s
+  strength      vs water-engine    0/2   =   0.0%   avgTurns 2.5   364s
+  strength      vs poison          0/2   =   0.0%   avgTurns 4.5   744s
+  strength      vs dazed           2/2   = 100.0%   avgTurns 6.5   1287s
+  strength      vs keeper          0/2   =   0.0%   avgTurns 4.0   1603s
+  detonation    vs water-engine    0/2   =   0.0%   avgTurns 2.5   1711s
+  detonation    vs poison          2/2   = 100.0%   avgTurns 4.5   1764s
+  detonation    vs dazed           2/2   = 100.0%   avgTurns 4.5   1825s
+  detonation    vs keeper          2/2   = 100.0%   avgTurns 3.5   1919s
+  water-engine  vs poison          0/2   =   0.0%   avgTurns 7.0   2219s
+  water-engine  vs dazed           1/2   =  50.0%   avgTurns 4.5   2556s
+  water-engine  vs keeper          2/2   = 100.0%   avgTurns 3.5   2715s
+  poison        vs dazed           2/2   = 100.0%   avgTurns 3.5   3003s
+  poison        vs keeper          2/2   = 100.0%   avgTurns 4.0   3238s
+  dazed         vs keeper          1/2   =  50.0%   avgTurns 5.5   3453s
+
+
+## Comp field win rate — each against the other five
+
+  detonation     80.0%   (10 games)
+  poison         80.0%   (10 games)
+  water-engine   70.0%   (10 games)
+  keeper         30.0%   (10 games)
+  strength       20.0%   (10 games)
+  dazed          20.0%   (10 games)
+
+
+## Solitaire — what a body is worth alone (§7's 1v1) against the comp that wants it
+
+  member               1v1    comp   carried by
+  skoll_v1            11.7    20.0  +8.3  strength
+  fenrir_v1           69.9    20.0  -49.9  strength
+  huldra_v1           33.6    20.0  -13.6  strength
+  skoll_v2            66.9    80.0  +13.1  detonation
+  fenrir_v2           79.3    80.0  +0.7  detonation
+  kraken_v2           75.2    80.0  +4.8  detonation
+  jormungandr_v1      20.9    70.0  +49.1  water-engine
+  kraken_v1           45.7    70.0  +24.3  water-engine
+  ratatoskr_v1        80.5    70.0  -10.5  water-engine
+  jormungandr_v2      62.6    80.0  +17.4  poison
+  huldra_v2           50.0    80.0  +30.0  poison
+  ratatoskr_v2        33.8    80.0  +46.2  poison
+  kraken_v1           45.7    20.0  -25.7  dazed
+  ratatoskr_v2        33.8    20.0  -13.8  dazed
+  huldra_v1           33.6    20.0  -13.6  dazed
+  huldra_v1           33.6    30.0  -3.6  keeper
+  ratatoskr_v1        80.5    30.0  -50.5  keeper
+  fenrir_v1           69.9    30.0  -39.9  keeper
+
+  wall clock 3453s for 15 pairs

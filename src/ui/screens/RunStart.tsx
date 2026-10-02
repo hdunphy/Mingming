@@ -29,16 +29,23 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { rollSeed } from '../../engine/core/SeedStream';
-import { PARTY_SIZE, partyBlockFor } from '../../engine/party';
+import { partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
 import { gymSignatures } from '../../engine/run/gauntlet';
-import { offerGyms, type IGymOffer } from '../../engine/run/gyms';
+import { TIERS, tierRule } from '../../engine/run/tiers/tierRegistry';
+import { leaderDriverTierLine } from '../../engine/run/tiers/tierText';
+import { clearsByGym, modifiersUnlocked, unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
+import { MODIFIERS } from '../../engine/run/modifiers/modifierRegistry';
+import { offerGyms, pathElementsFor, type IGymOffer } from '../../engine/run/gyms';
 import type { IRanchMember } from '../../engine/runTypes';
 import { startRun } from '../store/runSlice';
 import type { RootState } from '../store/store';
 import { playSfx } from '../audio/AudioEngine';
 import { Icon } from '../theme/Icon';
+import ModifierChip from '../components/ModifierChip';
+import DraftStart from './DraftStart';
+import { RUN_START_PARTY_TEXT } from './partyRuleText';
 
 /**
  * The offer screen is rolled ONCE per visit and held in component state.
@@ -58,6 +65,26 @@ export default function RunStart(): ReactNode {
     const offers = useOfferScreen();
     const [chosen, setChosen] = useState<IGymOffer | null>(null);
     const [partyIds, setPartyIds] = useState<string[]>([]);
+    const ranch = useSelector((s: RootState) => s.game);
+
+    /*
+     * TICKET 169e — THE TIER PICKER. Tier 0 is always open; a clear at tier N opens tier N+1 for every
+     * gym (`tierUnlocks`). The screen opens on the HIGHEST unlocked tier (default D3), and the choice
+     * is component state like `chosen`: not saved, so a new visit opens on the highest again.
+     */
+    const unlocked = useMemo(() => unlockedTiers(ranch), [ranch]);
+    const clears = useMemo(() => clearsByGym(ranch), [ranch]);
+    const [pickedTier, setPickedTier] = useState<number | null>(null);
+    // Ticket 169f: the modifiers switched on. Locked until the first gym clear (default D2), and a
+    // locked ranch launches with none whatever this holds.
+    const modifiersOpen = modifiersUnlocked(ranch);
+    const [pickedModifiers, setPickedModifiers] = useState<string[]>([]);
+    const toggleModifier = (id: string): void => {
+        setPickedModifiers((held) => (held.includes(id) ? held.filter((m) => m !== id) : [...held, id]));
+        playSfx('uiClick');
+    };
+    const selectedTier =
+        pickedTier !== null && unlocked.includes(pickedTier) ? pickedTier : unlocked[unlocked.length - 1];
 
     const party = useMemo(
         () => partyIds.map((id) => roster.find((m) => m.id === id)).filter((m): m is IRanchMember => !!m),
@@ -79,15 +106,39 @@ export default function RunStart(): ReactNode {
         playSfx('uiClick');
     };
 
+    /**
+     * TICKET 169i: with Draft Start on, Launch opens the draft instead of starting the run. The seed
+     * is rolled ONCE, here, and held, so the draft's offers and the run that follows share it. It is
+     * component state and nothing else: Back (or closing the app) throws the draft away.
+     */
+    const [draftSeed, setDraftSeed] = useState<string | null>(null);
+    // Ticket 169f: only what is switched on, and only once modifiers are unlocked.
+    const activeModifierIds = modifiersOpen ? MODIFIERS.map((m) => m.id).filter((id) => pickedModifiers.includes(id)) : [];
+
     const launch = (): void => {
         if (!chosen || party.length === 0) return;
-        // The run seed is rolled here and threaded through everything downstream — the graph, the
+        if (activeModifierIds.includes('draft_start')) {
+            setDraftSeed(rollSeed());
+            playSfx('uiClick');
+            return;
+        }
+        startWith(rollSeed());
+    };
+
+    const startWith = (seed: string, startKitOverrides?: Record<string, string[]>): void => {
+        if (!chosen) return;
+        // The run seed is rolled at launch and threaded through everything downstream — the graph, the
         // card instance ids, and (later) encounter contents. One roll, so a run replays from one
         // string. `startedAt` is injected for the same reason the engine never calls `Date.now()`:
         // a module that reads the clock cannot be tested deterministically.
         dispatch(startRun(createRun({
-            seed: rollSeed(),
+            seed,
             offer: chosen,
+            // Ticket 169e: the tier picked above. It is fixed for the whole run.
+            tier: selectedTier,
+            modifiers: activeModifierIds,
+            // Ticket 169i: the drafted kits, when Draft Start is on.
+            startKitOverrides,
             // Ticket 11: the roster holds `IRanchMember`s. `toMingmingState` adds the one field
             // combat's shape still demands — `blueprintsCollected`, which is vestigial; see its
             // doc comment.
@@ -96,6 +147,17 @@ export default function RunStart(): ReactNode {
         })));
         playSfx('breach');
     };
+
+    if (chosen && draftSeed !== null) {
+        return (
+            <DraftStart
+                seed={draftSeed}
+                party={party.map(toMingmingState)}
+                onDone={(kits) => startWith(draftSeed, kits)}
+                onBack={() => setDraftSeed(null)}
+            />
+        );
+    }
 
     if (roster.length === 0) {
         return (
@@ -127,6 +189,45 @@ export default function RunStart(): ReactNode {
                         the party second</strong> — the three offers always open on three different biomes,
                         so a counter is always available.
                     </p>
+                    <p className="ranch-note">
+                        {/* Ticket 142c: the four-link chain a player has to hold — biome decides who
+                            you fight, the fight drops the blueprint, the blueprint is what a workshop
+                            can build. Stated once, here, because the workshop is the end of that chain
+                            and has no element of its own to show. */}
+                        One wild in three is a <strong>rival</strong> walking the same road, and it fields
+                        the two elements that road needs rather than the biome&apos;s — so the blueprint
+                        for the body you are missing can be won in any biome, not just its own.
+                    </p>
+                    {/* Ticket 169e: the tier row. A locked tier is disabled and says how to open it. */}
+                    <div className="ranch-tier-picker" role="group" aria-label="Difficulty tier">
+                        <div className="ranch-tier-row">
+                            {TIERS.map((row) => {
+                                const open = unlocked.includes(row.tier);
+                                return (
+                                    <div key={row.tier} className="ranch-tier-slot">
+                                        <button
+                                            type="button"
+                                            className={`ranch-button ${selectedTier === row.tier ? '' : 'subtle'}`}
+                                            aria-pressed={selectedTier === row.tier}
+                                            disabled={!open}
+                                            onClick={() => { setPickedTier(row.tier); playSfx('uiClick'); }}
+                                        >
+                                            Tier {row.tier}
+                                        </button>
+                                        {!open && (
+                                            <span className="ranch-tier-lock">
+                                                Beat any gym on Tier {row.tier - 1} to unlock.
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="ranch-tier-blurb">
+                            <strong>{tierRule(selectedTier).name}</strong>
+                            <span>{tierRule(selectedTier).description}</span>
+                        </div>
+                    </div>
                     <div className="ranch-offer-grid">
                         {offers.map((offer) => (
                             <button
@@ -136,9 +237,12 @@ export default function RunStart(): ReactNode {
                                 onClick={() => { setChosen(offer); playSfx('uiClick'); }}
                             >
                                 <div className="ranch-offer-name">{offer.gym.name}</div>
-                                <div className="ranch-offer-meta">
-                                    {offer.gym.element} gym · tier {offer.gym.tier + 1}
-                                </div>
+                                {/* Ticket 169e: the tier is chosen in the row above, so the old "tier 1" label
+                                    (which counted from 1 while every other screen counts from 0) is gone. */}
+                                <div className="ranch-offer-meta">{offer.gym.element} gym</div>
+                                {(clears[offer.gym.id]?.length ?? 0) > 0 && (
+                                    <div className="ranch-offer-cleared">Cleared: {clears[offer.gym.id].join(' ')}</div>
+                                )}
                                 <ol className="ranch-offer-route">
                                     {offer.biomes.map((biome, i) => (
                                         <li key={biome.id}>
@@ -148,6 +252,28 @@ export default function RunStart(): ReactNode {
                                         </li>
                                     ))}
                                 </ol>
+                                {/*
+                                  * TICKET 142c — THE PAIR THE ROAD FIELDS, on the screen where the
+                                  * road is chosen.
+                                  *
+                                  * Ticket 68 ruling 4 put the leader's signature here and gave the
+                                  * reason: the route is the run's one irreversible choice, so what
+                                  * you need to answer it belongs on THIS screen and no later. The
+                                  * path pair is the same kind of fact — it is what one wild in three
+                                  * will field in every biome, and it is fully determined by the gym
+                                  * you are about to pick.
+                                  *
+                                  * Henry played the first Rootfall run and asked *"I thought I would
+                                  * see nature in the workshop somehow"*. Nothing on any screen had
+                                  * ever said the pair out loud, so the mechanic could only be found
+                                  * by walking into it and inferring it from an enemy party.
+                                  */}
+                                <div className="ranch-offer-path">
+                                    <span className="ranch-offer-path-label">Rivals field</span>
+                                    {pathElementsFor(offer.gym.element).map((element) => (
+                                        <span key={element} className="ranch-offer-element">{element}</span>
+                                    ))}
+                                </div>
                                 {/*
                                   * TICKET 68 ruling 4 — THE TELEGRAPH.
                                   *
@@ -165,6 +291,9 @@ export default function RunStart(): ReactNode {
                                             <span className="ranch-offer-driver-rule">{signature.description}</span>
                                         </div>
                                     ))}
+                                    {leaderDriverTierLine(selectedTier) && (
+                                        <div className="ranch-offer-tier-driver">{leaderDriverTierLine(selectedTier)}</div>
+                                    )}
                                 </div>
                             </button>
                         ))}
@@ -176,8 +305,7 @@ export default function RunStart(): ReactNode {
                 <>
                     <p className="ranch-note">
                         Opening biome: <strong>{chosen.biomes[0].name} ({chosen.biomes[0].elements.join(' / ')})</strong>.
-                        Up to {PARTY_SIZE} members, one per species. Each brings 8 cards — 5 from its kit and 3
-                        generics — and the whole party&apos;s cards form one shared deck.
+                        {RUN_START_PARTY_TEXT}
                     </p>
                     <div className="ranch-roster-grid">
                         {roster.map((member) => {
@@ -208,6 +336,22 @@ export default function RunStart(): ReactNode {
                                 </button>
                             );
                         })}
+                    </div>
+
+                    {/* Ticket 169f: opt-in run modifiers. They earn nothing but a label. */}
+                    <div className="ranch-modifier-row" role="group" aria-label="Run modifiers">
+                        <span className="ranch-modifier-title">Modifiers</span>
+                        {MODIFIERS.map((modifier) => (
+                            <ModifierChip
+                                key={modifier.id}
+                                name={modifier.name}
+                                description={modifier.description}
+                                on={modifiersOpen && pickedModifiers.includes(modifier.id)}
+                                disabled={!modifiersOpen}
+                                onToggle={() => toggleModifier(modifier.id)}
+                            />
+                        ))}
+                        {!modifiersOpen && <span className="ranch-modifier-lock">Beat a gym to unlock modifiers.</span>}
                     </div>
 
                     <div className="ranch-modal-actions">

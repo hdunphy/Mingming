@@ -92,6 +92,57 @@ export function cardFace(dataId: string): CardFace {
 }
 
 /**
+ * TICKET 163b — **an upgraded card's description, with the numbers that MOVED marked.**
+ *
+ * §4: *"the tile shows `+` after the name and the changed number in the element colour."* The `+`
+ * comes free — a `+` card's registry name already ends in one, so every surface that renders a
+ * name shows it without a line of UI. The changed NUMBER does not, and it is the half that answers
+ * the question a player actually has at a bench: *what did I just buy?*
+ *
+ * Derived from the two printings rather than from the card data, and that is the point. The data
+ * is where a number lives; the DESCRIPTION is what the player compares, and 163a's whole generator
+ * is built on the two agreeing (`descriptionData.test.ts` fails the build when they do not). So
+ * diffing the printed sentences highlights exactly what a player would have spotted by reading
+ * both, which is the thing being saved them.
+ *
+ * Positional, not a set difference: "15 power, three times" against "15 power, twice" must mark
+ * nothing about the 15. Numbers past the end of the base printing are new and always marked — that
+ * is Mend+'s *"and yourself with 10"*, a clause the base does not have.
+ *
+ * Returns the whole description as segments so a caller can render it in one pass; a card with no
+ * base (or no `+`) comes back as one unmarked segment, which renders identically to plain text.
+ */
+export interface DescriptionSegment {
+    readonly text: string;
+    readonly changed: boolean;
+}
+
+export function describeUpgrade(dataId: string): ReadonlyArray<DescriptionSegment> {
+    const data = ProgramRegistry[dataId];
+    const text = data?.description ?? '';
+    const base = data?.upgradeOf ? ProgramRegistry[data.upgradeOf]?.description : undefined;
+    if (base === undefined) return [{ text, changed: false }];
+
+    const NUM = /\d+(?:\.\d+)?/g;
+    const was = base.match(NUM) ?? [];
+    const segments: DescriptionSegment[] = [];
+    let cursor = 0;
+    let ordinal = 0;
+    for (const hit of text.matchAll(NUM)) {
+        const at = hit.index ?? 0;
+        // A number is MARKED when the base printed something else in that slot, or printed
+        // nothing there at all.
+        const changed = ordinal >= was.length || was[ordinal] !== hit[0];
+        if (at > cursor) segments.push({ text: text.slice(cursor, at), changed: false });
+        segments.push({ text: hit[0], changed });
+        cursor = at + hit[0].length;
+        ordinal += 1;
+    }
+    if (cursor < text.length) segments.push({ text: text.slice(cursor), changed: false });
+    return segments.length > 0 ? segments : [{ text, changed: false }];
+}
+
+/**
  * Group instances into one entry per unique `dataId` — Henry's duplicate amendment, *"one tile per
  * unique card, everywhere"*, applied at RENDER because the run must keep instances: a sale, a move
  * and the departure bookkeeping all key on `instanceId`.

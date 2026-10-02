@@ -48,7 +48,7 @@ function createMockState(): IBattleState {
             discard: [], exhaust: []
         },
         cardsPlayedThisTurn: 0,
-        activeRelics: []
+        activeDrivers: []
     };
 }
 

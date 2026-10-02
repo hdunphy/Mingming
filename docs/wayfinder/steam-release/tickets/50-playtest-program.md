@@ -1,5 +1,7 @@
 # Playtest program: Steam Playtest/keys, three rounds, bug triage loop (ticket 50)
 
+> **2026-09-24 — NOTE. Same as 25: the 20–25 deck gate stands (Henry: grow to about 20–25, mostly replacing); the scoresheet counts upgrades and patches; no removal verb.**
+
 - Type: wayfinder:task
 - Status: open
 - Assignee: 

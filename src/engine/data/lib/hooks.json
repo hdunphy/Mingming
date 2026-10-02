@@ -109,7 +109,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "spark",
+            "color": "#ff4d3d",
+            "at": "owner",
+            "note": "UNBOUND_KERNEL — the free attack"
+        }
     },
     "fenrir_v2": {
         "id": "fenrir_v2",
@@ -137,7 +143,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "ring",
+            "color": "#ff7a33",
+            "at": "owner",
+            "note": "CINDER_WALL — Sharp going up"
+        }
     },
     "kraken_v1": {
         "id": "kraken_v1",
@@ -165,7 +177,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "swirl",
+            "color": "#4aa8ff",
+            "at": "owner",
+            "note": "ABYSSAL_INK — Dazed ink"
+        }
     },
     "kraken_v2": {
         "id": "kraken_v2",
@@ -213,7 +231,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "rise",
+            "color": "#5fd97a",
+            "at": "target",
+            "note": "GOSSIP_NODE — on the ally healed"
+        }
     },
     "ratatoskr_v2": {
         "id": "ratatoskr_v2",
@@ -238,7 +262,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "arc",
+            "color": "#5fd97a",
+            "at": "owner-to-target",
+            "note": "INSTIGATOR — Dazed passed on"
+        }
     },
     "recursion_daemon": {
         "id": "recursion_daemon",
@@ -290,10 +320,10 @@
             }
         ]
     },
-    "core_overclock_daemon": {
-        "id": "core_overclock_daemon",
+    "core_overclock": {
+        "id": "core_overclock",
         "name": "CORE_OVERCLOCK",
-        "description": "Daemon: Strength bonus is doubled for the rest of battle.",
+        "description": "Daemon: +20% damage per stack of Strength. No cap.",
         "hooks": [
             {
                 "id": "daemon_double_strength",
@@ -307,8 +337,8 @@
             }
         ]
     },
-    "cinder_armor_daemon": {
-        "id": "cinder_armor_daemon",
+    "cinder_armor": {
+        "id": "cinder_armor",
         "name": "CINDER_ARMOR",
         "description": "Daemon: Cards that add burn also add 1 Sharp to host.",
         "hooks": [
@@ -335,8 +365,8 @@
             }
         ]
     },
-    "feedback_loop_daemon": {
-        "id": "feedback_loop_daemon",
+    "feedback_loop": {
+        "id": "feedback_loop",
         "name": "FEEDBACK_LOOP",
         "description": "Daemon: whenever an EFFECT draws you a card, hit a random enemy for 7 power. The draw-phase refill does not count.",
         "hooks": [
@@ -363,8 +393,8 @@
             }
         ]
     },
-    "hoofbeat_daemon": {
-        "id": "hoofbeat_daemon",
+    "hoofbeat": {
+        "id": "hoofbeat",
         "name": "HOOFBEAT_DAEMON",
         "description": "Daemon: whenever you play a 0-cost card, deal 8 damage to a random enemy.",
         "hooks": [
@@ -513,32 +543,51 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "rise",
+            "color": "#ffd24a",
+            "at": "owner",
+            "note": "TREACHERY_KERNEL — Strengthened motes"
+        }
     },
     "skoll_v2": {
         "id": "skoll_v2",
-        "name": "SOLAR_OVERDRIVE_OS",
-        "description": "Skoll's attacks deal +10% damage per stack of Strength she holds. No cap. Whenever an ally plays a Fire attack, Skoll gains 1 Strengthened.",
+        "name": "EMBER_FUSE",
+        "description": "Each of Sköll's hits on a Burning target applies 1 more Burn.",
         "hooks": [
             {
-                "id": "skoll_v2_solar_charge",
-                "trigger": "onActionStart",
+                "id": "skoll_v2_ember_fuse",
+                "trigger": "onPostDamage",
                 "priority": 40,
                 "when": {
-                    "source": "ALLY",
-                    "actionType": "ATTACK",
-                    "programElement": "Fire"
+                    "source": "SELF",
+                    "isAttack": true,
+                    "targetStatus": {
+                        "status": "Burn",
+                        "minStacks": 1
+                    }
                 },
                 "do": [
                     {
                         "type": "STATUS",
-                        "target": "SELF",
-                        "status": "Strengthened",
+                        "target": "TARGET",
+                        "status": "Burn",
                         "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s EMBER_FUSE feeds the fire on {target}!"
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "crack",
+            "color": "#ff6a1f",
+            "at": "target",
+            "note": "EMBER_FUSE — the detonation"
+        }
     },
     "jormungandr_v1": {
         "id": "jormungandr_v1",
@@ -630,24 +679,36 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "pulse",
+            "color": "#4aa8ff",
+            "at": "owner",
+            "note": "OUROBOROS — the loop closing on a draw"
+        }
     },
     "jormungandr_v2": {
         "id": "jormungandr_v2",
         "name": "TOXIN_FANG_OS",
-        "description": "Jörmungandr's venom coats his fangs: his attacks deal +10 damage per Poison stack on the target.",
+        "description": "Jörmungandr's venom coats his fangs: his attacks deal +4 power per Poison stack on the target.",
         "hooks": [
             {
                 "id": "jorm_v2_toxin_fang",
-                "trigger": "onDamageCalculated",
+                "trigger": "onPowerCalculated",
                 "priority": 40,
                 "when": {
                     "source": "SELF"
                 },
-                "bonus": 10,
+                "bonus": 4,
                 "scaling": "TARGET_POISON_STACKS"
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "drain",
+            "color": "#7ed957",
+            "at": "target-to-owner",
+            "note": "TOXIN_FANG — pulled off the bitten"
+        }
     },
     "gullinbursti_v1": {
         "id": "gullinbursti_v1",
@@ -688,7 +749,7 @@
         "hooks": [
             {
                 "id": "gullin_v2_ram",
-                "trigger": "onDamageCalculated",
+                "trigger": "onPowerCalculated",
                 "priority": 40,
                 "when": {
                     "source": "SELF",
@@ -837,13 +898,25 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "arc",
+            "color": "#5fd97a",
+            "at": "owner-to-target",
+            "note": "ALLURE_PROXY — the mirrored hex"
+        }
     },
     "huldra_v2": {
         "id": "huldra_v2",
         "name": "BARK_SHIELD_OS",
         "description": "At the end of Huldra's first turn, she raises a massive Bark Shield, and a smaller one around each ally.",
-        "hooks": []
+        "hooks": [],
+        "vfx": {
+            "shape": "crack",
+            "color": "#b58d4c",
+            "at": "owner",
+            "note": "BARK_SHIELD — when it breaks"
+        }
     },
     "ymir_v1": {
         "id": "ymir_v1",
@@ -970,7 +1043,13 @@
                     }
                 ]
             }
-        ]
+        ],
+        "vfx": {
+            "shape": "crack",
+            "color": "#ffd700",
+            "at": "owner",
+            "note": "REBIRTH_CYCLE — the reshuffle"
+        }
     },
     "audhumbla_v1": {
         "id": "audhumbla_v1",
@@ -1112,17 +1191,7 @@
         "id": "hel_v2",
         "name": "UNDERWORLD_GATEWAY",
         "description": "Hel's Dark spells cost 5% of her max HP per Energy of their printed cost instead of Energy. She can spend at most 25% of her max HP this way each turn.",
-        "hooks": [
-            {
-                "id": "hel_v2_lifeblood",
-                "trigger": "onHealCalculated",
-                "priority": 40,
-                "when": {
-                    "source": "SELF"
-                },
-                "multiplier": 1.0
-            }
-        ]
+        "hooks": []
     },
     "control_v1": {
         "id": "control_v1",
@@ -1523,6 +1592,1106 @@
                     {
                         "type": "LOG",
                         "text": "  💧 {owner}'s DRIP_FEED feeds the poisoned."
+                    }
+                ]
+            }
+        ]
+    },
+    "overclock_core": {
+        "id": "overclock_core",
+        "name": "OVERCLOCK_CORE",
+        "description": "Daemon (exhaust): Max Energy +1 for the rest of the battle."
+    },
+    "short_fuse": {
+        "id": "short_fuse",
+        "name": "SHORT_FUSE",
+        "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point.",
+        "hooks": [
+            {
+                "id": "short_fuse_discharge",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "currentEnergy": {
+                        "operator": "GT",
+                        "value": 0
+                    }
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 10,
+                        "element": "None",
+                        "scaling": "CURRENT_ENERGY"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SHORT_FUSE burns {target}'s hoarded charge!"
+                    }
+                ]
+            }
+        ]
+    },
+    "static_ward": {
+        "id": "static_ward",
+        "name": "STATIC_WARD",
+        "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power.",
+        "hooks": [
+            {
+                "id": "static_ward_arc",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 8,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s STATIC_WARD earths {target}'s interference!"
+                    }
+                ]
+            }
+        ]
+    },
+    "ember_ward": {
+        "id": "ember_ward",
+        "name": "EMBER_WARD",
+        "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn.",
+        "hooks": [
+            {
+                "id": "ember_ward_retort",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "isAttack": true
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Burn",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s EMBER_WARD scorches {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "short_fuse+": {
+        "id": "short_fuse+",
+        "name": "SHORT_FUSE+",
+        "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 15 power per point.",
+        "hooks": [
+            {
+                "id": "short_fuse_discharge+",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "currentEnergy": {
+                        "operator": "GT",
+                        "value": 0
+                    }
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 15,
+                        "element": "None",
+                        "scaling": "CURRENT_ENERGY"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SHORT_FUSE burns {target}'s hoarded charge!"
+                    }
+                ]
+            }
+        ]
+    },
+    "riptide+": {
+        "id": "riptide+",
+        "name": "RIPTIDE+",
+        "description": "Daemon (exhaust): whenever an enemy plays a card, deal 11 power to it.",
+        "hooks": [
+            {
+                "id": "riptide_undertow+",
+                "trigger": "onActionEnd",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 11,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s RIPTIDE drags {target} back!"
+                    }
+                ]
+            }
+        ]
+    },
+    "short_circuit+": {
+        "id": "short_circuit+",
+        "name": "SHORT_CIRCUIT+",
+        "description": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 20 power to it.",
+        "hooks": [
+            {
+                "id": "short_circuit_discharge+",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "isNaturalDraw": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 20,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SHORT_CIRCUIT arcs into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "static_ward+": {
+        "id": "static_ward+",
+        "name": "STATIC_WARD+",
+        "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 11 power.",
+        "hooks": [
+            {
+                "id": "static_ward_arc+",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "SOURCE",
+                        "power": 11,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s STATIC_WARD earths {target}'s interference!"
+                    }
+                ]
+            }
+        ]
+    },
+    "feedback_loop+": {
+        "id": "feedback_loop+",
+        "name": "FEEDBACK_LOOP+",
+        "description": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 10 power.",
+        "hooks": [
+            {
+                "id": "daemon_draw_damage_proc+",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "isNaturalDraw": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 10,
+                        "element": "Water"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s FEEDBACK_LOOP discharges into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "hoofbeat+": {
+        "id": "hoofbeat+",
+        "name": "HOOFBEAT_DAEMON+",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, deal 11 power to a random enemy.",
+        "hooks": [
+            {
+                "id": "hoofbeat_daemon_hook+",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 11,
+                        "element": "Air"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s HOOFBEAT_DAEMON stampedes into {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "cinder_armor+": {
+        "id": "cinder_armor+",
+        "name": "CINDER_ARMOR+",
+        "description": "Daemon (exhaust): cards that add Burn also add 4 Sharp to the host.",
+        "hooks": [
+            {
+                "id": "daemon_burn_sharp_synergy+",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "statusApplied": "Burn"
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Sharp",
+                        "stacks": 4
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s CINDER_ARMOR hardens! +1 Sharp."
+                    }
+                ]
+            }
+        ]
+    },
+    "ember_ward+": {
+        "id": "ember_ward+",
+        "name": "EMBER_WARD+",
+        "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 4 Burn.",
+        "hooks": [
+            {
+                "id": "ember_ward_retort+",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "isAttack": true
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Burn",
+                        "stacks": 4
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s EMBER_WARD scorches {target}!"
+                    }
+                ]
+            }
+        ]
+    },
+    "core_overclock+": {
+        "id": "core_overclock+",
+        "name": "CORE_OVERCLOCK+",
+        "description": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+        "hooks": [
+            {
+                "id": "daemon_double_strength+",
+                "trigger": "onDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 1.3,
+                "scaling": "STRENGTH_STACKS"
+            }
+        ]
+    },
+    "thermal_overload+": {
+        "id": "thermal_overload+",
+        "name": "THERMAL_OVERLOAD+",
+        "description": "Daemon (exhaust): your Burns deal 75% more damage. Host takes 5 Fire damage at turn end.",
+        "hooks": [
+            {
+                "id": "thermal_overload_hook+",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "when": {
+                    "source": "SELF"
+                },
+                "multiplier": 1.25
+            },
+            {
+                "id": "thermal_overload_burn_boost+",
+                "trigger": "onStatusDamageCalculated",
+                "priority": 40,
+                "when": {
+                    "target": "OPPONENT"
+                },
+                "multiplier": 1.75
+            },
+            {
+                "id": "thermal_overload_logic+",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "amount": -5,
+                        "element": "Fire"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s THERMAL_OVERLOAD causes 5 overheat damage!"
+                    }
+                ]
+            }
+        ]
+    },
+    "reactive_plating+": {
+        "id": "reactive_plating+",
+        "name": "REACTIVE_PLATING+",
+        "description": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 5 per turn.",
+        "hooks": [
+            {
+                "id": "reactive_plating_proc+",
+                "trigger": "onPostDamage",
+                "priority": 40,
+                "when": {
+                    "source": "OPPONENT",
+                    "target": "ALLY",
+                    "counter": {
+                        "key": "reactive_plating_plus_grants",
+                        "operator": "LT",
+                        "value": 5,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_plus_grants",
+                        "operator": "ADD",
+                        "amount": 1,
+                        "scope": "SIDE"
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Sharp",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "  🛡️ {owner}'s REACTIVE_PLATING+ hardens {target}!"
+                    }
+                ]
+            },
+            {
+                "id": "reactive_plating_reset+",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "reactive_plating_plus_grants",
+                        "operator": "RESET",
+                        "scope": "SIDE"
+                    }
+                ]
+            }
+        ]
+    },
+    "echo_chamber+": {
+        "id": "echo_chamber+",
+        "name": "ECHO_CHAMBER_DAEMON+",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand — two the first time each turn.",
+        "hooks": [
+            {
+                "id": "echo_chamber_daemon_hook+",
+                "trigger": "onActionStart",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false
+                },
+                "do": [
+                    {
+                        "type": "GENERATE_CARD",
+                        "dataId": "feedback_token",
+                        "target": "SELF"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s ECHO_CHAMBER_DAEMON+ generates Feedback!"
+                    }
+                ]
+            },
+            {
+                "id": "echo_chamber_encore+",
+                "trigger": "onActionStart",
+                "priority": 41,
+                "when": {
+                    "source": "SELF",
+                    "baseCost": 0,
+                    "isToken": false,
+                    "counter": {
+                        "key": "echo_chamber_plus_encore",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "echo_chamber_plus_encore",
+                        "operator": "ADD",
+                        "amount": 1,
+                        "scope": "OWNER"
+                    },
+                    {
+                        "type": "GENERATE_CARD",
+                        "dataId": "feedback_token",
+                        "target": "SELF"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s ECHO_CHAMBER_DAEMON+ echoes twice!"
+                    }
+                ]
+            },
+            {
+                "id": "echo_chamber_encore_reset+",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "echo_chamber_plus_encore",
+                        "operator": "RESET",
+                        "scope": "OWNER"
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_tenth_strike": {
+        "id": "driver_tenth_strike",
+        "name": "TENTH STRIKE",
+        "description": "Every 10th attack card this side plays deals 50% more damage.",
+        "hooks": [
+            {
+                "id": "driver_tenth_strike_count",
+                "trigger": "onActionStart",
+                "priority": 91,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "tenth_strike",
+                        "scope": "SIDE",
+                        "operator": "ADD",
+                        "amount": 1
+                    }
+                ]
+            },
+            {
+                "id": "driver_tenth_strike_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "tenth_strike",
+                        "operator": "GTE",
+                        "value": 10,
+                        "scope": "SIDE"
+                    }
+                },
+                "multiplier": 1.5
+            },
+            {
+                "id": "driver_tenth_strike_fire",
+                "trigger": "onActionEnd",
+                "priority": 90,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "tenth_strike",
+                        "operator": "GTE",
+                        "value": 10,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "tenth_strike",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "⚔️ TENTH STRIKE! {owner}'s attack lands 50% harder."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_static_field": {
+        "id": "driver_static_field",
+        "name": "STATIC FIELD",
+        "description": "Every card this side plays deals 6 power to a random enemy.",
+        "hooks": [
+            {
+                "id": "driver_static_field_zap",
+                "trigger": "onActionEnd",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "RANDOM_ENEMY",
+                        "power": 6,
+                        "element": "None"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "⚡ STATIC FIELD arcs off {owner}'s card."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_antivenom": {
+        "id": "driver_antivenom",
+        "name": "ANTIVENOM",
+        "description": "At the end of this side's turn, each poisoned member loses 1 extra Poison.",
+        "hooks": [
+            {
+                "id": "driver_antivenom_purge",
+                "trigger": "onTurnEnd",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "sourceStatus": {
+                        "status": "Poison",
+                        "minStacks": 1
+                    }
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Poison",
+                        "stacks": -1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "🧪 ANTIVENOM purges 1 Poison from {owner}."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_overkill_recovery": {
+        "id": "driver_overkill_recovery",
+        "name": "OVERKILL RECOVERY",
+        "description": "Whenever an enemy faints, every living member of this side heals 8% of max HP.",
+        "hooks": [
+            {
+                "id": "driver_overkill_recovery_heal",
+                "trigger": "onUnitFainted",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "target": "OPPONENT"
+                },
+                "do": [
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "percentMaxHP": 8
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "💚 OVERKILL RECOVERY: {owner} recovers."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_first_blood": {
+        "id": "driver_first_blood",
+        "name": "FIRST BLOOD",
+        "description": "The first attack card this side plays each turn deals 20% more damage.",
+        "hooks": [
+            {
+                "id": "driver_first_blood_count",
+                "trigger": "onActionStart",
+                "priority": 91,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "first_blood",
+                        "scope": "SIDE",
+                        "operator": "ADD",
+                        "amount": 1
+                    }
+                ]
+            },
+            {
+                "id": "driver_first_blood_fire",
+                "trigger": "onActionStart",
+                "priority": 90,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "first_blood",
+                        "operator": "EQ",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "LOG",
+                        "text": "🩸 FIRST BLOOD! {owner} strikes first, 20% harder."
+                    }
+                ]
+            },
+            {
+                "id": "driver_first_blood_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "counter": {
+                        "key": "first_blood",
+                        "operator": "EQ",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "multiplier": 1.2
+            },
+            {
+                "id": "driver_first_blood_reset",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "first_blood",
+                        "scope": "SIDE",
+                        "operator": "RESET"
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_element_fire": {
+        "id": "driver_element_fire",
+        "name": "FIRE DRIVER",
+        "description": "This side's Fire attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_fire_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Fire"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_water": {
+        "id": "driver_element_water",
+        "name": "WATER DRIVER",
+        "description": "This side's Water attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_water_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Water"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_earth": {
+        "id": "driver_element_earth",
+        "name": "EARTH DRIVER",
+        "description": "This side's Earth attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_earth_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Earth"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_air": {
+        "id": "driver_element_air",
+        "name": "AIR DRIVER",
+        "description": "This side's Air attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_air_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Air"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_nature": {
+        "id": "driver_element_nature",
+        "name": "NATURE DRIVER",
+        "description": "This side's Nature attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_nature_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Nature"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_ice": {
+        "id": "driver_element_ice",
+        "name": "ICE DRIVER",
+        "description": "This side's Ice attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_ice_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Ice"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_light": {
+        "id": "driver_element_light",
+        "name": "LIGHT DRIVER",
+        "description": "This side's Light attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_light_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Light"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_element_dark": {
+        "id": "driver_element_dark",
+        "name": "DARK DRIVER",
+        "description": "This side's Dark attack cards deal 10% more damage.",
+        "hooks": [
+            {
+                "id": "driver_element_dark_boost",
+                "trigger": "onDamageCalculated",
+                "priority": 50,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "actionType": "ATTACK",
+                    "programElement": "Dark"
+                },
+                "multiplier": 1.1
+            }
+        ]
+    },
+    "driver_frayed_signal": {
+        "id": "driver_frayed_signal",
+        "name": "FRAYED SIGNAL",
+        "description": "At the start of your first turn, each member loses 25% of its max HP.",
+        "hooks": [
+            {
+                "id": "driver_frayed_signal_drain",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "counter": {
+                        "key": "frayed_signal",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "frayed_signal",
+                        "scope": "OWNER",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "HP",
+                        "target": "SELF",
+                        "percentMaxHP": -25
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "FRAYED SIGNAL: {owner} loses a quarter of its HP to the torn stream."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_static_haze": {
+        "id": "driver_static_haze",
+        "name": "STATIC HAZE",
+        "description": "At the start of your first turn, each member gains 2 Weakened.",
+        "hooks": [
+            {
+                "id": "driver_static_haze_fog",
+                "trigger": "onTurnStart",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "SELF",
+                    "counter": {
+                        "key": "static_haze",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "static_haze",
+                        "scope": "OWNER",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "Weakened",
+                        "stacks": 2
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "STATIC HAZE: {owner} is clouded by static."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_bulwark_reflex": {
+        "id": "driver_bulwark_reflex",
+        "name": "BULWARK REFLEX",
+        "description": "The first time each member drops below 50% HP in a fight, it gains 15 Bark Shield.",
+        "hooks": [
+            {
+                "id": "driver_bulwark_reflex_shield",
+                "trigger": "onHpThresholdCrossed",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "target": "SELF",
+                    "counter": {
+                        "key": "bulwark_reflex",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "OWNER"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "bulwark_reflex",
+                        "scope": "OWNER",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SELF",
+                        "status": "BarkShield",
+                        "stacks": 15
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "🪵 BULWARK REFLEX: {owner} braces behind bark."
+                    }
+                ]
+            }
+        ]
+    },
+    "driver_deep_cache": {
+        "id": "driver_deep_cache",
+        "name": "DEEP CACHE",
+        "description": "The first bonus (non-natural) draw this side makes each turn grants the drawer 1 Strengthened.",
+        "hooks": [
+            {
+                "id": "driver_deep_cache_fire",
+                "trigger": "onCardDraw",
+                "priority": 40,
+                "proc": true,
+                "when": {
+                    "source": "ALLY",
+                    "isNaturalDraw": false,
+                    "counter": {
+                        "key": "deep_cache",
+                        "operator": "LT",
+                        "value": 1,
+                        "scope": "SIDE"
+                    }
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "deep_cache",
+                        "scope": "SIDE",
+                        "operator": "SET",
+                        "amount": 1
+                    },
+                    {
+                        "type": "STATUS",
+                        "target": "SOURCE",
+                        "status": "Strengthened",
+                        "stacks": 1
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "💾 DEEP CACHE hits: {target} is Strengthened."
+                    }
+                ]
+            },
+            {
+                "id": "driver_deep_cache_reset",
+                "trigger": "onTurnStart",
+                "priority": 90,
+                "when": {
+                    "source": "SELF"
+                },
+                "do": [
+                    {
+                        "type": "COUNTER",
+                        "target": "SELF",
+                        "key": "deep_cache",
+                        "scope": "SIDE",
+                        "operator": "RESET"
                     }
                 ]
             }

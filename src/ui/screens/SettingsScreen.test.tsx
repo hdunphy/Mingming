@@ -86,17 +86,64 @@ describe('SettingsScreen', () => {
     });
 
     it('names what it does not do yet instead of showing dead controls', () => {
-        // Fullscreen/resolution (37), the colourblind palette (38) and remapping are all listed as
-        // absent. A disabled control the player cannot use is indistinguishable from a bug.
+        /*
+         * The colourblind palette (38) and remapping are still listed as absent. A disabled control
+         * the player cannot use is indistinguishable from a bug, so the screen names them in prose.
+         *
+         * **FULLSCREEN LEFT THIS LIST IN TICKET 37** and the row that replaced it is what this
+         * assertion now pins: windowing is still deferred, but fullscreen is a real control in the
+         * Display group. Asserted as the absence of the old phrasing as well as the presence of the
+         * new one, because a half-applied revert would otherwise leave the screen claiming both.
+         */
         const markup = render();
         expect(markup).toContain('Not here yet');
-        expect(markup).toMatch(/Fullscreen and resolution/);
+        expect(markup).not.toMatch(/Fullscreen and resolution/);
+        expect(markup).toMatch(/Resolution and windowing/);
         expect(markup).toMatch(/Colourblind-safe/);
         expect(markup).toMatch(/Key remapping/);
+    });
+
+    it('offers the battle-log switch, on by default, and says what off costs', () => {
+        /*
+         * Henry, 2026-09-20 — the switch that came with splitting transcripts out of the run log.
+         * On by default because ticket 156 exists precisely because the logs were missing, and the
+         * note has to say what "off" actually loses: the TEXT, not the run's numbers. A player who
+         * reads "off" as "stop recording my runs" would turn it off for the wrong reason.
+         */
+        const markup = render();
+        expect(markup).toContain('Save battle logs');
+        expect(markup).toContain('It is what a bug report needs');
+        // Defaulting to on means the On choice carries the pressed state, not the Off one.
+        const onIndex = markup.indexOf('Save battle logs');
+        const block = markup.slice(onIndex, onIndex + 600);
+        expect(block).toContain('aria-pressed="true"');
     });
 
     it('says the settings are not part of the save', () => {
         const markup = render();
         expect(markup).toMatch(/across slots|never part of the save/);
+    });
+    it('offers the enemy-hand switch, on, and away from the motion switches \u2014 159c', () => {
+        /*
+         * \u00a75 said "beside 146's three" and it cannot sit there: the note under those three reads
+         * "so particles and animations are off whatever these say" under reduced motion, and
+         * reduced motion does NOT touch this one. A player reading that line directly above this
+         * switch has been told something false about it.
+         *
+         * So: present, on by default, and under its own heading rather than Motion's.
+         */
+        const markup = render();
+        expect(markup).toContain('Show enemy hand');
+
+        const battleHeading = markup.indexOf('>Battle<');
+        const motionHeading = markup.indexOf('>Motion<');
+        const switchAt = markup.indexOf('Show enemy hand');
+        expect(battleHeading).toBeGreaterThan(-1);
+        // It is under Battle, not under Motion.
+        expect(switchAt).toBeGreaterThan(battleHeading);
+        expect(battleHeading).toBeGreaterThan(motionHeading);
+
+        // On by default, and the note says what "on" actually shows rather than naming the control.
+        expect(markup).toContain('their next draw takes off the top');
     });
 });

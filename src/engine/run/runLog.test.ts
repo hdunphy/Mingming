@@ -172,7 +172,7 @@ describe('storage', () => {
 
 describe('the three questions the panel has to answer', () => {
     const log = build([
-        { kind: 'RUN_STARTED', gymId: 'g', tier: 0, party: ['mm1'], deckSize: 8, scrap: 20 },
+        { kind: 'RUN_STARTED', gymId: 'g', tier: 0, party: ['mm1'], modifiers: [], deckSize: 8, scrap: 20 },
         { kind: 'SCRAP', delta: 15, reason: 'addRunScrap', deckSize: 8, scrap: 35 },
         { kind: 'CARD_PICKED', dataId: 'hydro_blast', offered: ['a', 'b', 'c'], deckSize: 9, scrap: 35 },
         { kind: 'CARD_SKIPPED', offered: ['d', 'e', 'f'], deckSize: 9, scrap: 35 },

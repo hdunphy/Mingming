@@ -10,91 +10,58 @@
  * That bug was unreachable from the test suite as it stood. Every other UI test in this repo uses
  * `renderToStaticMarkup`, which runs no effects and cannot click — a soft-lock is *precisely* the
  * class of defect a one-frame static render cannot see, because the frame it renders is correct.
- * `App.errorBoundary.test.tsx` already stands up the real thing (jsdom + `createRoot` + dispatched
- * `MouseEvent`s) for the same reason, so this file borrows its harness rather than inventing one.
+ * Ticket 58 made the jsdom + `createRoot` + dispatched-`MouseEvent` harness this file first borrowed
+ * from `App.errorBoundary.test.tsx` a shared module, `testing/interaction`; the click-level walk of
+ * the whole loop is `App.loop.test.tsx`. What stays here is the picker's GATE — the four states it
+ * must and must not appear in.
  *
  * The assertion is deliberately about the *transition*, not about `state.game.blueprints`. A unit
  * test on the reducer would have passed all along.
  */
 
-import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
-import type { Root } from 'react-dom/client';
-import { Provider } from 'react-redux';
+import { describe, expect, it } from 'vitest';
 
-import App from './App';
-import battleReducer from './ui/store/battleSlice';
-import gameReducer, { addBlueprint, addToRoster } from './ui/store/gameSlice';
-import runReducer from './ui/store/runSlice';
-import uiReducer from './ui/store/uiSlice';
+import { addBlueprint, addToRoster } from './ui/store/gameSlice';
 import { createRanchMember } from './engine/gameTypes';
+import { click, makeStore, mountApp, pressKey } from './testing/interaction';
+import { GetMingmingData } from './engine/data/mingmingRegistry';
+import { getOSBehavior } from './engine/data/firmwareRegistry';
 
-declare global {
-    var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
-function makeStore() {
-    return configureStore({
-        reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
-        middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
-    });
-}
-
-let host: HTMLDivElement;
-let root: Root;
-
-beforeEach(() => {
-    localStorage.clear();
-    host = document.createElement('div');
-    document.body.appendChild(host);
-    root = createRoot(host);
-});
-
-afterEach(async () => {
-    await act(async () => {
-        root.unmount();
-    });
-    host.remove();
-});
-
-async function mount(store: ReturnType<typeof makeStore>): Promise<void> {
-    await act(async () => {
-        root.render(
-            <Provider store={store}>
-                <App />
-            </Provider>,
-        );
-    });
-}
-
-/** The starter cards are `motion.div`s, not buttons, so they are found by their copy. */
-function starterCard(name: string): HTMLElement {
-    const card = [...host.querySelectorAll<HTMLElement>('div')]
-        .filter((el) => el.textContent?.includes(`STARTER CARD:`) && el.textContent.includes(name))
-        .pop();
+/** The starter cards are `motion.div`s, not buttons, so they are found by their test id. */
+function starterCard(host: HTMLElement, name: string): HTMLElement {
+    // TICKET 172: the card no longer prints a "starter card"; it is found by its test id.
+    const card = host.querySelector<HTMLElement>(`[data-testid="starter-${name.toLowerCase()}"]`);
     if (!card) throw new Error(`no starter card for ${name}`);
     return card;
 }
 
 describe('the starter picker', () => {
     it('is what a brand-new save opens on', async () => {
-        await mount(makeStore());
-        expect(host.textContent).toContain('CHOOSE YOUR STARTER PROGRAM');
+        const host = await mountApp(makeStore());
+        expect(host.textContent).toContain('CHOOSE YOUR FIRST MINGMING');
+    });
+
+    it('shows each starter\'s two firmware, as the assembly bay will, and no alpha "starter card"', async () => {
+        // TICKET 172 — Henry: "The text here like starter card and the descriptions don't make sense."
+        const host = await mountApp(makeStore());
+        expect(host.textContent).not.toContain('STARTER CARD');
+        for (const species of ['kraken', 'fenrir', 'ratatoskr']) {
+            const card = starterCard(host, species);
+            for (const os of GetMingmingData(species).availableOS) {
+                expect(card.textContent).toContain(getOSBehavior(os)!.name);
+                expect(card.textContent).toContain(getOSBehavior(os)!.description);
+            }
+        }
     });
 
     it('lets go of the screen when a starter is picked, and lands on the Assembly bay', async () => {
         const store = makeStore();
-        await mount(store);
+        const host = await mountApp(store);
 
-        await act(async () => {
-            starterCard('KRAKEN').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        });
+        await click(starterCard(host, 'KRAKEN'));
 
-        // The regression: this used to still say CHOOSE YOUR STARTER PROGRAM.
-        expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
+        // The regression: this used to still say CHOOSE YOUR FIRST MINGMING.
+        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
         expect(store.getState().game.blueprints.kraken).toBe(1);
         // And it lands somewhere the blueprint can actually be spent, rather than on Expedition
         // telling the player to go and find it.
@@ -105,21 +72,67 @@ describe('the starter picker', () => {
         // The exact state the old gate mis-read: this is a player mid-first-session, not a new one.
         const store = makeStore();
         store.dispatch(addBlueprint('fenrir'));
-        await mount(store);
-        expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
+        const host = await mountApp(store);
+        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
     });
 
     it('does not come back for a player with a roster and no blueprints left', async () => {
         const store = makeStore();
         store.dispatch(addToRoster(createRanchMember('ratatoskr')));
-        await mount(store);
-        expect(host.textContent).not.toContain('CHOOSE YOUR STARTER PROGRAM');
+        const host = await mountApp(store);
+        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
     });
 
     it('does come back after a wipe — nothing held, nothing built', async () => {
         // `wipeSave` leaves exactly this: the picker is the right thing to show, and the branch
         // reads both halves rather than remembering a "has onboarded" flag that a wipe could miss.
-        await mount(makeStore());
-        expect(host.textContent).toContain('CHOOSE YOUR STARTER PROGRAM');
+        const host = await mountApp(makeStore());
+        expect(host.textContent).toContain('CHOOSE YOUR FIRST MINGMING');
+    });
+});
+
+describe('38 — the first interaction in the game answers a KEYBOARD', () => {
+    /*
+     * ══ THE BUG THIS FILE COULD NOT SEE, AND WHY. ══
+     *
+     * A keyboard-only run measured in Chromium got no further than this screen. The starter card is
+     * a `motion.div` with an `onClick`; framer-motion's `whileTap` gives it a tabindex of its own,
+     * so the Tab ring REACHED it — and Enter did nothing, because a `div` with a click handler has
+     * no keyboard semantics.
+     *
+     * That is the worst of the three states. Not focusable is at least honest; reachable-but-inert
+     * puts a focus ring on something that refuses to answer, on the first screen of the game.
+     *
+     * **Every case above dispatches `click`, which a `div` answers to perfectly well** — so this
+     * whole file was green while the game could not be started without a mouse. And **axe could not
+     * have caught it either**: it reads an element's properties, and the element had a tabindex.
+     * Whether Enter does anything is behaviour, which is why ticket 38's done-when asks for a
+     * keyboard RUN and not only a scan.
+     */
+    it('starts the game on Enter, not only on a click', async () => {
+        const store = makeStore();
+        const host = await mountApp(store);
+        await pressKey(starterCard(host, 'KRAKEN'), 'Enter');
+        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+    });
+
+    it('starts the game on Space too, because that is what a button answers to', async () => {
+        // A player who has tabbed to a card will try whichever of the two they habitually use, and
+        // a real `<button>` takes both. Half a fix here would be a coin flip for the player.
+        const store = makeStore();
+        const host = await mountApp(store);
+        await pressKey(starterCard(host, 'FENRIR'), ' ');
+        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+    });
+
+    it('announces itself as a button, so the focus ring is a promise it can keep', async () => {
+        // `role` and `tabIndex` are what make the Tab stop legible; the handler above is what makes
+        // it true. Both are asserted, because either alone is the broken state.
+        const store = makeStore();
+        const host = await mountApp(store);
+        const card = starterCard(host, 'RATATOSKR');
+        expect(card.getAttribute('role')).toBe('button');
+        expect(card.getAttribute('tabindex')).toBe('0');
+        expect(card.getAttribute('aria-label')).toMatch(/Ratatoskr/i);
     });
 });

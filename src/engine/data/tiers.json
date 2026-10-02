@@ -1,0 +1,17 @@
+{
+  "tiers": [
+    { "tier": 0, "name": "Standard", "description": "The game as it is.",
+      "wildFirmware": false, "wildAi": "greedy", "extraElitesPerBiome": 0, "leaderDriverEveryFight": false },
+    { "tier": 1, "name": "Armed Wilds", "description": "Wild Mingmings run their firmware.",
+      "wildFirmware": true, "wildAi": "greedy", "extraElitesPerBiome": 0, "leaderDriverEveryFight": false },
+    { "tier": 2, "name": "Elite Territory", "description": "One more elite in every biome. Wild Mingmings play smarter.",
+      "wildFirmware": true, "wildAi": "lite", "extraElitesPerBiome": 1, "leaderDriverEveryFight": false },
+    { "tier": 3, "name": "Leaders' Drivers", "description": "The gym leader's Driver is active in all three gauntlet fights.",
+      "wildFirmware": true, "wildAi": "lite", "extraElitesPerBiome": 1, "leaderDriverEveryFight": true }
+  ],
+  "leaderDrivers": {
+    "gym_emberfall": "driver_war_footing",
+    "gym_tidewrack": "driver_tidal_surge",
+    "gym_rootfall": "driver_root_rot"
+  }
+}

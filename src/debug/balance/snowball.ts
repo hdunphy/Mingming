@@ -47,7 +47,7 @@ import { teamScenario } from './balanceScenarios';
 import { runPairedBatch, type BereavementDraw, type BereavementEnergy, type RunResult } from './runBatch';
 import { REFERENCE_PANEL, type Comp } from './teamComps';
 
-/** A battle length cap above the 30-turn stall redline, for `gauntlet-boss.balance.ts`'s reason. */
+/** A battle length cap above the 30-turn stall redline, for ticket 18's boss suite's reason: a cap AT the redline truncates every stall to exactly the number the assertion reads. */
 export const SNOWBALL_MAX_TURNS = 40;
 
 export interface SnowballOptions {

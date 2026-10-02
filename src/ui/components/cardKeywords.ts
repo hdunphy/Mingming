@@ -58,3 +58,14 @@ export function getAppliedStatuses(data: ProgramData): StatusType[] {
     }
     return statuses;
 }
+
+/**
+ * How many stacks of `status` the card applies, summed across actions — a card that applies one
+ * Weakened twice applies two. Shared by the shop's chips and the hand's tooltip so the two can
+ * never print different counts for the same card.
+ */
+export function appliedStacks(data: ProgramData, status: StatusType): number {
+    return (data.actions ?? [])
+        .filter((a) => a.type === 'STATUS' && a.status === status)
+        .reduce((total, a) => total + (a.stacks ?? 1), 0);
+}

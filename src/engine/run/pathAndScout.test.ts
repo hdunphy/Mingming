@@ -30,8 +30,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateRegionGraph, REGION_PARAMS } from './regionGraph';
 import { createRun } from './createRun';
-import { encounterSpeciesPool, scoutFirmwareFor, rollEncounter, gradeFor, enemyLoadoutFor } from './encounter';
-import { GYM_REGISTRY, offerGyms, pathElementsFor, type IGymOffer } from './gyms';
+import { encounterSpeciesPool, scoutFirmwareFor, rollEncounter, gradeFor, enemyLoadoutFor, rivalElementPlan } from './encounter';
+import { COUNTERED_BY, GYM_REGISTRY, LAUNCH_ELEMENTS, gymLeaderFirmware, offerGyms, pathElementsFor, type IGymOffer } from './gyms';
+import { authoredBossFor } from './bosses';
 import { MingmingRegistry } from '../data/mingmingRegistry';
 import { BLUEPRINT_DROP_RATE } from '../RewardSystem';
 import type { IBiome, IRunState } from '../runTypes';
@@ -61,6 +62,80 @@ function rootfallRun(seed = 'path-test'): IRunState {
 const speciesOf = (firmware: string): string =>
     Object.values(MingmingRegistry).find(d => d.availableOS.includes(firmware))!.id;
 
+describe('142c — a rival always fields the body the biome cannot give you', () => {
+    /*
+     * Henry, after the first Rootfall playtest: *"We should guarantee at least one 'off biome'
+     * mingming. So the first is always the Nature in a fire biome (1v1 it's just nature); in 3v3 we
+     * can coin flip the last one to make it NFN or NFF."*
+     *
+     * 142a drew every body from the flat union of the two path elements, so with two species an
+     * element the guarantee was a coin flip and a solo player's rival was half the time an
+     * ordinary-looking on-biome fight dropping a blueprint they already had. The node's whole
+     * purpose is to break the map's grip on recruiting order, and half the time it did not.
+     */
+    const run = rootfallRun();
+    const rival = (biomeIndex: number) => ({
+        id: `rival_b${biomeIndex}`, kind: 'rival' as const, biomeIndex, layer: 2, visited: 1,
+        x: 0, y: 0, edges: [], pocket: false,
+    } as unknown as Parameters<typeof rivalElementPlan>[1]);
+
+    it('deals the off-biome element FIRST, and off-biome means this biome, not the gym', () => {
+        // The path is [Fire, Nature] in all three biomes — it is fully determined by the leader.
+        // What changes is which HALF of it the biome already gives you, so the rule has to be
+        // biome-relative. Fire beats Rootfall, but standing in the Fire biome the body you cannot
+        // otherwise get is the Nature one.
+        expect(rivalElementPlan(run, rival(0), 1)).toEqual(['Fire']);    // Nature biome
+        expect(rivalElementPlan(run, rival(1), 1)).toEqual(['Nature']);  // Fire biome — Henry's case
+    });
+
+    it('deals one of each path element before anything rolls', () => {
+        expect(rivalElementPlan(run, rival(1), 2)).toEqual(['Nature', 'Fire']);
+        expect(rivalElementPlan(run, rival(1), 3)).toEqual(['Nature', 'Fire']);
+    });
+
+    it('leaves the third body to the roll — NFN or NFF, never NNN or FFF', () => {
+        // The plan is shorter than the party on purpose: `rollEncounter` deals plan[i] while it
+        // lasts and rolls the rest from the union, which is the coin flip Henry asked for.
+        const plan = rivalElementPlan(run, rival(1), 3);
+        expect(plan).toHaveLength(2);
+    });
+
+    it('in the third biome neither path element is the biome, so the path order stands', () => {
+        // Rootfall's biome 3 is Water and the path is Fire+Nature — both off-biome. Nothing to
+        // reorder, and the counter element leads because that is the path's own order.
+        expect(rivalElementPlan(run, rival(2), 2)).toEqual(['Fire', 'Nature']);
+    });
+
+    it('says nothing about a wild — the deal is the rival node, not the biome', () => {
+        const wild = { ...rival(1), kind: 'wild' } as unknown as Parameters<typeof rivalElementPlan>[1];
+        expect(rivalElementPlan(run, wild, 3)).toEqual([]);
+    });
+
+    it('a solo player in the Fire biome meets a NATURE body every time, over 200 rivals', () => {
+        // The regression in one line: this was 50% before 142c. Rolled through the real
+        // `rollEncounter` rather than off the plan, so it covers the deal AND the draw.
+        for (let i = 0; i < 200; i += 1) {
+            const node = { ...rival(1), id: `rival_b1_${i}`, visited: i + 1 };
+            const { enemyParty } = rollEncounter({ run, node, party: [member('mm1', 'fenrir')] });
+            expect(enemyParty).toHaveLength(1);
+            expect(MingmingRegistry[enemyParty[0].definitionId].primaryElement).toBe('Nature');
+        }
+    });
+
+    it('a full party gets one of each and a coin flip — both NFN and NFF appear', () => {
+        const party = [member('mm1', 'fenrir'), member('mm2', 'skoll'), member('mm3', 'ratatoskr')];
+        const shapes = new Set<string>();
+        for (let i = 0; i < 200; i += 1) {
+            const node = { ...rival(1), id: `rival_full_${i}`, visited: i + 1 };
+            const { enemyParty } = rollEncounter({ run, node, party });
+            const els = enemyParty.map(e => MingmingRegistry[e.definitionId].primaryElement);
+            expect(els[0]).toBe('Nature');
+            expect(els[1]).toBe('Fire');
+            shapes.add(els.join(''));
+        }
+        expect(shapes).toEqual(new Set(['NatureFireNature', 'NatureFireFire']));
+    });
+});
 describe('142a — the path elements are what beats the gym, then the gym itself', () => {
     it('Rootfall walks Fire and Nature; each gym gets its own pair', () => {
         expect(pathElementsFor('Nature')).toEqual(['Fire', 'Nature']);
@@ -170,7 +245,7 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
     it('fields TWO of the leader comp, as themselves — the firmware is the preview', () => {
         const firmware = scoutFirmwareFor(run, scout);
         expect(firmware).toHaveLength(2);
-        for (const os of firmware) expect(GYM_REGISTRY.gym_rootfall.leaderComp).toContain(os);
+        for (const os of firmware) expect(gymLeaderFirmware('gym_rootfall')).toContain(os);
 
         const { enemyParty } = rollEncounter({ run, node: scout, party: [member('mm1', 'fenrir')] });
         expect(enemyParty).toHaveLength(2);
@@ -200,11 +275,89 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
 
     it('every gym has a comp to cut, and every firmware in it is real', () => {
         for (const gym of Object.values(GYM_REGISTRY)) {
-            expect(gym.leaderComp).toHaveLength(3);
-            for (const os of gym.leaderComp) {
+            expect(gymLeaderFirmware(gym.id)).toHaveLength(3);
+            for (const os of gymLeaderFirmware(gym.id)) {
                 expect(Object.values(MingmingRegistry).some(d => d.availableOS.includes(os)),
                     `${gym.id} fields unknown firmware ${os}`).toBe(true);
             }
         }
+    });
+
+    /**
+     * TICKET 28a — **ONE TABLE, and this is the assertion that keeps it one.**
+     *
+     * Until 2026-09-24 the scout read `IGym.leaderComp` (a 142b placeholder) and the gauntlet read
+     * `bosses.AUTHORED_BOSSES`, and they disagreed at EVERY gym. Nothing failed, because nothing
+     * compared them: the preview and the exam were two facts about the same fight that no test ever
+     * put side by side. `leaderComp` is deleted, and this is what stops a second one growing back.
+     */
+    it('previews the team the gauntlet actually fields — 28a\'s one table', () => {
+        for (const gymId of Object.keys(GYM_REGISTRY)) {
+            const authored = authoredBossFor(gymId);
+            expect(authored, `${gymId} has no authored boss`).toBeDefined();
+            expect(gymLeaderFirmware(gymId)).toEqual(authored!.members.map((m) => m.os));
+        }
+    });
+
+    it('fields two own-element bodies and one guest at every gym — 28a\'s composition rule', () => {
+        // Henry's 28a ruling was "whichever trio synergises best", and the shape every candidate
+        // kept is 2 + 1. 28b re-ruled WHICH body fills the third slot and left the count alone, so
+        // this assertion survives both compositions unchanged — which is what makes it the stable
+        // one of the pair.
+        for (const gym of Object.values(GYM_REGISTRY)) {
+            const elements = gymLeaderFirmware(gym.id)
+                .map((os) => Object.values(MingmingRegistry).find((d) => d.availableOS.includes(os))?.primaryElement);
+            expect(elements.filter((e) => e === gym.element), `${gym.id}`).toHaveLength(2);
+            expect(elements.filter((e) => e !== gym.element), `${gym.id}`).toHaveLength(1);
+        }
+    });
+
+    it('seats the guest from the element the gym BEATS — 28b\'s composition rule', () => {
+        /*
+         * TICKET 28b (Henry, 2026-09-25): *"the guest is the element the gym BEATS, never the
+         * player's counter."*
+         *
+         * 28a chose each third slot for synergy and that put a WATER body at Emberfall — the
+         * element that beats Fire — on a "counter the player's expected counter" heuristic. The
+         * replacement reads the same way from the player's chair: a gym does not field the answer
+         * to itself, so the counter the gate expects meets nothing already resisting it.
+         *
+         * `COUNTERED_BY` is the inverse table (*"what beats e"*), so the element a gym beats is the
+         * one whose counter IS the gym's element. Derived rather than transcribed, because the
+         * triangle is a property of the game and a second copy of it here would be a second place
+         * it has to change.
+         */
+        for (const gym of Object.values(GYM_REGISTRY)) {
+            const beaten = LAUNCH_ELEMENTS.find((e) => COUNTERED_BY[e] === gym.element);
+            const guest = gymLeaderFirmware(gym.id)
+                .map((os) => Object.values(MingmingRegistry).find((d) => d.availableOS.includes(os))?.primaryElement)
+                .filter((e) => e !== gym.element);
+            expect(guest, `${gym.id}`).toEqual([beaten]);
+        }
+    });
+
+    it('fields exactly ONE firmware twice, and it is skoll_v2 — RULED, not a drift', () => {
+        /*
+         * ══ THE ONE DUPLICATE IS ALLOWED, AND IT IS RULED RATHER THAN TOLERATED. ══
+         *
+         * This used to read *"fields no OS at more than one gym — a roster, not a pool"*, which is
+         * ticket 72's own note and was true of all three gyms after 28a. 28b broke it: the element
+         * rule seats a Fire guest at Tidewrack, and `skoll_v2` is the Fire firmware it allows while
+         * Emberfall already fields it.
+         *
+         * Ticket 74's docblock had ruled the opposite — *"the same OS at two gyms would make the
+         * roster read as a pool"* — so this shipped as a recorded conflict for a day.
+         * **Henry settled it on 2026-09-25: *"Skoll can be at two gyms."*** 74's line is superseded
+         * for this case; there is no second Fire firmware the element rule allows at Tidewrack, and
+         * the element rule is the one that matters.
+         *
+         * Still pinned as "exactly one duplicate, and it is this one" rather than deleted, because
+         * the ruling is about `skoll_v2` specifically and not a licence for the roster to collapse:
+         * a SECOND firmware appearing twice is drift and still fails here.
+         */
+        const all = Object.keys(GYM_REGISTRY).flatMap((id) => [...gymLeaderFirmware(id)]);
+        const duplicated = [...new Set(all.filter((os, i) => all.indexOf(os) !== i))];
+        expect(duplicated, `${all.join(', ')}`).toEqual(['skoll_v2']);
+        expect(new Set(all).size, 'one duplicate and no more').toBe(all.length - 1);
     });
 });

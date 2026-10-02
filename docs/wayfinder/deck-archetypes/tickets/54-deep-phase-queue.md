@@ -1,5 +1,7 @@
 # Deep-phase queue — priorities from the first full-roster report
 
+> **Status: CLOSED 2026-09-08** — done — every queued item became its own ticket (55/56/57/58/64/81/82). Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:task (backlog record — each item becomes its own ticket after a design
   session with Henry; nothing here is pre-authorized for implementation)
 - Status: **open**

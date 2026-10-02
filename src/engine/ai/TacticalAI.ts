@@ -1,11 +1,12 @@
 
-import { battleReducer, validateProgramConstraints, getEffectiveCardCost, type BattleAction } from '../battleReducer';
+import { battleReducer, type BattleAction } from '../battleReducer';
+import { legalPlays } from './legalActions';
+import { cheapBestAction } from './cheap/cheapPolicy';
+import { cheapWeights } from './cheap/weights';
 import { beginSimulation, endSimulation } from '../core/simulationDepth';
 import type { IBattleState, IBattleEntity } from '../types';
 import { globalBattleEventBus } from '../events';
-import { GetProgramData } from '../data/programRegistry';
 import { PRNG } from '../core/PRNG';
-import { executeCostCalculated } from '../resolutionEngine';
 import {
     BURN_CONFIG,
     // TICKET 137: read, never re-declare. See the block above these in StatusBehaviors.
@@ -56,7 +57,7 @@ const TERMINAL_SCORE = 10000 * NUMBER_SCALE;
 const TURN_DAMAGE_FRACTION = 0.20;
 
 /** Statuses that scale future turns are valued over the average remaining battle length. */
-const STATUS_HORIZON_TURNS = 2.5;
+export const STATUS_HORIZON_TURNS = 2.5;
 
 /** 1 energy ~ 1/4 of a turn's throughput (4-energy turns at the balance frame). */
 const ENERGY_TURN_FRACTION = 0.25;
@@ -106,25 +107,28 @@ const STATUS_PCT_PER_STACK = 0.02;
 const STATUS_PCT_CAP = 0.25;
 const cappedPct = (stacks: number): number => Math.min(STATUS_PCT_CAP, stacks * STATUS_PCT_PER_STACK);
 
-/** Total future Burn damage as a fraction of maxHp: tier table walked S -> 1 (Burn decays 1/turn). */
+/**
+ * Total future Burn damage as a fraction of maxHp across STATUS_HORIZON_TURNS.
+ * Ticket 164a: simulates horizon tick-by-tick following BURN_CONFIG.decayPerTurn.
+ * With decayPerTurn = 0 (permanent Burn since ticket 93), this reduces to tier[S] × STATUS_HORIZON_TURNS.
+ */
 function burnTotalPercent(stacks: number): number {
-    // Ticket 62: read the LIVE Burn tier table, not the static gameConfig one. Identical as
-    // committed (BURN_CONFIG.tiers is that array), but a grid arm that changes the cap changes
-    // the climb - and an eval that valued Burn off a stale table would judge every arm against
-    // the wrong shape, which is the failure family ticket 40's Poison cap already cost us.
     const tiers = BURN_CONFIG.tiers;
+    const decay = BURN_CONFIG.decayPerTurn;
+    const tierPct = (s: number): number => {
+        if (s <= 0) return 0;
+        return (tiers[Math.min(s, tiers.length) - 1] ?? tiers[tiers.length - 1]).damagePercent;
+    };
+
     let total = 0;
-    for (let s = stacks; s >= 1; s--) {
-        const tier = tiers[s - 1] ?? tiers[tiers.length - 1];
-        total += tier.damagePercent;
+    const horizon = STATUS_HORIZON_TURNS;
+    for (let t = 0; t < horizon; t++) {
+        const weight = Math.min(1, horizon - t);
+        const s = Math.max(0, stacks - t * decay);
+        total += tierPct(s) * weight;
     }
-    // Ticket 44: the same shape ticket 40 found in Poison. The decay sum is the right TOTAL, but
-    // only if the battle lasts `stacks` more turns, and it does not - battles run 5-6. Burn's
-    // top tier is 8%/turn, so the sum runs away fast: 10 stacks reads as 69% of a health bar,
-    // which the holder will be dead long before collecting. Capped at the per-turn rate over the
-    // same horizon every other future-scaling status uses. Below ~3 stacks the sum still binds,
-    // because Burn genuinely does decay away inside the horizon.
-    const perTurn = (tiers[Math.min(stacks, tiers.length) - 1] ?? tiers[tiers.length - 1]).damagePercent;
+
+    const perTurn = tierPct(stacks);
     return Math.min(total, perTurn * STATUS_HORIZON_TURNS);
 }
 
@@ -302,8 +306,10 @@ function getEntityScore(entity: IBattleEntity): number {
  * Evaluates the total board state for a specific side.
  * Formula: Sum(Ally_Scores) - Sum(Enemy_Scores)
  * Higher is better.
+ *
+ * Exported (ticket 177b) for the cheap policy's `evalDelta` feature; nothing else about it changed.
  */
-function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
+export function evaluateState(state: IBattleState, side: 'PLAYER' | 'ENEMY'): number {
     const myPartyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
     const oppPartyKey = side === 'PLAYER' ? 'enemyParty' : 'playerParty';
 
@@ -356,6 +362,21 @@ interface SequenceResult {
     leafState: IBattleState;
 }
 
+/**
+ * TICKET 166f (code review A1): keep the `beam` best candidates by immediate score, then put them
+ * back in enumeration order (so ties still go to the first line visited - see the note at the
+ * call site). `beam` is the BATTLE's width. It used to read the process default `BEAM`, which is
+ * 0 in the game, so every beamed search below the root kept nothing and stopped one play deep.
+ */
+export function pruneToBeam<T extends { readonly immediate: number; readonly order: number }>(
+    deferred: ReadonlyArray<T>,
+    beam: number,
+): T[] {
+    if (deferred.length <= beam) return [...deferred];
+    const kept = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, beam);
+    return kept.sort((a, b) => a.order - b.order);
+}
+
 function findBestSequence(
     state: IBattleState,
     side: 'PLAYER' | 'ENEMY',
@@ -371,192 +392,51 @@ function findBestSequence(
         return { score: currentScore, firstAction: null, leafState: state };
     }
 
-    // 3. Generate Valid Actions
-    const activeDeckKey = side === 'PLAYER' ? 'playerDeck' : 'enemyDeck';
-    const activePartyKey = side === 'PLAYER' ? 'playerParty' : 'enemyParty';
-    const oppPartyKey = side === 'PLAYER' ? 'enemyParty' : 'playerParty';
-
-    const hand = state[activeDeckKey].hand;
-    const myParty = state[activePartyKey].filter(e => e.currentHp > 0);
-    const oppParty = state[oppPartyKey].filter(e => e.currentHp > 0);
-
-    if (myParty.length === 0 || oppParty.length === 0) {
-        return { score: currentScore, firstAction: null, leafState: state };
-    }
+    // 3. Generate Valid Actions. 177a: empty when either side has no one standing, in which case
+    // the loop below does nothing and the result is the same one the old early return gave.
+    const plays = legalPlays(state, side, CENSUS ? census : undefined);
 
     let bestScore = currentScore;
     let bestAction: BattleAction | null = null;
     let bestLeaf: IBattleState = state;
-    const siblings = CENSUS ? new Set<string>() : null;
     // Ticket 144 §2: the width is a property of the battle now, not of the process.
     const beam = beamFor(state);
     const deferred: Array<{
         action: BattleAction; nextState: IBattleState; immediate: number; order: number;
     }> | null = beam > 0 && depth > 0 ? [] : null;
 
-    /*
-     * TICKET 144a — THE AI CONSIDERS A HAND IN A CANONICAL ORDER, NOT IN DRAW ORDER.
-     *
-     * WHAT THIS CHANGES, IN ONE SENTENCE: the order the SEARCH walks the hand in. Nothing writes
-     * back to `state`, so the hand a player is holding — in the UI, in the reducer, in the save —
-     * is still in draw order, and the card a player clicks is still the card they clicked.
-     *
-     * WHY. The search used to walk the hand in draw order, and `bestScore` improves on a strict
-     * `>`, so among equal-scoring lines the first one VISITED wins. That made the AI's decision a
-     * function of where a card happened to land when it was drawn — which is an artifact of the
-     * shuffle, not information about the board. `scratch/probe144a.ts` caught it: playing the FIRST
-     * copy of a pair versus the SECOND leaves the same cards in hand in a different order (removing
-     * index 0 leaves a different remainder than removing index 1), and 23 of 37 interchangeable
-     * groups across three matchups diverged on the first ply because of it. The engine already knew
-     * the shape of this bug — the beam's own comment says restoring enumeration order is "what
-     * stops the beam changing anything it did not prune… that bug cost a measurement".
-     *
-     * WHAT IT BUYS. Once order is a function of the hand's CONTENTS rather than its history, the
-     * two copies of a card really are interchangeable: they sort adjacently, the remainder after
-     * playing either is identical key-for-key, and the subtree beneath the second is provably the
-     * same search as beneath the first. So it can be skipped — which is the whole point, because a
-     * hand is full of pairs and branching compounds at MAX_DEPTH = 3.
-     *
-     * THE SORT KEY is total and deterministic: `dataId`, then cost, then banked growth, then the
-     * instance id as the final tie-break (assigned once by `instantiateDeck`, stable across
-     * reshuffles). The first three are the fields that make two copies genuinely the same card; the
-     * fourth only exists so the order can never depend on array position.
-     *
-     * THIS MOVES NUMBERS, ON PURPOSE, ONCE. Every measurement before it was taken against an AI
-     * that read its own draw order. That is the rebaseline this row costs, and it is the reason it
-     * is not gated on bit-identity like 144b/c/d.
-     */
-    const growthOf = (id: string): number => state.counters?.[`card_growth:${id}`] ?? 0;
-    const orderedHand = [...hand].sort((a, b) => (
-        a.dataId < b.dataId ? -1 : a.dataId > b.dataId ? 1
-            : a.currentCost - b.currentCost
-            || growthOf(a.id) - growthOf(b.id)
-            || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
-    ));
+    // TICKET 177a: the enumeration (canonical hand order, copy dedupe, target choice, cost and
+    // constraint checks) lives in `legalActions.ts`, moved out unchanged. Its comments came with it.
+    for (const action of plays) {
+        // Simulate
+        const nextState = battleReducer(state, action);
+        if (CENSUS) census.simulated++;
 
-    let previousKey: string | null = null;
+        // Skip if state didn't change (reducer rejected it)
+        if (nextState === state) continue;
 
-    for (const card of orderedHand) {
-        // Copies sort adjacently, so one comparison against the previous card is the whole dedupe.
-        const key = `${card.dataId}|${card.currentCost}|${growthOf(card.id)}`;
-        if (key === previousKey) {
-            if (CENSUS) census.deduped++;
+        if (deferred !== null) {
+            // Beam: hold the candidate with its IMMEDIATE score and recurse later, into
+            // only the best `BEAM` of them.
+            deferred.push({
+                action, nextState, order: deferred.length,
+                immediate: evaluateState(nextState, side),
+            });
             continue;
         }
-        previousKey = key;
 
-        const programData = GetProgramData(card.dataId);
+        // Recursive Call
+        const result = findBestSequence(nextState, side, depth + 1, maxDepth);
 
-        // Determine valid targets based on card target type
-        let potentialTargets: IBattleEntity[] = [];
-
-        if (programData.target === 'Self') {
-            potentialTargets = [...myParty]; // Self cards target own units
-            // A lifesteal card (ATTACK on TARGET plus HEAL on SELF) is an attack, not a
-            // heal: its payload target is consumed by the ATTACK, and the HEAL resolves
-            // against the source regardless. Bucketing it with heals aimed the attack at
-            // the caster, so crimson_draw/blood_rite/leech_strike/drain_life hit their own
-            // Mingming and dealt zero to the opponent. Only cards with no TARGET-scoped
-            // ATTACK are ally-targeting.
-        } else if (
-            programData.actions.some(a => a.type === 'HEAL') &&
-            !programData.actions.some(a => a.type === 'ATTACK' && a.target === 'TARGET') &&
-            programData.target !== 'Side'
-        ) {
-            potentialTargets = [...myParty]; // Heal cards target allies
-        } else if (programData.target === 'Side' || programData.target === 'All') {
-            // Side/All can target either side; try both
-            potentialTargets = [...oppParty, ...myParty];
-        } else {
-            potentialTargets = [...oppParty]; // Single attacks target enemies
+        if (depth === 0 && candidates) {
+            candidates.push({ action, score: result.score, leafState: result.leafState });
         }
 
-        for (const source of myParty) {
-            // Per-source, per-candidate: an X-cost card prices itself at this source's
-            // current Energy, so the search sees its real cost without special-casing.
-            const printedCost = getEffectiveCardCost(source, programData, card.currentCost);
-            // Ticket 36: onCostCalculated can zero a card's cost (hel_v2 UNDERWORLD_GATEWAY).
-            // getEffectiveCardCost does NOT run that hook - the reducer applies it separately
-            // in handlePlayProgram - so the AI must price the card the same way or it will skip
-            // cards it can actually afford. Without this, Hel never considers soul_tithe (3e on
-            // a 2-Energy frame) and it measures as a 100% dead card for a reason that looks
-            // nothing like balance.
-            //
-            // The returned state is DISCARDED on purpose: the search must not leak state, and
-            // cost hooks are modifiers, not mutators. Target is `undefined` here because the
-            // candidate target is not chosen until the loop below - the signature allows it,
-            // and inventing one would silently mis-price target-conditional cost hooks.
-            const effectiveCost = executeCostCalculated(state, source, undefined, programData, printedCost).cost;
-            if (source.currentEnergy < effectiveCost) continue;
-
-            // A Self card ignores the loop variable - `effectiveTargetId` below is the CASTER - so
-            // iterating every potential target emits the IDENTICAL action once per target and
-            // simulates it from scratch each time, then recurses into an identical subtree. In 1v1
-            // there is one target and it costs nothing; in 3v3 `AI_CENSUS=1` measured it at 18.1%
-            // of all simulations. Collapsing it is exact: the removed actions are byte-identical to
-            // the one kept.
-            //
-            // It is exact per candidate but NOT a no-op on the decision, and that is a fix rather
-            // than a regression: `getBestAction` takes the top `LOOKAHEAD_TOP_N` candidates, and
-            // those slots were being filled with three copies of one action, so the lookahead was
-            // examining one distinct line where it believed it was examining three.
-            const targetsForSource = programData.target === 'Self' ? [source] : potentialTargets;
-
-            for (const target of targetsForSource) {
-                // Validate constraints BEFORE simulating
-                if (!validateProgramConstraints(state, source, target, programData, effectiveCost)) {
-                    continue; // Skip this card/target combo — constraints not met
-                }
-
-                // For Self cards, the effective target is always the source
-                const effectiveTargetId = programData.target === 'Self' ? source.id : target.id;
-
-                const action: BattleAction = {
-                    type: 'PLAY_PROGRAM',
-                    payload: {
-                        sourceId: source.id,
-                        targetId: effectiveTargetId,
-                        programId: card.id
-                    }
-                };
-
-                if (siblings) {
-                    census.enumerated++;
-                    const k = `${source.id}|${effectiveTargetId}|${card.id}`;
-                    if (siblings.has(k)) census.duplicate++; else siblings.add(k);
-                }
-
-                // Simulate
-                const nextState = battleReducer(state, action);
-                if (CENSUS) census.simulated++;
-
-                // Skip if state didn't change (reducer rejected it)
-                if (nextState === state) continue;
-
-                if (deferred !== null) {
-                    // Beam: hold the candidate with its IMMEDIATE score and recurse later, into
-                    // only the best `BEAM` of them.
-                    deferred.push({
-                        action, nextState, order: deferred.length,
-                        immediate: evaluateState(nextState, side),
-                    });
-                    continue;
-                }
-
-                // Recursive Call
-                const result = findBestSequence(nextState, side, depth + 1, maxDepth);
-
-                if (depth === 0 && candidates) {
-                    candidates.push({ action, score: result.score, leafState: result.leafState });
-                }
-
-                if (result.score > bestScore) {
-                    bestScore = result.score;
-                    bestLeaf = result.leafState;
-                    if (depth === 0) {
-                        bestAction = action;
-                    }
-                }
+        if (result.score > bestScore) {
+            bestScore = result.score;
+            bestLeaf = result.leafState;
+            if (depth === 0) {
+                bestAction = action;
             }
         }
     }
@@ -570,8 +450,7 @@ function findBestSequence(
             // strict `>`, so among equal-scoring lines the first one VISITED wins, and recursing in
             // score order silently re-picks ties. That bug cost a measurement: at AI_BEAM=16, well
             // above 1v1's branching and pruning nothing there, 23 of 90 grid cells still moved.
-            explore = [...deferred].sort((a, b) => b.immediate - a.immediate).slice(0, BEAM);
-            explore.sort((a, b) => a.order - b.order);
+            explore = pruneToBeam(deferred, beam);
             /*
              * UNCONDITIONAL, unlike every other census counter — ticket 144 §2.
              *
@@ -707,8 +586,15 @@ const LOOKAHEAD_REPLY_DEPTH = 2;
  *    that also handicapped the player would be measuring two changes at once.
  * 2. **An unset field means the process default**, so every existing caller — the balance suites,
  *    the debug scenarios, the pre-roguelike battle path — keeps the behaviour it had.
+ *
+ * TICKET 177e adds a FOURTH grade, `'cheap'`, and its mirror on the player's half. `cheap` is not a
+ * search at all: it is `cheapBestAction` (`ai/cheap/`), one reducer call per legal action scored by
+ * a weighted list of features, fitted to copy `full`. It is for SIMULATIONS and the walker only
+ * (ticket 177 C3): nothing in the shipped game, and no row of `ENEMY_LADDER`, names it. Consequence
+ * 1 above is therefore no longer the whole story: `IBattleState.playerAiTier` now exists beside
+ * `enemyAiTier`, so a harness can put one grade on each side. Left unset it changes nothing.
  */
-export type AiTier = 'greedy' | 'lite' | 'full';
+export type AiTier = 'greedy' | 'lite' | 'full' | 'cheap';
 
 /** Candidates the lookahead re-ranks. Lite narrows the lookahead rather than removing it. */
 const lookaheadTopN = (tier: AiTier): number => (tier === 'lite' ? 2 : 3);
@@ -865,6 +751,8 @@ export const AI_TIER: AiTier =
  */
 function tierFor(state: IBattleState, side: 'PLAYER' | 'ENEMY'): AiTier {
     if (side === 'ENEMY' && state.enemyAiTier !== undefined) return state.enemyAiTier;
+    // 177e: the player's half, for a harness that grades both sides. Unset is today's behaviour.
+    if (side === 'PLAYER' && state.playerAiTier !== undefined) return state.playerAiTier;
     return AI_TIER;
 }
 /**
@@ -997,6 +885,10 @@ export function getBestAction(state: IBattleState): BattleAction {
     // 3. Card-play tactical simulation: the player side (Balance Tester /
     // the headless batch sims), or card-user enemies (enemyMode === 'CARDS').
     const side = state.activeSide;
+
+    // TICKET 177e: the cheap grade does not search. After the two early returns above, so an
+    // enemy's telegraphed intents and a MOVES enemy's pass behave exactly as they do for every grade.
+    if (tierFor(state, side) === 'cheap') return cheapBestAction(state, cheapWeights());
 
     // Silence events during AI simulation to prevent log spam and side effects.
     //

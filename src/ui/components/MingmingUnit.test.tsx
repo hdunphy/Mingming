@@ -24,7 +24,9 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import MingmingUnit, { ENERGY_PIP_BUDGET, STATUS_BADGE_BUDGET } from './MingmingUnit';
+import MingmingUnit, { ENERGY_PIP_BUDGET } from './MingmingUnit';
+// Ticket 145b: the badges are shared with the stage plaque now, so the budget lives with them.
+import { HUD_STATUS_BUDGET as STATUS_BADGE_BUDGET } from './StatusBadges';
 import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
 
 /** Enemy-only: one ATTACK action, `target: 'Single'`, no HEAL or STATUS to open the ally carve-out. */
@@ -67,7 +69,7 @@ function board(over: Partial<IBattleState> = {}): IBattleState {
         turn: 1,
         phase: 'ACTION',
         activeSide: 'PLAYER',
-        activeRelics: [],
+        activeDrivers: [],
         playerParty: PLAYERS,
         enemyParty: ENEMIES,
         playerDeck: {

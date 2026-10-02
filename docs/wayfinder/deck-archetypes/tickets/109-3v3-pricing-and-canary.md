@@ -1,5 +1,7 @@
 # 3v3 pricing check + comp canary (ticket 109): does the tuned game survive length and width?
 
+> **Status: CLOSED 2026-09-08** — done — report delivered; its open list was worked through 110/114/116/141 and the comp grid (140). Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:research - REPORT-ONLY. No card, price, OS, or engine changes; alarming
   findings return to Henry. Authorized 2026-08-20 off the 3v3-optimisation review - this
   is the work that must precede any GA, and it replaces evolutionary search with designed

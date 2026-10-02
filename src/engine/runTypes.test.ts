@@ -170,6 +170,10 @@ function runSave(runOverrides: Fixture = {}, overrides: Fixture = {}) {
     return { version: 4, run: run(runOverrides), ...overrides };
 }
 
+function reflashed(osOverrides: Record<string, string>) {
+    return reconcileLoadedState(ranchSave(), runSave({ partyIds: ['m1', 'm3'], osOverrides }));
+}
+
 describe('the two save envelopes', () => {
     it('parse independently', () => {
         expect(RanchSaveSchema.safeParse(ranchSave()).success).toBe(true);
@@ -258,6 +262,22 @@ describe('reconcileLoadedState — the run is always the disposable half', () =>
         expect(result.ranch).not.toBeNull();
         expect(result.run).toBeNull();
         expect(result.discarded).toBe('party-has-duplicate-species');
+    });
+
+    it('168f: judges the duplicate clause on the OS a body runs in the run, not the ranch\'s', () => {
+        // m1 and m3 are both kraken_v1 on the ranch; the run has reflashed m1 to kraken_v2, so the
+        // party fields two different builds and the run must survive the load.
+        const kept = reflashed({ m1: 'kraken_v2' });
+        expect(kept.run).not.toBeNull();
+        expect(kept.discarded).toBeUndefined();
+        // ...and the same override on a body whose ranch OS differs can still make a duplicate.
+        const roster = [member('m1', 'kraken'), { ...member('m3', 'kraken'), activeOS: 'kraken_v2' }];
+        const clash = reconcileLoadedState(
+            ranchSave({ ranch: { ...ranchSave().ranch, roster } }),
+            runSave({ partyIds: ['m1', 'm3'], osOverrides: { m1: 'kraken_v2' } }),
+        );
+        expect(clash.run).toBeNull();
+        expect(clash.discarded).toBe('party-has-duplicate-species');
     });
 
     it('never half-repairs a run — a discarded run is null, not a trimmed party', () => {

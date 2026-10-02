@@ -1,0 +1,95 @@
+// Mingming: Midgard Circuit. Steam Input keyboard/mouse template (ticket 37).
+//
+// Every key this file sends is one `src/ui/keybinds.ts` already listens for; see README.md in this
+// folder for the mapping table, the measurement behind choosing a KB/M template over native gamepad
+// navigation, and the note that this file's SCHEMA is unverified against the Steam client.
+//
+// `steamInputTemplate.test.ts` asserts this file covers every key constant that table exports.
+"controller_mappings"
+{
+	"version"		"3"
+	"revision"		"1"
+	"title"			"Mingming: Midgard Circuit (keyboard & mouse)"
+	"description"	"Cursor on the right stick, the game's own hotkeys on the buttons. The cursor is the primary path; the hotkeys are accelerators."
+	"creator"		"Henry Dunphy"
+	"controller_type"	"controller_steamcontroller_gordon"
+	"Timestamp"		"0"
+
+	"group"
+	{
+		"id"	"0"
+		"mode"	"four_buttons"
+		"inputs"
+		{
+			"button_a"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press RETURN" } } } }	// Cast
+			"button_b"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press ESCAPE" } } } }	// Clear selection / settings
+			"button_x"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press SPACE" } } } }		// End turn
+			"button_y"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press TAB" } } } }		// Cycle enemies
+		}
+	}
+
+	"group"
+	{
+		"id"	"1"
+		"mode"	"dpad"
+		"inputs"
+		{
+			"dpad_west"		{ "activators" { "Full_Press" { "bindings" { "binding" "key_press 1" } } } }	// Card 1
+			"dpad_north"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press 2" } } } }	// Card 2
+			"dpad_east"		{ "activators" { "Full_Press" { "bindings" { "binding" "key_press 3" } } } }	// Card 3
+			"dpad_south"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press 4" } } } }	// Card 4
+		}
+	}
+
+	"group"
+	{
+		"id"	"2"
+		"mode"	"switches"
+		"inputs"
+		{
+			"left_bumper"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press W" } } } }	// Caster 1
+			"right_bumper"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press E" } } } }	// Caster 2
+			"left_trigger"	{ "activators" { "Soft_Press" { "bindings" { "binding" "key_press R" } } } }	// Caster 3
+			"right_trigger"	{ "activators" { "Full_Press" { "bindings" { "binding" "mouse_button LEFT" } } } }
+		}
+	}
+
+	// The enemy slots and the macro rack ride a grip-held layer, so the face buttons and d-pad keep
+	// their primary meanings. A/S/D target enemies by slot; Z/X/C fire the three macro slots.
+	"group"
+	{
+		"id"	"3"
+		"mode"	"switches"
+		"inputs"
+		{
+			"button_back_left"	{ "activators" { "Full_Press" { "bindings" { "binding" "controller_action set_led 0 0 0 0" } } } }
+			"dpad_west"			{ "activators" { "Full_Press" { "bindings" { "binding" "key_press A" } } } }	// Enemy 1
+			"dpad_north"		{ "activators" { "Full_Press" { "bindings" { "binding" "key_press S" } } } }	// Enemy 2
+			"dpad_east"			{ "activators" { "Full_Press" { "bindings" { "binding" "key_press D" } } } }	// Enemy 3
+			"button_a"			{ "activators" { "Full_Press" { "bindings" { "binding" "key_press Z" } } } }	// Macro 1
+			"button_b"			{ "activators" { "Full_Press" { "bindings" { "binding" "key_press X" } } } }	// Macro 2
+			"button_x"			{ "activators" { "Full_Press" { "bindings" { "binding" "key_press C" } } } }	// Macro 3
+		}
+	}
+
+	"group"
+	{
+		"id"	"4"
+		"mode"	"joystick_mouse"
+		"inputs"	{ }
+	}
+
+	"preset"
+	{
+		"id"	"0"
+		"name"	"Default"
+		"group_source_bindings"
+		{
+			"0"	"button_diamond active"
+			"1"	"dpad active"
+			"2"	"switch active"
+			"3"	"switch active modeshift"
+			"4"	"right_joystick active"
+		}
+	}
+}

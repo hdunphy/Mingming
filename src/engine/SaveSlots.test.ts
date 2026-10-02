@@ -72,6 +72,7 @@ function makeRanch(tier: number): IRanchState {
         codex: { seen: [], played: [] , species: [], assembled: [], os: [] },
         gymsCleared: [],
         highestTierCleared: tier,
+        tierClears: {},
         seenTips: [],
         codexMilestones: [],
     };

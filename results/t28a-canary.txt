@@ -1,0 +1,12 @@
+iterations 3 per (gym × arm), boss fight only, beam 0
+
+gym            arm       party        boss win%  turns  FTK  trunc
+gym_emberfall  BEFORE   counter:emberfall        0%    2.0    0      0   n=3
+gym_emberfall  AFTER    counter:emberfall        0%    3.0    0      0   n=3
+
+gym_tidewrack  BEFORE   counter:tidewrack       33%    4.3    0      0   n=3
+gym_tidewrack  AFTER    counter:tidewrack      100%    3.3    0      0   n=3
+
+gym_rootfall   BEFORE   counter:rootfall       100%    4.3    0      0   n=3
+gym_rootfall   AFTER    counter:rootfall       100%    3.0    0      0   n=3
+

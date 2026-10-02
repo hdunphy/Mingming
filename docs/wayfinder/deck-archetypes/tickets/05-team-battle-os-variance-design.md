@@ -1,5 +1,7 @@
 # Team-battle OS-variance scenario design
 
+> **Status: CLOSED 2026-09-08** — superseded — 3v3 is built (tickets 98/109/140) and valkyrie was reworked (136u); the scenario design this asked for is the comp grid. Closed in the ticket audit (`../TICKET-AUDIT-2026-09-07.md`).
+
 - Type: wayfinder:grilling
 - Status: open
 - Assignee: —

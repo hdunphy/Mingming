@@ -7,6 +7,22 @@ import { ActionExecutorRegistry, STRENGTH_STACK_CAP } from '../actions/ActionExe
 import { applyMutations } from '../resolutionEngine';
 import { numericBaseCost } from '../types';
 import { isSimulating } from './simulationDepth';
+import { globalBattleEventBus, type StatusSource } from '../events';
+import { GetProgramData } from '../data/programRegistry';
+
+/**
+ * TICKET 171f — who a data hook's statuses belong to. A daemon's when one of the owner's installed
+ * daemons lists the hook; otherwise the owner's firmware side (its OS, a patch or a driver). The
+ * `hookId` is exact either way, and it is what the stage keys the separate beat on.
+ *
+ * Skipped inside AI lookahead (`isSimulating`): it only feeds an event, the bus is muted there, and
+ * a hook fires on that hot path tens of thousands of times a decision (ticket 144).
+ */
+function hookStatusSource(hookId: string, owner: IBattleEntity): StatusSource {
+    const daemon = (owner.daemons ?? []).find((d) => GetProgramData(d.dataId).hooks?.includes(hookId));
+    if (daemon) return { kind: 'daemon', id: daemon.dataId, ownerId: owner.id, hookId };
+    return { kind: 'os', id: owner.activeOS ?? hookId, ownerId: owner.id, hookId };
+}
 
 // Hook ids we've already warned about having a malformed "condition" — warn once, not every trigger.
 const warnedBadConditions = new Set<string>();
@@ -37,11 +53,43 @@ function evaluateCustomCondition(
  * HookFactory: Generates functional hooks from data definitions.
  */
 export const HookFactory = {
-    createHook(data: DataHookDefinition | ModifierDataHookDefinition): HookDefinition {
+    /**
+     * TICKET 16 — the engine's half of the PROC-VISIBLE law.
+     *
+     * Called when a hook flagged `proc: true` has passed its `when` and is about to act. Emits
+     * `DRIVER_PROC` so the UI can flash the Driver's chip and float its name on the owner. Two
+     * guards: the AI's search drives this same code ninety thousand times a decision
+     * (`isSimulating`), and a hook with no Driver to announce (a firmware hook someone flagged by
+     * mistake) announces nothing rather than a nameless flash.
+     *
+     * The event, not the LOG line, is the proc: a LOG is prose the player has to go and read, and
+     * `macros-and-drivers.md` rejected invisible passives precisely because nobody reads the prose.
+     */
+    announceProc(driverId: string | undefined, hookId: string, context: HookContext, owner: IBattleEntity): void {
+        if (!driverId || isSimulating()) return;
+        globalBattleEventBus.emit({
+            type: 'DRIVER_PROC',
+            timestamp: Date.now(),
+            driverId,
+            hookId,
+            ownerId: owner.id,
+            fromPlayer: context.state.playerParty.some(e => e.id === owner.id),
+        });
+    },
+
+    /**
+     * @param driverId Ticket 16: the Driver this hook belongs to, when it belongs to one. Set by
+     *   `firmwareRegistry` for every `driver_*` entry; undefined for firmware and daemons.
+     */
+    createHook(data: DataHookDefinition | ModifierDataHookDefinition, driverId?: string): HookDefinition {
         const priority = data.priority;
         const id = data.id;
 
-        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated' || data.trigger === 'onHealCalculated') {
+        // Ticket 150b: `onPowerCalculated` joins the modifier family rather than getting a branch
+        // of its own - it is the same data shape (`multiplier`/`bonus`/`scaling`) applied at a
+        // different point in `calculateDamage`, and a second builder would be a second place for
+        // the scaling table to drift.
+        if (data.trigger === 'onDamageCalculated' || data.trigger === 'onPowerCalculated' || data.trigger === 'onStatusDamageCalculated' || data.trigger === 'onCostCalculated' || data.trigger === 'onHealCalculated') {
             const modifierData = data as ModifierDataHookDefinition;
             return {
                 id,
@@ -49,6 +97,7 @@ export const HookFactory = {
                 [data.trigger]: (damage: number, context: HookContext, owner: IBattleEntity) => {
                     if (this.checkCondition(modifierData.when, context, owner)
                         && evaluateCustomCondition(id, modifierData.condition, context, owner)) {
+                        if (modifierData.proc) this.announceProc(driverId, id, context, owner);
                         let newDamage = damage;
 
                         const scaleFactor = modifierData.scaling
@@ -60,6 +109,32 @@ export const HookFactory = {
                         // silently dropped the whole hook. Every other multiplier in the registry
                         // is non-zero, so this is a no-op for them.
                         if (modifierData.multiplier !== undefined) newDamage *= (1 + ((modifierData.multiplier - 1) * scaleFactor));
+                        /*
+                         * TICKET 150e — **A `bonus` HAS A UNIT, AND THE TRIGGER IS WHAT NAMES IT.**
+                         *
+                         * The same field means two different quantities depending on where it is
+                         * read, and nothing in the data says which:
+                         *
+                         *   - on `onPowerCalculated` a bonus is POWER. It goes in at step 1 of
+                         *     `calculateDamage`, beside `statusPower`, BEFORE the attack/defense
+                         *     ratio, the /45 pace divisor, STAB and type effectiveness — so every
+                         *     dial the game has can still reach it, and `powerscale` can price it.
+                         *     **This is the shape a PAYOFF uses.** Ticket 26's law.
+                         *   - on `onDamageCalculated` a bonus is FLAT HP, added at step 5 after all
+                         *     four of those. Nothing can reach it and the scorer has to convert it
+                         *     back through the HP table to see it at all. **Reserved for a PRICE** —
+                         *     recoil, a toll, a self-hit (ticket 26, "recoil is a price"): a cost
+                         *     the player agreed to is allowed to be fixed, because it is supposed
+                         *     to stop being frightening as the frame grows.
+                         *
+                         * Both firmware payoffs that broke this rule have been moved: TOXIN_FANG
+                         * (150c, `bonus: 10` HP → `bonus: 4` power, the same OS by the field) and
+                         * KINETIC_RAM (150d, `bonus: 2.5` HP → `bonus: 2.5` power as printed).
+                         * KINETIC_RAM is the reason the law is written down here rather than in a
+                         * ticket: its description said "power" and its data paid HP for two
+                         * tickets, and no test could see the disagreement because a `bonus` is a
+                         * `bonus`. `descriptionData.test.ts` can see it now.
+                         */
                         if (modifierData.bonus) newDamage += (modifierData.bonus * scaleFactor);
                         return Math.floor(newDamage);
                     }
@@ -75,8 +150,9 @@ export const HookFactory = {
                 [eventData.trigger]: (context: HookContext, owner: IBattleEntity): HookResult => {
                     if (this.checkCondition(eventData.when, context, owner)
                         && evaluateCustomCondition(id, eventData.condition, context, owner)) {
+                        if (eventData.proc) this.announceProc(driverId, id, context, owner);
                         return {
-                            state: this.executeActions(eventData.do, context, owner)
+                            state: this.executeActions(eventData.do, isSimulating() ? context : { ...context, statusSource: hookStatusSource(id, owner) }, owner)
                         };
                     }
                     return { state: context.state };
@@ -374,6 +450,17 @@ export const HookFactory = {
                 const enemies = (isOwnerPlayer ? state.enemyParty : state.playerParty)
                     .filter(e => e.currentHp > 0);
                 if (enemies.length === 0) return { targetId: null, state };
+                /*
+                 * TICKET 59 (Henry, 2026-09-09): with ONE candidate the pick is not a choice,
+                 * so it must not spend a draw. It used to: `nextInt(0, 0)` always returns 0 and
+                 * always advances the seed, so every 1v1 trigger silently shifted the whole
+                 * rest of that battle's random sequence relative to the same fight in 3v3.
+                 * That is what put 29 of 30 kraken_v1 grid cells off (field 46.81 vs 49.50).
+                 * Guarding is the correct shape rather than a baseline patch: a draw whose
+                 * outcome is forced is not randomness, and the CONDITION is the candidate
+                 * count, not a cap on anything.
+                 */
+                if (enemies.length === 1) return { targetId: enemies[0].id, state };
                 const prng = new PRNG(state.seed);
                 const { value: index, nextSeed } = prng.nextInt(0, enemies.length - 1);
                 return {

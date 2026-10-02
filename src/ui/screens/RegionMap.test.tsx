@@ -16,21 +16,124 @@ import RegionMap from './RegionMap';
 import { generateRegionGraph } from '../../engine/run/regionGraph';
 import { columnOf } from './regionLayout';
 
-const graph = generateRegionGraph('map-render-seed');
+const graph = generateRegionGraph('map-render-seed-0');
 const BIOME_NAMES = ['Emberglass Flats', 'Brinehollow', 'Rootmire'];
 const BIOME_ELEMENTS = ['Fire', 'Water', 'Nature'];
 
-function render(currentNodeId = graph.entryNodeId, nodes = graph.nodes): string {
+/**
+ * TICKET 142c: what a rival fields in each biome, off-biome element first. The fixture mirrors a
+ * Rootfall run's shape — path Fire+Nature against biomes Fire / Water / Nature — so biome 0's
+ * rival leads with Nature (Fire is the biome's own) and biome 2's leads with Fire.
+ */
+const RIVAL_ELEMENTS = [['Nature', 'Fire'], ['Fire', 'Nature'], ['Fire', 'Nature']];
+
+function render(
+    currentNodeId = graph.entryNodeId,
+    nodes = graph.nodes,
+    rivalElements: ReadonlyArray<ReadonlyArray<string>> | undefined = undefined,
+): string {
     return renderToStaticMarkup(
         <RegionMap
             nodes={nodes}
             currentNodeId={currentNodeId}
             biomeNames={BIOME_NAMES}
             biomeElements={BIOME_ELEMENTS}
+            rivalElements={rivalElements}
             onTravel={() => {}}
         />,
     );
 }
+
+describe('142c — a rival and a scout say what they are', () => {
+    /*
+     * Henry, after the first Rootfall playtest: *"I thought I would see nature in the workshop
+     * somehow but I was seeing dual element wild encounters in the fire biome."* He had found the
+     * rival by walking into it. Every fight node took its colour and its label from
+     * `biomeElements[biomeIndex]`, so the ONE node kind that deliberately ignores its biome was the
+     * one node labelled with the wrong element — and `node.scout` was read by no UI file at all.
+     */
+    const rival = graph.nodes.find((n) => n.kind === 'rival')!;
+    const scout = graph.nodes.find((n) => n.scout)!;
+    /** Standing next to it, so it is revealed — the fog shows shape, not kind. */
+    const beside = (id: string) => graph.nodes.find((n) => n.edges.includes(id))!.id;
+
+    it('names BOTH of a rival elements, off-biome first', () => {
+        // Henry's ruling: show both. The pair IS the information — one element alone on a rival is
+        // exactly the label that hid it, whichever of the two you pick.
+        const markup = render(beside(rival.id), graph.nodes, RIVAL_ELEMENTS);
+        const pair = RIVAL_ELEMENTS[rival.biomeIndex];
+        expect(markup).toContain(`Rival, ${pair[0]} + ${pair[1]}`);
+    });
+
+    it('leaves an ordinary fight on its own biome element', () => {
+        const wild = graph.nodes.find((n) => n.kind === 'wild')!;
+        const markup = render(beside(wild.id), graph.nodes, RIVAL_ELEMENTS);
+        expect(markup).toContain(`Wild, ${BIOME_ELEMENTS[wild.biomeIndex]}`);
+    });
+
+    it('falls back to the biome when no pair is supplied — a caller with no run still draws', () => {
+        const markup = render(beside(rival.id), graph.nodes, undefined);
+        expect(markup).toContain(`Rival, ${BIOME_ELEMENTS[rival.biomeIndex]}`);
+        expect(markup).not.toContain('rm-legend-rival');
+    });
+
+    it('marks the scout, which is a FLAG on an ordinary fight rather than a kind', () => {
+        const markup = render(beside(scout.id), graph.nodes, RIVAL_ELEMENTS);
+        expect(markup).toContain('Scout ');
+        expect(markup).toContain('rm-node-scout-ring');
+    });
+
+    it('explains the rival in the legend, but only in a run that has them', () => {
+        expect(render(graph.entryNodeId, graph.nodes, RIVAL_ELEMENTS)).toContain('rm-legend-rival');
+    });
+});
+describe('17 — the stakes are said before the player commits', () => {
+    /*
+     * `economy-session.md`: *"ONE harder fight, the Driver visible as the stakes."* The map is
+     * where "visible" happens. The graph fixture carries no stakes (they are stamped by `createRun`,
+     * not the generator), so they are planted here; the claim is that a planted stake reaches the
+     * label, the ring and the legend — and that the fog keeps it.
+     */
+    const elite = graph.nodes.find((n) => n.kind === 'elite' && !n.scout)!;
+    const ambush = graph.nodes.find((n) => n.kind === 'ambush')!;
+    const beside = (id: string) => graph.nodes.find((n) => n.edges.includes(id))!.id;
+    const staked = graph.nodes.map((n) => (
+        n.id === elite.id ? { ...n, driverStake: 'driver_first_blood' }
+            : n.id === ambush.id ? { ...n, driverStake: 'driver_antivenom' } : n));
+
+    it('names the Driver on an elite, and rings the node', () => {
+        const markup = render(beside(elite.id), staked, RIVAL_ELEMENTS);
+        expect(markup).toContain('stakes: FIRST BLOOD');
+        expect(markup).toContain('rm-node-stake-ring');
+        expect(markup).toContain('Driver at stake: FIRST BLOOD');
+        expect(markup).toContain('rm-legend-stakes');
+    });
+
+    it('marks the ambush HIGH RISK and calls its Driver a bonus (Henry, 2026-09-12)', () => {
+        const markup = render(beside(ambush.id), staked, RIVAL_ELEMENTS);
+        expect(markup).toContain('HIGH RISK');
+        expect(markup).toContain('bonus: ANTIVENOM');
+        expect(markup).toMatch(/rm-node[^"]* risk/);
+    });
+
+    it('keeps the stake behind the fog — a node you cannot see the kind of does not show its prize', () => {
+        // Standing at the entry, an exit elite two or more layers away is fogged.
+        const far = staked.find((n) => n.driverStake && n.layer >= 3)!;
+        const markup = render(graph.entryNodeId, staked, RIVAL_ELEMENTS);
+        const name = far.driverStake === 'driver_first_blood' ? 'FIRST BLOOD' : 'ANTIVENOM';
+        // The other planted node may be revealed; assert on the far one's absence only if it is
+        // the only carrier of that name.
+        if (!staked.some((n) => n.id !== far.id && n.driverStake === far.driverStake)) {
+            expect(markup).not.toContain(name);
+        }
+    });
+
+    it('says nothing about stakes when no node has one', () => {
+        const markup = render(graph.entryNodeId, graph.nodes, RIVAL_ELEMENTS);
+        expect(markup).not.toContain('rm-legend-stakes');
+        expect(markup).not.toContain('rm-node-stake-ring');
+    });
+});
 
 describe('RegionMap', () => {
     it('draws every node and every undirected edge exactly once', () => {
@@ -126,5 +229,25 @@ describe('RegionMap', () => {
         const lonely = { ...graph.nodes[0], id: 'lonely', edges: [] };
         const markup = render('lonely', [...graph.nodes, lonely]);
         expect(markup).toContain('Nowhere to go from here');
+    });
+});
+
+describe('2026-09-25 playtest — the start node, and a key for the icons', () => {
+    it('calls the node the run starts on Start, and says walking back in is a fight', () => {
+        // Henry: "I start on node one, but never encounter a fight." It wore the wild's blade.
+        const markup = render(graph.entryNodeId);
+        expect(markup).toContain('You are here: <strong>Start, Fire, walking back in is a Wild fight');
+    });
+
+    it('lists a key entry for every kind on show, and none for a fogged one', () => {
+        const markup = render(graph.entryNodeId);
+        expect(markup).toContain('rm-legend-key');
+        const key = markup.slice(markup.indexOf('rm-legend-key'), markup.indexOf('You are here'));
+        expect(key).toContain('Start');
+        // One layer of visibility from the start: the layer-1 nodes are revealed, and biome 0's
+        // layer 1 is always a fight (ticket 24), so Wild is in the key.
+        expect(key).toContain('Wild');
+        // The gym is several biomes away and fogged — the key must not explain it yet.
+        expect(key).not.toContain('Gym');
     });
 });

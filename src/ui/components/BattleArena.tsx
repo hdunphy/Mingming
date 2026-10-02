@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { type RootState } from '../store/store';
-import MingmingUnit from './MingmingUnit';
 import CardHand from './CardHand';
 import CombatLog from './CombatLog';
 import BattleStage from './BattleStage';
+import BattleTopBar from './BattleTopBar';
 import MacroRack from './MacroRack';
 import Callout from './Callout';
 import { nextBattleTip } from '../../engine/tips';
@@ -20,25 +20,33 @@ import {
     ENEMY_KEYS,
     MACRO_KEYS,
 } from '../keybinds';
-import { selectSource, selectTarget, selectCard, endTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
+import { selectSource, selectTarget, selectCard, endTurn, nudgeEndTurn, playProgram, setBattleState, executeIntent, fireMacro } from '../store/battleSlice';
+import { decideEndTurn } from '../utils/endTurnNudge';
+import { macroTargetId } from '../utils/macroTarget';
 import type { IBattleEntity } from '../../engine/types';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { isValidCardTarget, targetVerdict } from '../utils/targeting';
 import { getBestAction } from '../../engine/ai/TacticalAI';
+import { createEnemyBrain, type EnemyBrain } from '../ai/enemyBrain';
 import { canFireMacro } from '../../engine/battleReducer';
 import { getMacro, revivedHpFor } from '../../engine/data/macroRegistry';
-import { rollDropTable } from '../../engine/RewardSystem';
+import { rollDropTable, gymClearBlueprints } from '../../engine/RewardSystem';
+import { authoredBossFor } from '../../engine/run/bosses';
+import { partyElementsOf, paysDriver, resolveDriverStake } from '../../engine/run/driverStakes';
+import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFight';
 import { isPlayerDefeat, isPlayerVictory } from '../../engine/battleOutcome';
 import BattleReport from './BattleReport';
-import { addBlueprint, markGymCleared, recordTierCleared } from '../store/gameSlice';
+import { addBlueprint, markGymCleared, recordGymTierClear, recordTierCleared } from '../store/gameSlice';
 import { openSettings } from '../store/uiSlice';
 import {
     addDriver,
     addRunCards,
     addRunCollection,
     addRunScrap,
+    fitPatch,
     advanceGauntlet,
     consumeMacro,
+    takeRewardMacro,
     endRun,
     finishGauntlet,
     recordBankedBlueprint,
@@ -46,16 +54,19 @@ import {
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
+import { fightBonusFor } from '../../engine/run/fightBonus';
 import { logRunEvent } from '../store/runLogMiddleware';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
-import { RelicRegistry } from '../../engine/data/relicRegistry';
-import { PRNG } from '../../engine/core/PRNG';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
 import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
-import AudioControls from './AudioControls';
+import { useImpactFeedback } from '../vfx/useImpactFeedback';
+import { useCastSequence } from '../vfx/useCastSequence';
+import { useViewportSize } from '../hooks/useStageAnchors';
+import { consoleHeightAt, stageScale } from './stageGeometry';
+import { useCardDrag } from '../hooks/useCardDrag';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -169,20 +180,18 @@ const BattleArena: React.FC = () => {
     const selectedSourceId = useSelector((state: RootState) => state.battle.selectedSourceId);
     const selectedTargetId = useSelector((state: RootState) => state.battle.selectedTargetId);
     const selectedCardId = useSelector((state: RootState) => state.battle.selectedCardId);
+    const endTurnNudge = useSelector((state: RootState) => state.battle.endTurnNudge);
     // TICKET 11: a battle's context is the RUN, not the ranch. The gauntlet, the drivers and the
     // scrap the fight pays out are all `IRunState` fields now; the only thing the ranch still
     // receives from a won fight is blueprints, which are the one persistent currency.
     const run = useSelector((state: RootState) => state.run.run);
     const gauntlet = run?.gauntlet ?? null;
-    const drivers = run?.drivers;
     // Ticket 24. `seenTips` is a ranch field, so the lesson outlives the run that taught it.
     const seenTips = useSelector((state: RootState) => state.game.seenTips);
 
     const [showTurnBanner, setShowTurnBanner] = useState(false);
-    const [dragPoint, setDragPoint] = useState<{ x: number, y: number } | null>(null);
-    const [originPoint, setOriginPoint] = useState<{ x: number, y: number } | null>(null);
-    const [isTargeting, setIsTargeting] = useState(false);
-    const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null);
+    // Ticket 145c: the bar carries the latest line and the chevron; the panel is `CombatLog`.
+    const [logOpen, setLogOpen] = useState(false);
 
     // Epic 3.5: Post-battle state
     const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
@@ -199,11 +208,41 @@ const BattleArena: React.FC = () => {
         stageControls.start({ opacity: 1, transition: { duration: 1 } });
     }, [stageControls]);
 
-    // Big hits (>= 33% max HP) nudge the whole arena a few px.
-    useEffect(() => {
-        if (!vfx.shakeKey || prefersReducedMotion()) return;
-        stageControls.start({ x: [0, -3, 3, -2, 2, 0], transition: { duration: 0.22 } });
-    }, [vfx.shakeKey, stageControls]);
+    /*
+     * TICKET 146e — HIT-STOP AND THE SCALED SHAKE.
+     *
+     * This replaces the threshold shake that lived here: a fixed 3px nudge above 33% of max HP,
+     * which is a boolean pretending to be feedback — a 34% hit and a lethal one shook identically,
+     * and everything below the line shook not at all.
+     *
+     * Ruling 2 makes it continuous: *"Everything gets a hit stop but it scales with damage."* The
+     * hook owns both the stop and the shake because they run off one number, and two sources
+     * driving `stageControls` would race.
+     */
+    useImpactFeedback(battleState, stageControls);
+
+    /*
+     * TICKET 146c — THE CAST SEQUENCE. Owns steps 2-4 (trail, impact, status tells) and the queue
+     * that keeps seven enemy casts in one synchronous burst from animating on top of each other.
+     * Steps 1 and 5 — the card's flight to the lane and out to the discard — are
+     * `PlayedCardReveal`'s, because the card is a React element and these are particles.
+     */
+    useCastSequence(battleState);
+
+    // 155b: the console's height, published as a custom property — see the note on the root below.
+    const viewport = useViewportSize();
+    const scale = stageScale(viewport.width, viewport.height);
+    const {
+        isTargeting,
+        dragPoint,
+        originPoint,
+        hoveredEntityId,
+        setHoveredEntityId,
+        isDragActive,
+        startDrag,
+        onPointerMove,
+        endDrag,
+    } = useCardDrag({ scale, selectedCardId });
 
     const prevSideRef = useRef(battleState?.activeSide);
     // Separate ref for the enemy-AI effect so it doesn't race the turn-banner effect
@@ -253,6 +292,17 @@ const BattleArena: React.FC = () => {
     // `react-hooks/refs` rule is for.
     const fireMacroRef = useRef<(slot: number, macroId: string) => void>(() => undefined);
     const macrosRef = useRef<ReadonlyArray<string | null>>([]);
+
+    // TICKET 166a: the enemy thinks in a Web Worker so the screen keeps animating while it does.
+    const enemyBrainRef = useRef<EnemyBrain | null>(null);
+    useEffect(() => {
+        const brain = createEnemyBrain();
+        enemyBrainRef.current = brain;
+        return () => {
+            brain.dispose();
+            if (enemyBrainRef.current === brain) enemyBrainRef.current = null;
+        };
+    }, []);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -347,15 +397,15 @@ const BattleArena: React.FC = () => {
 
                 dispatch(playProgram({ sourceId: caster.id, targetId: target.id, programId: card.id }));
                 dispatch(selectCard(null));
-                setDragPoint(null);
-                setOriginPoint(null);
-                setIsTargeting(false);
+                endDrag(true);
             }
 
-            // Space: End Turn
+            // Space: End Turn — through the same 171h nudge as the button, so the key cannot skip it.
             if (e.key === END_TURN_KEY) {
                 e.preventDefault();
-                dispatch(endTurn());
+                const decision = decideEndTurn(battleState, endTurnNudge);
+                if (decision.kind === 'nudge') dispatch(nudgeEndTurn(decision.cardIds));
+                else dispatch(endTurn());
             }
 
             /*
@@ -380,9 +430,7 @@ const BattleArena: React.FC = () => {
                 dispatch(selectCard(null));
                 dispatch(selectSource(null));
                 dispatch(selectTarget(null));
-                setDragPoint(null);
-                setOriginPoint(null);
-                setIsTargeting(false);
+                endDrag(false);
             }
         };
 
@@ -406,7 +454,7 @@ const BattleArena: React.FC = () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId]);
+    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag, endTurnNudge]);
 
     useEffect(() => {
         if (battleState?.activeSide !== prevSideRef.current) {
@@ -457,10 +505,10 @@ const BattleArena: React.FC = () => {
             // double-invoke included. Computing at the top of the effect would have run the search
             // twice for one decision.
             //
-            // It does NOT fix the freeze. `getBestAction` is synchronous on the main thread, so the
-            // UI is still locked for the duration - the freeze now lands *during* the banner/beat
-            // rather than after it. Un-freezing it needs the search off-thread (ticket 39 asks for
-            // a Web Worker); this change only stops us paying for the same wait twice.
+            // Since ticket 166a the search runs in a Web Worker (`src/ui/ai/enemyBrain.ts`), so the reveal
+            // and the cast sequence keep animating while the enemy thinks; the main-thread path
+            // remains as the fallback where no Worker is available (tests, and a worker that failed to start).
+            //
             // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL.
             //
             // Henry: *"show the cards that get played, animate them to show center screen ... That
@@ -468,12 +516,6 @@ const BattleArena: React.FC = () => {
             // blind 600ms - it is `PLAYED_CARD_REVEAL_MS` with the previous card on screen, and the
             // search runs after it. Wall-clock is about what it was; the time now carries the
             // information the player was having to dig out of the combat log.
-            //
-            // It has to be a REAL hold rather than something the search overlaps, and that is the
-            // one place this file cannot pretend: `getBestAction` is synchronous on the main thread,
-            // so a reveal animating "during" the search would simply freeze. Until the search moves
-            // off-thread (steam-release ticket 39) the honest choice is a short un-frozen window in
-            // which the reveal actually plays, and then the think.
             const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : PLAYED_CARD_REVEAL_MS;
             const DEBOUNCE_MS = 50;
 
@@ -481,7 +523,9 @@ const BattleArena: React.FC = () => {
             if (cancelled) return;
 
             const thinkStart = performance.now();
-            const action = getBestAction(battleState);
+            const brain = enemyBrainRef.current;
+            const action = brain ? await brain.decide(battleState) : getBestAction(battleState);
+            if (cancelled) return;
             const thoughtFor = performance.now() - thinkStart;
 
             await new Promise(r => setTimeout(r, Math.max(0, pauseMs - DEBOUNCE_MS - thoughtFor)));
@@ -523,11 +567,9 @@ const BattleArena: React.FC = () => {
         if (!battleState || !run) return;
         const macro = getMacro(macroId);
         if (!macro) return;
-        // Mirrors MacroRack's defaulting: an ally-facing macro with nobody picked lands on the
-        // firing unit. Kept in step by both reading `macro.targeting` rather than by agreement.
-        const targetId = macro.targeting === 'ALLY'
-            ? (selectedTargetId ?? selectedSourceId ?? '')
-            : (selectedTargetId ?? '');
+        // The same target the rack previewed: both call `macroTargetId` (ticket 172), so an
+        // ally-facing macro defaults to the firing unit and a Revive to the first downed ally.
+        const targetId = macroTargetId(battleState, macro, selectedSourceId, selectedTargetId);
         const payload = { macroId, sourceId: selectedSourceId ?? '', targetId };
         if (canFireMacro(battleState, payload) !== null) return;
 
@@ -596,9 +638,7 @@ const BattleArena: React.FC = () => {
 
         // Persist source selection, clear card/drag state
         dispatch(selectCard(null));
-        setDragPoint(null);
-        setOriginPoint(null);
-        setIsTargeting(false);
+        endDrag(true);
     };
 
     /*
@@ -632,7 +672,28 @@ const BattleArena: React.FC = () => {
      * scenario, which has no node at all; `'wild'` is the baseline both tables are quoted against,
      * so a scenario pays what an ordinary fight pays rather than nothing.
      */
-    const nodeKind: NodeKind = run?.nodes.find(n => n.id === run.currentNodeId)?.kind ?? 'wild';
+    const currentNode = run?.nodes.find(n => n.id === run.currentNodeId);
+    // TICKET 168g: an event node in Ambush Bait's fight is classed as the wild it is.
+    const nodeKind: NodeKind = run && currentNode ? fightKindOf(run, currentNode) : currentNode?.kind ?? 'wild';
+    /** TICKET 168g: what a win's scrap is multiplied by — 2 for an event fight, else 1. */
+    const scrapMultiplier = run && currentNode ? eventFightScrapMultiplier(run, currentNode) : 1;
+    /**
+     * TICKET 17: the Driver this node pays, stamped on it at run creation (`driverStakes.ts`) and
+     * shown on the map before the player walked here. Read off the node rather than re-rolled, so
+     * the report pays exactly what the map promised. Undefined for every node kind that does not
+     * pay one and for every debug scenario.
+     */
+    // TICKET 172: an Element Driver pays for an element this party fields (`resolveDriverStake`).
+    const driverStake: string | undefined = paysDriver(nodeKind) && currentNode?.driverStake
+        ? resolveDriverStake(currentNode.driverStake, partyElementsOf(battleState?.playerParty ?? []))
+        : undefined;
+
+    /**
+     * TICKET 166d: the extra prize from fightBonusFor (macros for gauntlet fights 1 and 2).
+     */
+    const bonus = run && currentNode
+        ? fightBonusFor({ nodeKind, biomeIndex: currentNode.biomeIndex, biomeCount: run.biomes.length, gauntlet: run.gauntlet })
+        : undefined;
 
     /**
      * Won fights since the last blueprint — the pity floor's counter (2026-09-01), read beside
@@ -645,6 +706,17 @@ const BattleArena: React.FC = () => {
      * the effect up.
      */
     const dryFights: number = run?.blueprintDryFights ?? 0;
+
+    /**
+     * TICKET 59 (Henry, 2026-09-09): the opening run pays +10 points of blueprint on every kind
+     * that drops at all. Read beside `dryFights` for the same reason it is - a fact the reward
+     * roll needs and the engine cannot see for itself.
+     *
+     * From the RANCH, not the run: `runsCompleted` only moves when a run ends, so this cannot
+     * flip underneath a player mid-run. `?? 0` covers a save written before the field existed,
+     * which is a player who has completed no runs - the generous reading, and the true one.
+     */
+    const firstRun: boolean = useSelector((state: RootState) => (state.game.runsCompleted ?? 0) === 0);
 
     // Audio: battle-end stinger, played once per battle (seed = battle identity;
     // gauntlets chain battles without ever passing through battleState === null).
@@ -700,12 +772,22 @@ const BattleArena: React.FC = () => {
      * a state no code produces. `rollDraftRounds` and `IRewardBundle.draftRounds` are still there
      * for 18 to re-wire; what is gone is the invocation.
      *
-     * The driver choice on a gauntlet's last fight stays as ticket 11 left it — ticket 16 owns
-     * drivers and has not been through here yet.
+     * TICKET 16 REMOVED THE GYM-CLEAR DRIVER PICK. The last fight of a gauntlet used to pay "choose
+     * one of three random relics" on top of the bundle, rolled from `Date.now()` and dispatched as
+     * `addDriver`. The relics are deleted, and `economy-session.md` / `macros-and-drivers.md` rule
+     * that Drivers are ELITE drops — *"ONE harder fight, the Driver visible as the stakes"* — which
+     * is ticket 17's node, not the gym's. Henry ruled the removal 2026-09-11.
+     *
+     * TICKET 17 PUTS THE DRIVER BACK, AT THE RIGHT NODE. An elite's or an ambush's win carries the
+     * node's `driverStake` on the bundle — not rolled here, READ here, because the map already
+     * showed it. It rides the bundle rather than being dispatched on victory so the report can say
+     * what was won, and it is installed on CONTINUE with the cards (a Driver is run-scoped, so the
+     * crash-safety argument that banks blueprints on drop does not apply — a fight replayed after a
+     * crash pays it again).
      */
     useEffect(() => {
         if (isVictory && !rewardBundle && battleState) {
-            let bundle = rollDropTable({
+            const rolled = rollDropTable({
                 defeated: battleState.enemyParty,
                 nodeKind,
                 party: battleState.playerParty,
@@ -719,19 +801,12 @@ const BattleArena: React.FC = () => {
                  * a fight paid.
                  */
                 dryFights,
+                firstRun,
+                bonus,
+                heldPatches: run?.patches ?? {},
             });
-
-            // Last fight of the gauntlet: the win pays a driver choice on top of the usual bundle.
-            if (gauntlet && gauntlet.fightIndex >= gauntlet.totalFights - 1) {
-                const held = new Set(drivers ?? []);
-                const available = Object.keys(RelicRegistry).filter(r => !held.has(r));
-
-                if (available.length > 0) {
-                    const prng = new PRNG(Date.now().toString());
-                    const { shuffled } = prng.shuffle(available);
-                    bundle = { ...bundle, relicChoices: shuffled.slice(0, 3) };
-                }
-            }
+            const paid = scrapMultiplier === 1 ? rolled : { ...rolled, scraps: rolled.scraps * scrapMultiplier };
+            const bundle = driverStake ? { ...paid, driver: driverStake } : paid;
 
             // ticket 55: reviewed, not a defect, and deliberately NOT derived during render. The
             // bundle is ROLLED from a seeded PRNG and must be rolled exactly once per victory: a
@@ -741,7 +816,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, gauntlet, drivers, dryFights]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, scrapMultiplier, driverStake, dryFights, firstRun, bonus, run?.patches]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -882,8 +957,9 @@ const BattleArena: React.FC = () => {
      */
     const handleContinue = (
         chosenCards: IOwnedProgram[],
-        chosenRelic?: string,
         storedInstanceIds: ReadonlyArray<string> = [],
+        chosenPatch?: { readonly memberId: string; readonly patchId: string },
+        chosenMacro?: { readonly macroId: string; readonly replaceSlot?: number },
     ) => {
         if (rewardBundle) {
             // Ticket 21: there is no XP. Rewards are cards, scrap and blueprints — and ticket 12
@@ -892,6 +968,20 @@ const BattleArena: React.FC = () => {
             // lose them. What is claimed here is the run-scoped half.
             if (rewardBundle.scraps > 0) {
                 dispatch(addRunScrap(rewardBundle.scraps));
+            }
+            /*
+             * TICKET 163d — the elite's patch. Run-scoped like the scrap above and the driver
+             * below, and claimed here for the same reason: if the app closes on this screen the run
+             * resumes at `phase: 'encounter'` and re-rolls the identical fight from the identical
+             * seed, so nothing is lost by not banking it early. A blueprint is the exception
+             * because it is RANCH state, which is why it is banked on drop instead.
+             */
+            if (chosenPatch) {
+                dispatch(fitPatch({ memberId: chosenPatch.memberId, patchId: chosenPatch.patchId }));
+            }
+            // TICKET 166d: take a macro won from gauntlet fights 1 and 2.
+            if (chosenMacro) {
+                dispatch(takeRewardMacro(chosenMacro));
             }
             if (chosenCards.length > 0) {
                 /*
@@ -917,10 +1007,11 @@ const BattleArena: React.FC = () => {
                 if (forDeck.length > 0) dispatch(addRunCards(forDeck));
                 if (forCollection.length > 0) dispatch(addRunCollection(forCollection));
             }
-            if (chosenRelic) {
-                dispatch(addDriver(chosenRelic));
+            // Ticket 17: the node's Driver, installed party-wide for the rest of the run. `addDriver`
+            // dedupes, so re-fighting a node whose Driver you already hold is not a second copy.
+            if (rewardBundle.driver) {
+                dispatch(addDriver(rewardBundle.driver));
             }
-
             /*
              * TICKET 59: report the pick outcome, one row per offered triple.
              *
@@ -930,9 +1021,10 @@ const BattleArena: React.FC = () => {
              * rewards this fight" are the same silence — and which of the two it was is exactly the
              * question the log exists to answer about how a deck grows.
              *
-             * Matched by instance id rather than by counting: `cardChoices` is one triple per
-             * defeated body, and a taken card belongs to the triple it came out of, so a skip is a
-             * triple with no taken card in it.
+             * Matched by instance id rather than by counting: a taken card belongs to the triple it
+             * came out of, so a skip is a triple with no taken card in it. Since ticket 179 a fight
+             * offers ONE triple, so this loop logs one row; it still iterates so it keeps working if
+             * that ever changes.
              */
             const taken = new Set(chosenCards.map(card => card.instanceId));
             for (const choice of rewardBundle.cardChoices) {
@@ -947,10 +1039,10 @@ const BattleArena: React.FC = () => {
         const lastGauntletFight = gauntlet !== null && gauntlet.fightIndex >= gauntlet.totalFights - 1;
 
         if (gauntlet && !lastGauntletFight) {
-            // The party as this fight left it — HP and all, downed members included. Nothing is
-            // healed on the way out, which is the whole of "three fights, NO healing between them".
+            // The party as this fight left it — HP and all, downed members included. TICKET 173a:
+            // `maxHp` rides along so the run can repair each standing member 30% between fights.
             dispatch(advanceGauntlet(
-                (battleState?.playerParty ?? []).map(member => ({ memberId: member.id, hp: member.currentHp })),
+                (battleState?.playerParty ?? []).map(member => ({ memberId: member.id, hp: member.currentHp, maxHp: member.maxHp })),
             ));
         } else if (gauntlet) {
             dispatch(finishGauntlet());
@@ -977,8 +1069,34 @@ const BattleArena: React.FC = () => {
              * The double dispatch is free because both reducers are idempotent by construction:
              * `markGymCleared` ignores a gym it already holds, and `recordTierCleared` is monotonic.
              */
+            /*
+             * TICKET 18a (Henry, 2026-09-24) — **THE GYM'S PAYOUT, PAID ONCE, IN BLUEPRINTS.**
+             *
+             * > *"The gym is the last fight, so a payout only means something if it PERSISTS:
+             * > blueprints do (the ranch), scrap does not (assembly costs none, the run is over)."*
+             *
+             * The three gauntlet fights now pay nothing (`rollDropTable` returns an empty bundle for
+             * `nodeKind: 'gym'`), and this is the award that replaces them. **Ticket 18b made it
+             * FIVE, FLAT** — 18a's four-plus-a-coin-flip matched the old nine-roll expectation of
+             * 4.5 exactly, and Henry took the +0.5 to make the award deterministic. It takes no
+             * seed now, which is why this call no longer passes one.
+             *
+             * Banked here, beside `markGymCleared`, and for the same reason ticket 12 banks every
+             * other blueprint on drop rather than on claim: **a player who beats the leader and then
+             * loses the app has beaten the leader.** `recordBankedBlueprint` keeps the pity counter
+             * honest exactly as the per-fight path does.
+             */
+            for (const speciesId of gymClearBlueprints(
+                (authoredBossFor(run.gymId)?.members ?? []).map((m) => m.species),
+            )) {
+                dispatch(addBlueprint(speciesId));
+                dispatch(recordBankedBlueprint(speciesId));
+            }
+
             dispatch(markGymCleared(run.gymId));
             dispatch(recordTierCleared(run.tier));
+            // Ticket 169d: which gym, at which tier. This is what unlocks the next tier for every gym.
+            dispatch(recordGymTierClear({ gymId: run.gymId, tier: run.tier }));
             // Ordered after `finishGauntlet`, which sets the phase back to 'map': the run is over,
             // not back on the map, and `endRun` is what says so. `RunSummary` reads it from there.
             dispatch(endRun('victory'));
@@ -1006,6 +1124,9 @@ const BattleArena: React.FC = () => {
     /** Drop a dragged/selected card on this unit (sidebar card or stage spotlight). */
     const handleEntityPointerUp = (entity: IBattleEntity, isEnemy: boolean) => {
         if (!selectedCardId || entity.currentHp <= 0) return;
+        // Ticket 165b: only drop when a drag gesture is in progress; plain unit click must not drop.
+        if (!isDragActive()) return;
+
         const cardData = getSelectedCardData();
         if (!cardData) return;
 
@@ -1013,16 +1134,33 @@ const BattleArena: React.FC = () => {
             // For Self cards, always target the source
             const effectiveTargetId = cardData.target === 'Self' ? (selectedSourceId || entity.id) : entity.id;
             handlePlay(selectedCardId, effectiveTargetId);
-            dispatch(selectCard(null));
+        } else {
+            // Releasing a drag anywhere other than a successful play deselects the card (ticket 165b)
+            endDrag(false);
         }
     };
 
     /** Click a unit (sidebar card or stage spotlight): target enemies / select allies. */
     const handleEntityClick = (entity: IBattleEntity, isEnemy: boolean) => {
-        if (entity.currentHp <= 0) return;
+        /*
+         * TICKET 172: a downed ALLY is clickable while a Revive is in the rack, and the click picks
+         * it as the macro's target (with two down, this is how the player chooses). Every other
+         * click on a unit at 0 HP is still refused.
+         */
+        if (entity.currentHp <= 0) {
+            const holdsRevive = (run?.macros ?? []).some((id) => id !== null && getMacro(id)?.targeting === 'DOWNED_ALLY');
+            if (!isEnemy && holdsRevive) dispatch(selectTarget(selectedTargetId === entity.id ? null : entity.id));
+            return;
+        }
         const isTargeted = selectedTargetId === entity.id;
 
-        // If we have a card selected, check if this is a valid target
+        // Friendly = source (caster). Clicking an ally selects or switches the active caster (ticket 165b)
+        if (!isEnemy) {
+            dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
+            return;
+        }
+
+        // If we have a card selected, check if this enemy is a valid target
         if (selectedCardId) {
             const cardData = getSelectedCardData();
             if (cardData && isValidCardTarget(cardData, isEnemy)) {
@@ -1031,141 +1169,73 @@ const BattleArena: React.FC = () => {
             }
         }
 
-        // Default behavior: enemy = target, friendly = source
-        if (isEnemy) {
-            dispatch(selectTarget(isTargeted ? null : entity.id));
-        } else {
-            dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
-        }
+        // Default behavior: enemy = target
+        dispatch(selectTarget(isTargeted ? null : entity.id));
     };
 
-    const renderParty = (party: readonly IBattleEntity[], isEnemy: boolean) => (
-        <div className={`party-column ${isEnemy ? 'enemy-side' : 'player-side'}`}>
-            {party.map((entity, index) => {
-                const isSelected = selectedSourceId === entity.id;
-                const isTargeted = selectedTargetId === entity.id;
-                const isDead = entity.currentHp <= 0;
-
-                if (!entity.id) {
-                    console.warn(`[BattleArena] Entity at index ${index} (isEnemy: ${isEnemy}) has an empty ID!`);
-                }
-                const entityKey = entity.id || `entity-${isEnemy ? 'enemy' : 'player'}-${index}`;
-
-                const translateX = 0;
-
-                return (
-                    <motion.div
-                        key={entityKey}
-                        initial={{ opacity: 0, x: isEnemy ? 100 : -100 }}
-                        animate={{ opacity: isDead ? 0.55 : 1, x: translateX, scale: isDead ? 0.96 : 1 }}
-                        transition={{ delay: index * 0.1, type: 'spring' }}
-                        // Pointer events must stay 'auto' even for dead units,
-                        // so they can correctly receive the 'onPointerUp' to clear targeting state.
-                        // Desaturation of dead units lives on .hud-dead (inside the card),
-                        // so the TERMINATED stamp keeps its neon red.
-                        style={{ pointerEvents: 'auto' }}
-                        onMouseEnter={() => {
-                            if (isTargeting) setHoveredEntityId(entity.id);
-                        }}
-                        onMouseLeave={() => {
-                            if (hoveredEntityId === entity.id) setHoveredEntityId(null);
-                        }}
-                        onPointerUp={() => handleEntityPointerUp(entity, isEnemy)}
-                    >
-                        <MingmingUnit
-                            entity={entity}
-                            isEnemy={isEnemy}
-                            isSelected={isSelected}
-                            isTargeted={isTargeted}
-                            fx={vfx.unitFx[entity.id]}
-                            battleState={battleState}
-                            selectedCardId={selectedCardId}
-                            selectedSourceId={selectedSourceId}
-                            isHoveredTarget={hoveredEntityId === entity.id}
-                            onClick={() => handleEntityClick(entity, isEnemy)}
-                        />
-                    </motion.div>
-                );
-            })}
-        </div>
-    );
+/*
+ * THE LEGACY HUD COLUMNS ARE GONE — ticket 155, deep dive 7.
+ *
+ * `SHOW_LEGACY_HUD_COLUMNS` was `false` and kept "for one release" so the sidebar columns could be
+ * put back if 145's plaque turned out to be too small for the preview in play. Four tickets and a
+ * playtest later the plaque carries the firmware chip, the daemon tags and the preview, Henry has
+ * ruled on all three, and nobody has reached for the flag — so the flag, `renderParty` and the
+ * `.party-column` rules it drew are deleted.
+ *
+ * `MingmingUnit` itself stays: the ranch and the workshop draw the same card.
+ */
 
     return (
         <div className="battle-screen"
+            /*
+             * TICKET 155b — ONE CONSOLE HEIGHT, PUBLISHED.
+             *
+             * `--console-h` is `CONSOLE_H × scale`, the SAME number `place()` subtracts when it
+             * lays out the stage. The band used to be `flex: 0 0 265px` with an automatic minimum,
+             * so it grew to whatever the hand needed (~390px) while the geometry still assumed 210
+             * — and the stage lost 180px it did not know about, which is why the third ally and
+             * third enemy were off-screen at every viewport.
+             *
+             * Published from here rather than read in CSS because only JavaScript knows the scale.
+             */
+            style={{ ['--console-h' as string]: `${consoleHeightAt(viewport.width, viewport.height)}px` }}
             onPointerMove={(e) => {
-                if (isTargeting && selectedCardId) {
-                    setDragPoint({ x: e.clientX, y: e.clientY });
-                }
+                onPointerMove(e);
             }}
             onPointerUp={() => {
-                setIsTargeting(false);
-                setDragPoint(null);
-                setOriginPoint(null);
+                endDrag(false);
             }}
         >
-            {/* Audio toggle/volume — the nav bar (its usual home) is hidden in battle */}
-            <AudioControls floating />
-
-            {/* Breach progress: small truthful indicator of which breach battle this is */}
-            {gauntlet && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: '10px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        zIndex: 1500,
-                        pointerEvents: 'none',
-                        padding: '4px 14px',
-                        borderRadius: '4px',
-                        background: 'rgba(0, 0, 0, 0.55)',
-                        border: '1px solid rgba(255, 204, 0, 0.35)',
-                        color: '#ffcc00',
-                        fontSize: '0.7rem',
-                        fontWeight: 900,
-                        letterSpacing: '3px'
-                    }}
-                >
-                    {/*
-                      * Ticket 18 renamed this from "BREACH — BATTLE n/3". A breach was the pre-run
-                      * vocabulary; what the player is standing in is the gym's gauntlet, and the
-                      * last fight is the leader's own team — worth saying, because it is the one
-                      * fight where holding a Revive rather than spending it is a real decision.
-                      */}
-                    GAUNTLET — FIGHT {Math.min(gauntlet.fightIndex + 1, gauntlet.totalFights)}/{gauntlet.totalFights}
-                    {gauntlet.fightIndex >= gauntlet.totalFights - 1 ? ' · LEADER' : ''}
-                </div>
-            )}
-
-            {/* Ticket 90, playtest round 1: Henry had no way to see the turn number or how many
-                cards he had played - and `stampede`/`momentum_crash` scale on exactly that count,
-                so the deck's whole plan was invisible while piloting it. Fixed to the top-left,
-                out of the way of the party columns and the card fan. */}
-            <div
-                style={{
-                    position: 'fixed', top: '10px', left: '12px', zIndex: 1500, pointerEvents: 'none',
-                    display: 'flex', gap: '8px', alignItems: 'center',
-                    fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px',
-                }}
-            >
-                <span style={{
-                    padding: '4px 12px', borderRadius: '4px', background: 'rgba(0,0,0,0.55)',
-                    border: '1px solid rgba(255,255,255,0.18)', color: '#e8e4dc',
-                }}>
-                    TURN {battleState.turn}
-                </span>
-                <span
-                    title="Cards you have played this turn - what stampede, momentum crash and the other per-card scalers multiply by."
-                    style={{
-                        padding: '4px 12px', borderRadius: '4px', background: 'rgba(0,0,0,0.55)',
-                        border: `1px solid ${battleState.cardsPlayedThisTurn > 0 ? 'rgba(0,229,255,0.45)' : 'rgba(255,255,255,0.18)'}`,
-                        color: battleState.cardsPlayedThisTurn > 0 ? '#00e5ff' : '#8a837b',
-                    }}
-                >
-                    CARDS PLAYED {battleState.cardsPlayedThisTurn}
-                </span>
-            </div>
-
+            {/*
+              * TICKET 38 — the battle screen names itself, for a reader that cannot see it.
+              *
+              * axe: `page-has-heading-one`, the last violation standing on this screen. Every other
+              * screen gets its heading from the panel it opens with; a fight opens straight onto the
+              * board, so there was no `h1` anywhere in the document while the player was in one —
+              * and "what screen am I on" is the first question a screen reader asks.
+              *
+              * Visually hidden rather than drawn: the strip below already tells a sighted player
+              * where they are, in the game's own language, and a heading painted on top of the
+              * board would be the accessibility fix making the screen worse for everyone else.
+              */}
+            <h1 className="sr-only">Battle</h1>
+            {/*
+              * TICKET 145c — one strip owns the top 44px now.
+              *
+              * What used to be here: a floating `AudioControls`, ticket 18's gauntlet banner fixed
+              * to the top centre, and ticket 90's TURN / CARDS PLAYED pills fixed to the top left.
+              * Three islands from three tickets, none aware of the others, overlapping the party
+              * columns at some widths and each other at others — because nothing owned the strip.
+              * `BattleTopBar` owns it, and every one of those readouts survived the move.
+              */}
+            <BattleTopBar
+                battleState={battleState}
+                onToggleLog={() => setLogOpen(open => !open)}
+                logOpen={logOpen}
+                // 155 deep dive 3: the gear was decorative. A fight is exactly where a player
+                // reaches for 146a's motion switches.
+                onOpenSettings={() => dispatch(openSettings())}
+            />
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
                 {isVictory && !showReport && (
@@ -1187,6 +1257,8 @@ const BattleArena: React.FC = () => {
                         key="battle-report"
                         bundle={rewardBundle}
                         winners={battleState.playerParty}
+                        macroRack={run?.macros ?? [null, null, null]}
+                        heldPatches={run?.patches ?? {}}
                         onContinue={handleContinue}
                     />
                 )}
@@ -1237,18 +1309,15 @@ const BattleArena: React.FC = () => {
                   */}
                 <PlayedCardReveal played={vfx.playedCard} />
 
-                {renderParty(battleState.playerParty, false)}
 
-                <CombatLog />
+                <CombatLog isOpen={logOpen} onOpenChange={setLogOpen} />
 
-                {renderParty(battleState.enemyParty, true)}
             </motion.div>
 
             <div
                 className="console-area"
                 onPointerUp={() => {
-                    setDragPoint(null);
-                    setOriginPoint(null);
+                    endDrag(false);
                 }}
             >
               {/*
@@ -1278,15 +1347,8 @@ const BattleArena: React.FC = () => {
                 )}
                 <CardHand
                     hoveredEntityId={hoveredEntityId}
-                    onTargetingStart={(point) => {
-                        setOriginPoint(point);
-                        setIsTargeting(true);
-                    }}
-                    onTargetingEnd={() => {
-                        setIsTargeting(false);
-                        setDragPoint(null);
-                        setOriginPoint(null);
-                        setHoveredEntityId(null);
+                    onTargetingStart={(point, pointer) => {
+                        startDrag(point, pointer);
                     }}
                 />
               </div>

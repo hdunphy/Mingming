@@ -73,11 +73,6 @@ const DeckStateSchema = z.object({
     exhaust: z.array(ProgramEntitySchema),
 });
 
-const RelicBonusesSchema = z.object({
-    draw: z.number(),
-    energy: z.number(),
-    attackMod: z.number(),
-});
 
 const NextProgramModifierSchema = z.object({
     multiplier: z.number().optional(),
@@ -115,7 +110,6 @@ const BattleEntitySchema = z.object({
     currentHp: z.number(),
     currentEnergy: z.number(),
     tempHp: z.number(),
-    relicBonuses: RelicBonusesSchema.optional(),
     statusEffects: z.array(StatusEffectInstanceSchema),
     hooks: z.array(z.string()).optional(),
     daemons: z.array(ProgramEntitySchema),
@@ -125,6 +119,7 @@ const BattleEntitySchema = z.object({
     nextProgramModifier: NextProgramModifierSchema.optional(),
     playsThisTurn: z.number().optional(),
     moves: z.array(MoveSchema).optional(),
+    patches: z.array(z.string()).optional(),
 });
 
 /**
@@ -133,13 +128,34 @@ const BattleEntitySchema = z.object({
  * legitimately partial snapshot *before* `normalizeBattleState` gets to zero-fill it.
  * This also mirrors `GauntletStateSchema`'s `z.record(z.string(), ...)`.
  */
-export const BattleStateSchema = z.object({
+export const BattleStateSchema = z.preprocess(
+    /*
+     * MERGE 2026-09-24: `activeRelics` -> `activeDrivers`, the STATE half of ticket 16's rename.
+     *
+     * The setup half is handled below (`player.relics` -> `player.drivers`) with the same argument:
+     * the format's rule is that old files keep validating. What the merge found is that the rule was
+     * only half applied — six committed ticket-118 snapshots carry `activeRelics` on the battle
+     * state and stopped loading outright, because the field is REQUIRED and the rename made it
+     * absent rather than wrong.
+     *
+     * Those six are playtest evidence, not fixtures: they are the 2026-09-05 session's saved
+     * positions. Rewriting them to match a schema is the wrong way round — the loader reads old
+     * files, which is what this preprocess is for.
+     */
+    (raw) => {
+        if (raw && typeof raw === 'object' && !('activeDrivers' in raw) && 'activeRelics' in raw) {
+            const { activeRelics, ...rest } = raw as { activeRelics: unknown } & Record<string, unknown>;
+            return { ...rest, activeDrivers: activeRelics };
+        }
+        return raw;
+    },
+    z.object({
     sessionId: z.string(),
     seed: z.string(),
     turn: z.number(),
     phase: z.enum(['PRE_TURN', 'ACTION', 'POST_TURN']),
     activeSide: z.enum(['PLAYER', 'ENEMY']),
-    activeRelics: z.array(z.string()),
+    activeDrivers: z.array(z.string()),
 
     playerParty: z.array(BattleEntitySchema),
     enemyParty: z.array(BattleEntitySchema),
@@ -157,7 +173,8 @@ export const BattleStateSchema = z.object({
     lastStatusConsumed: z.number().optional(),
     elementPlays: z.record(z.string(), z.number()).optional(),
     counters: z.record(z.string(), z.number()),
-});
+}),
+);
 
 // --- Composed: ComposedSetup -------------------------------------------------
 
@@ -221,6 +238,7 @@ const PartyMemberSetupSchema = z.object({
     currentHp: z.number().int().min(0).optional(),
     statusEffects: z.array(StatusEffectInstanceSchema).optional(),
     moves: z.array(MoveSchema).optional(),
+    patches: z.array(z.string()).optional(),
 });
 
 const EnemySetupSchema = PartyMemberSetupSchema.extend({
@@ -238,16 +256,34 @@ export const ComposedSetupSchema = z.object({
     seed: z.string(),
     /** Explicit in files; no undefined-means-MOVES on disk. */
     enemyMode: z.enum(['MOVES', 'CARDS']),
-    player: z.object({
-        /** Max 3, mirroring `engine/party.ts`'s `PARTY_SIZE` and `RunStateSchema.partyIds`. */
-        party: z.array(PartyMemberSetupSchema).max(3),
-        deck: z.array(z.string()),
-        relics: z.array(z.string()),
-    }),
+    player: z.preprocess(
+        /*
+         * TICKET 16: `relics` -> `drivers`. The relics are deleted and the field only ever meant the
+         * player's party-wide passives, which are Drivers. Every scenario file on disk was written
+         * with `relics`, and the format's rule is that old files keep validating, so a legacy
+         * `relics` key is lifted into `drivers` here rather than by a migration. Once a file is
+         * re-saved it carries `drivers`; the four relic ids it may name no longer exist and are
+         * warned about and skipped by `applyDrivers`, which is the registry-drift policy.
+         */
+        (raw) => {
+            if (raw && typeof raw === 'object' && !('drivers' in raw) && 'relics' in raw) {
+                const { relics, ...rest } = raw as { relics: unknown } & Record<string, unknown>;
+                return { ...rest, drivers: relics };
+            }
+            return raw;
+        },
+        z.object({
+            /** Max 3, mirroring `engine/party.ts`'s `PARTY_SIZE` and `RunStateSchema.partyIds`. */
+            party: z.array(PartyMemberSetupSchema).max(3),
+            deck: z.array(z.string()),
+            /** The player side's Drivers (ticket 16; was `relics`). */
+            drivers: z.array(z.string()),
+        }),
+    ),
     /** Explicit list; never the procedural encounter branch. */
     enemies: z.array(EnemySetupSchema),
     /**
-     * Ticket 68: the enemy side's Drivers, the mirror of `player.relics`. Applied to every enemy by
+     * Ticket 68: the enemy side's Drivers, the mirror of `player.drivers`. Applied to every enemy by
      * `buildScenarioState` through the same `data/driverRegistry.applyDrivers` the live game uses,
      * so a boss measured in the harness is the boss that ships.
      *
@@ -334,6 +370,7 @@ export interface PartyMemberSetup {
     currentHp?: number;
     statusEffects?: StatusEffectInstance[];
     moves?: IMove[];
+    patches?: string[];
 }
 
 export interface EnemySetup extends PartyMemberSetup {
@@ -347,10 +384,11 @@ export interface ComposedSetup {
     player: {
         party: PartyMemberSetup[];
         deck: string[];
-        relics: string[];
+        /** The player side's Drivers (ticket 16; was `relics`). */
+        drivers: string[];
     };
     enemies: EnemySetup[];
-    /** Ticket 68: the enemy side's Drivers — the mirror of `player.relics`. */
+    /** Ticket 68: the enemy side's Drivers — the mirror of `player.drivers`. */
     enemyDrivers?: string[];
     gauntlet?: GauntletContext | null;
     /** Per-seed IV jitter magnitude (see ComposedSetupSchema.statJitter). */

@@ -312,6 +312,11 @@
 
 .rs-row {
     display: flex; align-items: center; gap: 7px;
+    /* `height: 27px` with `width: 100%` below only lands on 27px when the border and padding are
+       counted INSIDE it. A <button> gets that free from the UA sheet; a <div> with this class —
+       WorkshopNode's static rows, and 159b's reshuffle row — does not, and came out 8px wider
+       and 15px taller than the buttons beside it. Stated here so the two forms cannot disagree. */
+    box-sizing: border-box;
     border: 1px solid #2b3441;
     border-left: 4px solid var(--el);
     border-radius: 3px;
@@ -328,6 +333,42 @@
 .rs-row:disabled { opacity: 0.45; cursor: default; }
 .rs-row.static { cursor: default; }
 .rs-row.on { border-color: #3d9be0; box-shadow: 0 0 0 1px #3d9be0; }
+
+/* Ticket 165a: Row wrapper and card peek */
+.rs-wrap {
+    display: flex;
+    width: 100%;
+    flex: none;
+    outline: none;
+}
+
+.rs-wrap:focus-visible .rs-row {
+    border-color: #3d9be0;
+    box-shadow: 0 0 0 1px #3d9be0;
+}
+
+.card-peek {
+    /*
+     * TICKET 167f: a tooltip beside the mouse, drawn into <body> by `CardPeek`. `left`, `top` and
+     * `transform: scale()` are set inline (they depend on the pointer and the window). The origin is
+     * the top-left corner because the placement maths is done on the scaled size from that corner.
+     *
+     * `pointer-events: none` is REQUIRED, not polish: a tile that could take the hover away from the
+     * row is the loop this row exists to end.
+     */
+    position: fixed;
+    z-index: 10001;
+    transform-origin: top left;
+    pointer-events: none;
+    box-shadow: 0 10px 34px #000c, 0 0 0 1px var(--el);
+    animation: card-peek-in 0.12s ease-out;
+}
+
+/* Opacity only: the tile's `transform` is the stage scale and must not be animated away. */
+@keyframes card-peek-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
 
 .rs-g {
     width: 17px; height: 17px; border-radius: 50%;
@@ -375,3 +416,32 @@
 
 /* A column of rows or chips — the mockups' `.cards`. */
 .rs-cards { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+
+/*
+ * TICKET 163b — the number an upgrade MOVED, in the card's own element colour.
+ *
+ * §4's ask, and the colour is `--el` rather than a new one because the question the highlight
+ * answers is "what did this upgrade buy me", and the element is already how every other surface
+ * says "this card". Weight rather than a background: a chip here would compete with `.rs-g`, the
+ * cost gem, which is the only filled element-coloured shape on a tile.
+ */
+.rs-upn {
+    color: var(--el);
+    font-weight: 700;
+}
+
+/* ── TICKET 158-r1 — the OS grammar readout (currency · tempo · partners on the field) ────────── */
+.os-gram { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; }
+.og-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.og-label { font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: #6d7d8f; }
+.og-tempo-label { margin-left: 4px; }
+.og-chip {
+    display: inline-flex; align-items: center; padding: 0 6px; border-radius: 999px;
+    border: 1px solid var(--og); color: var(--og); background: rgba(0, 0, 0, .35);
+    font-size: 10px; font-weight: 800; letter-spacing: .04em; line-height: 1.6; cursor: help;
+}
+.og-tempo { font-size: 10.5px; color: #c6ccd4; letter-spacing: .06em; cursor: help; }
+.og-partners { margin: 2px 0 0; padding-left: 15px; font-size: 11px; line-height: 1.45; color: #9fb4c8; }
+.og-partners b { color: #d8e2ec; }
+.og-solo { margin: 2px 0 0; font-size: 11px; color: #6d7d8f; }
+.og-mark { font-size: 10px; color: #6fd3a0; letter-spacing: .04em; cursor: help; }

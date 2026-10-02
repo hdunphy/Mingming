@@ -56,14 +56,16 @@ import { createRun, minimumActiveDeck } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import {
     CARD_PRICE_BY_ENERGY,
-    REROLL_PRICE,
+    MARKET_REFRESH_PRICE,
     SELL_PRICE_BY_ENERGY,
     cardPrice,
     macroPrice,
     rollMacroStock,
+    rollBlueprintOffer,
     rollMarketStock,
     sellPrice,
 } from '../../engine/run/marketplace';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { MacroRegistry } from '../../engine/data/macroRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
@@ -137,6 +139,11 @@ function render(run: IRunState, biomeName?: string): string {
 
 function stockFor(run: IRunState) {
     return rollMarketStock({ run, node: run.nodes.find((n) => n.id === run.currentNodeId)!, party: RANCH_PARTY });
+}
+
+/** The market the run is standing in — what every `*For` helper here rolls against. */
+function marketNodeOf(run: IRunState) {
+    return run.nodes.find((n) => n.id === run.currentNodeId)!;
 }
 
 function macrosFor(run: IRunState) {
@@ -218,7 +225,11 @@ const rackIn = (markup: string): string[] =>
 const tilesIn = (markup: string): Tile[] => {
     const cut = markup.indexOf('mk-macros');
     const scoped = markup.slice(0, cut);
-    return [...scoped.matchAll(/<button[^>]*class="rs-card[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
+    // Ticket 142g put a BLUEPRINT tile on the same chassis (`rs-card`) above the macro shelf, and
+    // it is not a card: it has no pips, no type mark and no energy cost, so every assertion below
+    // would read empty strings off it. It carries `mk-bp` so this parser can leave it to the
+    // blueprint cases, which assert it directly.
+    return [...scoped.matchAll(/<button[^>]*class="rs-card(?! mk-bp)[^"]*"[\s\S]*?<\/button>/g)].map(([html]) => ({
         html,
         // Ticket 66: the cost gem is an energy PIP rack now. The rack's `aria-label` is the
         // machine-readable cost, which is what this parser wants — a count of `<i>` would be the
@@ -252,8 +263,22 @@ interface SellRow {
     readonly disabled: boolean;
 }
 
+/**
+ * The SELL panel's rows, and only those.
+ *
+ * TICKET 163b put an upgrade bench on this screen and it draws `.rs-row` buttons too, so a scrape
+ * of every row on the page stopped being a scrape of the sell list. Sliced from the sell panel's
+ * own heading rather than by filtering out rows that look like upgrades — this file's claims are
+ * about what the SELL panel lists, and a filter would let a bench row that happened to look like a
+ * sale slip into an assertion about selling.
+ */
+const sellPanel = (markup: string): string => {
+    const at = markup.indexOf('SELL — YOUR CARDS');
+    return at === -1 ? '' : markup.slice(at);
+};
+
 const rowsIn = (markup: string): SellRow[] =>
-    [...markup.matchAll(/<button[^>]*class="rs-row"[\s\S]*?<\/button>/g)].map(([html]) => ({
+    [...sellPanel(markup).matchAll(/<button[^>]*class="rs-row"[\s\S]*?<\/button>/g)].map(([html]) => ({
         name: spanText(html, 'rs-rnm'),
         tags: [...html.matchAll(/<span class="rs-t">([\s\S]*?)<\/span>/g)].map((m) => m[1]),
         count: Number(spanText(html, 'rs-x').replace('×', '') || 1),
@@ -418,22 +443,25 @@ describe('MarketplaceNode', () => {
             expect(tiles[i].plate).toBe(`${offer.price} scrap · ${offer.price} SHORT`);
             expect(tiles[i].disabled).toBe(true);
         });
-        // The reroll owes the same explanation, and it is the one control on the screen that buys
+        // The refresh owes the same explanation, and it is the one control on the screen that buys
         // nothing but a new set of choices, so a silent dead chip there is the easiest to miss.
-        expect(rerollChip(markup)).toBe(`REROLL ${REROLL_PRICE} scrap — ${REROLL_PRICE} SHORT`);
-        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REROLL ${REROLL_PRICE} scrap`);
+        expect(rerollChip(markup)).toBe(`REFRESH ${MARKET_REFRESH_PRICE} scrap — ${MARKET_REFRESH_PRICE} SHORT`);
+        expect(markup).toContain(`<button type="button" class="rs-f" disabled="">REFRESH ${MARKET_REFRESH_PRICE} scrap`);
         // The sell rows are the one thing on this screen a broke player can still use, and that is
         // the point of them: a sale is never short of anything. This line used to assert a disabled
         // `Remove (20) — 20 short`, which was the same screen charging the player to tidy up.
         expect(rowsIn(markup).every((row) => row.price > 0)).toBe(true);
     });
 
-    it('offers the reroll at its ruled price once the player can pay it', () => {
-        // The chip is not in the mockup and is kept deliberately (see the screen's comment on it):
-        // `rerollMarketStock` buys exactly the visit-increment that walking out and back in buys, so
-        // without it the context line's "stock re-rolls each visit" is a claim with no reachable
-        // second visit at a dead-end market.
-        expect(rerollChip(render(makeRun(REROLL_PRICE)))).toBe(`REROLL STOCK — ${REROLL_PRICE} scrap`);
+    it('offers the refresh at its ruled price once the player can pay it', () => {
+        /*
+         * TICKET 142 §7. The chip used to be a shortcut - it bought the visit-increment that
+         * walking out and back in bought anyway - and was kept so a dead-end market still had a
+         * reachable second visit. The stock is fixed for the run now, so this chip is not a
+         * shortcut at all: it is the ONLY thing in the game that changes a shelf.
+         */
+        expect(rerollChip(render(makeRun(MARKET_REFRESH_PRICE))))
+            .toBe(`REFRESH STALL — ${MARKET_REFRESH_PRICE} scrap`);
     });
 
     it('leaves a sold offer on the shelf, greyed and reading SOLD, rather than letting it be bought twice', () => {
@@ -654,7 +682,9 @@ describe('MarketplaceNode', () => {
         expect(generics).toHaveLength(1);
         expect(generics[0].count).toBe(run.deck.filter((c) => c.dataId === GENERIC_HIT).length);
         expect(generics[0].count).toBeGreaterThan(1);
-        expect(markup.match(/class="rs-x"/g)).toHaveLength(rows.filter((r) => r.count > 1).length);
+        // Counted inside the sell panel: 163b's upgrade bench stacks by card too and prints its
+        // own ×N, and this claim is about the sell list.
+        expect(sellPanel(markup).match(/class="rs-x"/g)).toHaveLength(rows.filter((r) => r.count > 1).length);
     });
 
     it('prices every sell row at sellPrice, strictly under what the same card buys for', () => {
@@ -745,25 +775,29 @@ describe('MarketplaceNode', () => {
             .toBe(false);
     });
 
-    it('says which biome and which visit this stock belongs to, so a re-roll reads as a re-entry', () => {
-        // The stock is a pure function of (run seed, node id, visit count), so "the shelf changed"
-        // and "you are standing here again" are the same event. If the screen did not print the
-        // visit, a player who rerolled and a player who walked back in would see the same unexplained
-        // new stock. The biome is in the same line because what a party pool is worth depends on it.
+    it('says which biome, which visit, and that the stock will NOT change', () => {
+        /*
+         * TICKET 142 §7 (Henry, 2026-09-11). This line used to promise "stock re-rolls each
+         * visit", and the assertion below pinned that promise. The ruling inverts it: *"static per
+         * run so whenever you come back it has the same stock, which doesn't get replenished"*.
+         *
+         * Which makes the line MORE load-bearing, not less. A shelf that re-rolled forgave a
+         * player who walked away from a card; a fixed one does not, so "buy it now or lose it" has
+         * to be stated rather than discovered. The biome stays in the same line because what a
+         * party-pool card is worth depends on it.
+         */
         const run = makeRun(400);
-        expect(render(run, 'Cinder Flats')).toContain('CINDER FLATS BIOME · VISIT 1 · stock re-rolls each visit');
+        expect(render(run, 'Cinder Flats'))
+            .toContain('CINDER FLATS BIOME · VISIT 1 · this stock is fixed for the run');
 
-        // A second visit says two, which is what makes the number a fact about the node rather than
-        // a decoration: `nodeSeed` reads exactly this counter.
+        // The visit number still counts VISITS - it is `node.visited`, not the refresh counter,
+        // and the two parted company in §7.
         const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
         const returned = {
             ...run,
             nodes: run.nodes.map((n) => (n.id === node.id ? { ...n, visited: n.visited + 1 } : n)),
         };
         expect(render(returned)).toContain('VISIT 2');
-        // The optional prop's fallback still produces a sentence rather than an empty word — the
-        // biome name is `RunScreen`'s to supply and a debug or test mount may not have one.
-        expect(render(run)).toContain('THIS BIOME · VISIT 1');
     });
 
     it('renders an empty deck and an empty collection without crashing', () => {
@@ -795,8 +829,14 @@ describe('MarketplaceNode', () => {
         const offers = stockFor(run).offers.length;
         const macros = macrosFor(run).length;
         const rows = rowsIn(markup).length;
-        // Every tile, every macro, every sell row, the reroll chip, EDIT LOADOUT and LEAVE.
-        expect(markup.match(/<button/g)).toHaveLength(offers + macros + rows + 3);
+        // Every card tile, every macro, every sell row, the BLUEPRINT tile (142g), the refresh
+        // chip, EDIT LOADOUT and LEAVE. Derived rather than a literal, so a route that can recruit
+        // nothing — where the slot is absent by design rather than drawn dead — still counts right.
+        const blueprints = rollBlueprintOffer(run, marketNodeOf(run)) ? 1 : 0;
+        // TICKET 163b: and one per upgradable card in the deck — the bench is a row list like the
+        // others, so it is derived from the run the same way rather than added as a literal.
+        const bench = new Set(run.deck.filter((c) => hasUpgrade(c.dataId)).map((c) => c.dataId)).size;
+        expect(markup.match(/<button/g)).toHaveLength(offers + macros + rows + blueprints + bench + 3);
         // And each of the four affordance classes appears ONLY on a button — the check that catches
         // a `<div class="rs-row">` that looks and styles identically and cannot be tabbed to.
         for (const cls of ['rs-card', 'rs-row', 'rs-f', 'rs-btn']) {
