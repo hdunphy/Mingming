@@ -24,7 +24,8 @@
     "balance:77": "node scripts/ticket77-arms.mjs",
     "balance:drivers": "vite-node src/debug/balance/runDriverCanary.ts",
     "release-check": "node scripts/release-check.mjs",
-    "canary:short": "vite-node src/debug/balance/runRunGate.ts -- --cells wild:biome0,elite:biome0 --iterations 60 --gate-structural"
+    "canary:short": "vite-node src/debug/balance/runRunGate.ts -- --cells wild:biome0,elite:biome0 --iterations 60 --gate-structural",
+    "playtest": "vite-node src/debug/playtest/cli.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",

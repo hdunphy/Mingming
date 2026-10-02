@@ -58,3 +58,6 @@ _sfx/
 # 162d made docs/wayfinder/deck-archetypes/collection-v2/registry_source.py an importable
 # module, so build.py now leaves a __pycache__ beside it.
 __pycache__/
+
+# Ticket 180: the agent playtester writes its sessions and raw logs here. Other folders under results/ are committed.
+results/playtest/
