@@ -1,6 +1,6 @@
 # Ticket 176: Map redesign: towns joined by branching routes
 
-**Type:** map, engine and UI. **Status:** OPEN, **design ruled 2026-10-01; do not start until Henry says go.** Henry ruled M1–M6 on 2026-10-01. M7 (the town screen) was ruled the same day from the prototypes. M8 is a default.
+**Type:** map, engine and UI. **Status:** BLOCKED (Henry, 2026-10-02) until the art direction and UI kit are chosen: **ticket 183**. The design below stays ruled, but the screens (176c's town screen, 176e's map) will be drawn in the new style, and the map layout may change with it. **Do not start any row until Henry unblocks it.** (Before the block: design ruled 2026-10-01.) Henry ruled M1–M6 on 2026-10-01. M7 (the town screen) was ruled the same day from the prototypes. M8 is a default.
 
 **Henry (2026-09-30, ruling D4 on ticket 174):**
 
