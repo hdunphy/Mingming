@@ -38,7 +38,7 @@ function starterCard(host: HTMLElement, name: string): HTMLElement {
 describe('the starter picker', () => {
     it('is what a brand-new save opens on', async () => {
         const host = await mountApp(makeStore());
-        expect(host.textContent).toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).toContain('Choose your starter');
     });
 
     it('shows each starter\'s two firmware, as the assembly bay will, and no alpha "starter card"', async () => {
@@ -60,8 +60,8 @@ describe('the starter picker', () => {
 
         await click(starterCard(host, 'KRAKEN'));
 
-        // The regression: this used to still say CHOOSE YOUR FIRST MINGMING.
-        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+        // The regression: this used to still say Choose your starter.
+        expect(host.textContent).not.toContain('Choose your starter');
         expect(store.getState().game.blueprints.kraken).toBe(1);
         // And it lands somewhere the blueprint can actually be spent, rather than on Expedition
         // telling the player to go and find it.
@@ -73,21 +73,21 @@ describe('the starter picker', () => {
         const store = makeStore();
         store.dispatch(addBlueprint('fenrir'));
         const host = await mountApp(store);
-        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).not.toContain('Choose your starter');
     });
 
     it('does not come back for a player with a roster and no blueprints left', async () => {
         const store = makeStore();
         store.dispatch(addToRoster(createRanchMember('ratatoskr')));
         const host = await mountApp(store);
-        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).not.toContain('Choose your starter');
     });
 
     it('does come back after a wipe — nothing held, nothing built', async () => {
         // `wipeSave` leaves exactly this: the picker is the right thing to show, and the branch
         // reads both halves rather than remembering a "has onboarded" flag that a wipe could miss.
         const host = await mountApp(makeStore());
-        expect(host.textContent).toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).toContain('Choose your starter');
     });
 });
 
@@ -113,7 +113,7 @@ describe('38 — the first interaction in the game answers a KEYBOARD', () => {
         const store = makeStore();
         const host = await mountApp(store);
         await pressKey(starterCard(host, 'KRAKEN'), 'Enter');
-        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).not.toContain('Choose your starter');
     });
 
     it('starts the game on Space too, because that is what a button answers to', async () => {
@@ -122,7 +122,7 @@ describe('38 — the first interaction in the game answers a KEYBOARD', () => {
         const store = makeStore();
         const host = await mountApp(store);
         await pressKey(starterCard(host, 'FENRIR'), ' ');
-        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).not.toContain('Choose your starter');
     });
 
     it('announces itself as a button, so the focus ring is a promise it can keep', async () => {

@@ -109,12 +109,12 @@ describe('the core loop, click by click', () => {
     it('starter picked → the picker is gone and the blueprint is held', async () => {
         const store = makeStore();
         const host = await mountApp(store);
-        expect(host.textContent).toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).toContain('Choose your starter');
 
         await pickStarter(host, 'KRAKEN');
 
         expect(store.getState().game.blueprints.kraken).toBe(1);
-        expect(host.textContent).not.toContain('CHOOSE YOUR FIRST MINGMING');
+        expect(host.textContent).not.toContain('Choose your starter');
         expect(host.textContent).toContain('Assembly bay');
     });
 

@@ -4,7 +4,8 @@ import { useDispatch } from 'react-redux';
 import { addBlueprint } from '../store/gameSlice';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
-import { BUILD_INFO, buildText } from '../buildInfo';
+import BuildLabel from './BuildLabel';
+import { STARTER_FLAVOUR } from './starterFlavour';
 
 /**
  * TICKET 172 — the starter card says what the assembly bay will ask you, not what the alpha did.
@@ -95,6 +96,10 @@ const StarterCard: React.FC<{
                 {element.toUpperCase()} UNIT
             </div>
             <h2 style={{ fontSize: '2rem', margin: '4px 0', letterSpacing: '2px' }}>{name}</h2>
+            {/* TICKET 182a: one short line of flavour. A div, not a paragraph: it is a label on a card. */}
+            <div style={{ color: '#aaa', fontSize: '0.85rem', fontStyle: 'italic', margin: '2px 0 6px' }}>
+                {STARTER_FLAVOUR[id]}
+            </div>
             <div style={{ color: '#666', fontSize: '0.7rem', letterSpacing: '1px', margin: '8px 0 4px' }}>
                 FIRMWARE — YOU PICK ONE WHEN YOU ASSEMBLE IT
             </div>
@@ -131,17 +136,9 @@ const MainMenuView: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 style={{ textAlign: 'center', marginBottom: '28px' }}
             >
-                <h1 style={{ fontSize: '3rem', fontWeight: '900', letterSpacing: '10px', margin: 0, background: 'linear-gradient(to bottom, #fff, #333)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    TERMINAL
-                </h1>
-                <h1 style={{ fontSize: '3rem', fontWeight: '900', letterSpacing: '10px', margin: 0, marginTop: '-10px', color: '#00ffaa' }}>
-                    GAUNTLET
-                </h1>
-                <p style={{ color: '#555', marginTop: '10px', fontSize: '1.1rem' }}>CHOOSE YOUR FIRST MINGMING</p>
-                <p style={{ color: '#444', marginTop: '6px', fontSize: '0.8rem', maxWidth: '46ch' }}>
-                    You are granted its blueprint. Assemble it at the ranch — that is how every mingming
-                    you will ever own comes into existence.
-                </p>
+                {/* TICKET 182a: the game's name. The drawn logo comes with 183. */}
+                <h1 style={{ fontSize: '3.4rem', fontWeight: '900', letterSpacing: '10px', margin: 0, color: '#00ffaa' }}>Mingming</h1>
+                <p style={{ color: '#777', marginTop: '10px', fontSize: '1.1rem' }}>Choose your starter</p>
             </motion.div>
 
             <motion.div
@@ -170,10 +167,8 @@ const MainMenuView: React.FC = () => {
                 />
             </motion.div>
 
-            <div style={{ position: 'fixed', bottom: '10px', color: '#333', fontSize: '0.8rem' }}>
-                {/* TICKET 181a: the build, so a bug report can name it. Was a hard-coded `ALPHA v0.3.5`. */}
-                {buildText(BUILD_INFO)}
-            </div>
+            {/* TICKET 181a: the build, so a bug report can name it. 182a: small, in a corner. */}
+            <BuildLabel />
         </div>
     );
 };
