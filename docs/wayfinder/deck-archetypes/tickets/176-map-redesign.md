@@ -291,3 +291,12 @@ BIOME 2:           [2] → [3, the scout is in here] → TOWN → GYM
 - The reveal shows species.
 - The walker walks the new map, and `docs/balance/map-176.md` gives fights per run and the scrap curve against the parent.
 - Henry has looked at the map in the desktop app.
+
+## Follow-up after 176: a "Long Road" modifier
+
+**Henry (2026-10-02):** a longer run goes in as an **opt-in run modifier after 176**, not as a tier. Not part of this ticket; write it as its own ticket once 176 has shipped and round 2 has said whether runs feel short.
+
+- **What:** one more row of fights per biome on the new map. Like the other five modifiers (169f), it is opt-in and earns only a label.
+- **Why a modifier and not a tier:** with no enemy scaling (169), an extra row means more fights, cards, upgrades and blueprint rolls, so it makes a run easier, not harder. Tiers are the difficulty ladder; modifiers are opt-in variety.
+- **Why after 176:** 176 sets the rows per biome (M2) and raises the layer limit. Adding rows before it means building them twice.
+- **Measure** with the walker against the same seeds without it (fights per run, the scrap curve, gym clear rate).

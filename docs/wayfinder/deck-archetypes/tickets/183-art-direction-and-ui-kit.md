@@ -211,6 +211,7 @@ Rename UI labels only, per D1's table once ruled: a `labels.ts` map from interna
 ## Art commissions
 
 - **Monster art (Moab, steam-release ticket 33):** the brief is updated to the upright-wolf reference and the animal-inspired direction. Deliverables per species: a battle sprite that reads in a 150×120 box (drawn at 2×, 300×240, with headroom for the 190px cap), facing right (allies) with the enemy mirror done by the UI, on transparent; a square portrait for party faces and the map; a card-art crop at 134×36 ratio (3.7:1) for the hand card's art slot, or a wider band the UI crops.
+- **Before Moab accepts (Henry, 2026-10-02: the request isn't accepted yet):** update the Milanote brief now, while the quote can still change. Today it still describes the robot direction ("Fakemon 'Robotic' Style" column, "Steel/Fire type", "the body is armored metal plating, not fur", a dark neon battle screenshot) and asks only for one 2000×2000 PNG and a PSD. Add the portrait and card-art crop listed above to the deliverables (keep 2000×2000 as the drawing size, and add "must read at 150×120 on screen"). Henry decides fur-with-accents or metal plating first. Replace the battle screenshot once 183b ships; until then the caption says the backdrop becomes bright flat bands, not dark. **No AI image goes to the artist** (Henry's standing rule), including the upright-wolf draft.
 - **Biome backdrops:** optional. The kit's flat bands ship first; painted backdrops in the same three palettes can replace them per biome later without touching layout.
 - **UI art:** none required. The kit is CSS. If a drawn panel frame is wanted later, the `SlantPanel` component is the one place it plugs in.
 
@@ -220,10 +221,28 @@ Rename UI labels only, per D1's table once ruled: a `labels.ts` map from interna
 
 | # | Decision | Default if unanswered |
 |---|---|---|
-| D1 | **Naming.** The robot layer: firmware / OS / kernel / reflash / blueprint / macro / patch / daemon / assembly / Mingming. Which words stay, which get an on-screen label from `labels.ts`? Proposed: keep *Mingming, blueprint, macro, patch*; show *firmware* as **Trait**, *reflash* as **Retrain**, *assembly* as **Hatch**, *daemon* as **Companion**; kernel/OS names stay as the trait's proper name. | No rename; 183h does not run. |
+| D1 | **Naming. Ruled in principle (Henry, 2026-10-02): yes, rename the on-screen words; code, data ids and saves keep theirs. Henry still picks the words, per row of the table under this one.** The robot layer: firmware / OS / kernel / reflash / blueprint / macro / patch / daemon / assembly / Mingming. Which words stay, which get an on-screen label from `labels.ts`? Proposed: keep *Mingming, blueprint, macro, patch*; show *firmware* as **Trait**, *reflash* as **Retrain**, *assembly* as **Hatch**, *daemon* as **Companion**; kernel/OS names stay as the trait's proper name. | No rename; 183h does not run. |
 | D2 | **How far the card face goes.** 176 M7 said cards look as today, ruled against the cream pass. Does B's card face also become the stall tile (`rs-card`), the list row (`rs-row`) and the hover card? | Hand card and hover card only. |
 | D3 | **Type mark.** Keep the faint ▲ ✦ ◆ ● bottom-right, or delete it? Nothing in the engine reads the category on the card face. | Keep, faint. |
 | D4 | **Fonts.** Barlow Condensed + Barlow (OFL, bundled). Yes, or name another condensed face. | Barlow. |
 | D5 | **Rows centred by party size** (183e). A geometry change; 1v1 and 2v2 stop hugging the top of the stage. | Build it. |
 | D6 | **The enemy-hand tab's coloured backs.** In, or leave the tab blank as today. | In. |
 | D7 | **Screenshot sizes.** 1280×800 and 1920×1080, or add Steam Deck 1280×800 at 16:10 only. | Both listed. |
+
+### D1: words to pick (two drafts side by side)
+
+The left column is this ticket's proposal; the right is a second draft from the 182 session (2026-10-02). Henry picks one per row, or writes his own. Do it **after 182** lands, since the text cut removes most of the sentences these words sit in. Wait for the Fenrir brief's fur-or-metal answer too (see "Art commissions"): if the monsters stay metal-plated, more of the tech words can stay.
+
+| In code | Draft A (this ticket) | Draft B (182 session) | Notes |
+|---|---|---|---|
+| firmware / OS | **Trait** | **Instinct** | the per-monster build choice; kernel/OS proper names stay as the trait's name |
+| reflash | **Retrain** | **Retrain** | both drafts agree |
+| assembly / workshop | **Hatch** | **Den** | where a monster joins |
+| daemon | **Companion** | — | |
+| blueprint | keep | **Trace** or **Bond** | what you keep to recruit again; avoid "Egg" (too close to Pokémon) |
+| macro | keep | **Draught** | the single-use consumable (Spire's potion) |
+| patch | keep | **Rune** | carved and attached to one monster |
+| driver | — | **Totem** or **Boon** | the party-wide passive from elites |
+| scrap | — | **Amber** | the currency; Norse trade goods |
+| program | — | **Card** | probably already "card" on most screens |
+| Mingming | keep | keep | |
