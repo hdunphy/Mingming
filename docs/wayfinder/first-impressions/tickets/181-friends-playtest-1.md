@@ -182,7 +182,7 @@ Do this once 181d is built. Today's build is 70 files and 2.5 MB, well inside it
    - **Project URL:** a short lowercase slug, e.g. `mingming`. The page becomes `https://<your itch name>.itch.io/mingming`, and **`<your itch name>/mingming` is the `ITCH_TARGET`** (decision V2).
    - **Kind of project:** **HTML**.
    - **Uploads:** leave empty; the workflow uploads.
-   - **Embed options:** *Embed in page*, viewport **1280 × 800**, **Fullscreen button** on, **Mobile friendly** off, scrollbars off. Leave *Click to run* on.
+   - **Embed options:** *Embed in page*, viewport **1280 × 800**, **Fullscreen button** on, **Mobile friendly** off, scrollbars off. Leave *Click to play* on.
    - **Description:** one line, the vision (§4.7). **No cover image unless it is a real screenshot** (no AI images, ever).
    - **Visibility & access:** **Restricted**, then tick **"Also allow a password to view page"** and set a password. **Save.**
 2. **Make the API key.** itch: avatar → Settings → **API keys** → generate a new key and copy it.
