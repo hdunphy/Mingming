@@ -1,6 +1,6 @@
 # Aura and Rune names: current, and a Norse proposal (for Henry's review)
 
-Henry (2026-10-03), after accepting the Instinct names: *"Same pass needed on aura and runes."* Nothing is renamed yet: it becomes a ticket once you approve or edit this list. A row that says "keep" is already fine. Ids and saves never change; only the shown name does. An upgraded card keeps its plus (Megingjord+).
+Henry (2026-10-03), after accepting the Instinct names: *"Same pass needed on aura and runes."* **APPLIED 2026-10-03 as ticket 192 (`25e9c5c`): Henry accepted every name and the Feedback token rename (Tattle); the Proposed column is what the game now shows.** A row that says "keep" is already fine. Ids and saves never change; only the shown name does. An upgraded card keeps its plus (Megingjord+).
 
 ## Auras (the persistent-effect cards; 19 of them)
 
