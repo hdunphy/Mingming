@@ -3,7 +3,7 @@
  *
  * The picture is drawn in `viewBox` units and scrolls inside `.rm-canvas`, so a narrow frame is a
  * smaller window onto the same map rather than a squashed one. That matters specifically for the
- * Steam Deck's 1280x800 (ticket 37): a 15-column region is genuinely wider than that frame, and the
+ * Steam Deck's 1280x800 (ticket 37): a 16-column region is genuinely wider than that frame, and the
  * honest answer is to pan it, not to shrink nodes below a readable size.
  *
  * Everything is prefixed `rm-` so it cannot collide with the 2500-line global sheet.
@@ -66,9 +66,9 @@
  * unless it is the one you are standing in — the panel you are in should be the only one that
  * announces itself. */
 .rm-band-label {
-    font-size: 10px;
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.1em;
     opacity: 0.4;
     pointer-events: none;
 }
@@ -83,44 +83,57 @@
 }
 
 /*
- * TICKET 34 part two — the trails.
+ * TICKET 176e - the roads.
  *
- * Dotted, round-capped, per `research/64-map-proto/map_N_route.svg`. A solid line between two discs
- * is a graph edge; a dotted one is a path someone walked, and that single change does most of the
- * "overworld feel" the ruled option is named for. `1 6` is the reference's own spacing — dots, not
- * dashes, so the trail reads as footsteps rather than as a dashed border.
+ * Thick and solid: the map is one-way now, so a road is something you commit to rather than a
+ * footpath you might retrace. Gold is the path you walked; faded roads lead to or from a node you
+ * can no longer reach; a dashed one is a detour (one extra fight). Look is Henry's call.
  */
 .rm-edge {
     stroke: var(--panel-3);
-    stroke-width: 2.5;
-    stroke-dasharray: 1 6;
+    stroke-width: 7;
     stroke-linecap: round;
+    fill: none;
 }
 
-/* A trail with a fogged node at one end. Information, not decoration: the difference between a
- * route you can plan and one you can only see the start of. */
-.rm-edge.faded { stroke: var(--panel); }
+.rm-edge.taken { stroke: var(--amber); }
+.rm-edge.faded { opacity: 0.28; }
+.rm-edge.detour { stroke-width: 4; stroke-dasharray: 9 8; }
 
 .rm-node-disc {
     fill: var(--panel);
     stroke: rgba(160, 150, 210, 0.5);
-    stroke-width: 2;
+    stroke-width: 3;
 }
 
 .rm-node-icon {
-    font-size: 19px;
     fill: var(--text);
-    /* Ticket 34: the glyphs are inline SVG now, not emoji, so the font stack that kept an emoji
-     * from inheriting a clipping monospace metric is gone with them. `color` is what a revealed
-     * node's icon reads — see the nested `<svg>` in `RegionMap.tsx`. */
     color: var(--text);
 }
 
-.rm-node-visits { pointer-events: none; }
+/* A node you have passed without entering, and can no longer reach. */
+.rm-node.passed { opacity: 0.32; }
+.rm-node.taken .rm-node-disc { stroke-width: 3.5; }
 
-.rm-node.fogged .rm-node-disc { fill: var(--page); stroke: rgba(160, 150, 210, 0.22); }
-.rm-node.fogged .rm-node-icon { fill: rgba(230, 224, 255, 0.35); }
-.rm-node.detour .rm-node-disc { stroke-dasharray: 4 3; }
+.rm-node.detour .rm-node-disc { stroke-dasharray: 6 4; }
+
+/* A town: a wide rounded box, gold-edged, with its two doors written inside. */
+.rm-town-box { stroke: var(--amber); stroke-width: 4; stroke-dasharray: none; }
+.rm-town-name { fill: var(--text); font-size: 20px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.rm-town-sub { fill: var(--text); font-size: 13px; opacity: 0.85; }
+
+/* What a node is, under it; and who waits in it after a survey. */
+.rm-node-caption { fill: var(--text); font-size: 13px; opacity: 0.9; pointer-events: none; }
+.rm-node-species { fill: var(--amber); font-size: 12px; pointer-events: none; }
+
+/* "Route 1" ... "Route 5" along the bottom. */
+.rm-route-label {
+    fill: var(--text);
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+    pointer-events: none;
+}
 
 /* TICKET 142c — a rival's SECOND element, as a dot on the node's lower shoulder. The disc's stroke
    already carries the off-biome half; this carries the other one, so the pair is readable without
@@ -140,9 +153,6 @@
     stroke-width: 1.5;
     stroke-dasharray: 3 3;
 }
-
-.rm-node.fogged .rm-node-second-element,
-.rm-node.fogged .rm-node-scout-ring { opacity: 0.35; }
 
 /* Ticket 17: the Driver at stake. Solid, in the Driver chip's violet (`.battle-driver-chip`), so a
    ring on the map and the chip in the fight are the same word. */
@@ -178,7 +188,6 @@
     opacity: 0.75;
 }
 
-.rm-legend-fog { opacity: 0.7; }
 
 /* 2026-09-25: the icon key. Full opacity - it is the one line a new player reads first. */
 .rm-legend-key {
@@ -230,22 +239,3 @@
 .rm-travel-button:focus-visible { outline: 2px solid var(--hp); outline-offset: 2px; }
 .rm-travel-icon { font-size: 1rem; }
 .rm-travel-empty { font-size: 0.76rem; opacity: 0.6; }
-
-/*
- * The visit badge — ticket 34 part two, from the reference's gold shoulder disc.
- *
- * Ticket 07's re-roll rule is what makes the count worth a badge: a node you have stood on twice
- * has been two DIFFERENT fights, so this is a small piece of run history rather than a counter.
- */
-.rm-visit-disc {
-    fill: var(--amber);
-    stroke: var(--page);
-    stroke-width: 2;
-}
-
-.rm-visit-count {
-    fill: var(--page);
-    font-size: 10px;
-    font-weight: 800;
-    pointer-events: none;
-}

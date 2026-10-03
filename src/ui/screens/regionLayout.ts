@@ -18,6 +18,7 @@
  * (`encounter.surveyedEncounters`) and hands the lines to `RegionMap`.
  */
 
+import { REGION_PARAMS, nodeRole, routeNumberOf } from '../../engine/run/regionGraph';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IconName } from '../theme/icons';
 
@@ -82,9 +83,8 @@ export { FIGHT_KINDS } from '../../engine/run/encounter';
  * `visited: 1` so it does not fire before the run has begun), so the map drew it with the wild's
  * blade: a fight that never happened. It is drawn as a flag now and labelled Start.
  *
- * Its KIND is untouched. Walking back into it is a wild fight like any other re-entry — ticket 07's
- * "entering a node triggers it again, always", which Henry re-ruled the same day — and the label
- * says so, rather than a flag quietly turning into an ambush of your own making.
+ * Its KIND is untouched (it is still a wild underneath), but since ticket 176b travel is one-way, so
+ * nothing ever walks back into it: it is drawn as a flag and labelled Start, and that is all.
  */
 export function isRunStart(node: IRegionNode): boolean {
     return node.biomeIndex === 0 && node.layer === 0;
@@ -101,54 +101,121 @@ export function nodeLabelFor(node: IRegionNode): string {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Layout
+// Layout (ticket 176e)
 // ---------------------------------------------------------------------------------------------
 
-/** 3 biomes x 5 layers laid left to right. Biome b, layer l sits in column `b * 5 + l`. */
-export const COLUMNS_PER_BIOME = 5;
+/*
+ * ONE COLUMN PER ROW OF THE GRAPH.
+ *
+ * The region is rows (`REGION_PARAMS.biomeRows`: biome 0 has seven, biome 1 five, biome 2 four), and
+ * a row is a column on screen, so the whole run is 7 + 5 + 4 = 16 columns, left to right. Up to
+ * ticket 176 it was a flat five per biome, which only suited a map whose layers were all the same
+ * width. Branching routes change what a column is: a town is one node, a route is one to three.
+ *
+ * Within a column the nodes sit in GENERATION ORDER, top to bottom (the id's `n<index>`), which is
+ * the order the generator linked them in and why no two links cross. A DETOUR is not in that
+ * order. It hangs half a column to the right of the node it leaves, above or below the route, so the
+ * plain link (host to the next row) stays a straight road and the detour is visibly the long way
+ * round. It costs one extra fight, and the map says so with a dashed link and a "+1 fight" label.
+ */
+
+/** First column of each biome: 0, 7, 12 with the current row counts. */
+const BIOME_FIRST_COLUMN: ReadonlyArray<number> = (() => {
+    const starts: number[] = [];
+    let total = 0;
+    for (const rows of REGION_PARAMS.biomeRows) {
+        starts.push(total);
+        total += rows.length;
+    }
+    return starts;
+})();
+
+/** 16 with the current rows. */
+export const COLUMN_COUNT: number = REGION_PARAMS.biomeRows.reduce((sum, rows) => sum + rows.length, 0);
+
+/** The widest a row of the map is drawn: a route row has at most three nodes. */
+const BASE_SLOTS = 3;
+/** How far above or below the route a detour hangs, in rows. */
+export const DETOUR_LIFT = 0.8;
+
+// Geometry, in viewBox units (roughly 1.5x what the 15-column map used).
+export const COL_W = 144;
+export const ROW_H = 110;
+export const PAD_X = 84;
+export const NODE_R = 30;
+/** An elite gate (a biome's exit) and the gym are drawn larger than a route node. */
+export const GATE_R = 38;
+export const GYM_R = 42;
+export const TOWN_W = 116;
+export const TOWN_H = 84;
+/** Where the first row of nodes sits: room for the biome name above it. */
+export const TOP_Y = 92;
+/** Room under the lowest row for the node names and the "Route N" labels. */
+export const BOTTOM_ROOM = 104;
+/** The wander is vertical only now: at most this fraction of a row. */
+export const WANDER_Y_FRACTION = 0.12;
 
 export interface LaidOutNode {
     readonly node: IRegionNode;
-    /** 0-14, left to right across the whole run. */
+    /** 0-15, left to right across the whole run. A detour has the column of the node it leaves. */
     readonly column: number;
-    /** 0-based position within the column, top to bottom. */
+    /** Horizontal position in columns: the column, plus a half for a detour. */
+    readonly x: number;
+    /** 0-based position within the column, top to bottom (a detour is counted after the route). */
     readonly row: number;
-    /** Total nodes in this column, so a renderer can centre it. */
+    /** Total route nodes in this column, so a renderer can centre it. */
     readonly rowsInColumn: number;
+    /** Vertical position in rows from the top route slot; a detour is above 0 or below the last slot. */
+    readonly slot: number;
+    /** For a detour: the node it leaves, and which side of the route it hangs. */
+    readonly hostId?: string;
+    readonly side?: 'up' | 'down';
     /** One edge away from the player, so a click travels there. */
     readonly reachable: boolean;
     readonly isCurrent: boolean;
+    /** On the path the player walked (it has been entered, or the player stands on it). */
+    readonly taken: boolean;
     /**
-     * TICKET 34 part two — **the wander**, in unit terms: two values in `[-1, 1]` the renderer
-     * scales into pixels.
-     *
-     * The ruled reference (`research/64-map-proto/map_N_route.svg`, *"OPTION N — WINDING ROUTE
-     * (overworld feel)"*) does not put its nodes on a lattice. A perfect grid reads as a flowchart;
-     * a route reads as somewhere you are walking, and the difference is entirely in whether the
-     * nodes sit exactly where you would predict.
-     *
-     * **Derived from the node ID, not rolled.** The offset has to be stable across a re-render, a
-     * reload and a resumed save, and it must not become a third thing the run seed decides — ticket
-     * 06 deliberately kept `x`/`y` out of `IRegionNode` so that layout stays derivable and a save
-     * never freezes a UI decision. A hash of the id is derivable, deterministic, and costs the save
-     * nothing.
-     *
-     * Bounded to a fraction of the lane spacing by the renderer, so the wander is a lean, not a
-     * scramble: `(biomeIndex, layer)` is still the position and the graph still reads left to right.
+     * PASSED, NOT TAKEN: not entered, and no road leads to it from where the player stands any more.
+     * Travel is one-way, so the other branch of a fork you did not take is behind you for good.
      */
-    readonly wanderX: number;
+    readonly passed: boolean;
+    /**
+     * TICKET 34 part two — **the wander**, in unit terms: a value in `[-1, 1]` the renderer scales
+     * into pixels. Derived from the node ID, not rolled, so it is stable across a re-render, a
+     * reload and a resumed save. Since 176e it is vertical only (`WANDER_Y_FRACTION` of a row): the
+     * columns carry the run's order, and a node that leaned sideways could look like it belonged to
+     * its neighbour's row.
+     */
     readonly wanderY: number;
+}
+
+export interface RouteLabel {
+    readonly route: number;
+    /** First and last column of the route, so the label can be centred under it. */
+    readonly firstColumn: number;
+    readonly lastColumn: number;
 }
 
 export interface RegionLayout {
     readonly nodes: ReadonlyArray<LaidOutNode>;
     readonly columnCount: number;
     readonly maxRows: number;
+    /** Route-row slots the picture reserves (3 for a generated map). */
+    readonly slotCount: number;
     readonly byId: ReadonlyMap<string, LaidOutNode>;
+    /** "Route 1" to "Route 5", where each runs. */
+    readonly routes: ReadonlyArray<RouteLabel>;
 }
 
 export function columnOf(node: IRegionNode): number {
-    return node.biomeIndex * COLUMNS_PER_BIOME + node.layer;
+    return (BIOME_FIRST_COLUMN[node.biomeIndex] ?? 0) + node.layer;
+}
+
+/** The generation index in a node id (`b1l2n1` is 1); ids from a hand-built map sort after. */
+function generationIndex(node: IRegionNode): number {
+    const match = /n(\d+)$/.exec(node.id);
+    return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
 }
 
 /**
@@ -156,12 +223,10 @@ export function columnOf(node: IRegionNode): number {
  *
  * FNV-1a, because it needs to be *stable forever* and cheap, not statistically excellent: the same
  * id must land in the same place in every build, and two adjacent ids (`b1l2n0`, `b1l2n1`) must land
- * in visibly different places. FNV's avalanche is more than enough for both and it is eight lines
- * with no dependency. `Math.random` is forbidden in this module for the ordinary reason and one
- * extra: a re-render would move the map under the cursor.
+ * in visibly different places. `Math.random` is forbidden in this module for the ordinary reason and
+ * one extra: a re-render would move the map under the cursor.
  *
- * The two values come from different halves of the hash so that x and y are independent — deriving
- * y from the same number as x would put every node on a diagonal.
+ * The two values come from different halves of the hash so that x and y are independent.
  */
 export function wanderFor(id: string): { x: number; y: number } {
     let hash = 0x811c9dc5;
@@ -176,9 +241,7 @@ export function wanderFor(id: string): { x: number; y: number } {
      *
      * FNV-1a alone leaves adjacent ids adjacent in the low bits — `b1l2n0` and `b1l2n1` differ by
      * one byte and came out **0.015 apart** on a scale of 2, which is not a wander, it is two nodes
-     * drawn on top of each other. And those two ids are precisely the case that matters: they are
-     * neighbours in the same column, so they are the pair the wander exists to separate.
-     * `regionLayout.test.ts` pins it.
+     * drawn on top of each other. `regionLayout.test.ts` pins it.
      *
      * This is the `lowbias32` finalizer: two xorshift-multiply rounds, which is what makes a
      * one-byte change rewrite the whole word rather than the end of it.
@@ -195,56 +258,160 @@ export function wanderFor(id: string): { x: number; y: number } {
     return { x: (low / 0xffff) * 2 - 1, y: (high / 0xffff) * 2 - 1 };
 }
 
+/** Every node the player can still get to by walking forward from `fromId` (not including it). */
+function forwardReach(byId: ReadonlyMap<string, IRegionNode>, fromId: string): Set<string> {
+    const seen = new Set<string>();
+    const queue = [...(byId.get(fromId)?.edges ?? [])];
+    while (queue.length > 0) {
+        const id = queue.pop()!;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        for (const next of byId.get(id)?.edges ?? []) queue.push(next);
+    }
+    return seen;
+}
+
+/**
+ * Which side of the route a detour hangs. The generator hangs it off the TOP link or the BOTTOM link
+ * between two rows (`regionGraph`, M3): when its host's row is wider than one that is the host's own
+ * position, and when the host is alone in its row it is the position of the link's target.
+ */
+function detourSide(
+    host: IRegionNode,
+    hostRow: ReadonlyArray<IRegionNode>,
+    target: IRegionNode | undefined,
+    targetRow: ReadonlyArray<IRegionNode>,
+): 'up' | 'down' {
+    if (hostRow.length > 1) return hostRow.indexOf(host) === 0 ? 'up' : 'down';
+    if (target && targetRow.length > 1) return targetRow.indexOf(target) === 0 ? 'up' : 'down';
+    return 'up';
+}
+
 export function layoutRegion(
     nodes: ReadonlyArray<IRegionNode>,
     currentNodeId: string,
 ): RegionLayout {
     const current = nodes.find((n) => n.id === currentNodeId);
     const reachableIds = new Set(current?.edges ?? []);
+    const nodesById = new Map(nodes.map((n) => [n.id, n] as const));
+    const ahead = forwardReach(nodesById, currentNodeId);
 
-    // Group by column, then order within it. Detours sort last so a side trip hangs off the bottom of
-    // its layer rather than pushing the main route around — the route should read as a spine.
-    const columns = new Map<number, IRegionNode[]>();
+    // Route nodes per (biome, layer), in generation order — stable whatever order the array arrives in.
+    const rowKey = (n: IRegionNode): string => `${n.biomeIndex}:${n.layer}`;
+    const rows = new Map<string, IRegionNode[]>();
     for (const node of nodes) {
-        const column = columnOf(node);
-        const bucket = columns.get(column);
+        if (node.detour) continue;
+        const bucket = rows.get(rowKey(node));
         if (bucket) bucket.push(node);
-        else columns.set(column, [node]);
+        else rows.set(rowKey(node), [node]);
+    }
+    for (const bucket of rows.values()) {
+        bucket.sort((a, b) => (generationIndex(a) - generationIndex(b)) || (a.id < b.id ? -1 : 1));
     }
 
+    const slotCount = Math.max(BASE_SLOTS, ...[...rows.values()].map((bucket) => bucket.length));
     const laid: LaidOutNode[] = [];
-    let maxRows = 0;
-    for (const [column, bucket] of columns) {
-        // Stable by id within the detour/non-detour split, so the same graph always draws the same
-        // way. A map that reshuffles between renders is unreadable.
-        const ordered = [...bucket].sort((a, b) => {
-            if (a.detour !== b.detour) return a.detour ? 1 : -1;
-            return a.id < b.id ? -1 : 1;
-        });
-        maxRows = Math.max(maxRows, ordered.length);
-        ordered.forEach((node, row) => {
-            const wander = wanderFor(node.id);
+
+    const common = (node: IRegionNode) => ({
+        node,
+        column: columnOf(node),
+        reachable: reachableIds.has(node.id),
+        isCurrent: node.id === currentNodeId,
+        taken: node.visited > 0 || node.id === currentNodeId,
+        passed: node.visited === 0 && node.id !== currentNodeId && !ahead.has(node.id),
+        wanderY: wanderFor(node.id).y,
+    });
+
+    for (const bucket of rows.values()) {
+        bucket.forEach((node, row) => {
             laid.push({
-                node,
-                column,
+                ...common(node),
+                x: columnOf(node),
                 row,
-                rowsInColumn: ordered.length,
-                reachable: reachableIds.has(node.id),
-                isCurrent: node.id === currentNodeId,
-                wanderX: wander.x,
-                wanderY: wander.y,
+                rowsInColumn: bucket.length,
+                slot: (slotCount - bucket.length) / 2 + row,
             });
+        });
+    }
+
+    // Detours: half a column right of the node they leave, above or below the route.
+    const detours = nodes
+        .filter((n) => n.detour)
+        .sort((a, b) => (a.biomeIndex - b.biomeIndex) || (a.layer - b.layer) || (a.id < b.id ? -1 : 1));
+    const detourCount = new Map<string, number>();
+    for (const detour of detours) {
+        const routeRow = rows.get(rowKey(detour)) ?? [];
+        const host = routeRow.find((n) => n.edges.includes(detour.id));
+        const target = detour.edges.map((id) => nodesById.get(id)).find((n) => n !== undefined);
+        const targetRow = target ? rows.get(rowKey(target)) ?? [] : [];
+        const side = host ? detourSide(host, routeRow, target, targetRow) : 'down';
+        const placed = detourCount.get(rowKey(detour)) ?? 0;
+        detourCount.set(rowKey(detour), placed + 1);
+        laid.push({
+            ...common(detour),
+            x: columnOf(detour) + (host ? 0.5 : 0),
+            row: routeRow.length + placed,
+            rowsInColumn: routeRow.length,
+            slot: side === 'up' ? -DETOUR_LIFT : slotCount - 1 + DETOUR_LIFT,
+            hostId: host?.id,
+            side,
         });
     }
 
     laid.sort((a, b) => (a.column - b.column) || (a.row - b.row));
 
+    // "Route N": a run of route columns, labelled by the number the generator gives them.
+    const spans = new Map<number, { first: number; last: number }>();
+    for (const bucket of rows.values()) {
+        const route = routeNumberOf(bucket[0]);
+        if (route === null) continue;
+        const column = columnOf(bucket[0]);
+        const span = spans.get(route);
+        if (!span) spans.set(route, { first: column, last: column });
+        else { span.first = Math.min(span.first, column); span.last = Math.max(span.last, column); }
+    }
+    const routes = [...spans.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([route, span]) => ({ route, firstColumn: span.first, lastColumn: span.last }));
+
     return {
         nodes: laid,
-        columnCount: COLUMNS_PER_BIOME * 3,
-        maxRows,
+        columnCount: COLUMN_COUNT,
+        maxRows: Math.max(0, ...[...rows.values()].map((bucket) => bucket.length)),
+        slotCount,
         byId: new Map(laid.map((n) => [n.node.id, n])),
+        routes,
     };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Where a node is drawn (pixels). Here rather than in the component so a test can check that no two
+// nodes overlap without rendering anything.
+// ---------------------------------------------------------------------------------------------
+
+/** Total height of the picture for a layout. */
+export function canvasHeight(layout: RegionLayout): number {
+    return TOP_Y + (layout.slotCount - 1 + 2 * DETOUR_LIFT) * ROW_H + BOTTOM_ROOM;
+}
+
+export function canvasWidth(layout: RegionLayout): number {
+    return PAD_X * 2 + (layout.columnCount - 1) * COL_W;
+}
+
+/** A laid-out node's centre, wander included. */
+export function centreOf(laid: LaidOutNode): { x: number; y: number } {
+    return {
+        x: PAD_X + laid.x * COL_W,
+        y: TOP_Y + (laid.slot + DETOUR_LIFT) * ROW_H + laid.wanderY * WANDER_Y_FRACTION * ROW_H,
+    };
+}
+
+/** What shape and size a node is drawn at: a town is a wide rounded box, a gate or the gym is a bigger disc. */
+export function shapeOf(node: IRegionNode): { kind: 'disc'; r: number } | { kind: 'box'; w: number; h: number } {
+    if (node.kind === 'town') return { kind: 'box', w: TOWN_W, h: TOWN_H };
+    if (node.kind === 'gym') return { kind: 'disc', r: GYM_R };
+    if (nodeRole(node) === 'exit') return { kind: 'disc', r: GATE_R };
+    return { kind: 'disc', r: NODE_R };
 }
 
 /**

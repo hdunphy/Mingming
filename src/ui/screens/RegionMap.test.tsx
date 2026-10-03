@@ -166,6 +166,8 @@ describe('RegionMap', () => {
         // second circle for its gold visit badge, and counting those would make "one disc per node"
         // fail for a reason it is not about.
         const circles = markup.match(/<circle[^>]*class="rm-node-disc"/g)?.length ?? 0;
+        // A town is a rounded box, not a disc (176e).
+        const boxes = markup.match(/<rect[^>]*class="rm-node-disc rm-town-box"/g)?.length ?? 0;
         // `class="rm-edge"`, not every `<line>`: ticket 34 added the biome seams, which are also
         // lines and are decoration rather than graph. Counting all of them would make this test
         // fail for a reason it is not about.
@@ -173,7 +175,8 @@ describe('RegionMap', () => {
         // prefix. Still not every `<line>`: the biome seams are decoration, not graph.
         const lines = markup.match(/<line[^>]*class="rm-edge/g)?.length ?? 0;
 
-        expect(circles).toBe(graph.nodes.length);
+        expect(circles + boxes).toBe(graph.nodes.length);
+        expect(boxes).toBe(graph.nodes.filter((n) => n.kind === 'town').length);
         // Edges are forward links only since ticket 176: each is stored once, on the node it leaves,
         // so drawing straight from the arrays paints every road exactly once.
         const edges = graph.nodes.reduce((sum, n) => sum + n.edges.length, 0);
@@ -224,22 +227,15 @@ describe('RegionMap', () => {
         expect(markup).not.toContain('rm-node-icon">·');
     });
 
-    it('draws a node you have already stood on with its visit count', () => {
+    it('has no visit badge any more (176e): a node is entered once, so the path walked is lit instead', () => {
         const far = graph.nodes.find((n) => columnOf(n) >= 10)!;
         const walked = graph.nodes.map((n) => (n.id === far.id ? { ...n, visited: 3 } : n));
-        const markup = render(graph.entryNodeId, walked);
-        // Ticket 34 part two: the count is a gold shoulder badge, not a '×N' beside the node.
-        expect(markup).toMatch(/rm-visit-count">3</);
-    });
-
-    it('shows a visit COUNT rather than greying a node out', () => {
-        // Ticket 07: entering a node triggers it again, always, and farming is fine. A map that
-        // showed a cleared wild as spent would be telling the player the opposite.
-        const start = graph.nodes.find((n) => n.id === graph.entryNodeId)!;
-        const markup = render();
-        expect(start.visited).toBe(1);
-        expect(markup).toMatch(/rm-visit-count">1</);
-        expect(markup).not.toMatch(/cleared|spent|exhausted/i);
+        for (const markup of [render(), render(graph.entryNodeId, walked)]) {
+            expect(markup).not.toContain('rm-visit');
+            expect(markup).not.toMatch(/visited \d/);
+        }
+        // The start has been entered, so it is on the walked path.
+        expect(render()).toMatch(/class="rm-node current taken/);
     });
 
     it('has no "You are here" sentence (182a); the where-you-are words live on the node hover', () => {
@@ -256,11 +252,12 @@ describe('RegionMap', () => {
 });
 
 describe('2026-09-25 playtest — the start node, and a key for the icons', () => {
-    it('calls the node the run starts on Start, and says walking back in is a fight', () => {
+    it('calls the node the run starts on Start', () => {
         // Henry: "I start on node one, but never encounter a fight." It wore the wild's blade.
+        // 176e: travel is one-way, so nothing walks back into it, and the hover no longer says so.
         const markup = render(graph.entryNodeId);
-        // 182a: the sentence is gone; the same words are the start node's hover.
-        expect(markup).toContain('<title>Start, Fire, walking back in is a Wild fight');
+        expect(markup).toContain('<title>Start, Fire, ');
+        expect(markup).not.toContain('walking back in');
     });
 
     it('has no key line under the map (182a); the icons keep their hover', () => {

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { generateRegionGraph } from '../../engine/run/regionGraph';
 import type { IRegionNode } from '../../engine/runTypes';
-import { COLUMNS_PER_BIOME, columnOf, layoutRegion, wanderFor } from './regionLayout';
+import { columnOf, layoutRegion, wanderFor } from './regionLayout';
 
 const node = (over: Partial<IRegionNode> & { id: string }): IRegionNode => ({
     kind: 'wild',
@@ -22,11 +22,13 @@ const node = (over: Partial<IRegionNode> & { id: string }): IRegionNode => ({
 });
 
 describe('columnOf', () => {
-    it('lays three biomes end to end, left to right', () => {
+    it('lays three biomes end to end, one column per row: 7, then 5, then 4 (ticket 176e)', () => {
         expect(columnOf(node({ id: 'a', biomeIndex: 0, layer: 0 }))).toBe(0);
-        expect(columnOf(node({ id: 'b', biomeIndex: 0, layer: 4 }))).toBe(4);
-        expect(columnOf(node({ id: 'c', biomeIndex: 1, layer: 0 }))).toBe(COLUMNS_PER_BIOME);
-        expect(columnOf(node({ id: 'd', biomeIndex: 2, layer: 4 }))).toBe(14);
+        expect(columnOf(node({ id: 'b', biomeIndex: 0, layer: 6 }))).toBe(6);
+        expect(columnOf(node({ id: 'c', biomeIndex: 1, layer: 0 }))).toBe(7);
+        expect(columnOf(node({ id: 'e', biomeIndex: 1, layer: 4 }))).toBe(11);
+        expect(columnOf(node({ id: 'f', biomeIndex: 2, layer: 0 }))).toBe(12);
+        expect(columnOf(node({ id: 'd', biomeIndex: 2, layer: 3 }))).toBe(15);
     });
 });
 
@@ -92,15 +94,17 @@ describe('layoutRegion — reachability and position', () => {
 
     it('reports a row count per column that a renderer can centre with', () => {
         for (const laid of layout.nodes) {
-            const inColumn = layout.nodes.filter((n) => n.column === laid.column);
+            // A detour is not one of the route's rows: it hangs off the route (ticket 176e), counted after it.
+            const inColumn = layout.nodes.filter((n) => n.column === laid.column && !n.node.detour);
             expect(laid.rowsInColumn).toBe(inColumn.length);
-            expect(laid.row).toBeLessThan(laid.rowsInColumn);
+            if (laid.node.detour) expect(laid.row).toBeGreaterThanOrEqual(laid.rowsInColumn);
+            else expect(laid.row).toBeLessThan(laid.rowsInColumn);
         }
         expect(layout.maxRows).toBe(Math.max(...layout.nodes.map((n) => n.rowsInColumn)));
     });
 
-    it('spans fifteen columns — three biomes of five layers', () => {
-        expect(layout.columnCount).toBe(15);
+    it('spans sixteen columns — one per row of the graph, 7 + 5 + 4 (ticket 176e)', () => {
+        expect(layout.columnCount).toBe(16);
     });
 });
 
@@ -144,10 +148,11 @@ describe('the wander (ticket 34 part two)', () => {
     it('reaches the laid-out nodes, so the renderer has something to lean on', () => {
         const laid = layoutRegion(graph.nodes, graph.entryNodeId);
         for (const node of laid.nodes) {
-            expect(node.wanderX).toBe(wanderFor(node.node.id).x);
+            // Vertical only since 176e: the columns carry the order, so a node never leans sideways.
             expect(node.wanderY).toBe(wanderFor(node.node.id).y);
+            expect(node).not.toHaveProperty('wanderX');
         }
         // Not all zero — a wander that never moves anything is a wander nobody would notice.
-        expect(laid.nodes.some((n) => Math.abs(n.wanderX) > 0.2)).toBe(true);
+        expect(laid.nodes.some((n) => Math.abs(n.wanderY) > 0.2)).toBe(true);
     });
 });

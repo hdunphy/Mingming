@@ -1,51 +1,57 @@
 /**
- * The region map — ticket 10 (steam-release map).
+ * The region map — ticket 10 (steam-release map), redrawn in ticket 176e.
  *
  * # WHAT THE PLAYER IS LOOKING AT
  *
- * Three sequential biomes of five layers, drawn left to right, with every edge walkable both ways.
- * Ticket 07: "the graph is genuinely explorable, not a frontier picker" — so this is a map you route
- * across, not a row of next-step buttons. Backtracking is legal and sometimes correct: a marketplace
- * two layers behind is reachable at the price of re-fighting the wilds between here and there.
+ * Three biomes of towns joined by branching routes, drawn left to right: one column per row of the
+ * graph (7 + 5 + 4 = 16), the nodes of a route stacked in the column, a town alone in its own. Travel
+ * is ONE-WAY (ticket 176b): from where you stand you can go only along a road that leads right, so
+ * the map is a decision about which branch to take, not a place to wander back through.
  *
- * # THE THREE RULINGS THIS SCREEN HAS TO SHOW, NOT JUST OBEY
+ * # THE RULINGS THIS SCREEN HAS TO SHOW, NOT JUST OBEY
  *
  * 1. **Every node's type is visible from the start** (ticket 176d). There is no fog: routing is a
  *    decision about the whole road, so the whole road is on the page. What stays hidden is the
  *    SPECIES: which Mingmings wait in a fight shows only after a Ping Sweep or a Relay Tower Survey,
  *    for the fights of the biome it was fired in (`encounters`).
- * 2. **Entering a node triggers it AGAIN, always.** So the map must never show a node as spent.
- *    There is no dead/alive state here — there is a **visit count**, and a wild you have cleared
- *    twice says "×2" rather than greying out. Farming is fine (ticket 07), and the screen should
- *    not imply otherwise.
- * 3. **There are no rest nodes.** Full heal between regular nodes stands, so nothing here is a
+ * 2. **The path you walked is lit and the branches you left are dimmed.** There is no visit count any
+ *    more: a node is entered once, so "×2" can not happen. What the map can usefully say is where you
+ *    have been (a gold road) and what you can no longer reach (faded).
+ * 3. **A detour is the optional long way.** It hangs off the route, joined by a dashed road, and
+ *    costs one extra fight, which it says in words ("+1 fight") so it is not a surprise.
+ * 4. **There are no rest nodes.** Full heal between regular nodes stands, so nothing here is a
  *    campfire and nothing needs a "heal" affordance.
  *
  * # ACCESSIBILITY: TWO RENDERINGS OF ONE THING
  *
  * The SVG is the picture and is `aria-hidden`. Beneath it is a real list of focusable buttons, one
- * per reachable node, which is what a keyboard and a screen reader actually use. That is deliberate
- * rather than lazy: making an SVG `<g>` behave like a button means hand-rolling focus, roles and
- * key handling and still ending up with something a screen reader narrates badly, whereas a button
- * list is correct by construction and stays correct when ticket 34 restyles the picture. Ticket 38
- * (accessibility) inherits a screen that already works without a mouse.
+ * per reachable node (the forward roads from where you stand), which is what a keyboard and a screen
+ * reader actually use. That is deliberate rather than lazy: making an SVG `<g>` behave like a button
+ * means hand-rolling focus, roles and key handling and still ending up with something a screen
+ * reader narrates badly, whereas a button list is correct by construction.
  *
- * Sized in `viewBox` units with the picture scrolling inside its own container, so the 1280x800
- * Steam Deck frame (ticket 37) is a smaller window onto the same map rather than a broken layout.
+ * Sized in `viewBox` units with the picture scrolling inside its own container: the 16 columns are
+ * wider than any frame, so the map pans sideways, and it scrolls itself to keep you in view.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 import type { IRegionNode } from '../../engine/runTypes';
+import { routeNumberOf } from '../../engine/run/regionGraph';
 import {
+    COL_W,
     FIGHT_KINDS,
     NODE_LABEL,
-    isRunStart,
+    PAD_X,
+    canvasHeight,
+    canvasWidth,
+    centreOf,
     layoutRegion,
     nodeIconFor,
     nodeLabelFor,
     positionWord,
+    shapeOf,
     type LaidOutNode,
 } from './regionLayout';
 import './RegionMap.css';
@@ -60,47 +66,8 @@ const ELEMENT_COLOR: Record<string, string> = {
     Nature: 'var(--hp)',
 };
 
-// Geometry, in viewBox units. Relative sizing lives in the stylesheet.
-const COL_W = 96;
-const ROW_H = 74;
-const PAD_X = 52;
-const PAD_Y = 40;
-const R = 21;
-
-/**
- * TICKET 34 part two — how far a node may lean off its lane.
- *
- * The ruled reference is `research/64-map-proto/map_N_route.svg`: *"OPTION N — WINDING ROUTE
- * (overworld feel)"*. Its nodes are visibly off-lattice, and that is the whole of the difference
- * between a flowchart and a route — a grid tells you the graph is generated, a wander tells you it
- * is a place.
- *
- * A quarter of the lane each way, and the two numbers are not equal on purpose. **X is the tighter
- * one**: columns carry the run's ordering (you walk left to right, and the map reads in
- * columns), so a node that wanders far enough to look like it belongs to the next layer would be
- * lying about the graph. Y has no such meaning — a column's rows are just a stacking order — so it
- * gets the looser lean and does most of the visible work.
- */
 /** How far the biome panels sit inside the canvas, top and bottom. */
 const BAND_INSET_Y = 10;
-
-const WANDER_X = COL_W * 0.20;
-const WANDER_Y = ROW_H * 0.26;
-
-function cx(column: number, wander = 0): number {
-    return PAD_X + column * COL_W + wander * WANDER_X;
-}
-
-function cy(row: number, rowsInColumn: number, maxRows: number, wander = 0): number {
-    const span = (maxRows - rowsInColumn) / 2;
-    return PAD_Y + (row + span) * ROW_H + R + wander * WANDER_Y;
-}
-
-/** A laid-out node's centre, wander included. The one place the two are combined. */
-const centreOf = (laid: LaidOutNode, maxRows: number): { x: number; y: number } => ({
-    x: cx(laid.column, laid.wanderX),
-    y: cy(laid.row, laid.rowsInColumn, maxRows, laid.wanderY),
-});
 
 export interface RegionMapProps {
     readonly nodes: ReadonlyArray<IRegionNode>;
@@ -155,23 +122,31 @@ export default function RegionMap({
         [nodes, currentNodeId],
     );
 
-    const width = PAD_X * 2 + (layout.columnCount - 1) * COL_W;
-    const height = PAD_Y * 2 + layout.maxRows * ROW_H;
+    const width = canvasWidth(layout);
+    const height = canvasHeight(layout);
 
-    // Each undirected edge once. `edges` holds both halves by construction (ticket 07), so drawing
-    // straight from the arrays would paint every line twice — harmless to look at, wasteful in the
-    // DOM, and misleading to anyone counting elements in a test.
+    // TICKET 176e: keep the player in view. The map is wider than the frame, so after each step it
+    // scrolls to put the node you are standing on near the middle (a plain assignment, so it also
+    // works where `scrollTo` does not exist).
+    const canvasRef = useRef<HTMLDivElement>(null);
+    const here = layout.byId.get(currentNodeId);
+    const hereX = here ? centreOf(here).x : 0;
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.scrollLeft = Math.max(0, hereX - canvas.clientWidth / 2);
+    }, [hereX, currentNodeId]);
+
+    // Every road once, in the direction it can be walked. `edges` is forward-only since 176b, so
+    // this is just the edge lists; a road is lit when both its ends are on the path walked, and
+    // faded when either end can no longer be reached.
     const lines = useMemo(() => {
-        const seen = new Set<string>();
         const out: Array<{ key: string; a: LaidOutNode; b: LaidOutNode }> = [];
         for (const laid of layout.nodes) {
             for (const otherId of laid.node.edges) {
-                const key = [laid.node.id, otherId].sort().join('|');
-                if (seen.has(key)) continue;
                 const other = layout.byId.get(otherId);
                 if (!other) continue;
-                seen.add(key);
-                out.push({ key, a: laid, b: other });
+                out.push({ key: `${laid.node.id}>${otherId}`, a: laid, b: other });
             }
         }
         return out;
@@ -180,18 +155,11 @@ export default function RegionMap({
     /*
      * TICKET 34 — THE BIOME BACKDROPS.
      *
-     * The map is a walk through three mono-element biomes in a ruled order (`gyms.offerGyms`), and
-     * until now the only thing that said so was a strip of three labels above the picture. So the
-     * picture itself now carries the routing information: each biome's span of columns gets a band
-     * tinted with its element, fading out downward so the nodes and edges stay the brightest thing
-     * on screen.
-     *
-     * Derived from the laid-out columns rather than from `REGION_PARAMS.biomeRows`, because the
-     * layout owns where a column ends up and a second opinion about it would drift the day a detour
-     * changes the column count. A band is exactly as wide as the nodes it stands behind.
-     *
-     * The strip above the picture stays. It names the biome and states its element in words, and a
-     * colour is not a label — ticket 38's accessibility pass would have to put the words back.
+     * The map is a walk through three mono-element biomes in a ruled order (`gyms.offerGyms`), so
+     * the picture itself carries the routing information: each biome's span of columns gets a band
+     * tinted with its element, fading out downward so the nodes and roads stay the brightest thing
+     * on screen. Derived from the laid-out columns, so a band is exactly as wide as the nodes it
+     * stands behind.
      */
     const bands = useMemo(() => {
         const spans = new Map<number, { min: number; max: number }>();
@@ -207,21 +175,13 @@ export default function RegionMap({
                 element: biomeElements[biomeIndex] ?? 'None',
                 // Half a column of margin either side, so neighbouring bands meet cleanly between
                 // the last node of one biome and the first of the next rather than under either.
-                x: cx(span.min) - COL_W / 2,
+                x: PAD_X + span.min * COL_W - COL_W / 2,
                 width: (span.max - span.min + 1) * COL_W,
             }));
     }, [layout, biomeElements]);
 
-    /**
-     * TICKET 34 part two: where the player is, relative to each band.
-     *
-     * The reference labels its three panels `NATURE ✓` / `FIRE — CURRENT` / `WATER — AHEAD`, and
-     * that is the one piece of information the picture was missing: the strip above says *which*
-     * biomes the run walks, and this says *how far through them you are*. It is a state word rather
-     * than the biome name repeated, because the name is already on the strip and a map that prints
-     * everything twice is a map nobody reads.
-     */
-    const currentBiome = layout.byId.get(currentNodeId)?.node.biomeIndex ?? 0;
+    /** Which biome the player is in, so that panel's name is the one that lights up. */
+    const currentBiome = here?.node.biomeIndex ?? 0;
 
     const reachable = layout.nodes.filter((n) => n.reachable);
 
@@ -246,9 +206,10 @@ export default function RegionMap({
     const baseDescribe = (laid: LaidOutNode): string => {
         const elements = elementsOf(laid.node);
         // Ticket 142c: the scout takes over an ordinary fight node rather than being its own kind,
-        // so it has to be said rather than inferred from the icon. Before this, no UI file read the
-        // flag at all and the one fight that previews the gauntlet was indistinguishable from an elite.
-        const kind = laid.node.scout ? `Scout ${NODE_LABEL[laid.node.kind].toLowerCase()}` : nodeLabelFor(laid.node);
+        // so it has to be said rather than inferred from the icon.
+        let kind = laid.node.scout ? `Scout ${NODE_LABEL[laid.node.kind].toLowerCase()}` : nodeLabelFor(laid.node);
+        // TICKET 176e: a detour says what it costs, right next to its name - "Alpha (detour, +1 fight)".
+        if (laid.node.detour) kind = `${kind} (detour, +1 fight)`;
         // TICKET 176d: after a survey the fight names who waits in it - "Rival: Sköll, Huldra".
         const species = encounters[laid.node.id];
         const parts = [species ? `${kind}: ${species}` : kind];
@@ -265,15 +226,13 @@ export default function RegionMap({
          * reading is that it is harder than the elite — so it says so, and calls the Driver its
          * bonus rather than its exam.
          */
-        // 2026-09-25: the start is a wild underneath, and walking back into it fights like any re-entry.
-        if (isRunStart(laid.node)) parts.push('walking back in is a Wild fight');
         if (laid.node.kind === 'ambush') parts.push('HIGH RISK — they outnumber you');
         if (laid.node.driverStake) {
             parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${stakeName(laid.node.driverStake)}`);
         }
-        parts.push(`biome ${laid.node.biomeIndex + 1}`, `layer ${laid.node.layer}`);
-        if (laid.node.detour) parts.push('detour, +1 fight');
-        if (laid.node.visited > 0) parts.push(`visited ${laid.node.visited}×`);
+        parts.push(`biome ${laid.node.biomeIndex + 1}`);
+        const route = routeNumberOf(laid.node);
+        if (route !== null) parts.push(`route ${route}`);
         return parts.join(', ');
     };
 
@@ -302,6 +261,12 @@ export default function RegionMap({
             ? `${describe(laid)}. A rival fields the elements this road needs.`
             : describe(laid);
 
+    /** The short name written on the map under a node. */
+    const captionOf = (laid: LaidOutNode): string => {
+        const name = laid.node.scout ? `${nodeLabelFor(laid.node)} (scout)` : nodeLabelFor(laid.node);
+        return laid.node.detour ? `${name} · detour +1 fight` : name;
+    };
+
     return (
         <div className="rm">
             {/* TICKET 182a: the biome tab strip is gone; each band on the map names its biome. */}
@@ -309,22 +274,17 @@ export default function RegionMap({
             {/*
               * TICKET 38 — THE PANNABLE CANVAS HAS TO BE FOCUSABLE, OR THE PAN IS MOUSE-ONLY.
               *
-              * axe: `scrollable-region-focusable`, SERIOUS, and it is the direct cost of the
-              * decision ticket 37 confirmed — a 15-column region is genuinely wider than a
-              * 1280×800 frame, so the map PANS rather than shrinking its nodes below a readable
-              * size. `scrollLeft` moves 210px at Deck resolution, and before this a keyboard-only
-              * player had no way to move it: the div took no focus, so the arrow keys never
-              * reached it.
-              *
-              * `tabIndex={0}` plus a name and a role is the whole fix — a focused scroll container
-              * is arrow-scrollable by the browser, so no key handler is needed and none is added.
-              * `group` rather than `region`, because `region` would ask for a landmark this is not.
+              * The map is wider than a 1280×800 frame, so it PANS rather than shrinking its nodes
+              * below a readable size, and before ticket 38 a keyboard-only player had no way to move
+              * it. `tabIndex={0}` plus a name and a role is the whole fix — a focused scroll
+              * container is arrow-scrollable by the browser, so no key handler is needed.
               *
               * The SVG inside stays `aria-hidden`: it is the picture, and the nodes it draws are
               * already real buttons elsewhere in this screen. The travel list is the accessible
               * path to a node; this is the accessible path to SEEING the rest of the map.
               */}
             <div
+                ref={canvasRef}
                 className="rm-canvas"
                 tabIndex={0}
                 role="group"
@@ -348,8 +308,7 @@ export default function RegionMap({
                     </defs>
                     {/*
                       * Rounded, inset panels rather than full-bleed bands — the reference draws
-                      * each biome as a PLACE with edges, not as a stripe behind the graph. The
-                      * inset is what makes them read as three panels on one board.
+                      * each biome as a PLACE with edges, not as a stripe behind the graph.
                       */}
                     {bands.map((band) => (
                         <g key={band.biomeIndex}>
@@ -363,7 +322,7 @@ export default function RegionMap({
                             />
                             <text
                                 className={`rm-band-label ${band.biomeIndex === currentBiome ? 'here' : ''}`}
-                                x={band.x + 18} y={BAND_INSET_Y + 20}
+                                x={band.x + 18} y={BAND_INSET_Y + 22}
                                 style={{ fill: ELEMENT_COLOR[band.element] ?? undefined }}
                             >
                                 {biomeNames[band.biomeIndex] ?? band.element}
@@ -378,36 +337,56 @@ export default function RegionMap({
                             stroke={ELEMENT_COLOR[band.element] ?? 'var(--el-water)'}
                         />
                     ))}
+                    {/* "Route 1" to "Route 5", along the bottom of the picture. */}
+                    {layout.routes.map((route) => (
+                        <text
+                            key={route.route}
+                            className="rm-route-label"
+                            x={PAD_X + ((route.firstColumn + route.lastColumn) / 2) * COL_W}
+                            y={height - 30}
+                            textAnchor="middle"
+                        >
+                            {`Route ${route.route}`}
+                        </text>
+                    ))}
                     {/*
-                      * TICKET 34 part two — the trails.
-                      *
-                      * Dotted rather than solid, per the ruled reference: a solid line between two
-                      * discs is a graph EDGE, and a dotted one is a path someone walked. It is the
-                      * cheapest single change on this screen and it does most of the "overworld
-                      * feel" the reference is named for.
-                      *
-                      * (Until ticket 176d a trail into the fog was drawn dimmer. There is no
-                      * fog now, so every trail is the same.)
+                      * The roads. Thick and solid (they were dotted footsteps when the map could be
+                      * walked both ways): the gold ones are the path walked, the faded ones lead to
+                      * or from a node that can no longer be reached, and a dashed one is a detour.
                       */}
                     {lines.map(({ key, a, b }) => {
-                        const from = centreOf(a, layout.maxRows);
-                        const to = centreOf(b, layout.maxRows);
+                        const from = centreOf(a);
+                        const to = centreOf(b);
                         return (
                             <line
                                 key={key}
                                 x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                                className="rm-edge"
+                                className={[
+                                    'rm-edge',
+                                    a.taken && b.taken ? 'taken' : '',
+                                    a.passed || b.passed ? 'faded' : '',
+                                    a.node.detour || b.node.detour ? 'detour' : '',
+                                ].filter(Boolean).join(' ')}
                             />
                         );
                     })}
                     {layout.nodes.map((laid) => {
-                        const { x, y } = centreOf(laid, layout.maxRows);
+                        const { x, y } = centreOf(laid);
+                        const shape = shapeOf(laid.node);
+                        // Half the node's height, for the things that hang off its top or bottom.
+                        const halfH = shape.kind === 'box' ? shape.h / 2 : shape.r;
+                        const r = shape.kind === 'disc' ? shape.r : 0;
                         // The leading element: the biome's for an ordinary fight, and for a rival the
                         // OFF-BIOME half, because that is the one that makes it worth routing toward.
                         const nodeElements = elementsOf(laid.node);
                         const element = nodeElements[0];
                         const secondElement = nodeElements[1];
                         const isFight = FIGHT_KINDS.includes(laid.node.kind);
+                        const species = encounters[laid.node.id];
+                        // A detour hanging above the route is captioned above itself, so the caption
+                        // does not sit on the road down to the next row.
+                        const captionAbove = laid.side === 'up';
+                        const captionY = captionAbove ? y - halfH - 10 : y + halfH + 18;
                         return (
                             <g
                                 key={laid.node.id}
@@ -415,7 +394,10 @@ export default function RegionMap({
                                     'rm-node',
                                     laid.isCurrent ? 'current' : '',
                                     laid.reachable ? 'reachable' : '',
+                                    laid.taken ? 'taken' : '',
+                                    laid.passed ? 'passed' : '',
                                     laid.node.detour ? 'detour' : '',
+                                    laid.node.kind === 'town' ? 'town' : '',
                                     // Ticket 17: the ambush's high-risk tint, and the stake ring.
                                     laid.node.kind === 'ambush' ? 'risk' : '',
                                     laid.node.driverStake ? 'staked' : '',
@@ -424,51 +406,53 @@ export default function RegionMap({
                             >
                                 {/* TICKET 182a: the key line is gone, so every node says what it is on hover. */}
                                 <title>{hoverOf(laid)}</title>
-                                <circle
-                                    cx={x} cy={y}
-                                    r={laid.node.kind === 'gym' ? R + 5 : R}
-                                    className="rm-node-disc"
-                                    style={isFight ? { stroke: ELEMENT_COLOR[element] ?? undefined } : undefined}
-                                />
-                                {/*
-                                  * TICKET 34: a nested `<svg>` rather than a `<text>` glyph. The
-                                  * icon now inherits `currentColor` from `.rm-node-icon`, which is
-                                  * what lets a fight node take its biome's element colour — the
-                                  * ruled mockup's behaviour, and undrawable with an emoji.
-                                  */}
-                                <svg
-                                    x={x - 9} y={y - 9} width={18} height={18}
-                                    viewBox="0 0 24 24" className="rm-node-icon"
-                                    fill="none" stroke="currentColor" strokeWidth={1.8}
-                                    strokeLinecap="round" strokeLinejoin="round"
-                                    style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
-                                >
-                                    {iconPaths(nodeIconFor(laid.node)).map((d) => <path key={d} d={d} />)}
-                                </svg>
-                                {/*
-                                  * The visit badge, per the reference: a gold disc pinned to the
-                                  * node's shoulder rather than a bare "×2" floating beside it.
-                                  * Ticket 07's re-roll rule makes the count meaningful — a node you
-                                  * have stood on twice has been TWO different fights — so it earns
-                                  * a badge rather than a footnote.
-                                  */}
+                                {shape.kind === 'box' ? (
+                                    <>
+                                        <rect
+                                            x={x - shape.w / 2} y={y - shape.h / 2}
+                                            width={shape.w} height={shape.h} rx={18}
+                                            className="rm-node-disc rm-town-box"
+                                        />
+                                        <text x={x} y={y - 6} textAnchor="middle" className="rm-town-name">Town</text>
+                                        <text x={x} y={y + 16} textAnchor="middle" className="rm-town-sub">Market · Den</text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <circle
+                                            cx={x} cy={y} r={r}
+                                            className="rm-node-disc"
+                                            style={isFight ? { stroke: ELEMENT_COLOR[element] ?? undefined } : undefined}
+                                        />
+                                        {/*
+                                          * TICKET 34: a nested `<svg>` rather than a `<text>` glyph. The
+                                          * icon inherits `currentColor` from `.rm-node-icon`, which is what
+                                          * lets a fight node take its biome's element colour.
+                                          */}
+                                        <svg
+                                            x={x - r * 0.45} y={y - r * 0.45} width={r * 0.9} height={r * 0.9}
+                                            viewBox="0 0 24 24" className="rm-node-icon"
+                                            fill="none" stroke="currentColor" strokeWidth={1.8}
+                                            strokeLinecap="round" strokeLinejoin="round"
+                                            style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
+                                        >
+                                            {iconPaths(nodeIconFor(laid.node)).map((d) => <path key={d} d={d} />)}
+                                        </svg>
+                                    </>
+                                )}
                                 {/*
                                   * TICKET 142c — THE SECOND ELEMENT, and the scout ring.
                                   *
                                   * A rival carries two elements and the disc can only be stroked in
                                   * one, so the second gets a dot on the node's lower shoulder. The
                                   * stroke is the OFF-BIOME half — the reason to walk here — and the
-                                  * dot is the half the biome would have given you anyway, which is
-                                  * the right way round: the surprise is the one you can see from
-                                  * across the map.
+                                  * dot is the half the biome would have given you anyway.
                                   *
                                   * The scout gets an outer ring rather than an icon, because it is
-                                  * not a kind: it takes over whatever fight was already there, and
-                                  * an icon would have to replace that node's own shape to say so.
+                                  * not a kind: it takes over whatever fight was already there.
                                   */}
-                                {secondElement && (
+                                {secondElement && shape.kind === 'disc' && (
                                     <circle
-                                        cx={x - R + 5} cy={y + R - 4} r={4}
+                                        cx={x - r + 6} cy={y + r - 5} r={5}
                                         className="rm-node-second-element"
                                         style={{ fill: ELEMENT_COLOR[secondElement] ?? undefined }}
                                     />
@@ -479,28 +463,31 @@ export default function RegionMap({
                                   * every node that pays one. The scout's ring is dashed and sits at the
                                   * same radius; a node can be both, and the two read as one annotation.
                                   */}
-                                {laid.node.driverStake && (
+                                {laid.node.driverStake && shape.kind === 'disc' && (
                                     <circle
-                                        cx={x} cy={y} r={R + 4}
+                                        cx={x} cy={y} r={r + 5}
                                         className="rm-node-stake-ring"
                                     >
                                         <title>{`Totem at stake: ${stakeName(laid.node.driverStake)}`}</title>
                                     </circle>
                                 )}
-                                {laid.node.scout && (
+                                {laid.node.scout && shape.kind === 'disc' && (
                                     <circle
-                                        cx={x} cy={y} r={R + 4}
+                                        cx={x} cy={y} r={r + 5}
                                         className="rm-node-scout-ring"
                                         style={isFight ? { stroke: ELEMENT_COLOR[element] ?? undefined } : undefined}
                                     />
                                 )}
-                                {laid.node.visited > 0 && (
-                                    <g className="rm-node-visits">
-                                        <circle cx={x + R - 4} cy={y - R + 4} r={8.5} className="rm-visit-disc" />
-                                        <text x={x + R - 4} y={y - R + 7.5} textAnchor="middle" className="rm-visit-count">
-                                            {laid.node.visited}
-                                        </text>
-                                    </g>
+                                {/* What it is, written under (or, for a detour above the route, over) the node. */}
+                                {shape.kind === 'disc' && (
+                                    <text x={x} y={captionY} textAnchor="middle" className="rm-node-caption">
+                                        {captionOf(laid)}
+                                    </text>
+                                )}
+                                {species && shape.kind === 'disc' && (
+                                    <text x={x} y={captionAbove ? captionY - 15 : captionY + 15} textAnchor="middle" className="rm-node-species">
+                                        {species}
+                                    </text>
                                 )}
                             </g>
                         );
@@ -520,7 +507,8 @@ export default function RegionMap({
 
             {/*
               * The keyboard and screen-reader surface. Not a fallback for the picture — it is the
-              * primary control, and the SVG is the illustration of it.
+              * primary control, and the SVG is the illustration of it. Only the roads that lead
+              * forward from where you stand are offered, because that is all you can walk.
               */}
             <nav className="rm-travel sr-only" aria-label="Travel">
                 <h3 className="rm-travel-head">Travel</h3>
@@ -541,4 +529,3 @@ export default function RegionMap({
         </div>
     );
 }
-
