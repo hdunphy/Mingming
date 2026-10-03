@@ -74,6 +74,8 @@ beforeEach(() => {
     vi.useFakeTimers();
     vi.spyOn(emitModule, 'emitImpact').mockImplementation(() => { log.push(`impact@${battleClock.now}`); });
     vi.spyOn(emitModule, 'emitTrail').mockImplementation(() => { log.push(`trail@${battleClock.now}`); });
+    // 190d: Fire, Water and Nature send an authored attack instead of the streak; either way it is "the element leaves".
+    vi.spyOn(emitModule, 'emitEffect').mockImplementation(() => { log.push(`trail@${battleClock.now}`); });
     vi.spyOn(statusTellsModule, 'emitStatusTick').mockImplementation((status) => { log.push(`tick:${status}@${battleClock.now}`); });
     vi.spyOn(statusTellsModule, 'emitStatusRemoved').mockImplementation(() => { log.push(`removed@${battleClock.now}`); });
     vi.spyOn(statusTellsModule, 'emitDeath').mockImplementation((id) => { log.push(`death:${id}@${battleClock.now}`); });
@@ -460,3 +462,49 @@ describe('190c — the choreography of a cast, end to end', () => {
         expect(poses).toHaveLength(0);
     });
 });
+
+describe('190d — the element attack of a cast, end to end', () => {
+    const effects: Array<{ at: number; durationMs: number }> = [];
+    beforeEach(() => {
+        effects.length = 0;
+        vi.spyOn(emitModule, 'emitEffect').mockImplementation((effect) => {
+            effects.push({ at: battleClock.now, durationMs: effect.durationMs });
+            log.push(`trail@${battleClock.now}`);
+        });
+    });
+
+    it('a Fire card sends ONE flame beam when the lunge ends, and hits when the pour is over', () => {
+        act(() => { play(); });
+        advance(3_000);
+        expect(effects).toHaveLength(1);
+        expect(effects[0].at).toBe(CHIP.game.lungeEndMs);
+        expect(log).toContain(`impact@${CHIP.game.impactMs}`);
+        expect(effects[0].durationMs).toBeGreaterThan(CHIP.game.impactMs - CHIP.game.lungeEndMs);
+    });
+
+    it('a longer pour for a bigger hit: the beam outlasts a chip\'s', () => {
+        act(() => { play('cinder_slash', [{ target: 'foe', applied: 90 }]); });
+        advance(4_000);
+        const big = effects[0].durationMs;
+        effects.length = 0;
+        act(() => { play(); });
+        advance(8_000);
+        expect(big).toBeGreaterThan(effects[effects.length - 1].durationMs);
+    });
+
+    it('a Side card (a tidal wave) sends one effect for the whole row, not a streak per body', () => {
+        act(() => { play('tidal_wave', [{ target: 'foe', applied: 20 }]); });
+        advance(4_000);
+        expect(effects).toHaveLength(1);
+        expect(log.filter((e) => e.startsWith('trail@'))).toHaveLength(1);
+        expect(log.some((e) => e.startsWith('impact@'))).toBe(true);
+    });
+
+    it('an element with no attack of its own keeps the tinted streak (no effect)', () => {
+        act(() => { play('spike_launch', [{ target: 'foe', applied: 20 }]); });
+        advance(4_000);
+        expect(effects).toHaveLength(0);
+        expect(log.some((e) => e.startsWith('trail@'))).toBe(true);
+    });
+});
+

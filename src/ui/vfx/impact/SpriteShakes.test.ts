@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { SHAKE_MS, SpriteShakes, type ShakeTarget } from './SpriteShakes';
+import { SHAKE_MS, SpriteShakes, TREMBLE_HOLD_MS, type ShakeTarget } from './SpriteShakes';
 
 const el = (): ShakeTarget => ({ style: { translate: '' } });
 const px = (target: ShakeTarget): number => (target.style.translate === '' ? 0 : Number.parseFloat(target.style.translate));
@@ -106,6 +106,42 @@ describe('189d — attach and reset', () => {
         shakes.step({ realDt: 16, gameDt: 16, frozen: false });
         shakes.reset();
         expect(b.style.translate).toBe('');
+        expect(shakes.active).toBe(false);
+    });
+});
+
+describe('190d — the tremble while an attack pours', () => {
+    it('shudders the body a little and stops a moment after the last ask', () => {
+        const { shakes } = make();
+        const a = el();
+        shakes.attach('a', a);
+        let peak = 0;
+        for (let t = 0; t < 200; t += 8) {
+            shakes.tremble('a', 3);
+            shakes.step({ realDt: 8, gameDt: 8, frozen: false });
+            peak = Math.max(peak, Math.abs(px(a)));
+        }
+        expect(peak).toBeGreaterThan(1);
+        expect(peak).toBeLessThanOrEqual(3);
+        expect(shakes.active).toBe(true);
+        for (let t = 0; t <= TREMBLE_HOLD_MS + 16; t += 8) shakes.step({ realDt: 8, gameDt: 8, frozen: false });
+        expect(a.style.translate).toBe('');
+        expect(shakes.active).toBe(false);
+    });
+
+    it('holds under a freeze', () => {
+        const { shakes } = make();
+        const a = el();
+        shakes.attach('a', a);
+        shakes.tremble('a', 3);
+        shakes.step({ realDt: 16, gameDt: 16, frozen: false });
+        for (let i = 0; i < 20; i += 1) shakes.step({ realDt: 16, gameDt: 0, frozen: true });
+        expect(shakes.active).toBe(true);
+    });
+
+    it('ignores a tremble of nothing', () => {
+        const { shakes } = make();
+        shakes.tremble('a', 0);
         expect(shakes.active).toBe(false);
     });
 });

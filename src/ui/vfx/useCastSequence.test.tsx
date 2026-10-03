@@ -77,7 +77,14 @@ beforeEach(() => {
     saveSettings(DEFAULT_SETTINGS);
     spawned = [];
     setStageAnchors(ANCHORS);
-    setParticleSink({ spawn: (seeds) => spawned.push([...seeds]), wake: () => undefined });
+    setParticleSink({
+        spawn: (seeds) => spawned.push([...seeds]),
+        // 190d: a Fire card sends a flame beam, not a streak. Run it out at once and keep what it threw.
+        addEffect: (effect) => {
+            for (let age = 16; age < effect.durationMs; age += 16) effect.step(age, 16, (seeds) => spawned.push([...seeds]));
+        },
+        wake: () => undefined,
+    });
     vi.useFakeTimers();
     container = document.createElement('div');
     root = createRoot(container);
@@ -141,8 +148,8 @@ describe('155a — a cast survives the re-render it causes', () => {
 
         const all = spawned.flat();
         expect(all.length).toBeGreaterThan(0);
-        // The trail head leaves the caster's slot and heads for the target's.
-        expect(all.some((seed) => seed.path !== undefined)).toBe(true);
+        // The flame leaves the caster's slot (left) and heads for the target's (right).
+        expect(all.some((seed) => seed.vx > 0)).toBe(true);
     });
 
     it('is silent with vfx switched off, re-render or not', () => {

@@ -22,7 +22,7 @@
  */
 
 import type { IBattleEntity, StatusType } from '../../../engine/types';
-import { type EmitAt, anchorFor, emitImpact, emitOrb, emitSpeedLines, emitTrail, stageScale } from '../emit';
+import { type EmitAt, anchorFor, emitEffect, emitImpact, emitOrb, emitSpeedLines, emitTrail, stageScale } from '../emit';
 import { emitHookTell } from '../osTells';
 import { HOOK_BEAT_GAP_MS } from '../hookStatusBeat';
 import { scheduleStatusTells } from '../statusBurst';
@@ -30,6 +30,8 @@ import {
     emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick, statusColor,
 } from '../statusTells';
 import { TRAIL_STAGGER_MS, elementColor, type TrailElement } from '../trails';
+import { buildCastAttack } from '../attacks/buildAttack';
+import { spriteShakes, wakeImpactFx } from '../impact/impactRuntime';
 import { DASH_STOPS_SHORT_PX, attackPose, statusPose } from '../choreo/attackPose';
 import { type CastKind, castTimes } from '../choreo/castTimes';
 import { emitAttackPose } from '../choreo/poseSignals';
@@ -101,6 +103,8 @@ export interface PendingCast {
      * it wiggles and lobs an orb instead of lunging. Default true (a bare cast is an attack).
      */
     readonly attack: boolean;
+    /** TICKET 190d: a Side / All card gets the wall, the wave or the cloud instead of a beam, a jet or a vine. */
+    readonly spread: boolean;
     /** TICKET 190c: a contact card (single-target Attack, element None) dashes all the way in. */
     readonly contact: boolean;
     /** TICKET 190c: the direct hits, which set how long the effect runs (the biggest one counts). */
@@ -108,11 +112,11 @@ export interface PendingCast {
 }
 
 type CastBase = Pick<PendingCast, 'element' | 'sourceId' | 'targetIds' | 'doubled' | 'resisted' | 'card'>
-    & Partial<Pick<PendingCast, 'attack' | 'contact'>>;
+    & Partial<Pick<PendingCast, 'attack' | 'contact' | 'spread'>>;
 
 export function emptyCast(base: CastBase): PendingCast {
     return {
-        attack: true, contact: false,
+        attack: true, contact: false, spread: false,
         ...base, statuses: [], hookStatuses: [], hookTells: [], startTells: [],
         shields: [], deaths: [], selfCosts: [], removals: [], ticks: [], ops: [], hits: [],
     };
@@ -204,12 +208,28 @@ export function buildCastBeat(
         }
     }
 
+    /*
+     * TICKET 190d — THE ELEMENT ATTACK. Fire, Water and Nature have an attack of their own (a beam, a
+     * jet, a vine; a wall, a wave, a cloud for a Side or All card). It tells us when it reaches each
+     * body, and the hit lands then. Every other element sends the tinted streak, 40 ms apart.
+     */
+    const element = kind === 'attack'
+        ? buildCastAttack({
+            element: cast.element, spread: cast.spread, sourceId: cast.sourceId, targetIds: cast.targetIds,
+            direction: headingOf(cast, anchorFor(cast.sourceId), anchorFor(cast.targetIds[0] ?? cast.sourceId)),
+            profile, scale: times.attackPlan?.scale ?? 0,
+            tremble: (id, px) => { spriteShakes.tremble(id, px); wakeImpactFx(); },
+        })
+        : null;
+    const reachesAt = new Map((element?.hits ?? []).map((hit) => [hit.targetId, Math.round(times.launchAtMs + hit.atMs)]));
+    if (element) actions.push({ at: times.launchAtMs, label: 'attack', run: () => emitEffect(element.effect) });
+
     let firstImpact: number | null = null;
     cast.targetIds.forEach((targetId, index) => {
         // §2c: *"Side/All cards send one trail per target, 40 ms apart."* The stagger is what makes
         // a three-target card read as three hits rather than as one wide flash.
         const offset = times.launchAtMs + index * TRAIL_STAGGER_MS;
-        const impactAt = times.impactAtMs + index * TRAIL_STAGGER_MS;
+        const impactAt = reachesAt.get(targetId) ?? times.impactAtMs + index * TRAIL_STAGGER_MS;
         firstImpact ??= impactAt;
         impactAtTarget.set(targetId, impactAt);
 
@@ -225,7 +245,7 @@ export function buildCastBeat(
                 },
             });
         } else {
-            if (kind !== 'contact') {
+            if (kind !== 'contact' && !element) {
                 actions.push({
                     at: offset, label: 'trail',
                     run: () => {

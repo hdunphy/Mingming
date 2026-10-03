@@ -261,3 +261,39 @@ describe('146a — emit is a no-op without a mounted layer', () => {
         setParticleSink(null);
     });
 });
+
+describe('190d — a particle that grows to size2', () => {
+    /** The x-radius of every ellipse a leaf particle draws. */
+    function radiusesDrawn(field: ParticleField): number[] {
+        const radii: number[] = [];
+        const ctx = new Proxy({} as Record<string, unknown>, {
+            get: (target, name: string) => (name in target ? target[name] : () => undefined),
+            set: (target, name: string, value) => { target[name] = value; return true; },
+        });
+        (ctx as Record<string, unknown>).ellipse = (_x: number, _y: number, rx: number) => { radii.push(rx); };
+        field.draw(ctx as unknown as CanvasRenderingContext2D);
+        return radii;
+    }
+
+    it('heads for size2 as it ages, instead of thinning', () => {
+        const field = new ParticleField();
+        field.spawn([seed({ size: 4, size2: 20, life: 1000, shape: 'leaf' })]);
+        const young = radiusesDrawn(field)[0];
+        field.step(500);
+        const middle = radiusesDrawn(field)[0];
+        field.step(450);
+        const old = radiusesDrawn(field)[0];
+        expect(young).toBeCloseTo(4, 0);
+        expect(middle).toBeGreaterThan(young);
+        expect(old).toBeGreaterThan(middle);
+        expect(old).toBeLessThanOrEqual(20);
+    });
+
+    it('still thins with age when there is no size2', () => {
+        const field = new ParticleField();
+        field.spawn([seed({ size: 10, life: 1000, shape: 'leaf' })]);
+        const young = radiusesDrawn(field)[0];
+        field.step(800);
+        expect(radiusesDrawn(field)[0]).toBeLessThan(young);
+    });
+});

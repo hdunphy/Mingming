@@ -12,6 +12,9 @@
 import { smoothNoise } from './CameraShake';
 
 export const SHAKE_MS = 260;
+/** Ticket 190d: a body trembles for this long after the last time an attack asked (so a pour keeps it going). */
+export const TREMBLE_HOLD_MS = 60;
+const TREMBLE_RATE = 0.16;
 /** Radians per millisecond: ~14 Hz for the shake, ~30 Hz for the vibration (faster, tighter). */
 const SHAKE_RATE = 0.088;
 const VIBRATE_RATE = 0.19;
@@ -31,6 +34,8 @@ interface Body {
     el: ShakeTarget | null;
     vibrate: { px: number; totalMs: number } | null;
     shake: { px: number; ageMs: number } | null;
+    /** A small steady shudder while an attack pours on the body; game time, so a freeze holds it. */
+    tremble: { px: number; leftMs: number; ageMs: number } | null;
     realMs: number;
     written: string;
 }
@@ -43,7 +48,7 @@ export class SpriteShakes {
     private body(id: string): Body {
         let body = this.bodies.get(id);
         if (!body) {
-            body = { el: null, vibrate: null, shake: null, realMs: 0, written: '' };
+            body = { el: null, vibrate: null, shake: null, tremble: null, realMs: 0, written: '' };
             this.bodies.set(id, body);
         }
         return body;
@@ -76,8 +81,18 @@ export class SpriteShakes {
         this.body(id).shake = { px, ageMs: 0 };
     }
 
+    /**
+     * Shudder this body a little (ticket 190d: while a beam, jet or vine pours on it). Each call keeps
+     * it going for `TREMBLE_HOLD_MS` more of game time.
+     */
+    tremble(id: string, px: number): void {
+        if (!(px > 0)) return;
+        const body = this.body(id);
+        body.tremble = { px, leftMs: TREMBLE_HOLD_MS, ageMs: body.tremble?.ageMs ?? 0 };
+    }
+
     get active(): boolean {
-        for (const body of this.bodies.values()) if (body.vibrate || body.shake) return true;
+        for (const body of this.bodies.values()) if (body.vibrate || body.shake || body.tremble) return true;
         return false;
     }
 
@@ -101,12 +116,18 @@ export class SpriteShakes {
                 if (p >= 1) body.shake = null;
                 else x += body.shake.px * (1 - p) * Math.sin(body.shake.ageMs * SHAKE_RATE);
             }
+            if (body.tremble && !frame.frozen) {
+                body.tremble.ageMs += Math.max(0, frame.gameDt);
+                body.tremble.leftMs -= Math.max(0, frame.gameDt);
+                if (body.tremble.leftMs <= 0) body.tremble = null;
+            }
+            if (body.tremble) x += body.tremble.px * Math.sin(body.tremble.ageMs * TREMBLE_RATE);
             const next = x === 0 ? '' : `${x.toFixed(2)}px 0`;
             if (next !== body.written) {
                 body.written = next;
                 if (body.el) body.el.style.translate = next;
             }
-            if (body.vibrate || body.shake) live = true;
+            if (body.vibrate || body.shake || body.tremble) live = true;
         }
         return live;
     }
@@ -114,7 +135,7 @@ export class SpriteShakes {
     /** Leaving the battle: nothing is moving, nothing is left offset. */
     reset(): void {
         for (const body of this.bodies.values()) if (body.el) body.el.style.translate = '';
-        for (const body of this.bodies.values()) { body.vibrate = null; body.shake = null; body.written = ''; }
+        for (const body of this.bodies.values()) { body.vibrate = null; body.shake = null; body.tremble = null; body.written = ''; }
     }
 }
 

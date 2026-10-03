@@ -59,6 +59,7 @@ import { globalBattleEventBus } from '../../engine/events';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { StageAnchors } from '../hooks/useStageAnchors';
 import type { ClockFrame } from './clock/BattleClock';
+import { EffectField } from './attacks/EffectField';
 import { ParticleField } from './particles';
 import { setParticleSink, setStageAnchors } from './emit';
 import { battleDriver } from './clock/battleClockRuntime';
@@ -90,6 +91,8 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
         if (!ctx) return;
 
         const field = new ParticleField();
+        // Ticket 190d: beams, walls and waves, beside the particles they throw.
+        const effects = new EffectField();
         // Backing store vs CSS box — see the header. The DPR is the only correction in the
         // transform; the coordinate system stays the stage box's own, untouched.
         let cssW = 1;
@@ -117,10 +120,13 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
          * drawing resumed, which is the opposite of the effect.
          */
         const consume = (frame: ClockFrame): boolean => {
+            // The effects first: they throw particles into the field this same frame.
+            const shapes = effects.step(frame.gameDt, (seeds) => field.spawn(seeds));
             const live = field.step(frame.gameDt);
             // CSS pixels, not `canvas.width/height` — those are DEVICE pixels, and under the DPR
             // transform they describe an area twice the canvas on a retina screen.
             ctx.clearRect(0, 0, cssW, cssH);
+            effects.draw(ctx);
             field.draw(ctx);
 
             /*
@@ -129,13 +135,13 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
              * of a burst dies, nothing is coming until something else HAPPENS, and that something
              * calls `wake()` through `emit`. The driver parks itself when no consumer is live.
              */
-            return live > 0;
+            return live > 0 || shapes > 0;
         };
 
         const removeConsumer = battleDriver.addConsumer(consume);
         const wake = (): void => battleDriver.wake();
 
-        setParticleSink({ spawn: (seeds) => field.spawn(seeds), wake });
+        setParticleSink({ spawn: (seeds) => field.spawn(seeds), addEffect: (effect) => effects.add(effect), wake });
 
         /*
          * THE BUS SUBSCRIPTION — §2a: *"driven by the same `globalBattleEventBus` subscription
@@ -160,6 +166,7 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
             removeConsumer();
             setParticleSink(null);
             field.clear();
+            effects.clear();
         };
         // Mount-scoped on purpose: the loop owns its field, and re-running this effect on a state
         // change would tear that field down and rebuild it mid-burst.

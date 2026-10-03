@@ -12,7 +12,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 
 import { DEFAULT_SETTINGS, saveSettings } from '../settings/settings';
-import { emit } from './emit';
+import { emit, emitEffect } from './emit';
+import type { AttackEffect } from './attacks/AttackEffect';
 import { battleClock, resetBattleClock } from './clock/battleClockRuntime';
 import { ParticleField } from './particles';
 import ParticleLayer from './ParticleLayer';
@@ -99,3 +100,42 @@ describe('189a — the layer rides the clock', () => {
         expect(frames).toHaveLength(1);
     });
 });
+
+describe('190d — the layer holds the attack effects', () => {
+    /** An effect that throws one spark a frame for 100 ms and draws a line. */
+    const effect = (log: string[]): AttackEffect => ({
+        durationMs: 100,
+        step: (age, dt, spawn) => {
+            log.push(`step@${age}/${dt}`);
+            spawn([{ x: 0, y: 0, vx: 0, vy: 0, life: 20, size: 2, r: 255, g: 255, b: 255, shape: 'spark' }]);
+        },
+        draw: (_ctx, age) => { log.push(`draw@${age}`); },
+    });
+
+    it('steps and draws an effect on the clock, and gives its particles to the field', () => {
+        const log: string[] = [];
+        emitEffect(effect(log));
+        tick(16);
+        tick(16);
+        expect(log).toEqual(['step@16/16', 'draw@16', 'step@32/16', 'draw@32']);
+    });
+
+    it('holds an effect still while a hit-stop stands', () => {
+        const log: string[] = [];
+        emitEffect(effect(log));
+        tick(16);
+        battleClock.freeze(60);
+        tick(16);
+        tick(16);
+        expect(log.filter((entry) => entry.startsWith('step')).map((entry) => entry.split('/')[1])).toEqual(['16', '0', '0']);
+    });
+
+    it('keeps the loop going while an effect lives even with no particle, and parks once both are done', () => {
+        emitEffect({ durationMs: 200, step: () => undefined, draw: () => undefined });
+        tick(50);
+        expect(frames).toHaveLength(1);
+        for (let i = 0; i < 20 && frames.length > 0; i += 1) tick(50);
+        expect(frames).toHaveLength(0);
+    });
+});
+

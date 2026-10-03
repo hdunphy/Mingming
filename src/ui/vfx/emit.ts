@@ -35,6 +35,7 @@ import type { StageAnchors } from '../hooks/useStageAnchors';
  * alternative — a third module holding four type declarations — buys nothing.
  */
 import { burstFor } from './emitters';
+import type { AttackEffect } from './attacks/AttackEffect';
 import { orbSeed } from './choreo/orb';
 import { speedLineSeeds } from './choreo/speedLines';
 import { impactFor, trailSeed, type TrailElement } from './trails';
@@ -70,6 +71,8 @@ export interface EmitOpts {
 /** What a mounted `ParticleLayer` offers the module. */
 export interface ParticleSink {
     spawn(seeds: ReadonlyArray<ParticleSeed>): void;
+    /** Ticket 190d: take a live attack effect (a beam, a wall, a wave) to step and draw. */
+    addEffect?(effect: AttackEffect): void;
     /** Wake the rAF loop — the layer parks itself when nothing is alive. */
     wake(): void;
 }
@@ -146,6 +149,13 @@ export function emit(kind: ParticleKind, at: EmitAt, opts: EmitOpts = {}): void 
 export function emitTrail(element: TrailElement, from: EmitAt, to: EmitAt, lifeMs?: number): void {
     if (!sink) return;
     sink.spawn([trailSeed(element, from, to, lifeMs)]);
+    sink.wake();
+}
+
+/** Start an element attack (190d): the layer steps it on the battle clock and draws it under the particles. */
+export function emitEffect(effect: AttackEffect): void {
+    if (!sink?.addEffect) return;
+    sink.addEffect(effect);
     sink.wake();
 }
 

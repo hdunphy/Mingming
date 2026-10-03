@@ -37,6 +37,12 @@ export interface ParticleSeed {
     /** Milliseconds. */
     readonly life: number;
     readonly size: number;
+    /**
+     * Ticket 190d: what the size grows (or shrinks) to by the end of the life. Without it a particle
+     * thins as it ages (`0.4 + 0.6 t`), which is right for an ember and wrong for smoke, mist or the
+     * body of a beam, which spread out.
+     */
+    readonly size2?: number;
     readonly r: number;
     readonly g: number;
     readonly b: number;
@@ -117,6 +123,7 @@ interface Particle {
     vx: number; vy: number;
     life: number; maxLife: number;
     size: number;
+    size2: number | null;
     r: number; g: number; b: number; a: number;
     r2: number; g2: number; b2: number;
     drag: number; gravity: number;
@@ -201,6 +208,7 @@ const blank = (): Particle => ({
     x: 0, y: 0, vx: 0, vy: 0,
     life: 0, maxLife: 1,
     size: 1,
+    size2: null,
     r: 255, g: 255, b: 255, a: 1,
     r2: 255, g2: 255, b2: 255,
     drag: 1, gravity: 0,
@@ -240,6 +248,7 @@ export class ParticleField {
             p.vx = seed.vx; p.vy = seed.vy;
             p.life = seed.life; p.maxLife = Math.max(1, seed.life);
             p.size = seed.size;
+            p.size2 = seed.size2 ?? null;
             p.r = seed.r; p.g = seed.g; p.b = seed.b;
             p.r2 = seed.r2 ?? seed.r; p.g2 = seed.g2 ?? seed.g; p.b2 = seed.b2 ?? seed.b;
             p.a = seed.a ?? 1;
@@ -369,7 +378,7 @@ export class ParticleField {
             const atlas = p.shape === 'puff' ? rampAtlas(p.r, p.g, p.b, p.r2, p.g2, p.b2) : null;
             if (atlas) {
                 // One stamp. `s` is a radius, the sprite is a diameter square.
-                const s = p.size * (0.4 + 0.6 * t);
+                const s = radiusAt(p, t);
                 const step = atlas[Math.min(RAMP_STEPS - 1, Math.max(0, Math.round(k * (RAMP_STEPS - 1))))];
                 ctx.drawImage(step, p.x - s, p.y - s, s * 2, s * 2);
             } else {
@@ -493,8 +502,13 @@ function drawFlame(
     tongue(halfW * 0.44, h * 0.55, p.x + p.lean * h * 0.44, p.y - h * 0.12, p.y + h * 0.30);
 }
 
+/** A particle's radius at remaining life `t`: thinning as it ages, or heading for `size2` if it has one. */
+function radiusAt(p: Particle, t: number): number {
+    return p.size2 === null ? p.size * (0.4 + 0.6 * t) : p.size + (p.size2 - p.size) * (1 - t);
+}
+
 function drawShape(ctx: CanvasRenderingContext2D, p: Particle, t: number): void {
-    const s = p.size * (0.4 + 0.6 * t);
+    const s = radiusAt(p, t);
     switch (p.shape) {
         case 'spark': {
             /*

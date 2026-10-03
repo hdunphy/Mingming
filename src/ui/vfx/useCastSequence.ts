@@ -246,6 +246,7 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                         // orb; a single-target Attack with no element runs in and hits.
                         attack: data.category === 'Attack',
                         contact: isContactCard(data),
+                        spread: data.target === 'Side' || data.target === 'All',
                     });
                     return;
                 }
