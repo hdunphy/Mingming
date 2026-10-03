@@ -32,6 +32,7 @@ import { rollSeed } from '../../engine/core/SeedStream';
 import { partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
+import { withOpeningFight } from '../../engine/run/openingFight';
 import { gymSignatures } from '../../engine/run/gauntlet';
 import { TIERS, tierRule } from '../../engine/run/tiers/tierRegistry';
 import { leaderDriverTierLine } from '../../engine/run/tiers/tierText';
@@ -159,7 +160,8 @@ export default function RunStart(): ReactNode {
         // card instance ids, and (later) encounter contents. One roll, so a run replays from one
         // string. `startedAt` is injected for the same reason the engine never calls `Date.now()`:
         // a module that reads the clock cannot be tested deterministically.
-        dispatch(startRun(createRun({
+        // Henry, 2026-10-03: the run opens on its first fight (`withOpeningFight`).
+        dispatch(startRun(withOpeningFight(createRun({
             seed,
             offer: chosen,
             // Ticket 169e: the tier picked above. It is fixed for the whole run.
@@ -172,7 +174,7 @@ export default function RunStart(): ReactNode {
             // doc comment.
             party: party.map(toMingmingState),
             startedAt: Date.now(),
-        })));
+        }))));
         playSfx('breach');
     };
 

@@ -171,4 +171,14 @@ describe('launching', () => {
         await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run')));
         expect(store.getState().run.run?.tier).toBe(0);
     });
+
+    it('opens the run on its first fight, not on the map (Henry, 2026-10-03)', async () => {
+        const store = makeStore();
+        await mount(store);
+        await click(host.querySelector('.ranch-offer'));
+        await click([...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Start run')));
+        const run = store.getState().run.run;
+        expect(run?.phase).toBe('encounter');
+        expect(run?.currentNodeId).toBe('b0l0n0');
+    });
 });

@@ -16,6 +16,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import gameReducer, { createEmptyRanch } from '../../ui/store/gameSlice';
 import runReducer, { endRun, startRun } from '../../ui/store/runSlice';
 import { createRun } from '../../engine/run/createRun';
+import { withOpeningFight } from '../../engine/run/openingFight';
 import { offerGyms, speciesOwningFirmware } from '../../engine/run/gyms';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import type { IRanchMember } from '../../engine/runTypes';
@@ -53,10 +54,10 @@ export function createWorld(header: SessionHeader): World {
 
     const offers = offerGyms(`${header.seed}:gyms`);
     const offer = offers[header.gymIndex % offers.length];
-    store.dispatch(startRun(createRun({
+    store.dispatch(startRun(withOpeningFight(createRun({
         seed: header.seed, offer, party: [toMingmingState(member)], startedAt: STARTED_AT,
         tier: header.tier, modifiers: [...header.modifiers],
-    })));
+    }))));
 
     return { header, store, view: emptyView(), log: [], findings: [], lastPlay: null };
 }

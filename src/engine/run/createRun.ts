@@ -378,9 +378,10 @@ export function createRun(input: CreateRunInput): IRunState {
         // couple to "Skip tips". See `isOpeningFight`.
         modifiers,
 
-        // The run opens standing on the entry node with the map up. `generateRegionGraph` marks
-        // that node `visited: 1` so the "entering a node triggers it" rule does not fire a fight
-        // before the player has moved.
+        // The run opens standing on the entry node. `generateRegionGraph` marks it `visited: 1`, so
+        // `enterNode` can never step back onto it. The map phase here is the neutral state; what a
+        // PLAYED run starts in is `withOpeningFight`'s (the entry node is a fight and the run opens
+        // on it).
         phase: 'map',
         gauntlet: null,
         outcome: null,

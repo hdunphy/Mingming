@@ -83,8 +83,9 @@ export { FIGHT_KINDS } from '../../engine/run/encounter';
  * `visited: 1` so it does not fire before the run has begun), so the map drew it with the wild's
  * blade: a fight that never happened. It is drawn as a flag now and labelled Start.
  *
- * Its KIND is untouched (it is still a wild underneath), but since ticket 176b travel is one-way, so
- * nothing ever walks back into it: it is drawn as a flag and labelled Start, and that is all.
+ * Its KIND is untouched (it is still a wild underneath, and the run opens by fighting it, Henry
+ * 2026-10-03: `openingFight.ts`). It is drawn as a flag and labelled Start, because it is where you
+ * are standing when the map first comes up, not a place to choose.
  */
 export function isRunStart(node: IRegionNode): boolean {
     return node.biomeIndex === 0 && node.layer === 0;

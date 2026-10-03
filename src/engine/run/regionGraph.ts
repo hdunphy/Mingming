@@ -294,8 +294,9 @@ export function generateRegionGraph(seed: string): RegionGraph {
         rows.forEach((spec, layer) => {
             const row: MutableNode[] = [];
             if (spec.type === 'start') {
-                // `NODE_KINDS` has no `'start'`: this is a `wild` the run begins standing on, so it is
-                // already visited and does not trigger. `nodeRole` is what calls it the start.
+                // `NODE_KINDS` has no `'start'`: this is a `wild` the run begins standing on. It is
+                // already visited (so travel can never step back onto it), and the run OPENS on its
+                // fight (`openingFight.ts`, Henry 2026-10-03). `nodeRole` is what calls it the start.
                 const start = make(layer, 0, 'wild');
                 start.visited = 1;
                 entryNodeId = start.id;
