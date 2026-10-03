@@ -51,6 +51,8 @@ export function label(id: LabelId, options: { readonly plural?: boolean; readonl
 const FORMS: ReadonlyArray<readonly [RegExp, string]> = [
     [/\bfirmwares?\b/gi, 'instinct'],
     [/\bOS\b/g, 'instinct'],
+    // The status that makes a unit immune to Stunned and Asleep: its type is still `StableOS`; it reads Alert.
+    [/\bStableOS\b/g, 'Alert'],
     [/\breflashed\b/gi, 'retrained'],
     [/\breflashing\b/gi, 'retraining'],
     [/\breflashes\b/gi, 'retrains'],
@@ -115,7 +117,7 @@ export function plain(text: string | undefined): string | undefined {
 }
 
 /** The new words that begin with a vowel sound, and the ones that do not: `a instinct` is `an instinct`. */
-const NEW_WORDS = /\b(a|an)(\s+)(instincts?|auras?|amber|summon\w*|traces?|totems?|draughts?|runes?|dens?|cards?|retrain\w*)\b/gi;
+const NEW_WORDS = /\b(a|an)(\s+)(instincts?|alert|auras?|amber|summon\w*|traces?|totems?|draughts?|runes?|dens?|cards?|retrain\w*)\b/gi;
 
 function agreeArticles(text: string): string {
     return text.replace(NEW_WORDS, (_match, article: string, gap: string, word: string) => {
@@ -126,7 +128,7 @@ function agreeArticles(text: string): string {
 }
 
 /** Every old word, for the sweep that fails a screen still printing one. */
-export const OLD_WORDS = /\b(?:firmwares?|OS|reflash(?:ed|ing|es)?|blueprints?|assembl(?:y|e|ed|es|ing)|workshops?|daemons?|macros?|patch(?:es)?|drivers?|scraps?|programs?)\b/gi;
+export const OLD_WORDS = /\b(?:firmwares?|OS|StableOS|reflash(?:ed|ing|es)?|blueprints?|assembl(?:y|e|ed|es|ing)|workshops?|daemons?|macros?|patch(?:es)?|drivers?|scraps?|programs?)\b/gi;
 
 /** The tail words of an old Instinct name that said what machine it ran on, not what it does. */
 const MACHINE_WORDS: ReadonlySet<string> = new Set(['OS', 'SYS', 'KERNEL', 'FIRMWARE']);

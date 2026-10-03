@@ -1,12 +1,13 @@
 # HANDOFF — first-impressions map (keep this current every session)
 
-*Last updated: 2026-10-02, after closing ticket 182.*
+*Last updated: 2026-10-02, after closing ticket 183.*
 
 ## Where things stand
 
 - **Branch `first-impressions`**, started from `main` after PR #13 merged `playtest-polish`. The two 184d commits that came after the merge were carried over (`5857fef`, `ef954a6`). `playtest-polish` is finished; don't commit to it.
 - **184 is done** (184a–e, finished 2026-10-02 on this branch).
-- **182 is done and closed** (182a–d on this branch, last commit `507a824`, not pushed; see its Resolution). Next is **183a–e** (stop after 183c), then 183f–h, then 181c. Do not start 183 until Henry says go.
+- **182 is done and closed** (182a–d on this branch, last commit `507a824`, not pushed; see its Resolution). Then 183, below.
+- **183 work for tonight is complete** (2026-10-02). 183a–h and Henry's review follow-ups are built and gated on this branch, not pushed (give Henry `git push origin first-impressions`). See its `## Resolution`. The one open piece is **183i**: the Norse Instinct names, listed in `research/183-instinct-names.md`, waiting for Henry's yes. Next is 181c.
 - **181** (playtest round 2) is the goal. It waits on 182, 183 and 181c (the "Tell Henry how it went" button, which needs Henry's Google Form first).
 - **176** is blocked until 183a–c ship. **175** comes after everything else. **180** waits for Henry's go.
 
@@ -49,3 +50,5 @@ Two agents work at once **in this one folder, on branch `first-impressions`** (H
 
 - Test first, see it fail on the parent ("fails on parent: yes" in the message), `npm run gate` green, one commit per row, last line `HANDOFF: <one sentence>`, authored as Henry, no Co-Authored-By, **no push**.
 - When a ticket closes: its top status line, its `## Resolution`, and a line under "Decisions so far" in [map.md](map.md).
+
+- **189 status (2026-10-02, night): NOT STARTED.** The 189 agent is waiting for "183 work for tonight is complete" in this file before writing code (189c-e need 183b, and Henry asked to wait for all of 183). 190 is queued behind 189, so it must also wait. When 189 finishes it will add the line "189 work for tonight is complete" here; if it gets blocked it will say so here instead.

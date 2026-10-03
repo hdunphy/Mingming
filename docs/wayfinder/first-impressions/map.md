@@ -20,13 +20,13 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 | 185 | [Strength nerf and reward weighting](tickets/185-strength-nerf-and-reward-weighting.md): Forage stops feeding fenrir_v1, TREACHERY needs real HP loss, Sun Devourer halved, Core Overclock to flat power, rewards remember and weight, the tier-unlocked line | Ruled 2026-10-02, all decisions answered; 185a–e buildable | 185f: 182 |
 | 184 | [Playtest polish 3](tickets/184-playtest-polish-3.md): draw-pile viewer, Burn overflow text, counters, per-OS patch text | **Done** (184a–e, `53bcedc..85d5183`) | — |
 | 182 | [Text cut, hide-when-empty, intro run, two switches](tickets/182-text-cut-and-intro-run.md) | **Done** 2026-10-02 (182a–d, closed by Henry; last commit `507a824`) | — |
-| 183 | [Art direction and UI kit](tickets/183-art-direction-and-ui-kit.md): direction B "Slant", rows 183a–h | Ruled (D1–D7), not started | 183f and 183h after 182 |
+| 183 | [Art direction and UI kit](tickets/183-art-direction-and-ui-kit.md): direction B "Slant", rows 183a–h | **Done** 2026-10-02 (183a–h and the review follow-ups; not pushed). Open: 183i, the Norse Instinct names | — |
 | 181 | [Playtest round 2 (SOP)](tickets/181-friends-playtest-1.md) | 181a, 181b built. 181c ready (the form exists). **181d** (deploy to a restricted itch.io page) and **181e** (a version number per release) added 2026-10-02 | 182, 183, **176**, **189**, **190**, 181c–e |
 | 176 | [Map redesign: towns and branching routes](tickets/176-map-redesign.md) | **Blocked** | 183a–c |
 | 175 | [Localization prep](tickets/175-localization-prep.md) | Ruled, not started. **Comes after everything else here, especially the text cut** (Henry, 2026-10-02) | 182, 183h |
 | 180 | [Agent playtester](tickets/180-agent-playtester.md) | Ruled (A1–A6), queued; **do not start until Henry says go** | Henry |
 
-**The frontier:** 182 is done → build 183a–e (waits for Henry's go) → 183f–h → 181c–e → 176 (after 183a–c) → **189 and 190** (189a–b any time; 189c–e after 183b; 190a after 183f) → release (181) → 175. **176 is in the playtest build** (Henry, 2026-10-02, 181 D3). 180 whenever Henry says go. **185** (balance and rewards) runs alongside 182/183 — it shares no files with them except 185f's `RunSummary.tsx`, which waits for 182.
+**The frontier:** 182 is done → 183 is done (Henry approves the Norse Instinct names, ticket 183i) → 181c–e → 176 (after 183a–c) → **189 and 190** (189a–b any time; 189c–e after 183b; 190a after 183f) → release (181) → 175. **176 is in the playtest build** (Henry, 2026-10-02, 181 D3). 180 whenever Henry says go. **185** (balance and rewards) runs alongside 182/183 — it shares no files with them except 185f's `RunSummary.tsx`, which waits for 182.
 
 ## Decisions so far
 
@@ -43,6 +43,8 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 - **RULED 2026-10-02 — [188 Rename the installer, shortcut and window](tickets/188-rename-installer-and-saves.md):** Henry, asked whether the desktop app should follow the rename: *"Yes rename everywhere."* File names drop the colon (Windows forbids it); the saves folder is pinned to its current name so no existing save is lost; the save keys and `appId` stay unless Henry says otherwise.
 - **PARKED 2026-10-02 — walker deep dive, [ticket 187](../deck-archetypes/tickets/187-walker-deep-dive.md) (deck-archetypes):** Henry wants a picture-led explanation of why the walker fails, not a wall of text, before he names any walker fixes. Saved for later.
 - **A longer run is an opt-in "Long Road" modifier after 176**, not a tier (recorded at the end of 176).
+
+- **DONE 2026-10-02 — [183 Art direction and UI kit](tickets/183-art-direction-and-ui-kit.md):** direction B "Slant" on every screen, the 183h words, and Henry's review answers. Open: **183i**, the Norse Instinct names (`research/183-instinct-names.md`).
 
 ## Cross-map
 

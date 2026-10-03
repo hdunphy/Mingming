@@ -1,6 +1,6 @@
 # Ticket 183: Art direction and UI kit
 
-**Type:** design, then UI. **Status:** RULED (Henry, 2026-10-02): direction **B, "Slant"**, built on the existing battle geometry, and all seven decisions answered (D1–D7 at the bottom). **Rows 183a–183e are buildable now, in order.** 183f and 183h wait on ticket 182 landing; 183g waits on 183a.  **Ticket 176 (map and town redesign) stays blocked until 183a–183c ship; then 176c and 176e are drawn in this kit** (see "What this does to ticket 176").
+**Type:** design, then UI. **Status:** **DONE 2026-10-02** (Henry's review answers built; see `## Resolution`). Direction **B, "Slant"**; rows 183a–183h built. Open and not part of 183: the Norse Instinct names (ticket 183i, list in `research/183-instinct-names.md`).  **Ticket 176 (map and town redesign) stays blocked until 183a–183c ship; then 176c and 176e are drawn in this kit** (see "What this does to ticket 176").
 
 **Henry (2026-10-02), in his words:**
 
@@ -327,6 +327,16 @@ Henry's answers to the 183 report, built.
 - The kit's quiet button keeps its yellow when the pointer is on the chosen tab (`.k-button.is-quiet.is-on:hover`).
 - Screenshots: `research/183-screens/183f2/` (`terminal`, `codex`, `vault`, `settings`; both sizes). The Vault shots use the screen sheet's new `?totems=1`.
 - Left as they are, and flagged in the report: the status named "StableOS" (a game status, not an Instinct) still prints "OS"; Instincts that lost their machine word ("Unbound", "Genesis") now read as one word.
+
+### 183 close-out built (2026-10-02)
+
+Henry's answers to the last four decisions, built.
+
+- **Draught chips** keep one line: the name. The "what it will do, or why it cannot be used" line moved into the chip's tooltip (and its screen-reader label), which already carried it (`MacroRack.tsx`).
+- **"StableOS" is now "Alert"** (the status that makes a unit immune to Stunned and Asleep, so it cannot be locked down). The status glossary says Alert, and `plain()` turns the old word into Alert in the combat log. The status's type id is still `StableOS`, so no save or balance run moves.
+- **The roster button and the terminal's title say "Retrain"** (they were "Instinct terminal"). It opens the retrain screen, not the party.
+- **A Windows-only build error is fixed** (`2213aae`): on a case-insensitive file system `./StarterStats` resolved to `starterStats.ts` instead of `StarterStats.tsx`. The logic file is now `starterStatValues.ts`.
+- **The Instinct names to Norse-ify** are listed with their descriptions in `research/183-instinct-names.md`, with a proposed name for each of the 32. Not renamed yet: it waits for Henry's yes and becomes ticket 183i.
 
 ## Art commissions
 

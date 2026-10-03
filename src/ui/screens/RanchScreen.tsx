@@ -179,7 +179,7 @@ function RosterSection({
             <div className="ranch-section-head">
                 <h2>Roster ({roster.length})</h2>
                 <button type="button" className="ranch-button k-button" onClick={onOpenFirmware}>
-                    <Icon name="firmware" size={15} /> Instinct terminal
+                    <Icon name="firmware" size={15} /> Retrain
                 </button>
             </div>
             {roster.length === 0 && (

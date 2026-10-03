@@ -24,6 +24,8 @@ const CODE_NOT_COPY: ReadonlySet<string> = new Set([
     'components/cardKeywords.ts::Daemon',
     'screens/runShell.ts::Daemon',
     'vfx/osTells.ts::[data-os-chip="',
+    // The status's type id, in a set of ids; the player reads it as Alert.
+    'audio/battleCues.ts::StableOS',
 ]);
 
 function sourceFiles(dir: string, out: string[] = []): string[] {

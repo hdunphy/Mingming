@@ -92,7 +92,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
         <div className="it-overlay" role="dialog" aria-label="Retrain an instinct">
             <div className="it-window k-plate">
                 <header className="it-head">
-                    <h2 className="it-title k-display">Instinct terminal</h2>
+                    <h2 className="it-title k-display">Retrain</h2>
                     <span className="it-sub">Pick a Mingming, then the instinct it should have. A retrain spends one of its traces.</span>
                     <button type="button" className="it-close k-button is-quiet" onClick={onClose}>Close</button>
                 </header>
