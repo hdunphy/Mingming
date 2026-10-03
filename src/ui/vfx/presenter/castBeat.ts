@@ -259,7 +259,17 @@ export function buildCastBeat(
                 at: impactAt, label: 'impact',
                 run: () => {
                     const to = anchorFor(targetId);
-                    if (to) emitImpact(cast.element, to, cast.doubled, cast.resisted);
+                    if (!to) return;
+                    // What this body took sizes its burst (a body the card hit twice, both hits).
+                    const taken = cast.hits.filter((hit) => hit.targetId === targetId);
+                    emitImpact(cast.element, to, {
+                        damage: taken.reduce((sum, hit) => sum + hit.applied, 0),
+                        maxHp: taken[0]?.maxHp ?? 0,
+                        doubled: cast.doubled,
+                        resisted: cast.resisted,
+                        isKill: taken.some((hit) => hit.isKill),
+                        direction: headingOf(cast, anchorFor(cast.sourceId), to),
+                    });
                 },
             });
         }

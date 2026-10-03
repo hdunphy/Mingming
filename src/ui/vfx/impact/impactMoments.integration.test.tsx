@@ -25,6 +25,7 @@ import { useDisplayedBoardSync } from '../displayed/useDisplayedBoard';
 import { useCastSequence } from '../useCastSequence';
 import { useImpactFeedback } from '../useImpactFeedback';
 import { cameraShake } from './impactRuntime';
+import { emitStageMoment } from './stageMoments';
 import { playSfx } from '../../audio/AudioEngine';
 import { planAttack } from '../tiers/attackPlan';
 import { TIER_PROFILES } from '../tiers/tierProfiles';
@@ -120,7 +121,9 @@ const settle = async (ms: number): Promise<void> => {
         for (let i = 0; i < 8; i += 1) await Promise.resolve();
     });
 };
-const floatsOn = (id: string): string[] => (vfx.unitFx[id]?.floats ?? []).map((f) => f.text);
+// The numbers and readouts on a body; the matchup tag has its own helper (190e).
+const floatsOn = (id: string): string[] => (vfx.unitFx[id]?.floats ?? []).filter((f) => f.kind !== 'tag').map((f) => f.text);
+const tagsOn = (id: string): string[] => (vfx.unitFx[id]?.floats ?? []).filter((f) => f.kind === 'tag').map((f) => f.text);
 const impactSounds = (): number => sfx.mock.calls.filter(([name]) => String(name).startsWith('impact')).length;
 
 beforeEach(() => {
@@ -273,5 +276,58 @@ describe('189d — the sounds of a multi-target hit are spaced by the cast, not 
         await settleToImpact();
         const call = sfx.mock.calls.find(([name]) => String(name).startsWith('impact'));
         expect(call?.[1]).toMatchObject({ step: 0 });
+    });
+});
+
+describe('190e - the matchup is named on the body that took the hit', () => {
+    it('a super-effective hit shows SUPER EFFECTIVE, at the impact and not before', async () => {
+        mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)]));      // Fire into Nature
+        play();
+        const at = impactAt(jabDamage(), 1000);
+        await settle(at - 1);
+        expect(tagsOn('e1')).toEqual([]);
+        await settle(1);
+        expect(tagsOn('e1')).toEqual(['SUPER EFFECTIVE']);
+    });
+
+    it('a resisted hit shows RESISTED (the chart has no resists today, so the moment is sent by hand)', () => {
+        mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)]));
+        act(() => {
+            emitStageMoment({
+                kind: 'hit', targetId: 'e1', applied: 20, absorbed: 0, element: 'Fire', maxHp: 1000, isLethal: false,
+                definitionId: 'fenrir', sourceId: 'a1', isCritical: false, effectiveness: 0.5, step: 0, targets: 1,
+            });
+        });
+        expect(tagsOn('e1')).toEqual(['RESISTED']);
+    });
+
+    it('a plain hit shows no tag', async () => {
+        TestProgramRegistry.card_test_plain = {
+            ...TestProgramRegistry.card_test_single, id: 'card_test_plain', element: 'None',
+        } as never;
+        mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)], 'card_test_plain'));
+        play();
+        await settleToImpact();
+        expect(floatsOn('e1')).not.toEqual([]);
+        expect(tagsOn('e1')).toEqual([]);
+    });
+});
+
+describe('190e - the white hit flash', () => {
+    it('flashes on each hit by default', async () => {
+        mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)]));
+        play();
+        await settleToImpact();
+        expect(vfx.unitFx.e1?.flashKey).toBe(1);
+    });
+
+    it('does not flash with the flashes setting off, but the hit still lands', async () => {
+        saveSettings({ ...DEFAULT_SETTINGS, flashes: false });
+        mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)]));
+        play();
+        await settleToImpact();
+        expect(vfx.unitFx.e1?.hitKey).toBe(1);
+        expect(vfx.unitFx.e1?.flashKey ?? 0).toBe(0);
+        expect(floatsOn('e1')).not.toEqual([]);
     });
 });

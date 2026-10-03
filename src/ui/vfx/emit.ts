@@ -38,7 +38,11 @@ import { burstFor } from './emitters';
 import type { AttackEffect } from './attacks/AttackEffect';
 import { orbSeed } from './choreo/orb';
 import { speedLineSeeds } from './choreo/speedLines';
-import { impactFor, trailSeed, type TrailElement } from './trails';
+import { buildImpact } from './impacts/buildImpact';
+import { matchupOf } from './impacts/impactCount';
+import { activeProfile } from './tiers/activeTier';
+import { damageScale } from './tiers/tierProfiles';
+import { elementColor, trailSeed, type TrailElement } from './trails';
 
 /**
  * The whole particle vocabulary of ticket 146 — §2a names these seven and no others.
@@ -178,34 +182,38 @@ export function emitSpeedLines(at: EmitAt, direction: 1 | -1, count: number, rng
     sink.wake();
 }
 
+/** What a landing burst needs to know about the hit it dresses. */
+export interface ImpactSpec {
+    /** HP this body lost, and its max: together they size the burst (`damageScale`). */
+    readonly damage: number;
+    readonly maxHp: number;
+    readonly doubled: boolean;
+    readonly resisted: boolean;
+    readonly isKill: boolean;
+    /** +1 when the attacker stands to the left of the target, -1 to the right. */
+    readonly direction: 1 | -1;
+    readonly rng?: () => number;
+}
+
 /**
- * The burst where a trail lands. §2d's impact column.
+ * The burst where an attack lands - ticket 190e (it was §2d's impact column before).
  *
- * `ring` goes out first and in the element's colour, so the moment of contact has an edge on it
- * before the element's own particles read — a burst with no ring reads as something appearing
- * rather than as something arriving.
+ * Fire, Water and Nature each throw their own (`impacts/`); the count follows the damage, the matchup
+ * and the tier. A super-effective hit adds a white ring and star sparks, a resisted one a grey fizzle,
+ * a kill a white ring. The ring goes out first, so the moment of contact has an edge on it.
  */
-export function emitImpact(element: TrailElement, at: EmitAt, doubled = false, resisted = false): void {
+export function emitImpact(element: TrailElement, at: EmitAt, spec: ImpactSpec): void {
     if (!sink) return;
-    const { kind, count, color, gravity } = impactFor(element);
-
-    /*
-     * §2c's effectiveness reading, which is a real gameplay tell and not decoration: *"Super-
-     * effective: the ring is doubled and takes the attacker's colour; resisted: half-size ring,
-     * grey puff, the float reads smaller."* A player who can see the matchup landing does not have
-     * to remember the type chart mid-fight.
-     */
-    const ringColor = resisted ? { r: 150, g: 155, b: 162 } : color;
-    emit('ring', at, { color: ringColor, intensity: 1 });
-    if (doubled) emit('ring', at, { color: ringColor, intensity: 1 });
-
-    // The fall is already right per kind — `burstFor` gives `drop` positive gravity and `flame`
-    // negative — so the impact does not restate it. `gravity` on the style is there for the SHED
-    // particles, where the head's own motion would otherwise swamp it.
-    void gravity;
-
-    emit(resisted ? 'puff' : kind, at, {
-        intensity: resisted ? Math.ceil(count / 2) : (doubled ? count * 2 : count),
-        color: resisted ? { r: 150, g: 155, b: 162 } : color,
+    const seeds = buildImpact(element, {
+        at,
+        s: damageScale(spec.damage, spec.maxHp),
+        matchup: matchupOf(spec.doubled, spec.resisted),
+        isKill: spec.isKill,
+        direction: spec.direction,
+        particleScale: activeProfile().particleScale,
+        color: elementColor(element),
+        rng: spec.rng,
     });
+    sink.spawn(seeds);
+    sink.wake();
 }

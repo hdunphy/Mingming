@@ -13,16 +13,20 @@ import type { UnitFx } from '../hooks/useBattleVfx';
  * overlays remount on fx key changes so the animation replays per event.
  */
 
+/** How long the white flash on a body that took a hit lasts (190e). */
+const HIT_FLASH_MS = 90;
+
 /** Hit flash + heal pulse + status ring overlays. */
 export const FxTransientOverlays: React.FC<{ fx?: UnitFx }> = ({ fx }) => (
     <>
-        {(fx?.hitKey ?? 0) > 0 && (
+        {/* 190e: a white flash of about 90 ms; `flashKey` only moves with the flashes setting on. */}
+        {(fx?.flashKey ?? 0) > 0 && (
             <motion.div
-                key={`hitflash-${fx!.hitKey}`}
+                key={`hitflash-${fx!.flashKey}`}
                 className="hud-hit-flash"
-                initial={{ opacity: 0.3 + 0.5 * (fx?.hitIntensity ?? 0) }}
+                initial={{ opacity: 0.6 + 0.3 * (fx?.hitIntensity ?? 0) }}
                 animate={{ opacity: 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
+                transition={{ duration: HIT_FLASH_MS / 1000, ease: 'easeOut' }}
             />
         )}
         {(fx?.healKey ?? 0) > 0 && (
@@ -80,7 +84,7 @@ export const FxFloats: React.FC<FxFloatsProps> = ({ fx, rise = 70 }) => (
                     animate={{
                         opacity: [0, 1, 1, 0],
                         y: (prefersReducedMotion() ? -18 : -rise) + slotY,
-                        scale: f.kind === 'crit' ? 1.55 : f.kind === 'absorbed' ? 0.95 : 1.15,
+                        scale: f.kind === 'crit' ? 1.55 : f.kind === 'absorbed' || f.kind === 'tag' ? 0.95 : 1.15,
                         rotate: f.kind === 'crit' ? (f.slot % 2 ? -8 : 8) : 0,
                     }}
                     exit={{ opacity: 0 }}

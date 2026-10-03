@@ -52,13 +52,13 @@ export function vine(input: AttackInput): AttackBuild {
                 ctx.lineCap = 'round';
                 for (let i = 1; i < points.length; i += 1) {
                     const w = lerp(baseWidth, 3, i / SEGMENTS);
-                    ctx.strokeStyle = '#1d5a2b';
+                    ctx.strokeStyle = 'rgb(29, 90, 43)';
                     ctx.lineWidth = w;
                     ctx.beginPath();
                     ctx.moveTo(points[i - 1].x, points[i - 1].y);
                     ctx.lineTo(points[i].x, points[i].y);
                     ctx.stroke();
-                    ctx.strokeStyle = '#6fd47e';
+                    ctx.strokeStyle = 'rgb(111, 212, 126)';
                     ctx.lineWidth = w * 0.3;
                     ctx.beginPath();
                     ctx.moveTo(points[i - 1].x, points[i - 1].y - w * 0.22);
@@ -69,7 +69,7 @@ export function vine(input: AttackInput): AttackBuild {
                         ctx.save();
                         ctx.translate(points[i].x, points[i].y);
                         ctx.rotate(angle);
-                        ctx.fillStyle = '#3fae55';
+                        ctx.fillStyle = 'rgb(63, 174, 85)';
                         ctx.beginPath();
                         ctx.ellipse(7, 0, 7, 3, 0, 0, Math.PI * 2);
                         ctx.fill();
@@ -83,12 +83,12 @@ export function vine(input: AttackInput): AttackBuild {
                     const squeeze = age > headMs + sustainMs * 0.8 ? 0.85 : 1;
                     ctx.globalAlpha = Math.max(0, fade);
                     ctx.lineWidth = 6 + 2 * s;
-                    ctx.strokeStyle = '#2c7a3a';
+                    ctx.strokeStyle = 'rgb(44, 122, 58)';
                     ctx.beginPath();
                     ctx.ellipse(to.x, to.y + 12, 54 * squeeze, 20 * squeeze, -0.15 * d, Math.PI * 0.9, Math.PI * 0.9 + Math.PI * 2 * 0.9 * coil);
                     ctx.stroke();
                     ctx.lineWidth = 2;
-                    ctx.strokeStyle = '#7ee08b';
+                    ctx.strokeStyle = 'rgb(126, 224, 139)';
                     ctx.stroke();
                     ctx.globalAlpha = 1;
                 }

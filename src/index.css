@@ -2058,30 +2058,32 @@ body {
   letter-spacing: 0.06em;
 }
 
+.hud-float-tag {
+  /* Ticket 190e: SUPER EFFECTIVE / RESISTED - a label under the number, in its own colour. */
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
 .hud-float-absorbed {
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 2px;
 }
 
-/* Hit flash — white/red scanline sweep over the unit card */
+/* Hit flash — ticket 190e: a plain white flash of about 90 ms over the body that took the hit. It is
+   drawn with ordinary blending (a screen blend of white over a near-white card shows nothing). */
 .hud-hit-flash {
   position: absolute;
   inset: 0;
   border-radius: 6px;
   pointer-events: none;
   z-index: 105;
-  background:
-    repeating-linear-gradient(0deg,
-      rgba(255, 255, 255, 0.12) 0px,
-      rgba(255, 255, 255, 0.12) 1px,
-      transparent 2px,
-      transparent 4px),
-    linear-gradient(120deg,
-      rgba(255, 255, 255, 0.85) 0%,
-      rgba(255, 70, 70, 0.55) 55%,
-      rgba(255, 255, 255, 0.65) 100%);
-  mix-blend-mode: screen;
+  background: radial-gradient(circle at 50% 55%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.75) 60%,
+      rgba(255, 255, 255, 0.35) 100%);
   opacity: 0;
 }
 

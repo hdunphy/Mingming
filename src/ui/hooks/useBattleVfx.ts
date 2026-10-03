@@ -15,7 +15,8 @@ import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
 import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '../vfx/hookStatusBeat';
 import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
 import { driverText } from '../labels/driverText';
-import { damageSeverity } from '../vfx/impact/impactMath';
+import { RESISTED_AT, SUPER_EFFECTIVE_AT, damageSeverity } from '../vfx/impact/impactMath';
+import { loadSettings, resolveVfxGates } from '../settings/settings';
 import { type StageMoment, onStageMoment } from '../vfx/impact/stageMoments';
 import { type CardSignal, onCardSignal } from '../vfx/presenter/cardSignals';
 
@@ -37,7 +38,7 @@ import { type CardSignal, onCardSignal } from '../vfx/presenter/cardSignals';
  * PROC-VISIBLE, and a float on the unit is the half of that law the eye is already on — the chip in
  * the top bar flashes at the same moment for the half of the screen it is not.
  */
-export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed' | 'proc' | 'status';
+export type FloatKind = 'damage' | 'crit' | 'heal' | 'absorbed' | 'proc' | 'status' | 'tag';
 
 export interface CombatFloat {
     id: number;
@@ -54,6 +55,8 @@ export interface UnitFx {
     hitKey: number;
     /** How hard the last hit landed, 0..1 (`damageSeverity`): the shake reads it. */
     hitIntensity: number;
+    /** Increments on every hit that flashes the body white (190e). Stays put with the flashes setting off. */
+    flashKey: number;
     /** Increments on every heal; keys the green pulse. */
     healKey: number;
     /** Increments on every status application; keys the colored ring pulse. */
@@ -110,6 +113,7 @@ export const EMPTY_UNIT_FX: UnitFx = {
     floats: [],
     hitKey: 0,
     hitIntensity: 0,
+    flashKey: 0,
     healKey: 0,
     statusKey: 0,
     statusColor: JS_COLOR.text,
@@ -181,6 +185,9 @@ export function nextSeriesStep(
 
 
 const NEUTRAL_DAMAGE_COLOR = JS_COLOR.hpLow;
+/** The matchup tags of 190e: amber for super effective, the muted grey for resisted. */
+const SUPER_TAG_COLOR = 'var(--amber)';
+const RESISTED_TAG_COLOR = JS_COLOR.textMute;
 
 interface VfxState {
     unitFx: Record<string, UnitFx>;
@@ -458,6 +465,17 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             const color =
                 element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
             pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${applied}`, color);
+            /*
+             * TICKET 190e: the matchup, named on the body. It is a gameplay tell (the type chart landing),
+             * so it reads as words and not only as a bigger burst. Hits only: a tick or a toll has no matchup.
+             */
+            if (isHit) {
+                if (moment.effectiveness >= SUPER_EFFECTIVE_AT) pushFloat(targetId, 'tag', 'SUPER EFFECTIVE', SUPER_TAG_COLOR);
+                else if (moment.effectiveness <= RESISTED_AT) pushFloat(targetId, 'tag', 'RESISTED', RESISTED_TAG_COLOR);
+            }
+            // The white flash is the player's own switch (`flashes`), read as the hit lands so a change
+            // made in the settings overlay takes effect on the next blow.
+            const flash = resolveVfxGates(loadSettings()).flashes;
             setVfx(prev => {
                 const unit = prev.unitFx[targetId] ?? EMPTY_UNIT_FX;
                 return {
@@ -469,6 +487,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                         [targetId]: {
                             ...unit,
                             hitKey: unit.hitKey + 1,
+                            flashKey: flash ? unit.flashKey + 1 : unit.flashKey,
                             hitIntensity: damageSeverity(applied, moment.maxHp),
                         },
                     },
