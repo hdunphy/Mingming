@@ -22,7 +22,7 @@
  */
 
 import type { IBattleEntity, StatusType } from '../../../engine/types';
-import { type EmitAt, anchorFor, emitEffect, emitImpact, emitOrb, emitSpeedLines, emitTrail, stageScale } from '../emit';
+import { type EmitAt, anchorFor, emitEffect, emitImpact, emitOrb, emitSeeds, emitSpeedLines, emitTrail, stageScale } from '../emit';
 import { emitHookTell } from '../osTells';
 import { HOOK_BEAT_GAP_MS } from '../hookStatusBeat';
 import { scheduleStatusTells } from '../statusBurst';
@@ -31,7 +31,10 @@ import {
 } from '../statusTells';
 import { TRAIL_STAGGER_MS, elementColor, type TrailElement } from '../trails';
 import { buildCastAttack } from '../attacks/buildAttack';
-import { spriteShakes, wakeImpactFx } from '../impact/impactRuntime';
+import { spriteShakes, stageDim, wakeImpactFx } from '../impact/impactRuntime';
+import { loadSettings, resolveVfxGates } from '../../settings/settings';
+import { muzzleOf } from '../attacks/AttackEffect';
+import { chargeSparks, dimKeys, hitShare, isBigHit } from '../choreo/bigHit';
 import { DASH_STOPS_SHORT_PX, attackPose, statusPose } from '../choreo/attackPose';
 import { type CastKind, castTimes } from '../choreo/castTimes';
 import { emitAttackPose } from '../choreo/poseSignals';
@@ -189,6 +192,37 @@ export function buildCastBeat(
             }
         },
     });
+
+    /*
+     * TICKET 190g - THE BIG-HIT EXTRAS. A hit that takes a big share of the target's max HP (the tier's
+     * `chargeFrom` / `dimFrom`; Snappy and Fast have none) charges up: sparks converge on the caster's
+     * mouth through the wind-up. A bigger one also dims the stage across the wind-up (up to 0.4 x s,
+     * gone with the Flashes setting). Both start with the pose; the camera punch is the impact's.
+     */
+    const share = hitShare(biggest?.applied ?? 0, biggest?.maxHp ?? 0);
+    const plan = times.attackPlan;
+    if (plan && isBigHit(share, profile.chargeFrom)) {
+        actions.push({
+            at: times.poseAtMs, label: 'charge',
+            run: () => {
+                const from = anchorFor(cast.sourceId);
+                const to = anchorFor(cast.targetIds[0] ?? cast.sourceId);
+                if (!from) return;
+                const heading = headingOf(cast, from, to);
+                const body = { id: cast.sourceId, x: from.x, y: from.y, w: from.w ?? 0, h: from.h ?? 0 };
+                emitSeeds(chargeSparks({
+                    muzzle: muzzleOf(body, heading), durationMs: plan.game.windupEndMs, s: plan.scale,
+                    particleScale: profile.particleScale, color: elementColor(cast.element),
+                }));
+            },
+        });
+    }
+    if (plan && isBigHit(share, profile.dimFrom) && resolveVfxGates(loadSettings()).flashes) {
+        actions.push({
+            at: times.poseAtMs, label: 'dim',
+            run: () => { stageDim.run(dimKeys(plan.game, plan.scale)); wakeImpactFx(); },
+        });
+    }
 
     // A contact card throws speed lines behind it as it runs.
     if (kind === 'contact') {

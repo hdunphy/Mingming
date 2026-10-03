@@ -64,6 +64,7 @@ import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { useImpactFeedback } from '../vfx/useImpactFeedback';
+import { StageDimLayer } from '../vfx/StageDimLayer';
 import { battleClock } from '../vfx/clock/battleClockRuntime';
 import { useDisplayedBoardSync } from '../vfx/displayed/useDisplayedBoard';
 import { useBattleEndGate } from '../vfx/pacing/useBattleEndGate';
@@ -1336,6 +1337,8 @@ const BattleArena: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={stageControls}
             >
+                {/* 190g: the dark layer a huge hit's wind-up draws (below the bodies). */}
+                <StageDimLayer />
                 {/* Center stage: big spotlight sprites for the selected unit + focus enemy */}
                 <BattleStage
                     battleState={battleState}

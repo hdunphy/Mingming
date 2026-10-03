@@ -65,6 +65,17 @@
     z-index: 3;
 }
 
+/* Ticket 190g: the dark layer over the stage during a huge hit's wind-up. Opacity is written from the
+   battle clock (0 to 0.4); it sits above the room and below the bodies (the ladder at .battle-stage). */
+.stage-dim {
+    position: absolute;
+    inset: 0;
+    background: var(--ink);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
 /* ---- the slot, the sprite frame and the art ---------------------------------------------- */
 
 .stage-slot {

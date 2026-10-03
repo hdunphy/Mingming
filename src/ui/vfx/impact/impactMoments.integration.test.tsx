@@ -24,8 +24,9 @@ import { isHitStopped } from '../hitStop';
 import { useDisplayedBoardSync } from '../displayed/useDisplayedBoard';
 import { useCastSequence } from '../useCastSequence';
 import { useImpactFeedback } from '../useImpactFeedback';
-import { cameraShake } from './impactRuntime';
+import { cameraPunch, cameraShake } from './impactRuntime';
 import { emitStageMoment } from './stageMoments';
+import { resetActiveTier, setActiveTier } from '../tiers/activeTier';
 import { playSfx } from '../../audio/AudioEngine';
 import { planAttack } from '../tiers/attackPlan';
 import { TIER_PROFILES } from '../tiers/tierProfiles';
@@ -141,6 +142,8 @@ afterEach(() => {
     act(() => { root.unmount(); });
     resetBattleClock();
     cameraShake.reset();
+    cameraPunch.reset();
+    resetActiveTier();
     vi.useRealTimers();
     setParticleSink(null);
     setStageAnchors(null);
@@ -329,5 +332,59 @@ describe('190e - the white hit flash', () => {
         expect(vfx.unitFx.e1?.hitKey).toBe(1);
         expect(vfx.unitFx.e1?.flashKey ?? 0).toBe(0);
         expect(floatsOn('e1')).not.toEqual([]);
+    });
+});
+
+describe('190g - the camera punch', () => {
+    /** A 70% hit: big enough to charge on Showy. */
+    const bigHit = async (): Promise<void> => {
+        const dealt = jabDamage();
+        mount(frame([fat('e1', Math.round(dealt / 0.7)), fat('e2', 100), fat('e3', 100)]));
+        play();
+        await settleToImpact();
+    };
+
+    it('zooms the picture on a big hit (after the freeze) and comes back to exactly 1', async () => {
+        await bigHit();
+        expect(cameraPunch.active).toBe(true);
+        // The freeze comes first, like the shake's: the punch starts when it lifts.
+        let peak = 1;
+        await act(async () => {
+            for (let ms = 0; ms < 1200; ms += 4) {
+                const f = battleClock.advance(4);
+                cameraShake.step(f);
+                peak = Math.max(peak, cameraPunch.step(f));
+            }
+        });
+        expect(peak).toBeGreaterThan(1.01);
+        expect(peak).toBeLessThanOrEqual(1.03 + 1e-9);
+        expect(cameraPunch.scale).toBe(1);
+        expect(cameraPunch.active).toBe(false);
+    });
+
+    it('does not punch for a small hit', async () => {
+        const dealt = jabDamage();
+        mount(frame([fat('e1', Math.round(dealt / 0.2)), fat('e2', 100), fat('e3', 100)]));
+        play();
+        await settleToImpact();
+        expect(cameraPunch.active).toBe(false);
+        expect(cameraPunch.scale).toBe(1);
+    });
+
+    it('does not punch on Snappy or Fast', async () => {
+        for (const tier of ['snappy', 'fast'] as const) {
+            setActiveTier(tier);
+            await bigHit();
+            expect(cameraPunch.active, tier).toBe(false);
+            resetBattleClock();
+            act(() => { root.unmount(); });
+            root = createRoot(container);
+        }
+    });
+
+    it('does not punch with the shake slider at 0', async () => {
+        saveSettings({ ...DEFAULT_SETTINGS, screenShake: 0 });
+        await bigHit();
+        expect(cameraPunch.active).toBe(false);
     });
 });
