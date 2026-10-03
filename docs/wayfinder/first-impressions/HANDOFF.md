@@ -8,6 +8,7 @@
 - **184 is done** (184a–e, finished 2026-10-02 on this branch).
 - **182 is done and closed** (182a–d on this branch, last commit `507a824`, not pushed; see its Resolution). Then 183, below.
 - **183 work for tonight is complete** (2026-10-02). 183a–h and Henry's review follow-ups are built and gated on this branch, not pushed (give Henry `git push origin first-impressions`). See its `## Resolution`. The one open piece is **183i**: the Norse Instinct names, listed in `research/183-instinct-names.md`, waiting for Henry's yes. Next is 181c.
+- **189 work for tonight is complete** (2026-10-03). 189a-e ("Hits land when they land", UI only) are built and committed on this branch (`c7b9732`, `3ecee26`, `412a991`, `43986c7`, `b9090cf`), not pushed. Nothing under `src/engine` changed. The tests, `tsc` and `eslint src/ui` are green on a Linux copy; `npm run gate` itself and the `sfxSamples` audio check could not run there, so run `npm run gate` once locally. **190 can start.** The enemy's turn is now slower on purpose (each enemy card hovers 1 s before it attacks); speed tiers are 190's job.
 - **181** (playtest round 2) is the goal. It waits on 182, 183 and 181c (the "Tell Henry how it went" button, which needs Henry's Google Form first).
 - **176** is blocked until 183a–c ship. **175** comes after everything else. **180** waits for Henry's go.
 
@@ -51,4 +52,4 @@ Two agents work at once **in this one folder, on branch `first-impressions`** (H
 - Test first, see it fail on the parent ("fails on parent: yes" in the message), `npm run gate` green, one commit per row, last line `HANDOFF: <one sentence>`, authored as Henry, no Co-Authored-By, **no push**.
 - When a ticket closes: its top status line, its `## Resolution`, and a line under "Decisions so far" in [map.md](map.md).
 
-- **189 status (2026-10-02, night): NOT STARTED.** The 189 agent is waiting for "183 work for tonight is complete" in this file before writing code (189c-e need 183b, and Henry asked to wait for all of 183). 190 is queued behind 189, so it must also wait. When 189 finishes it will add the line "189 work for tonight is complete" here; if it gets blocked it will say so here instead.
+- **189 status (2026-10-03): DONE.** See the line above. The 190 agent no longer needs to wait.
