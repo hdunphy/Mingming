@@ -76,7 +76,7 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
 import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import { fightNodeFor, isEventFight } from '../../engine/run/eventFight';
-import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan } from '../../engine/run/encounter';
+import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan, surveyedEncounters } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
@@ -178,6 +178,18 @@ export default function RunScreen(): ReactNode {
     );
 
     const revealedBiomes = useMemo(() => revealedBiomesFrom(run?.modifiers ?? []), [run]);
+
+    /**
+     * TICKET 176d: who waits in every fight of a surveyed biome. Rolled here, from the current party,
+     * because the map takes nodes and names and no run. Empty until a Ping Sweep or a Relay Tower
+     * Survey has been fired, so an unsurveyed map prints no species anywhere.
+     */
+    const surveyedFights = useMemo(
+        () => (run && revealedBiomes.length > 0
+            ? surveyedEncounters(run, marketParty.map((m) => toMingmingState(m)), revealedBiomes)
+            : {}),
+        [run, revealedBiomes, marketParty],
+    );
 
     /**
      * Fire the encounter the run's phase is asking for.
@@ -472,10 +484,8 @@ export default function RunScreen(): ReactNode {
                         { biomeIndex: i, kind: 'rival' } as IRegionNode,
                         PARTY_SIZE,
                     ))}
-                    // Ticket 15: the fog's third clause. Derived here rather than inside the map,
-                    // because `regionLayout` is a pure function of the node set and knows nothing
-                    // about a run — see its header.
-                    revealedBiomes={revealedBiomes}
+                    // Ticket 176d: the species of every fight in a surveyed biome, rolled above.
+                    encounters={surveyedFights}
                     onTravel={travel}
                 />
 

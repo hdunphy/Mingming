@@ -1,16 +1,15 @@
 /**
- * Region map layout and the fog rule — ticket 10.
+ * Region map layout — ticket 10 (and, since ticket 176d, no fog).
  *
  * Layout is a pure function precisely so it can be tested without a DOM (ticket 06 removed `x`/`y`
- * from the save so position stays derivable), and the fog rule is the part worth pinning: it is a
- * *design* rule with three clauses, and each one has a plausible-looking wrong version.
+ * from the save so position stays derivable).
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { generateRegionGraph } from '../../engine/run/regionGraph';
 import type { IRegionNode } from '../../engine/runTypes';
-import { COLUMNS_PER_BIOME, VISIBILITY_LAYERS, columnOf, layoutRegion, wanderFor } from './regionLayout';
+import { COLUMNS_PER_BIOME, columnOf, layoutRegion, wanderFor } from './regionLayout';
 
 const node = (over: Partial<IRegionNode> & { id: string }): IRegionNode => ({
     kind: 'wild',
@@ -52,35 +51,24 @@ describe('layoutRegion — ordering', () => {
     });
 });
 
-describe('layoutRegion — the fog rule', () => {
+describe('layoutRegion — no fog (ticket 176d)', () => {
     const graph = generateRegionGraph('fog-seed');
 
-    it('reveals exactly one layer ahead of the player', () => {
-        const start = graph.nodes.find((n) => n.id === graph.entryNodeId)!;
-        const layout = layoutRegion(graph.nodes, graph.entryNodeId);
-        const playerColumn = columnOf(start);
-
-        for (const laid of layout.nodes) {
-            if (laid.node.visited > 0) continue; // separately ruled, tested below
-            expect(laid.revealed).toBe(laid.column <= playerColumn + VISIBILITY_LAYERS);
-        }
-    });
-
-    it('keeps somewhere you have already stood revealed, however far behind it is', () => {
-        // Fog that forgets where you walked is not fog, it is amnesia — and it would make the map
-        // useless for the backtracking ticket 07 explicitly allows.
-        const far = graph.nodes.find((n) => columnOf(n) >= 10)!;
-        const walked = graph.nodes.map((n) => (n.id === far.id ? { ...n, visited: 2 } : n));
-        const layout = layoutRegion(walked, graph.entryNodeId);
-        expect(layout.byId.get(far.id)?.revealed).toBe(true);
-    });
-
-    it('fogs the KIND, never the node — the graph shape is public', () => {
-        // "Types visible, contents hidden" one step further out. You can see a fork exists four
-        // layers away; you cannot see what is on it. Routing is only a decision if the shape shows.
+    it('lays out every node from the first step, however far ahead it is', () => {
         const layout = layoutRegion(graph.nodes, graph.entryNodeId);
         expect(layout.nodes).toHaveLength(graph.nodes.length);
-        expect(layout.nodes.some((n) => !n.revealed)).toBe(true);
+        expect(layout.byId.size).toBe(graph.nodes.length);
+    });
+
+    it('carries no fog flag: a node is drawn with its kind whatever its distance', () => {
+        const layout = layoutRegion(graph.nodes, graph.entryNodeId);
+        for (const laid of layout.nodes) expect(laid).not.toHaveProperty('revealed');
+    });
+
+    it('is the same layout wherever the player stands (nothing depends on the current column)', () => {
+        const first = layoutRegion(graph.nodes, graph.entryNodeId).nodes.map((n) => [n.node.id, n.column, n.row]);
+        const later = layoutRegion(graph.nodes, graph.nodes[5].id).nodes.map((n) => [n.node.id, n.column, n.row]);
+        expect(later).toEqual(first);
     });
 });
 

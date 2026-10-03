@@ -10,9 +10,10 @@
  *
  * # THE THREE RULINGS THIS SCREEN HAS TO SHOW, NOT JUST OBEY
  *
- * 1. **Visibility is one layer ahead** — types visible, contents hidden. Fog hides a node's *kind*,
- *    never the node: you can see that a fork exists four layers out, you just cannot see what is on
- *    it. Anywhere you have already stood stays revealed.
+ * 1. **Every node's type is visible from the start** (ticket 176d). There is no fog: routing is a
+ *    decision about the whole road, so the whole road is on the page. What stays hidden is the
+ *    SPECIES: which Mingmings wait in a fight shows only after a Ping Sweep or a Relay Tower Survey,
+ *    for the fights of the biome it was fired in (`encounters`).
  * 2. **Entering a node triggers it AGAIN, always.** So the map must never show a node as spent.
  *    There is no dead/alive state here — there is a **visit count**, and a wild you have cleared
  *    twice says "×2" rather than greying out. Farming is fine (ticket 07), and the screen should
@@ -75,7 +76,7 @@ const R = 21;
  * is a place.
  *
  * A quarter of the lane each way, and the two numbers are not equal on purpose. **X is the tighter
- * one**: columns carry the run's ordering (you walk left to right, and the fog is measured in
+ * one**: columns carry the run's ordering (you walk left to right, and the map reads in
  * columns), so a node that wanders far enough to look like it belongs to the next layer would be
  * lying about the graph. Y has no such meaning — a column's rows are just a stacking order — so it
  * gets the looser lean and does most of the visible work.
@@ -120,10 +121,12 @@ export interface RegionMapProps {
      */
     readonly rivalElements?: ReadonlyArray<ReadonlyArray<string>>;
     /**
-     * Biome indices a map-reveal macro has surveyed (ticket 15). Optional, and empty by default, so
-     * a caller that has no run behind it draws the ordinary one-layer fog.
+     * TICKET 176d — who waits in a fight, by node id: "Sköll, Huldra". Present only for the fights
+     * of a biome a map-reveal macro has surveyed, so with no reveal the map shows no species at all.
+     * Passed in rather than rolled here: this component takes nodes and names, not a run, and the
+     * answer is `previewEncounter` on the current party.
      */
-    readonly revealedBiomes?: ReadonlyArray<number>;
+    readonly encounters?: Readonly<Record<string, string>>;
     /**
      * TICKET 172 — the elements the party fields, so an Element Driver stake names the Driver a win
      * would actually pay this team (`resolveDriverStake`). Empty by default: the rolled stake.
@@ -132,7 +135,7 @@ export interface RegionMapProps {
     readonly onTravel: (node: IRegionNode) => void;
 }
 
-const NO_REVEALS: ReadonlyArray<number> = [];
+const NO_ENCOUNTERS: Readonly<Record<string, string>> = {};
 const NO_ELEMENTS: ReadonlyArray<string> = [];
 const NO_RIVAL_ELEMENTS: ReadonlyArray<ReadonlyArray<string>> = [];
 
@@ -142,14 +145,14 @@ export default function RegionMap({
     biomeNames,
     biomeElements,
     rivalElements = NO_RIVAL_ELEMENTS,
-    revealedBiomes = NO_REVEALS,
+    encounters = NO_ENCOUNTERS,
     partyElements = NO_ELEMENTS,
     onTravel,
 }: RegionMapProps): ReactNode {
     const stakeName = (stake: string): string => driverText(resolveDriverStake(stake, partyElements)).name;
     const layout = useMemo(
-        () => layoutRegion(nodes, currentNodeId, revealedBiomes),
-        [nodes, currentNodeId, revealedBiomes],
+        () => layoutRegion(nodes, currentNodeId),
+        [nodes, currentNodeId],
     );
 
     const width = PAD_X * 2 + (layout.columnCount - 1) * COL_W;
@@ -224,7 +227,7 @@ export default function RegionMap({
 
     // TICKET 182a: the legend key, "You are here" and the bullet lines are cut. The node hover (below)
     // says what a node is, and the Travel list says it for screen readers.
-    const hasStakes = layout.nodes.some((n) => n.revealed && n.node.driverStake);
+    const hasStakes = layout.nodes.some((n) => n.node.driverStake);
 
     /**
      * The elements a fight node actually fields — the ONE place that decides it, so the colour, the
@@ -245,13 +248,13 @@ export default function RegionMap({
         // Ticket 142c: the scout takes over an ordinary fight node rather than being its own kind,
         // so it has to be said rather than inferred from the icon. Before this, no UI file read the
         // flag at all and the one fight that previews the gauntlet was indistinguishable from an elite.
-        const kind = laid.revealed
-            ? (laid.node.scout ? `Scout ${NODE_LABEL[laid.node.kind].toLowerCase()}` : nodeLabelFor(laid.node))
-            : 'Unknown';
-        const parts = [kind];
+        const kind = laid.node.scout ? `Scout ${NODE_LABEL[laid.node.kind].toLowerCase()}` : nodeLabelFor(laid.node);
+        // TICKET 176d: after a survey the fight names who waits in it - "Rival: Sköll, Huldra".
+        const species = encounters[laid.node.id];
+        const parts = [species ? `${kind}: ${species}` : kind];
         // BOTH elements on a rival, off-biome first (Henry's ruling): the pair IS the information —
         // "Fire" alone on a Rootfall rival in the Fire biome is exactly the label that hid it.
-        if (laid.revealed && FIGHT_KINDS.includes(laid.node.kind) && elements.length > 0) {
+        if (FIGHT_KINDS.includes(laid.node.kind) && elements.length > 0) {
             parts.push(elements.join(' + '));
         }
         /*
@@ -264,8 +267,8 @@ export default function RegionMap({
          */
         // 2026-09-25: the start is a wild underneath, and walking back into it fights like any re-entry.
         if (isRunStart(laid.node)) parts.push('walking back in is a Wild fight');
-        if (laid.revealed && laid.node.kind === 'ambush') parts.push('HIGH RISK — they outnumber you');
-        if (laid.revealed && laid.node.driverStake) {
+        if (laid.node.kind === 'ambush') parts.push('HIGH RISK — they outnumber you');
+        if (laid.node.driverStake) {
             parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${stakeName(laid.node.driverStake)}`);
         }
         parts.push(`biome ${laid.node.biomeIndex + 1}`, `layer ${laid.node.layer}`);
@@ -295,7 +298,7 @@ export default function RegionMap({
      * it (142c: it fields the elements the road needs, not the biome's).
      */
     const hoverOf = (laid: LaidOutNode): string =>
-        laid.revealed && laid.node.kind === 'rival'
+        laid.node.kind === 'rival'
             ? `${describe(laid)}. A rival fields the elements this road needs.`
             : describe(laid);
 
@@ -383,9 +386,8 @@ export default function RegionMap({
                       * cheapest single change on this screen and it does most of the "overworld
                       * feel" the reference is named for.
                       *
-                      * A trail that leads into the fog is DIMMER than one between two revealed
-                      * nodes, which is information rather than decoration: it is the difference
-                      * between a route you can plan and one you can only see the start of.
+                      * (Until ticket 176d a trail into the fog was drawn dimmer. There is no
+                      * fog now, so every trail is the same.)
                       */}
                     {lines.map(({ key, a, b }) => {
                         const from = centreOf(a, layout.maxRows);
@@ -394,7 +396,7 @@ export default function RegionMap({
                             <line
                                 key={key}
                                 x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                                className={`rm-edge ${a.revealed && b.revealed ? '' : 'faded'}`}
+                                className="rm-edge"
                             />
                         );
                     })}
@@ -405,7 +407,7 @@ export default function RegionMap({
                         const nodeElements = elementsOf(laid.node);
                         const element = nodeElements[0];
                         const secondElement = nodeElements[1];
-                        const isFight = laid.revealed && FIGHT_KINDS.includes(laid.node.kind);
+                        const isFight = FIGHT_KINDS.includes(laid.node.kind);
                         return (
                             <g
                                 key={laid.node.id}
@@ -413,11 +415,10 @@ export default function RegionMap({
                                     'rm-node',
                                     laid.isCurrent ? 'current' : '',
                                     laid.reachable ? 'reachable' : '',
-                                    laid.revealed ? '' : 'fogged',
                                     laid.node.detour ? 'detour' : '',
                                     // Ticket 17: the ambush's high-risk tint, and the stake ring.
-                                    laid.revealed && laid.node.kind === 'ambush' ? 'risk' : '',
-                                    laid.revealed && laid.node.driverStake ? 'staked' : '',
+                                    laid.node.kind === 'ambush' ? 'risk' : '',
+                                    laid.node.driverStake ? 'staked' : '',
                                 ].filter(Boolean).join(' ')}
                                 onClick={laid.reachable ? () => onTravel(laid.node) : undefined}
                             >
@@ -425,29 +426,25 @@ export default function RegionMap({
                                 <title>{hoverOf(laid)}</title>
                                 <circle
                                     cx={x} cy={y}
-                                    r={laid.node.kind === 'gym' && laid.revealed ? R + 5 : R}
+                                    r={laid.node.kind === 'gym' ? R + 5 : R}
                                     className="rm-node-disc"
                                     style={isFight ? { stroke: ELEMENT_COLOR[element] ?? undefined } : undefined}
                                 />
                                 {/*
                                   * TICKET 34: a nested `<svg>` rather than a `<text>` glyph. The
                                   * icon now inherits `currentColor` from `.rm-node-icon`, which is
-                                  * what lets a revealed node take its biome's element colour — the
+                                  * what lets a fight node take its biome's element colour — the
                                   * ruled mockup's behaviour, and undrawable with an emoji.
                                   */}
-                                {laid.revealed ? (
-                                    <svg
-                                        x={x - 9} y={y - 9} width={18} height={18}
-                                        viewBox="0 0 24 24" className="rm-node-icon"
-                                        fill="none" stroke="currentColor" strokeWidth={1.8}
-                                        strokeLinecap="round" strokeLinejoin="round"
-                                        style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
-                                    >
-                                        {iconPaths(nodeIconFor(laid.node)).map((d) => <path key={d} d={d} />)}
-                                    </svg>
-                                ) : (
-                                    <text x={x} y={y + 7} textAnchor="middle" className="rm-node-icon">·</text>
-                                )}
+                                <svg
+                                    x={x - 9} y={y - 9} width={18} height={18}
+                                    viewBox="0 0 24 24" className="rm-node-icon"
+                                    fill="none" stroke="currentColor" strokeWidth={1.8}
+                                    strokeLinecap="round" strokeLinejoin="round"
+                                    style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
+                                >
+                                    {iconPaths(nodeIconFor(laid.node)).map((d) => <path key={d} d={d} />)}
+                                </svg>
                                 {/*
                                   * The visit badge, per the reference: a gold disc pinned to the
                                   * node's shoulder rather than a bare "×2" floating beside it.
@@ -469,7 +466,7 @@ export default function RegionMap({
                                   * not a kind: it takes over whatever fight was already there, and
                                   * an icon would have to replace that node's own shape to say so.
                                   */}
-                                {laid.revealed && secondElement && (
+                                {secondElement && (
                                     <circle
                                         cx={x - R + 5} cy={y + R - 4} r={4}
                                         className="rm-node-second-element"
@@ -482,7 +479,7 @@ export default function RegionMap({
                                   * every node that pays one. The scout's ring is dashed and sits at the
                                   * same radius; a node can be both, and the two read as one annotation.
                                   */}
-                                {laid.revealed && laid.node.driverStake && (
+                                {laid.node.driverStake && (
                                     <circle
                                         cx={x} cy={y} r={R + 4}
                                         className="rm-node-stake-ring"
@@ -490,7 +487,7 @@ export default function RegionMap({
                                         <title>{`Totem at stake: ${stakeName(laid.node.driverStake)}`}</title>
                                     </circle>
                                 )}
-                                {laid.revealed && laid.node.scout && (
+                                {laid.node.scout && (
                                     <circle
                                         cx={x} cy={y} r={R + 4}
                                         className="rm-node-scout-ring"
@@ -532,7 +529,7 @@ export default function RegionMap({
                         <li key={laid.node.id}>
                             <button type="button" className="rm-travel-button" onClick={() => onTravel(laid.node)}>
                                 <span aria-hidden="true" className="rm-travel-icon">
-                                    {laid.revealed ? <Icon name={nodeIconFor(laid.node)} size={15} /> : '·'}
+                                    <Icon name={nodeIconFor(laid.node)} size={15} />
                                 </span>
                                 {describe(laid)}
                             </button>

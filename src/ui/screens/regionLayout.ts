@@ -9,32 +9,15 @@
  * pure function of the node set, which means it can be tested without a DOM, and it means ticket 34
  * (UI art pass) can re-lay-out the map without touching a save.
  *
- * # THE FOG RULE
+ * # NO FOG (ticket 176d)
  *
- * Ticket 07 rules visibility at **one layer ahead**, types visible and contents hidden. Two
- * additions this module makes explicit, both of which follow from the rest of the ruling rather
- * than inventing anything:
- *
- * - **Anywhere you have already been stays visible.** `visited > 0` reveals a node regardless of
- *   distance, because a map that forgets where you walked is not fog, it is amnesia.
- * - **Fog hides the KIND, never the node.** The graph's shape is public — you can see that a fork
- *   exists three layers ahead, you just cannot see what is on it. That is what "types visible,
- *   contents hidden" becomes one step further out, and it is what makes routing a decision.
- *
- * # THE THIRD CLAUSE — A SURVEYED BIOME (ticket 15)
- *
- * Ticket 07's amendment adds a MAP-REVEAL consumable, and Henry's ask behind it is *"items and
- * events that reveal more of the map"* under one-layer visibility. So the fog now has one more way
- * to lift: **a biome the run has surveyed is revealed whole**, however far ahead of the player it
- * is. It is passed in as a list of biome indices rather than read out of the run here, because this
- * module is a pure function of the node set and must stay callable without a run — `RunScreen`
- * derives the list from `IRunState.modifiers` through `macroRegistry.revealedBiomesFrom`.
- *
- * The parameter is optional and defaults to empty, so every existing caller and every existing test
- * describes the unsurveyed map exactly as before: the reveal can only ever *add* revealed nodes.
+ * Every node's type is visible from the start of the run. Ticket 07 had fog one layer ahead and
+ * ticket 15 a map-reveal that lifted it a biome at a time; with branching routes the choice between
+ * them is the game, so the whole road is shown. What a Ping Sweep or a Relay Tower Survey reveals
+ * now is the SPECIES in a biome's fights, which is not a layout question: `RunScreen` rolls it
+ * (`encounter.surveyedEncounters`) and hands the lines to `RegionMap`.
  */
 
-import { revealedBiomesFrom } from '../../engine/data/macroRegistry';
 import type { IRegionNode, NodeKind } from '../../engine/runTypes';
 import type { IconName } from '../theme/icons';
 
@@ -132,8 +115,6 @@ export interface LaidOutNode {
     readonly row: number;
     /** Total nodes in this column, so a renderer can centre it. */
     readonly rowsInColumn: number;
-    /** Kind is visible. False means fog: the node is drawn, its kind is not. */
-    readonly revealed: boolean;
     /** One edge away from the player, so a click travels there. */
     readonly reachable: boolean;
     readonly isCurrent: boolean;
@@ -214,29 +195,12 @@ export function wanderFor(id: string): { x: number; y: number } {
     return { x: (low / 0xffff) * 2 - 1, y: (high / 0xffff) * 2 - 1 };
 }
 
-/** How far ahead of the player's column a node's kind is visible. Ticket 07: one layer. */
-export const VISIBILITY_LAYERS = 1;
-
-/**
- * Re-exported so a screen holding an `IRunState` can turn `modifiers` into the argument below
- * without importing the macro registry itself. One import for "everything the map needs to draw",
- * which is the same reason `FIGHT_KINDS` is re-exported above.
- */
-export { revealedBiomesFrom };
-
 export function layoutRegion(
     nodes: ReadonlyArray<IRegionNode>,
     currentNodeId: string,
-    /**
-     * Biome indices the run has surveyed with a map-reveal macro (ticket 15). Empty by default, so
-     * an omitted argument is exactly the pre-ticket-15 fog.
-     */
-    revealedBiomes: ReadonlyArray<number> = [],
 ): RegionLayout {
     const current = nodes.find((n) => n.id === currentNodeId);
-    const playerColumn = current ? columnOf(current) : 0;
     const reachableIds = new Set(current?.edges ?? []);
-    const surveyed = new Set(revealedBiomes);
 
     // Group by column, then order within it. Detours sort last so a side trip hangs off the bottom of
     // its layer rather than pushing the main route around — the route should read as a spine.
@@ -265,13 +229,6 @@ export function layoutRegion(
                 column,
                 row,
                 rowsInColumn: ordered.length,
-                revealed: node.visited > 0
-                    || column <= playerColumn + VISIBILITY_LAYERS
-                    // Ticket 15's survey. Whole-biome rather than one-node, because "reveals the
-                    // current biome's node types" is what the amendment says and because a
-                    // per-node reveal would need a per-node record in `modifiers`, which is a list
-                    // of run-wide facts and not a place to keep fifteen booleans.
-                    || surveyed.has(node.biomeIndex),
                 reachable: reachableIds.has(node.id),
                 isCurrent: node.id === currentNodeId,
                 wanderX: wander.x,

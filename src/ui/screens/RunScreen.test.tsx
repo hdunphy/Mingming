@@ -199,6 +199,38 @@ describe('RunScreen — a node that fired says so', () => {
         expect(markup).toContain('LEAVE');
     });
 
+    describe('176d — what a survey shows', () => {
+        // Every node's type is on the map from the start; a Ping Sweep or a Relay Tower Survey adds
+        // WHO waits in each fight of the biome it was fired in, to the node's hover.
+        const titles = (markup: string): string[] => [...markup.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => m[1]);
+        const speciesTitles = (markup: string): string[] =>
+            titles(markup).filter((t) => /^(Wild|Rival|Elite|Alpha|Ambush|Scout [a-z]+): /.test(t));
+        const biomesOf = (list: string[]): string[] =>
+            [...new Set(list.map((t) => /biome (\d)/.exec(t)![1]))].sort();
+
+        it('shows no species anywhere before a survey', () => {
+            expect(speciesTitles(render(BASE))).toEqual([]);
+        });
+
+        it('shows the species of every fight in the surveyed biome, and in no other', () => {
+            const markup = render({ ...BASE, fightsResolved: 3, modifiers: ['reveal:biome:1'] });
+            const shown = speciesTitles(markup);
+            expect(shown.length).toBeGreaterThan(3);
+            expect(biomesOf(shown)).toEqual(['2']);
+        });
+
+        it('two surveyed biomes show two', () => {
+            const markup = render({ ...BASE, fightsResolved: 3, modifiers: ['reveal:biome:0', 'reveal:biome:2'] });
+            expect(biomesOf(speciesTitles(markup))).toEqual(['1', '3']);
+        });
+
+        it('shows every node\'s type from the start, with no fog', () => {
+            const markup = render(BASE);
+            expect(markup).not.toContain('Unknown');
+            expect(markup).not.toContain('fogged');
+        });
+    });
+
     it('opens a town on its square, whole screen, and not as a stall or a bay (176c)', () => {
         const markup = render(standingOn('town'));
 
