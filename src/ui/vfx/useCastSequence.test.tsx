@@ -53,7 +53,9 @@ const ANCHORS = {
  * the collector's burst window (the one real 0 ms timer left) and then moves game time.
  */
 /** Where Showy's plan lands a cast that names no hit (these tests emit no damage): ticket 190c. */
-const IMPACT = planAttack(TIER_PROFILES.showy, { damage: 0, maxHp: 100, isKill: false, contact: false }).game.impactMs;
+const CHIP_PLAN = planAttack(TIER_PROFILES.showy, { damage: 0, maxHp: 100, isKill: false, contact: false });
+/** 190f: a rider lands as the attacker starts walking back. */
+const RETURN = CHIP_PLAN.game.knockbackEndMs;
 
 const advance = (ms: number): void => {
     act(() => {
@@ -219,12 +221,13 @@ describe('155 deep dive 9 — a death plays at the slot', () => {
         // Close the window at 0ms
         advance(0);
 
-        // Advance to the impact + 80 ms (190c: these casts name no hit, so the plan's chip timeline).
-        advance(IMPACT + 80);
+        // 190f: a rider lands as the attacker walks back (these casts name no hit, so the plan's chip timeline).
+        advance(RETURN + 20);
         expect(spy).toHaveBeenCalledTimes(3);
-        expect(spy).toHaveBeenCalledWith('Sharp', 'ally');
-        expect(spy).toHaveBeenCalledWith('Sharp', 'ally2');
-        expect(spy).toHaveBeenCalledWith('Sharp', 'ally3');
+        // Each body got 4 stacks (two events of 2 each).
+        expect(spy).toHaveBeenCalledWith('Sharp', 'ally', false, 4);
+        expect(spy).toHaveBeenCalledWith('Sharp', 'ally2', false, 4);
+        expect(spy).toHaveBeenCalledWith('Sharp', 'ally3', false, 4);
 
         // Nothing fires at +120ms (another 60ms)
         advance(60);
@@ -262,10 +265,10 @@ describe('171f — a hook\'s status is its own beat, after the card', () => {
         expect(hookSpy).not.toHaveBeenCalled();
 
         advance(0);
-        // The card: the impact (190c's plan) + one status 60.
-        advance(IMPACT + 60);
+        // The card: its Burn lands as the attacker walks back (190f).
+        advance(RETURN);
         expect(statusSpy).toHaveBeenCalledTimes(1);
-        expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe');
+        expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe', false, 1);
         expect(hookSpy).not.toHaveBeenCalled();
 
         // The fuse, 200 ms later: its tell, then its Burn as a stack added.
@@ -273,7 +276,7 @@ describe('171f — a hook\'s status is its own beat, after the card', () => {
         expect(hookSpy).toHaveBeenCalledTimes(1);
         expect(hookSpy.mock.calls[0][1]).toBe('skoll_v2');
         expect(statusSpy).toHaveBeenCalledTimes(2);
-        expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe', true);
+        expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe', true, 1);
 
         statusSpy.mockRestore();
         hookSpy.mockRestore();

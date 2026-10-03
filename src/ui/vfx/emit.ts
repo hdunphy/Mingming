@@ -156,6 +156,13 @@ export function emitTrail(element: TrailElement, from: EmitAt, to: EmitAt, lifeM
     sink.wake();
 }
 
+/** Spawn seeds a caller built itself (190f: the status landings). */
+export function emitSeeds(seeds: ReadonlyArray<ParticleSeed>): void {
+    if (!sink || seeds.length === 0) return;
+    sink.spawn(seeds);
+    sink.wake();
+}
+
 /** Start an element attack (190d): the layer steps it on the battle clock and draws it under the particles. */
 export function emitEffect(effect: AttackEffect): void {
     if (!sink?.addEffect) return;

@@ -38,6 +38,7 @@ import { emitAttackPose } from '../choreo/poseSignals';
 import { damageScale } from '../tiers/tierProfiles';
 import { activeProfile } from '../tiers/activeTier';
 import { type BoardSink, type LooseOp, type TimedBoardOp, applyBoardOp } from '../displayed/boardOps';
+import { BARK_SETTLE_MS } from '../landings/barkLanding';
 import { displayedBoard } from '../displayed/displayedBoardRuntime';
 import { type StageMoment, emitStageMoment, finishMoment } from '../impact/stageMoments';
 import type { PlayedCardAnnouncement } from '../../hooks/useBattleVfx';
@@ -77,9 +78,9 @@ export interface PendingCast {
     readonly targetIds: string[];
     readonly doubled: boolean;
     readonly resisted: boolean;
-    readonly statuses: Array<{ targetId: string; status: StatusType }>;
+    readonly statuses: Array<{ targetId: string; status: StatusType; stacks?: number }>;
     /** TICKET 171f: statuses a hook applied during this cast — played as their own beat after it. */
-    readonly hookStatuses: Array<{ hookId: string; targetId: string; status: StatusType }>;
+    readonly hookStatuses: Array<{ hookId: string; targetId: string; status: StatusType; stacks?: number }>;
     /** TICKET 171f: the tell of each hook that applied one of those, held to play with them. */
     readonly hookTells: HookTellInfo[];
     /** TICKET 189b: tells of hooks that applied no status; they play as the card starts. */
@@ -297,10 +298,18 @@ export function buildCastBeat(
         actions.push({ at: firstImpact ?? last, label: 'self-cost', run: () => emitSelfCost(id) });
     }
 
-    // Step 4: the statuses, after the last impact. TICKET 166b: ONE tell per status, fired on every
-    // body that got it at the same instant (Henry: "don't stagger between mingmings"), 60 ms between
-    // different statuses, measured from a fixed base.
+    // Step 4: the statuses. TICKET 166b: ONE tell per status, fired on every body that got it at the
+    // same instant (Henry: "don't stagger between mingmings"), 60 ms between different statuses,
+    // measured from a fixed base.
     const afterImpact = last;
+    /*
+     * TICKET 190f: WHEN the landings begin. A status a card adds after its damage (a rider) lands while
+     * the attacker walks back, as its own beat: it starts WITH the walk back and overlaps it, so it adds
+     * only the 60 ms between statuses to the sequence, not its own length. A status-only card lands its
+     * status when the orb arrives. Either way the first status starts at the base (no gap), the next
+     * 60 ms after it.
+     */
+    const landingBase = statusOnly ? afterImpact : Math.max(times.returnAtMs, afterImpact);
 
     // TICKET 189c: the displayed board moves with the thing that moves it. A hit or a heal lands
     // with the impact on its body (the last impact, for a body the card did not name); the price of
@@ -308,7 +317,8 @@ export function buildCastBeat(
     for (const { when, op, moment } of cast.ops) {
         const at = when === 'first' ? (firstImpact ?? last)
             : when === 'after' ? afterImpact
-                : (impactAtTarget.get(op.id) ?? last);
+                : when === 'landing' ? landingBase + Math.min(BARK_SETTLE_MS, profile.statusOnly.landingMs)
+                    : (impactAtTarget.get(op.id) ?? last);
         // Which target of the card this is spaces its sound; how many there are scales its freeze.
         const context = { sourceId: cast.sourceId, step: Math.max(0, cast.targetIds.indexOf(op.id)), targets: cast.targetIds.length };
         actions.push({
@@ -326,10 +336,10 @@ export function buildCastBeat(
     for (const tick of cast.ticks) {
         actions.push({ at: afterImpact, label: 'tick', run: () => emitStatusTick(tick.status, tick.targetId) });
     }
-    for (const tell of scheduleStatusTells(afterImpact, cast.statuses, STATUS_TELL_STAGGER_MS)) {
+    for (const tell of scheduleStatusTells(landingBase, cast.statuses, STATUS_TELL_STAGGER_MS, 0)) {
         actions.push({
             at: tell.at, label: 'status-tell',
-            run: () => { for (const targetId of tell.targetIds) emitStatusApplied(tell.status, targetId); },
+            run: () => { for (const targetId of tell.targetIds) emitStatusApplied(tell.status, targetId, false, tell.stacks[targetId]); },
         });
         last = Math.max(last, tell.at);
     }
@@ -349,7 +359,7 @@ export function buildCastBeat(
             at, label: 'hook-beat',
             run: () => {
                 if (tell) emitHookTell(tell.owner, tell.osId, tell.daemonId, statuses[0]?.targetId);
-                for (const entry of statuses) emitStatusApplied(entry.status, entry.targetId, true);
+                for (const entry of statuses) emitStatusApplied(entry.status, entry.targetId, true, entry.stacks ?? 1);
             },
         });
         if (index === hookIds.length - 1) last = at;
@@ -425,7 +435,7 @@ export function buildCardBeat(card: PlayedCardAnnouncement): Beat {
  */
 export interface LooseBurst {
     readonly ticks: Array<{ status: StatusType; targetId: string }>;
-    readonly applied: Array<{ status: StatusType; targetId: string }>;
+    readonly applied: Array<{ status: StatusType; targetId: string; stacks?: number }>;
     readonly removals: string[];
     readonly selfCosts: string[];
     readonly shields: string[];
@@ -468,7 +478,7 @@ export function buildLooseBeat(
         actions.push({ at: 0, label: 'tick', run: () => emitStatusTick(tick.status, tick.targetId) });
     }
     for (const entry of burst.applied) {
-        actions.push({ at: 0, label: 'status-tell', run: () => emitStatusApplied(entry.status, entry.targetId) });
+        actions.push({ at: 0, label: 'status-tell', run: () => emitStatusApplied(entry.status, entry.targetId, false, entry.stacks ?? 1) });
     }
     for (const id of burst.removals) {
         actions.push({ at: 0, label: 'status-removed', run: () => emitStatusRemoved(id) });

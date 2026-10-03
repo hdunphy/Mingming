@@ -263,7 +263,11 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                     if (event.status === 'BarkShield') {
                         const holder = findEntity(event.targetId);
                         if (holder) {
-                            recordOp({ kind: 'bark', id: event.targetId, points: barkPointsFor(event.stacks, holder.maxHp) }, 'after');
+                            // The band grows when the planks have settled (190f); a hook's Bark Shield plays later, in its own beat.
+                            recordOp(
+                                { kind: 'bark', id: event.targetId, points: barkPointsFor(event.stacks, holder.maxHp) },
+                                open && !isHookStatus(event.source) ? 'landing' : 'after',
+                            );
                         }
                     }
                     if (immediate) return;
@@ -271,9 +275,9 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                     // is an engine expiry or a turn-boundary effect: a loose beat, queued behind
                     // whatever is still playing (189b) rather than played over it.
                     if (open && isHookStatus(event.source)) {
-                        open.hookStatuses.push({ hookId: event.source.hookId, targetId: event.targetId, status: event.status });
-                    } else if (open) open.statuses.push({ targetId: event.targetId, status: event.status });
-                    else looseBurst().applied.push({ status: event.status, targetId: event.targetId });
+                        open.hookStatuses.push({ hookId: event.source.hookId, targetId: event.targetId, status: event.status, stacks: event.stacks });
+                    } else if (open) open.statuses.push({ targetId: event.targetId, status: event.status, stacks: event.stacks });
+                    else looseBurst().applied.push({ status: event.status, targetId: event.targetId, stacks: event.stacks });
                     return;
                 }
                 case 'STATUS_REMOVED': {

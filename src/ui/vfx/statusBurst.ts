@@ -1,30 +1,43 @@
 import type { StatusType } from '../../engine/types';
 
-export interface StatusEntry { readonly targetId: string; readonly status: StatusType }
-export interface StatusTellGroup { readonly status: StatusType; readonly targetIds: ReadonlyArray<string> }
+export interface StatusEntry {
+    readonly targetId: string;
+    readonly status: StatusType;
+    /** Stacks this entry added (190f: the landing grows with them). Absent counts as 1. */
+    readonly stacks?: number;
+}
+export interface StatusTellGroup {
+    readonly status: StatusType;
+    readonly targetIds: ReadonlyArray<string>;
+    /** Stacks each body got of this status, summed over its entries. */
+    readonly stacks: Readonly<Record<string, number>>;
+}
 export interface ScheduledStatusTell extends StatusTellGroup { readonly at: number }
 
 /** One group per distinct status, in first-seen order; each body listed once per status. */
 export function groupStatusTells(entries: ReadonlyArray<StatusEntry>): StatusTellGroup[] {
-    const groups: Array<{ status: StatusType; targetIds: string[] }> = [];
+    const groups: Array<{ status: StatusType; targetIds: string[]; stacks: Record<string, number> }> = [];
     for (const entry of entries) {
         let group = groups.find((g) => g.status === entry.status);
-        if (!group) { group = { status: entry.status, targetIds: [] }; groups.push(group); }
+        if (!group) { group = { status: entry.status, targetIds: [], stacks: {} }; groups.push(group); }
         if (!group.targetIds.includes(entry.targetId)) group.targetIds.push(entry.targetId);
+        group.stacks[entry.targetId] = (group.stacks[entry.targetId] ?? 0) + (entry.stacks ?? 1);
     }
     return groups;
 }
 
 /**
- * When each group plays: `stagger` apart, starting `stagger` after `afterMs` (the last impact).
- * Measured from a FIXED base, so n groups end at afterMs + n * stagger - linear, not quadratic.
+ * When each group plays: `stagger` apart, the first one `firstGap` after `afterMs` (the last impact;
+ * `stagger` unless told otherwise, and 0 for a landing that starts AT its moment - 190f).
+ * Measured from a FIXED base, so n groups end at afterMs + firstGap + (n - 1) * stagger - linear, not quadratic.
  */
 export function scheduleStatusTells(
     afterMs: number,
     entries: ReadonlyArray<StatusEntry>,
     stagger: number,
+    firstGap: number = stagger,
 ): ScheduledStatusTell[] {
-    return groupStatusTells(entries).map((group, index) => ({ ...group, at: afterMs + stagger * (index + 1) }));
+    return groupStatusTells(entries).map((group, index) => ({ ...group, at: afterMs + firstGap + stagger * index }));
 }
 
 /**

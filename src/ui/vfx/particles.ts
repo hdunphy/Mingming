@@ -105,7 +105,10 @@ export interface ParticleSeed {
  * easy. Both are gone: `puff` IS the soft blob under the name the ticket gave it, and a shape with
  * no row asking for it is a shape nobody tunes.
  */
-export type ParticleShape = 'flame' | 'drop' | 'leaf' | 'spark' | 'puff' | 'ring' | 'streak';
+export type ParticleShape =
+    | 'flame' | 'drop' | 'leaf' | 'spark' | 'puff' | 'ring' | 'streak'
+    // Ticket 190f: the shapes the status landings are spelled with (the ticket names each of them).
+    | 'chevron' | 'plus' | 'star' | 'plank';
 
 interface Particle {
     alive: boolean;
@@ -572,6 +575,51 @@ function drawShape(ctx: CanvasRenderingContext2D, p: Particle, t: number): void 
             ctx.stroke();
             return;
         }
+        case 'chevron': {
+            // A "v" that points the way it is travelling up or down: sinking points down, rising up.
+            const dir = p.vy >= 0 ? 1 : -1;
+            const half = s * 1.4;
+            const rise = s * 0.55;
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.lineWidth = Math.max(1.5, s * 0.45);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(p.x - half, p.y - dir * rise);
+            ctx.lineTo(p.x, p.y + dir * rise);
+            ctx.lineTo(p.x + half, p.y - dir * rise);
+            ctx.stroke();
+            return;
+        }
+        case 'plus': {
+            const arm = s * 0.3;
+            ctx.fillRect(p.x - arm, p.y - s, arm * 2, s * 2);
+            ctx.fillRect(p.x - s, p.y - arm, s * 2, arm * 2);
+            return;
+        }
+        case 'star': {
+            // A four-pointed glint: long thin points, a small waist.
+            ctx.beginPath();
+            for (let i = 0; i < 8; i += 1) {
+                const radius = i % 2 === 0 ? s : s * 0.28;
+                const angle = (Math.PI / 4) * i - Math.PI / 2;
+                const px = p.x + Math.cos(angle) * radius;
+                const py = p.y + Math.sin(angle) * radius;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            return;
+        }
+        case 'plank':
+            // A short board, turning a little as it flies (the angle follows where it is).
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.x * 0.03 + p.y * 0.02);
+            ctx.fillRect(-s * 1.1, -s * 0.4, s * 2.2, s * 0.8);
+            ctx.restore();
+            return;
         case 'puff':
         default:
             /*

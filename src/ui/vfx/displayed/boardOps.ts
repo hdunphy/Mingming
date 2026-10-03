@@ -16,8 +16,9 @@ export type BoardOp =
  * - `impact`: with the hit on that body (a heal lands with the card on the body it heals);
  * - `first`: with the first impact of the card (the price of a cast: recoil, toll);
  * - `after`: after the last impact, with the statuses (a tick, a Bark Shield arriving).
+ * - `landing`: when the status landings have settled (190f: the Bark band, once the planks have locked in).
  */
-export type BoardWhen = 'impact' | 'first' | 'after';
+export type BoardWhen = 'impact' | 'first' | 'after' | 'landing';
 
 export interface TimedBoardOp {
     readonly when: BoardWhen;
