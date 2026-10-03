@@ -21,6 +21,7 @@ import { act } from 'react';
 import { globalBattleEventBus } from '../../engine/events';
 import { DEFAULT_SETTINGS, saveSettings } from '../settings/settings';
 import { setParticleSink, setStageAnchors } from './emit';
+import { battleClock, resetBattleClock } from './clock/battleClockRuntime';
 import { useCastSequence } from './useCastSequence';
 import * as statusTellsModule from './statusTells';
 import * as osTellsModule from './osTells';
@@ -44,6 +45,17 @@ const ANCHORS = {
     plaques: { ally: rect(20), foe: rect(1100) },
     reveal: rect(500), hand: rect(500), discard: rect(800), scale: 1,
 } as unknown as StageAnchors;
+
+/**
+ * TICKET 189b: the sequence plays on the BATTLE CLOCK now, not on setTimeout. `advance(ms)` closes
+ * the collector's burst window (the one real 0 ms timer left) and then moves game time.
+ */
+const advance = (ms: number): void => {
+    act(() => {
+        vi.advanceTimersByTime(0);
+        battleClock.advance(ms);
+    });
+};
 
 const Harness: React.FC<{ nonce?: number }> = ({ nonce = 0 }) => {
     // A fresh object per render, exactly as the reducer produces.
@@ -69,6 +81,7 @@ beforeEach(() => {
 
 afterEach(() => {
     act(() => { root.unmount(); });
+    resetBattleClock();
     vi.useRealTimers();
     setParticleSink(null);
     setStageAnchors(null);
@@ -95,7 +108,7 @@ describe('155a — a cast survives the re-render it causes', () => {
         // The render the dispatch causes, landing between the emit and the 0ms window close.
         act(() => { root.render(<Harness nonce={1} />); });
 
-        act(() => { vi.advanceTimersByTime(600); });
+        advance(600);
 
         expect(spawned.length).toBeGreaterThan(0);
     });
@@ -108,7 +121,7 @@ describe('155a — a cast survives the re-render it causes', () => {
             act(() => { root.render(<Harness nonce={i} />); });
         }
 
-        act(() => { vi.advanceTimersByTime(600); });
+        advance(600);
         expect(spawned.length).toBeGreaterThan(0);
     });
 
@@ -119,7 +132,7 @@ describe('155a — a cast survives the re-render it causes', () => {
         // version of the same bug.
         cast();
         act(() => { root.render(<Harness nonce={9} />); });
-        act(() => { vi.advanceTimersByTime(600); });
+        advance(600);
 
         const all = spawned.flat();
         expect(all.length).toBeGreaterThan(0);
@@ -136,7 +149,7 @@ describe('155a — a cast survives the re-render it causes', () => {
 
         cast();
         act(() => { root.render(<Harness nonce={1} />); });
-        act(() => { vi.advanceTimersByTime(600); });
+        advance(600);
 
         expect(spawned).toHaveLength(0);
     });
@@ -163,6 +176,7 @@ describe('155 deep dive 9 — a death plays at the slot', () => {
         // STATE's foe is at 100/100, so 100 is exactly lethal — the boundary, because `>=` versus
         // `>` here is the difference between a kill with no death FX and one with.
         lethalHit(100);
+        advance(0);                         // 189b: a death with no card is a beat, queued at the burst's end
         expect(spawned.flat().length).toBeGreaterThan(0);
     });
 
@@ -170,6 +184,7 @@ describe('155 deep dive 9 — a death plays at the slot', () => {
         // Otherwise every scratch would play a death, which is worse than none: the tell would stop
         // meaning a body has left the board.
         lethalHit(30);
+        advance(0);
         expect(spawned.flat()).toHaveLength(0);
     });
 
@@ -190,17 +205,17 @@ describe('155 deep dive 9 — a death plays at the slot', () => {
             }
         });
         // Close the window at 0ms
-        act(() => { vi.advanceTimersByTime(0); });
+        advance(0);
 
         // Advance to last impact + 60ms (180 flight + 240 trail + 60 stagger = 480ms)
-        act(() => { vi.advanceTimersByTime(480); });
+        advance(480);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenCalledWith('Sharp', 'ally');
         expect(spy).toHaveBeenCalledWith('Sharp', 'ally2');
         expect(spy).toHaveBeenCalledWith('Sharp', 'ally3');
 
         // Nothing fires at +120ms (another 60ms)
-        act(() => { vi.advanceTimersByTime(60); });
+        advance(60);
         expect(spy).toHaveBeenCalledTimes(3);
         spy.mockRestore();
     });
@@ -234,15 +249,15 @@ describe('171f — a hook\'s status is its own beat, after the card', () => {
         // Not at arrival.
         expect(hookSpy).not.toHaveBeenCalled();
 
-        act(() => { vi.advanceTimersByTime(0); });
+        advance(0);
         // The card: flight 180 + trail 220 + one status 60 = 460.
-        act(() => { vi.advanceTimersByTime(460); });
+        advance(460);
         expect(statusSpy).toHaveBeenCalledTimes(1);
         expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe');
         expect(hookSpy).not.toHaveBeenCalled();
 
         // The fuse, 200 ms later: its tell, then its Burn as a stack added.
-        act(() => { vi.advanceTimersByTime(200); });
+        advance(200);
         expect(hookSpy).toHaveBeenCalledTimes(1);
         expect(hookSpy.mock.calls[0][1]).toBe('skoll_v2');
         expect(statusSpy).toHaveBeenCalledTimes(2);
@@ -252,7 +267,7 @@ describe('171f — a hook\'s status is its own beat, after the card', () => {
         hookSpy.mockRestore();
     });
 
-    it('still plays a hook that applied no status at arrival (146g is unchanged for those)', () => {
+    it('plays a hook that applied no status as the card starts (189b: no longer at arrival)', () => {
         const hookSpy = vi.spyOn(osTellsModule, 'emitHookTell').mockImplementation(() => undefined);
         act(() => {
             globalBattleEventBus.emit({
@@ -263,6 +278,10 @@ describe('171f — a hook\'s status is its own beat, after the card', () => {
                 trigger: 'onPowerCalculated', timestamp: Date.now(),
             });
         });
+        // 146g wanted it linked to its cause. It is: it plays with the card that fired it, which for
+        // the first cast of a burst is the moment the burst closes, and for the fifth is when the
+        // fifth begins (see presenter.test).
+        advance(0);
         expect(hookSpy).toHaveBeenCalledTimes(1);
         hookSpy.mockRestore();
     });

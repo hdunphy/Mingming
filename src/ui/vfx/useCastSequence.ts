@@ -1,5 +1,6 @@
 /**
- * THE CAST SEQUENCE — ticket 146c, *"the row most of the feel lives in"*.
+ * THE CAST SEQUENCE — ticket 146c, *"the row most of the feel lives in"*, and since ticket 189b THE
+ * PRESENTER: one ordered queue for everything the board shows.
  *
  * Ruling 5, in Henry's words: *"Player card flies to the lane, then the animations play, then go to
  * discard … on a fire card a flame shoots across the screen in front of the card in the lane, hits
@@ -27,108 +28,51 @@
  * The AI resolves its whole turn in one synchronous burst — at 3v3 that can be seven casts before
  * the browser paints once. Without a queue they would all animate on top of each other and the
  * player would see one composite flash instead of seven plays.
+ *
+ * # TICKET 189b — ONE LINE FOR THE WHOLE STAGE
+ *
+ * Casts were queued, but a DoT tick, an expiry, a recoil or a death played the instant it arrived —
+ * so a Burn tick at a turn boundary could play in front of an impact still on its way, and every
+ * hook tell of a seven-cast burst played at once. Everything is a `Beat` now (`presenter/`), played
+ * by `PresenterQueue` on the battle clock, and this hook is the COLLECTOR: it sorts a synchronous
+ * burst of bus events into a cast window (or a loose burst, when no card is behind them), builds
+ * the beat, and enqueues it. The timeline of a beat is `presenter/castBeat.ts`. The hook returns
+ * the `CastPresenter` handle: `isIdle()` and `whenIdle()` for the enemy loop and the battle-end
+ * banner (189e).
  */
 
-import { useEffect, useRef } from 'react';
+
+import { useEffect, useMemo, useRef } from 'react';
 
 import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { getModifierBreakdown } from '../../engine/combatUtils';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
-import type { IBattleEntity, IBattleState, StatusType } from '../../engine/types';
-import { anchorFor, emitImpact, emitTrail } from './emit';
-import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from './trails';
+import type { IBattleEntity, IBattleState } from '../../engine/types';
+import type { TrailElement } from './trails';
+import { isHookStatus } from './hookStatusBeat';
+import { battleClock } from './clock/battleClockRuntime';
+import { PresenterQueue } from './presenter/PresenterQueue';
 import {
-    emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved,
-    emitStatusTick,
-} from './statusTells';
-import { emitHookTell } from './osTells';
-import { scheduleStatusTells } from './statusBurst';
-import { HOOK_BEAT_GAP_MS, isHookStatus } from './hookStatusBeat';
+    type LooseBurst, type PendingCast, buildCastBeat, buildLooseBeat, emptyCast, emptyLoose, isLooseEmpty,
+} from './presenter/castBeat';
 
-/** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
-export const FLIGHT_MS = 180;
-/** §2c: status tells land this far apart, after the impact. */
-export const STATUS_TELL_STAGGER_MS = 60;
+// Kept here so every existing importer (the reveal, the tests) still finds them.
+export { FLIGHT_MS, STATUS_TELL_STAGGER_MS } from './presenter/castBeat';
 
 /** Above this multiplier a hit is super-effective; below its reciprocal, resisted. */
 const SUPER_EFFECTIVE_AT = 1.2;
 const RESISTED_AT = 0.85;
 
-interface PendingCast {
-    readonly element: TrailElement;
-    readonly sourceId: string;
-    readonly targetIds: string[];
-    readonly doubled: boolean;
-    readonly resisted: boolean;
-    readonly statuses: Array<{ targetId: string; status: StatusType }>;
-    /** TICKET 171f: statuses a hook applied during this cast — played as their own beat after it. */
-    readonly hookStatuses: Array<{ hookId: string; targetId: string; status: StatusType }>;
-    /** TICKET 171f: the tell of each hook that applied one of those, held to play with them. */
-    readonly hookTells: Array<{ hookId: string; owner: IBattleEntity | undefined; osId?: string; daemonId?: string }>;
+/** What the rest of the screen asks the presenter. */
+export interface CastPresenter {
+    /** True when nothing is playing, nothing is queued and no burst is waiting to be queued. */
+    isIdle(): boolean;
+    /** Resolves when `isIdle()` is true. With vfx off it resolves at once. */
+    whenIdle(): Promise<void>;
 }
 
-/**
- * Steps 2-4 for one cast, on the clock.
- *
- * Returns how long it will take, so the queue knows when the next cast may start. That number is
- * also what §2c means by *"the hold extends to cover 2-4 so the sequence never truncates"* — the
- * reveal's 1200ms hold is longer than this in every case the game can produce, and the assertion
- * in the test file is what keeps that true if either number moves.
- */
-function playCast(cast: PendingCast, timers: number[]): number {
-    let last = 0;
-
-    cast.targetIds.forEach((targetId, index) => {
-        const from = anchorFor(cast.sourceId);
-        const to = anchorFor(targetId);
-        if (!from || !to) return;
-
-        // §2c: *"Side/All cards send one trail per target, 40 ms apart."* The stagger is what makes
-        // a three-target card read as three hits rather than as one wide flash.
-        const offset = FLIGHT_MS + index * TRAIL_STAGGER_MS;
-
-        timers.push(window.setTimeout(() => emitTrail(cast.element, from, to), offset));
-        timers.push(window.setTimeout(
-            () => emitImpact(cast.element, to, cast.doubled, cast.resisted),
-            offset + TRAIL_MS,
-        ));
-        last = Math.max(last, offset + TRAIL_MS);
-    });
-
-    // Step 4: the statuses, after the last impact. TICKET 166b: ONE tell per status, fired on every
-    // body that got it at the same instant (Henry: "don't stagger between mingmings"), 60 ms between
-    // different statuses, measured from a fixed base - the old loop re-read `last` and so grew each gap.
-    const afterImpact = last;
-    for (const tell of scheduleStatusTells(afterImpact, cast.statuses, STATUS_TELL_STAGGER_MS)) {
-        timers.push(window.setTimeout(() => {
-            for (const targetId of tell.targetIds) emitStatusApplied(tell.status, targetId);
-        }, tell.at));
-        last = Math.max(last, tell.at);
-    }
-
-    /*
-     * TICKET 171f — the hook beat, after the card. Henry: *"Its own animation that shows the status
-     * being added after the card."* One beat per hook, in the order they fired: the firmware's own
-     * signature tell, then its statuses pulse on the bodies they landed on. The float that names it
-     * ("+1 Burn · EMBER_FUSE") is `useBattleVfx`'s, on `HOOK_BEAT_DELAY_MS`.
-     */
-    const hookIds = [...new Set(cast.hookStatuses.map((entry) => entry.hookId))];
-    hookIds.forEach((hookId, index) => {
-        const at = last + HOOK_BEAT_GAP_MS * (index + 1);
-        const statuses = cast.hookStatuses.filter((entry) => entry.hookId === hookId);
-        const tell = cast.hookTells.find((entry) => entry.hookId === hookId);
-        timers.push(window.setTimeout(() => {
-            if (tell) emitHookTell(tell.owner, tell.osId, tell.daemonId, statuses[0]?.targetId);
-            for (const entry of statuses) emitStatusApplied(entry.status, entry.targetId, true);
-        }, at));
-        if (index === hookIds.length - 1) last = at;
-    });
-
-    return last;
-}
-
-export function useCastSequence(battleState: IBattleState | null): void {
+export function useCastSequence(battleState: IBattleState | null): CastPresenter {
     /*
      * ── TICKET 155a — WHY THIS IS A REF AND THE EFFECT IS MOUNT-SCOPED ───────────────────────
      *
@@ -156,15 +100,40 @@ export function useCastSequence(battleState: IBattleState | null): void {
         stateRef.current = battleState;
     });
 
+    // The queue and the collector's "is anything waiting" probe outlive an effect re-run, so the
+    // handle the screen holds stays valid.
+    const queue = useMemo(() => new PresenterQueue(battleClock), []);
+    const pendingRef = useRef<() => boolean>(() => false);
+
+    const presenter = useMemo<CastPresenter>(() => {
+        const idle = (): boolean => !pendingRef.current() && queue.isIdle();
+        return {
+            isIdle: idle,
+            whenIdle: async () => {
+                for (;;) {
+                    if (pendingRef.current()) {
+                        // A burst is collected and closes on the next task; look again after it.
+                        await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+                        continue;
+                    }
+                    if (queue.isIdle()) return;
+                    await queue.whenIdle();
+                }
+            },
+        };
+    }, [queue]);
+
     useEffect(() => {
         // Read once per fight, as `useImpactFeedback` does and for the same reason.
         const gates = resolveVfxGates(loadSettings());
         if (gates.vfx !== 'full') return;
 
-        const timers: number[] = [];
-        const queue: PendingCast[] = [];
+        const timers: ReturnType<typeof setTimeout>[] = [];
         let open: PendingCast | null = null;
-        let busyUntil = 0;
+        let loose: LooseBurst | null = null;
+        /** HP of each body as the burst has played it, so two hits that kill TOGETHER read as a kill. */
+        const burstHp = new Map<string, number>();
+        pendingRef.current = () => open !== null || loose !== null;
 
         const findEntity = (id: string): IBattleEntity | undefined => {
             const state = stateRef.current;
@@ -172,28 +141,36 @@ export function useCastSequence(battleState: IBattleState | null): void {
                 ?? state?.enemyParty.find((e) => e.id === id);
         };
 
-        /** Start the next cast if nothing is playing, or schedule the attempt for when it is. */
-        const pump = (): void => {
-            const now = performance.now();
-            if (now < busyUntil || queue.length === 0) return;
-            const cast = queue.shift();
-            if (!cast) return;
-            busyUntil = now + playCast(cast, timers);
-            if (queue.length > 0) {
-                timers.push(window.setTimeout(pump, Math.max(16, busyUntil - now)));
-            }
+        const flushOpen = (): void => {
+            if (!open) return;
+            const cast = open;
+            open = null;
+            queue.enqueue(buildCastBeat(cast));
         };
+        const flushLoose = (): void => {
+            if (!loose) return;
+            const burst = loose;
+            loose = null;
+            if (!isLooseEmpty(burst)) queue.enqueue(buildLooseBeat(burst));
+        };
+        const looseBurst = (): LooseBurst => (loose ??= emptyLoose());
 
-        const enqueue = (cast: PendingCast): void => {
-            queue.push(cast);
-            pump();
+        /** Did this hit take the body down? Tracks the burst's own HP, so a second hit counts. */
+        const takesDown = (targetId: string, applied: number): boolean => {
+            const victim = findEntity(targetId);
+            if (!victim || applied <= 0) return false;
+            const before = burstHp.get(targetId) ?? victim.currentHp;
+            const after = before - applied;
+            burstHp.set(targetId, after);
+            return before > 0 && after <= 0;
         };
 
         const handle = (event: BattleEvent): void => {
             switch (event.type) {
                 case 'PROGRAM_PLAYED': {
                     // The previous cast's window closes here: anything still open belonged to it.
-                    if (open) enqueue(open);
+                    flushLoose();
+                    flushOpen();
 
                     const data = GetProgramData(event.programId);
                     const source = findEntity(event.sourceId);
@@ -210,76 +187,65 @@ export function useCastSequence(battleState: IBattleState | null): void {
                         : null;
                     const effectiveness = breakdown?.effectiveness ?? 1;
 
-                    open = {
+                    open = emptyCast({
                         element: (data.element ?? 'None') as TrailElement,
                         sourceId: event.sourceId,
                         targetIds: [event.targetId],
                         doubled: effectiveness >= SUPER_EFFECTIVE_AT,
                         resisted: effectiveness <= RESISTED_AT,
-                        statuses: [],
-                        hookStatuses: [],
-                        hookTells: [],
-                    };
+                    });
                     return;
                 }
                 case 'STATUS_APPLIED': {
                     // Belongs to the cast whose window is open. A status that lands with no window
-                    // is an engine expiry or a turn-boundary effect, and 146f plays it immediately
-                    // rather than queueing it behind a cast that is not happening.
+                    // is an engine expiry or a turn-boundary effect: a loose beat, queued behind
+                    // whatever is still playing (189b) rather than played over it.
                     if (open && isHookStatus(event.source)) {
                         open.hookStatuses.push({ hookId: event.source.hookId, targetId: event.targetId, status: event.status });
                     } else if (open) open.statuses.push({ targetId: event.targetId, status: event.status });
-                    else emitStatusApplied(event.status, event.targetId);
+                    else looseBurst().applied.push({ status: event.status, targetId: event.targetId });
                     return;
                 }
                 case 'STATUS_REMOVED': {
-                    // §2f: the badge shrinks and a grey puff leaves the sprite. Immediate rather
-                    // than queued — a removal is usually an expiry at a turn boundary, with no
-                    // cast to sequence it behind.
-                    emitStatusRemoved(event.targetId);
+                    // §2f: the badge shrinks and a grey puff leaves the sprite. With the cast that
+                    // consumed it, or as its own beat at a turn boundary.
+                    (open ? open.removals : looseBurst().removals).push(event.targetId);
                     return;
                 }
                 case 'DAMAGE_TAKEN': {
+                    const applied = event.damage?.applied ?? event.amount;
+                    const dies = takesDown(event.targetId, applied);
+
                     /*
-                     * §2f's tick, and the recoil/toll pulse. Played AT ARRIVAL rather than through
-                     * the cast queue, on purpose: a DoT tick happens at a turn boundary with no
-                     * cast in flight, and a recoil is simultaneous with its own card rather than
-                     * downstream of it. Queueing either would delay it behind a sequence it is not
-                     * part of.
+                     * §2f's tick, and the recoil/toll pulse. Each is its own beat now (or rides on
+                     * the cast it belongs to), queued behind whatever is still playing: a tick at
+                     * a turn boundary no longer plays in front of an impact still on its way.
                      */
                     if (event.cause === 'status' && event.status) {
-                        emitStatusTick(event.status, event.targetId);
+                        (open ? open.ticks : looseBurst().ticks).push({ status: event.status, targetId: event.targetId });
+                        if (dies) (open ? open.deaths : looseBurst().deaths).push(event.targetId);
                         return;
                     }
                     if (event.cause === 'recoil' || event.cause === 'toll') {
-                        emitSelfCost(event.targetId);
+                        (open ? open.selfCosts : looseBurst().selfCosts).push(event.targetId);
+                        if (dies) (open ? open.deaths : looseBurst().deaths).push(event.targetId);
                         return;
                     }
-                    if ((event.damage?.absorbed ?? 0) > 0) emitShieldAbsorb(event.targetId);
+                    if ((event.damage?.absorbed ?? 0) > 0) {
+                        (open ? open.shields : looseBurst().shields).push(event.targetId);
+                    }
 
                     /*
                      * TICKET 155, DEEP DIVE 9 — THE DEATH FX 146 WAS SUPPOSED TO HAVE.
                      *
-                     * `BattleStage.test` has said since 145 that the slot's anchor must survive a
-                     * death *"because 146 plays the death FX AT the slot"*, and 146 shipped with no
-                     * death branch and no recipe. The scaffold was tested; the thing was not built.
+                     * There is no death EVENT on the bus, so the predicate is derived: events fire
+                     * synchronously inside the reducer, so the ref holds the HP from BEFORE the
+                     * burst, and `burstHp` carries what the burst has already taken off it.
                      *
-                     * There is no death EVENT on the bus, so the predicate is the one
-                     * `useImpactFeedback` already uses: events fire synchronously inside the
-                     * reducer, so the ref holds the HP from BEFORE this hit, and damage at or past
-                     * it is lethal. Deriving it twice in two files is worth a shared helper the day
-                     * a third caller wants it; today it is four lines and one comment each.
-                     *
-                     * Plays at arrival rather than through the queue — a body hitting the floor is
-                     * simultaneous with the hit, not downstream of it.
+                     * TICKET 189b: it plays AT THE IMPACT on that body (it used to play at arrival,
+                     * before the trail had left).
                      */
-                    {
-                        const victim = findEntity(event.targetId);
-                        const applied = event.damage?.applied ?? event.amount;
-                        if (victim && victim.currentHp > 0 && applied >= victim.currentHp) {
-                            emitDeath(event.targetId);
-                        }
-                    }
+                    if (dies) (open ? open.deaths : looseBurst().deaths).push(event.targetId);
 
                     /*
                      * A Side or All card hits several targets, and the engine tells us who only
@@ -287,46 +253,36 @@ export function useCastSequence(battleState: IBattleState | null): void {
                      * field, because the card says "Side" and the BOARD says which three bodies
                      * that was — after deaths, after a taunt redirect, after everything.
                      */
-                    if (open && event.cause !== 'status' && !open.targetIds.includes(event.targetId)) {
+                    if (open && !open.targetIds.includes(event.targetId)) {
                         open.targetIds.push(event.targetId);
                     }
                     return;
                 }
                 case 'HOOK_FIRED': {
                     /*
-                     * TICKET 146g. Played at arrival rather than queued behind a cast: a hook fires
-                     * DURING the cast that triggered it, and the whole point of the tell is that
-                     * the player connects the two. Delaying it past the sequence would break the
-                     * only link it has to its cause.
-                     *
-                     * The event is already guarded against AI lookahead in the engine (146b), so
-                     * everything reaching here happened in the real fight.
-                     *
-                     * TICKET 171f is the one exception, by Henry's ruling: a hook that put a STATUS on
-                     * someone during this cast is held and played with that status, after the card
-                     * (see `playCast`). Its statuses arrive before this event in the same burst, so
-                     * they are already in the window. Every other hook still plays at arrival.
+                     * TICKET 146g, 171f, 189b. A hook that put a STATUS on someone during this cast
+                     * is held and played with that status, after the card (171f, Henry's ruling).
+                     * Its statuses arrive before this event in the same burst, so they are already
+                     * in the window. Every other hook is part of the cast it fired in and plays as
+                     * that card starts (it used to play at arrival, which for a burst of casts
+                     * meant all of them at once); with no cast behind it, it is its own beat.
                      */
+                    const owner = findEntity(event.ownerId);
+                    const info = { hookId: event.hookId, owner, osId: event.osId, daemonId: event.daemonId };
                     if (open && !open.hookTells.some((t) => t.hookId === event.hookId)
                         && open.hookStatuses.some((entry) => entry.hookId === event.hookId)) {
-                        open.hookTells.push({
-                            hookId: event.hookId, owner: findEntity(event.ownerId), osId: event.osId, daemonId: event.daemonId,
-                        });
+                        open.hookTells.push(info);
                         return;
                     }
                     if (open?.hookTells.some((t) => t.hookId === event.hookId)) return;
-                    emitHookTell(
-                        findEntity(event.ownerId),
-                        event.osId,
-                        event.daemonId,
-                        open?.targetIds[0],
-                    );
+                    if (open) open.startTells.push(info);
+                    else looseBurst().hookTells.push({ ...info, targetId: undefined });
                     return;
                 }
                 case 'TURN_END':
                 case 'TURN_START': {
-                    // A turn boundary closes any window: nothing more is coming for that cast.
-                    if (open) { enqueue(open); open = null; }
+                    // A turn boundary closes any cast window: nothing more is coming for that cast.
+                    flushOpen();
                     return;
                 }
                 default:
@@ -338,24 +294,32 @@ export function useCastSequence(battleState: IBattleState | null): void {
             /*
              * The window closes at the end of the synchronous burst the reducer produced, which is
              * what a zero-delay timeout waits for: every event of one cast has arrived by the time
-             * the task queue gets a turn. Cheaper and more honest than guessing a duration.
+             * the task queue gets a turn. Cheaper and more honest than guessing a duration. This is
+             * the one real-time timer left here: it batches a burst, it does not time a picture.
              */
-            if (open) {
-                const closing = open;
-                setTimeout(() => {
-                    if (open === closing) { open = null; enqueue(closing); }
-                }, 0);
+            if (open || loose) {
+                const closingCast = open;
+                const closingLoose = loose;
+                timers.push(setTimeout(() => {
+                    if (closingCast && open === closingCast) flushOpen();
+                    if (closingLoose && loose === closingLoose) flushLoose();
+                    if (!open && !loose) burstHp.clear();
+                }, 0));
             }
         });
 
         return () => {
             unsubscribe();
-            for (const id of timers) window.clearTimeout(id);
+            for (const id of timers) clearTimeout(id);
             timers.length = 0;
-            queue.length = 0;
+            queue.clear();
             open = null;
+            loose = null;
+            pendingRef.current = () => false;
         };
         // MOUNT-SCOPED. See the note at the top of this hook: a dependency here tears the cast
         // window down inside the dispatch that opened it.
-    }, []);
+    }, [queue]);
+
+    return presenter;
 }
