@@ -9,6 +9,7 @@ import { globalBattleEventBus } from '../../engine/events';
 import { createSparseBattleState, createSparseEntity } from '../../debug/scenarios/scenarioTestSupport';
 import type { IBattleState } from '../../engine/types';
 import * as audioEngine from '../audio/AudioEngine';
+import { emitStageMoment } from '../vfx/impact/stageMoments';
 
 declare global {
     var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -120,10 +121,12 @@ describe('167i — the absorbed float shows a whole number', () => {
     it('a hit that a Bark Shield eats 13.7 of floats "-14 🛡", not the raw figure', () => {
         vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
         act(() => {
-            globalBattleEventBus.emit({
-                type: 'DAMAGE_TAKEN', targetId: 'p1', amount: 5, element: 'Fire', timestamp: Date.now(),
-                damage: { absorbed: 13.7 },
-            } as never);
+            // 189d: a hit is said by the presenter's stage moment at the impact, not by the event.
+            emitStageMoment({
+                kind: 'hit', targetId: 'p1', applied: 5, absorbed: 13.7, element: 'Fire', maxHp: 100,
+                isLethal: false, definitionId: undefined, sourceId: undefined, isCritical: false,
+                effectiveness: 1, step: 0, targets: 1,
+            });
         });
         act(() => { vi.advanceTimersByTime(10); });
         const texts = (seen.vfx!.unitFx['p1']?.floats ?? []).map(f => f.text);

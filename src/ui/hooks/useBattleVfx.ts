@@ -1,13 +1,13 @@
 import React from 'react';
 import { globalBattleEventBus } from '../../engine/events';
-import type { IBattleEntity, IBattleState, StatusType } from '../../engine/types';
+import type { IBattleState, StatusType } from '../../engine/types';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { GetProgramData } from '../../engine/data/programRegistry';
 import { JS_COLOR } from '../theme/jsColors';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
 import {
-    castCue, causeCue, cryCue, effectivenessAgainst, HIT_BIG_FRACTION, hookCue, impactCue,
+    castCue, causeCue, cryCue, HIT_BIG_FRACTION, hookCue, impactCue,
     isPlayerSide, shieldCue, statusCue, tickCue,
 } from '../audio/battleCues';
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
@@ -15,6 +15,8 @@ import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
 import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '../vfx/hookStatusBeat';
 import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
 import { driverText } from '../labels/driverText';
+import { damageSeverity } from '../vfx/impact/impactMath';
+import { type StageMoment, onStageMoment } from '../vfx/impact/stageMoments';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -49,7 +51,7 @@ export interface UnitFx {
     floats: CombatFloat[];
     /** Increments on every damaging hit; keys the flash overlay + shake. */
     hitKey: number;
-    /** Damage as a fraction of the target's max HP (0..1) for intensity scaling. */
+    /** How hard the last hit landed, 0..1 (`damageSeverity`): the shake reads it. */
     hitIntensity: number;
     /** Increments on every heal; keys the green pulse. */
     healKey: number;
@@ -118,8 +120,6 @@ export const PLAYER_CARD_HOLD_MS = 1500;
 
 export interface BattleVfx {
     unitFx: Record<string, UnitFx>;
-    /** Increments on big hits (>= ARENA_SHAKE_FRACTION of max HP) — arena shake. */
-    shakeKey: number;
     /** Manually nudge a unit's lunge (used for enemy EXECUTE_INTENT, which emits no PROGRAM_PLAYED). */
     triggerLunge: (entityId: string) => void;
     /** The most recent play, for the centre-screen reveal. Null once it has aged out. */
@@ -138,8 +138,6 @@ export const EMPTY_UNIT_FX: UnitFx = {
 
 /** Hits >= this fraction of max HP render as crits (bigger, rotated, glowing). */
 const CRIT_FRACTION = 0.25;
-/** Hits >= this fraction of max HP also shake the whole arena. */
-const ARENA_SHAKE_FRACTION = 0.33;
 /** Cap concurrent floats per unit; oldest are dropped beyond this. */
 const MAX_FLOATS_PER_UNIT = 8;
 /** Must outlive the 1.8 s float animation (`FxFloats`, ticket 167h). */
@@ -160,14 +158,6 @@ function statusPitch(status: string): number {
     for (let i = 0; i < status.length; i++) h = (h * 31 + status.charCodeAt(i)) | 0;
     return 0.85 + (Math.abs(h) % 8) * 0.06; // 0.85 .. 1.27
 }
-/** Element 'None' damage stays red-hot instead of the gray element accent, so it never reads as "absorbed". */
-/**
- * How many stacks of this status the target is carrying — ticket 147d, so a tick can rise with it.
- *
- * Read off the PRE-dispatch snapshot, like everything else in this hook: bus events fire
- * synchronously inside the reducer, so this is the stack count the tick was computed from rather
- * than what is left after it.
- */
 /**
  * Impacts closer together than this are one cast landing on several bodies — ticket 147d.
  *
@@ -209,21 +199,16 @@ export function nextSeriesStep(
         : 0;
 }
 
-function stacksOf(target: IBattleEntity | undefined, status: StatusType | undefined): number {
-    if (!target || !status) return 0;
-    return target.statusEffects.find((effect) => effect.type === status)?.stacks ?? 0;
-}
 
 const NEUTRAL_DAMAGE_COLOR = JS_COLOR.hpLow;
 
 interface VfxState {
     unitFx: Record<string, UnitFx>;
-    shakeKey: number;
     playedCard: PlayedCardAnnouncement | null;
 }
 
 export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
-    const [vfx, setVfx] = React.useState<VfxState>({ unitFx: {}, shakeKey: 0, playedCard: null });
+    const [vfx, setVfx] = React.useState<VfxState>({ unitFx: {}, playedCard: null });
 
     // Latest engine state for max-HP lookups inside the (synchronous) listener.
     //
@@ -239,19 +224,6 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     const floatIdRef = React.useRef(1);
     const revealKeyRef = React.useRef(1);
     /*
-     * Which impact of a multi-target cast this is — ticket 147d, feeding 147b's `step`.
-     *
-     * The hook sees one `DAMAGE_TAKEN` at a time and is never told a Side card is in progress, so
-     * the series is DETECTED rather than counted: impacts less than `SAME_CAST_MS` apart are one
-     * cast landing on several bodies, and anything later starts over at 0.
-     *
-     * Detecting matters. A bare counter would pitch a LONE hit — the common case — by whatever
-     * the counter happened to be sitting at, and would also exempt it from coalescing, which is
-     * the protection `step` is allowed to bypass precisely because the caller has stated intent.
-     */
-    const hitStepRef = React.useRef(0);
-    const lastHitAtRef = React.useRef(0);
-    /*
      * The same series detection for a HOOK firing several times in one cast — ticket 162e.
      *
      * EMBER_FUSE moved to a per-hit trigger, so Pack Tactics now fires it three times inside one
@@ -260,7 +232,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
      * ONE PROC while the board took three Burn, and the audio would be telling them something
      * untrue about the thing they are trying to learn.
      *
-     * Keyed on the hook id rather than counted blind, for the reason the note above gives and one
+     * Keyed on the hook id rather than counted blind, for the reason `nextSeriesStep` gives and one
      * more: two different firmware firing in the same beat are not a series, they are two events,
      * and stepping the second would pitch it for no reason the player could work out.
      */
@@ -416,151 +388,125 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             return s.playerParty.find(e => e.id === id) ?? s.enemyParty.find(e => e.id === id);
         };
 
+        /**
+         * A damage or heal moment LANDS (189d): the float, the sounds, the flash. It used to be the
+         * `DAMAGE_TAKEN` and `HEAL` cases of the handler below; the logic is unchanged, only the
+         * moment it runs at is, and it now reads the moment (captured from the PRE-burst state, so a
+         * kill is a kill) instead of looking the body up as it goes.
+         */
+        const landMoment = (moment: StageMoment): void => {
+            if (moment.kind === 'heal') {
+                playSfx('heal');
+                pushFloat(moment.targetId, 'heal', `+${moment.amount}`, HEAL_COLOR);
+                setVfx(prev => {
+                    const unit = prev.unitFx[moment.targetId] ?? EMPTY_UNIT_FX;
+                    return {
+                        ...prev,
+                        unitFx: {
+                            ...prev.unitFx,
+                            [moment.targetId]: { ...unit, healKey: unit.healKey + 1 },
+                        },
+                    };
+                });
+                return;
+            }
+
+            const { targetId, absorbed, applied, element } = moment;
+            /*
+             * RULING 2 (Henry, 2026-08-24): *"I don't see damage indicators when going against bark
+             * shield. I need to know how much bark I take off."* The shield portion gets its own
+             * float, from `absorbed` (the same record the card face reads), because a shield and HP
+             * are two resources coming off two bars.
+             *
+             * ── TICKET 147d: DAMAGE IS FOUR DIFFERENT SOUNDS ───────────────────────────────────
+             * A Burn tick, a toll paid and a sword landing must not all play `hit`: 147 §4 is
+             * explicit that a tick is *"**never** the impact sound"*, and the player has to be able
+             * to tell "the board is hurting me" from "I am being hit" with their eyes elsewhere.
+             */
+            const isHit = moment.kind === 'hit';
+            if (moment.kind === 'tick') {
+                playSfx(tickCue(moment.status), { pitch: pitchForStacks(moment.stacks) });
+            } else if (moment.kind === 'cost') {
+                const selfInflicted = causeCue(moment.cause);
+                if (selfInflicted) playSfx(selfInflicted);
+            }
+
+            if (absorbed > 0) {
+                pushFloat(targetId, 'absorbed', `-${absorbedAmount(absorbed)} 🛡`, ABSORB_COLOR);
+            }
+            /*
+             * Three shield moments, not one (147 §8): the bark held (`blockedByBark`), the bark broke
+             * and the rest landed (`barkBreak`), or something reduced the hit to nothing without a
+             * shield to credit (`absorbedNoDamage`).
+             */
+            if (isHit) {
+                const shield = shieldCue(absorbed, applied);
+                if (shield) playSfx(shield);
+            }
+
+            if (applied <= 0) {
+                // Nothing reached HP. The shield float above is the whole readout; the wordy
+                // fallback is kept only for an absorption we could not quantify.
+                if (absorbed <= 0) pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
+                return;
+            }
+            const frac = moment.maxHp > 0 ? applied / moment.maxHp : 0;
+            const isCrit = (isHit && moment.isCritical) || frac >= CRIT_FRACTION;
+            /*
+             * THE IMPACT LADDER — 147 §8. Effectiveness decides the cue, damage decides the pitch and
+             * whether the sub-thump is layered under it, and a lethal hit adds the power-down and the
+             * dying body's cry on top. Ticks and tolls made their own sound above.
+             *
+             * 189d: each target of a card is the next of a stated series (`step`, counted by the
+             * cast, not detected by the clock), so the 40 ms stagger does not fall inside the 60 ms
+             * coalescing window and three bodies take three audible hits.
+             */
+            if (isHit) {
+                playSfx(impactCue(element, moment.effectiveness), {
+                    intensity: Math.min(1, frac),
+                    pitch: pitchForDamage(frac),
+                    step: Math.min(moment.step, MAX_HIT_STEP),
+                });
+                if (frac >= HIT_BIG_FRACTION || moment.isLethal) playSfx('hitBig', { intensity: 1 });
+            }
+            if (moment.isLethal) {
+                // A power-down, not a scream: 147 §8 — they are robots. The cry goes under it, which
+                // is the Pokémon model (one call, on entry and on faint).
+                playSfx('kill');
+                const cry = cryCue(moment.definitionId);
+                if (cry) playSfx(cry);
+            }
+            const color =
+                element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
+            pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${applied}`, color);
+            setVfx(prev => {
+                const unit = prev.unitFx[targetId] ?? EMPTY_UNIT_FX;
+                return {
+                    ...prev,
+                    unitFx: {
+                        ...prev.unitFx,
+                        // `hitIntensity` is the hit's SEVERITY now (189d): the same 0..1 the
+                        // hit-stop and the shakes run off.
+                        [targetId]: {
+                            ...unit,
+                            hitKey: unit.hitKey + 1,
+                            hitIntensity: damageSeverity(applied, moment.maxHp),
+                        },
+                    },
+                };
+            });
+        };
+        const unsubscribeMoments = onStageMoment(landMoment);
+
         const unsubscribe = globalBattleEventBus.subscribe(event => {
             switch (event.type) {
-                case 'DAMAGE_TAKEN': {
-                    const { targetId, amount, element } = event;
-                    /*
-                     * RULING 2 (Henry, 2026-08-24): *"I don't see damage indicators when going
-                     * against bark shield. I need to know how much bark I take off."*
-                     *
-                     * A shield absorbs inside `onPostDamage`, so `amount` is what got PAST it — a
-                     * fully absorbed hit used to render the word ABSORBED and no number, and a
-                     * partial one rendered only the HP half, with the bark chip invisible. The
-                     * shield portion now gets its own float, from `event.damage.absorbed`, which is
-                     * the same record the card face reads (`IDamageRecord`). Two numbers, because
-                     * they are two different resources coming off two different bars.
-                     */
-                    const absorbed = event.damage?.absorbed ?? 0;
-
-                    /*
-                     * ── TICKET 147d: DAMAGE IS FOUR DIFFERENT SOUNDS ───────────────────────
-                     *
-                     * `DAMAGE_TAKEN` carries a `cause` (146b) and this hook ignored it, so a Burn
-                     * tick, a toll paid and a sword landing all played `hit`. 147 §4 is explicit
-                     * that a tick is *"**never** the impact sound"* — a player has to be able to
-                     * tell "the board is hurting me" from "I am being hit" with their eyes
-                     * elsewhere, and that is the single most useful thing sound does here.
-                     */
-                    const tick = event.cause === 'status';
-                    const selfInflicted = causeCue(event.cause);
-                    if (tick) {
-                        playSfx(tickCue(event.status), {
-                            pitch: pitchForStacks(stacksOf(findEntity(targetId), event.status)),
-                        });
-                    } else if (selfInflicted) {
-                        playSfx(selfInflicted);
-                    }
-
-                    if (absorbed > 0) {
-                        pushFloat(targetId, 'absorbed', `-${absorbedAmount(absorbed)} 🛡`, ABSORB_COLOR);
-                    }
-                    /*
-                     * Three shield moments, not one (147 §8): the bark held (`blockedByBark`),
-                     * the bark broke and the rest landed (`barkBreak`), or something reduced the
-                     * hit to nothing without a shield to credit (`absorbedNoDamage`). They are
-                     * three different pieces of news about whether that wall is still there.
-                     */
-                    if (!tick && !selfInflicted) {
-                        const shield = shieldCue(absorbed, amount);
-                        if (shield) playSfx(shield);
-                    }
-
-                    if (amount <= 0) {
-                        // Nothing reached HP. The shield float above is the whole readout; the
-                        // wordy fallback is kept only for an absorption we could not quantify
-                        // (a hand-built event with no ledger, or a non-shield reduction to zero).
-                        if (absorbed <= 0) {
-                            pushFloat(targetId, 'absorbed', 'ABSORBED', ABSORB_COLOR);
-                        }
-                        return;
-                    }
-                    const target = findEntity(targetId);
-                    const maxHp = target?.maxHp ?? 0;
-                    const frac = maxHp > 0 ? amount / maxHp : 0;
-                    const isCrit = event.isCritical === true || frac >= CRIT_FRACTION;
-                    // stateRef still holds the pre-dispatch snapshot (events fire
-                    // synchronously inside the reducer), so currentHp is the HP
-                    // *before* this hit → HP→0 transition = lethal hit.
-                    const isLethal = !!target && target.currentHp > 0 && amount >= target.currentHp;
-                    /*
-                     * THE IMPACT LADDER — 147 §8. Effectiveness decides the cue, damage decides the
-                     * pitch and whether the sub-thump is layered under it, and a lethal hit adds
-                     * the power-down and the dying body's cry on top.
-                     *
-                     * Ticks and tolls never reach here: they made their own sound above and a
-                     * `return` would have skipped the damage float, which they still deserve.
-                     */
-                    if (!tick && !selfInflicted) {
-                        const effectiveness = effectivenessAgainst(element, target);
-                        // One cast landing on several bodies, or a new cast? 146c staggers a
-                        // Side card's impacts by 40ms; the next cast is hundreds of ms away.
-                        const at = typeof performance !== 'undefined' ? performance.now() : Date.now();
-                        // 162e: the same helper the hook path uses — one series rule, one place.
-                        // The key is constant here because every impact of a cast IS the series;
-                        // `lastHitAtRef` is what separates one cast from the next.
-                        const hitStep = nextSeriesStep(
-                            { key: 'impact', step: hitStepRef.current, at: lastHitAtRef.current },
-                            'impact', at,
-                        );
-                        hitStepRef.current = hitStep;
-                        lastHitAtRef.current = at;
-                        playSfx(impactCue(element, effectiveness), {
-                            intensity: Math.min(1, frac),
-                            pitch: pitchForDamage(frac),
-                            // Each target of a Side card is the next of a stated series — see
-                            // `SfxOptions.step`. Without it the 40ms stagger falls inside the 60ms
-                            // coalescing window and three bodies take one audible hit.
-                            step: hitStep,
-                        });
-                        if (frac >= HIT_BIG_FRACTION || isLethal) playSfx('hitBig', { intensity: 1 });
-                    }
-                    if (isLethal) {
-                        // A power-down, not a scream: 147 §8 — they are robots. The cry goes under
-                        // it, which is the Pokémon model (one call, on entry and on faint).
-                        playSfx('kill');
-                        const cry = cryCue(target?.definitionId);
-                        if (cry) playSfx(cry);
-                    }
-                    const color =
-                        element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
-                    pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${amount}`, color);
-                    setVfx(prev => {
-                        const unit = prev.unitFx[targetId] ?? EMPTY_UNIT_FX;
-                        return {
-                            // Spread, unlike every sibling branch, which listed both fields by
-                            // hand. That was safe while `VfxState` had exactly two fields and
-                            // silently dropped the third the moment one was added.
-                            ...prev,
-                            unitFx: {
-                                ...prev.unitFx,
-                                [targetId]: {
-                                    ...unit,
-                                    hitKey: unit.hitKey + 1,
-                                    hitIntensity: Math.min(1, frac),
-                                },
-                            },
-                            shakeKey: frac >= ARENA_SHAKE_FRACTION ? prev.shakeKey + 1 : prev.shakeKey,
-                        };
-                    });
-                    return;
-                }
-                case 'HEAL': {
-                    if (event.amount <= 0) return;
-                    playSfx('heal');
-                    pushFloat(event.targetId, 'heal', `+${event.amount}`, HEAL_COLOR);
-                    setVfx(prev => {
-                        const unit = prev.unitFx[event.targetId] ?? EMPTY_UNIT_FX;
-                        return {
-                            ...prev,
-                            unitFx: {
-                                ...prev.unitFx,
-                                [event.targetId]: { ...unit, healKey: unit.healKey + 1 },
-                            },
-                        };
-                    });
-                    return;
-                }
+                /*
+                 * TICKET 189d — `DAMAGE_TAKEN` AND `HEAL` ARE NOT HEARD HERE ANY MORE.
+                 *
+                 * The engine says them at play, all at once. The presenter says them again at the
+                 * impact, as a stage moment (`vfx/impact/stageMoments`), and `landMoment` below is
+                 * where the number, the shield float, the impact ladder and the heal float live now.
+                 */
                 case 'STATUS_APPLIED': {
                     // TICKET 171f: a hook's status is its own beat, after the card. See hookBurstRef.
                     if (isHookStatus(event.source)) {
@@ -715,6 +661,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
         const timeouts = pendingTimeoutsRef.current;
         return () => {
             unsubscribe();
+            unsubscribeMoments();
             timeouts.forEach(clearTimeout);
             timeouts.length = 0;
             statusBurstRef.current = null;
@@ -722,5 +669,5 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
         };
     }, [triggerLunge]);
 
-    return { unitFx: vfx.unitFx, shakeKey: vfx.shakeKey, triggerLunge, playedCard: vfx.playedCard };
+    return { unitFx: vfx.unitFx, triggerLunge, playedCard: vfx.playedCard };
 }

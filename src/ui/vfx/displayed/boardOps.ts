@@ -3,6 +3,7 @@
  * collector can record it from a bus event and the beat can apply it at the moment it lands.
  */
 
+import type { MomentDraft } from '../impact/stageMoments';
 import type { DisplayedBoard } from './DisplayedBoard';
 
 export type BoardOp =
@@ -21,6 +22,14 @@ export type BoardWhen = 'impact' | 'first' | 'after';
 export interface TimedBoardOp {
     readonly when: BoardWhen;
     readonly op: BoardOp;
+    /** TICKET 189d: what the screen says as this lands (the number, the sound, the freeze, the shake). */
+    readonly moment?: MomentDraft;
+}
+
+/** An op with no card behind it: it lands as its burst plays. */
+export interface LooseOp {
+    readonly op: BoardOp;
+    readonly moment?: MomentDraft;
 }
 
 /** The slice of the board a beat needs. A test passes a spy. */

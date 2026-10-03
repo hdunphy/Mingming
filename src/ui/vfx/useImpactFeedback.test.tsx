@@ -1,50 +1,39 @@
 // @vitest-environment jsdom
 /**
- * TICKET 146e — what the subscriber does with each `cause`.
+ * TICKET 146e, rewritten for 189d — what the subscriber does with each KIND of moment.
  *
- * `hitStop.test.ts` covers the curve. This covers the gate, which is where the row can actually
- * hurt the game: a Poison deck whose every tick froze the screen and shook the board would be
- * unplayable, and no other test in the repo would notice.
+ * It used to read the engine's `DAMAGE_TAKEN` and tell attacks from ticks by `cause`; since 189d it
+ * hears the presenter's stage moments, and the collector has already sorted the causes (that is
+ * tested in `impact/impactMoments.integration.test`). This covers the gate, which is where the row
+ * can actually hurt the game: a Poison deck whose every tick froze the screen and shook the board
+ * would be unplayable, and no other test in the repo would notice.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
-import { act } from 'react';
-import { useAnimation } from 'framer-motion';
+import { act, useRef } from 'react';
 
-import { globalBattleEventBus, type DamageCause } from '../../engine/events';
 import { DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY, saveSettings } from '../settings/settings';
 import { battleClock, resetBattleClock } from './clock/battleClockRuntime';
 import { isHitStopped } from './hitStop';
+import { cameraShake, spriteShakes } from './impact/impactRuntime';
+import { type StageMoment, emitStageMoment } from './impact/stageMoments';
 import { useImpactFeedback } from './useImpactFeedback';
-import type { IBattleState } from '../../engine/types';
 
 declare global {
     var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
 }
-// React only accepts `act` from a runner that says it is one. Same declaration `ErrorBoundary.test`
-// uses; without it every `act` here logs a warning and the assertions still pass, which is worse.
+// React only accepts `act` from a runner that says it is one.
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-/** One 100 HP ally, unhurt. Enough for `maxHp` and the lethal check; nothing else is read. */
-const STATE = {
-    playerParty: [{ id: 'ally', maxHp: 100, currentHp: 100 }],
-    enemyParty: [{ id: 'foe', maxHp: 100, currentHp: 100 }],
-} as unknown as IBattleState;
-
 /**
- * A fresh state object per render, which is what the reducer actually hands back.
- *
- * TICKET 155a: the version of this harness that shipped passed `STATE` — one constant object — and
- * never re-rendered. That is why the suite was green while 146e had never once produced a hit-stop
- * in a real fight: `[battleState]` tore the subscription down on the re-render the dispatch caused,
- * and its cleanup cancelled the stop that the same dispatch had just requested.
- *
- * `nonce` exists to force a new object identity, exactly as a play does.
+ * A fresh render per call, which is what a play does (155a): the version of this harness that shipped
+ * with one constant state object and no re-render is why the suite was green while 146e had never once
+ * produced a hit-stop in a real fight.
  */
 const Harness: React.FC<{ nonce?: number }> = ({ nonce = 0 }) => {
-    const state = { ...STATE, __nonce: nonce } as unknown as IBattleState;
-    useImpactFeedback(state, useAnimation());
-    return null;
+    const ref = useRef<HTMLDivElement>(null);
+    useImpactFeedback(ref);
+    return <div ref={ref} data-nonce={nonce} />;
 };
 
 let container: HTMLDivElement;
@@ -65,99 +54,138 @@ afterEach(() => {
     localStorage.clear();
 });
 
-const hit = (cause: DamageCause | undefined, applied: number, targetId = 'ally') => {
+const damage = { targetId: 'ally', absorbed: 0, element: 'None' as const, maxHp: 100, isLethal: false, definitionId: undefined };
+
+const hit = (applied: number, over: Partial<Extract<StageMoment, { kind: 'hit' }>> = {}): void => {
     act(() => {
-        globalBattleEventBus.emit({
-            type: 'DAMAGE_TAKEN', targetId, amount: applied, element: 'None', cause,
-            damage: { raw: applied, absorbed: 0, applied } as never, timestamp: Date.now(),
+        emitStageMoment({
+            kind: 'hit', ...damage, applied, sourceId: 'foe', isCritical: false, effectiveness: 1, step: 0, targets: 1, ...over,
         });
     });
 };
 
-describe('146e — which damage earns a stop', () => {
+describe('189d — which moment earns a stop', () => {
     it('stops on an attack', () => {
-        hit('attack', 20);
+        hit(20);
         expect(isHitStopped()).toBe(true);
     });
 
     it('NEVER stops on a status tick', () => {
         // 146e, in as many words: *"Never on `cause: 'status'`."* This is the line that keeps a
         // damage-over-time deck playable.
-        hit('status', 40);
+        act(() => { emitStageMoment({ kind: 'tick', ...damage, applied: 40, status: 'Burn', stacks: 2 }); });
         expect(isHitStopped()).toBe(false);
+        expect(cameraShake.level).toBe(0);
     });
 
     it('never stops on a recoil or a toll', () => {
         // Prices the caster pays, not hits it took. 146f draws both as a red pulse on the caster.
-        hit('recoil', 30);
+        act(() => { emitStageMoment({ kind: 'cost', ...damage, applied: 30, cause: 'recoil' }); });
+        act(() => { emitStageMoment({ kind: 'cost', ...damage, applied: 30, cause: 'toll' }); });
         expect(isHitStopped()).toBe(false);
-        hit('toll', 30);
-        expect(isHitStopped()).toBe(false);
-    });
-
-    it('treats an absent cause as an attack, which is what it was before 146b', () => {
-        hit(undefined, 20);
-        expect(isHitStopped()).toBe(true);
+        expect(cameraShake.level).toBe(0);
     });
 
     it('does not stop on a fully absorbed hit', () => {
         // Nothing reached HP, so there was no impact to weight — the shield float is the feedback.
-        act(() => {
-            globalBattleEventBus.emit({
-                type: 'DAMAGE_TAKEN', targetId: 'ally', amount: 0, element: 'None', cause: 'attack',
-                damage: { raw: 12, absorbed: 12, applied: 0 } as never, timestamp: Date.now(),
-            });
-        });
+        hit(0, { absorbed: 12 });
         expect(isHitStopped()).toBe(false);
     });
 
-    it('ignores everything that is not damage', () => {
-        act(() => {
-            globalBattleEventBus.emit({ type: 'TURN_START', turnNumber: 2, activeSide: 'PLAYER', timestamp: 0 });
-        });
+    it('ignores a heal', () => {
+        act(() => { emitStageMoment({ kind: 'heal', targetId: 'ally', amount: 10 }); });
         expect(isHitStopped()).toBe(false);
     });
 });
 
+describe('189d — how long, how hard', () => {
+    it('a kill\'s freeze is longer than a chip\'s', () => {
+        hit(5);
+        const chip = readFreeze();
+        resetBattleClock();
+        hit(5, { isLethal: true });
+        expect(readFreeze()).toBeGreaterThan(chip);
+    });
+
+    it('a super-effective hit freezes longer, a resisted one shorter', () => {
+        hit(10);
+        const plain = readFreeze();
+        resetBattleClock();
+        hit(10, { effectiveness: 2 });
+        const sup = readFreeze();
+        resetBattleClock();
+        hit(10, { effectiveness: 0.5 });
+        const res = readFreeze();
+        expect(sup).toBeGreaterThan(plain);
+        expect(res).toBeLessThan(plain);
+    });
+
+    it('each hit of a multi-target card freezes less than a lone hit', () => {
+        hit(10);
+        const lone = readFreeze();
+        resetBattleClock();
+        hit(10, { targets: 3 });
+        expect(readFreeze()).toBeLessThan(lone);
+    });
+
+    it('a 6%-of-max-HP hit adds no camera trauma; a 20% hit does', () => {
+        hit(6);
+        expect(cameraShake.level).toBe(0);
+        hit(20);
+        expect(cameraShake.level).toBeGreaterThan(0);
+    });
+
+    it('a kill adds trauma however small; a resisted hit never does', () => {
+        hit(2, { isLethal: true });
+        expect(cameraShake.level).toBeGreaterThan(0);
+        cameraShake.reset();
+        hit(60, { effectiveness: 0.5 });
+        expect(cameraShake.level).toBe(0);
+    });
+
+    it('the target and the attacker shudder while it holds', () => {
+        const target = { style: { translate: '' } };
+        const attacker = { style: { translate: '' } };
+        spriteShakes.attach('ally', target);
+        spriteShakes.attach('foe', attacker);
+        hit(40);
+        for (let i = 0; i < 4; i += 1) battleClock.advance(16);
+        expect(spriteShakes.active).toBe(true);
+    });
+});
+
 describe('155a — the subscription survives the render a play causes', () => {
-    it('still stops on a hit AFTER the state object has been replaced', () => {
+    it('still stops on a hit AFTER the component has re-rendered', () => {
         /*
-         * THE REGRESSION TEST FOR THE BUG THAT MADE 146 DEAD ON ARRIVAL.
-         *
-         * A play dispatches, the reducer emits synchronously, and React re-renders with a new state
-         * object. If this hook is keyed on that object, the effect's cleanup runs between the
-         * request and the next frame and undoes it. Re-rendering BEFORE the assertion is the whole
-         * test — without it, a keyed effect passes.
+         * THE REGRESSION TEST FOR THE BUG THAT MADE 146 DEAD ON ARRIVAL. A play dispatches and React
+         * re-renders; a subscription keyed on the state object is torn down between the request and
+         * the next frame. Re-rendering BEFORE the assertion is the whole test.
          */
         act(() => { root.render(<Harness nonce={1} />); });
         act(() => { root.render(<Harness nonce={2} />); });
-
-        hit('attack', 30);
+        hit(30);
         expect(isHitStopped()).toBe(true);
     });
 
     it('does not cancel a stop that a re-render lands on top of', () => {
-        // The exact ordering that failed: request, then re-render, then look. The stop must still
-        // be standing — a cleanup that fires here is a cleanup that cancels its own request.
-        hit('attack', 30);
+        hit(30);
         act(() => { root.render(<Harness nonce={3} />); });
         expect(isHitStopped()).toBe(true);
     });
 });
 
 describe('146e — the animations switch', () => {
-    it('turns the stop off entirely, while the flash (which is vfx) stays', () => {
-        // §2a: *"`animations` off → no stop, no shake; the flash stays (it is `vfx`)."* The flash
-        // lives in `useBattleVfx` and is untouched by this hook, which is the separation working.
+    it('turns the stop and the camera off entirely, while the flash (which is vfx) stays', () => {
+        // §2a: *"`animations` off → no stop, no shake; the flash stays (it is `vfx`)."*
         act(() => { root.unmount(); });
         saveSettings({ ...DEFAULT_SETTINGS, animations: false });
-
         container = document.createElement('div');
         root = createRoot(container);
         act(() => { root.render(<Harness />); });
 
-        hit('attack', 40);
+        hit(40);
         expect(isHitStopped()).toBe(false);
+        expect(cameraShake.level).toBe(0);
     });
 
     it('reads the setting once per fight rather than per hit', () => {
@@ -165,32 +193,27 @@ describe('146e — the animations switch', () => {
         // 3v3 with a Side card. Changing storage mid-fight must NOT take effect.
         const spy = vi.spyOn(Storage.prototype, 'getItem');
         spy.mockClear();
-        hit('attack', 10);
-        hit('attack', 10);
+        hit(10);
+        hit(10);
         expect(spy.mock.calls.filter((c) => c[0] === SETTINGS_STORAGE_KEY)).toHaveLength(0);
         spy.mockRestore();
     });
 });
 
-describe('155a — the deferred shake does not outlive the component', () => {
-    it('does not call framer-motion after unmount', () => {
-        /*
-         * The shake is deferred past the hit-stop, so up to 110ms separates the hit from
-         * `controls.start()`. A fight ending on the killing blow — when the stop is LONGEST — used
-         * to unmount inside that window and framer-motion threw
-         * "controls.start() should only be called after a component has mounted".
-         *
-         * An unhandled exception on the most dramatic hit in a run. It only surfaced once this file
-         * started unmounting while a stop was standing.
-         */
-        hit('attack', 60);
+describe('leaving a fight', () => {
+    it('drops a standing freeze and any trauma, so the next battle does not open frozen or shaking', () => {
+        hit(60, { isLethal: true });
         expect(isHitStopped()).toBe(true);
-
         act(() => { root.unmount(); });
-        // Re-created in afterEach's expectation; make the teardown a no-op.
         root = createRoot(document.createElement('div'));
-
-        // 189a: the deferred shake now runs on the battle clock, so this is what lets it fire.
-        expect(() => battleClock.advance(300)).not.toThrow();
+        expect(isHitStopped()).toBe(false);
+        expect(cameraShake.level).toBe(0);
     });
 });
+
+/** Real milliseconds of freeze left, read straight off the clock. */
+function readFreeze(): number {
+    let ms = 0;
+    for (; battleClock.frozen && ms < 1000; ms += 1) battleClock.advance(1);
+    return ms;
+}

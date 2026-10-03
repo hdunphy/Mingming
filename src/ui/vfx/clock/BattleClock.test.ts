@@ -288,3 +288,35 @@ describe('189a — cancelAll and live', () => {
         expect(wake).toHaveBeenCalledTimes(2);
     });
 });
+
+
+describe('189d — a freeze requested from inside a frame', () => {
+    it('stops game time where the callback ran: the rest of that frame is not game time', () => {
+        const { clock } = makeClock();
+        const ran: Array<[string, number]> = [];
+        clock.after(400, () => { ran.push(['impact', clock.now]); clock.freeze(50); });
+        clock.after(410, () => { ran.push(['after', clock.now]); });
+
+        // One long frame that would carry game time past both.
+        const frame = clock.advance(500);
+        expect(ran).toEqual([['impact', 400]]);
+        expect(clock.now).toBe(400);
+        expect(frame.gameDt).toBe(400);
+
+        // The freeze (50 ms, floor 30) eats 50 ms, then time moves and the second step lands.
+        clock.advance(50);
+        expect(clock.now).toBe(400);
+        clock.advance(10);
+        expect(ran).toEqual([['impact', 400], ['after', 410]]);
+    });
+
+    it('a play in flight stops at the freeze point, not at the end of the frame', () => {
+        const { clock } = makeClock();
+        const seen: number[] = [];
+        void clock.play(1000, (p) => { seen.push(p); });
+        clock.after(100, () => clock.freeze(40));
+        clock.advance(300);
+        expect(clock.now).toBe(100);
+        expect(seen[seen.length - 1]).toBeCloseTo(0.1, 5);
+    });
+});

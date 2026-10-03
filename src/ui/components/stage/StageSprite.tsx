@@ -7,6 +7,8 @@ import { elementVars } from '../../theme/kit/elementGlyphs';
 import { prefersReducedMotion } from '../../utils/motionPrefs';
 import { useClockedControls } from '../../vfx/clock/useClockedControls';
 import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
+import { targetShakePx } from '../../vfx/impact/impactMath';
+import { spriteShakes, wakeImpactFx } from '../../vfx/impact/impactRuntime';
 import MonsterArtPlaceholder from '../MonsterArtPlaceholder';
 import { MONSTER_ART_ENABLED } from '../monsterArtPolicy';
 import { SPRITE_H, SPRITE_W } from '../stageGeometry';
@@ -71,9 +73,18 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
             animate(scope.current, { x: 0, y: 0, opacity: [1, 0.6, 1] }, { duration: 0.25 });
             return;
         }
-        const amp = 5 + 14 * hitIntensity;
-        animate(scope.current, { x: [0, -amp, amp, -amp * 0.5, amp * 0.5, 0] }, { duration: 0.2 + 0.12 * hitIntensity });
-    }, [hitKey, hitIntensity, animate, scope]);
+        // TICKET 189d: the target's jolt is the sprites' shudder field's, in GAME time, so a freeze
+        // holds it and a shake that starts under a freeze starts when it lifts. `hitIntensity` is the
+        // hit's severity, and the hit itself is drawn at the impact (the key moves then).
+        spriteShakes.shake(entity.id, targetShakePx(hitIntensity));
+        wakeImpactFx();
+    }, [hitKey, hitIntensity, animate, scope, entity.id]);
+
+    // The frame the field writes its `translate` to; it composes with the lunge's `transform`.
+    useEffect(() => {
+        const el = scope.current;
+        return el ? spriteShakes.attach(entity.id, el) : undefined;
+    }, [entity.id, scope]);
 
     // Lunge toward the reveal lane: an ally moves right, an enemy left. Purely horizontal now that
     // the columns face each other across the lane.

@@ -52,7 +52,11 @@ import type { IBattleEntity, IBattleState } from '../../engine/types';
 import type { TrailElement } from './trails';
 import { isHookStatus } from './hookStatusBeat';
 import { battleClock } from './clock/battleClockRuntime';
-import type { BoardOp, BoardWhen } from './displayed/boardOps';
+import { type BoardOp, type BoardWhen, applyBoardOp } from './displayed/boardOps';
+import { displayedBoard } from './displayed/displayedBoardRuntime';
+import { RESISTED_AT, SUPER_EFFECTIVE_AT } from './impact/impactMath';
+import { type MomentDraft, emitStageMoment, finishMoment } from './impact/stageMoments';
+import { effectivenessAgainst } from '../audio/battleCues';
 import { barkPointsFor } from '../components/stage/barkShield';
 import { PresenterQueue } from './presenter/PresenterQueue';
 import {
@@ -61,10 +65,6 @@ import {
 
 // Kept here so every existing importer (the reveal, the tests) still finds them.
 export { FLIGHT_MS, STATUS_TELL_STAGGER_MS } from './presenter/castBeat';
-
-/** Above this multiplier a hit is super-effective; below its reciprocal, resisted. */
-const SUPER_EFFECTIVE_AT = 1.2;
-const RESISTED_AT = 0.85;
 
 /** What the rest of the screen asks the presenter. */
 export interface CastPresenter {
@@ -128,7 +128,13 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
     useEffect(() => {
         // Read once per fight, as `useImpactFeedback` does and for the same reason.
         const gates = resolveVfxGates(loadSettings());
-        if (gates.vfx !== 'full') return;
+        /*
+         * TICKET 189d: with the cast sequence off (vfx off, reduced motion) there is no timeline to
+         * play a hit on, but the numbers, the sounds and the bars still have to say it — and the
+         * displayed board still has to move. They land the instant the event arrives, as they always
+         * did, through the same moments; nothing is queued and nothing is drawn.
+         */
+        const immediate = gates.vfx !== 'full';
 
         const timers: ReturnType<typeof setTimeout>[] = [];
         let open: PendingCast | null = null;
@@ -161,9 +167,14 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
          * TICKET 189c: what the displayed board does for this event, and when on the cast's
          * timeline. With no card behind it, it lands as the loose burst plays.
          */
-        const recordOp = (op: BoardOp, when: BoardWhen): void => {
-            if (open) open.ops.push({ when, op });
-            else looseBurst().ops.push(op);
+        const recordOp = (op: BoardOp, when: BoardWhen, moment?: MomentDraft): void => {
+            if (immediate) {
+                applyBoardOp(displayedBoard, op);
+                if (moment) emitStageMoment(finishMoment(moment, { sourceId: undefined, step: 0, targets: 1 }));
+                return;
+            }
+            if (open) open.ops.push({ when, op, moment });
+            else looseBurst().ops.push({ op, moment });
         };
 
         /** Did this hit take the body down? Tracks the burst's own HP, so a second hit counts. */
@@ -177,6 +188,7 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
         };
 
         const handle = (event: BattleEvent): void => {
+            if (immediate && event.type !== 'DAMAGE_TAKEN' && event.type !== 'HEAL' && event.type !== 'STATUS_APPLIED') return;
             switch (event.type) {
                 case 'PROGRAM_PLAYED': {
                     // The previous cast's window closes here: anything still open belonged to it.
@@ -209,7 +221,10 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                 }
                 case 'HEAL': {
                     // A heal moves the bar with the card that cast it, on the body it heals.
-                    recordOp({ kind: 'heal', id: event.targetId, amount: event.amount }, 'impact');
+                    recordOp(
+                        { kind: 'heal', id: event.targetId, amount: event.amount }, 'impact',
+                        event.amount > 0 ? { kind: 'heal', targetId: event.targetId, amount: event.amount } : undefined,
+                    );
                     return;
                 }
                 case 'STATUS_APPLIED': {
@@ -220,6 +235,7 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                             recordOp({ kind: 'bark', id: event.targetId, points: barkPointsFor(event.stacks, holder.maxHp) }, 'after');
                         }
                     }
+                    if (immediate) return;
                     // Belongs to the cast whose window is open. A status that lands with no window
                     // is an engine expiry or a turn-boundary effect: a loose beat, queued behind
                     // whatever is still playing (189b) rather than played over it.
@@ -240,6 +256,12 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                     const absorbed = event.damage?.absorbed ?? 0;
                     const dies = takesDown(event.targetId, applied);
                     const hit: BoardOp = { kind: 'damage', id: event.targetId, applied, absorbed };
+                    const victim = findEntity(event.targetId);
+                    // What the screen says when it lands (189d), read off the PRE-burst snapshot.
+                    const common = {
+                        targetId: event.targetId, applied, absorbed, element: event.element,
+                        maxHp: victim?.maxHp ?? 0, isLethal: dies, definitionId: victim?.definitionId,
+                    };
 
                     /*
                      * §2f's tick, and the recoil/toll pulse. Each is its own beat now (or rides on
@@ -247,18 +269,26 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                      * a turn boundary no longer plays in front of an impact still on its way.
                      */
                     if (event.cause === 'status' && event.status) {
-                        recordOp(hit, 'after');
+                        const status = event.status;
+                        const stacks = victim?.statusEffects.find((effect) => effect.type === status)?.stacks ?? 0;
+                        recordOp(hit, 'after', { kind: 'tick', ...common, status, stacks });
+                        if (immediate) return;
                         (open ? open.ticks : looseBurst().ticks).push({ status: event.status, targetId: event.targetId });
                         if (dies) (open ? open.deaths : looseBurst().deaths).push(event.targetId);
                         return;
                     }
                     if (event.cause === 'recoil' || event.cause === 'toll') {
-                        recordOp(hit, 'first');
+                        recordOp(hit, 'first', { kind: 'cost', ...common, cause: event.cause });
+                        if (immediate) return;
                         (open ? open.selfCosts : looseBurst().selfCosts).push(event.targetId);
                         if (dies) (open ? open.deaths : looseBurst().deaths).push(event.targetId);
                         return;
                     }
-                    recordOp(hit, 'impact');
+                    recordOp(hit, 'impact', {
+                        kind: 'hit', ...common, isCritical: event.isCritical === true,
+                        effectiveness: effectivenessAgainst(event.element, victim),
+                    });
+                    if (immediate) return;
                     if (absorbed > 0) {
                         (open ? open.shields : looseBurst().shields).push(event.targetId);
                     }
@@ -325,7 +355,7 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
              * the task queue gets a turn. Cheaper and more honest than guessing a duration. This is
              * the one real-time timer left here: it batches a burst, it does not time a picture.
              */
-            if (open || loose) {
+            if (open || loose || burstHp.size > 0) {
                 const closingCast = open;
                 const closingLoose = loose;
                 timers.push(setTimeout(() => {

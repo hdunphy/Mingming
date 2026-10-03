@@ -71,8 +71,58 @@ describe('189c — a cast moves the board with the thing that moves it', () => {
 
     it('a loose burst moves the board as the burst plays, and is not empty because of it', () => {
         const burst = emptyLoose();
-        burst.ops.push({ kind: 'damage', id: 'a1', applied: 7, absorbed: 0 });
+        burst.ops.push({ op: { kind: 'damage', id: 'a1', applied: 7, absorbed: 0 } });
         const { board, play } = spyBoard();
         expect(play(buildLooseBeat(burst, board))).toEqual(['damage:a1:7/0@0']);
+    });
+});
+
+
+describe('189d — what the screen says as a hit lands', () => {
+    const hitDraft = (targetId: string) => ({
+        kind: 'hit' as const, targetId, applied: 10, absorbed: 0, element: 'Fire' as const, maxHp: 100,
+        isLethal: false, definitionId: undefined, isCritical: false, effectiveness: 1,
+    });
+
+    it('hands the screen a moment at the impact, naming the caster, the target\'s place in the card and the card\'s size', () => {
+        const cast = emptyCast(base);
+        cast.ops.push({ when: 'impact', op: { kind: 'damage', id: 'e1', applied: 10, absorbed: 0 }, moment: hitDraft('e1') });
+        cast.ops.push({ when: 'impact', op: { kind: 'damage', id: 'e2', applied: 10, absorbed: 0 }, moment: hitDraft('e2') });
+        const said: Array<{ at: number; targetId?: string; step?: number; targets?: number; sourceId?: string }> = [];
+        let now = 0;
+        const beat = buildCastBeat(cast, spyBoard().board, (m) => {
+            if (m.kind === 'hit') said.push({ at: now, targetId: m.targetId, step: m.step, targets: m.targets, sourceId: m.sourceId });
+        });
+        for (const action of [...beat.actions].sort((a, b) => a.at - b.at)) {
+            if (action.label !== 'board') continue;
+            now = action.at;
+            action.run();
+        }
+        expect(said).toEqual([
+            { at: 400, targetId: 'e1', step: 0, targets: 2, sourceId: 'a1' },
+            { at: 440, targetId: 'e2', step: 1, targets: 2, sourceId: 'a1' },
+        ]);
+    });
+
+    it('moves the board and says the moment in that order, on the same action', () => {
+        const cast = emptyCast({ ...base, targetIds: ['e1'] });
+        cast.ops.push({ when: 'impact', op: { kind: 'damage', id: 'e1', applied: 10, absorbed: 0 }, moment: hitDraft('e1') });
+        const order: string[] = [];
+        const board: BoardSink = { damage: () => order.push('board'), heal: () => undefined, gainBark: () => undefined };
+        const beat = buildCastBeat(cast, board, () => order.push('moment'));
+        for (const action of beat.actions) if (action.label === 'board') action.run();
+        expect(order).toEqual(['board', 'moment']);
+    });
+
+    it('a loose burst has no caster and counts its hits as a series', () => {
+        const burst = emptyLoose();
+        burst.ops.push({ op: { kind: 'damage', id: 'e1', applied: 10, absorbed: 0 }, moment: hitDraft('e1') });
+        burst.ops.push({ op: { kind: 'damage', id: 'e2', applied: 10, absorbed: 0 }, moment: hitDraft('e2') });
+        const said: Array<{ step: number; sourceId: string | undefined }> = [];
+        const beat = buildLooseBeat(burst, spyBoard().board, (m) => {
+            if (m.kind === 'hit') said.push({ step: m.step, sourceId: m.sourceId });
+        });
+        for (const action of beat.actions) if (action.label === 'board') action.run();
+        expect(said).toEqual([{ step: 0, sourceId: undefined }, { step: 1, sourceId: undefined }]);
     });
 });

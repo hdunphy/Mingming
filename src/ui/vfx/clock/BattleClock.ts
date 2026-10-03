@@ -129,8 +129,8 @@ export class BattleClock {
         }
 
         const live = this.deps.hitStop.consume(realDt);
-        const gameDt = live * multiplier;
-        if (gameDt > 0) this.moveTo(this.nowMs + gameDt);
+        const wanted = live * multiplier;
+        const gameDt = wanted > 0 ? this.moveTo(this.nowMs + wanted) : 0;
         return { realDt, gameDt, frozen: live === 0 && realDt > 0, multiplier };
     }
 
@@ -183,8 +183,14 @@ export class BattleClock {
      * Move game time to `target`, running whatever falls due on the way in due order, with `now`
      * reading each entry's own due time while its callback runs. That is what lets a callback that
      * schedules the next step land exactly on time even inside one long frame.
+     *
+     * TICKET 189d: a callback may request a freeze (the impact does: that is the hit-stop). The rest
+     * of that frame is then NOT game time, so the step stops where the callback ran and returns how
+     * far game time really moved.
      */
-    private moveTo(target: number): void {
+    private moveTo(target: number): number {
+        const startedAt = this.nowMs;
+        let stoppedAt: number | null = null;
         let errors: unknown[] = [];
         for (let guard = 0; guard < 10_000; guard += 1) {
             let next: Entry | undefined;
@@ -196,18 +202,22 @@ export class BattleClock {
             if (!next) break;
             this.entries = this.entries.filter((e) => e !== next);
             this.nowMs = Math.max(this.nowMs, nextDue);
+            const wasFrozen = this.deps.hitStop.active;
             try { this.finish(next); } catch (error) { errors.push(error); }
+            if (!wasFrozen && this.deps.hitStop.active) { stoppedAt = this.nowMs; break; }
         }
-        this.nowMs = target;
+        const reached = stoppedAt ?? target;
+        this.nowMs = reached;
         for (const entry of [...this.entries]) {
             if (!entry.step) continue;
-            try { entry.step(entry.ease((target - entry.start) / entry.ms)); } catch (error) { errors.push(error); }
+            try { entry.step(entry.ease((reached - entry.start) / entry.ms)); } catch (error) { errors.push(error); }
         }
         if (errors.length > 0) {
             const first = errors[0];
             errors = [];
             throw first;
         }
+        return reached - startedAt;
     }
 
     private wake(): void {

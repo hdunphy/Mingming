@@ -15,6 +15,10 @@
  *
  * TICKET 189c adds the displayed board to the timeline: the HP bar, the HP text and the Bark band
  * move at the impact on that body (not at play), and a tick's damage with its tell.
+ *
+ * TICKET 189d puts the rest of "a hit landed" on the same instant: the same action that moves the
+ * board hands the screen a MOMENT (the number, the sounds, the hit-stop, the shake). Nothing says
+ * "hit" on the event any more.
  */
 
 import type { IBattleEntity, StatusType } from '../../../engine/types';
@@ -26,8 +30,9 @@ import {
     emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick,
 } from '../statusTells';
 import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from '../trails';
-import { type BoardOp, type BoardSink, type TimedBoardOp, applyBoardOp } from '../displayed/boardOps';
+import { type BoardSink, type LooseOp, type TimedBoardOp, applyBoardOp } from '../displayed/boardOps';
 import { displayedBoard } from '../displayed/displayedBoardRuntime';
+import { type StageMoment, emitStageMoment, finishMoment } from '../impact/stageMoments';
 import { type Beat, type TimedAction, beatDuration } from './beat';
 
 /** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
@@ -76,7 +81,11 @@ export function emptyCast(base: Pick<PendingCast, 'element' | 'sourceId' | 'targ
 }
 
 /** Steps 2-4 of ruling 5 for one cast, plus everything that rides on its timeline. */
-export function buildCastBeat(cast: PendingCast, board: BoardSink = displayedBoard): Beat {
+export function buildCastBeat(
+    cast: PendingCast,
+    board: BoardSink = displayedBoard,
+    say: (moment: StageMoment) => void = emitStageMoment,
+): Beat {
     const actions: TimedAction[] = [];
     let last = 0;
     /** When each target is hit, so an op can land with the hit on its body. */
@@ -146,11 +155,19 @@ export function buildCastBeat(cast: PendingCast, board: BoardSink = displayedBoa
     // TICKET 189c: the displayed board moves with the thing that moves it. A hit or a heal lands
     // with the impact on its body (the last impact, for a body the card did not name); the price of
     // the cast with the first impact; a tick or a Bark Shield with the statuses, after the last.
-    for (const { when, op } of cast.ops) {
+    for (const { when, op, moment } of cast.ops) {
         const at = when === 'first' ? (firstImpact ?? last)
             : when === 'after' ? afterImpact
                 : (impactAtTarget.get(op.id) ?? last);
-        actions.push({ at, label: 'board', run: () => applyBoardOp(board, op) });
+        // Which target of the card this is spaces its sound; how many there are scales its freeze.
+        const context = { sourceId: cast.sourceId, step: Math.max(0, cast.targetIds.indexOf(op.id)), targets: cast.targetIds.length };
+        actions.push({
+            at, label: 'board',
+            run: () => {
+                applyBoardOp(board, op);
+                if (moment) say(finishMoment(moment, context));
+            },
+        });
     }
 
     for (const id of cast.removals) {
@@ -204,8 +221,8 @@ export interface LooseBurst {
     readonly shields: string[];
     readonly deaths: string[];
     readonly hookTells: Array<HookTellInfo & { targetId?: string }>;
-    /** TICKET 189c: board changes with no card behind them; they land as the burst plays. */
-    readonly ops: BoardOp[];
+    /** TICKET 189c/189d: board changes (and what the screen says about them) with no card behind them. */
+    readonly ops: LooseOp[];
 }
 
 export const emptyLoose = (): LooseBurst => ({
@@ -216,10 +233,23 @@ export const isLooseEmpty = (burst: LooseBurst): boolean =>
     burst.ticks.length + burst.applied.length + burst.removals.length + burst.selfCosts.length
     + burst.shields.length + burst.deaths.length + burst.hookTells.length + burst.ops.length === 0;
 
-export function buildLooseBeat(burst: LooseBurst, board: BoardSink = displayedBoard): Beat {
+export function buildLooseBeat(
+    burst: LooseBurst,
+    board: BoardSink = displayedBoard,
+    say: (moment: StageMoment) => void = emitStageMoment,
+): Beat {
     const actions: TimedAction[] = [];
-    for (const op of burst.ops) {
-        actions.push({ at: 0, label: 'board', run: () => applyBoardOp(board, op) });
+    let hits = 0;
+    for (const { op, moment } of burst.ops) {
+        // No card behind these: the hits of one burst are a series, with nobody to name as the caster.
+        const context = { sourceId: undefined, step: moment?.kind === 'hit' ? hits++ : 0, targets: 1 };
+        actions.push({
+            at: 0, label: 'board',
+            run: () => {
+                applyBoardOp(board, op);
+                if (moment) say(finishMoment(moment, context));
+            },
+        });
     }
     for (const tell of burst.hookTells) {
         actions.push({ at: 0, label: 'hook-tell', run: () => emitHookTell(tell.owner, tell.osId, tell.daemonId, tell.targetId) });

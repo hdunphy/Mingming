@@ -211,17 +211,16 @@ const BattleArena: React.FC = () => {
     }, [stageControls]);
 
     /*
-     * TICKET 146e — HIT-STOP AND THE SCALED SHAKE.
+     * TICKET 146e — HIT-STOP AND THE SCALED SHAKE; 189d — AT THE IMPACT.
      *
-     * This replaces the threshold shake that lived here: a fixed 3px nudge above 33% of max HP,
-     * which is a boolean pretending to be feedback — a 34% hit and a lethal one shook identically,
-     * and everything below the line shook not at all.
-     *
-     * Ruling 2 makes it continuous: *"Everything gets a hit stop but it scales with damage."* The
-     * hook owns both the stop and the shake because they run off one number, and two sources
-     * driving `stageControls` would race.
+     * Ruling 2: *"Everything gets a hit stop but it scales with damage."* The hook owns the stop,
+     * the vibration and the camera trauma because they run off one number. It hears the presenter's
+     * impact moment, not the engine's event, and the camera it moves is the stage area (`cameraRef`),
+     * which composes with `stageControls`' fade because the camera writes `translate`/`rotate` and
+     * the fade writes `opacity`.
      */
-    useImpactFeedback(battleState, stageControls);
+    const cameraRef = useRef<HTMLDivElement>(null);
+    useImpactFeedback(cameraRef);
 
     /*
      * TICKET 146c — THE CAST SEQUENCE. Owns steps 2-4 (trail, impact, status tells) and the queue
@@ -1309,6 +1308,7 @@ const BattleArena: React.FC = () => {
             {/* Stage: Top 70% (controls: fade-in on mount + big-hit shake) */}
             <motion.div
                 className="stage-area"
+                ref={cameraRef}
                 initial={{ opacity: 0 }}
                 animate={stageControls}
             >

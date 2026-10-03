@@ -324,3 +324,25 @@ describe('189c — with the presenter idle, displayed equals real', () => {
         expectNoSnapNeeded();
     });
 });
+
+
+describe('189d — with the cast sequence off, the board and the screen still move, at once', () => {
+    it('vfx off: the HP text moves as the hit arrives, with no safety-net correction', async () => {
+        saveSettings({ ...DEFAULT_SETTINGS, vfx: false });
+        const fat = (id: string) => body(id, { primaryElement: 'Nature', maxHp: 1000, currentHp: 1000 });
+        mount(frame({ hand: [card('c1', 'card_fireball')], enemy: [fat('e1'), fat('e2'), fat('e3')] }));
+        const report = vi.fn();
+        displayedBoard.onMismatch = report;
+
+        dispatchBurst(play('a1', 'e1', 'c1'));
+        const real = realOf('e1').currentHp;
+        expect(real).toBeLessThan(1000);
+        // Nothing is queued and nothing waits: the bar already shows it.
+        expect(shownText('e1')).toBe(`${real}|0|up`);
+
+        await settle(1_000);
+        everyBodyShowsTheTruth();
+        expect(report).not.toHaveBeenCalled();
+        displayedBoard.onMismatch = () => undefined;
+    });
+});
