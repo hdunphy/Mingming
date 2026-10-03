@@ -1,6 +1,6 @@
 # Ticket 176: Map redesign: towns joined by branching routes
 
-**Type:** map, engine and UI. **Status:** BLOCKED (Henry, 2026-10-02) until the art direction and UI kit are chosen: **ticket 183**. The design below stays ruled, but the screens (176c's town screen, 176e's map) will be drawn in the new style, and the map layout may change with it. **Do not start any row until Henry unblocks it.** Ticket 183 is written (2026-10-02): direction B is ruled, 176 unblocks after 183a-183c ship, and 176c's town screen and 176e's map are drawn with 183's kit and its node icons (see 183, "What this does to ticket 176"). (Before the block: design ruled 2026-10-01.) Henry ruled M1–M6 on 2026-10-01. M7 (the town screen) was ruled the same day from the prototypes. M8 is a default.
+**Type:** map, engine and UI. **Status:** **BUILT 2026-10-03** (176a-f built and committed, not pushed; Henry still has to look at the map in the desktop app, see `## Resolution`). Henry ruled M1–M6 on 2026-10-01. M7 (the town screen) was ruled the same day from the prototypes. M8 is a default. (Blocked on ticket 183 until it shipped; 183 closed 2026-10-03.)
 
 **Henry (2026-09-30, ruling D4 on ticket 174):**
 
@@ -304,3 +304,18 @@ The old map could show two reachable nodes with exactly the same words ("Wild, N
 - **Why a modifier and not a tier:** with no enemy scaling (169), an extra row means more fights, cards, upgrades and blueprint rolls, so it makes a run easier, not harder. Tiers are the difficulty ladder; modifiers are opt-in variety.
 - **Why after 176:** 176 sets the rows per biome (M2) and raises the layer limit. Adding rows before it means building them twice.
 - **Measure** with the walker against the same seeds without it (fights per run, the scrap curve, gym clear rate).
+
+---
+
+## Resolution
+
+**Built 2026-10-03.** 176a, 176b and 176c are one commit (`21136ad`, because the generator, the one-way rule and the towns share the same fixtures and could not be gated green apart); 176d is `59f2906`, 176e is `90717f0` and 176f is `fab718e`. Not pushed (give Henry `git push origin first-impressions`).
+
+- **The map.** A run is three biomes of towns joined by branching one-way routes: 7, 5 and 4 rows, 16 columns, one town per biome, one optional detour per biome (one extra fight). Every plain path passes 11 nodes before the gym. Every node type is visible from the start. Ping Sweep and the Relay Tower Survey now show the species in a biome's fights. Old saves are discarded; the ranch is kept.
+- **Towns.** One node that is both market and Den, behind a town square and a tabbed screen (Square, Shop, Upgrades, Den, Loadout). The upgrade allowance is 2, 3 and 4 by biome.
+- **The map screen** is redrawn from `research/176-map-mock.png`: gold road for the path walked, faded forks, dashed detours with "+1 fight", towns as boxes, Route 1 to 5 along the bottom, and it scrolls to keep you in view. **The look is Henry's call and he has not seen it yet.**
+- **The walker** takes forward links, skips detours unless `takeDetours` is set, and walks the town (Den, then shop, then one upgrade bench).
+- **The measurement** is `docs/balance/map-176.md`. Detour-free fights before the gym: **10.6** against the target of 8 to 10 (the parent's walker had 9.1); with the gauntlet 13.6 against 10 to 13. Not changed to fit. Dropping one route row (biome 0's second route run) would bring it to 9.6 and 12.6. The sample there is small (9 starters × 2 seeds) because the sandbox was slow; the doc gives the commands for the full run.
+- **Not run in the sandbox:** `npm run gate`, `vite build`, ghostWalk's three gauntlet tests and `runWalker.scrap`, each over 170 seconds there. Run `npm run gate` once locally.
+- **Walk fingerprints** (the pinned walks in the walker tests) moved because the map changed; they were re-pinned with a comment each.
+- **Follow-up ticket to write:** the "Long Road" modifier (one more row of fights per biome, opt-in), once round 2 says whether runs feel short.

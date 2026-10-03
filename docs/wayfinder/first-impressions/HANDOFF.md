@@ -1,6 +1,6 @@
 # HANDOFF — first-impressions map (keep this current every session)
 
-*Last updated: 2026-10-03, after ticket 192 (Norse Aura and Rune names, the Tattle token).*
+*Last updated: 2026-10-03, after ticket 176 (the map redesign).*
 
 ## Where things stand
 
@@ -11,8 +11,9 @@
 - **189 work for tonight is complete** (2026-10-03). 189a-e ("Hits land when they land", UI only) are built and committed on this branch (`c7b9732`, `3ecee26`, `412a991`, `43986c7`, `b9090cf`), not pushed. Nothing under `src/engine` changed. The tests, `tsc` and `eslint src/ui` are green on a Linux copy; `npm run gate` itself and the `sfxSamples` audio check could not run there, so run `npm run gate` once locally. **190 can start.** The enemy's turn is now slower on purpose (each enemy card hovers 1 s before it attacks); speed tiers are 190's job.
 - **190 work for tonight is complete** (2026-10-03). 190a-g (the five battle speeds, the new attacks, impacts, status landings and big-hit extras, UI only) are built and committed on this branch (`12fd7b6`, `974a757`, `984a309`, `c9ea81f`, `0b4719e`, `4d42c7d`, `df0e105`, plus the test repair `204d9bb`), not pushed (give Henry `git push origin first-impressions`). Nothing under `src/engine` changed. The tests, `tsc` and `eslint src/ui` are green on a Linux copy; `npm run gate` could not run there, so run it once locally, and nobody has looked at the effects in a real browser yet. 190h stays parked. See its `## Resolution`.
 - **192 is done** (2026-10-03): the Auras and Runes show their Norse names and the Feedback token is Tattle (`25e9c5c`, not pushed; see `tickets/192-aura-and-rune-names.md`). **Henry still has to:** run `npm run gate` (the whole engine suite was not run in one go) and regenerate the `collection-v2` design record on his machine, which still shows the old names.
-- **181** (playtest round 2) is the goal. It waits on 181c–e (the "Tell Henry how it went" button; the Google Form exists and its pre-filled link template is in 181c, so nothing waits on Henry) and on 176 (Henry: 176 is in the playtest build). 182 and 183 are done.
-- **176** is no longer blocked by 183 (183a–c shipped) but has not started: it waits for Henry's go. **175** comes after everything else. **180** waits for Henry's go.
+- **176 work for tonight is complete** (2026-10-03). 176a-f (towns joined by branching one-way routes) are built and committed on this branch (`21136ad` for 176a-c together, `59f2906`, `90717f0`, `fab718e`), not pushed (give Henry `git push origin first-impressions`). `tsc`, `eslint src` and the `src/ui`, `src/debug/playtest` and `src/engine/run` tests are green on a Linux copy; `npm run gate`, `vite build` and four slow tests (ghostWalk's three gauntlet tests and `runWalker.scrap`) could not run there, so run `npm run gate` once locally. **Henry still has to look at the map in the desktop app** (the look is his call). The measured run is 10.6 fights before the gym against a target of 8 to 10; see `docs/balance/map-176.md`. See the ticket's `## Resolution`.
+- **181** (playtest round 2) is the goal. It waits on 181c–e (the "Tell Henry how it went" button; the Google Form exists and its pre-filled link template is in 181c, so nothing waits on Henry) and on Henry's look at the 176 map (Henry: 176 is in the playtest build). 182 and 183 are done.
+- **176 is built** (see above). **175** comes after everything else. **180** waits for Henry's go.
 
 ## Two agents in parallel (from 2026-10-02): same folder, same branch, careful
 

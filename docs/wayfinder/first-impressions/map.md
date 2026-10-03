@@ -23,11 +23,11 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 | 182 | [Text cut, hide-when-empty, intro run, two switches](tickets/182-text-cut-and-intro-run.md) | **Done** 2026-10-02 (182a–d, closed by Henry; last commit `507a824`) | — |
 | 183 | [Art direction and UI kit](tickets/183-art-direction-and-ui-kit.md): direction B "Slant", rows 183a–i | **Done** 2026-10-03 (183a–h, the review follow-ups, and 183i, the 33 Norse Instinct names; not pushed) | — |
 | 181 | [Playtest round 2 (SOP)](tickets/181-friends-playtest-1.md) | 181a, 181b built. 181c ready (the form exists). **181d** (deploy to a restricted itch.io page) and **181e** (a version number per release) added 2026-10-02 | 182, 183, **176**, **189**, **190**, 181c–e |
-| 176 | [Map redesign: towns and branching routes](tickets/176-map-redesign.md) | **Not started.** Its block on 183a–c is met (183 done 2026-10-03); waits for Henry's go. **In the playtest build** (181 D3), so it comes before 181 | Henry's go |
+| 176 | [Map redesign: towns and branching routes](tickets/176-map-redesign.md) | **Built 2026-10-03** (176a-f, `21136ad` to `fab718e`, not pushed). **Henry still has to look at the map in the desktop app** and run `npm run gate`. Detour-free run is 10.6 fights against a target of 8 to 10, see `docs/balance/map-176.md`. **In the playtest build** (181 D3) | Henry's look at the map |
 | 175 | [Localization prep](tickets/175-localization-prep.md) | Ruled, not started. **Comes after everything else here, especially the text cut** (Henry, 2026-10-02) | 182, 183h |
 | 180 | [Agent playtester](tickets/180-agent-playtester.md) | Ruled (A1–A6), queued; **do not start until Henry says go** | Henry |
 
-**The frontier:** 182 is done → 183 is done (183i, the Norse Instinct names, applied 2026-10-03) → 181c–e → 176 (unblocked by 183a–c; Henry's go) → ~~189 and 190~~ (both done 2026-10-03) → release (181) → 175. **176 is in the playtest build** (Henry, 2026-10-02, 181 D3). 180 whenever Henry says go. **185** (balance and rewards) runs alongside 182/183 — it shares no files with them except 185f's `RunSummary.tsx`, which waits for 182.
+**The frontier:** 182 is done → 183 is done (183i, the Norse Instinct names, applied 2026-10-03) → 181c–e → ~~176~~ (built 2026-10-03; waits for Henry's look at the map) → ~~189 and 190~~ (both done 2026-10-03) → release (181) → 175. **176 is in the playtest build** (Henry, 2026-10-02, 181 D3). 180 whenever Henry says go. **185** (balance and rewards) runs alongside 182/183 — it shares no files with them except 185f's `RunSummary.tsx`, which waits for 182.
 
 ## Decisions so far
 
