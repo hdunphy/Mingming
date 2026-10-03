@@ -2,6 +2,10 @@
 /**
  * TICKET 127: the card that just resolved is announced for the centre-screen reveal.
  *
+ * TICKET 189e moved the announcing from the engine's `PROGRAM_PLAYED` to the presenter's card signals
+ * (`vfx/presenter/cardSignals`): `in` shows the card, `out` takes it away when its sequence ends. These
+ * tests drive the signals directly; `presenter.test.tsx` covers the presenter sending them.
+ *
  * Henry, after the ticket-118 playtest: *"We should also show the cards that get played, animate
  * them to show center screen so the player knows what was played rather than having to check the
  * log."*
@@ -18,12 +22,13 @@
  * before it rendered. A damage event must not eat the announcement.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 
-import { PLAYER_CARD_HOLD_MS, useBattleVfx, type BattleVfx } from './useBattleVfx';
+import { useBattleVfx, type BattleVfx, type PlayedCardAnnouncement } from './useBattleVfx';
+import { emitCardSignal } from '../vfx/presenter/cardSignals';
 import { globalBattleEventBus } from '../../engine/events';
 import { createSparseBattleState, createSparseEntity } from '../../debug/scenarios/scenarioTestSupport';
 import type { IBattleState } from '../../engine/types';
@@ -76,19 +81,27 @@ afterEach(async () => {
     host.remove();
 });
 
-/** The enemy casts `ice_spear` at the player — a real dataId, since the reveal looks it up. */
-async function emitPlay(sourceId = 'e1', targetId = 'p1', programId = 'ice_spear'): Promise<void> {
-    await act(async () => {
-        globalBattleEventBus.emit({
-            type: 'PROGRAM_PLAYED', sourceId, targetId, programId, timestamp: Date.now(),
-        });
-    });
+let keyCounter = 100;
+/** What the presenter announces for a cast of `programId` - names and side read off STATE. */
+function announcement(sourceId = 'e1', targetId = 'p1', programId = 'ice_spear'): PlayedCardAnnouncement {
+    const names: Record<string, string> = { e1: 'Kraken', p1: 'Huldra' };
+    return {
+        key: keyCounter++, dataId: programId, sourceId, targetId,
+        fromPlayer: sourceId === 'p1', sourceName: names[sourceId] ?? sourceId, targetName: names[targetId] ?? targetId,
+    };
+}
+
+async function cardIn(card: PlayedCardAnnouncement): Promise<void> {
+    await act(async () => { emitCardSignal({ kind: 'in', card }); });
+}
+async function cardOut(card: PlayedCardAnnouncement): Promise<void> {
+    await act(async () => { emitCardSignal({ kind: 'out', card }); });
 }
 
 describe('ticket 127 - the played card is announced', () => {
-    it('announces the dataId, the caster and the target', async () => {
+    it('shows the card the presenter brings in, with the caster and the target', async () => {
         expect(latest().playedCard).toBeNull();
-        await emitPlay();
+        await cardIn(announcement());
 
         expect(latest().playedCard).toMatchObject({
             dataId: 'ice_spear',
@@ -100,23 +113,25 @@ describe('ticket 127 - the played card is announced', () => {
         });
     });
 
-    it('marks a player cast as the player\'s, so the reveal can side itself', async () => {
-        await emitPlay('p1', 'e1', 'ice_spear');
+    it("keeps the player's side on the card, so the reveal can side itself", async () => {
+        await cardIn(announcement('p1', 'e1'));
         expect(latest().playedCard?.fromPlayer).toBe(true);
     });
 
     it('gives two casts of the SAME card two distinct reveals', async () => {
-        await emitPlay();
-        const first = latest().playedCard!.key;
-        await emitPlay();
+        const first = announcement();
+        await cardIn(first);
+        const second = announcement();
+        await cardIn(second);
         // Without a monotonic key, AnimatePresence would treat the second cast as the same element
         // and play no animation at all - the second copy of a doubled card would appear not to fire.
-        expect(latest().playedCard!.key).not.toBe(first);
+        expect(latest().playedCard!.key).toBe(second.key);
+        expect(second.key).not.toBe(first.key);
         expect(latest().playedCard!.dataId).toBe('ice_spear');
     });
 
     it('survives the damage the card deals - the regression this ticket walked into', async () => {
-        await emitPlay();
+        await cardIn(announcement());
         expect(latest().playedCard).not.toBeNull();
 
         await act(async () => {
@@ -128,46 +143,52 @@ describe('ticket 127 - the played card is announced', () => {
         expect(latest().playedCard?.dataId, 'a damage event cleared the reveal').toBe('ice_spear');
     });
 
-    it('is cleared by the next TURN_START, so it never sits under the wrong turn banner', async () => {
-        await emitPlay();
+    it('is no longer announced by the engine event: PROGRAM_PLAYED alone shows nothing', async () => {
+        await act(async () => {
+            globalBattleEventBus.emit({
+                type: 'PROGRAM_PLAYED', sourceId: 'e1', targetId: 'p1', programId: 'ice_spear', timestamp: Date.now(),
+            });
+        });
+        expect(latest().playedCard).toBeNull();
+    });
+
+    it('is NOT cleared by TURN_START - a card leaves when its own sequence ends (189e)', async () => {
+        const card = announcement();
+        await cardIn(card);
         await act(async () => {
             globalBattleEventBus.emit({
                 type: 'TURN_START', activeSide: 'PLAYER', turn: 2, timestamp: Date.now(),
             } as never);
         });
-        expect(latest().playedCard).toBeNull();
+        expect(latest().playedCard?.key).toBe(card.key);
     });
 });
 
-describe("2026-09-25 - the player's own card leaves after 1.5 s; the enemy's waits", () => {
-    afterEach(() => { vi.useRealTimers(); });
-
-    it("clears the player's reveal after PLAYER_CARD_HOLD_MS", async () => {
-        vi.useFakeTimers();
-        await emitPlay('p1', 'e1', 'ice_spear');
-        expect(PLAYER_CARD_HOLD_MS).toBe(1500);
-        await act(async () => { vi.advanceTimersByTime(PLAYER_CARD_HOLD_MS - 1); });
-        expect(latest().playedCard?.dataId).toBe('ice_spear');
-        await act(async () => { vi.advanceTimersByTime(1); });
+describe('2026-10-02 (189e) - a card leaves when its sequence ends, not on a timer', () => {
+    it('clears on its own `out`', async () => {
+        const card = announcement('p1', 'e1');
+        await cardIn(card);
+        await cardOut(card);
         expect(latest().playedCard).toBeNull();
     });
 
-    it("an older card's timer does not take down a newer card", async () => {
-        vi.useFakeTimers();
-        await emitPlay('p1', 'e1', 'ice_spear');
-        await act(async () => { vi.advanceTimersByTime(1000); });
-        await emitPlay('p1', 'e1', 'ice_spear');
-        const second = latest().playedCard!.key;
-        await act(async () => { vi.advanceTimersByTime(600); });   // the first card's 1.5 s is up
-        expect(latest().playedCard?.key).toBe(second);
-        await act(async () => { vi.advanceTimersByTime(900); });   // and now the second's
+    it("an older card's `out` does not take down a newer card", async () => {
+        const first = announcement('p1', 'e1');
+        await cardIn(first);
+        const second = announcement('p1', 'e1');
+        await cardIn(second);
+        await cardOut(first);
+        expect(latest().playedCard?.key).toBe(second.key);
+        await cardOut(second);
         expect(latest().playedCard).toBeNull();
     });
 
-    it("leaves the ENEMY's reveal up - the AI loop's hold owns it (ticket 127)", async () => {
-        vi.useFakeTimers();
-        await emitPlay();
-        await act(async () => { vi.advanceTimersByTime(10_000); });
+    it("an enemy's card stays up for as long as its sequence is playing", async () => {
+        const card = announcement();
+        await cardIn(card);
+        await new Promise(resolve => setTimeout(resolve, 60));
         expect(latest().playedCard?.fromPlayer).toBe(false);
+        await cardOut(card);
+        expect(latest().playedCard).toBeNull();
     });
 });

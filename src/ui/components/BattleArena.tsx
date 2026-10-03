@@ -59,12 +59,15 @@ import { fightBonusFor } from '../../engine/run/fightBonus';
 import { logRunEvent } from '../store/runLogMiddleware';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
-import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
+import { useBattleVfx } from '../hooks/useBattleVfx';
 import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { useImpactFeedback } from '../vfx/useImpactFeedback';
+import { battleClock } from '../vfx/clock/battleClockRuntime';
 import { useDisplayedBoardSync } from '../vfx/displayed/useDisplayedBoard';
+import { useBattleEndGate } from '../vfx/pacing/useBattleEndGate';
+import { paceEnemyAction } from '../vfx/pacing/enemyActionPacer';
 import { useCastSequence } from '../vfx/useCastSequence';
 import { useViewportSize } from '../hooks/useStageAnchors';
 import { consoleHeightAt, stageScale } from './stageGeometry';
@@ -525,27 +528,22 @@ const BattleArena: React.FC = () => {
             // and the cast sequence keep animating while the enemy thinks; the main-thread path
             // remains as the fallback where no Worker is available (tests, and a worker that failed to start).
             //
-            // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL.
-            //
-            // Henry: *"show the cards that get played, animate them to show center screen ... That
-            // animation can eat up the time as well."* So the between-actions beat is no longer a
-            // blind 600ms - it is `PLAYED_CARD_REVEAL_MS` with the previous card on screen, and the
-            // search runs after it. Wall-clock is about what it was; the time now carries the
-            // information the player was having to dig out of the combat log.
-            const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : PLAYED_CARD_REVEAL_MS;
-            const DEBOUNCE_MS = 50;
-
-            await new Promise(r => setTimeout(r, DEBOUNCE_MS));
-            if (cancelled) return;
-
-            const thinkStart = performance.now();
-            const brain = enemyBrainRef.current;
-            const action = brain ? await brain.decide(battleState) : getBestAction(battleState);
-            if (cancelled) return;
-            const thoughtFor = performance.now() - thinkStart;
-
-            await new Promise(r => setTimeout(r, Math.max(0, pauseMs - DEBOUNCE_MS - thoughtFor)));
-            if (cancelled) return;
+            // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL. TICKET 189e: and the
+            // reveal is the presenter's. The enemy's card arrives, hovers one second so it can be read,
+            // plays its attack and leaves; the next action is dispatched only when all of that is over
+            // (`paceEnemyAction` waits for `whenIdle`), with the search running under the hover. The
+            // fixed 1.2 s between actions is gone; the opening pause at the start of a turn stays.
+            const action = await paceEnemyAction({
+                firstOfTurn: aiPrevSideRef.current !== 'ENEMY',
+                think: async () => {
+                    const brain = enemyBrainRef.current;
+                    return brain ? brain.decide(battleState) : getBestAction(battleState);
+                },
+                idle: presenter.whenIdle,
+                clock: battleClock,
+                cancelled: () => cancelled,
+            });
+            if (!action) return;
             aiPrevSideRef.current = 'ENEMY';
 
             if (action.type === 'PLAY_PROGRAM') {
@@ -563,7 +561,7 @@ const BattleArena: React.FC = () => {
         runAI();
 
         return () => { cancelled = true; };
-    }, [battleState, dispatch, triggerLunge]);
+    }, [battleState, dispatch, triggerLunge, presenter]);
 
     /**
      * Fire a macro out of the rack — **the two-slice write, in the ruled order.**
@@ -672,6 +670,22 @@ const BattleArena: React.FC = () => {
     const isVictory = battleState ? isPlayerVictory(battleState) : false;
     const isDefeat = battleState ? isPlayerDefeat(battleState) : false;
 
+    /*
+     * TICKET 189e — THE BANNER AND THE STINGER WAIT FOR THE KILLING BLOW TO BE DRAWN.
+     *
+     * `isVictory`/`isDefeat` read the REAL state, which already says "over" the moment the engine
+     * resolved the card, while the trail is still on its way: the stinger and the banner used to
+     * arrive before the blow that earned them. The logic below (the reward roll, the banking, the
+     * AI's stop) keeps reading the real flags; what is SHOWN and HEARD (`showVictory`, `showDefeat`)
+     * waits until the presenter has nothing left to play, so the last impact, the knock-out and the
+     * card leaving all happen first.
+     */
+    const endKey = `${battleState?.seed ?? ''}`;
+    const battleOver = isVictory || isDefeat;
+    const endShown = useBattleEndGate(battleOver, endKey, presenter);
+    const showVictory = isVictory && endShown;
+    const showDefeat = isDefeat && endShown;
+
     // TICKET 11 DELETED THE SAVE WIPE THAT USED TO LIVE HERE.
     //
     // The old effect called `deleteSave()` the moment the player's last unit fell. That was
@@ -743,14 +757,14 @@ const BattleArena: React.FC = () => {
     }, [battleSeed]);
     useEffect(() => {
         if (endSoundPlayedRef.current) return;
-        if (isVictory) {
+        if (showVictory) {
             endSoundPlayedRef.current = true;
             playSfx('victory');
-        } else if (isDefeat) {
+        } else if (showDefeat) {
             endSoundPlayedRef.current = true;
             playSfx('defeat');
         }
-    }, [isVictory, isDefeat]);
+    }, [showVictory, showDefeat]);
 
     // Audio: charge-up zap when a next-program discount primes on a player unit
     // (e.g. Gullinbursti's UNSTOPPABLE_MASS). Watches the modifier appearing.
@@ -1261,14 +1275,14 @@ const BattleArena: React.FC = () => {
             />
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
-                {isVictory && !showReport && (
+                {showVictory && !showReport && (
                     <WinLossOverlay
                         key="win-overlay"
                         result="WIN"
                         onShowReport={() => setShowReport(true)}
                     />
                 )}
-                {isDefeat && (
+                {showDefeat && (
                     <WinLossOverlay
                         key="loss-overlay"
                         result="LOSS"

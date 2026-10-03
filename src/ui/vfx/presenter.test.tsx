@@ -15,6 +15,8 @@ import { DEFAULT_SETTINGS, saveSettings } from '../settings/settings';
 import { setParticleSink, setStageAnchors } from './emit';
 import { battleClock, resetBattleClock } from './clock/battleClockRuntime';
 import { type CastPresenter, useCastSequence } from './useCastSequence';
+import { onCardSignal, type CardSignal } from './presenter/cardSignals';
+import { useBattleEndGate } from './pacing/useBattleEndGate';
 import * as emitModule from './emit';
 import * as statusTellsModule from './statusTells';
 import * as osTellsModule from './osTells';
@@ -136,8 +138,9 @@ describe('189b — everything waits its turn', () => {
         advance(5_000);
         const impacts = log.filter((e) => e.startsWith('impact@')).map((e) => Number(e.split('@')[1]));
         expect(impacts).toHaveLength(7);
-        // 180 flight + 220 trail = 400 per cast, and each starts when the last one's sequence ends.
-        expect(impacts).toEqual([400, 800, 1_200, 1_600, 2_000, 2_400, 2_800]);
+        // 180 flight + 220 trail = 400 to the impact, then the card takes CARD_LEAVE_MS (200) to go;
+        // the next cast starts when the last one's sequence has ended (189e): 600 apart.
+        expect(impacts).toEqual([400, 1_000, 1_600, 2_200, 2_800, 3_400, 4_000]);
     });
 
     it('a hook tell plays when ITS cast begins, not when the burst arrives', () => {
@@ -150,8 +153,8 @@ describe('189b — everything waits its turn', () => {
             });
         });
         advance(3_000);
-        // The fifth cast starts after four casts of 400 ms.
-        expect(log.filter((e) => e.startsWith('hook:'))).toEqual(['hook:kraken_v2@1600']);
+        // The fifth cast starts after four casts of 600 ms (400 to the impact + 200 for the card to leave).
+        expect(log.filter((e) => e.startsWith('hook:'))).toEqual(['hook:kraken_v2@2400']);
     });
 
     it('a death plays AT the impact on that body', () => {
@@ -211,7 +214,11 @@ describe('189b — the handle the screen waits on', () => {
         expect(presenter.isIdle()).toBe(false);          // playing
         advance(399);
         expect(presenter.isIdle()).toBe(false);
-        advance(20);
+        advance(1);                                      // the impact has landed, the card is still leaving
+        expect(presenter.isIdle()).toBe(false);
+        advance(199);
+        expect(presenter.isIdle()).toBe(false);
+        advance(1);                                      // 189e: idle means the card has gone, too
         expect(presenter.isIdle()).toBe(true);
     });
 
@@ -222,20 +229,129 @@ describe('189b — the handle the screen waits on', () => {
         void presenter.whenIdle().then(() => { done = true; });
         await new Promise((resolve) => setTimeout(resolve, 5));
         expect(done).toBe(false);
-        act(() => { battleClock.advance(500); });
+        act(() => { battleClock.advance(700); });
         await new Promise((resolve) => setTimeout(resolve, 5));
         expect(done).toBe(true);
         vi.useFakeTimers();
     });
 
-    it('with vfx off the screen is never made to wait', async () => {
+    it('with vfx off only the card is waited for - never the trails or the impacts', async () => {
         act(() => { root.unmount(); });
         saveSettings({ ...DEFAULT_SETTINGS, vfx: false });
         container = document.createElement('div');
         root = createRoot(container);
         act(() => { root.render(<Harness />); });
         act(() => { play(); });
+        advance(0);
+        expect(log.some((e) => e.startsWith('impact@'))).toBe(false);   // no trail was drawn
+        advance(500);                                    // a player card: 180 in, 200 out
         expect(presenter.isIdle()).toBe(true);
         await expect(presenter.whenIdle()).resolves.toBeUndefined();
+    });
+});
+
+/** The enemy's card at the player: `foe` casts, `ally` is hit. */
+const playEnemy = (programId = 'cinder_slash', applied = 20) => {
+    globalBattleEventBus.emit({ type: 'PROGRAM_PLAYED', sourceId: 'foe', targetId: 'ally', programId, timestamp: Date.now() });
+    globalBattleEventBus.emit({
+        type: 'DAMAGE_TAKEN', targetId: 'ally', amount: applied, element: 'Fire', cause: 'attack',
+        damage: { raw: applied, absorbed: 0, applied } as never, timestamp: Date.now(),
+    });
+};
+
+describe('189e — the card hovers, then attacks, then leaves', () => {
+    let signals: string[];
+    let unsubscribe: () => void;
+    beforeEach(() => {
+        signals = [];
+        unsubscribe = onCardSignal((signal: CardSignal) => { signals.push(`${signal.kind}@${battleClock.now}`); });
+    });
+    afterEach(() => { unsubscribe(); });
+
+    it('an ENEMY card is on screen 1 s before its first particle', () => {
+        act(() => { playEnemy(); });
+        advance(2_000);
+        const cardAt = Number((signals.find((s) => s.startsWith('in@')) as string).split('@')[1]);
+        const trailAt = Number((log.find((e) => e.startsWith('trail@')) as string).split('@')[1]);
+        expect(cardAt).toBe(0);
+        expect(trailAt - cardAt).toBeGreaterThanOrEqual(1_000);
+        expect(trailAt).toBeLessThanOrEqual(1_000 + 180 + 16);   // 1 s hover + the card's 180 ms flight in
+    });
+
+    it("a PLAYER card has no hover: the trail leaves once the card has flown in", () => {
+        act(() => { play(); });
+        advance(1_000);
+        expect(Number((log.find((e) => e.startsWith('trail@')) as string).split('@')[1])).toBeLessThanOrEqual(180 + 16);
+    });
+
+    it('sends in, launch, out in that order, and `out` comes after the impact', () => {
+        act(() => { playEnemy(); });
+        advance(3_000);
+        expect(signals.map((s) => s.split('@')[0])).toEqual(['in', 'launch', 'out']);
+        const outAt = Number((signals.find((s) => s.startsWith('out@')) as string).split('@')[1]);
+        const impactAt = Number((log.find((e) => e.startsWith('impact@')) as string).split('@')[1]);
+        expect(outAt).toBeGreaterThanOrEqual(impactAt);
+    });
+
+    it('the next card comes in only once the last one has gone', () => {
+        act(() => { playEnemy(); playEnemy(); });
+        advance(6_000);
+        const kinds = signals.map((s) => s.split('@')[0]);
+        expect(kinds).toEqual(['in', 'launch', 'out', 'in', 'launch', 'out']);
+        const outAt = Number((signals[2]).split('@')[1]);
+        const secondIn = Number((signals[3]).split('@')[1]);
+        expect(secondIn).toBeGreaterThanOrEqual(outAt);
+    });
+
+    it('with vfx off the card still comes in, hovers and leaves; the trails are not drawn', () => {
+        act(() => { root.unmount(); });
+        saveSettings({ ...DEFAULT_SETTINGS, vfx: false });
+        container = document.createElement('div');
+        root = createRoot(container);
+        act(() => { root.render(<Harness />); });
+        act(() => { playEnemy(); });
+        advance(3_000);
+        expect(signals.map((s) => s.split('@')[0])).toEqual(['in', 'launch', 'out']);
+        expect(log.some((e) => e.startsWith('trail@') || e.startsWith('impact@'))).toBe(false);
+    });
+});
+
+describe('189e — the victory banner waits for the last impact', () => {
+    const shown: { value: boolean } = { value: false };
+    const Gate: React.FC<{ over: boolean }> = ({ over }) => {
+        const handle = useCastSequence({ ...STATE } as unknown as IBattleState);
+        const open = useBattleEndGate(over, 'battle-1', handle);
+        useEffect(() => { presenter = handle; shown.value = open; });
+        return null;
+    };
+
+    it('opens only after the killing blow has landed and the card has gone', async () => {
+        vi.useRealTimers();               // the burst window closes on a real 0 ms timer here
+        act(() => { root.unmount(); });
+        container = document.createElement('div');
+        root = createRoot(container);
+        act(() => { root.render(<Gate over={false} />); });
+        act(() => { play('cinder_slash', [{ target: 'foe', applied: 100 }]); });
+        act(() => { root.render(<Gate over />); });               // the engine already says: over
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
+        expect(shown.value).toBe(false);                          // the trail has not even left
+        await act(async () => { battleClock.advance(399); await new Promise((resolve) => setTimeout(resolve, 5)); });
+        expect(shown.value).toBe(false);                          // not at the impact either...
+        await act(async () => { battleClock.advance(1); await new Promise((resolve) => setTimeout(resolve, 5)); });
+        expect(shown.value).toBe(false);                          // ...nor while the card is leaving
+        await act(async () => { battleClock.advance(250); await new Promise((resolve) => setTimeout(resolve, 5)); });
+        expect(shown.value).toBe(true);
+        vi.useFakeTimers();
+    });
+
+    it('does not open while the battle is not over', async () => {
+        vi.useRealTimers();
+        act(() => { root.unmount(); });
+        container = document.createElement('div');
+        root = createRoot(container);
+        act(() => { root.render(<Gate over={false} />); });
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
+        expect(shown.value).toBe(false);
+        vi.useFakeTimers();
     });
 });

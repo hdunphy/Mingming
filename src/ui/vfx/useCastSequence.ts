@@ -60,8 +60,10 @@ import { effectivenessAgainst } from '../audio/battleCues';
 import { barkPointsFor } from '../components/stage/barkShield';
 import { PresenterQueue } from './presenter/PresenterQueue';
 import {
-    type LooseBurst, type PendingCast, buildCastBeat, buildLooseBeat, emptyCast, emptyLoose, isLooseEmpty,
+    type LooseBurst, type PendingCast, buildCardBeat, buildCastBeat, buildLooseBeat, emptyCast, emptyLoose, isLooseEmpty,
 } from './presenter/castBeat';
+import { nextCardKey } from './presenter/cardSignals';
+import type { PlayedCardAnnouncement } from '../hooks/useBattleVfx';
 
 // Kept here so every existing importer (the reveal, the tests) still finds them.
 export { FLIGHT_MS, STATUS_TELL_STAGGER_MS } from './presenter/castBeat';
@@ -188,7 +190,7 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
         };
 
         const handle = (event: BattleEvent): void => {
-            if (immediate && event.type !== 'DAMAGE_TAKEN' && event.type !== 'HEAL' && event.type !== 'STATUS_APPLIED') return;
+            if (immediate && event.type !== 'DAMAGE_TAKEN' && event.type !== 'HEAL' && event.type !== 'STATUS_APPLIED' && event.type !== 'PROGRAM_PLAYED') return;
             switch (event.type) {
                 case 'PROGRAM_PLAYED': {
                     // The previous cast's window closes here: anything still open belonged to it.
@@ -198,6 +200,25 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                     const data = GetProgramData(event.programId);
                     const source = findEntity(event.sourceId);
                     const target = findEntity(event.targetId);
+
+                    /*
+                     * TICKET 189e: THE CARD IS THE PRESENTER'S. It flies in as this cast's turn in
+                     * the line begins, hovers if it is the enemy's, and leaves when the sequence
+                     * ends. The announcement is built here, off the pre-burst state.
+                     */
+                    const card: PlayedCardAnnouncement = {
+                        key: nextCardKey(),
+                        dataId: event.programId,
+                        sourceId: event.sourceId,
+                        targetId: event.targetId,
+                        fromPlayer: stateRef.current?.playerParty.some((e) => e.id === event.sourceId) ?? false,
+                        sourceName: source?.name ?? '',
+                        targetName: target?.name ?? '',
+                    };
+                    if (immediate) {
+                        queue.enqueue(buildCardBeat(card));
+                        return;
+                    }
 
                     /*
                      * The effectiveness read, from the engine's own decomposition rather than a
@@ -216,6 +237,7 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                         targetIds: [event.targetId],
                         doubled: effectiveness >= SUPER_EFFECTIVE_AT,
                         resisted: effectiveness <= RESISTED_AT,
+                        card,
                     });
                     return;
                 }

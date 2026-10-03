@@ -8,7 +8,7 @@ import { getElementAccent } from '../utils/contrastText';
 import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
 import {
     castCue, causeCue, cryCue, HIT_BIG_FRACTION, hookCue, impactCue,
-    isPlayerSide, shieldCue, statusCue, tickCue,
+    shieldCue, statusCue, tickCue,
 } from '../audio/battleCues';
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
 import { statusFloatText, absorbedAmount } from '../vfx/statusBurst';
@@ -17,6 +17,7 @@ import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
 import { driverText } from '../labels/driverText';
 import { damageSeverity } from '../vfx/impact/impactMath';
 import { type StageMoment, onStageMoment } from '../vfx/impact/stageMoments';
+import { type CardSignal, onCardSignal } from '../vfx/presenter/cardSignals';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -86,37 +87,16 @@ export interface PlayedCardAnnouncement {
     readonly targetName: string;
 }
 
-/**
- * How long a reveal stays up, and therefore how long the enemy loop holds before it starts thinking
- * about its next card (`BattleArena`). Ticket 127: this is the number that turns dead waiting into
- * information - the old loop slept 600ms with nothing on screen and then thought for 1.3s.
+/*
+ * TICKET 189e DELETED `PLAYED_CARD_REVEAL_MS` (1.2 s) AND `PLAYER_CARD_HOLD_MS` (1.5 s).
  *
- * **1200ms since the 2026-09-05 playtest** — Henry: *"Enemy AI cards disappear to fast."* 700 was
- * set against a 3v3 search that takes ~1.3s a decision, where the think itself padded the read;
- * in a SOLO fight the search returns in tens of milliseconds, so the hold WAS the whole exposure
- * and a card the player has never seen before got 0.65 seconds. The number is the floor on how long
- * a stranger's card is legible, so it is set for the fast case and the slow case keeps paying its
- * own way.
- *
- * It is a hold, not an animation length: the ENEMY's reveal never expires on a timer (see the
- * `PROGRAM_PLAYED` case below) — the next play or the turn flip is what takes it down. The player's
- * own card is the exception, below.
+ * The reveal's time was a number nobody could tune against what was happening on the board: the
+ * enemy loop slept the first, and the player's own card left on the second whether its sequence was
+ * a chip or a kill. A card now arrives, the enemy's hovers 1 s (`ENEMY_HOVER_MS`, Henry: *"Before
+ * makes more sense"*), the attack plays, and the card leaves when ITS SEQUENCE ENDS
+ * (`presenter/castBeat`). The enemy loop waits for the presenter to be idle instead of for a
+ * timer. Ticket 127's point survives: the time a card is on screen is information, not dead air.
  */
-export const PLAYED_CARD_REVEAL_MS = 1200;
-
-/**
- * ── THE PLAYER'S OWN CARD LEAVES AFTER 1.5 s — Henry, 2026-09-25, off the Rootfall playtest ──
- *
- * *"card's that were just played stay stuck in the center and also cover the combat log. It should
- * disappear after a few seconds."* The no-timer rule below was written for the ENEMY's cards: a
- * timer there would race the AI loop's own hold. The player's side has no loop — on your own turn
- * the next "something else" is often you pressing End Turn, so your last card sat over the log
- * for as long as you were thinking. Ruled 1.5 s.
- *
- * Only the player's reveal times out. The enemy's still leaves when the next play or the turn flip
- * replaces it, exactly as ticket 127 set it.
- */
-export const PLAYER_CARD_HOLD_MS = 1500;
 
 export interface BattleVfx {
     unitFx: Record<string, UnitFx>;
@@ -222,7 +202,6 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     stateRef.current = battleState;
 
     const floatIdRef = React.useRef(1);
-    const revealKeyRef = React.useRef(1);
     /*
      * The same series detection for a HOOK firing several times in one cast — ticket 162e.
      *
@@ -497,6 +476,27 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             });
         };
         const unsubscribeMoments = onStageMoment(landMoment);
+        /**
+         * A card's life on the stage (189e), from the presenter: it flies in (reveal + whoosh),
+         * launches the element (cast sound + the caster's lunge), and leaves when its sequence ends.
+         * 147d: *"The card leaves the hand, then the element leaves the caster — … different sounds
+         * because they are different moments. The enemy's card is the same whoosh three semitones
+         * down."*
+         */
+        const landCard = (signal: CardSignal): void => {
+            const { card } = signal;
+            if (signal.kind === 'in') {
+                playSfx('cardFly', { pitch: card.fromPlayer ? 1 : semitones(-3) });
+                setVfx(prev => ({ ...prev, playedCard: card }));
+            } else if (signal.kind === 'launch') {
+                playSfx(castCue(GetProgramData(card.dataId)?.element));
+                triggerLunge(card.sourceId);
+            } else {
+                // A newer card may already have replaced it: the key check makes that a no-op.
+                setVfx(prev => (prev.playedCard?.key === card.key ? { ...prev, playedCard: null } : prev));
+            }
+        };
+        const unsubscribeCards = onCardSignal(landCard);
 
         const unsubscribe = globalBattleEventBus.subscribe(event => {
             switch (event.type) {
@@ -579,48 +579,14 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                     playSfx(cue, { step: hookStep });
                     return;
                 }
-                case 'PROGRAM_PLAYED': {
-                    /*
-                     * 147d. The card leaves the hand, then the element leaves the caster — the
-                     * two halves of 146c's cast, and they are different sounds because they are
-                     * different moments. The enemy's card is the same whoosh three semitones
-                     * down (147 §8), which is the cheapest possible "that was not you".
-                     */
-                    const fromPlayer = isPlayerSide(stateRef.current, event.sourceId);
-                    playSfx('cardFly', { pitch: fromPlayer ? 1 : semitones(-3) });
-                    playSfx(castCue(GetProgramData(event.programId)?.element));
-                    triggerLunge(event.sourceId);
-                    // The ENEMY's reveal is NOT auto-expired on a timer. A timer would race the enemy
-                    // loop's own hold, and the next play (or the turn ending) is the honest thing
-                    // that should replace it - a card stays up until something else happens, which
-                    // is what makes it readable when the AI is thinking on the same thread. The
-                    // PLAYER's reveal does time out (PLAYER_CARD_HOLD_MS, 2026-09-25).
-                    const source = findEntity(event.sourceId);
-                    const target = findEntity(event.targetId);
-                    const s = stateRef.current;
-                    const key = revealKeyRef.current++;
-                    const revealFromPlayer = s?.playerParty.some(e => e.id === event.sourceId) ?? false;
-                    setVfx(prev => ({
-                        ...prev,
-                        playedCard: {
-                            key,
-                            dataId: event.programId,
-                            sourceId: event.sourceId,
-                            targetId: event.targetId,
-                            fromPlayer: revealFromPlayer,
-                            sourceName: source?.name ?? '',
-                            targetName: target?.name ?? '',
-                        },
-                    }));
-                    // Your own card flies to the discard after PLAYER_CARD_HOLD_MS - unless a newer
-                    // play has already replaced it, which the key check makes a no-op.
-                    if (revealFromPlayer) {
-                        pendingTimeoutsRef.current.push(setTimeout(() => {
-                            setVfx(prev => (prev.playedCard?.key === key ? { ...prev, playedCard: null } : prev));
-                        }, PLAYER_CARD_HOLD_MS));
-                    }
-                    return;
-                }
+                /*
+                 * TICKET 189e — `PROGRAM_PLAYED` IS NOT HEARD HERE ANY MORE.
+                 *
+                 * The card, the whoosh, the cast sound and the lunge are the presenter's, played in
+                 * each cast's own turn (`presenter/cardSignals`): see `landCard` below. Heard at
+                 * arrival, a burst of seven enemy casts showed one card, sounded seven whooshes at
+                 * once and lunged seven casters together.
+                 */
                 case 'CARD_DRAWN': {
                     // Only the player's deck ticks audibly; the 35ms coalescer
                     // collapses multi-card draws into a single soft tick.
@@ -635,10 +601,9 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 }
                 case 'TURN_START': {
                     playSfx(event.activeSide === 'PLAYER' ? 'turnPlayer' : 'turnEnemy');
-                    // A reveal must not outlive the turn that produced it: the turn banner is the
-                    // next thing the player reads, and a stale card under it says the wrong side
-                    // just acted.
-                    setVfx(prev => (prev.playedCard === null ? prev : { ...prev, playedCard: null }));
+                    // 189e: no clearing of the reveal here. A card leaves when ITS sequence ends, so a
+                    // stale card cannot outlive the turn that produced it, and clearing it on the
+                    // event would pull a card out from under a sequence still playing.
                     return;
                 }
                 case 'LEVEL_UP': {
@@ -662,6 +627,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
         return () => {
             unsubscribe();
             unsubscribeMoments();
+            unsubscribeCards();
             timeouts.forEach(clearTimeout);
             timeouts.length = 0;
             statusBurstRef.current = null;

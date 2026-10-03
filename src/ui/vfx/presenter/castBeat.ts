@@ -33,7 +33,9 @@ import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from '../trails';
 import { type BoardSink, type LooseOp, type TimedBoardOp, applyBoardOp } from '../displayed/boardOps';
 import { displayedBoard } from '../displayed/displayedBoardRuntime';
 import { type StageMoment, emitStageMoment, finishMoment } from '../impact/stageMoments';
+import type { PlayedCardAnnouncement } from '../../hooks/useBattleVfx';
 import { type Beat, type TimedAction, beatDuration } from './beat';
+import { emitCardSignal } from './cardSignals';
 
 /** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
 export const FLIGHT_MS = 180;
@@ -41,6 +43,13 @@ export const FLIGHT_MS = 180;
 export const STATUS_TELL_STAGGER_MS = 60;
 /** A loose burst (a tick, an expiry, a death with no card) holds the stage this long. */
 export const LOOSE_BEAT_MS = 200;
+/**
+ * TICKET 189e (Henry, 2026-10-02: *"Before makes more sense"*): the enemy's card arrives and HOVERS
+ * this long so it can be read, and only then does its attack play.
+ */
+export const ENEMY_HOVER_MS = 1000;
+/** The card's flight out of the lane (§2c's 200 ms): the next sequence starts after it has gone. */
+export const CARD_LEAVE_MS = 200;
 
 export interface HookTellInfo {
     readonly hookId: string;
@@ -71,9 +80,14 @@ export interface PendingCast {
     readonly ticks: Array<{ status: StatusType; targetId: string }>;
     /** TICKET 189c: what each hit, heal, price and shield does to the displayed board, and when. */
     readonly ops: TimedBoardOp[];
+    /**
+     * TICKET 189e: the card behind this cast. It flies in as the beat starts, hovers (the enemy's, for
+     * `ENEMY_HOVER_MS`), launches the element, and leaves when the sequence ends. Absent: no card.
+     */
+    readonly card?: PlayedCardAnnouncement;
 }
 
-export function emptyCast(base: Pick<PendingCast, 'element' | 'sourceId' | 'targetIds' | 'doubled' | 'resisted'>): PendingCast {
+export function emptyCast(base: Pick<PendingCast, 'element' | 'sourceId' | 'targetIds' | 'doubled' | 'resisted' | 'card'>): PendingCast {
     return {
         ...base, statuses: [], hookStatuses: [], hookTells: [], startTells: [],
         shields: [], deaths: [], selfCosts: [], removals: [], ticks: [], ops: [],
@@ -99,11 +113,19 @@ export function buildCastBeat(
         });
     }
 
+    // TICKET 189e: the enemy's card hovers before its attack; the player's goes straight in.
+    const hover = cast.card && !cast.card.fromPlayer ? ENEMY_HOVER_MS : 0;
+    if (cast.card) {
+        const card = cast.card;
+        actions.push({ at: 0, label: 'card-in', run: () => emitCardSignal({ kind: 'in', card }) });
+        actions.push({ at: FLIGHT_MS + hover, label: 'launch', run: () => emitCardSignal({ kind: 'launch', card }) });
+    }
+
     let firstImpact: number | null = null;
     cast.targetIds.forEach((targetId, index) => {
         // §2c: *"Side/All cards send one trail per target, 40 ms apart."* The stagger is what makes
         // a three-target card read as three hits rather than as one wide flash.
-        const offset = FLIGHT_MS + index * TRAIL_STAGGER_MS;
+        const offset = FLIGHT_MS + hover + index * TRAIL_STAGGER_MS;
         const impactAt = offset + TRAIL_MS;
         firstImpact ??= impactAt;
         impactAtTarget.set(targetId, impactAt);
@@ -205,7 +227,34 @@ export function buildCastBeat(
         if (index === hookIds.length - 1) last = at;
     });
 
+    /*
+     * TICKET 189e: the card leaves when its sequence ends (it was a fixed 1.5 s for the player, and
+     * "until the next play" for the enemy), and the beat holds for its flight out, so a card is
+     * always gone before the next card's sequence starts.
+     */
+    if (cast.card) {
+        const card = cast.card;
+        const leaveAt = beatDuration(actions, last);
+        actions.push({ at: leaveAt, label: 'card-out', run: () => emitCardSignal({ kind: 'out', card }) });
+        return { label: 'cast', actions, durationMs: leaveAt + CARD_LEAVE_MS };
+    }
+
     return { label: 'cast', actions, durationMs: beatDuration(actions, last) };
+}
+
+/**
+ * A card with nothing else to draw (the cast sequence is off): it still flies in, hovers (the
+ * enemy's), launches and leaves, so the enemy's turn is still readable one card at a time.
+ */
+export function buildCardBeat(card: PlayedCardAnnouncement): Beat {
+    const hover = card.fromPlayer ? 0 : ENEMY_HOVER_MS;
+    const launchAt = FLIGHT_MS + hover;
+    const actions: TimedAction[] = [
+        { at: 0, label: 'card-in', run: () => emitCardSignal({ kind: 'in', card }) },
+        { at: launchAt, label: 'launch', run: () => emitCardSignal({ kind: 'launch', card }) },
+        { at: launchAt, label: 'card-out', run: () => emitCardSignal({ kind: 'out', card }) },
+    ];
+    return { label: 'card', actions, durationMs: launchAt + CARD_LEAVE_MS };
 }
 
 /**

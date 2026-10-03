@@ -13,7 +13,12 @@ import {
 import { FLIGHT_MS, STATUS_TELL_STAGGER_MS } from './useCastSequence';
 import { statusColor } from './statusTells';
 import { scheduleStatusTells } from './statusBurst';
-import { PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
+
+/**
+ * The old 1.2 s card hold (deleted in 189e - a card now leaves when its sequence ends). The tells still
+ * have to be a short tail, so the sequence they extend stays short: that is what this keeps checking.
+ */
+const TELL_BUDGET_MS = 1200;
 
 const FROM = { x: 100, y: 300, w: 190, h: 190 };
 const TO = { x: 900, y: 300, w: 190, h: 190 };
@@ -103,9 +108,9 @@ describe('146c — the sequence fits inside the hold', () => {
         ], STATUS_TELL_STAGGER_MS);
         const worst = threeScheduled[threeScheduled.length - 1].at;
 
-        expect(worst).toBeLessThan(PLAYED_CARD_REVEAL_MS);
+        expect(worst).toBeLessThan(TELL_BUDGET_MS);
 
-        // Twenty entries across two statuses still end before PLAYED_CARD_REVEAL_MS
+        // Twenty entries across two statuses still end before TELL_BUDGET_MS
         const twentyEntries = [];
         for (let i = 0; i < 10; i++) {
             twentyEntries.push({ targetId: `a${i % 3}`, status: 'Sharp' as const });
@@ -113,7 +118,7 @@ describe('146c — the sequence fits inside the hold', () => {
         }
         const twentyScheduled = scheduleStatusTells(lastImpact, twentyEntries, STATUS_TELL_STAGGER_MS);
         const twentyWorst = twentyScheduled[twentyScheduled.length - 1].at;
-        expect(twentyWorst).toBeLessThan(PLAYED_CARD_REVEAL_MS);
+        expect(twentyWorst).toBeLessThan(TELL_BUDGET_MS);
     });
 
     it('staggers a multi-target cast, so three hits read as three', () => {
