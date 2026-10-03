@@ -33,7 +33,7 @@ export const INTRO_LEADER_ID = 'b0l4n0';
 type Draft = Omit<IRegionNode, 'edges'> & { edges: string[] };
 
 function node(id: string, kind: IRegionNode['kind'], layer: number, visited = 0): Draft {
-    return { id, kind, biomeIndex: 0, layer, pocket: false, edges: [], visited };
+    return { id, kind, biomeIndex: 0, layer, detour: false, edges: [], visited };
 }
 
 function link(a: Draft, b: Draft): void {

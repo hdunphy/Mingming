@@ -32,7 +32,7 @@ describe('182c the intro map', () => {
     it('is seven nodes in five layers, all in biome 0', () => {
         expect(nodes).toHaveLength(7);
         expect(new Set(nodes.map((n) => n.layer))).toEqual(new Set([0, 1, 2, 3, 4]));
-        expect(nodes.every((n) => n.biomeIndex === 0 && !n.pocket)).toBe(true);
+        expect(nodes.every((n) => n.biomeIndex === 0 && !n.detour)).toBe(true);
     });
 
     it('goes Start, a wild fight and the stray, a fork, one more wild fight, then the leader', () => {

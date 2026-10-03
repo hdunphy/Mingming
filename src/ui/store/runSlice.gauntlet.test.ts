@@ -38,6 +38,8 @@ import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { RunStateSchema } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
+import { standBeside } from '../../testing/standBeside';
+import { withPlainShop } from '../../testing/plainShop';
 
 const member = (id: string, definitionId: string, activeOS: string): IMingmingState => ({
     id, definitionId, activeOS, blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10,
@@ -60,9 +62,12 @@ function makeRun(): IRunState {
 
 /** Walk the player onto a node of the given kind, exactly as `enterNode` would leave them. */
 function standingOn(kind: IRunState['nodes'][number]['kind']): RunSliceState {
-    const run = makeRun();
+    const generated = makeRun();
+    // The generator makes towns (176c); a plain stall or bay is the first town, retyped.
+    const run = kind === 'marketplace' || kind === 'workshop' ? withPlainShop(generated, kind).run : generated;
     const target = run.nodes.find((n) => n.kind === kind && n.id !== run.currentNodeId)!;
-    return runReducer(runReducer(undefined, startRun(run)), enterNode(target.id));
+    // Travel is one-way (176b): stand on a node that links to the target before stepping onto it.
+    return runReducer(runReducer(undefined, startRun(standBeside(run, target.id))), enterNode(target.id));
 }
 
 /** Every state this file produces has to be a state the run can be saved in. */

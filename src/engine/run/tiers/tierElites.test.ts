@@ -16,7 +16,7 @@ import type { IMingmingState } from '../../types';
 import { createRun } from '../createRun';
 import { GYM_REGISTRY, type IGymOffer } from '../gyms';
 import { assignDriverStakes } from '../driverStakes';
-import { generateRegionGraph, REGION_PARAMS } from '../regionGraph';
+import { generateRegionGraph, isScriptedOpening, nodeRole, REGION_PARAMS } from '../regionGraph';
 import { addTierElites } from './tierElites';
 
 const KRAKEN: IMingmingState = {
@@ -65,16 +65,10 @@ describe('tier 0 is the map the game has today', () => {
 });
 
 describe('tier 2 adds one elite per biome', () => {
-    /** The nodes 169b is allowed to convert: a plain middle wild, off the pocket, not the scripted opener. */
+    /** The nodes 169b is allowed to convert: a plain route wild, not a detour, not the scripted opener (176b). */
     const candidatesIn = (nodes: ReadonlyArray<IRegionNode>, biomeIndex: number) =>
         nodes.filter(
-            (n) =>
-                n.biomeIndex === biomeIndex &&
-                n.kind === 'wild' &&
-                !n.pocket &&
-                n.layer >= 1 &&
-                n.layer <= 3 &&
-                !(biomeIndex === 0 && n.layer === REGION_PARAMS.scriptedOpeningLayer),
+            (n) => n.biomeIndex === biomeIndex && n.kind === 'wild' && nodeRole(n) === 'route' && !isScriptedOpening(n),
         );
 
     it('adds exactly one elite to every biome that has a plain middle wild to convert, over 200 seeds', () => {
@@ -92,12 +86,12 @@ describe('tier 2 adds one elite per biome', () => {
 
     it('REPORTED TO HENRY: some maps have a biome with no wild to convert, so it gets no extra elite', () => {
         /*
-         * Ticket 169b asked for this count to be 0 and to be reported if it is not. It is not: the
-         * generator fills each biome's middle from a mixed pool (wild 60, event 14, elite 10, plus
-         * the guaranteed market and workshop, and the rivals that ticket 142a takes out of the wilds),
-         * and biome 0's whole first layer is the scripted opening wild, which this row must not
-         * convert. So a biome's layers 2 and 3 sometimes hold no plain wild at all. Measured over
-         * these 200 seeds: 56 have at least one such biome (biome 0 in 48 of them).
+         * Ticket 169b asked for this count to be 0 and to be reported if it is not. It is not: each
+         * biome's route rows are filled from a mixed pool (wild 60, event 14, elite 10, and the
+         * rivals that ticket 142a takes out of the wilds), and biome 0's first route row is the scripted
+         * opening wild, which this row must not convert. So a biome sometimes holds no plain wild at
+         * all. Over these 200 seeds that is 12 (it was 56 on the old map, before ticket 176 gave each
+         * biome more route nodes).
          *
          * Nothing here tunes it. The number is pinned so that a change to the generator or to the
          * candidate rule is noticed, and Henry decides whether a rival may be converted too.
@@ -108,7 +102,7 @@ describe('tier 2 adds one elite per biome', () => {
             const short = [0, 1, 2].some((biomeIndex) => candidatesIn(base.nodes, biomeIndex).length === 0);
             if (short) seedsWithAShortBiome += 1;
         }
-        expect(seedsWithAShortBiome).toBe(56);
+        expect(seedsWithAShortBiome).toBe(12);
     });
 
     it('only ever turns a plain middle wild into an elite, and changes nothing else about the node', () => {
@@ -121,9 +115,9 @@ describe('tier 2 adds one elite per biome', () => {
                 if (node.kind === before.kind) return;
                 expect(before.kind).toBe('wild');
                 expect(node.kind).toBe('elite');
-                expect(before.pocket).toBe(false);
-                expect(before.layer).toBeGreaterThanOrEqual(1);
-                expect(before.layer).toBeLessThanOrEqual(3);
+                expect(before.detour).toBe(false);
+                expect(nodeRole(before)).toBe('route');
+                expect(isScriptedOpening(before)).toBe(false);
                 expect({ ...node, kind: 'wild', driverStake: undefined }).toEqual({
                     ...before,
                     driverStake: undefined,
@@ -132,13 +126,26 @@ describe('tier 2 adds one elite per biome', () => {
         }
     });
 
+    it('never lands on a detour, a town or the scripted fight (176b), at any tier', () => {
+        for (const seed of seeds(100)) {
+            const base = runOf(seed, 0).nodes;
+            const tiered = runOf(seed, 3).nodes;
+            tiered.forEach((node, i) => {
+                if (node.kind === base[i].kind) return;
+                expect(node.kind).toBe('elite');
+                expect(base[i].kind).toBe('wild');
+                expect(base[i].detour, `${seed} ${node.id} was a detour`).toBe(false);
+                expect(isScriptedOpening(base[i])).toBe(false);
+                expect(nodeRole(base[i])).toBe('route');
+            });
+        }
+    });
+
     it('never touches the scripted opening layer of biome 0, at any tier', () => {
         for (const seed of seeds(100)) {
             for (const tier of [0, 1, 2, 3]) {
-                const opening = runOf(seed, tier).nodes.filter(
-                    (n) => n.biomeIndex === 0 && n.layer === REGION_PARAMS.scriptedOpeningLayer && !n.pocket,
-                );
-                expect(opening.length).toBeGreaterThan(0);
+                const opening = runOf(seed, tier).nodes.filter(isScriptedOpening);
+                expect(opening).toHaveLength(1);
                 for (const node of opening) expect(node.kind).toBe('wild');
             }
         }
@@ -166,12 +173,10 @@ describe('tier 2 adds one elite per biome', () => {
         const converted = addTierElites(nodes, 'many', 1000);
         for (let biomeIndex = 0; biomeIndex < REGION_PARAMS.biomesPerRun; biomeIndex += 1) {
             const stillPlainWilds = converted.filter(
-                (n) => n.biomeIndex === biomeIndex && n.kind === 'wild' && !n.pocket && n.layer >= 1 && n.layer <= 3,
+                (n) => n.biomeIndex === biomeIndex && n.kind === 'wild' && nodeRole(n) === 'route',
             );
-            // Only the scripted opening layer's wilds are left standing.
-            for (const n of stillPlainWilds) {
-                expect(biomeIndex === 0 && n.layer === REGION_PARAMS.scriptedOpeningLayer).toBe(true);
-            }
+            // Only the scripted opening is left standing.
+            for (const n of stillPlainWilds) expect(isScriptedOpening(n)).toBe(true);
         }
     });
 });

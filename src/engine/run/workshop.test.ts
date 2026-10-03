@@ -88,7 +88,7 @@ function makeRun(seed = 'workshop-run', party: IMingmingState[] = [KRAKEN]): IRu
 const RUN = makeRun();
 
 /** Every workshop the generated region contains — ticket 07 puts one in each of the three biomes. */
-const WORKSHOPS = RUN.nodes.filter((n) => n.kind === 'workshop');
+const WORKSHOPS = RUN.nodes.filter((n) => isWorkshopNode(n.kind));
 
 /** A workshop as `enterNode` leaves it: visit-incremented. */
 function visited(node: IRegionNode, visit: number): IRegionNode {
@@ -309,6 +309,7 @@ describe('there is no removal price, at either counter', () => {
 describe('what the node serves', () => {
     it('serves workshops and nothing else', () => {
         expect(isWorkshopNode('workshop')).toBe(true);
+        expect(isWorkshopNode('town')).toBe(true);   // ticket 176: a town is a market and a workshop
         for (const kind of ['wild', 'elite', 'alpha', 'ambush', 'marketplace', 'event', 'gym'] as const) {
             expect(isWorkshopNode(kind)).toBe(false);
         }
@@ -490,7 +491,7 @@ describe('planRecruit', () => {
         const elsewhere = planRecruit({
             ranch: RANCH,
             run: other,
-            node: visited(other.nodes.filter((n) => n.kind === 'workshop')[0], 1),
+            node: visited(other.nodes.filter((n) => isWorkshopNode(n.kind))[0], 1),
             speciesId: 'fenrir',
         })!;
         expect(elsewhere.member.id).not.toBe(here.member.id);

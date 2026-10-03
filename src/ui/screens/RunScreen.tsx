@@ -93,6 +93,7 @@ import BoundaryAlert from './BoundaryAlert';
 import SettingsButton from '../components/SettingsButton';
 import GauntletNode from './GauntletNode';
 import LoadoutEditor from './LoadoutEditor';
+import TownNode from './town/TownNode';
 import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
 import Callout from '../components/Callout';
@@ -302,6 +303,24 @@ export default function RunScreen(): ReactNode {
 
     const stallOpen = closedNodeId !== run.currentNodeId;
 
+    /*
+     * TICKET 176c: a town is one node that is both the market and the workshop, so it is answered
+     * BEFORE the two kind checks below (`isMarketNode` and `isWorkshopNode` both say yes to it).
+     * `TownNode` owns the square, the tabs and the loadout editor; this only supplies the party.
+     */
+    if (current.kind === 'town' && stallOpen) {
+        return (
+            <TownNode
+                run={run}
+                node={current}
+                party={marketParty}
+                ranch={ranch}
+                biomeName={biome?.name}
+                onLeave={() => setClosedNodeId(current.id)}
+            />
+        );
+    }
+
     if (isMarketNode(current.kind) && stallOpen) {
         return (
             <>
@@ -396,7 +415,7 @@ export default function RunScreen(): ReactNode {
 
             <section className="ranch-section ranch-section-wide">
                 <div className="ranch-section-head">
-                    <h2><Icon name={NODE_ICON[current.kind]} size={18} /> {NODE_LABEL[current.kind]}{current.pocket ? ' (pocket)' : ''}</h2>
+                    <h2><Icon name={NODE_ICON[current.kind]} size={18} /> {NODE_LABEL[current.kind]}{current.detour ? ' (detour)' : ''}</h2>
                 </div>
 
                 {/*
@@ -411,7 +430,9 @@ export default function RunScreen(): ReactNode {
                         className="ranch-button"
                         onClick={() => { setClosedNodeId(null); playSfx('uiClick'); }}
                     >
-                        {isMarketNode(current.kind) ? 'Back to the stall' : 'Back to the summon bay'}
+                        {current.kind === 'town'
+                            ? 'Back into town'
+                            : isMarketNode(current.kind) ? 'Back to the stall' : 'Back to the summon bay'}
                     </button>
                 )}
 

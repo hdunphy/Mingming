@@ -32,8 +32,8 @@ function run(overrides: Fixture = {}) {
         gymId: 'gym_emberfall',
         biomes: [biome(0, 'Fire'), biome(1, 'Water'), biome(2, 'Nature')],
         nodes: [
-            { id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: ['n1'], visited: 1 },
-            { id: 'n1', kind: 'gym', biomeIndex: 2, layer: 4, pocket: false, edges: ['n0'], visited: 0 },
+            { id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, detour: false, edges: ['n1'], visited: 1 },
+            { id: 'n1', kind: 'gym', biomeIndex: 2, layer: 4, detour: false, edges: ['n0'], visited: 0 },
         ],
         currentNodeId: 'n0',
         partyIds: ['m1'],
@@ -127,17 +127,17 @@ describe('RunStateSchema — the run-shape rulings', () => {
         expect(RunStateSchema.safeParse(run({ scrap: -1 })).success).toBe(false);
     });
 
-    it('carries ticket 07\'s node model — layer, pocket, and a re-entry count', () => {
+    it('carries the node model — layer, detour, and a visit count', () => {
         const nodes = run().nodes as Array<Record<string, unknown>>;
         expect(nodes[0].layer).toBe(0);
-        expect(nodes[1].layer).toBe(4);          // biome 3's exit layer is the gym
-        expect(nodes[0].pocket).toBe(false);
-        // `visited` is a COUNT: ticket 07 rules that entering a node triggers it again, always.
+        expect(nodes[1].layer).toBe(4);
+        expect(nodes[0].detour).toBe(false);
+        // `visited` is a count (every node is entered at most once now: ticket 176, one-way travel).
         expect(nodes[0].visited).toBe(1);
     });
 
-    it('rejects a layer outside the 5 per biome', () => {
-        const bad = [{ ...(run().nodes as Array<Record<string, unknown>>)[0], layer: 5 }, ...(run().nodes as unknown[]).slice(1)];
+    it('rejects a layer outside the rows a biome can have (MAX_LAYER)', () => {
+        const bad = [{ ...(run().nodes as Array<Record<string, unknown>>)[0], layer: 7 }, ...(run().nodes as unknown[]).slice(1)];
         expect(RunStateSchema.safeParse(run({ nodes: bad })).success).toBe(false);
     });
 
@@ -241,6 +241,18 @@ describe('reconcileLoadedState — the run is always the disposable half', () =>
         expect(result.ranch?.roster).toHaveLength(3);
         expect(result.run).toBeNull();
         expect(result.discarded).toBe('run-schema-invalid');
+    });
+
+    it('ticket 176 (M5): a run saved with the old map shape (pocket, no detour) is discarded, the ranch kept', () => {
+        const oldNodes = [
+            { id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: ['n1', 'n2'], visited: 1 },
+            { id: 'n1', kind: 'gym', biomeIndex: 2, layer: 4, pocket: false, edges: ['n0'], visited: 0 },
+        ];
+        const result = reconcileLoadedState(ranchSave(), runSave({ nodes: oldNodes }));
+        expect(result.run).toBeNull();
+        expect(result.discarded).toBe('run-schema-invalid');
+        expect(result.ranch?.blueprints.kraken).toBe(2);
+        expect(result.ranch?.roster).toHaveLength(3);
     });
 
     it('a corrupt RANCH yields no state at all — a run without a roster is meaningless', () => {

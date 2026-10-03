@@ -67,6 +67,7 @@ import { cardFace } from './runShell';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
 import { instinctName } from '../labels/labels';
+import { plainShop } from '../../testing/plainShop';
 
 /** `renderToStaticMarkup` escapes text; several firmware descriptions carry apostrophes. See the twin
  *  in `MarketplaceNode.test.tsx` — comparing raw registry strings silently skips exactly those. */
@@ -95,7 +96,7 @@ function makeRun(scrap: number, over: Partial<IRunState> = {}): IRunState {
         party: [KRAKEN],
         startedAt: 1_700_000_000_000,
     });
-    const node = run.nodes.find((n) => n.kind === 'workshop')!;
+    const node = plainShop(run, 'workshop');
     return {
         ...run,
         scrap,

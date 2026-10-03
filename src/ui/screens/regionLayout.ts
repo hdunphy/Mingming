@@ -62,6 +62,7 @@ export const NODE_ICON: Record<NodeKind, IconName> = {
     ambush: 'ambush',
     marketplace: 'marketplace',
     workshop: 'workshop',
+    town: 'town',
     event: 'event',
     gym: 'gym',
 };
@@ -74,6 +75,7 @@ export const NODE_LABEL: Record<NodeKind, string> = {
     ambush: 'Ambush',
     marketplace: 'Marketplace',
     workshop: 'Den',
+    town: 'Town',
     event: 'Event',
     gym: 'Gym',
 };
@@ -236,7 +238,7 @@ export function layoutRegion(
     const reachableIds = new Set(current?.edges ?? []);
     const surveyed = new Set(revealedBiomes);
 
-    // Group by column, then order within it. Pockets sort last so a dead-end hangs off the bottom of
+    // Group by column, then order within it. Detours sort last so a side trip hangs off the bottom of
     // its layer rather than pushing the main route around — the route should read as a spine.
     const columns = new Map<number, IRegionNode[]>();
     for (const node of nodes) {
@@ -249,10 +251,10 @@ export function layoutRegion(
     const laid: LaidOutNode[] = [];
     let maxRows = 0;
     for (const [column, bucket] of columns) {
-        // Stable by id within the pocket/non-pocket split, so the same graph always draws the same
+        // Stable by id within the detour/non-detour split, so the same graph always draws the same
         // way. A map that reshuffles between renders is unreadable.
         const ordered = [...bucket].sort((a, b) => {
-            if (a.pocket !== b.pocket) return a.pocket ? 1 : -1;
+            if (a.detour !== b.detour) return a.detour ? 1 : -1;
             return a.id < b.id ? -1 : 1;
         });
         maxRows = Math.max(maxRows, ordered.length);

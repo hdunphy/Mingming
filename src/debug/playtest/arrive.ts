@@ -18,6 +18,7 @@ import { runOf } from './types';
 
 export function stepOnto(world: World, nodeId: string): void {
     world.store.dispatch(enterNode(nodeId));
+    world.view.townPart = null;
     const node = runOf(world).nodes.find((n) => n.id === nodeId);
     if (!node) return;
     if (node.kind === 'gym') world.store.dispatch(beginGauntlet());

@@ -84,7 +84,7 @@ export const RARITY_WEIGHTS: Record<Rarity, number> = {
  * | `wild` | **0.20** | the midpoint of ticket 12's own 15-25% band — the band is the ruling, the midpoint is the proposal |
  * | `ambush` | **0.20** | the SAME per-body rate as a wild on purpose: an ambush already pays more because it fields one more body, so it gets one more roll. Raising the rate too would pay the extra danger twice |
  * | `elite` | **0.25** | the top of the wild band. An elite is the biome's unavoidable exam, but `macros-and-drivers.md` makes the **Driver** its headline prize (ticket 16) — the blueprint should not be the reason to fight it |
- * | `alpha` | **1.00** | **RULED** (ticket 07). One enemy, one guaranteed blueprint; the pocket detour is worth taking exactly because of this line |
+ * | `alpha` | **1.00** | **RULED** (ticket 07). One enemy, one guaranteed blueprint; the detour is worth taking exactly because of this line |
  * | `gym` | **0.50** | placeholder. Ticket 18 owns the gauntlet refit and will very likely replace a per-body roll with one authored award; 1.0 per body would pay three blueprints for the run's last fight |
  *
  * **THE RATE IS PER DEFEATED ENEMY, NOT PER FIGHT**, and that is worth reading twice before
@@ -94,7 +94,7 @@ export const RARITY_WEIGHTS: Record<Rarity, number> = {
  * arbitrary step. If Henry reads 20% as a per-fight number, the wild/ambush/elite rows drop to
  * roughly 0.07 / 0.07 / 0.09 and nothing else in this file changes.
  *
- * The three non-fight kinds are listed at 0 rather than omitted. `FIGHT_KINDS` (engine/run/
+ * The four non-fight kinds (marketplace, workshop, town and event) are listed at 0 rather than omitted. `FIGHT_KINDS` (engine/run/
  * encounter.ts) means they can never reach this table today, and a total record is what stops a
  * future event-fight from silently inheriting a wild's payout because `Record` lookups on a missing
  * key return `undefined` and `undefined < rate` is quietly false.
@@ -111,6 +111,7 @@ export const BLUEPRINT_DROP_RATE: Readonly<Record<NodeKind, number>> = {
     gym: 0.50,
     marketplace: 0,
     workshop: 0,
+    town: 0,
     event: 0,
 };
 

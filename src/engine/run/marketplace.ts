@@ -484,6 +484,33 @@ export function upgradePrice(dataId: string): number {
 export const UPGRADES_PER_VISIT = 2;
 
 /**
+ * Ticket 176 (M7), Henry: *"maybe make it 2 / 3 / 4. I want the upgrades to be the scrap sink at the
+ * end of the run and limit them in the beginning to make players focus on filling out their deck."*
+ *
+ * How many upgrades one TOWN visit may buy, by the town's biome. One pool for the whole Upgrades tab:
+ * it replaces ticket 174's two at the market plus two at the workshop, now that they are one node.
+ * Patches are bought in the Shop and do not count against it. Plain `marketplace` and `workshop`
+ * nodes (old code paths and tests) keep `UPGRADES_PER_VISIT`.
+ */
+export const UPGRADES_PER_TOWN_BY_BIOME: ReadonlyArray<number> = [2, 3, 4];
+
+/** How many upgrades a visit to this market, workshop or town may buy. */
+export function upgradeAllowanceFor(node: Pick<IRegionNode, 'kind' | 'biomeIndex'>): number {
+    if (node.kind !== 'town') return UPGRADES_PER_VISIT;
+    return UPGRADES_PER_TOWN_BY_BIOME[Math.min(node.biomeIndex, UPGRADES_PER_TOWN_BY_BIOME.length - 1)];
+}
+
+/** The once-per-visit key the upgrade bench spends against (`IRunState.upgradesTaken`). */
+export function upgradeBenchKeyFor(node: Pick<IRegionNode, 'id' | 'kind' | 'visited'>): string {
+    return node.kind === 'town' ? `${node.id}:upgrades:${node.visited}` : `${node.id}:${node.visited}`;
+}
+
+/** The patch bench's once-per-visit key at a town. */
+export function patchBenchKeyFor(node: Pick<IRegionNode, 'id' | 'visited'>): string {
+    return `${node.id}:patch:${node.visited}`;
+}
+
+/**
  * The gym gate's upgrade is FREE — 163 §2, *"and a free upgrade at the gym gate (the rest-site
  * venue). Both answer 153's 'scrap is not scarce'."*
  *
@@ -584,7 +611,8 @@ export function macroPrice(macroId: string): number {
 
 /** Which node kinds this module serves. One per biome, by ticket 07. */
 export function isMarketNode(kind: NodeKind): boolean {
-    return kind === 'marketplace';
+    // Ticket 176: a town is a market and a workshop in one node. 'marketplace' stays for old code paths and tests.
+    return kind === 'marketplace' || kind === 'town';
 }
 
 /** One thing on sale. */

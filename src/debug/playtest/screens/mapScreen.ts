@@ -45,7 +45,7 @@ export function describeNode(world: World, laid: LaidOutNode): string {
         parts.push(`${node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${driverName(resolveDriverStake(node.driverStake, partyElementsOf(party)))}`);
     }
     parts.push(`biome ${node.biomeIndex + 1}`, `layer ${node.layer}`);
-    if (node.pocket) parts.push('dead end');
+    if (node.detour) parts.push('detour, +1 fight');
     if (node.visited > 0) parts.push(`visited ${node.visited}x`);
     return parts.join(', ');
 }
@@ -95,7 +95,7 @@ export function mapScreen(world: World): Screen {
     if (here && (isMarketNode(here.node.kind) || isWorkshopNode(here.node.kind)) && world.view.closedStall === here.node.id) {
         moves.push({
             key: 'reopen',
-            label: `Go back into the ${isMarketNode(here.node.kind) ? 'market' : 'workshop'}`,
+            label: `Go back into the ${here.node.kind === 'town' ? 'town' : isMarketNode(here.node.kind) ? 'market' : 'workshop'}`,
             apply: (w) => { w.view.closedStall = null; },
         });
     }

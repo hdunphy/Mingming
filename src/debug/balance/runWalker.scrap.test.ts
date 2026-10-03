@@ -7,25 +7,29 @@
  * - **The log balances.** The scrap a run opens with, plus every `SCRAP` row, is the scrap it ends
  *   with. Before 174d this failed on any walk that bought anything: the walker logged what it
  *   gained and left almost every purchase out, so a per-biome "spent" column was nearly empty.
- * - **A two-slot bench is used twice.** The market and the workshop allow `UPGRADES_PER_VISIT`; the
- *   gate allows one. The walker takes up to the allowance, never more.
+ * - **A two-slot bench is used twice.** The market and the workshop allow `UPGRADES_PER_VISIT` (a town,
+ *   since 176c, allows 2 / 3 / 4 by biome); the gate allows one. The walker takes up to the allowance, never more.
  */
 import { describe, expect, it } from 'vitest';
 
 import { walkRun, type WalkResult } from './runWalker';
 import { STARTING_SCRAP } from '../../engine/run/createRun';
-import { UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
+import { UPGRADES_PER_VISIT, upgradeAllowanceFor } from '../../engine/run/marketplace';
 import type { IRunEvent } from '../../engine/run/runLog';
 
 const netScrap = (result: WalkResult): number =>
     result.log.events.reduce((sum, event) => (event.kind === 'SCRAP' ? sum + event.delta : sum), 0);
 
-/** Upgrades bought on each node visit: `[nodeKind, count]` per `NODE_ENTERED` segment. */
-function upgradesPerVisit(events: ReadonlyArray<IRunEvent>): Array<[string, number]> {
-    const visits: Array<[string, number]> = [];
+/** Upgrades bought on each node visit: `[nodeKind, count, allowance]` per `NODE_ENTERED` segment. */
+function upgradesPerVisit(events: ReadonlyArray<IRunEvent>): Array<[string, number, number]> {
+    const visits: Array<[string, number, number]> = [];
     for (const event of events) {
-        if (event.kind === 'NODE_ENTERED') visits.push([event.nodeKind, 0]);
-        else if (event.kind === 'CARD_UPGRADED' && visits.length > 0) visits[visits.length - 1][1] += 1;
+        if (event.kind === 'NODE_ENTERED') {
+            // The gate gives one free upgrade; a town's allowance is its biome's (176c: 2 / 3 / 4);
+            // a plain market or workshop keeps UPGRADES_PER_VISIT.
+            const allowance = event.nodeKind === 'gym' ? 1 : upgradeAllowanceFor({ kind: event.nodeKind, biomeIndex: event.biome });
+            visits.push([event.nodeKind, 0, allowance]);
+        } else if (event.kind === 'CARD_UPGRADED' && visits.length > 0) visits[visits.length - 1][1] += 1;
     }
     return visits;
 }
@@ -79,8 +83,7 @@ describe('174d — the walker logs what it spends', () => {
 describe('174d — the walker at a two-slot bench', () => {
     it('never buys more than the venue allows, and the gate stays at one', () => {
         for (const result of WITH_UPGRADES) {
-            for (const [kind, count] of upgradesPerVisit(result.log.events)) {
-                const cap = kind === 'gym' ? 1 : UPGRADES_PER_VISIT;
+            for (const [kind, count, cap] of upgradesPerVisit(result.log.events)) {
                 expect(count, `${result.seed} at ${kind}`).toBeLessThanOrEqual(cap);
             }
         }
@@ -88,7 +91,7 @@ describe('174d — the walker at a two-slot bench', () => {
 
     it('uses both slots at a market or workshop when the purse and the deck allow it', () => {
         const full = WITH_UPGRADES.flatMap((result) => upgradesPerVisit(result.log.events))
-            .filter(([kind, count]) => (kind === 'marketplace' || kind === 'workshop') && count === UPGRADES_PER_VISIT);
+            .filter(([kind, count, cap]) => (kind === 'town' || kind === 'marketplace' || kind === 'workshop') && count === cap && cap >= UPGRADES_PER_VISIT);
         expect(full.length).toBeGreaterThan(0);
     });
 });

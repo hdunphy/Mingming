@@ -18,6 +18,7 @@ import { eventScreen } from './screens/eventScreen';
 import { gauntletScreen } from './screens/gauntletScreen';
 import { loadoutScreen } from './screens/loadoutScreen';
 import { workshopScreen } from './screens/workshopScreen';
+import { townScreen } from './screens/townScreen';
 import { stallOpen } from './stalls';
 import type { Screen, World } from './types';
 import { runOf } from './types';
@@ -31,6 +32,12 @@ export function currentScreen(world: World): Screen {
 
     const node = run.nodes.find((n) => n.id === run.currentNodeId);
     if (node && stallOpen(world, node)) {
+        // Ticket 176c: a town opens on its square and has a building for each half.
+        if (node.kind === 'town') {
+            if (world.view.townPart === 'shop') return marketScreen(world);
+            if (world.view.townPart === 'workshop') return workshopScreen(world);
+            return townScreen(world);
+        }
         if (isMarketNode(node.kind)) return marketScreen(world);
         if (isWorkshopNode(node.kind)) return workshopScreen(world);
     }

@@ -41,13 +41,15 @@ const otherSpecies = (world: World): string[] => {
 const assembleKeys = (world: World, suffix: string): string[] => keysOf(world).filter((k) => k.startsWith('workshop:assemble:') && k.includes(suffix));
 
 describe('180b — arriving at a workshop', () => {
-    it('is the workshop screen, and leaving shows the map with a way back in', () => {
+    it('is the workshop screen, and leaving shows the map with a way back in (the town square first, 176c)', () => {
         const world = workshopWorld();
         expect(currentScreen(world).id).toBe('workshop');
         press(world, 'leave');
         expect(currentScreen(world).id).toBe('map');
         expect(keysOf(world)).toContain('reopen');
         press(world, 'reopen');
+        expect(currentScreen(world).id).toBe('town');
+        press(world, 'town:workshop');
         expect(currentScreen(world).id).toBe('workshop');
     });
 
@@ -158,14 +160,20 @@ describe('180b — reflash', () => {
 });
 
 describe('180b — the workshop upgrade bench', () => {
-    it('is the same bench as the market, keyed to the workshop, with two upgrades a visit', () => {
+    it('has no bench of its own in a town: the town has one pool of upgrades, spent from the shop door (176c)', () => {
         const world = workshopWorld();
         const ids = Object.keys(ProgramRegistry).filter((id) => upgradeIdFor(id) !== undefined).slice(0, 3);
         world.store.dispatch(addRunCards(ids.map((dataId, i) => ({ instanceId: `up-${i}`, dataId, ownerId: null }))));
-        const upgradeKeys = () => keysOf(world).filter((k) => k.startsWith('workshop:upgrade:'));
+        expect(keysOf(world).filter((k) => k.startsWith('workshop:upgrade:'))).toEqual([]);
+
+        press(world, 'leave');
+        press(world, 'reopen');
+        press(world, 'town:shop');
+        const upgradeKeys = () => keysOf(world).filter((k) => k.startsWith('market:upgrade:'));
         expect(upgradeKeys().length).toBeGreaterThan(0);
-        press(world, 'workshop:upgrade:up-0');
-        press(world, 'workshop:upgrade:up-1');
+        press(world, 'market:upgrade:up-0');
+        press(world, 'market:upgrade:up-1');
+        // A biome-0 town allows two, then the bench shuts.
         expect(runOf(world).upgradesTaken?.length).toBe(2);
         expect(upgradeKeys()).toEqual([]);
     });

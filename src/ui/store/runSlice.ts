@@ -88,7 +88,7 @@ import { healBetweenFights } from '../../engine/run/gauntletHeal';
 import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
-import { REGION_PARAMS } from '../../engine/run/regionGraph';
+import { nodeRole } from '../../engine/run/regionGraph';
 import {
     biomeRevealModifier,
     firstFreeMacroSlot,
@@ -107,7 +107,7 @@ import { blueprintBankedModifier } from '../../engine/run/runSummary';
 import { afterFight, withTempDriver } from '../../engine/run/tempDrivers';
 import { countedDeckSize, isJunkCard } from '../../engine/run/junk';
 import { MACRO_SLOTS } from '../../engine/runTypes';
-import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome } from '../../engine/runTypes';
+import type { IRegionNode, IRunCard, IRunState, MacroSlots, RunOutcome, TownTab } from '../../engine/runTypes';
 
 /**
  * Rebuild the three-slot macro rack with one slot changed.
@@ -182,29 +182,28 @@ const runSlice = createSlice({
         // --- Travel and the node trigger (ticket 11, part 2) ---
 
         /**
-         * Walk to a node and TRIGGER it. Ticket 07, RULED:
+         * Walk to a node and TRIGGER it. Ticket 176 (the map redesign), RULED: **travel is one-way**,
+         * Slay the Spire style. Every node is entered once and you only move forward: no re-entering,
+         * no farming. (This reverses ticket 07's "entering a node triggers it again, always".)
          *
-         * > "Entering a node triggers it again, always. Wilds re-fight (full rewards — farming is
-         * > fine), markets and workshops can be revisited at the price of re-fighting the wilds on
-         * > the way. Edges are walkable in both directions."
+         * So the step is refused, as a silent no-op, unless the target is one of the CURRENT node's
+         * `edges` (forward links only) and has not been visited. That rules out a node behind you, a
+         * node beside you, an already-visited node and a node two rows ahead.
          *
          * Three things happen here and they are one action on purpose, because a run that has moved
-         * but not incremented — or incremented but not changed phase — is a run in a state no rule
+         * but not incremented, or incremented but not changed phase, is a run in a state no rule
          * describes:
          *
          * 1. `currentNodeId` moves.
-         * 2. The destination's `visited` count goes up. It is a **count and not a flag** so that
-         *    `encounterSeed` can roll a different fight on the second visit; the count that
-         *    identifies this entry is therefore the one *after* the increment, which is why the
-         *    increment must land before anything reads it.
+         * 2. The destination's `visited` count goes up, before anything reads it: `encounterSeed`
+         *    rolls the fight from the count after the increment.
          * 3. The phase becomes `'encounter'` for a fight kind and stays `'map'` otherwise, which is
-         *    what tells `RunScreen` to start a battle. Phase — rather than a component-local flag —
+         *    what tells `RunScreen` to start a battle. Phase, rather than a component-local flag,
          *    because it is already persisted: an app close between walking onto a wild and finishing
          *    it resumes into the same fight, re-rolled identically from the same seed.
          *
-         * Adjacency is not checked. `RegionMap` only offers reachable nodes, and a reducer has no
-         * error channel to refuse through — the silent-no-op convention would turn a bad dispatch
-         * into a dead button rather than a visible bug. An id naming no node is a no-op.
+         * A reducer has no error channel to refuse through; the silent no-op is the convention, and
+         * `RegionMap` only offers the nodes this accepts.
          */
         enterNode: (state, action: PayloadAction<string>): RunSliceState => {
             const run = state.run as IRunState | null;
@@ -212,6 +211,8 @@ const runSlice = createSlice({
 
             const target = run.nodes.find((node) => node.id === action.payload);
             if (!target) return { run };
+            const here = run.nodes.find((node) => node.id === run.currentNodeId);
+            if (!here || !here.edges.includes(target.id) || target.visited > 0) return { run };
 
             const nodes: IRegionNode[] = run.nodes.map((node) => (
                 node.id === target.id ? { ...node, visited: node.visited + 1 } : node
@@ -250,9 +251,9 @@ const runSlice = createSlice({
          * cannot survive a reload, and would fire twice under `StrictMode`.
          *
          * The gym is not a boundary: it is biome 3's exit and there is no fourth biome to prepare
-         * for, which the `biomeIndex + 1 < biomes.length` clause covers without naming the kind. A
-         * re-fought elite raises it again, deliberately — walking back over a gate is walking over
-         * the gate, and ticket 07 makes that re-entry legal and re-rolled.
+         * for, which the `biomeIndex + 1 < biomes.length` clause covers without naming the kind. The
+         * gate is the biome's exit row (`nodeRole(here) === 'exit'`, ticket 176), and with one-way
+         * travel it is fought once, so the offer is raised once.
          */
         resolveEncounter: (state): RunSliceState => {
             const run = state.run as IRunState | null;
@@ -264,7 +265,7 @@ const runSlice = createSlice({
             const { eventFight: _eventFight, ...rest } = run;
             const gate = here !== undefined
                 && here.kind === 'elite'
-                && here.layer === REGION_PARAMS.layersPerBiome - 1
+                && nodeRole(here) === 'exit'
                 && here.biomeIndex + 1 < run.biomes.length;
 
             return {
@@ -515,6 +516,17 @@ const runSlice = createSlice({
                     ...(benchKey ? { patchBenchesUsed: [...(run.patchBenchesUsed ?? []), benchKey] } : {}),
                 },
             };
+        },
+
+        /**
+         * TICKET 176c — open a tab of the town screen. Stored on the run (`townTab`) so a reload
+         * reopens the same tab. Only a town the run is standing on can hold one.
+         */
+        setTownTab: (state, action: PayloadAction<{ nodeId: string; tab: TownTab }>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            if (run.currentNodeId !== action.payload.nodeId) return { run };
+            return { run: { ...run, townTab: action.payload } };
         },
 
         /**
@@ -1628,6 +1640,7 @@ const runSlice = createSlice({
 export const {
     startRun,
     setRun,
+    setTownTab,
     endRun,
     endIntroRun,
     clearRun,

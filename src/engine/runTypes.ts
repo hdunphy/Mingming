@@ -65,44 +65,52 @@ export type NodeKind =
     | 'ambush'      // `exploration-map.md`: their 3 vs your 2, marked high-risk
     | 'marketplace' // buy cards / macros, sell cards, pay for removal
     | 'workshop'    // assemble a blueprint into the party, or reflash an OS
+    | 'town'        // ticket 176: ONE node that is both a marketplace and a workshop; every town is visited once
     | 'event'
     | 'gym';        // the region boss — a three-fight gauntlet, not a node you clear in one battle
 
 export const NODE_KINDS = [
-    'wild', 'rival', 'elite', 'alpha', 'ambush', 'marketplace', 'workshop', 'event', 'gym',
+    'wild', 'rival', 'elite', 'alpha', 'ambush', 'marketplace', 'workshop', 'town', 'event', 'gym',
 ] as const;
 
 /**
- * `exploration-map.md`: "an explorable GRAPH, explicitly NOT Spire's three lanes — you find your
- * way to the boss, with room to FARM if you don't feel ready." The shape below is
- * [ticket 07](../../docs/wayfinder/steam-release/tickets/07-region-graph.md)'s ruled model:
- * **3 sequential biomes × 5 layers** (entry, 3 middle, exit), width 2–3 per middle layer, lateral
- * edges between siblings on ~60% of layers, one dead-end **pocket** per biome, biome exit = an
- * elite (biome 3's exit is the gym).
+ * Ticket 176: the largest `layer` a node can have. A biome is a list of rows (`REGION_PARAMS.biomeRows`)
+ * and `layer` is the row index within its biome; the longest biome (biome 0) has 7 rows. A test pins
+ * this to the generator's longest row list, so lengthening a biome cannot silently outrun the schema.
+ */
+export const MAX_LAYER = 6;
+
+/** TICKET 176c: the town screen's views. The square is the way in; the other four are its buildings. */
+export const TOWN_TABS = ['square', 'shop', 'upgrades', 'workshop', 'loadout'] as const;
+export type TownTab = typeof TOWN_TABS[number];
+
+/**
+ * Ticket 176 (the map redesign) is the shape below: **three biomes of towns joined by branching,
+ * one-way routes.** Each biome is a fixed list of rows walked left to right (`REGION_PARAMS.biomeRows`
+ * in `run/regionGraph.ts`): a start (biome 0 only), route rows of fights and events, one town, and
+ * an exit (an elite, or the gym in the last biome). Paths split and merge but never cross, and each
+ * biome has one optional **detour**.
  *
  * Three consequences the type has to carry that a lane model would not:
  *
- *   - **`visited` is a count, not a boolean, and it is load-bearing.** Ticket 07: *"Entering a
- *     node triggers it again, always"* — wilds re-fight at **full rewards** ("farming is fine"),
- *     markets and workshops can be revisited at the price of re-fighting the wilds on the way. A
- *     node's contents are rolled at entry from the node's seed **plus this count**, so re-entry
- *     re-rolls honestly instead of replaying a cached encounter.
- *   - **`edges` is walkable in both directions.** Ticket 07 again: *"the graph is genuinely
- *     explorable, not a frontier picker."* A DAG would forbid backtracking silently.
- *   - **`layer` replaces raw x/y.** The generator lays nodes out in layers, so layer + biome is
- *     the position; ticket 10's screen derives pixels from it. Storing pixels in the save would
- *     freeze a layout decision the UI has not made yet.
+ *   - **`visited` is a count, and it is load-bearing.** Every node is visited at most once now
+ *     (one-way travel, no farming), so after the player has been there it is 1; a node's contents
+ *     are still rolled at entry from the node's seed plus this count.
+ *   - **`edges` holds forward links only:** the nodes you can step to from here. Travel is one-way,
+ *     Slay the Spire style, so there is no walking back.
+ *   - **`layer` is the row index within the biome,** so layer + biome is the position and the map
+ *     screen derives pixels from it. Storing pixels in the save would freeze a layout decision.
  */
 export interface IRegionNode {
     readonly id: string;
     readonly kind: NodeKind;
     /** Which biome this node sits in — indexes into `IRunState.biomes`. Biomes are sequential. */
     readonly biomeIndex: number;
-    /** 0–4 within its biome: 0 entry, 1–3 middle, 4 exit (an elite, or the gym in biome 3). */
+    /** The row within its biome (0–`MAX_LAYER`); a detour shares the layer of the node it hangs off. */
     readonly layer: number;
-    /** Ticket 07: one dead-end side node per biome — a wild, an alpha, or an ambush. */
-    readonly pocket: boolean;
-    /** Node ids reachable from here. Walkable both ways. */
+    /** Ticket 176 (M3): an optional side node — a wild, an alpha, or an ambush — taken for one extra fight. */
+    readonly detour: boolean;
+    /** Node ids you can step to from here: forward links only. */
     readonly edges: ReadonlyArray<string>;
     /**
      * How many times the player has entered and resolved this node. 0 = never. Feeds the
@@ -439,6 +447,13 @@ export interface IRunState {
     readonly patchBenchesUsed?: ReadonlyArray<string>;
 
     /**
+     * TICKET 176c — which tab of the town screen is open, and on which town. Kept beside the run
+     * rather than in a component so a reload reopens the same tab. A town other than `nodeId` reads
+     * as the square. Optional and add-only: a save without it reads back byte for byte.
+     */
+    readonly townTab?: { readonly nodeId: string; readonly tab: TownTab };
+
+    /**
      * TICKET 168: every event resolved this run, in order. The once-per-run and first-visit rules,
      * and the power cap, read this. Optional with `.default([])`, the `patchBenchesUsed` precedent.
      */
@@ -659,9 +674,10 @@ export const RegionNodeSchema = z.object({
     id: z.string(),
     kind: z.enum(NODE_KINDS),
     biomeIndex: z.number().int().min(0).max(2),
-    // 5 layers per biome (ticket 07): 0 entry, 1-3 middle, 4 exit.
-    layer: z.number().int().min(0).max(4),
-    pocket: z.boolean(),
+    // Ticket 176: the row within the biome. A save written before this ticket has `pocket` and no
+    // `detour`, so it fails this schema, and that discard (`run-schema-invalid`) is M5.
+    layer: z.number().int().min(0).max(MAX_LAYER),
+    detour: z.boolean(),
     edges: z.array(z.string()),
     visited: z.number().int().min(0),
     // Ticket 142b. Optional, not defaulted: a pre-142 save has no scout and must resume as it was.
@@ -730,6 +746,7 @@ export const RunStateSchema = z.object({
     }))).optional(),
     upgradesTaken: z.array(z.string()).default([]),
     patchBenchesUsed: z.array(z.string()).default([]),
+    townTab: z.object({ nodeId: z.string(), tab: z.enum(TOWN_TABS) }).optional(),
     tempDrivers: z.array(z.object({
         driverId: z.string(),
         fightsLeft: z.number().int().min(1),

@@ -18,6 +18,7 @@ import { blueprintBankedModifier } from '../../engine/run/runSummary';
 import { planRecruit } from '../../engine/run/workshop';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRunState } from '../../engine/runTypes';
+import { plainShop } from '../../testing/plainShop';
 
 const KRAKEN: IMingmingState = {
     id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1',
@@ -33,7 +34,7 @@ const makeRun = (modifiers: string[]): IRunState =>
 /** A plan built against a run WITHOUT the modifier, so there is a real recruit to try to apply. */
 function aPlan() {
     const run = makeRun([]);
-    const node = { ...run.nodes.find((n) => n.kind === 'workshop')!, visited: 1 };
+    const node = { ...plainShop(run, 'workshop'), visited: 1 };
     const ranch = { ...createEmptyRanch(), roster: ROSTER, blueprints: { fenrir: 1 } };
     return planRecruit({ ranch, run, node, speciesId: 'fenrir' })!;
 }

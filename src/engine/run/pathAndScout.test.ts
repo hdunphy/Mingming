@@ -76,7 +76,7 @@ describe('142c — a rival always fields the body the biome cannot give you', ()
     const run = rootfallRun();
     const rival = (biomeIndex: number) => ({
         id: `rival_b${biomeIndex}`, kind: 'rival' as const, biomeIndex, layer: 2, visited: 1,
-        x: 0, y: 0, edges: [], pocket: false,
+        x: 0, y: 0, edges: [], detour: false,
     } as unknown as Parameters<typeof rivalElementPlan>[1]);
 
     it('deals the off-biome element FIRST, and off-biome means this biome, not the gym', () => {
@@ -229,16 +229,17 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
         expect(run.nodes.filter(n => n.scout)).toHaveLength(1);
     });
 
-    it('it never eats the last market or workshop before the gym', () => {
-        // The guarantee is one of each per biome and it is structural. Promoting a shop would delete
-        // the one the scout exists to send the player back to.
+    it('it never eats the last town before the gym, and sits before it', () => {
+        // The town (a market and a workshop) is a row of its own, so the scout cannot take it, and
+        // the scout is in a route row ahead of it: the shops are still behind the player.
         for (let s = 0; s < 40; s += 1) {
             const graph = generateRegionGraph(`shops-${s}`);
             const last = REGION_PARAMS.biomesPerRun - 1;
-            const middles = graph.nodes.filter(n => n.biomeIndex === last && n.layer >= 1 && n.layer <= 3);
-            expect(middles.filter(n => n.kind === 'marketplace')).toHaveLength(1);
-            expect(middles.filter(n => n.kind === 'workshop')).toHaveLength(1);
-            expect(graph.nodes.filter(n => n.scout)).toHaveLength(1);
+            const towns = graph.nodes.filter(n => n.biomeIndex === last && n.kind === 'town');
+            expect(towns).toHaveLength(1);
+            const scouts = graph.nodes.filter(n => n.scout);
+            expect(scouts).toHaveLength(1);
+            expect(scouts[0].layer).toBeLessThan(towns[0].layer);
         }
     });
 

@@ -66,7 +66,8 @@ describe('142c — a rival and a scout say what they are', () => {
     });
 
     it('leaves an ordinary fight on its own biome element', () => {
-        const wild = graph.nodes.find((n) => n.kind === 'wild')!;
+        // A wild with a road into it: the run's own entry node has none, so nothing stands "beside" it.
+    const wild = graph.nodes.find((n) => n.kind === 'wild' && graph.nodes.some((m) => m.edges.includes(n.id)))!;
         const markup = render(beside(wild.id), graph.nodes, RIVAL_ELEMENTS);
         expect(markup).toContain(`Wild, ${BIOME_ELEMENTS[wild.biomeIndex]}`);
     });
@@ -152,10 +153,10 @@ describe('RegionMap', () => {
         const lines = markup.match(/<line[^>]*class="rm-edge/g)?.length ?? 0;
 
         expect(circles).toBe(graph.nodes.length);
-        // Edges are stored on both endpoints (ticket 07: walkable both ways), so drawing straight
-        // from the arrays would paint every line twice.
-        const halfEdges = graph.nodes.reduce((sum, n) => sum + n.edges.length, 0);
-        expect(lines).toBe(halfEdges / 2);
+        // Edges are forward links only since ticket 176: each is stored once, on the node it leaves,
+        // so drawing straight from the arrays paints every road exactly once.
+        const edges = graph.nodes.reduce((sum, n) => sum + n.edges.length, 0);
+        expect(lines).toBe(edges);
     });
 
     it('paints one backdrop band per biome, tinted by its element (ticket 34)', () => {

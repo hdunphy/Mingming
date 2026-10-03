@@ -92,8 +92,8 @@ function makeRun(overrides: Partial<IRunState> = {}): IRunState {
             { id: 'b2', name: 'Rootfall', elements: ['Nature'] },
         ],
         nodes: [
-            { id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: ['n1'], visited: 1 },
-            { id: 'n1', kind: 'marketplace', biomeIndex: 0, layer: 1, pocket: false, edges: ['n0'], visited: 0 },
+            { id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, detour: false, edges: ['n1'], visited: 1 },
+            { id: 'n1', kind: 'marketplace', biomeIndex: 0, layer: 1, detour: false, edges: ['n0'], visited: 0 },
         ],
         currentNodeId: 'n0',
         partyIds: ['mm1'],

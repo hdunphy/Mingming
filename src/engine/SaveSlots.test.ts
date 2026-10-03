@@ -87,7 +87,7 @@ function makeRun(): IRunState {
             { id: 'b1', name: 'B', elements: ['Water'] },
             { id: 'b2', name: 'C', elements: ['Nature'] },
         ],
-        nodes: [{ id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, pocket: false, edges: [], visited: 1 }],
+        nodes: [{ id: 'n0', kind: 'wild', biomeIndex: 0, layer: 0, detour: false, edges: [], visited: 1 }],
         currentNodeId: 'n0',
         partyIds: ['mm1'],
         deck: [],

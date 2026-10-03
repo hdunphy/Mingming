@@ -38,6 +38,8 @@ import { getActiveRanchKey, getActiveRunKey } from '../../engine/SaveSlots';
 import { resetSaveStorage, setSaveStorage, type ISaveStorage } from '../../engine/save/storage';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRegionNode, IRunCard, IRunState, NodeKind } from '../../engine/runTypes';
+import { standBeside } from '../../testing/standBeside';
+import { withPlainShop } from '../../testing/plainShop';
 
 class MemoryStorage implements ISaveStorage {
     readonly map = new Map<string, string>();
@@ -236,28 +238,41 @@ describe('entering a node', () => {
         expect(state.run?.phase).toBe('encounter');
     });
 
-    it('counts every entry, so a re-entry rolls from a higher count', () => {
+    it('counts the entry once, and refuses a second walk onto a spent node (one-way travel, 176b)', () => {
         const run = makeRun();
-        const target = nodeOfKind(run, 'wild');
-        const other = run.nodes.find((n) => n.id !== target.id && n.id !== run.currentNodeId)!;
+        const here = run.nodes.find((n) => n.id === run.currentNodeId)!;
+        const target = run.nodes.find((n) => n.id === here.edges[0])!;
 
-        let state = runReducer({ run }, enterNode(target.id));
-        state = runReducer(state, enterNode(other.id));
-        state = runReducer(state, enterNode(target.id));
+        const state = runReducer({ run }, enterNode(target.id));
+        expect(state.run?.nodes.find((n) => n.id === target.id)?.visited).toBe(target.visited + 1);
 
-        // Two entries, two counts. `encounterSeed` reads this number, which is the whole reason
-        // `visited` is a count and not a flag.
-        expect(state.run?.nodes.find((n) => n.id === target.id)?.visited).toBe(target.visited + 2);
+        // Standing on it, then asking for the node we came from, or for the spent node itself: no.
+        const back = runReducer(state, enterNode(here.id));
+        expect(back.run?.currentNodeId).toBe(target.id);
+        const again = runReducer(state, enterNode(target.id));
+        expect(again.run?.nodes.find((n) => n.id === target.id)?.visited).toBe(target.visited + 1);
     });
 
-    it('leaves the phase on the map for a marketplace or a workshop', () => {
-        // Tickets 13, 14 and 30 own the three non-fight kinds. Entering still counts as a visit —
-        // the node fired, it just has nothing to do yet — and the run must not sit in
-        // `phase: 'encounter'` waiting for a battle nobody is going to start.
+    it('refuses a node the current node does not link to', () => {
         const run = makeRun();
-        for (const kind of ['marketplace', 'workshop'] as NodeKind[]) {
-            const target = nodeOfKind(run, kind);
-            const state = runReducer({ run }, enterNode(target.id));
+        const here = run.nodes.find((n) => n.id === run.currentNodeId)!;
+        const far = run.nodes.find((n) => n.id !== here.id && !here.edges.includes(n.id))!;
+
+        const state = runReducer({ run }, enterNode(far.id));
+
+        expect(state.run?.currentNodeId).toBe(here.id);
+        expect(state.run?.nodes.find((n) => n.id === far.id)?.visited).toBe(far.visited);
+    });
+
+    it('leaves the phase on the map for a town, a marketplace or a workshop', () => {
+        // Tickets 13, 14 and 30 own the three non-fight kinds (and 176c made them one town). Entering
+        // still counts as a visit — the node fired, it just has nothing to do yet — and the run must
+        // not sit in `phase: 'encounter'` waiting for a battle nobody is going to start.
+        const run = makeRun();
+        for (const kind of ['town', 'marketplace', 'workshop'] as NodeKind[]) {
+            const typed = kind === 'town' ? run : withPlainShop(run, kind as 'marketplace' | 'workshop').run;
+            const target = nodeOfKind(typed, kind);
+            const state = runReducer({ run: standBeside(typed, target.id) }, enterNode(target.id));
             expect(state.run?.phase).toBe('map');
             expect(state.run?.nodes.find((n) => n.id === target.id)?.visited).toBe(target.visited + 1);
         }

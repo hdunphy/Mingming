@@ -776,8 +776,8 @@ export interface RunGateCell {
  *
  * **Wild means `kind === 'wild'` and nothing else.** `alpha` (one overtuned body) and `ambush`
  * (theirs 3 vs your 2) are ticket 07's two authored exceptions to symmetric party size and they live
- * on the one dead-end pocket per biome. They are not the ordinary fight the 95% is about, and
- * folding them in would move the band by however often the pocket rolls each of the four kinds.
+ * on the one optional detour per biome. They are not the ordinary fight the 95% is about, and
+ * folding them in would move the band by however often the detour rolls each of the four kinds.
  * They deserve a band of their own once someone rules one.
  *
  * **ELITES is three cells too, and biome 0's is the interesting one.** `kitFractionFor` gives every
@@ -1252,7 +1252,7 @@ function pickNode(run: IRunState, cell: RunGateCell, index: number): IRegionNode
 }
 
 /** Thrown when a generated graph happens to contain no node of the wanted kind. Not a failure. */
-class NoSuchNodeError extends Error {}
+export class NoSuchNodeError extends Error {}
 
 // ---------------------------------------------------------------------------------------------
 // Measuring

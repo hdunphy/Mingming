@@ -16,7 +16,7 @@ const node = (over: Partial<IRegionNode> & { id: string }): IRegionNode => ({
     kind: 'wild',
     biomeIndex: 0,
     layer: 0,
-    pocket: false,
+    detour: false,
     edges: [],
     visited: 0,
     ...over,
@@ -32,9 +32,9 @@ describe('columnOf', () => {
 });
 
 describe('layoutRegion — ordering', () => {
-    it('puts pockets last in their column so the main route reads as a spine', () => {
+    it('puts detours last in their column so the main route reads as a spine', () => {
         const nodes = [
-            node({ id: 'pocket', layer: 2, pocket: true }),
+            node({ id: 'pocket', layer: 2, detour: true }),
             node({ id: 'b', layer: 2 }),
             node({ id: 'a', layer: 2 }),
         ];

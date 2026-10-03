@@ -73,6 +73,7 @@ import type { IMingmingState } from '../../engine/types';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRunCard, IRunState } from '../../engine/runTypes';
 import { plain } from '../labels/labels';
+import { plainShop } from '../../testing/plainShop';
 
 /**
  * `renderToStaticMarkup` escapes text, and several card descriptions carry apostrophes and
@@ -101,7 +102,7 @@ function makeRun(scrap: number, over: Partial<IRunState> = {}): IRunState {
         party: PARTY,
         startedAt: 1_700_000_000_000,
     });
-    const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = plainShop(run, 'marketplace');
     return {
         ...run,
         scrap,

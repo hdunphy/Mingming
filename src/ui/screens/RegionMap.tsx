@@ -183,8 +183,8 @@ export default function RegionMap({
      * tinted with its element, fading out downward so the nodes and edges stay the brightest thing
      * on screen.
      *
-     * Derived from the laid-out columns rather than from `REGION_PARAMS.layersPerBiome`, because the
-     * layout owns where a column ends up and a second opinion about it would drift the day a pocket
+     * Derived from the laid-out columns rather than from `REGION_PARAMS.biomeRows`, because the
+     * layout owns where a column ends up and a second opinion about it would drift the day a detour
      * changes the column count. A band is exactly as wide as the nodes it stands behind.
      *
      * The strip above the picture stays. It names the biome and states its element in words, and a
@@ -269,7 +269,7 @@ export default function RegionMap({
             parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${stakeName(laid.node.driverStake)}`);
         }
         parts.push(`biome ${laid.node.biomeIndex + 1}`, `layer ${laid.node.layer}`);
-        if (laid.node.pocket) parts.push('dead end');
+        if (laid.node.detour) parts.push('detour, +1 fight');
         if (laid.node.visited > 0) parts.push(`visited ${laid.node.visited}×`);
         return parts.join(', ');
     };
@@ -414,7 +414,7 @@ export default function RegionMap({
                                     laid.isCurrent ? 'current' : '',
                                     laid.reachable ? 'reachable' : '',
                                     laid.revealed ? '' : 'fogged',
-                                    laid.node.pocket ? 'pocket' : '',
+                                    laid.node.detour ? 'detour' : '',
                                     // Ticket 17: the ambush's high-risk tint, and the stake ring.
                                     laid.revealed && laid.node.kind === 'ambush' ? 'risk' : '',
                                     laid.revealed && laid.node.driverStake ? 'staked' : '',

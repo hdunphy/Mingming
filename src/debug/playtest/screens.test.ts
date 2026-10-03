@@ -13,9 +13,9 @@ import { runOf } from './types';
 import { freshWorld, play } from './testKit';
 
 describe('180a — the map', () => {
-    it('opens on the map, and the only places to go are the scripted opening fights', () => {
-        // The ticket expected one move; the opening layer is three nodes, all forced to wild
-        // (`REGION_PARAMS.scriptedOpeningLayer`), so the first screen offers three scripted fights.
+    it('opens on the map, and the only place to go is the scripted opening fight', () => {
+        // The first step out of the start is one node, a wild forced by ticket 24 (176: the first
+        // route row is a single scripted fight).
         const world = freshWorld();
         const screen = currentScreen(world);
         expect(screen.id).toBe('map');

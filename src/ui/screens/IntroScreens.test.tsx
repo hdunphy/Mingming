@@ -19,7 +19,8 @@ import MarketplaceNode from './MarketplaceNode';
 import BattleArena from '../components/BattleArena';
 import { makeStore, mount, click, clickText, findText, flush, type TestStore } from '../../testing/interaction';
 import { addToRoster } from '../store/gameSlice';
-import { beginGauntlet, enterNode, startRun } from '../store/runSlice';
+import { beginGauntlet, enterNode, setRun, startRun } from '../store/runSlice';
+import { standBeside } from '../../testing/standBeside';
 import { startBattle } from '../store/battleSlice';
 import { SeedStream } from '../../engine/core/SeedStream';
 import { createRanchMember } from '../../engine/gameTypes';
@@ -30,6 +31,7 @@ import { offerGyms } from '../../engine/run/gyms';
 import { rollGauntletFight } from '../../engine/run/gauntlet';
 import { RUN_ENEMY_MODE } from '../../engine/run/encounter';
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
+import { plainShop } from '../../testing/plainShop';
 
 function starterFor(species: string): IRanchMember {
     return { ...createRanchMember(species, `${species}_v1`, new SeedStream(`${species}-roll`)), id: 'mm1' };
@@ -144,7 +146,7 @@ describe('182c the market', () => {
     it('still has the stall, the shelves and the sell panel in an ordinary run', async () => {
         const store = storeFor('ordinary');
         const run = store.getState().run.run!;
-        const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+        const market = plainShop(run, 'marketplace');
         store.dispatch(enterNode(market.id));
         const host = await mount(store, <MarketHarness />);
         const text = visible(host);
@@ -172,7 +174,9 @@ describe('182c the leader\'s gate', () => {
     it('is the three-fight gauntlet with its macro list in an ordinary run', async () => {
         const store = storeFor('ordinary');
         const run = store.getState().run.run!;
-        store.dispatch(enterNode(run.nodes.find((n) => n.kind === 'gym')!.id));
+        const gymId = run.nodes.find((n) => n.kind === 'gym')!.id;
+        store.dispatch(setRun(standBeside(run, gymId)));
+        store.dispatch(enterNode(gymId));
         store.dispatch(beginGauntlet());
         const host = await mount(store, <GateHarness />);
         const text = visible(host);
@@ -187,7 +191,9 @@ describe('182c the fight', () => {
         const store = storeFor(kind, kind === 'intro' ? ['b0l1n0', 'b0l1n1', 'b0l2n1', 'b0l3n0', 'b0l4n0'] : []);
         if (kind === 'ordinary') {
             const run = store.getState().run.run!;
-            store.dispatch(enterNode(run.nodes.find((n) => n.kind === 'gym')!.id));
+            const gymId = run.nodes.find((n) => n.kind === 'gym')!.id;
+            store.dispatch(setRun(standBeside(run, gymId)));
+            store.dispatch(enterNode(gymId));
         }
         store.dispatch(beginGauntlet());
         const { run, ranch, node } = view(store.getState());

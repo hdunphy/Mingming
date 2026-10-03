@@ -17,6 +17,7 @@ import { planRecruit } from '../workshop';
 import { recruitingBlocked } from './noRecruits';
 import type { IMingmingState } from '../../types';
 import type { IRanchMember, IRanchState, IRunState } from '../../runTypes';
+import { plainShop } from '../../../testing/plainShop';
 
 const KRAKEN: IMingmingState = {
     id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1',
@@ -54,7 +55,7 @@ describe('planRecruit', () => {
     it('makes a plan without the modifier and none with it, for the same node and species', () => {
         const plain = makeRun('nr-plan');
         const blocked = makeRun('nr-plan', ['no_recruits']);
-        const node = { ...plain.nodes.find((n) => n.kind === 'workshop')!, visited: 1 };
+        const node = { ...plainShop(plain, 'workshop'), visited: 1 };
         const ranch = makeRanch({ fenrir: 1 });
 
         expect(planRecruit({ ranch, run: plain, node, speciesId: 'fenrir' })).not.toBeNull();

@@ -153,6 +153,8 @@ export interface View {
      * button to go back in, not the stall itself.
      */
     closedStall: string | null;
+    /** Ticket 176c: which building of a town the party is in. Null is the town square. */
+    townPart: 'shop' | 'workshop' | null;
     /** `nodeId:visit` of the last event the player walked out of (`RunScreen`'s `leftEventKey`). */
     leftEvent: string | null;
     event: EventFlow | null;

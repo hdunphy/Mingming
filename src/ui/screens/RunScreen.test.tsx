@@ -26,6 +26,7 @@ import { offerGyms } from '../../engine/run/gyms';
 import { ALL_TIP_IDS, TIP_REGISTRY } from '../../engine/tips';
 import type { IGauntletProgress, IRanchMember, IRunState, NodeKind, RunOutcome } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
+import { withPlainShop } from '../../testing/plainShop';
 
 const MEMBER: IMingmingState = {
     id: 'mm1',
@@ -76,11 +77,15 @@ function render(run: IRunState, seenTips: ReadonlyArray<string> = ALL_TIP_IDS): 
 
 /** Stand the player on the first node of a given kind, as `enterNode` would leave them. */
 function standingOn(kind: NodeKind, over: Partial<IRunState> = {}): IRunState {
-    const target = BASE.nodes.find((n) => n.kind === kind && n.id !== BASE.currentNodeId)!;
+    // The generator makes towns (176c), not plain shops: a test about the stall or the bay itself
+    // stands on the first town, retyped to the building it wants.
+    const plain = kind === 'marketplace' || kind === 'workshop' ? withPlainShop(BASE, kind) : null;
+    const base = plain ? plain.run : BASE;
+    const target = plain ? plain.node : base.nodes.find((n) => n.kind === kind && n.id !== base.currentNodeId)!;
     return {
-        ...BASE,
+        ...base,
         currentNodeId: target.id,
-        nodes: BASE.nodes.map((n) => (n.id === target.id ? { ...n, visited: n.visited + 1 } : n)),
+        nodes: base.nodes.map((n) => (n.id === target.id ? { ...n, visited: n.visited + 1 } : n)),
         ...over,
     };
 }
@@ -192,6 +197,19 @@ describe('RunScreen — a node that fired says so', () => {
         // The stall is open, so the way back in is NOT on screen — it is the closed state's copy.
         expect(markup).not.toContain('Back to the stall');
         expect(markup).toContain('LEAVE');
+    });
+
+    it('opens a town on its square, whole screen, and not as a stall or a bay (176c)', () => {
+        const markup = render(standingOn('town'));
+
+        expect(markup).toContain('Town square');
+        expect(markup).toContain('LEAVE TOWN');
+        for (const building of ['Shop', 'Upgrades', 'Den', 'Loadout']) expect(markup).toContain(building);
+        // The square rolls no shelf and mounts no bay: those open with their tabs.
+        expect(markup).not.toContain('MARKETPLACE');
+        expect(markup).not.toContain('STOCK');
+        expect(markup).not.toContain('TRACES');
+        expect(markup).not.toContain('nothing here yet');
     });
 });
 

@@ -49,7 +49,7 @@ import runReducer, {
 } from './runSlice';
 import { createRun, minimumActiveDeck } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
-import { REGION_PARAMS } from '../../engine/run/regionGraph';
+import { REGION_PARAMS, exitLayerOf } from '../../engine/run/regionGraph';
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import type { IMingmingState } from '../../engine/types';
 import type { IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
@@ -505,7 +505,7 @@ describe('addRunCollection — the STORE half of a taken pick', () => {
 describe('the biome boundary — a debt the RUN owes, not a flag a screen holds', () => {
     /** Stand the run on a biome's exit elite, as `enterNode` would leave it. */
     function atExitElite(run: IRunState, biomeIndex: number): IRunState {
-        const exitLayer = REGION_PARAMS.layersPerBiome - 1;
+        const exitLayer = exitLayerOf(biomeIndex);
         const exit = run.nodes.find(
             (n: IRegionNode) => n.biomeIndex === biomeIndex && n.layer === exitLayer,
         )!;

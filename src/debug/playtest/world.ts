@@ -30,7 +30,7 @@ const STARTED_AT = 1_700_000_000_000;
 /** Modifiers the playtester cannot play yet. Draft Start needs a drafting screen of its own. */
 const UNSUPPORTED_MODIFIERS: ReadonlyArray<string> = ['draft_start'];
 
-export const emptyView = (): View => ({ news: [], fight: null, reward: null, closedStall: null, leftEvent: null, event: null, editor: null, battle: null, cutShort: null, engineError: null });
+export const emptyView = (): View => ({ news: [], fight: null, reward: null, closedStall: null, townPart: null, leftEvent: null, event: null, editor: null, battle: null, cutShort: null, engineError: null });
 
 export function createWorld(header: SessionHeader): World {
     for (const id of header.modifiers) {

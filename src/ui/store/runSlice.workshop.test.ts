@@ -52,6 +52,7 @@ import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import { SAVE_VERSION_V4, reconcileLoadedState } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
+import { plainShop } from '../../testing/plainShop';
 
 // ---------------------------------------------------------------------------------------------
 // Fixtures
@@ -79,7 +80,7 @@ function makeStore(ranch: Partial<IRanchState> = {}) {
 
 function makeRun(scrap: number, seed = 'workshop-store-seed'): IRunState {
     const run = createRun({ seed, offer: offerGyms('offer-seed')[0], party: [KRAKEN], startedAt: 1_700_000_000_000 });
-    const workshop = run.nodes.find((n) => n.kind === 'workshop')!;
+    const workshop = plainShop(run, 'workshop');
     // Stand the run on its first workshop, as `enterNode` would leave it.
     return {
         ...run,

@@ -51,7 +51,7 @@ const node = (kind: 'wild' | 'elite', over: Partial<IRegionNode> = {}): IRegionN
     kind,
     biomeIndex: 1,
     layer: 2,
-    pocket: false,
+    detour: false,
     edges: [],
     visited: 1,
     ...over,

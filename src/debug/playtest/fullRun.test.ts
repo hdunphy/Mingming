@@ -15,7 +15,7 @@ import { applyMove, replayWorld, stateHash } from './world';
 import type { World } from './types';
 import { runOf } from './types';
 
-const KNOWN_SCREENS = new Set(['map', 'reward', 'end', 'market', 'workshop', 'event', 'gauntlet', 'boundary', 'loadout', 'battle']);
+const KNOWN_SCREENS = new Set(['map', 'reward', 'end', 'town', 'market', 'workshop', 'event', 'gauntlet', 'boundary', 'loadout', 'battle']);
 const MOVE_BUDGET = 3000;
 
 function playToTheEnd(world: World): { screens: Set<string>; moves: number } {
@@ -37,7 +37,7 @@ function playToTheEnd(world: World): { screens: Set<string>; moves: number } {
     return { screens, moves };
 }
 
-/** Look in a market, a workshop and an event on the way, then on to the gym, as a thorough player would. */
+/** Look in a market, a workshop (both are a town now) and an event on the way, then on to the gym, as a thorough player would. */
 const TOUR = ['marketplace', 'workshop', 'event', 'gym'] as const;
 
 describe('180c — a whole run, start to end', () => {
@@ -49,6 +49,11 @@ describe('180c — a whole run, start to end', () => {
             for (const kind of TOUR) {
                 if (!walkTo(world, kind)) break;
                 seen.add(currentScreen(world).id);
+                // Step back out to the square: a town is the market and the workshop behind one door each.
+                if (currentScreen(world).id === 'market') {
+                    applyMove(world, { key: 'town:square', why: 'test' });
+                    seen.add(currentScreen(world).id);
+                }
             }
             const { screens, moves } = playToTheEnd(world);
             for (const id of screens) seen.add(id);
@@ -74,7 +79,8 @@ describe('180c — a whole run, start to end', () => {
     }
 
     it('between them the runs used every kind of screen the tool has', () => {
-        for (const id of ['market', 'workshop', 'event', 'gauntlet']) expect(seen.has(id), id).toBe(true);
+        // 176c: a town is the market and the workshop in one node, opening on a square with a door to each.
+        for (const id of ['town', 'market', 'workshop', 'event', 'gauntlet']) expect(seen.has(id), id).toBe(true);
     });
 
     it('the same session replays to the same state', () => {

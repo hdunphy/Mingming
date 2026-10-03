@@ -10,6 +10,10 @@
  * not this ticket: regenerate the four hashes with `vite-node` on the commit BEFORE your change, then
  * on yours, and compare. If it fails after a WALKER change, that change is not allowed to move a
  * default walk: put it behind an option that is off by default (ticket 170, rule 4).
+ *
+ * TICKET 176 (the map redesign) re-pinned three of the four on purpose: the walks now run on towns
+ * and one-way routes, so the nodes and fights they meet are different. (Tier 3 of the kraken seed is
+ * a two-fight walk that dies first on either map, so its hash did not move.)
  */
 import { createHash } from 'node:crypto';
 
@@ -24,10 +28,10 @@ const hashOf = (value: unknown): string =>
 describe('170a — the default walk is unchanged', () => {
     // [seed, starter, gymIndex, tier] -> hash of JSON.stringify(walkRun(...)) on the parent of 170a.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, number, string]> = [
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '2d7f601c302705ed'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '1e7d94b30c0a9f69'],
         ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '35297de0d50ae11d'],
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'a8498f5ab683818f'],
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '8580f56d061c33dd'],
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, '8d3268e9a8996896'],
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '40118babb68f2682'],
     ];
 
     it.each(GOLDEN)('%s at tier %#: whole result object matches the pre-170 walk', (seed, starter, gymIndex, tier, hash) => {

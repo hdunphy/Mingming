@@ -52,6 +52,7 @@ import {
 import { GENERIC_HIT } from '../../engine/data/mingmingRegistry';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
+import { plainShop } from '../../testing/plainShop';
 
 const PARTY: IMingmingState[] = [
     { id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10 },
@@ -69,7 +70,7 @@ function makeRun(scrap = 0): IRunState {
 
 /** Stand the run on its first marketplace, as `enterNode` would leave it. */
 function atMarket(run: IRunState): IRunState {
-    const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = plainShop(run, 'marketplace');
     return {
         ...run,
         currentNodeId: market.id,

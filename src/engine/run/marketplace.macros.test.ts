@@ -30,8 +30,7 @@ import {
     cardPrice,
     macroPrice,
     rollMacroStock,
-    rollMarketStock,
-} from './marketplace';
+    rollMarketStock, isMarketNode } from './marketplace';
 import { createRun } from './createRun';
 import { offerGyms } from './gyms';
 import { MACRO_IDS, MacroRegistry } from '../data/macroRegistry';
@@ -49,7 +48,7 @@ function makeRun(seed = 'macro-market-run'): IRunState {
 }
 
 const RUN = makeRun();
-const MARKETS = RUN.nodes.filter((n) => n.kind === 'marketplace');
+const MARKETS = RUN.nodes.filter((n) => isMarketNode(n.kind));
 const visited = (node: IRegionNode, visit: number): IRegionNode => ({ ...node, visited: visit });
 const MARKET = visited(MARKETS[0], 1);
 
@@ -176,7 +175,7 @@ describe('the macro shelf', () => {
         const seen = new Set<string>();
         for (const seed of ['a', 'b', 'c', 'd', 'e', 'j']) {
             const run = makeRun(seed);
-            for (const node of run.nodes.filter((n) => n.kind === 'marketplace')) {
+            for (const node of run.nodes.filter((n) => isMarketNode(n.kind))) {
                 for (const visit of [1, 2, 3]) {
                     for (const offer of rollMacroStock({ run, node: visited(node, visit), party: SOLO })) {
                         seen.add(offer.macroId);

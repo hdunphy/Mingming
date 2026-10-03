@@ -19,8 +19,8 @@
 export type IconName =
     // Top-level navigation and the ranch's five sections.
     | 'ranch' | 'debug' | 'expedition' | 'roster' | 'assembly' | 'vault' | 'codex'
-    // The eight region-node kinds (`engine/runTypes.NodeKind`).
-    | 'wild' | 'rival' | 'elite' | 'alpha' | 'ambush' | 'marketplace' | 'workshop' | 'event' | 'gym'
+    // The region-node kinds (`engine/runTypes.NodeKind`).
+    | 'wild' | 'rival' | 'elite' | 'alpha' | 'ambush' | 'marketplace' | 'workshop' | 'town' | 'event' | 'gym'
     // Not a node kind: the node the run starts on (a `wild` underneath - see `regionLayout.isRunStart`).
     | 'start'
     // Chrome.
@@ -69,6 +69,8 @@ export const PATHS: Readonly<Record<IconName, ReadonlyArray<string>>> = {
     ambush: ['M3.5 9.5c2.4-2.2 14.6-2.2 17 0', 'M5.5 10.4c2.2 7.5 10.8 7.5 13 0', 'M9 14.5v3', 'M15 14.5v3', 'M12 16v3.5'],
     marketplace: ['M3 4.5h2.6l2.3 10.4h9.5l2.1-7.4H6.3', 'M10 19a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6', 'M16.6 19a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6'],
     workshop: ['M15.4 3.5a5 5 0 0 0-4.6 7l-6.6 6.6a1.8 1.8 0 0 0 2.6 2.6l6.6-6.6a5 5 0 0 0 5.9-6.6l-3 3-2.4-2.4z'],
+    // Ticket 176c: a town is a market and a workshop in one. The house shape is a placeholder until the kit draws one.
+    town: ['M3.5 11.2 12 4l8.5 7.2', 'M5.5 10v9h13v-9', 'M10 19v-5h4v5'],
     event: ['M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17', 'M9.4 9.4a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.3-2.6 4', 'M12 17.2h.01'],
     // Four columns and a pediment. The one building on the map, and the run's destination.
     // A planted flag: where you set out from. Henry, 2026-09-25 - the start node used to wear the
