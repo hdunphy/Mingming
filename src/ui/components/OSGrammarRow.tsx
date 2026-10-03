@@ -27,6 +27,7 @@ import type { ReactNode } from 'react';
 
 import { grammarFor, partnersInParty } from '../../engine/data/osGrammar';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { instinctName, plain } from '../labels/labels';
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
 
@@ -96,7 +97,7 @@ export function OSGrammarRow({ osId, partyOS, compact = false }: OSGrammarRowPro
                     <ul className="og-partners">
                         {held.map((partner) => (
                             <li key={partner.osId}>
-                                <b>{getOSBehavior(partner.osId)?.name ?? partner.osId}</b> is already on the field — {partner.why}
+                                <b>{instinctName(getOSBehavior(partner.osId)?.name ?? partner.osId)}</b> is already on the field — {plain(partner.why)}
                             </li>
                         ))}
                     </ul>
@@ -104,7 +105,7 @@ export function OSGrammarRow({ osId, partyOS, compact = false }: OSGrammarRowPro
             )}
 
             {compact && held.length > 0 && (
-                <span className="og-mark" title={held.map((p) => p.why).join(' · ')}>
+                <span className="og-mark" title={held.map((p) => plain(p.why)).join(' · ')}>
                     ◆ {held.length} partner{held.length === 1 ? '' : 's'} on the field
                 </span>
             )}

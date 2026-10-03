@@ -33,6 +33,37 @@
     margin: 0;
 }
 
+/* "Hide tips": a small quiet chip at the end of the bar. The bar itself ignores the pointer, so
+   the button turns it back on for itself only. */
+.callout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+
+.callout-hide {
+    flex: none;
+    pointer-events: auto;
+    height: 22px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 0;
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.callout-hide:hover,
+.callout-hide:focus-visible { background: var(--select); color: var(--ink); outline: none; }
+
 /* --- Placements ------------------------------------------------------------------------- */
 
 .callout-battle {

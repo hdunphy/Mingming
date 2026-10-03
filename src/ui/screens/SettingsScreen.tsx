@@ -161,8 +161,7 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     </div>
                     <p className="settings-note">
-                        One channel, because the game has one: there is no music yet. Volume and mute are
-                        stored separately from your save, so they follow you across slots.
+                        No music yet. Volume and mute are kept apart from your save.
                     </p>
 
                     {/*
@@ -190,9 +189,8 @@ export default function SettingsScreen(): ReactNode {
                     </div>
                     <p className="settings-note">
                         {settings.combatSounds
-                            ? 'On. Casts, impacts, status ticks, shields, instinct tells and the creature cries.'
-                            : `Off. The fight is quiet — but the interface still answers you, the turn
-                               beats still play, and you still hear a win.`}
+                            ? 'On. Casts, impacts, statuses and creature cries.'
+                            : 'Off. The fight is quiet; menus still answer and a win still sounds.'}
                     </p>
                 </section>
 
@@ -227,9 +225,7 @@ export default function SettingsScreen(): ReactNode {
                             </button>
                         </div>
                         <p className="settings-note">
-                            F11 does the same thing, in the desktop build and in a browser. The game
-                            lays out fluidly, so fullscreen gives you more of the map rather than a
-                            bigger picture of the same amount.
+                            F11 does the same.
                         </p>
                     </section>
                 ) : null}
@@ -253,8 +249,7 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     </div>
                     <p className="settings-note">
-                        <strong>Follow system</strong> uses your instinct setting, which is what the game did
-                        before this screen existed. The other two overrule it in either direction.
+                        <strong>Follow system</strong> uses your computer&apos;s setting. The other two override it.
                     </p>
 
                     {/*
@@ -286,11 +281,10 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     ))}
                     <p className="settings-note">
-                        Off means off, not fewer — the fight stays fully playable with all three off,
-                        reading from the numbers and the badges on each plaque.{' '}
+                        Off means off. The fight stays playable with all three off.{' '}
                         {resolveVfxGates(settings).particles
                             ? null
-                            : <strong>Reduced motion is on, so particles and animations are off whatever these say.</strong>}
+                            : <strong>Reduced motion is on: effects are off whatever these say.</strong>}
                     </p>
                 </section>
 
@@ -325,12 +319,8 @@ export default function SettingsScreen(): ReactNode {
                     </div>
                     <p className="settings-note">
                         {settings.showEnemyHand
-                            ? `On. A tab at the right edge of the fight opens what the enemy is
-                               holding — or, on your turn, the cards their next draw takes off the top
-                               of their deck. No targets and no damage figures: what they have, not
-                               what they do with it.`
-                            : `Off. The tab is gone and their cards are hidden, as they were before.
-                               Their plaques still show energy, statuses and instinct.`}
+                            ? 'On. A tab at the right edge shows what the enemy holds, and what they draw next.'
+                              : 'Off. Their cards stay hidden.'}
                     </p>
                 </section>
 
@@ -353,8 +343,7 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     </div>
                     <p className="settings-note">
-                        Scales everything measured in text. The battle console is laid out to the pixel,
-                        so the largest step crowds the hand — worth knowing before you pick it.
+                        Scales all text. The largest step can crowd the hand.
                     </p>
                 </section>
 
@@ -372,8 +361,7 @@ export default function SettingsScreen(): ReactNode {
                         ))}
                     </ul>
                     <p className="settings-note">
-                        Not remappable yet. This list and the strip under your hand are generated from the
-                        same table, so it cannot drift from what the keys actually do.
+                        Not remappable yet.
                     </p>
                 </section>
 
@@ -413,20 +401,11 @@ export default function SettingsScreen(): ReactNode {
                     <p className="settings-note">
                         {settings.autoSaveRunLog
                             ? logsDir
-                                ? `On. Every run writes itself to ${logsDir} the moment it ends, as
-                                   mingming-run-<date>-<outcome>.json. When you are done, send everything
-                                   in that folder.`
-                                : `On. Every run writes itself to your downloads folder the moment it ends,
-                                   as mingming-run-<date>-<outcome>.json. Your browser may ask once to allow
-                                   multiple downloads — say yes, or nothing will be saved. When you are done,
-                                   send every mingming-run-*.json you have.`
+                                ? `On. Every run saves to ${logsDir} when it ends.`
+                                : 'On. Every run saves to your downloads folder when it ends. Allow multiple downloads if asked.'
                             : logsDir
-                              ? `Off. Runs are still recorded and you can save them below, but only the
-                                 last ${RUN_LOG_RUNS} are kept — turn this on and each one writes itself to
-                                 ${logsDir} as it ends, so nothing is lost to that window.`
-                              : `Off. Runs are still recorded and you can save them below, but only the
-                                 last ${RUN_LOG_RUNS} are kept — turn this on and each one writes itself to
-                                 your downloads folder as it ends, so nothing is lost to that window.`}
+                              ? `Off. Only the last ${RUN_LOG_RUNS} runs are kept. Turn this on to save them all to ${logsDir}.`
+                              : `Off. Only the last ${RUN_LOG_RUNS} runs are kept. Turn this on to save them all.`}
                     </p>
 
                     {/*
@@ -452,14 +431,8 @@ export default function SettingsScreen(): ReactNode {
                     </div>
                     <p className="settings-note">
                         {settings.battleLogs
-                            ? `On. Each fight's combat log is kept beside the run — up to
-                               ${FIGHT_LOG_CAP} lines, the end of the fight rather than the start.
-                               It is what a bug report needs, and it is the only large thing a run
-                               keeps: about 12 KB a fight against 30 KB for everything else a whole
-                               run records.`
-                            : `Off. Runs still record every fight, every turn and every deck — only
-                               the combat text is skipped. The log still says how many lines each
-                               fight ran, so you can see what you are not keeping.`}
+                            ? `On. Each fight's combat log is kept, up to ${FIGHT_LOG_CAP} lines.`
+                            : 'Off. Runs keep every turn and deck, but not the combat text.'}
                     </p>
 
                     {/*
@@ -500,11 +473,8 @@ export default function SettingsScreen(): ReactNode {
                     </div>
                     <p className="settings-note">
                         {exported
-                            ? `Saved as ${exported}. Attach it to your notes — it carries every node you
-                               entered, every card you took, skipped, bought or removed, and where the
-                               amber went.`
-                            : `A JSON transcript of your last ${RUN_LOG_RUNS} runs. It stays on this
-                               machine until you send it somewhere.`}
+                            ? `Saved as ${exported}. Attach it to your notes.`
+                            : `A transcript of your last ${RUN_LOG_RUNS} runs. It stays on this machine until you send it.`}
                     </p>
                     {/* TICKET 181a: the build a bug report should quote, next to the log that names it too. */}
                     <p className="settings-note" data-testid="settings-build">
@@ -567,9 +537,7 @@ export default function SettingsScreen(): ReactNode {
                               * and the run on every change, so quitting mid-fight costs the fight
                               * and nothing else.
                               */}
-                            Closes the game. Your ranch and any run in progress are already saved —
-                            the game writes them as they change, not on the way out, so a run you
-                            leave here is waiting where you left it.
+                            Closes the game. Your ranch and run are already saved.
                         </p>
                     </section>
                 )}
@@ -578,8 +546,7 @@ export default function SettingsScreen(): ReactNode {
                     <h3>Save</h3>
                     {wiped ? (
                         <p className="settings-note settings-wiped">
-                            Wiped. Your roster, traces, codex, any run in progress and your run history
-                            are gone. Volume and these settings are not — they were never part of the save.
+                            Wiped. Roster, traces, codex and run history are gone. Settings and volume are kept.
                         </p>
                     ) : (
                         <>
@@ -624,8 +591,7 @@ export default function SettingsScreen(): ReactNode {
                                   * this codebase: a native modal in a game that draws its own UI, and
                                   * one no gamepad can reach (ticket 38).
                                   */}
-                                Deletes the roster, the traces, the codex and any run in progress.
-                                There is no undo and no backup.
+                                Deletes the roster, traces, codex and any run. There is no undo.
                             </p>
                         </>
                     )}
@@ -634,31 +600,19 @@ export default function SettingsScreen(): ReactNode {
                 <section className="settings-group">
                     <h3>Not here yet</h3>
                     <ul className="settings-pending">
-                        <li>
-                            <strong>Resolution and windowing</strong> — fullscreen is a control now
-                            (Display, above). Choosing a RESOLUTION is still your browser's or the
-                            instinct's: the game has no fixed one to choose, because it lays out fluidly
-                            and was measured to hold from 1280×720 to 3440×1440 (ticket 37).
-                        </li>
-                        <li>
-                            <strong>Colourblind-safe element colours</strong> — the eight element colours
-                            are defined in one place and can be swapped wholesale, but which palette is a
-                            design decision, not a toggle to invent here.
-                        </li>
-                        <li>
-                            <strong>Key remapping</strong> — the bindings are a table now, which is the
-                            work remapping needed; the capture-and-conflict UI is not built.
-                        </li>
+                        <li><strong>Resolution</strong> — the game lays out fluidly; fullscreen is under Display.</li>
+                        <li><strong>Colourblind-safe colours</strong> — not designed yet.</li>
+                        <li><strong>Key remapping</strong> — not built yet.</li>
                     </ul>
                 </section>
 
                 <section className="settings-group">
                     <h3>Credits</h3>
                     <p className="settings-note">
-                        Mingming: Midgard Circuit — built by Henry Dunphy. Runs on React, Redux Toolkit, Framer Motion, Zod
-                        and Vite; every sound is synthesized in the browser with the Web Audio API, so
-                        there are no sampled assets to credit. Full third-party licence text ships with the
-                        release build.
+                        Mingming: Midgard Circuit, built by Henry Dunphy.
+                    </p>
+                    <p className="settings-note">
+                        Made with React, Redux Toolkit, Framer Motion, Zod and Vite. Every sound is synthesized. Licences ship with the release build.
                     </p>
                 </section>
             </div>

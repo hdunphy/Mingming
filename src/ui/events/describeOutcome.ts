@@ -22,7 +22,7 @@ import {
 } from './outcomePicks';
 import type { OutcomePick } from './outcomePicks';
 import { driverText } from '../labels/driverText';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 
 const speciesName = (speciesId: string): string => MingmingRegistry[speciesId]?.name ?? speciesId;
 const cardName = (dataId: string): string => ProgramRegistry[dataId]?.name ?? dataId;
@@ -112,7 +112,7 @@ function describeOne(
             const osId = reflashTargetFor(ctx, pick.reflashMemberId);
             const body = ctx.ranch.roster.find((member) => member.id === pick.reflashMemberId);
             if (osId === null || !body) return null;
-            return `${speciesName(body.definitionId)} retrained to ${getOSBehavior(osId)?.name ?? osId}`;
+            return `${speciesName(body.definitionId)} retrained to ${instinctName(getOSBehavior(osId)?.name ?? osId)}`;
         }
         default: return null;
     }

@@ -86,16 +86,16 @@ const ENEMY_FRONT_STEP = 60;
  *
  * TICKET 183e (D5, ruled): the rows are CENTRED on the stage by party size — each missing row moves
  * the block down half a pitch — so a 1v1 stands on the middle row (232) and a 2v2 on 147 and 317.
- * A party of three is the mock, pixel for pixel. `partySize` is the LARGER of the two sides at the
- * start of the battle (`battleRowCount`), the same number all fight long, so a death never moves a
- * row and §3's stability holds.
+ * A party of three is the mock, pixel for pixel. `partySize` is the size of THIS side at the start
+ * of the battle (`sideRowCount`), the same number all fight long, so a death never moves a row and
+ * §3's stability holds. Each side centres on its own count (Henry, 183 review: "center each side"),
+ * so a 2v3 puts the pair on 147 and 317 and the trio on 62, 232 and 402.
  */
 export const rowY = (index: number, partySize = 3): number =>
     62 + (3 - partySize) * (ROW_PITCH / 2) + index * ROW_PITCH;
 
-/** How many rows a battle is drawn on: the larger side, between one and three. Deaths stay in the array. */
-export const battleRowCount = (allies: number, enemies: number): number =>
-    Math.min(3, Math.max(1, allies, enemies));
+/** How many rows one side is drawn on: its own count, between one and three. Deaths stay in the array. */
+export const sideRowCount = (members: number): number => Math.min(3, Math.max(1, members));
 
 /**
  * The sprite box for one slot, in reference coordinates.

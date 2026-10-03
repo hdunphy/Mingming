@@ -15,7 +15,7 @@ import { partyMembersOf } from '../../engine/run/events/eventContext';
 import { patchOffers } from '../../engine/run/events/eventPatch';
 import { playSfx } from '../audio/AudioEngine';
 import type { PatchPickResult } from '../events/outcomePicks';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 
 export interface EventPatchPickProps {
     readonly ctx: EventContext;
@@ -43,7 +43,7 @@ export default function EventPatchPick({ ctx, onTake, onBack }: EventPatchPickPr
                         >
                             <span className="ev-label">
                                 {MingmingRegistry[member?.definitionId ?? '']?.name ?? memberId}
-                                {member?.activeOS ? ` · ${getOSBehavior(member.activeOS)?.name ?? member.activeOS}` : ''}
+                                {member?.activeOS ? ` · ${instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)}` : ''}
                             </span>
                             <span className="ev-detail">{patch ? plain(`${patch.name}: ${describePatchOn(member?.activeOS, patchId)}`) : patchId}</span>
                         </button>

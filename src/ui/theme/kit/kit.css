@@ -311,4 +311,7 @@ button.k-plate:focus-visible { --k-plate-edge: var(--select); outline: none; }
 .k-button.is-quiet:hover:not(:disabled),
 .k-button.is-quiet:focus-visible { background: var(--panel-3); }
 .k-button.is-on { background: var(--select); color: var(--ink); }
+/* The chosen tab stays yellow under the pointer. */
+.k-button.is-quiet.is-on:hover:not(:disabled),
+.k-button.is-quiet.is-on:focus-visible { background: var(--select); }
 .k-button.is-danger { background: var(--hp-low); color: var(--text); }

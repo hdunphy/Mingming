@@ -14,42 +14,20 @@
     margin: 12px 0 16px;
 }
 
-.codex-tab {
-    padding: 6px 14px;
-    border: 1px solid var(--panel-2);
-    border-radius: 4px;
-    background: transparent;
-    color: rgba(240, 240, 245, 0.72);
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-}
-
-.codex-tab:hover {
-    color: var(--text);
-    border-color: rgba(255, 255, 255, 0.35);
-}
-
-.codex-tab.active {
-    border-color: var(--select);
-    background: rgba(124, 58, 237, 0.22);
-    color: var(--text);
-}
+/* The tabs are kit buttons (`k-button is-quiet`, `is-on` when chosen); this only sizes them. */
+.codex-tab { height: 30px; padding: 0 16px; font-size: 14px; }
 
 .codex-note {
     margin: 10px 0 14px;
-    font-size: 0.78rem;
-    line-height: 1.55;
-    color: rgba(240, 240, 245, 0.62);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-mute);
 }
 
 .codex-subhead {
     margin: 22px 0 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-mute);
+    font-size: 16px;
+    color: var(--text-dim);
 }
 
 /* --- Progress bars --------------------------------------------------------------------------- */
@@ -64,27 +42,27 @@
     grid-template-columns: 150px 1fr 88px;
     gap: 10px;
     align-items: center;
-    font-size: 0.8rem;
+    font-size: 15px;
 }
 
 .codex-bar-track {
-    height: 8px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.08);
+    --k-cut: 5px;
+    height: 12px;
+    background: var(--hp-track);
     overflow: hidden;
 }
 
 .codex-bar-fill {
     display: block;
     height: 100%;
-    background: var(--text-mute);
+    background: var(--select);
     /* No transition: the number is the point, and a bar that animates on mount reads as loading. */
 }
 
 .codex-bar-count {
     text-align: right;
     font-variant-numeric: tabular-nums;
-    color: rgba(240, 240, 245, 0.75);
+    color: var(--text-dim);
 }
 
 /* --- Milestones ------------------------------------------------------------------------------ */
@@ -101,8 +79,8 @@
     display: flex;
     gap: 8px;
     align-items: baseline;
-    font-size: 0.8rem;
-    color: rgba(240, 240, 245, 0.5);
+    font-size: 15px;
+    color: var(--text-faint);
 }
 
 .codex-milestone.done {
@@ -110,7 +88,7 @@
 }
 
 .codex-milestone-mark {
-    color: rgba(240, 240, 245, 0.35);
+    color: var(--text-faint);
 }
 
 .codex-milestone.done .codex-milestone-mark {
@@ -130,30 +108,31 @@
 }
 
 .codex-cell {
+    --k-cut: 5px;
     display: flex;
     align-items: baseline;
     gap: 6px;
-    padding: 5px 8px;
-    border: 1px solid var(--panel-2);
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.02);
-    font-size: 0.75rem;
+    padding: 6px 14px;
+    background: var(--panel-2);
+    font-size: 13px;
     min-width: 0;
 }
 
 .codex-cell.unknown {
-    color: rgba(240, 240, 245, 0.28);
-    border-style: dashed;
+    background: var(--hp-track);
+    color: var(--text-faint);
 }
 
+/* Cast or built: the cell takes the yellow of a chosen plate. */
 .codex-cell.played {
-    border-color: rgba(0, 255, 204, 0.45);
+    background: var(--panel-3);
+    box-shadow: inset 3px 0 0 var(--select);
 }
 
 .codex-cell-index {
     flex: 0 0 auto;
     font-variant-numeric: tabular-nums;
-    color: rgba(240, 240, 245, 0.35);
+    color: var(--text-faint);
 }
 
 .codex-cell-name {
@@ -165,16 +144,16 @@
 
 .codex-cell-flag {
     flex: 0 0 auto;
-    font-size: 0.6rem;
+    font-size: 11px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--panel-edge);
+    color: var(--select);
 }
 
 .codex-cell-note {
     flex: 0 0 auto;
-    font-size: 0.6rem;
-    color: rgba(240, 240, 245, 0.35);
+    font-size: 11px;
+    color: var(--text-faint);
 }
 
 /* --- The list (firmware, statuses) ----------------------------------------------------------- */
@@ -184,36 +163,33 @@
     padding: 0;
     list-style: none;
     display: grid;
-    gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+    gap: 8px;
 }
 
 .codex-row {
-    display: grid;
-    grid-template-columns: 190px 1fr;
-    gap: 12px;
-    align-items: baseline;
-    padding: 5px 8px;
-    border-left: 2px solid var(--panel-2);
-    font-size: 0.78rem;
+    --k-cut: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 28px 12px;
+    font-size: 14px;
 }
 
 .codex-row.unknown {
-    color: rgba(240, 240, 245, 0.3);
-    border-left-style: dashed;
+    --k-plate-edge: var(--panel-3);
+    --k-plate-fill: var(--hp-track);
+    color: var(--text-faint);
 }
 
-.codex-row.found {
-    border-left-color: var(--select);
-}
-
-.codex-row-name {
-    font-weight: 600;
-}
+.codex-row-name { font-size: 16px; }
 
 .codex-row-desc {
-    color: rgba(240, 240, 245, 0.7);
-    line-height: 1.5;
+    color: var(--text-dim);
+    line-height: 1.45;
 }
+
+.codex-row.unknown .codex-row-desc { color: var(--text-faint); }
 
 @media (max-width: 620px) {
     .codex-bar-row {
@@ -222,9 +198,5 @@
 
     .codex-bar-track {
         grid-column: 1 / -1;
-    }
-
-    .codex-row {
-        grid-template-columns: 1fr;
     }
 }

@@ -36,7 +36,7 @@ import gameReducer, { createEmptyRanch } from '../store/gameSlice';
 import runReducer from '../store/runSlice';
 import uiReducer from '../store/uiSlice';
 import { OLD_WORDS, plain } from './labels';
-import { oldWordsIn } from './sweep';
+import { capsNamesIn, oldWordsIn } from './sweep';
 
 function leftOver(source: string, text: unknown): string | null {
     if (typeof text !== 'string') return null;
@@ -102,6 +102,9 @@ describe('183h rendered sweep', () => {
     for (const [name, draw] of Object.entries(screens)) {
         it(`${name} prints no old word`, () => {
             expect(oldWordsIn(draw())).toEqual([]);
+        });
+        it(`${name} prints no capitals-and-underscore name`, () => {
+            expect(capsNamesIn(draw())).toEqual([]);
         });
     }
 });

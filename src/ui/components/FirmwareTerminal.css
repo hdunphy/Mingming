@@ -1,0 +1,115 @@
+/*
+ * The Instinct terminal (retrain a Mingming's instinct from the roster) in the Slant kit.
+ * Ticket 183, after Henry's review: it was a green terminal with fake system logs; it is now a
+ * plain plate with the choice and its price on it. Tokens only; no gradient, glow or blur.
+ */
+
+.it-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    background: var(--page);
+    font-family: var(--font-body);
+    color: var(--text);
+}
+
+.it-window {
+    --k-cut: 14px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(1040px, 100%);
+    max-height: 100%;
+    padding: 22px 30px 24px;
+    box-sizing: border-box;
+}
+
+.it-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.it-title { margin: 0; font-size: 28px; }
+.it-sub { flex: 1; min-width: 220px; color: var(--text-mute); font-size: 14px; }
+.it-close { height: 30px; }
+
+.it-body {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 22px;
+    min-height: 0;
+    overflow: auto;
+}
+
+.it-label { margin: 0 0 10px; font-size: 15px; color: var(--text-dim); }
+
+.it-units { display: flex; flex-direction: column; gap: 8px; }
+
+.it-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 9px 20px;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+
+.it-unit-name { font-size: 16px; }
+.it-unit-os { color: var(--text-mute); font-size: 13px; }
+
+.it-main { display: flex; flex-direction: column; min-width: 0; }
+
+.it-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+
+.it-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px 24px 16px;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+
+.it-option:disabled { cursor: default; }
+.it-option.is-current { --k-plate-edge: var(--panel-3); }
+
+.it-option-head { display: flex; align-items: center; gap: 10px; }
+.it-option-name { font-size: 20px; }
+.it-tag { padding: 1px 8px; background: var(--panel-3); font-size: 11px; }
+.it-option-desc { color: var(--text-dim); font-size: 14px; line-height: 1.45; }
+
+.it-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
+.it-cost { color: var(--text-dim); font-size: 14px; }
+.it-cost.is-short { color: var(--hp-low-hi); }
+
+.it-empty { color: var(--text-mute); font-size: 15px; padding: 10px 0; }
+
+.it-progress {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: var(--page);
+    opacity: 0.96;
+}
+
+.it-progress-word { font-size: 24px; }
+
+.it-bar { width: min(420px, 70%); height: 14px; background: var(--hp-track); }
+.it-bar-fill { height: 100%; background: var(--select); }

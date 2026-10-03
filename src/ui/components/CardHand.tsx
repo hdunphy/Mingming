@@ -28,6 +28,7 @@ import { getEffectiveCardCost } from '../../engine/battleReducer';
 import { executeCostCalculated } from '../../engine/resolutionEngine';
 import { getConstraintBehavior } from '../../engine/ConstraintBehavior';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { instinctName } from '../labels/labels';
 import { isUnaffordableCost, blockedCostReason } from '../../engine/core/CustomFirmware';
 import { computeHandPreviews, pickPreviewTarget } from '../utils/handPreview';
 import { describeLegalTargets } from '../utils/targeting';
@@ -409,7 +410,7 @@ const CardHand: React.FC<{
                         const sourceOS = source?.activeOS ? getOSBehavior(source.activeOS) : undefined;
                         if (source && sourceOS?.maxCardsPerTurn !== undefined &&
                             (source.playsThisTurn ?? 0) >= sourceOS.maxCardsPerTurn) {
-                            const osLabel = sourceOS.name.replace(/_OS$/, '').replace(/_/g, ' ');
+                            const osLabel = instinctName(sourceOS.name);
                             constraints.push(`${osLabel}: card limit reached (${sourceOS.maxCardsPerTurn}/turn)`);
                         }
                         // Ticket 22: "no caster picked" is now a stated reason rather than a silent

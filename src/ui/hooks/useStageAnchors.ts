@@ -20,7 +20,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 
 import type { IBattleState } from '../../engine/types';
 import {
-    battleRowCount, place, plaqueRect, spriteRect, spriteWidthAt, DISCARD_ANCHOR, HAND_ANCHOR, REF_HEIGHT,
+    sideRowCount, place, plaqueRect, spriteRect, spriteWidthAt, DISCARD_ANCHOR, HAND_ANCHOR, REF_HEIGHT,
     REF_WIDTH, REVEAL_RECT,
     type StageRect,
 } from '../components/stageGeometry';
@@ -91,8 +91,8 @@ export function useStageAnchors(state: IBattleState, activeAllyIndex: number, en
 
     return useMemo(() => {
         const slots: Record<string, StageRect> = {};
-        // TICKET 183e: the rows are centred for the larger side's size (deaths stay in the arrays).
-        const rows = battleRowCount(state.playerParty.length, state.enemyParty.length);
+        // TICKET 183e: each side's rows are centred for its own size (deaths stay in the arrays).
+        const rowsFor = { ally: sideRowCount(state.playerParty.length), enemy: sideRowCount(state.enemyParty.length) };
         const plaques: Record<string, StageRect> = {};
 
         /*
@@ -115,8 +115,8 @@ export function useStageAnchors(state: IBattleState, activeAllyIndex: number, en
         const anchor = (side: 'ally' | 'enemy', index: number, active: number): {
             slot: StageRect; plaque: StageRect;
         } => {
-            const slot = place(spriteRect(side, index, active, enemyShiftX, rows), width, height);
-            const plaque = place(plaqueRect(side, index, active, enemyShiftX, rows), width, height);
+            const slot = place(spriteRect(side, index, active, enemyShiftX, rowsFor[side]), width, height);
+            const plaque = place(plaqueRect(side, index, active, enemyShiftX, rowsFor[side]), width, height);
             const inset = Math.max(0, (slot.w - drawn) / 2);
             return {
                 slot,

@@ -16,6 +16,7 @@ import { useAdvancedContent } from '../settings/useAdvancedContent';
 import { introRules } from '../../engine/run/intro/introRules';
 import { deckScalesWithCardsPlayed } from '../utils/cardsPlayedScaling';
 import { driverText } from '../labels/driverText';
+import { plain } from '../labels/labels';
 
 
 /**
@@ -160,7 +161,7 @@ const BattleTopBar: React.FC<BattleTopBarProps> = ({ battleState, onToggleLog, l
                       * button containing a lone chevron: an affordance with no label, which reads
                       * as a rendering fault rather than as "nothing has happened yet".
                       */}
-                    <span className="battle-topbar-log-text">{latest ?? 'COMBAT LOG'}</span>
+                    <span className="battle-topbar-log-text">{latest === null ? 'COMBAT LOG' : plain(latest)}</span>
                     {/* The glyph points where the panel will GO, not where it is: a chevron that
                         never changes reads as decoration, and this one is the only close control
                         most players will find. */}

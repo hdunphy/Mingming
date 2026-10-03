@@ -66,7 +66,7 @@ describe('SettingsScreen', () => {
         const markup = render();
         expect(markup.match(/type="range"/g) ?? []).toHaveLength(1);
         expect(markup).not.toContain('Music volume');
-        expect(markup).toContain('there is no music yet');
+        expect(markup).toContain('No music yet');
     });
 
     it('arms the wipe rather than firing it, and never uses window.confirm', () => {
@@ -98,7 +98,7 @@ describe('SettingsScreen', () => {
         const markup = render();
         expect(markup).toContain('Not here yet');
         expect(markup).not.toMatch(/Fullscreen and resolution/);
-        expect(markup).toMatch(/Resolution and windowing/);
+        expect(markup).toMatch(/Resolution/);
         expect(markup).toMatch(/Colourblind-safe/);
         expect(markup).toMatch(/Key remapping/);
     });
@@ -112,7 +112,7 @@ describe('SettingsScreen', () => {
          */
         const markup = render();
         expect(markup).toContain('Save battle logs');
-        expect(markup).toContain('It is what a bug report needs');
+        expect(markup).toContain('combat log is kept');
         // Defaulting to on means the On choice carries the pressed state, not the Off one.
         const onIndex = markup.indexOf('Save battle logs');
         const block = markup.slice(onIndex, onIndex + 600);
@@ -121,7 +121,7 @@ describe('SettingsScreen', () => {
 
     it('says the settings are not part of the save', () => {
         const markup = render();
-        expect(markup).toMatch(/across slots|never part of the save/);
+        expect(markup).toMatch(/kept apart from your save|never part of the save/);
     });
     it('offers the enemy-hand switch, on, and away from the motion switches \u2014 159c', () => {
         /*
@@ -144,6 +144,6 @@ describe('SettingsScreen', () => {
         expect(battleHeading).toBeGreaterThan(motionHeading);
 
         // On by default, and the note says what "on" actually shows rather than naming the control.
-        expect(markup).toContain('their next draw takes off the top');
+        expect(markup).toContain('what they draw next');
     });
 });

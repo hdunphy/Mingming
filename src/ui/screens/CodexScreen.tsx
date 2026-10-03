@@ -21,7 +21,7 @@ import { TypeChartPanel } from '../components/TypeChart';
 import { getElementIcon } from '../components/cardIcons';
 import './CodexScreen.css';
 import { Icon } from '../theme/Icon';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 import { StatusIcon } from '../theme/kit/StatusIcon';
 
 /**
@@ -82,8 +82,7 @@ export default function CodexScreen({
                 <h2><Icon name="codex" size={18} /> Codex</h2>
             </div>
             <p className="ranch-note">
-                A record of what you have met. <strong>Nothing here makes you stronger</strong> — it is
-                the collection, not an upgrade tree.
+                What you have met. <strong>Nothing here makes you stronger.</strong>
             </p>
 
             <nav className="codex-tabs" aria-label="Codex pages">
@@ -91,7 +90,7 @@ export default function CodexScreen({
                     <button
                         key={p.id}
                         type="button"
-                        className={`codex-tab ${page === p.id ? 'active' : ''}`}
+                        className={`codex-tab k-button is-quiet ${page === p.id ? 'active is-on' : ''}`}
                         aria-current={page === p.id ? 'page' : undefined}
                         onClick={() => setPage(p.id)}
                     >
@@ -127,7 +126,7 @@ function Overview({
                 {lines.map((line) => (
                     <div key={line.id} className="codex-bar-row">
                         <span className="codex-bar-label">{plain(line.label)}</span>
-                        <span className="codex-bar-track">
+                        <span className="codex-bar-track k-slant">
                             <span
                                 className="codex-bar-fill"
                                 style={{ width: `${codexPercent(line)}%` }}
@@ -144,11 +143,10 @@ function Overview({
                   * Two species denominators exist and conflating them would misreport progress in
                   * both directions, so the screen names the one it is using and mentions the other.
                   */}
-                Species counts are against the whole roster; <strong>{launch}</strong> of them ship at
-                Early Access, so a full bestiary is not reachable yet.
+                Species counts only the <strong>{launch}</strong> in this build.
             </p>
 
-            <h3 className="codex-subhead">Milestones</h3>
+            <h3 className="codex-subhead k-display">Milestones</h3>
             <ul className="codex-milestones">
                 {CODEX_MILESTONES.map((milestone) => {
                     const done = firedSet.has(milestone.id);
@@ -163,9 +161,7 @@ function Overview({
                 })}
             </ul>
             <p className="codex-note">
-                Milestones are recorded but <strong>pay nothing yet</strong>. What completion is worth
-                is an economy decision, and traces — the only thing a run leaves behind — are the
-                one currency a collection log must not hand out by accident.
+                Milestones <strong>pay nothing yet</strong>.
             </p>
         </>
     );
@@ -181,9 +177,7 @@ function Cards({ codex }: { codex: ICodex }): ReactNode {
     return (
         <>
             <p className="codex-note">
-                A card is <strong>seen</strong> once it has been on screen — in a deck you finished a
-                run holding, or cast by either side. It is <strong>played</strong> only when you cast
-                it yourself.
+                <strong>Seen</strong>: it has been on screen. <strong>Cast</strong>: you played it yourself.
             </p>
             <ul className="codex-grid">
                 {ids.map((id, index) => {
@@ -192,7 +186,7 @@ function Cards({ codex }: { codex: ICodex }): ReactNode {
                     return (
                         <li
                             key={id}
-                            className={`codex-cell ${isSeen ? 'found' : 'unknown'} ${played.has(id) ? 'played' : ''}`}
+                            className={`codex-cell k-slant ${isSeen ? 'found' : 'unknown'} ${played.has(id) ? 'played' : ''}`}
                         >
                             <span className="codex-cell-index">{index + 1}</span>
                             {data ? (
@@ -238,8 +232,7 @@ function Species({ codex }: { codex: ICodex }): ReactNode {
     return (
         <>
             <p className="codex-note">
-                <strong>Met</strong> means it stood on a battlefield, yours or the enemy&apos;s.{' '}
-                <strong>Built</strong> means you summoned one from a trace.
+                <strong>Met</strong>: it stood on a battlefield. <strong>Built</strong>: you summoned one.
             </p>
             <ul className="codex-grid">
                 {ids.map((id) => {
@@ -248,7 +241,7 @@ function Species({ codex }: { codex: ICodex }): ReactNode {
                     return (
                         <li
                             key={id}
-                            className={`codex-cell ${isMet ? 'found' : 'unknown'} ${built.has(id) ? 'played' : ''}`}
+                            className={`codex-cell k-slant ${isMet ? 'found' : 'unknown'} ${built.has(id) ? 'played' : ''}`}
                         >
                             {definition ? (
                                 <>
@@ -279,8 +272,7 @@ function Firmware({ codex }: { codex: ICodex }): ReactNode {
     return (
         <>
             <p className="codex-note">
-                Instinct is recorded when you equip it — at summon, or by retraining. The three gym
-                boss signatures are not counted: you can meet them, but never run them.
+                Recorded when you equip one, at summon or by retraining. Gym boss instincts are not counted.
             </p>
             <ul className="codex-list">
                 {ids.map((id) => {
@@ -289,8 +281,8 @@ function Firmware({ codex }: { codex: ICodex }): ReactNode {
                     // also the only safe way to read a definition out of it.
                     const os = has ? getOSBehavior(id) : null;
                     return (
-                        <li key={id} className={`codex-row ${has ? 'found' : 'unknown'}`}>
-                            <span className="codex-row-name">{has && os ? os.name : '— — —'}</span>
+                        <li key={id} className={`codex-row k-plate ${has ? 'found is-on' : 'unknown'}`}>
+                            <span className="codex-row-name k-display">{has && os ? instinctName(os.name) : '— — —'}</span>
                             <span className="codex-row-desc">
                                 {has && os ? plain(os.description) : 'Not yet equipped.'}
                             </span>
@@ -310,14 +302,12 @@ function Statuses(): ReactNode {
     return (
         <>
             <p className="codex-note">
-                Reference, not collection — every status is listed whether or not you have met it. The
-                text is the same one the battle tooltips read, so it cannot drift from what the
-                statuses do.
+                Every status, worded as the battle tooltips word it.
             </p>
             <ul className="codex-list">
                 {entries.map(([type, entry]) => (
-                    <li key={type} className="codex-row found">
-                        <span className="codex-row-name" style={{ color: STATUS_COLORS[type] }}>
+                    <li key={type} className="codex-row k-plate found">
+                        <span className="codex-row-name k-display" style={{ color: STATUS_COLORS[type] }}>
                             <StatusIcon status={type} size={13} /> {entry.name}
                         </span>
                         <span className="codex-row-desc">{entry.description}</span>
@@ -325,7 +315,7 @@ function Statuses(): ReactNode {
                 ))}
             </ul>
 
-            <h3 className="codex-subhead">Elements</h3>
+            <h3 className="codex-subhead k-display">Elements</h3>
             <TypeChartPanel />
         </>
     );

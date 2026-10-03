@@ -98,7 +98,7 @@ import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
 import { WORKSHOP_DUPLICATE_CLAUSE } from './partyRuleText';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
 export interface ReflashTarget {
@@ -352,7 +352,7 @@ export default function WorkshopNode({
                                 title={plain((member && getOSBehavior(member.activeOS)?.description) ?? undefined)}
                             >
                                 <h3>
-                                    {member ? getOSBehavior(member.activeOS)?.name ?? member.activeOS : '—'}
+                                    {member ? instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS) : '—'}
                                     <span className="ws-tagcur"> · CURRENT</span>
                                 </h3>
                                 {member && <OSGrammarRow osId={member.activeOS} partyOS={partyOS} />}
@@ -364,7 +364,7 @@ export default function WorkshopNode({
 
                             <div className="ws-oscard offer">
                                 <h3>
-                                    {getOSBehavior(targetOS)?.name ?? (targetOS || '—')}
+                                    {targetOS ? instinctName(getOSBehavior(targetOS)?.name ?? targetOS) : '—'}
                                     <span className="ws-tagnew"> · AFTER RETRAIN</span>
                                 </h3>
                                 <p className="ws-osdesc">
@@ -391,7 +391,7 @@ export default function WorkshopNode({
                                         className={`rs-f ${id === targetOS ? 'on' : ''}`}
                                         onClick={() => setReflash({ ...reflash, targetOS: id })}
                                     >
-                                        {getOSBehavior(id)?.name ?? id}
+                                        {instinctName(getOSBehavior(id)?.name ?? id)}
                                     </button>
                                 ))}
                             </div>
@@ -546,7 +546,7 @@ export default function WorkshopNode({
                                                 onClick={() => { setOsId(id); playSfx('uiClick'); }}
                                             >
                                                 <span className="ws-oshead">
-                                                    <span className="rs-rnm">{os?.name ?? id}</span>
+                                                    <span className="rs-rnm">{instinctName(os?.name ?? id)}</span>
                                                     {id === chosenOS && <span className="rs-t">chosen</span>}
                                                 </span>
                                                 <span className="ws-osdesc">
@@ -653,7 +653,7 @@ export default function WorkshopNode({
                                         <span className="ws-bpct">
                                             {swappingOut
                                                 ? 'bench this one ⇄'
-                                                : `${getOSBehavior(member.activeOS)?.name ?? member.activeOS} · ${reflashBlockFor(member, ranch) === null ? 'retrain' : blockLabel('no-blueprint')}`}
+                                                : `${instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)} · ${reflashBlockFor(member, ranch) === null ? 'retrain' : blockLabel('no-blueprint')}`}
                                         </span>
                                     </span>
                                 </button>

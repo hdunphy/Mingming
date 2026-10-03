@@ -8,8 +8,8 @@
  *   reflash       -> Retrain       macro  -> Draught   assembly  -> Summon    driver  -> Totem
  *   workshop      -> Den           patch  -> Rune      scrap     -> Amber
  *
- * `Mingming` stays. The kernel / OS proper names (`UNBOUND_KERNEL`, `TIDAL_CRUSH_OS`) stay as the
- * Instinct's own names, per the ruling.
+ * `Mingming` stays. An Instinct's own name is shown by `instinctName()`: `TIDAL_CRUSH_OS` reads
+ * "Tidal Crush", `ABYSSAL_INK_SYS` reads "Abyssal Ink" (Henry's 183 review: no OS, no capitals).
  *
  * A separate `.ts` file with no React so the engine-facing tests and `plain()` can use it.
  */
@@ -78,6 +78,9 @@ const FORMS: ReadonlyArray<readonly [RegExp, string]> = [
     [/\bprogram\b/gi, 'card'],
 ];
 
+/** `TIDAL_CRUSH_OS`, `ECHO_CHAMBER_DAEMON+`: two or more capital words joined by underscores. Lower-case ids (`harden_daemon`) are not names. */
+const OLD_STYLE_NAME = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\+?/g;
+
 /** Carry the old word's capitals over to the new one: `Daemon` -> `Aura`, `DAEMON` -> `AURA`, `daemon` -> `aura`. */
 function carryCase(from: string, to: string): string {
     // Two capitals (`OS`) is an abbreviation, not shouting: it takes the sentence's case.
@@ -98,7 +101,8 @@ export function plain(text: string): string;
 export function plain(text: string | undefined): string | undefined;
 export function plain(text: string | undefined): string | undefined {
     if (text === undefined) return undefined;
-    let result = text;
+    // An Instinct (or Rune) still named in capitals and underscores, as the hook text and the log say it.
+    let result = text.replace(OLD_STYLE_NAME, (match) => instinctName(match));
     for (const [pattern, replacement] of FORMS) {
         result = result.replace(pattern, (match, offset: number, whole: string) => {
             const word = carryCase(match, replacement);
@@ -123,3 +127,20 @@ function agreeArticles(text: string): string {
 
 /** Every old word, for the sweep that fails a screen still printing one. */
 export const OLD_WORDS = /\b(?:firmwares?|OS|reflash(?:ed|ing|es)?|blueprints?|assembl(?:y|e|ed|es|ing)|workshops?|daemons?|macros?|patch(?:es)?|drivers?|scraps?|programs?)\b/gi;
+
+/** The tail words of an old Instinct name that said what machine it ran on, not what it does. */
+const MACHINE_WORDS: ReadonlySet<string> = new Set(['OS', 'SYS', 'KERNEL', 'FIRMWARE']);
+
+/**
+ * An Instinct's name as a player reads it. The registry says `TIDAL_CRUSH_OS`; the screen says
+ * "Tidal Crush". The machine words (`OS`, `SYS`, `KERNEL`, `FIRMWARE`) go, `DAEMON` is an Aura, the
+ * underscores become spaces and each word is Title Case. A name that is only a machine word keeps it.
+ * Anything else (a `+` on an upgraded Rune, `GENERIC_CORE`, an id used as a fallback) is only re-cased.
+ */
+export function instinctName(raw: string): string {
+    const words = raw.split(/[_\s]+/).filter((word) => word.length > 0);
+    const kept = words.filter((word) => !MACHINE_WORDS.has(word.toUpperCase()));
+    return (kept.length > 0 ? kept : words)
+        .map((word) => (/^DAEMON\+?$/i.test(word) ? `Aura${word.endsWith('+') ? '+' : ''}` : word[0].toUpperCase() + word.slice(1).toLowerCase()))
+        .join(' ');
+}

@@ -17,6 +17,7 @@ import Callout, { TOAST_MS } from './Callout';
 import { TIP_REGISTRY, RANCH_BLUEPRINT_TIP, type Tip } from '../../engine/tips';
 import type { RootState } from '../store/store';
 import { makeStore, mount } from '../../testing/interaction';
+import { loadSettings, saveSettings } from '../settings/settings';
 
 const types = TIP_REGISTRY.get('map:types')!;
 const gym = TIP_REGISTRY.get('map:gym')!;
@@ -32,13 +33,29 @@ function Harness({ tips }: { tips: ReadonlyArray<Tip> }) {
 }
 
 describe('Callout (the tip toast)', () => {
-    it('renders the tip as one line, with no buttons and no heading', () => {
+    it('renders the tip as one line, with one button (Hide tips) and no heading', () => {
         const markup = staticRender(RANCH_BLUEPRINT_TIP);
         expect(markup).toContain(RANCH_BLUEPRINT_TIP.body);
         expect(markup).not.toContain('Got it');
         expect(markup).not.toContain('Skip tips');
-        expect(markup).not.toContain('<button');
+        expect(markup.match(/<button/g)).toHaveLength(1);
+        expect(markup).toContain('>Hide tips</button>');
         expect(markup).not.toContain('<h4');
+    });
+
+    it('turns Show tips off from the toast itself, and the toast goes', async () => {
+        const store = makeStore();
+        const host = await mount(store, <Callout tip={RANCH_BLUEPRINT_TIP} />, { keepStorage: true });
+        const hide = host.querySelector<HTMLButtonElement>('.callout-hide')!;
+        // The real order of events: the press first, then the click. The press must not take the
+        // button away before the click lands.
+        await act(async () => { hide.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true })); });
+        expect(host.querySelector('.callout-hide')).not.toBeNull();
+        await act(async () => { hide.click(); });
+        expect(loadSettings().showTips).toBe(false);
+        expect(host.textContent).not.toContain(RANCH_BLUEPRINT_TIP.body);
+        // The setting is stored, so put it back for the tests after this one.
+        await act(async () => { saveSettings({ ...loadSettings(), showTips: true }); });
     });
 
     it('is not a <p>, so a toast never counts against a screen\'s copy budget', () => {

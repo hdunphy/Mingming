@@ -13,7 +13,7 @@ import type { EventContext } from '../../engine/run/events/eventContext';
 import { REFLASH_BLOCK_REASON, reflashRows } from '../../engine/run/events/eventReflash';
 import { playSfx } from '../audio/AudioEngine';
 import type { ReflashPickResult } from '../events/outcomePicks';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 
 export interface EventReflashPickProps {
     readonly ctx: EventContext;
@@ -21,7 +21,7 @@ export interface EventReflashPickProps {
     readonly onBack: () => void;
 }
 
-const osName = (osId: string | null | undefined): string => (osId ? getOSBehavior(osId)?.name ?? osId : 'none');
+const osName = (osId: string | null | undefined): string => (osId ? instinctName(getOSBehavior(osId)?.name ?? osId) : 'none');
 
 export default function EventReflashPick({ ctx, onTake, onBack }: EventReflashPickProps): ReactNode {
     const [selected, setSelected] = useState<string | null>(null);

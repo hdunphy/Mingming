@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { RootState } from '../store/store';
 import { visibleEntries, type LogEntry } from './combatLogModel';
 import { isPinnedToBottom } from './combatLogModel';
+import { plain } from '../labels/labels';
 
 /**
  * THE COMBAT LOG — collapsed by default, latest line always visible (ticket 143c).
@@ -132,7 +133,7 @@ const CombatLog: React.FC<{ isOpen?: boolean; onOpenChange?: (open: boolean) => 
                                 >
                                     <span className="log-timestamp">{'>>'}</span>{' '}
                                     {entry.isOS && <span className="log-os-chip">Instinct</span>}
-                                    {entry.text}
+                                    {plain(entry.text)}
                                 </motion.div>
                             ))}
                         </AnimatePresence>
