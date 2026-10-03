@@ -58,9 +58,10 @@ import { useEffect, useRef } from 'react';
 import { globalBattleEventBus } from '../../engine/events';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { StageAnchors } from '../hooks/useStageAnchors';
+import type { ClockFrame } from './clock/BattleClock';
 import { ParticleField } from './particles';
 import { setParticleSink, setStageAnchors } from './emit';
-import { isHitStopped } from './hitStop';
+import { battleDriver } from './clock/battleClockRuntime';
 
 interface Props {
     /**
@@ -89,9 +90,6 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
         if (!ctx) return;
 
         const field = new ParticleField();
-        let frame: number | null = null;
-        let last = 0;
-
         // Backing store vs CSS box — see the header. The DPR is the only correction in the
         // transform; the coordinate system stays the stage box's own, untouched.
         let cssW = 1;
@@ -108,18 +106,18 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
         resize();
         window.addEventListener('resize', resize);
 
-        const tick = (now: number): void => {
-            const dt = last === 0 ? 16 : now - last;
-            last = now;
-
-            /*
-             * HIT-STOP (146e): a delta of 0 rather than a skipped frame. Every particle holds its
-             * position AND its remaining life, so a flame that was half-way through its rise is
-             * still half-way through it when the stop lifts. Skipping the frame instead would let
-             * the clock run on and the burst would jump forward when drawing resumed, which is the
-             * opposite of the effect.
-             */
-            const live = field.step(isHitStopped(now) ? 0 : dt);
+        /*
+         * TICKET 189a — the layer no longer owns a rAF loop.
+         *
+         * It is a consumer of the battle clock's one driver, and steps by the CLOCK's delta: `gameDt`
+         * is 0 while a hit-stop freeze stands (every particle holds position AND keeps its remaining
+         * life, so a flame half-way through its rise is still half-way through it when the freeze
+         * lifts), and it follows the speed policy for free when ticket 190 adds the tiers. Skipping
+         * the frame instead would let the clock run on and the burst would jump forward when
+         * drawing resumed, which is the opposite of the effect.
+         */
+        const consume = (frame: ClockFrame): boolean => {
+            const live = field.step(frame.gameDt);
             // CSS pixels, not `canvas.width/height` — those are DEVICE pixels, and under the DPR
             // transform they describe an area twice the canvas on a retina screen.
             ctx.clearRect(0, 0, cssW, cssH);
@@ -129,19 +127,13 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
              * THE IDLE RULE (§2a): *"a single `rAF` loop that runs only while `alive > 0"`*. With
              * no persistent emitters there is no second condition to check — when the last particle
              * of a burst dies, nothing is coming until something else HAPPENS, and that something
-             * calls `wake()` through `emit`.
+             * calls `wake()` through `emit`. The driver parks itself when no consumer is live.
              */
-            if (live > 0) {
-                frame = requestAnimationFrame(tick);
-            } else {
-                frame = null;
-                last = 0;
-            }
+            return live > 0;
         };
 
-        const wake = (): void => {
-            if (frame === null) frame = requestAnimationFrame(tick);
-        };
+        const removeConsumer = battleDriver.addConsumer(consume);
+        const wake = (): void => battleDriver.wake();
 
         setParticleSink({ spawn: (seeds) => field.spawn(seeds), wake });
 
@@ -165,8 +157,7 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
         return () => {
             unsubscribe();
             window.removeEventListener('resize', resize);
-            if (frame !== null) cancelAnimationFrame(frame);
-            frame = null;
+            removeConsumer();
             setParticleSink(null);
             field.clear();
         };

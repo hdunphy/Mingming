@@ -19,7 +19,10 @@
  * - Anything queued through `afterHitStop`: the shake, and 146c's sequence steps. They start when
  *   the stop lifts rather than during it.
  *
- * It does NOT freeze a framer-motion transition already in flight. There is no public API for that
+ * (Superseded by ticket 189a, see the note above the clock functions below: the freeze now stops game
+ * time itself, and `ClockedControls` pauses framer-motion playback around it.)
+ *
+ * It did NOT freeze a framer-motion transition already in flight. There is no public API for that
  * — `MotionConfig` sets the transition for animations that START under it, not ones already
  * running — and the honest options were a fake one (re-targeting every control mid-animation, which
  * fights the spring and looks worse than no stop) or this. What is actually moving at the instant
@@ -87,49 +90,53 @@ export function shakeKeyframes(amplitude: number): number[] {
     return frames;
 }
 
-let stoppedUntil = 0;
-const waiting: Array<{ at: number; run: () => void }> = [];
+/*
+ * TICKET 189a — THE STATE MOVED INTO THE BATTLE CLOCK.
+ *
+ * Everything above this line is the curve (how long, how hard), and it is unchanged. The standing
+ * freeze used to be two module-level variables here, read by the particle loop alone — so it could
+ * only ever pause particles, and none existed yet when it fired. It is now `clock/HitStop`, owned by
+ * the battle clock: a freeze stops GAME time, which every wait, play, particle and (through
+ * `ClockedControls`) framer-motion animation runs on.
+ *
+ * The functions below keep their names so callers did not have to change, and lose their `now`
+ * argument: the clock is advanced by the driver, not read off `performance.now()`.
+ */
 
-/** Milliseconds of stop remaining, 0 when running. */
-export function hitStopRemaining(now: number = performance.now()): number {
-    return Math.max(0, stoppedUntil - now);
+import { battleClock, battleHitStop } from './clock/battleClockRuntime';
+
+/** Real milliseconds of freeze remaining, 0 when running. */
+export function hitStopRemaining(): number {
+    return battleHitStop.remainingMs;
 }
 
-export const isHitStopped = (now: number = performance.now()): boolean => hitStopRemaining(now) > 0;
+export const isHitStopped = (): boolean => battleClock.frozen;
 
 /**
- * Hold everything for `ms`.
+ * Freeze game time for `ms`.
  *
  * Overlapping requests EXTEND rather than restack: two hits in the same frame (a Side card landing
  * on three targets) should feel like one heavier impact, not three stops in a row totalling a third
- * of a second. Taking the later of the two deadlines does that, and it means a big hit is never
- * shortened by a small one arriving behind it.
+ * of a second. Taking the longer of the two does that, and a big hit is never shortened by a small
+ * one arriving behind it.
  */
-export function requestHitStop(ms: number, now: number = performance.now()): void {
-    if (ms <= 0) return;
-    stoppedUntil = Math.max(stoppedUntil, now + ms);
+export function requestHitStop(ms: number): void {
+    battleClock.freeze(ms);
 }
 
 /**
- * Run `fn` when the stop lifts — immediately if nothing is stopped.
+ * Run `fn` when the freeze lifts — immediately if nothing is frozen.
  *
- * This is how the shake and 146c's sequence steps land AFTER the pause rather than through it. A
- * shake that plays during the stop is the one mistake that makes hit-stop read as a stutter.
+ * This is how the shake lands AFTER the pause rather than through it. A shake that plays during the
+ * stop is the one mistake that makes hit-stop read as a stutter.
  */
-export function afterHitStop(fn: () => void, now: number = performance.now()): void {
-    const remaining = hitStopRemaining(now);
-    if (remaining <= 0) { fn(); return; }
-    const at = now + remaining;
-    waiting.push({ at, run: fn });
-    setTimeout(() => {
-        const index = waiting.findIndex((w) => w.run === fn);
-        if (index >= 0) waiting.splice(index, 1);
-        fn();
-    }, remaining);
+export function afterHitStop(fn: () => void): void {
+    if (!battleClock.frozen) { fn(); return; }
+    // `after(0)` is due the moment game time moves again, which is exactly when the freeze ends.
+    battleClock.after(0, fn);
 }
 
-/** Drop the stop and every pending callback. For tests, and for leaving a battle mid-stop. */
+/** Drop the freeze. For tests, and for leaving a battle mid-stop. */
 export function resetHitStop(): void {
-    stoppedUntil = 0;
-    waiting.length = 0;
+    battleHitStop.reset();
 }

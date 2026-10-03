@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimate } from 'framer-motion';
 
 import type { IBattleEntity } from '../../../engine/types';
 import type { UnitFx } from '../../hooks/useBattleVfx';
 import { elementVars } from '../../theme/kit/elementGlyphs';
 import { prefersReducedMotion } from '../../utils/motionPrefs';
+import { useClockedControls } from '../../vfx/clock/useClockedControls';
 import MonsterArtPlaceholder from '../MonsterArtPlaceholder';
 import { MONSTER_ART_ENABLED } from '../monsterArtPolicy';
 import { SPRITE_H, SPRITE_W } from '../stageGeometry';
@@ -31,7 +32,9 @@ interface StageSpriteProps {
 }
 
 export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width }) => {
-    const controls = useAnimation();
+    const [scope, animate] = useAnimate();
+    // TICKET 189a: the lunge is held to the battle clock (speed, hit-stop freeze, Instant).
+    const track = useClockedControls();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
     const [artBroken, setArtBroken] = React.useState(false);
     const prevHpRef = React.useRef(entity.currentHp);
@@ -60,28 +63,26 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
     const hitKey = fx?.hitKey ?? 0;
     const hitIntensity = fx?.hitIntensity ?? 0;
     useEffect(() => {
-        if (!hitKey) return;
+        if (!hitKey || !scope.current) return;
         if (prefersReducedMotion()) {
-            controls.start({ x: 0, y: 0, opacity: [1, 0.6, 1], transition: { duration: 0.25 } });
+            animate(scope.current, { x: 0, y: 0, opacity: [1, 0.6, 1] }, { duration: 0.25 });
             return;
         }
         const amp = 5 + 14 * hitIntensity;
-        controls.start({
-            x: [0, -amp, amp, -amp * 0.5, amp * 0.5, 0],
-            transition: { duration: 0.2 + 0.12 * hitIntensity },
-        });
-    }, [hitKey, hitIntensity, controls]);
+        animate(scope.current, { x: [0, -amp, amp, -amp * 0.5, amp * 0.5, 0] }, { duration: 0.2 + 0.12 * hitIntensity });
+    }, [hitKey, hitIntensity, animate, scope]);
 
     // Lunge toward the reveal lane: an ally moves right, an enemy left. Purely horizontal now that
     // the columns face each other across the lane.
     const lungeKey = fx?.lungeKey ?? 0;
     useEffect(() => {
-        if (!lungeKey || prefersReducedMotion()) return;
-        controls.start({
-            x: [0, isEnemy ? -34 : 34, 0],
-            transition: { duration: 0.28, times: [0, 0.35, 1], ease: 'easeOut' },
-        });
-    }, [lungeKey, isEnemy, controls]);
+        if (!lungeKey || prefersReducedMotion() || !scope.current) return;
+        track(animate(
+            scope.current,
+            { x: [0, isEnemy ? -34 : 34, 0] },
+            { duration: 0.28, times: [0, 0.35, 1], ease: 'easeOut' },
+        ));
+    }, [lungeKey, isEnemy, animate, scope, track]);
 
     const showArt = MONSTER_ART_ENABLED && !!entity.artReference && !artBroken;
     const height = width * (SPRITE_H / SPRITE_W);
@@ -89,7 +90,7 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
     return (
         <motion.div
             className={`stage-sprite-frame ${isDead ? 'stage-sprite-dead' : ''} ${deathGlitch ? 'stage-death-glitch' : ''}`}
-            animate={controls}
+            ref={scope}
             style={{ width, height }}
         >
             {showArt ? (

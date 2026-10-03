@@ -10,13 +10,15 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { battleClock, resetBattleClock } from './clock/battleClockRuntime';
+
 import {
     HIT_STOP_MAX_MS, HIT_STOP_MIN_MS, SHAKE_KILL_PX, SHAKE_MAX_PX, SHAKE_MIN_PX,
     afterHitStop, damageScale, hitStopMsFor, hitStopRemaining, isHitStopped, requestHitStop,
     resetHitStop, shakeAmplitudeFor, shakeKeyframes,
 } from './hitStop';
 
-afterEach(() => resetHitStop());
+afterEach(() => resetBattleClock());
 
 describe('146e — the curve', () => {
     it('gives every hit the floor, because ruling 2 says everything gets one', () => {
@@ -89,70 +91,73 @@ describe('146e — the shake rides the same scale', () => {
     });
 });
 
-describe('146e — the clock', () => {
+describe('146e — the clock (189a: now the battle clock)', () => {
     it('reports stopped for the duration and running after', () => {
-        requestHitStop(100, 1_000);
-        expect(isHitStopped(1_000)).toBe(true);
-        expect(hitStopRemaining(1_050)).toBe(50);
-        expect(isHitStopped(1_100)).toBe(false);
+        requestHitStop(100);
+        expect(isHitStopped()).toBe(true);
+        expect(hitStopRemaining()).toBe(100);
+        battleClock.advance(50);
+        expect(hitStopRemaining()).toBe(50);
+        battleClock.advance(50);
+        expect(isHitStopped()).toBe(false);
     });
 
     it('EXTENDS rather than restacks when hits overlap', () => {
         /*
          * A Side card landing on three targets emits three DAMAGE_TAKEN in the same frame. Three
          * stops in a row would total a third of a second of frozen game for one card; the player
-         * should feel one heavier impact. Taking the later deadline also means a big hit is never
+         * should feel one heavier impact. Taking the longer one also means a big hit is never
          * cut short by a small one arriving behind it.
          */
-        requestHitStop(100, 1_000);
-        requestHitStop(40, 1_000);
-        expect(hitStopRemaining(1_000)).toBe(100);
+        requestHitStop(100);
+        requestHitStop(40);
+        expect(hitStopRemaining()).toBe(100);
 
-        requestHitStop(150, 1_000);
-        expect(hitStopRemaining(1_000)).toBe(150);
+        requestHitStop(150);
+        expect(hitStopRemaining()).toBe(150);
     });
 
     it('ignores a zero or negative request', () => {
-        requestHitStop(0, 1_000);
-        expect(isHitStopped(1_000)).toBe(false);
+        requestHitStop(0);
+        expect(isHitStopped()).toBe(false);
     });
 
     it('runs a deferred callback immediately when nothing is stopped', () => {
         const run = vi.fn();
-        afterHitStop(run, 1_000);
+        afterHitStop(run);
         expect(run).toHaveBeenCalledTimes(1);
     });
 
     it('defers a callback until the stop lifts — the shake must not play through it', () => {
-        vi.useFakeTimers();
-        try {
-            const run = vi.fn();
-            requestHitStop(80, 1_000);
-            afterHitStop(run, 1_000);
-            expect(run).not.toHaveBeenCalled();
+        const run = vi.fn();
+        requestHitStop(80);
+        afterHitStop(run);
+        expect(run).not.toHaveBeenCalled();
 
-            vi.advanceTimersByTime(80);
-            expect(run).toHaveBeenCalledTimes(1);
-        } finally {
-            vi.useRealTimers();
-        }
+        battleClock.advance(79);
+        expect(run).not.toHaveBeenCalled();
+
+        // The freeze ends 1 ms into this frame; game time moves for the rest of it.
+        battleClock.advance(17);
+        expect(run).toHaveBeenCalledTimes(1);
     });
 
-    it('drops pending callbacks on reset, so leaving a fight mid-stop strands nothing', () => {
-        vi.useFakeTimers();
-        try {
-            const run = vi.fn();
-            requestHitStop(80, 1_000);
-            afterHitStop(run, 1_000);
-            resetHitStop();
+    it('stops GAME time, not just particles: a wait made before the stop holds through it', () => {
+        // 189a's whole point. The old stop only paused the particle loop, and none existed yet.
+        const run = vi.fn();
+        battleClock.after(50, run);
+        requestHitStop(100);
+        battleClock.advance(100);          // frozen: nothing moves
+        expect(run).not.toHaveBeenCalled();
+        expect(battleClock.now).toBe(0);
+        battleClock.advance(50);
+        expect(run).toHaveBeenCalledTimes(1);
+    });
 
-            expect(isHitStopped(1_000)).toBe(false);
-            vi.advanceTimersByTime(200);
-            // The timer still fires — `resetHitStop` clears the queue, not the host's timers — but
-            // the clock is clean, which is the property the next battle depends on.
-            expect(hitStopRemaining(1_200)).toBe(0);
-        } finally {
-            vi.useRealTimers();
-        }
+    it('resetHitStop clears the freeze, so leaving a fight mid-stop strands nothing', () => {
+        requestHitStop(80);
+        resetHitStop();
+        expect(isHitStopped()).toBe(false);
+        expect(hitStopRemaining()).toBe(0);
     });
 });

@@ -10,6 +10,8 @@ import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { PlayedCardAnnouncement } from '../hooks/useBattleVfx';
 import { anchorFor, discardAnchor, handAnchor, revealAnchor } from '../vfx/emit';
 import { FLIGHT_MS } from '../vfx/useCastSequence';
+import { battleClock } from '../vfx/clock/battleClockRuntime';
+import { scaledSeconds } from '../vfx/clock/scaledSeconds';
 import { plain } from '../labels/labels';
 
 /**
@@ -155,14 +157,18 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
     const flownKeyRef = useRef<number | null>(null);
     useEffect(() => {
         const { entry: e, exit: x, fromY: fy, reduced: red, fromPlayer } = posesRef.current;
+        // TICKET 189a: started at the clock's length, so a speed tier or Instant shortens the flight.
+        // It stays on framer's own engine rather than `useClockedControls`: the poses are `calc()`
+        // transforms, and a freeze never lands while the card is flying (the impact comes after it).
+        const m = battleClock.multiplier;
         const transition = red
-            ? { duration: 0.12 }
+            ? { duration: scaledSeconds(120, m) }
             /*
              * §2c gives the flight 180ms and the discard 200ms. A spring would overshoot the lane
              * pose and arrive late, and the trail leaves at 180ms whatever the card is doing — so
              * the two would drift apart. Eased, and on the ticket's numbers, they cannot.
              */
-            : { duration: FLIGHT_MS / 1000, ease: 'easeOut' as const, opacity: { duration: 0.14 } };
+            : { duration: scaledSeconds(FLIGHT_MS, m), ease: 'easeOut' as const, opacity: { duration: scaledSeconds(140, m) } };
 
         if (played && played.key !== flownKeyRef.current) {
             flownKeyRef.current = played.key;

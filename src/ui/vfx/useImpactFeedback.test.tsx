@@ -13,7 +13,8 @@ import { useAnimation } from 'framer-motion';
 
 import { globalBattleEventBus, type DamageCause } from '../../engine/events';
 import { DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY, saveSettings } from '../settings/settings';
-import { isHitStopped, resetHitStop } from './hitStop';
+import { battleClock, resetBattleClock } from './clock/battleClockRuntime';
+import { isHitStopped } from './hitStop';
 import { useImpactFeedback } from './useImpactFeedback';
 import type { IBattleState } from '../../engine/types';
 
@@ -52,7 +53,7 @@ let root: Root;
 beforeEach(() => {
     localStorage.clear();
     saveSettings(DEFAULT_SETTINGS);
-    resetHitStop();
+    resetBattleClock();
     container = document.createElement('div');
     root = createRoot(container);
     act(() => { root.render(<Harness />); });
@@ -60,7 +61,7 @@ beforeEach(() => {
 
 afterEach(() => {
     act(() => { root.unmount(); });
-    resetHitStop();
+    resetBattleClock();
     localStorage.clear();
 });
 
@@ -182,18 +183,14 @@ describe('155a — the deferred shake does not outlive the component', () => {
          * An unhandled exception on the most dramatic hit in a run. It only surfaced once this file
          * started unmounting while a stop was standing.
          */
-        vi.useFakeTimers();
-        try {
-            hit('attack', 60);
-            expect(isHitStopped()).toBe(true);
+        hit('attack', 60);
+        expect(isHitStopped()).toBe(true);
 
-            act(() => { root.unmount(); });
-            // Re-created in afterEach's expectation; make the teardown a no-op.
-            root = createRoot(document.createElement('div'));
+        act(() => { root.unmount(); });
+        // Re-created in afterEach's expectation; make the teardown a no-op.
+        root = createRoot(document.createElement('div'));
 
-            expect(() => vi.advanceTimersByTime(300)).not.toThrow();
-        } finally {
-            vi.useRealTimers();
-        }
+        // 189a: the deferred shake now runs on the battle clock, so this is what lets it fire.
+        expect(() => battleClock.advance(300)).not.toThrow();
     });
 });
