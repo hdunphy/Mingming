@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
     BASE_FONT_PX,
+    BATTLE_SPEEDS,
     DEFAULT_SETTINGS,
     SETTINGS_STORAGE_KEY,
     TEXT_SCALES,
@@ -152,64 +153,141 @@ describe('applySettings', () => {
 });
 
 
-describe('146a — the three effect switches', () => {
-    it('default to on, so an existing player notices nothing', () => {
+describe('190a — the battle switches (the old Effects and Animations are retired)', () => {
+    it('default as ruled: Showy, shake 60, hit-stop on, flashes on, catch-up on, particles on', () => {
+        expect(DEFAULT_SETTINGS.battleSpeed).toBe('showy');
+        expect(DEFAULT_SETTINGS.screenShake).toBe(60);
+        expect(DEFAULT_SETTINGS.hitStop).toBe(true);
+        expect(DEFAULT_SETTINGS.flashes).toBe(true);
+        expect(DEFAULT_SETTINGS.catchUp).toBe(true);
         expect(DEFAULT_SETTINGS.particles).toBe(true);
-        expect(DEFAULT_SETTINGS.vfx).toBe(true);
-        expect(DEFAULT_SETTINGS.animations).toBe(true);
+    });
+
+    it('has no vfx or animations field any more', () => {
+        expect(Object.keys(DEFAULT_SETTINGS)).not.toContain('vfx');
+        expect(Object.keys(DEFAULT_SETTINGS)).not.toContain('animations');
+    });
+
+    it('offers exactly the five tiers, slowest first', () => {
+        expect([...BATTLE_SPEEDS]).toEqual(['slow', 'showy', 'snappy', 'fast', 'instant']);
     });
 
     it('round-trip through storage, which is the ticket Done-when for every setting', () => {
         const storage = makeMockStorage();
         const settings: ISettings = {
-            ...DEFAULT_SETTINGS, particles: false, vfx: false, animations: true,
+            ...DEFAULT_SETTINGS, battleSpeed: 'fast', screenShake: 25, hitStop: false, flashes: false,
+            catchUp: false, particles: false,
         };
         saveSettings(settings, storage);
 
         const reloaded = loadSettings(makeMockStorage({ ...storage.data }));
-        expect(reloaded.particles).toBe(false);
-        expect(reloaded.vfx).toBe(false);
-        expect(reloaded.animations).toBe(true);
+        expect(reloaded).toEqual(settings);
     });
 
-    it('parse a blob written before they existed, into everything-on', () => {
-        // The upgrade path. A player on an older build has a settings blob with three fields; it
-        // must not fail the parse (which would silently reset their text scale) and it must not
-        // turn anything OFF that they never asked to lose.
+    it('rejects a shake outside 0-100 instead of clamping it, like every other bounded field', () => {
+        const storage = makeMockStorage({
+            [SETTINGS_STORAGE_KEY]: JSON.stringify({ ...DEFAULT_SETTINGS, screenShake: 250 }),
+        });
+        expect(loadSettings(storage)).toEqual(DEFAULT_SETTINGS);
+    });
+
+    it('parses a blob written before they existed into Showy and everything on', () => {
         const older = JSON.stringify({ reducedMotion: 'off', textScale: 1.15, autoSaveRunLog: true });
         const loaded = loadSettings(makeMockStorage({ [SETTINGS_STORAGE_KEY]: older }));
 
         expect(loaded.textScale).toBe(1.15);
         expect(loaded.autoSaveRunLog).toBe(true);
+        expect(loaded.battleSpeed).toBe('showy');
+        expect(loaded.flashes).toBe(true);
         expect(loaded.particles).toBe(true);
-        expect(loaded.vfx).toBe(true);
-        expect(loaded.animations).toBe(true);
+    });
+});
+
+describe('190a — the migration from the retired switches (ruled D1, and the 2026-10-03 follow-up)', () => {
+    const load = (old: object) =>
+        loadSettings(makeMockStorage({ [SETTINGS_STORAGE_KEY]: JSON.stringify({ reducedMotion: 'off', textScale: 1, ...old }) }));
+
+    it('animations: false becomes Instant', () => {
+        expect(load({ animations: false }).battleSpeed).toBe('instant');
+    });
+
+    it('effects (vfx): false becomes flashes off', () => {
+        expect(load({ vfx: false }).flashes).toBe(false);
+    });
+
+    it('both off becomes Instant AND flashes off', () => {
+        const loaded = load({ animations: false, vfx: false });
+        expect(loaded.battleSpeed).toBe('instant');
+        expect(loaded.flashes).toBe(false);
+    });
+
+    it('both on (the old defaults) changes nothing', () => {
+        const loaded = load({ animations: true, vfx: true });
+        expect(loaded.battleSpeed).toBe('showy');
+        expect(loaded.flashes).toBe(true);
+    });
+
+    it('never overrides a tier the player already chose on the new build', () => {
+        expect(load({ animations: false, battleSpeed: 'slow' }).battleSpeed).toBe('slow');
+        expect(load({ vfx: false, flashes: true }).flashes).toBe(true);
+    });
+
+    it('keeps the unrelated settings in the same blob', () => {
+        const loaded = load({ animations: false, particles: false, textScale: 1.3 });
+        expect(loaded.particles).toBe(false);
+        expect(loaded.textScale).toBe(1.3);
     });
 });
 
 describe('146a — reduced motion overrules the switches', () => {
     afterEach(() => setReducedMotionOverride(null));
 
-    it('maps to particles off, animations off, vfx flashes-only', () => {
+    it('maps to particles off, animations off, hit-stop off, no shake, vfx flashes-only', () => {
         // §2a's mapping, exactly. `flashes` rather than `off` because a flash has no motion in it —
         // it keeps the feedback that says WHICH unit was hit while declining all the movement.
         const gates = resolveVfxGates({ ...DEFAULT_SETTINGS }, true);
-        expect(gates).toEqual({ particles: false, animations: false, vfx: 'flashes' });
+        expect(gates).toEqual({
+            particles: false, animations: false, vfx: 'flashes', hitStop: false, shake: 0, flashes: true,
+        });
     });
 
     it('overrules switches that are stored ON, rather than sitting beside them', () => {
-        // The asymmetry is the point: a player who asked for less motion has said something about
-        // their body, and a stored `animations: true` from before that is not consent.
         const gates = resolveVfxGates(
-            { ...DEFAULT_SETTINGS, particles: true, vfx: true, animations: true }, true,
+            { ...DEFAULT_SETTINGS, particles: true, hitStop: true, screenShake: 100 }, true,
         );
         expect(gates.particles).toBe(false);
         expect(gates.animations).toBe(false);
+        expect(gates.hitStop).toBe(false);
+        expect(gates.shake).toBe(0);
     });
 
     it('can only ever turn things further off — a switch off stays off without it', () => {
         const gates = resolveVfxGates({ ...DEFAULT_SETTINGS, particles: false }, false);
-        expect(gates).toEqual({ particles: false, animations: true, vfx: 'full' });
+        expect(gates).toEqual({
+            particles: false, animations: true, vfx: 'full', hitStop: true, shake: 0.6, flashes: true,
+        });
+    });
+
+    it('turns the flashes switch off even under reduced motion, because it is the player\'s own', () => {
+        expect(resolveVfxGates({ ...DEFAULT_SETTINGS, flashes: false }, true).flashes).toBe(false);
+    });
+
+    it('Instant runs nothing: no particles, no animation, no effects, no freeze, no shake, no flash', () => {
+        const gates = resolveVfxGates({ ...DEFAULT_SETTINGS, battleSpeed: 'instant' }, false);
+        expect(gates).toEqual({
+            particles: false, animations: false, vfx: 'off', hitStop: false, shake: 0, flashes: false,
+        });
+    });
+
+    it('turns the hit-stop and the shake off on their own switches', () => {
+        const gates = resolveVfxGates({ ...DEFAULT_SETTINGS, hitStop: false, screenShake: 0 }, false);
+        expect(gates.hitStop).toBe(false);
+        expect(gates.shake).toBe(0);
+    });
+
+    it('turns the shake slider into a 0-1 strength', () => {
+        expect(resolveVfxGates({ ...DEFAULT_SETTINGS, screenShake: 100 }, false).shake).toBe(1);
+        expect(resolveVfxGates({ ...DEFAULT_SETTINGS, screenShake: 30 }, false).shake).toBeCloseTo(0.3);
     });
 
     it('reads the player override through prefersReducedMotion when not told', () => {
@@ -219,24 +297,20 @@ describe('146a — reduced motion overrules the switches', () => {
         expect(resolveVfxGates({ ...DEFAULT_SETTINGS }).particles).toBe(true);
     });
 
-    it('stamps the RESOLVED gates on the document, so CSS and the layer agree', () => {
-        // Publishing the raw stored booleans here is how a stylesheet asking [data-particles]
-        // ends up disagreeing with the layer about the same player.
+    it('stamps the resolved particles gate on the document, and no data-vfx or data-animations at all', () => {
         const root = document.createElement('div');
         applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'on', particles: true }, root);
 
         expect(root.getAttribute('data-particles')).toBe('off');
-        expect(root.getAttribute('data-animations')).toBe('off');
-        expect(root.getAttribute('data-vfx')).toBe('flashes');
+        expect(root.hasAttribute('data-animations')).toBe(false);
+        expect(root.hasAttribute('data-vfx')).toBe(false);
     });
 
-    it('stamps the switches themselves when motion is not reduced', () => {
+    it('stamps the switch itself when motion is not reduced', () => {
         const root = document.createElement('div');
-        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'off', particles: false, vfx: false }, root);
+        applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'off', particles: false }, root);
 
         expect(root.getAttribute('data-particles')).toBe('off');
-        expect(root.getAttribute('data-animations')).toBe('on');
-        expect(root.getAttribute('data-vfx')).toBe('off');
     });
 });
 
@@ -280,7 +354,7 @@ describe('159c \u2014 the enemy hand switch', () => {
         const root = document.createElement('div');
         applySettings({ ...DEFAULT_SETTINGS, reducedMotion: 'on', showEnemyHand: true }, root);
 
-        expect(root.getAttribute('data-animations')).toBe('off');
+        expect(root.getAttribute('data-particles')).toBe('off');
         expect(root.getAttribute('data-enemy-hand')).toBe('on');
     });
 

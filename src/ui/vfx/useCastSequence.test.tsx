@@ -142,7 +142,7 @@ describe('155a — a cast survives the re-render it causes', () => {
 
     it('is silent with vfx switched off, re-render or not', () => {
         act(() => { root.unmount(); });
-        saveSettings({ ...DEFAULT_SETTINGS, vfx: false });
+        saveSettings({ ...DEFAULT_SETTINGS, battleSpeed: 'instant' });
         container = document.createElement('div');
         root = createRoot(container);
         act(() => { root.render(<Harness />); });

@@ -12,10 +12,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 import { act, useRef } from 'react';
 
+import { setReducedMotionOverride } from '../utils/motionPrefs';
 import { DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY, saveSettings } from '../settings/settings';
 import { battleClock, resetBattleClock } from './clock/battleClockRuntime';
 import { isHitStopped } from './hitStop';
-import { cameraShake, spriteShakes } from './impact/impactRuntime';
+import { cameraShake, shakeStrength, spriteShakes } from './impact/impactRuntime';
 import { type StageMoment, emitStageMoment } from './impact/stageMoments';
 import { useImpactFeedback } from './useImpactFeedback';
 
@@ -50,6 +51,7 @@ beforeEach(() => {
 
 afterEach(() => {
     act(() => { root.unmount(); });
+    setReducedMotionOverride(null);
     resetBattleClock();
     localStorage.clear();
 });
@@ -178,7 +180,7 @@ describe('146e — the animations switch', () => {
     it('turns the stop and the camera off entirely, while the flash (which is vfx) stays', () => {
         // §2a: *"`animations` off → no stop, no shake; the flash stays (it is `vfx`)."*
         act(() => { root.unmount(); });
-        saveSettings({ ...DEFAULT_SETTINGS, animations: false });
+        saveSettings({ ...DEFAULT_SETTINGS, battleSpeed: 'instant' });
         container = document.createElement('div');
         root = createRoot(container);
         act(() => { root.render(<Harness />); });
@@ -197,6 +199,45 @@ describe('146e — the animations switch', () => {
         hit(10);
         expect(spy.mock.calls.filter((c) => c[0] === SETTINGS_STORAGE_KEY)).toHaveLength(0);
         spy.mockRestore();
+    });
+});
+
+describe('190a — the hit-stop and shake switches', () => {
+    const remount = (over: Partial<typeof DEFAULT_SETTINGS>): void => {
+        act(() => { root.unmount(); });
+        saveSettings({ ...DEFAULT_SETTINGS, ...over });
+        container = document.createElement('div');
+        root = createRoot(container);
+        act(() => { root.render(<Harness />); });
+    };
+
+    it('hit-stop off: no freeze, but the camera still shakes on a big hit', () => {
+        remount({ hitStop: false });
+        hit(40);
+        expect(isHitStopped()).toBe(false);
+        expect(cameraShake.level).toBeGreaterThan(0);
+    });
+
+    it('shake 0: the freeze still plays but the camera takes no trauma', () => {
+        remount({ screenShake: 0 });
+        hit(40);
+        expect(isHitStopped()).toBe(true);
+        expect(cameraShake.level).toBe(0);
+    });
+
+    it('hands the slider to the camera as a 0-1 strength', () => {
+        remount({ screenShake: 30 });
+        expect(shakeStrength()).toBeCloseTo(0.3);
+        remount({ screenShake: 100 });
+        expect(shakeStrength()).toBe(1);
+    });
+
+    it('reduced motion outranks a shake of 100 and a hit-stop that is on', () => {
+        setReducedMotionOverride(true);
+        remount({ screenShake: 100, hitStop: true });
+        hit(60, { isLethal: true });
+        expect(isHitStopped()).toBe(false);
+        expect(cameraShake.level).toBe(0);
     });
 });
 

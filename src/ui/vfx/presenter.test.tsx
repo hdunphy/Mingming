@@ -237,7 +237,7 @@ describe('189b — the handle the screen waits on', () => {
 
     it('with vfx off only the card is waited for - never the trails or the impacts', async () => {
         act(() => { root.unmount(); });
-        saveSettings({ ...DEFAULT_SETTINGS, vfx: false });
+        saveSettings({ ...DEFAULT_SETTINGS, battleSpeed: 'instant' });
         container = document.createElement('div');
         root = createRoot(container);
         act(() => { root.render(<Harness />); });
@@ -305,7 +305,7 @@ describe('189e — the card hovers, then attacks, then leaves', () => {
 
     it('with vfx off the card still comes in, hovers and leaves; the trails are not drawn', () => {
         act(() => { root.unmount(); });
-        saveSettings({ ...DEFAULT_SETTINGS, vfx: false });
+        saveSettings({ ...DEFAULT_SETTINGS, battleSpeed: 'instant' });
         container = document.createElement('div');
         root = createRoot(container);
         act(() => { root.render(<Harness />); });

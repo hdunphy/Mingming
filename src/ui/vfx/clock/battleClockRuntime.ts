@@ -16,10 +16,11 @@ import { HitStop } from './HitStop';
 import { type SpeedInputs, speedMultiplier } from './speedPolicy';
 
 let speedInputs: SpeedInputs = {};
+let catchUpSource: (() => number) | null = null;
 
 export const battleHitStop = new HitStop();
 export const battleClock = new BattleClock({
-    speed: () => speedMultiplier(speedInputs),
+    speed: () => speedMultiplier(catchUpSource ? { ...speedInputs, queued: catchUpSource() } : speedInputs),
     hitStop: battleHitStop,
 });
 export const battleDriver = new ClockDriver(battleClock);
@@ -28,9 +29,25 @@ export const battleControls = new ClockedControls();
 // The bridge is a frame consumer: it keeps the loop alive only while it is tracking something.
 battleDriver.addConsumer((frame) => battleControls.sync(frame));
 
-/** Ticket 190a feeds the speed tier, hold-to-fast-forward and catch-up through this. */
+/** Replace all of the speed inputs. */
 export function setBattleSpeedInputs(inputs: SpeedInputs): void {
     speedInputs = inputs;
+}
+
+/**
+ * Change some of the speed inputs and keep the rest. 190a: `applySettings` feeds the tier and
+ * catch-up, the Shift keys feed fast-forward.
+ */
+export function patchBattleSpeedInputs(patch: SpeedInputs): void {
+    speedInputs = { ...speedInputs, ...patch };
+}
+
+/**
+ * Where "how many cards are queued" comes from, read every frame (so nothing has to push it).
+ * `null` takes it away. 190a: `BattleArena` sets a `CatchUpBacklog`.
+ */
+export function setCatchUpSource(source: (() => number) | null): void {
+    catchUpSource = source;
 }
 
 /**
@@ -42,4 +59,5 @@ export function resetBattleClock(): void {
     battleClock.reset();
     battleDriver.park();
     speedInputs = {};
+    catchUpSource = null;
 }

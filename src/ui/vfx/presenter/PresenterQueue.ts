@@ -31,6 +31,11 @@ export class PresenterQueue {
         return this.playing === null && this.waiting.length === 0;
     }
 
+    /** Beats waiting behind the one playing. Catch-up (190a) reads this: it is "how many are queued". */
+    queuedCount(): number {
+        return this.waiting.length;
+    }
+
     /** Resolves when nothing is playing and nothing is waiting. Already idle: resolves at once. */
     whenIdle(): Promise<void> {
         if (this.isIdle()) return Promise.resolve();

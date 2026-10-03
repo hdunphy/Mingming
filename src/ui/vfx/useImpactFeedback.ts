@@ -26,7 +26,7 @@ import { requestHitStop, resetHitStop } from './hitStop';
 import {
     RESISTED_AT, SUPER_EFFECTIVE_AT, addsCameraTrauma, cameraTraumaFor, damageSeverity, hitStopLengthMs, vibratePx,
 } from './impact/impactMath';
-import { attachCamera, cameraShake, resetImpactFx, spriteShakes, wakeImpactFx } from './impact/impactRuntime';
+import { attachCamera, cameraShake, resetImpactFx, setShakeStrength, spriteShakes, wakeImpactFx } from './impact/impactRuntime';
 import { onStageMoment } from './impact/stageMoments';
 
 /**
@@ -41,6 +41,8 @@ export function useImpactFeedback(cameraRef: RefObject<HTMLElement | null>): voi
          */
         const gates = resolveVfxGates(loadSettings());
         if (!gates.animations) return undefined;
+        // 190a: the slider. Zero shakes nothing; reduced motion never gets here (animations is off).
+        setShakeStrength(gates.shake);
 
         const camera = cameraRef.current;
         const detachCamera = camera ? attachCamera(camera) : undefined;
@@ -52,17 +54,20 @@ export function useImpactFeedback(cameraRef: RefObject<HTMLElement | null>): voi
             const severity = damageSeverity(moment.applied, moment.maxHp);
             const resisted = moment.effectiveness <= RESISTED_AT;
 
-            requestHitStop(hitStopLengthMs({
-                severity,
-                isKill: moment.isLethal,
-                superEffective: moment.effectiveness >= SUPER_EFFECTIVE_AT,
-                resisted,
-                targets: moment.targets,
-            }));
+            // 190a: the hit-stop has its own switch, and the shudder below follows the freeze's real length.
+            if (gates.hitStop) {
+                requestHitStop(hitStopLengthMs({
+                    severity,
+                    isKill: moment.isLethal,
+                    superEffective: moment.effectiveness >= SUPER_EFFECTIVE_AT,
+                    resisted,
+                    targets: moment.targets,
+                }));
+            }
             // After the freeze was asked for: the shudder is as long as the freeze really is.
             spriteShakes.vibrate([moment.targetId, moment.sourceId], vibratePx(severity));
 
-            if (addsCameraTrauma({ applied: moment.applied, maxHp: moment.maxHp, isKill: moment.isLethal, resisted })) {
+            if (gates.shake > 0 && addsCameraTrauma({ applied: moment.applied, maxHp: moment.maxHp, isKill: moment.isLethal, resisted })) {
                 cameraShake.add(cameraTraumaFor(severity, moment.isLethal));
             }
             wakeImpactFx();

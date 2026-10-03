@@ -5,9 +5,18 @@
 
 import { battleDriver, battleHitStop } from '../clock/battleClockRuntime';
 import { CameraShake, ZERO_OFFSET, type CameraOffset } from './CameraShake';
+import { SHAKE_SETTING } from './impactMath';
 import { SpriteShakes } from './SpriteShakes';
 
-export const cameraShake = new CameraShake();
+/*
+ * The camera's strength, 0-1: the shake slider (ticket 190a), set once per fight by
+ * `useImpactFeedback`. Starts at the ruled default of 60%.
+ */
+let strength = SHAKE_SETTING;
+export const setShakeStrength = (value: number): void => { strength = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : SHAKE_SETTING; };
+export const shakeStrength = (): number => strength;
+
+export const cameraShake = new CameraShake(() => strength);
 export const spriteShakes = new SpriteShakes(() => battleHitStop.remainingMs);
 
 /** The element the camera moves (the stage area), set by the battle screen. */
@@ -52,5 +61,6 @@ export function wakeImpactFx(): void {
 export function resetImpactFx(): void {
     cameraShake.reset();
     spriteShakes.reset();
+    strength = SHAKE_SETTING;
     writeCamera(ZERO_OFFSET);
 }

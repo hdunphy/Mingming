@@ -74,6 +74,8 @@ export interface CastPresenter {
     isIdle(): boolean;
     /** Resolves when `isIdle()` is true. With vfx off it resolves at once. */
     whenIdle(): Promise<void>;
+    /** Beats waiting behind the one playing: what catch-up (190a) reads as "queued". */
+    queued(): number;
 }
 
 export function useCastSequence(battleState: IBattleState | null): CastPresenter {
@@ -113,6 +115,7 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
         const idle = (): boolean => !pendingRef.current() && queue.isIdle();
         return {
             isIdle: idle,
+            queued: () => queue.queuedCount(),
             whenIdle: async () => {
                 for (;;) {
                     if (pendingRef.current()) {

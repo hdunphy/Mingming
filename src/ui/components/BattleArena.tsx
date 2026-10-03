@@ -69,6 +69,7 @@ import { useDisplayedBoardSync } from '../vfx/displayed/useDisplayedBoard';
 import { useBattleEndGate } from '../vfx/pacing/useBattleEndGate';
 import { paceEnemyAction } from '../vfx/pacing/enemyActionPacer';
 import { useCastSequence } from '../vfx/useCastSequence';
+import { useBattleSpeedControls } from '../vfx/clock/useBattleSpeedControls';
 import { useViewportSize } from '../hooks/useStageAnchors';
 import { consoleHeightAt, stageScale } from './stageGeometry';
 import { useCardDrag } from '../hooks/useCardDrag';
@@ -235,6 +236,8 @@ const BattleArena: React.FC = () => {
     // TICKET 189c: the HP bars, HP text, Bark bands and knocked-out looks show the DISPLAYED board,
     // which the presenter moves at each impact; this keeps it equal to real state when idle.
     useDisplayedBoardSync(battleState, presenter);
+    // TICKET 190a: Right Shift fast-forwards, Left Shift targets allies, and catch-up reads the backlog.
+    const { shiftKeys, backlog } = useBattleSpeedControls(presenter.queued);
 
     // 155b: the console's height, published as a custom property — see the note on the root below.
     const viewport = useViewportSize();
@@ -356,7 +359,7 @@ const BattleArena: React.FC = () => {
             const pickAlly = (index: number) => {
                 const unit = battleState.playerParty[index];
                 if (!unit || unit.currentHp <= 0) { playSfx('uiError'); return; }
-                dispatch(e.shiftKey ? selectTarget(unit.id) : selectSource(unit.id));
+                dispatch(shiftKeys.isAllyModifier(e) ? selectTarget(unit.id) : selectSource(unit.id));
             };
             const casterSlot = CASTER_KEYS.indexOf(e.key.toLowerCase() as typeof CASTER_KEYS[number]);
             if (casterSlot !== -1) pickAlly(casterSlot);
@@ -375,7 +378,7 @@ const BattleArena: React.FC = () => {
                 e.preventDefault();
                 if (aliveEnemies.length > 0) {
                     const at = aliveEnemies.findIndex(en => en.id === selectedTargetId);
-                    const step = e.shiftKey ? -1 : 1;
+                    const step = shiftKeys.isAllyModifier(e) ? -1 : 1;
                     const next = (at + step + aliveEnemies.length) % aliveEnemies.length;
                     dispatch(selectTarget(aliveEnemies[at === -1 ? 0 : next].id));
                 }
@@ -473,7 +476,7 @@ const BattleArena: React.FC = () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag, endTurnNudge]);
+    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag, endTurnNudge, shiftKeys]);
 
     useEffect(() => {
         if (battleState?.activeSide !== prevSideRef.current) {
@@ -491,6 +494,8 @@ const BattleArena: React.FC = () => {
     // Enemy AI Turn Automation
     useEffect(() => {
         if (!battleState || battleState.activeSide !== 'ENEMY') {
+            // 190a: a new turn for catch-up's purposes; the enemy's count starts again.
+            backlog.turnStarted();
             if (aiPrevSideRef.current !== battleState?.activeSide) {
                 aiPrevSideRef.current = battleState?.activeSide;
             }
@@ -504,6 +509,7 @@ const BattleArena: React.FC = () => {
 
         let cancelled = false;
 
+        const firstOfTurn = aiPrevSideRef.current !== 'ENEMY';
         const runAI = async () => {
             // TICKET 127: THINK DURING THE PAUSE, NOT AFTER IT.
             //
@@ -534,7 +540,7 @@ const BattleArena: React.FC = () => {
             // (`paceEnemyAction` waits for `whenIdle`), with the search running under the hover. The
             // fixed 1.2 s between actions is gone; the opening pause at the start of a turn stays.
             const action = await paceEnemyAction({
-                firstOfTurn: aiPrevSideRef.current !== 'ENEMY',
+                firstOfTurn,
                 think: async () => {
                     const brain = enemyBrainRef.current;
                     return brain ? brain.decide(battleState) : getBestAction(battleState);
@@ -545,6 +551,10 @@ const BattleArena: React.FC = () => {
             });
             if (!action) return;
             aiPrevSideRef.current = 'ENEMY';
+            // 190a: the enemy's cards already played this turn are catch-up's backlog, so a long enemy
+            // turn speeds up. The first card of a turn plays at normal speed; each one after it counts.
+            if (firstOfTurn) backlog.turnStarted();
+            else if (action.type !== 'END_TURN') backlog.enemyActed();
 
             if (action.type === 'PLAY_PROGRAM') {
                 dispatch(playProgram(action.payload));
@@ -561,7 +571,7 @@ const BattleArena: React.FC = () => {
         runAI();
 
         return () => { cancelled = true; };
-    }, [battleState, dispatch, triggerLunge, presenter]);
+    }, [battleState, dispatch, triggerLunge, presenter, backlog]);
 
     /**
      * Fire a macro out of the rack — **the two-slice write, in the ruled order.**

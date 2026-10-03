@@ -2719,9 +2719,8 @@ body {
    that fires twice in a turn must flash twice, and a transition would simply
    stay lit.
 
-   `data-animations="off"` kills it, the same switch the rest of 146 reads. It
-   is deliberately NOT under `vfx`: the chip flash is the cheapest attribution
-   in the game and the last thing worth losing. ── */
+   Reduced motion kills it (the media query below, or the player's own override). It
+   is the cheapest attribution in the game and the last thing worth losing. ── */
 @keyframes os-chip-flash {
   0%   { filter: none; transform: scale(1); }
   25%  { filter: brightness(2.6) drop-shadow(0 0 6px currentColor); transform: scale(1.22); }
@@ -2730,7 +2729,7 @@ body {
 [data-os-flash="on"] .hud-os-icon {
   animation: os-chip-flash 320ms ease-out;
 }
-[data-animations="off"] [data-os-flash="on"] .hud-os-icon {
+:root[data-reduced-motion="on"] [data-os-flash="on"] .hud-os-icon {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3006,13 +3005,19 @@ body {
 }
 .ehp.open { transform: none; }
 
-/* Off means off — 146a's rule for the VFX switches, applied to the slide. */
-:root[data-animations="off"] .ehp { transition: none; }
+/* Reduced motion means no slide (190a: the old animations switch is retired; this is its reduced-motion half). */
+:root[data-reduced-motion="on"] .ehp { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduced-motion="off"]) .ehp { transition: none; }
+}
 
 /* TICKET 167g: the enemies slide to meet the panel with the panel's own 200 ms, and not at all
-   with animations off. Enemies only: an ally's active-step has never animated and must not start. */
+   under reduced motion. Enemies only: an ally's active-step has never animated and must not start. */
 .stage-enemy-shift { transition: left 200ms ease; }
-:root[data-animations="off"] .stage-enemy-shift { transition: none; }
+:root[data-reduced-motion="on"] .stage-enemy-shift { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduced-motion="off"]) .stage-enemy-shift { transition: none; }
+}
 
 .ehp-tab {
   position: absolute;

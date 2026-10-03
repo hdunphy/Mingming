@@ -10,12 +10,16 @@ import {
     TEXT_SCALES,
     applySettings,
     loadSettings,
-    resolveVfxGates,
     saveSettings,
     type ISettings,
     type MotionChoice,
+    BATTLE_SPEEDS,
+    SHAKE_MAX,
+    SHAKE_MIN,
+    type BattleSpeedTier,
 } from '../settings/settings';
 import { wipeSave } from '../settings/wipeSave';
+import { prefersReducedMotion } from '../utils/motionPrefs';
 import { canQuit, quitGame } from '../settings/quitGame';
 import {
     RUN_LOG_RUNS,
@@ -34,34 +38,55 @@ import '../theme/kit/kit.css';
 import './SettingsScreen.css';
 
 /**
- * The three effect switches, as rows. Ticket 146a.
+ * The on/off battle switches, as rows. Ticket 146a, rebuilt by 190a.
  *
- * A table rather than three hand-written blocks because they are genuinely the same control three
- * times, and the notes are where the difference lives: each one says what a player LOSES, since
- * "Particles: Off" tells you nothing about whether the fight still reads.
+ * A table rather than hand-written blocks because they are genuinely the same control repeated, and
+ * the notes are where the difference lives: each one says what a player LOSES, since "Particles:
+ * Off" tells you nothing about whether the fight still reads. 190a retired the Effects and
+ * Animations rows (the five speeds below replace them) and added hit-stop, flashes and catch-up.
  */
-const VFX_SWITCHES: ReadonlyArray<{
-    key: 'particles' | 'vfx' | 'animations';
+const BATTLE_SWITCHES: ReadonlyArray<{
+    key: 'particles' | 'hitStop' | 'flashes' | 'catchUp';
     label: string;
     note: string;
 }> = [
+    {
+        key: 'hitStop',
+        label: 'Hit-stop',
+        note: 'The tiny freeze on a heavy hit, so it feels like it landed.',
+    },
+    {
+        key: 'flashes',
+        label: 'Flashes',
+        note: 'The white flash on a hit and the dimmed stage on a big move. Off if flashing bothers you.',
+    },
+    {
+        key: 'catchUp',
+        label: 'Catch-up',
+        note: 'When cards pile up, the fight speeds up a little (up to 1.6 times) so long turns do not drag.',
+    },
     {
         key: 'particles',
         label: 'Particles',
         note: 'Flames, drops, leaves, sparks. The first thing to turn off on a machine that struggles.',
     },
-    {
-        key: 'vfx',
-        label: 'Effects',
-        note: 'Flashes, trails, impacts, and the tells that say which status or card just fired.',
-    },
-    {
-        key: 'animations',
-        label: 'Animations',
-        note: 'Cards flying to the lane and back, lunges, screen shake, and the pause on a heavy hit.',
-    },
 ];
 
+const SPEED_LABEL: Record<BattleSpeedTier, string> = {
+    slow: 'Slow',
+    showy: 'Showy',
+    snappy: 'Snappy',
+    fast: 'Fast',
+    instant: 'Instant',
+};
+
+const SPEED_NOTE: Record<BattleSpeedTier, string> = {
+    slow: 'A heavier, slower Showy. Every hit gets its moment.',
+    showy: 'The full show: wind-up, lunge, the attack, the hit.',
+    snappy: 'The same hits, quicker and plainer.',
+    fast: 'Snappy at double speed.',
+    instant: 'No animation and no waiting. The numbers and bars update at once.',
+};
 
 /**
  * THE SETTINGS SCREEN — ticket 36.
@@ -253,15 +278,47 @@ export default function SettingsScreen(): ReactNode {
                     </p>
 
                     {/*
-                      * TICKET 146a — THE THREE EFFECT SWITCHES, under Motion rather than in a group
-                      * of their own.
+                      * TICKET 190a — THE BATTLE SPEED, AND THE SWITCHES THAT STAY.
                       *
-                      * They belong next to reduced motion because reduced motion OVERRULES them
-                      * (see `resolveVfxGates`), and a player who turns that on and then finds three
-                      * switches elsewhere still claiming to be On has been told something false.
-                      * Sitting together, the note below can say so in one line.
+                      * Under Motion rather than in a group of their own, for 146a's reason: reduced
+                      * motion OVERRULES every one of these (see `resolveVfxGates`), and a player who
+                      * turns that on and then finds the controls elsewhere still claiming to be on has
+                      * been told something false. Sitting together, the note below can say so in one line.
                       */}
-                    {VFX_SWITCHES.map(({ key, label, note }) => (
+                    <div className="settings-row">
+                        <span className="settings-label">Battle speed</span>
+                        <div className="settings-control settings-choices">
+                            {BATTLE_SPEEDS.map((tier) => (
+                                <button
+                                    key={tier}
+                                    type="button"
+                                    className={`settings-choice k-button is-quiet ${settings.battleSpeed === tier ? 'active is-on' : ''}`}
+                                    aria-pressed={settings.battleSpeed === tier}
+                                    onClick={() => update({ ...settings, battleSpeed: tier })}
+                                >
+                                    {SPEED_LABEL[tier]}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="settings-note">{SPEED_NOTE[settings.battleSpeed]}</p>
+                    </div>
+                    <div className="settings-row">
+                        <span className="settings-label">Screen shake</span>
+                        <div className="settings-control">
+                            <input
+                                type="range"
+                                min={SHAKE_MIN}
+                                max={SHAKE_MAX}
+                                step={5}
+                                value={settings.screenShake}
+                                aria-label="Screen shake"
+                                onChange={(event) => update({ ...settings, screenShake: Number(event.target.value) })}
+                            />
+                            <span className="settings-value">{settings.screenShake}%</span>
+                        </div>
+                        <p className="settings-note">How hard the whole screen shakes on a big hit. 0 turns the camera shake off.</p>
+                    </div>
+                    {BATTLE_SWITCHES.map(({ key, label, note }) => (
                         <div className="settings-row" key={key}>
                             <span className="settings-label">{label}</span>
                             <div className="settings-control settings-choices">
@@ -281,10 +338,10 @@ export default function SettingsScreen(): ReactNode {
                         </div>
                     ))}
                     <p className="settings-note">
-                        Off means off. The fight stays playable with all three off.{' '}
-                        {resolveVfxGates(settings).particles
-                            ? null
-                            : <strong>Reduced motion is on: effects are off whatever these say.</strong>}
+                        Hold Right Shift in a fight to fast-forward.{' '}
+                        {prefersReducedMotion()
+                            ? <strong>Reduced motion is on: movement, particles, the freeze and the shake are off whatever these say.</strong>
+                            : null}
                     </p>
                 </section>
 

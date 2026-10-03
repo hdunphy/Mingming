@@ -144,3 +144,24 @@ describe('189b — PresenterQueue', () => {
         expect(run).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('190a — queuedCount (what catch-up reads)', () => {
+    it('is 0 when idle, and counts only the beats WAITING, not the one playing', () => {
+        const { queue } = setup();
+        expect(queue.queuedCount()).toBe(0);
+        queue.enqueue(beat('first', 500));
+        expect(queue.queuedCount()).toBe(0);
+        queue.enqueue(beat('second', 500));
+        queue.enqueue(beat('third', 500));
+        expect(queue.queuedCount()).toBe(2);
+    });
+
+    it('falls as beats start', () => {
+        const { queue, clock } = setup();
+        queue.enqueue(beat('a', 100));
+        queue.enqueue(beat('b', 100));
+        expect(queue.queuedCount()).toBe(1);
+        clock.advance(100);
+        expect(queue.queuedCount()).toBe(0);
+    });
+});

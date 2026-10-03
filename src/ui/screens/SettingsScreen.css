@@ -198,3 +198,11 @@
 .settings-pending strong {
     color: var(--text-dim);
 }
+
+/* 190a: the screen-shake slider and its readout. */
+.settings-value {
+    min-width: 3ch;
+    margin-left: 0.5rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

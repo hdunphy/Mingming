@@ -64,7 +64,8 @@ describe('SettingsScreen', () => {
         // that lies, so there is exactly one — and the note beside it says why, which is the only
         // place the word "music" is allowed to appear.
         const markup = render();
-        expect(markup.match(/type="range"/g) ?? []).toHaveLength(1);
+        // 190a added a screen-shake slider, so count the VOLUME control by its own label.
+        expect(markup.match(/aria-label="Audio volume"/g) ?? []).toHaveLength(1);
         expect(markup).not.toContain('Music volume');
         expect(markup).toContain('No music yet');
     });
@@ -145,5 +146,46 @@ describe('SettingsScreen', () => {
 
         // On by default, and the note says what "on" actually shows rather than naming the control.
         expect(markup).toContain('what they draw next');
+    });
+});
+
+describe('SettingsScreen — the battle speed group (190a)', () => {
+    it('offers the five speeds as one toggle group, Showy live by default', () => {
+        const markup = render();
+        for (const label of ['Slow', 'Showy', 'Snappy', 'Fast', 'Instant']) {
+            expect(markup).toContain(`>${label}</button>`);
+        }
+        const showy = /<button[^>]*aria-pressed="(true|false)"[^>]*>Showy<\/button>/.exec(markup);
+        expect(showy?.[1]).toBe('true');
+        const fast = /<button[^>]*aria-pressed="(true|false)"[^>]*>Fast<\/button>/.exec(markup);
+        expect(fast?.[1]).toBe('false');
+    });
+
+    it('has a 0-100 shake slider that starts at 60', () => {
+        const markup = render();
+        expect(markup).toMatch(/<input[^>]*type="range"[^>]*aria-label="Screen shake"/);
+        const slider = /<input[^>]*aria-label="Screen shake"[^>]*>/.exec(markup)?.[0] ?? '';
+        expect(slider).toContain('min="0"');
+        expect(slider).toContain('max="100"');
+        expect(slider).toContain('value="60"');
+    });
+
+    it('has Hit-stop, Flashes, Catch-up and Particles switches, all On', () => {
+        const markup = render();
+        for (const label of ['Hit-stop', 'Flashes', 'Catch-up', 'Particles']) {
+            expect(markup).toContain(label);
+        }
+    });
+
+    it('no longer has the retired Effects and Animations switches', () => {
+        const markup = render();
+        expect(markup).not.toContain('>Effects<');
+        expect(markup).not.toContain('>Animations<');
+    });
+
+    it('says what Instant does and that reduced motion outranks all of it', () => {
+        const markup = render();
+        expect(markup).toContain('Instant');
+        expect(markup).toMatch(/Reduced motion/);
     });
 });

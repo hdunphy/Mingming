@@ -328,7 +328,7 @@ describe('189c — with the presenter idle, displayed equals real', () => {
 
 describe('189d — with the cast sequence off, the board and the screen still move, at once', () => {
     it('vfx off: the HP text moves as the hit arrives, with no safety-net correction', async () => {
-        saveSettings({ ...DEFAULT_SETTINGS, vfx: false });
+        saveSettings({ ...DEFAULT_SETTINGS, battleSpeed: 'instant' });
         const fat = (id: string) => body(id, { primaryElement: 'Nature', maxHp: 1000, currentHp: 1000 });
         mount(frame({ hand: [card('c1', 'card_fireball')], enemy: [fat('e1'), fat('e2'), fat('e3')] }));
         const report = vi.fn();
