@@ -49,3 +49,22 @@ describe('HpBar (183a)', () => {
         expect(renderToStaticMarkup(<HpBar cur={10} max={100} shield={0} />)).not.toContain('hp-shield');
     });
 });
+
+describe('HpBar ghost chunk (189c)', () => {
+    it('draws a pale chunk out to where the bar was, behind the fill', () => {
+        const html = renderToStaticMarkup(<HpBar cur={70} max={100} ghost={100} />);
+        expect(html).toContain('data-testid="hp-ghost"');
+        expect(html).toContain('width:100%');
+        // Behind the fill: it comes first in the markup.
+        expect(html.indexOf('k-hp-ghost')).toBeLessThan(html.indexOf('k-hp-fill'));
+    });
+
+    it('draws none when the ghost has drained, or was never given', () => {
+        expect(renderToStaticMarkup(<HpBar cur={70} max={100} ghost={70} />)).not.toContain('hp-ghost');
+        expect(renderToStaticMarkup(<HpBar cur={70} max={100} />)).not.toContain('hp-ghost');
+    });
+
+    it('keeps the step colour of the NEW value, not the ghost\'s', () => {
+        expect(renderToStaticMarkup(<HpBar cur={10} max={100} ghost={90} />)).toContain('data-step="low"');
+    });
+});

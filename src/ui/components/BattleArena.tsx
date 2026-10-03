@@ -64,6 +64,7 @@ import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { useImpactFeedback } from '../vfx/useImpactFeedback';
+import { useDisplayedBoardSync } from '../vfx/displayed/useDisplayedBoard';
 import { useCastSequence } from '../vfx/useCastSequence';
 import { useViewportSize } from '../hooks/useStageAnchors';
 import { consoleHeightAt, stageScale } from './stageGeometry';
@@ -228,7 +229,10 @@ const BattleArena: React.FC = () => {
      * Steps 1 and 5 — the card's flight to the lane and out to the discard — are
      * `PlayedCardReveal`'s, because the card is a React element and these are particles.
      */
-    useCastSequence(battleState);
+    const presenter = useCastSequence(battleState);
+    // TICKET 189c: the HP bars, HP text, Bark bands and knocked-out looks show the DISPLAYED board,
+    // which the presenter moves at each impact; this keeps it equal to real state when idle.
+    useDisplayedBoardSync(battleState, presenter);
 
     // 155b: the console's height, published as a custom property — see the note on the root below.
     const viewport = useViewportSize();

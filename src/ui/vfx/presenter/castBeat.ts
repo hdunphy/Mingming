@@ -12,6 +12,9 @@
  *   arrival, before the trail had even left);
  * - recoil and toll play with the first impact (the price lands when the card does);
  * - a status falling off plays with the statuses, after the last impact.
+ *
+ * TICKET 189c adds the displayed board to the timeline: the HP bar, the HP text and the Bark band
+ * move at the impact on that body (not at play), and a tick's damage with its tell.
  */
 
 import type { IBattleEntity, StatusType } from '../../../engine/types';
@@ -23,6 +26,8 @@ import {
     emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick,
 } from '../statusTells';
 import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from '../trails';
+import { type BoardOp, type BoardSink, type TimedBoardOp, applyBoardOp } from '../displayed/boardOps';
+import { displayedBoard } from '../displayed/displayedBoardRuntime';
 import { type Beat, type TimedAction, beatDuration } from './beat';
 
 /** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
@@ -59,19 +64,23 @@ export interface PendingCast {
     readonly removals: string[];
     /** Damage-over-time ticks that landed inside this cast's window (a status dealing damage as it lands). */
     readonly ticks: Array<{ status: StatusType; targetId: string }>;
+    /** TICKET 189c: what each hit, heal, price and shield does to the displayed board, and when. */
+    readonly ops: TimedBoardOp[];
 }
 
 export function emptyCast(base: Pick<PendingCast, 'element' | 'sourceId' | 'targetIds' | 'doubled' | 'resisted'>): PendingCast {
     return {
         ...base, statuses: [], hookStatuses: [], hookTells: [], startTells: [],
-        shields: [], deaths: [], selfCosts: [], removals: [], ticks: [],
+        shields: [], deaths: [], selfCosts: [], removals: [], ticks: [], ops: [],
     };
 }
 
 /** Steps 2-4 of ruling 5 for one cast, plus everything that rides on its timeline. */
-export function buildCastBeat(cast: PendingCast): Beat {
+export function buildCastBeat(cast: PendingCast, board: BoardSink = displayedBoard): Beat {
     const actions: TimedAction[] = [];
     let last = 0;
+    /** When each target is hit, so an op can land with the hit on its body. */
+    const impactAtTarget = new Map<string, number>();
 
     // The tell of a hook that did something but applied no status: as the card starts.
     for (const tell of cast.startTells) {
@@ -88,6 +97,7 @@ export function buildCastBeat(cast: PendingCast): Beat {
         const offset = FLIGHT_MS + index * TRAIL_STAGGER_MS;
         const impactAt = offset + TRAIL_MS;
         firstImpact ??= impactAt;
+        impactAtTarget.set(targetId, impactAt);
 
         actions.push({
             at: offset, label: 'trail',
@@ -132,6 +142,17 @@ export function buildCastBeat(cast: PendingCast): Beat {
     // body that got it at the same instant (Henry: "don't stagger between mingmings"), 60 ms between
     // different statuses, measured from a fixed base.
     const afterImpact = last;
+
+    // TICKET 189c: the displayed board moves with the thing that moves it. A hit or a heal lands
+    // with the impact on its body (the last impact, for a body the card did not name); the price of
+    // the cast with the first impact; a tick or a Bark Shield with the statuses, after the last.
+    for (const { when, op } of cast.ops) {
+        const at = when === 'first' ? (firstImpact ?? last)
+            : when === 'after' ? afterImpact
+                : (impactAtTarget.get(op.id) ?? last);
+        actions.push({ at, label: 'board', run: () => applyBoardOp(board, op) });
+    }
+
     for (const id of cast.removals) {
         actions.push({ at: afterImpact, label: 'status-removed', run: () => emitStatusRemoved(id) });
     }
@@ -183,18 +204,23 @@ export interface LooseBurst {
     readonly shields: string[];
     readonly deaths: string[];
     readonly hookTells: Array<HookTellInfo & { targetId?: string }>;
+    /** TICKET 189c: board changes with no card behind them; they land as the burst plays. */
+    readonly ops: BoardOp[];
 }
 
 export const emptyLoose = (): LooseBurst => ({
-    ticks: [], applied: [], removals: [], selfCosts: [], shields: [], deaths: [], hookTells: [],
+    ticks: [], applied: [], removals: [], selfCosts: [], shields: [], deaths: [], hookTells: [], ops: [],
 });
 
 export const isLooseEmpty = (burst: LooseBurst): boolean =>
     burst.ticks.length + burst.applied.length + burst.removals.length + burst.selfCosts.length
-    + burst.shields.length + burst.deaths.length + burst.hookTells.length === 0;
+    + burst.shields.length + burst.deaths.length + burst.hookTells.length + burst.ops.length === 0;
 
-export function buildLooseBeat(burst: LooseBurst): Beat {
+export function buildLooseBeat(burst: LooseBurst, board: BoardSink = displayedBoard): Beat {
     const actions: TimedAction[] = [];
+    for (const op of burst.ops) {
+        actions.push({ at: 0, label: 'board', run: () => applyBoardOp(board, op) });
+    }
     for (const tell of burst.hookTells) {
         actions.push({ at: 0, label: 'hook-tell', run: () => emitHookTell(tell.owner, tell.osId, tell.daemonId, tell.targetId) });
     }

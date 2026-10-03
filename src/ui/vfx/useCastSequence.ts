@@ -52,6 +52,8 @@ import type { IBattleEntity, IBattleState } from '../../engine/types';
 import type { TrailElement } from './trails';
 import { isHookStatus } from './hookStatusBeat';
 import { battleClock } from './clock/battleClockRuntime';
+import type { BoardOp, BoardWhen } from './displayed/boardOps';
+import { barkPointsFor } from '../components/stage/barkShield';
 import { PresenterQueue } from './presenter/PresenterQueue';
 import {
     type LooseBurst, type PendingCast, buildCastBeat, buildLooseBeat, emptyCast, emptyLoose, isLooseEmpty,
@@ -155,6 +157,15 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
         };
         const looseBurst = (): LooseBurst => (loose ??= emptyLoose());
 
+        /**
+         * TICKET 189c: what the displayed board does for this event, and when on the cast's
+         * timeline. With no card behind it, it lands as the loose burst plays.
+         */
+        const recordOp = (op: BoardOp, when: BoardWhen): void => {
+            if (open) open.ops.push({ when, op });
+            else looseBurst().ops.push(op);
+        };
+
         /** Did this hit take the body down? Tracks the burst's own HP, so a second hit counts. */
         const takesDown = (targetId: string, applied: number): boolean => {
             const victim = findEntity(targetId);
@@ -196,7 +207,19 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                     });
                     return;
                 }
+                case 'HEAL': {
+                    // A heal moves the bar with the card that cast it, on the body it heals.
+                    recordOp({ kind: 'heal', id: event.targetId, amount: event.amount }, 'impact');
+                    return;
+                }
                 case 'STATUS_APPLIED': {
+                    // A Bark Shield is the brown band on the HP bar: it grows with the statuses.
+                    if (event.status === 'BarkShield') {
+                        const holder = findEntity(event.targetId);
+                        if (holder) {
+                            recordOp({ kind: 'bark', id: event.targetId, points: barkPointsFor(event.stacks, holder.maxHp) }, 'after');
+                        }
+                    }
                     // Belongs to the cast whose window is open. A status that lands with no window
                     // is an engine expiry or a turn-boundary effect: a loose beat, queued behind
                     // whatever is still playing (189b) rather than played over it.
@@ -214,7 +237,9 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                 }
                 case 'DAMAGE_TAKEN': {
                     const applied = event.damage?.applied ?? event.amount;
+                    const absorbed = event.damage?.absorbed ?? 0;
                     const dies = takesDown(event.targetId, applied);
+                    const hit: BoardOp = { kind: 'damage', id: event.targetId, applied, absorbed };
 
                     /*
                      * §2f's tick, and the recoil/toll pulse. Each is its own beat now (or rides on
@@ -222,16 +247,19 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                      * a turn boundary no longer plays in front of an impact still on its way.
                      */
                     if (event.cause === 'status' && event.status) {
+                        recordOp(hit, 'after');
                         (open ? open.ticks : looseBurst().ticks).push({ status: event.status, targetId: event.targetId });
                         if (dies) (open ? open.deaths : looseBurst().deaths).push(event.targetId);
                         return;
                     }
                     if (event.cause === 'recoil' || event.cause === 'toll') {
+                        recordOp(hit, 'first');
                         (open ? open.selfCosts : looseBurst().selfCosts).push(event.targetId);
                         if (dies) (open ? open.deaths : looseBurst().deaths).push(event.targetId);
                         return;
                     }
-                    if ((event.damage?.absorbed ?? 0) > 0) {
+                    recordOp(hit, 'impact');
+                    if (absorbed > 0) {
                         (open ? open.shields : looseBurst().shields).push(event.targetId);
                     }
 

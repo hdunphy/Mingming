@@ -6,6 +6,7 @@ import type { UnitFx } from '../../hooks/useBattleVfx';
 import { elementVars } from '../../theme/kit/elementGlyphs';
 import { prefersReducedMotion } from '../../utils/motionPrefs';
 import { useClockedControls } from '../../vfx/clock/useClockedControls';
+import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
 import MonsterArtPlaceholder from '../MonsterArtPlaceholder';
 import { MONSTER_ART_ENABLED } from '../monsterArtPolicy';
 import { SPRITE_H, SPRITE_W } from '../stageGeometry';
@@ -37,8 +38,10 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
     const track = useClockedControls();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
     const [artBroken, setArtBroken] = React.useState(false);
-    const prevHpRef = React.useRef(entity.currentHp);
-    const isDead = entity.currentHp <= 0;
+    // TICKET 189c: knocked out only after the killing impact, not when the engine says so.
+    const shown = useDisplayedUnit(entity);
+    const prevHpRef = React.useRef(shown.hp);
+    const isDead = shown.isDown;
 
     useEffect(() => {
         // ticket 55: reviewed, not a defect. "Reset state when a prop changes"; the `key` React
@@ -48,17 +51,17 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
     }, [entity.artReference]);
 
     useEffect(() => {
-        if (entity.currentHp <= 0 && prevHpRef.current > 0) {
+        if (shown.hp <= 0 && prevHpRef.current > 0) {
             // ticket 55: reviewed. A 500ms one-shot owned by a timer, fired on an HP crossing only
             // a ref can see.
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setDeathGlitch(true);
             const timeout = setTimeout(() => setDeathGlitch(false), 500);
-            prevHpRef.current = entity.currentHp;
+            prevHpRef.current = shown.hp;
             return () => clearTimeout(timeout);
         }
-        prevHpRef.current = entity.currentHp;
-    }, [entity.currentHp]);
+        prevHpRef.current = shown.hp;
+    }, [shown.hp]);
 
     const hitKey = fx?.hitKey ?? 0;
     const hitIntensity = fx?.hitIntensity ?? 0;

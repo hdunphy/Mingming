@@ -5,9 +5,14 @@
  */
 import type { IBattleEntity } from '../../../engine/types';
 
+/** The band's size in HP for a pile of stacks (percent of max HP) on a body of this max HP. */
+export function barkPointsFor(stacks: number, maxHp: number): number {
+    return stacks > 0 ? Math.floor((stacks * maxHp) / 100) : 0;
+}
+
 export function barkShieldPoints(entity: Pick<IBattleEntity, 'statusEffects' | 'maxHp'>): number {
     const stacks = entity.statusEffects
         .filter((status) => status.type === 'BarkShield')
         .reduce((sum, status) => sum + status.stacks, 0);
-    return stacks > 0 ? Math.floor((stacks * entity.maxHp) / 100) : 0;
+    return barkPointsFor(stacks, entity.maxHp);
 }

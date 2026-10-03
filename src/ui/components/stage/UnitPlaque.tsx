@@ -30,7 +30,7 @@ import { SlantPanel } from '../../theme/kit/SlantPanel';
 import type { DamagePreview } from '../../utils/damagePreview';
 import { PLAQUE_W, type StageRect } from '../stageGeometry';
 import { DaemonTags, FirmwareChip, UnitPreview } from '../UnitReadouts';
-import { barkShieldPoints } from './barkShield';
+import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
 import { StatusChipRow } from './StatusChipRow';
 
 /** The HP bar's track width at reference scale: what is left of the plaque beside `414/1125`. */
@@ -52,7 +52,10 @@ export interface UnitPlaqueProps {
 export const UnitPlaque: React.FC<UnitPlaqueProps> = ({
     entity, isEnemy, plaque, scale, isActive, preview, battleState,
 }) => {
-    const isDead = entity.currentHp <= 0;
+    // TICKET 189c: what the player SEES moves at the impact, not when the engine resolved the card.
+    // Targeting and the damage preview below keep reading the real entity.
+    const shown = useDisplayedUnit(entity);
+    const isDead = shown.isDown;
     const previewDamage = preview?.damage ?? 0;
     return (
         <div
@@ -81,13 +84,14 @@ export const UnitPlaque: React.FC<UnitPlaqueProps> = ({
                     </div>
                     <div className="stage-plaque-row">
                         <HpBar
-                            cur={entity.currentHp}
+                            cur={shown.hp}
                             max={entity.maxHp}
                             width={PLAQUE_HP_W}
-                            shield={barkShieldPoints(entity)}
+                            shield={shown.bark}
+                            ghost={shown.ghost}
                         />
                         <span className="stage-plaque-value k-display">
-                            {entity.currentHp}
+                            {shown.hp}
                             <span className="stage-plaque-max">/{entity.maxHp}</span>
                             {previewDamage > 0 && <span className="stage-plaque-preview-hp"> (-{previewDamage})</span>}
                         </span>
