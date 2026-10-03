@@ -5,6 +5,8 @@ import type { IBattleEntity } from '../../../engine/types';
 import type { UnitFx } from '../../hooks/useBattleVfx';
 import { elementVars } from '../../theme/kit/elementGlyphs';
 import { prefersReducedMotion } from '../../utils/motionPrefs';
+import { poseToFramer } from '../../vfx/choreo/attackPose';
+import { onAttackPose } from '../../vfx/choreo/poseSignals';
 import { useClockedControls } from '../../vfx/clock/useClockedControls';
 import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
 import { targetShakePx } from '../../vfx/impact/impactMath';
@@ -86,8 +88,22 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
         return el ? spriteShakes.attach(entity.id, el) : undefined;
     }, [entity.id, scope]);
 
-    // Lunge toward the reveal lane: an ally moves right, an enemy left. Purely horizontal now that
-    // the columns face each other across the lane.
+    /*
+     * TICKET 190c — THE ATTACKER'S POSE. The presenter sends the whole pose when this body's cast
+     * begins (crouch, lunge, hold until the hit, walk back; or a status-only card's wiggle); it plays
+     * as ONE animation on the battle clock, so a hit-stop holds it where it is and Instant finishes it.
+     * Reduced motion keeps the body still.
+     */
+    useEffect(() => onAttackPose((signal) => {
+        if (signal.sourceId !== entity.id || prefersReducedMotion() || !scope.current) return;
+        const framer = poseToFramer(signal.pose);
+        track(animate(scope.current, framer.values, {
+            duration: framer.durationS, times: framer.times, ease: framer.ease,
+        }));
+    }), [entity.id, animate, scope, track]);
+
+    // A nudge toward the reveal lane for an action that has no cast behind it (an enemy's intent):
+    // an ally moves right, an enemy left.
     const lungeKey = fx?.lungeKey ?? 0;
     useEffect(() => {
         if (!lungeKey || prefersReducedMotion() || !scope.current) return;

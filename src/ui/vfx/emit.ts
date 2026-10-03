@@ -35,6 +35,8 @@ import type { StageAnchors } from '../hooks/useStageAnchors';
  * alternative — a third module holding four type declarations — buys nothing.
  */
 import { burstFor } from './emitters';
+import { orbSeed } from './choreo/orb';
+import { speedLineSeeds } from './choreo/speedLines';
 import { impactFor, trailSeed, type TrailElement } from './trails';
 
 /**
@@ -99,6 +101,9 @@ export function plaqueFor(entityId: string): EmitAt | null {
 }
 
 /** The reveal lane box, and the hand fan's centre — 146c flies the played card between them. */
+/** The uniform scale the stage is placed at (1 at exactly 1280x800), or 1 with no stage. */
+export const stageScale = (): number => anchors?.scale ?? 1;
+
 export const revealAnchor = (): EmitAt | null => anchors?.reveal ?? null;
 export const handAnchor = (): EmitAt | null => anchors?.hand ?? null;
 export const discardAnchor = (): EmitAt | null => anchors?.discard ?? null;
@@ -138,9 +143,28 @@ export function emit(kind: ParticleKind, at: EmitAt, opts: EmitOpts = {}): void 
  * and the interesting arguments are `from`/`to` rather than `intensity`. Folding it into `emit`
  * would mean a `toward` that most kinds ignore and an intensity this one does.
  */
-export function emitTrail(element: TrailElement, from: EmitAt, to: EmitAt): void {
+export function emitTrail(element: TrailElement, from: EmitAt, to: EmitAt, lifeMs?: number): void {
     if (!sink) return;
-    sink.spawn([trailSeed(element, from, to)]);
+    sink.spawn([trailSeed(element, from, to, lifeMs)]);
+    sink.wake();
+}
+
+/**
+ * The orb of a status-only card (190c): lobbed from `from` to `to`, or rising off `from` and dropping
+ * back when `self`.
+ */
+export function emitOrb(
+    from: EmitAt, to: EmitAt, color: { r: number; g: number; b: number }, lifeMs: number, self: boolean,
+): void {
+    if (!sink) return;
+    sink.spawn([orbSeed(from, to, color, lifeMs, self)]);
+    sink.wake();
+}
+
+/** Speed lines behind a contact card's dash (190c): `count` streaks at `at`, flying back from `direction`. */
+export function emitSpeedLines(at: EmitAt, direction: 1 | -1, count: number, rng: () => number = Math.random): void {
+    if (!sink) return;
+    sink.spawn(speedLineSeeds(at, direction, count, rng));
     sink.wake();
 }
 

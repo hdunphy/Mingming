@@ -9,7 +9,7 @@ import { getElementColor } from './cardIcons';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
 import type { PlayedCardAnnouncement } from '../hooks/useBattleVfx';
 import { anchorFor, discardAnchor, handAnchor, revealAnchor } from '../vfx/emit';
-import { FLIGHT_MS } from '../vfx/useCastSequence';
+import { activeProfile } from '../vfx/tiers/activeTier';
 import { battleClock } from '../vfx/clock/battleClockRuntime';
 import { scaledSeconds } from '../vfx/clock/scaledSeconds';
 import { plain } from '../labels/labels';
@@ -161,6 +161,10 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
         // It stays on framer's own engine rather than `useClockedControls`: the poses are `calc()`
         // transforms, and a freeze never lands while the card is flying (the impact comes after it).
         const m = battleClock.multiplier;
+        // TICKET 190c: how long the card takes to arrive and to leave is the tier's (190b's table).
+        const profile = activeProfile();
+        const flightIn = { duration: scaledSeconds(profile.cardInMs, m), ease: 'easeOut' as const, opacity: { duration: scaledSeconds(140, m) } };
+        const flightOut = { duration: scaledSeconds(profile.cardOutMs, m), ease: 'easeOut' as const, opacity: { duration: scaledSeconds(140, m) } };
         const transition = red
             ? { duration: scaledSeconds(120, m) }
             /*
@@ -168,7 +172,7 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
              * pose and arrive late, and the trail leaves at 180ms whatever the card is doing — so
              * the two would drift apart. Eased, and on the ticket's numbers, they cannot.
              */
-            : { duration: scaledSeconds(FLIGHT_MS, m), ease: 'easeOut' as const, opacity: { duration: scaledSeconds(140, m) } };
+            : flightIn;
 
         if (played && played.key !== flownKeyRef.current) {
             flownKeyRef.current = played.key;
@@ -197,7 +201,7 @@ const PlayedCardReveal: React.FC<Props> = ({ played }) => {
                     // §2c: *"the lane card shrinks and flies to the discard pile"*. Small enough
                     // to read as going away, not so small it vanishes mid-flight.
                     scale: 0.35,
-                }, transition);
+                }, red ? transition : flightOut);
         }
     }, [played, controls]);
 

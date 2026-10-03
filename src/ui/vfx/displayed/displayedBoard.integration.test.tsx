@@ -23,6 +23,8 @@ import { setParticleSink, setStageAnchors } from '../emit';
 import { type CastPresenter, useCastSequence } from '../useCastSequence';
 import { displayedBoard } from './displayedBoardRuntime';
 import { useDisplayedBoardSync, useDisplayedUnit } from './useDisplayedBoard';
+import { planAttack } from '../tiers/attackPlan';
+import { TIER_PROFILES } from '../tiers/tierProfiles';
 
 vi.mock('../../../engine/data/programRegistry', async (importOriginal) => {
     const original = await importOriginal<typeof import('../../../engine/data/programRegistry')>();
@@ -135,6 +137,10 @@ const settle = async (ms: number): Promise<void> => {
     });
 };
 
+/** Game time at which Showy's plan lands a hit of `dealt` on a body of `maxHp` (ticket 190c). */
+const impactAt = (dealt: number, maxHp: number): number =>
+    planAttack(TIER_PROFILES.showy, { damage: dealt, maxHp, isKill: false, contact: false }).game.impactMs;
+
 const shownText = (id: string): string => container.querySelector(`[data-testid="shown-${id}"]`)?.textContent ?? '';
 const realText = (id: string): string => {
     const entity = [...current.playerParty, ...current.enemyParty].find((e) => e.id === id) as IBattleEntity;
@@ -202,7 +208,8 @@ describe('189c — HP reads the old value until the impact', () => {
 
         await settle(0);
         expect(shownText('e1')).toBe('1000|0|up');            // …the screen has not
-        await settle(399);                                    // the trail is still on its way (impact at 400)
+        const at = impactAt(1000 - real, 1000);
+        await settle(at - 1);                                 // the element is still on its way
         expect(shownText('e1')).toBe('1000|0|up');
         await settle(1);
         expect(shownText('e1')).toBe(`${real}|0|up`);
@@ -217,7 +224,7 @@ describe('189c — HP reads the old value until the impact', () => {
         dispatchBurst(play('a1', 'e1', 'c1'));
         expect(realOf('e1').currentHp).toBe(0);
 
-        await settle(399);
+        await settle(impactAt(5, 100) - 1);
         expect(shownText('e1')).toBe('5|0|up');
         await settle(1);
         expect(shownText('e1')).toBe('0|0|down');
@@ -239,7 +246,7 @@ describe('189c — with the presenter idle, displayed equals real', () => {
         );
         expect(realOf('a1').currentHp).toBeLessThan(100);
 
-        await settle(5_000);
+        await settle(20_000);
         expect(presenter.isIdle()).toBe(true);
         everyBodyShowsTheTruth();
         expectNoSnapNeeded();
@@ -257,7 +264,7 @@ describe('189c — with the presenter idle, displayed equals real', () => {
         dispatchBurst(play('a1', 'e1', 'c1'));
         await settle(0);
         expect(shownText('e1')).toBe('100|15|up');
-        await settle(5_000);
+        await settle(20_000);
 
         everyBodyShowsTheTruth();
         expectNoSnapNeeded();
@@ -275,7 +282,7 @@ describe('189c — with the presenter idle, displayed equals real', () => {
 
         await settle(0);
         expect(shownText('a1')).toBe('50|0|up');
-        await settle(5_000);
+        await settle(20_000);
         everyBodyShowsTheTruth();
         expectNoSnapNeeded();
     });
@@ -286,11 +293,11 @@ describe('189c — with the presenter idle, displayed equals real', () => {
         dispatchBurst(play('a1', 'e1', 'c1'));
         expect(realOf('a1').currentHp).toBe(90);              // the engine charged it at once
 
-        await settle(399);
+        await settle(impactAt(100 - realOf('e1').currentHp, 100) - 1);
         expect(shownText('a1')).toBe('100|0|up');
         await settle(1);
         expect(shownText('a1')).toBe('90|0|up');
-        await settle(5_000);
+        await settle(20_000);
         everyBodyShowsTheTruth();
         expectNoSnapNeeded();
     });
@@ -303,7 +310,7 @@ describe('189c — with the presenter idle, displayed equals real', () => {
 
         await settle(0);
         expect(shownText('a1')).toBe('100|0|up');
-        await settle(5_000);
+        await settle(20_000);
         everyBodyShowsTheTruth();
         expectNoSnapNeeded();
     });
@@ -319,7 +326,7 @@ describe('189c — with the presenter idle, displayed equals real', () => {
         await settle(0);
         expect(shownText('a1')).toBe('1|0|up');
 
-        await settle(5_000);
+        await settle(20_000);
         everyBodyShowsTheTruth();
         expectNoSnapNeeded();
     });

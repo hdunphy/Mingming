@@ -63,6 +63,7 @@ import {
     type LooseBurst, type PendingCast, buildCardBeat, buildCastBeat, buildLooseBeat, emptyCast, emptyLoose, isLooseEmpty,
 } from './presenter/castBeat';
 import { nextCardKey } from './presenter/cardSignals';
+import { isContactCard } from './choreo/contactCards';
 import type { PlayedCardAnnouncement } from '../hooks/useBattleVfx';
 
 // Kept here so every existing importer (the reveal, the tests) still finds them.
@@ -241,6 +242,10 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                         doubled: effectiveness >= SUPER_EFFECTIVE_AT,
                         resisted: effectiveness <= RESISTED_AT,
                         card,
+                        // 190c: a card that is not an Attack and deals no damage wiggles and lobs an
+                        // orb; a single-target Attack with no element runs in and hits.
+                        attack: data.category === 'Attack',
+                        contact: isContactCard(data),
                     });
                     return;
                 }
@@ -314,6 +319,8 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                         effectiveness: effectivenessAgainst(event.element, victim),
                     });
                     if (immediate) return;
+                    // 190c: the biggest direct hit sets how long the attack runs.
+                    open?.hits.push({ targetId: event.targetId, applied, maxHp: victim?.maxHp ?? 0, isKill: dies });
                     if (absorbed > 0) {
                         (open ? open.shields : looseBurst().shields).push(event.targetId);
                     }

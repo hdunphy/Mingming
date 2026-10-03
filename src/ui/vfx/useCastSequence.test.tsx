@@ -26,6 +26,8 @@ import { useCastSequence } from './useCastSequence';
 import * as statusTellsModule from './statusTells';
 import * as osTellsModule from './osTells';
 import type { ParticleSeed } from './particles';
+import { planAttack } from './tiers/attackPlan';
+import { TIER_PROFILES } from './tiers/tierProfiles';
 import type { IBattleState } from '../../engine/types';
 import type { StageAnchors } from '../hooks/useStageAnchors';
 
@@ -50,6 +52,9 @@ const ANCHORS = {
  * TICKET 189b: the sequence plays on the BATTLE CLOCK now, not on setTimeout. `advance(ms)` closes
  * the collector's burst window (the one real 0 ms timer left) and then moves game time.
  */
+/** Where Showy's plan lands a cast that names no hit (these tests emit no damage): ticket 190c. */
+const IMPACT = planAttack(TIER_PROFILES.showy, { damage: 0, maxHp: 100, isKill: false, contact: false }).game.impactMs;
+
 const advance = (ms: number): void => {
     act(() => {
         vi.advanceTimersByTime(0);
@@ -207,8 +212,8 @@ describe('155 deep dive 9 — a death plays at the slot', () => {
         // Close the window at 0ms
         advance(0);
 
-        // Advance to last impact + 60ms (180 flight + 240 trail + 60 stagger = 480ms)
-        advance(480);
+        // Advance to the impact + 80 ms (190c: these casts name no hit, so the plan's chip timeline).
+        advance(IMPACT + 80);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenCalledWith('Sharp', 'ally');
         expect(spy).toHaveBeenCalledWith('Sharp', 'ally2');
@@ -250,8 +255,8 @@ describe('171f — a hook\'s status is its own beat, after the card', () => {
         expect(hookSpy).not.toHaveBeenCalled();
 
         advance(0);
-        // The card: flight 180 + trail 220 + one status 60 = 460.
-        advance(460);
+        // The card: the impact (190c's plan) + one status 60.
+        advance(IMPACT + 60);
         expect(statusSpy).toHaveBeenCalledTimes(1);
         expect(statusSpy).toHaveBeenLastCalledWith('Burn', 'foe');
         expect(hookSpy).not.toHaveBeenCalled();

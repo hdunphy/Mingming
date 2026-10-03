@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { TIER_PROFILES } from './tierProfiles';
-import { planAttack } from './attackPlan';
+import { planAttack, planStatusOnly } from './attackPlan';
 
 const hit = { damage: 45, maxHp: 100, isKill: false, contact: false } as const;
 
@@ -79,5 +79,37 @@ describe('190b — planAttack', () => {
 
     it('is the same plan for the same inputs', () => {
         expect(planAttack(TIER_PROFILES.slow, hit)).toEqual(planAttack(TIER_PROFILES.slow, hit));
+    });
+});
+
+describe('190c — the plan in game time (the freeze is real time, not a beat of the plan)', () => {
+    it('collapses the hit-stop: the knock-back starts at the impact', () => {
+        const plan = planAttack(TIER_PROFILES.showy, hit);
+        expect(plan.game.impactMs).toBe(plan.impactAtMs);
+        expect(plan.game.windupEndMs).toBe(220);
+        expect(plan.game.lungeEndMs).toBe(220 + 150);
+        expect(plan.game.knockbackEndMs).toBe(plan.impactAtMs + 170);
+        expect(plan.game.endMs).toBe(plan.game.knockbackEndMs + 200);
+    });
+
+    it('is the full plan minus the freeze', () => {
+        const plan = planAttack(TIER_PROFILES.showy, hit);
+        const freeze = plan.segments.find((s) => s.kind === 'hitstop')!.durationMs;
+        expect(plan.game.endMs).toBe(plan.totalMs - freeze);
+    });
+});
+
+describe('190c — planStatusOnly', () => {
+    it('is the wiggle, the orb and the landing, with no lunge', () => {
+        const plan = planStatusOnly(TIER_PROFILES.showy);
+        expect(plan.segments.map((s) => s.kind)).toEqual(['wiggle', 'orb', 'landing']);
+        expect(plan.segments.map((s) => s.durationMs)).toEqual([300, 320, 520]);
+        expect(plan.landsAtMs).toBe(620);
+        expect(plan.totalMs).toBe(1140);
+    });
+
+    it('follows the tier: Slow 380 / 400 / 650, Snappy 200 / 220 / 340', () => {
+        expect(planStatusOnly(TIER_PROFILES.slow).totalMs).toBe(1430);
+        expect(planStatusOnly(TIER_PROFILES.snappy).totalMs).toBe(760);
     });
 });

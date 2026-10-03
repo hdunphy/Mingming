@@ -22,14 +22,19 @@
  */
 
 import type { IBattleEntity, StatusType } from '../../../engine/types';
-import { anchorFor, emitImpact, emitTrail } from '../emit';
+import { type EmitAt, anchorFor, emitImpact, emitOrb, emitSpeedLines, emitTrail, stageScale } from '../emit';
 import { emitHookTell } from '../osTells';
 import { HOOK_BEAT_GAP_MS } from '../hookStatusBeat';
 import { scheduleStatusTells } from '../statusBurst';
 import {
-    emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick,
+    emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick, statusColor,
 } from '../statusTells';
-import { TRAIL_MS, TRAIL_STAGGER_MS, type TrailElement } from '../trails';
+import { TRAIL_STAGGER_MS, elementColor, type TrailElement } from '../trails';
+import { DASH_STOPS_SHORT_PX, attackPose, statusPose } from '../choreo/attackPose';
+import { type CastKind, castTimes } from '../choreo/castTimes';
+import { emitAttackPose } from '../choreo/poseSignals';
+import { damageScale } from '../tiers/tierProfiles';
+import { activeProfile } from '../tiers/activeTier';
 import { type BoardSink, type LooseOp, type TimedBoardOp, applyBoardOp } from '../displayed/boardOps';
 import { displayedBoard } from '../displayed/displayedBoardRuntime';
 import { type StageMoment, emitStageMoment, finishMoment } from '../impact/stageMoments';
@@ -37,7 +42,10 @@ import type { PlayedCardAnnouncement } from '../../hooks/useBattleVfx';
 import { type Beat, type TimedAction, beatDuration } from './beat';
 import { emitCardSignal } from './cardSignals';
 
-/** §2c: the hand card reaches the lane in 180ms, and the trail leaves after it. */
+/**
+ * §2c: the hand card reaches the lane in 180ms. Showy's number: since 190c the beat reads the ACTIVE
+ * tier's `cardInMs`, and the element no longer waits for the card (the wind-up runs while it flies).
+ */
 export const FLIGHT_MS = 180;
 /** §2c: status tells land this far apart, after the impact. */
 export const STATUS_TELL_STAGGER_MS = 60;
@@ -48,8 +56,11 @@ export const LOOSE_BEAT_MS = 200;
  * this long so it can be read, and only then does its attack play.
  */
 export const ENEMY_HOVER_MS = 1000;
-/** The card's flight out of the lane (§2c's 200 ms): the next sequence starts after it has gone. */
+/** The card's flight out of the lane (§2c's 200 ms, Showy's 160 since 190b's table). The beat reads the active tier's. */
 export const CARD_LEAVE_MS = 200;
+/** How many speed-line puffs trail a contact card's dash, and how many streaks each throws. */
+const SPEED_LINE_PUFFS = 4;
+const SPEED_LINES_PER_PUFF = 2;
 
 export interface HookTellInfo {
     readonly hookId: string;
@@ -85,13 +96,32 @@ export interface PendingCast {
      * `ENEMY_HOVER_MS`), launches the element, and leaves when the sequence ends. Absent: no card.
      */
     readonly card?: PlayedCardAnnouncement;
+    /**
+     * TICKET 190c: is this card an Attack? A card that is not, and dealt no damage, is status-only:
+     * it wiggles and lobs an orb instead of lunging. Default true (a bare cast is an attack).
+     */
+    readonly attack: boolean;
+    /** TICKET 190c: a contact card (single-target Attack, element None) dashes all the way in. */
+    readonly contact: boolean;
+    /** TICKET 190c: the direct hits, which set how long the effect runs (the biggest one counts). */
+    readonly hits: Array<{ targetId: string; applied: number; maxHp: number; isKill: boolean }>;
 }
 
-export function emptyCast(base: Pick<PendingCast, 'element' | 'sourceId' | 'targetIds' | 'doubled' | 'resisted' | 'card'>): PendingCast {
+type CastBase = Pick<PendingCast, 'element' | 'sourceId' | 'targetIds' | 'doubled' | 'resisted' | 'card'>
+    & Partial<Pick<PendingCast, 'attack' | 'contact'>>;
+
+export function emptyCast(base: CastBase): PendingCast {
     return {
+        attack: true, contact: false,
         ...base, statuses: [], hookStatuses: [], hookTells: [], startTells: [],
-        shields: [], deaths: [], selfCosts: [], removals: [], ticks: [], ops: [],
+        shields: [], deaths: [], selfCosts: [], removals: [], ticks: [], ops: [], hits: [],
     };
+}
+
+/** Which of the three timelines this cast plays: a hit of any size makes it an attack. */
+export function castKindOf(cast: PendingCast): CastKind {
+    if (!cast.attack && cast.hits.length === 0) return 'status';
+    return cast.contact ? 'contact' : 'attack';
 }
 
 /** Steps 2-4 of ruling 5 for one cast, plus everything that rides on its timeline. */
@@ -113,38 +143,106 @@ export function buildCastBeat(
         });
     }
 
-    // TICKET 189e: the enemy's card hovers before its attack; the player's goes straight in.
-    const hover = cast.card && !cast.card.fromPlayer ? ENEMY_HOVER_MS : 0;
+    /*
+     * TICKET 190c — THE CHOREOGRAPHY. When everything of this cast happens comes from the tier
+     * profile (`choreo/castTimes`): the wind-up starts with the card (the enemy's card arrives and
+     * hovers a second first), the element leaves when the lunge ends, the hit lands when it arrives
+     * (a contact card's dash ends in the hit), the attacker holds the pose through the knock-back
+     * and walks back as the card leaves. The freeze is real time and is not in these numbers.
+     */
+    const profile = activeProfile();
+    const kind = castKindOf(cast);
+    const biggest = biggestDealt(cast.hits);
+    const times = castTimes(profile, {
+        kind,
+        fromPlayer: cast.card ? cast.card.fromPlayer : true,
+        damage: biggest?.applied ?? 0,
+        maxHp: biggest?.maxHp ?? 0,
+        isKill: cast.hits.some((hit) => hit.isKill),
+    });
+    const statusOnly = kind === 'status';
+
     if (cast.card) {
         const card = cast.card;
-        actions.push({ at: 0, label: 'card-in', run: () => emitCardSignal({ kind: 'in', card }) });
-        actions.push({ at: FLIGHT_MS + hover, label: 'launch', run: () => emitCardSignal({ kind: 'launch', card }) });
+        actions.push({ at: times.cardInAtMs, label: 'card-in', run: () => emitCardSignal({ kind: 'in', card }) });
+        actions.push({ at: times.launchAtMs, label: 'launch', run: () => emitCardSignal({ kind: 'launch', card }) });
+    }
+
+    // The caster's pose: the whole wind-up, lunge, hold and return (or the wiggle) as one animation
+    // on its sprite, started now. Built here, when the anchors are known, from the same plan.
+    actions.push({
+        at: times.poseAtMs, label: 'pose',
+        run: () => {
+            const from = anchorFor(cast.sourceId);
+            const to = anchorFor(cast.targetIds[0] ?? cast.sourceId);
+            const direction = headingOf(cast, from, to);
+            if (times.statusPlan) {
+                emitAttackPose({ sourceId: cast.sourceId, pose: statusPose(times.statusPlan, { direction }) });
+            } else if (times.attackPlan) {
+                const dashPx = kind === 'contact' ? dashDistance(from, to) : undefined;
+                emitAttackPose({ sourceId: cast.sourceId, pose: attackPose(times.attackPlan, profile, { direction, dashPx }) });
+            }
+        },
+    });
+
+    // A contact card throws speed lines behind it as it runs.
+    if (kind === 'contact') {
+        for (let i = 0; i < SPEED_LINE_PUFFS; i += 1) {
+            const along = (i + 1) / (SPEED_LINE_PUFFS + 1);
+            actions.push({
+                at: times.launchAtMs + (times.impactAtMs - times.launchAtMs) * along, label: 'speed-lines',
+                run: () => {
+                    const from = anchorFor(cast.sourceId);
+                    const to = anchorFor(cast.targetIds[0] ?? cast.sourceId);
+                    if (!from || !to) return;
+                    const direction = headingOf(cast, from, to);
+                    // The attacker is `along` squared of the way in (the dash eases in).
+                    const x = centreX(from) + direction * (dashDistance(from, to) ?? 0) * stageScale() * along * along;
+                    emitSpeedLines({ x, y: from.y, w: 0, h: from.h }, direction, SPEED_LINES_PER_PUFF);
+                },
+            });
+        }
     }
 
     let firstImpact: number | null = null;
     cast.targetIds.forEach((targetId, index) => {
         // §2c: *"Side/All cards send one trail per target, 40 ms apart."* The stagger is what makes
         // a three-target card read as three hits rather than as one wide flash.
-        const offset = FLIGHT_MS + hover + index * TRAIL_STAGGER_MS;
-        const impactAt = offset + TRAIL_MS;
+        const offset = times.launchAtMs + index * TRAIL_STAGGER_MS;
+        const impactAt = times.impactAtMs + index * TRAIL_STAGGER_MS;
         firstImpact ??= impactAt;
         impactAtTarget.set(targetId, impactAt);
 
-        actions.push({
-            at: offset, label: 'trail',
-            run: () => {
-                const from = anchorFor(cast.sourceId);
-                const to = anchorFor(targetId);
-                if (from && to) emitTrail(cast.element, from, to);
-            },
-        });
-        actions.push({
-            at: impactAt, label: 'impact',
-            run: () => {
-                const to = anchorFor(targetId);
-                if (to) emitImpact(cast.element, to, cast.doubled, cast.resisted);
-            },
-        });
+        if (statusOnly) {
+            // The orb in the status colour (the element's, for a card that put no status on anyone).
+            const tint = cast.statuses[0] ? statusColor(cast.statuses[0].status) : elementColor(cast.element);
+            actions.push({
+                at: offset, label: 'orb',
+                run: () => {
+                    const from = anchorFor(cast.sourceId);
+                    const to = anchorFor(targetId);
+                    if (from && to) emitOrb(from, to, tint, times.impactAtMs - times.launchAtMs, targetId === cast.sourceId);
+                },
+            });
+        } else {
+            if (kind !== 'contact') {
+                actions.push({
+                    at: offset, label: 'trail',
+                    run: () => {
+                        const from = anchorFor(cast.sourceId);
+                        const to = anchorFor(targetId);
+                        if (from && to) emitTrail(cast.element, from, to, times.travelMs);
+                    },
+                });
+            }
+            actions.push({
+                at: impactAt, label: 'impact',
+                run: () => {
+                    const to = anchorFor(targetId);
+                    if (to) emitImpact(cast.element, to, cast.doubled, cast.resisted);
+                },
+            });
+        }
         if (cast.shields.includes(targetId)) {
             actions.push({ at: impactAt, label: 'shield', run: () => emitShieldAbsorb(targetId) });
         }
@@ -228,18 +326,51 @@ export function buildCastBeat(
     });
 
     /*
-     * TICKET 189e: the card leaves when its sequence ends (it was a fixed 1.5 s for the player, and
-     * "until the next play" for the enemy), and the beat holds for its flight out, so a card is
-     * always gone before the next card's sequence starts.
+     * TICKET 189e / 190c: the card leaves as the attacker starts walking back (or when the landing
+     * is over), unless something later is still playing; and the beat holds until the attacker is
+     * home and the card has gone, so the next sequence never starts on top of this one.
      */
     if (cast.card) {
         const card = cast.card;
-        const leaveAt = beatDuration(actions, last);
+        const leaveAt = Math.max(times.cardOutAtMs, beatDuration(actions, last));
         actions.push({ at: leaveAt, label: 'card-out', run: () => emitCardSignal({ kind: 'out', card }) });
-        return { label: 'cast', actions, durationMs: leaveAt + CARD_LEAVE_MS };
+        return { label: 'cast', actions, durationMs: Math.max(times.endAtMs, leaveAt + profile.cardOutMs) };
     }
 
-    return { label: 'cast', actions, durationMs: beatDuration(actions, last) };
+    return { label: 'cast', actions, durationMs: Math.max(times.endAtMs, beatDuration(actions, last)) };
+}
+
+/**
+ * What one body took from the card, summed over its hits (a multi-hit card is one long attack on
+ * it), and the body that took the most: its share of max HP sets how long the effect runs.
+ */
+function biggestDealt(hits: PendingCast['hits']): { applied: number; maxHp: number } | null {
+    const byBody = new Map<string, { applied: number; maxHp: number }>();
+    for (const hit of hits) {
+        const body = byBody.get(hit.targetId) ?? { applied: 0, maxHp: hit.maxHp };
+        body.applied += hit.applied;
+        byBody.set(hit.targetId, body);
+    }
+    let best: { applied: number; maxHp: number } | null = null;
+    for (const body of byBody.values()) {
+        if (!best || damageScale(body.applied, body.maxHp) > damageScale(best.applied, best.maxHp)) best = body;
+    }
+    return best;
+}
+
+const centreX = (at: EmitAt): number => (at.w ? at.x + at.w / 2 : at.x);
+
+/** +1 when the caster acts toward the right (an ally), -1 toward the left (an enemy). */
+function headingOf(cast: PendingCast, from: EmitAt | null, to: EmitAt | null): 1 | -1 {
+    if (cast.card) return cast.card.fromPlayer ? 1 : -1;
+    if (from && to && centreX(to) !== centreX(from)) return centreX(to) > centreX(from) ? 1 : -1;
+    return 1;
+}
+
+/** How far a contact card runs, in stage px: the gap between the two bodies, less where it stops short. */
+function dashDistance(from: EmitAt | null, to: EmitAt | null): number | undefined {
+    if (!from || !to) return undefined;
+    return Math.max(0, Math.abs(centreX(to) - centreX(from)) / stageScale() - DASH_STOPS_SHORT_PX);
 }
 
 /**
@@ -247,14 +378,14 @@ export function buildCastBeat(
  * enemy's), launches and leaves, so the enemy's turn is still readable one card at a time.
  */
 export function buildCardBeat(card: PlayedCardAnnouncement): Beat {
-    const hover = card.fromPlayer ? 0 : ENEMY_HOVER_MS;
-    const launchAt = FLIGHT_MS + hover;
+    const profile = activeProfile();
+    const launchAt = profile.cardInMs + (card.fromPlayer ? 0 : profile.enemyHoverMs);
     const actions: TimedAction[] = [
         { at: 0, label: 'card-in', run: () => emitCardSignal({ kind: 'in', card }) },
         { at: launchAt, label: 'launch', run: () => emitCardSignal({ kind: 'launch', card }) },
         { at: launchAt, label: 'card-out', run: () => emitCardSignal({ kind: 'out', card }) },
     ];
-    return { label: 'card', actions, durationMs: launchAt + CARD_LEAVE_MS };
+    return { label: 'card', actions, durationMs: launchAt + profile.cardOutMs };
 }
 
 /**

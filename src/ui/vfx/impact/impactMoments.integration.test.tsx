@@ -3,7 +3,7 @@
  * TICKET 189d — "the hit lands where it is drawn", against the REAL reducer.
  *
  * The reducer says a hit at play. These tests read WHEN the screen says it: the damage float and the
- * impact sound at the impact (game time 400 for a lone target), the hit-stop and the camera trauma
+ * impact sound at the impact (where the tier's attack plan puts it, 190c), the hit-stop and the camera trauma
  * with it, and nothing at arrival. The real path: reducer, bus, collector, presenter queue, battle
  * clock, stage moments, `useBattleVfx` (floats and sounds) and `useImpactFeedback` (freeze and shake).
  */
@@ -26,6 +26,8 @@ import { useCastSequence } from '../useCastSequence';
 import { useImpactFeedback } from '../useImpactFeedback';
 import { cameraShake } from './impactRuntime';
 import { playSfx } from '../../audio/AudioEngine';
+import { planAttack } from '../tiers/attackPlan';
+import { TIER_PROFILES } from '../tiers/tierProfiles';
 
 vi.mock('../../../engine/data/programRegistry', async (importOriginal) => {
     const original = await importOriginal<typeof import('../../../engine/data/programRegistry')>();
@@ -149,6 +151,15 @@ function jabDamage(): number {
     return 100_000 - next.enemyParty[0].currentHp;
 }
 
+/** Game time at which Showy's plan lands a hit of `dealt` on a body of `maxHp` (190c). */
+const impactAt = (dealt: number, maxHp: number): number =>
+    planAttack(TIER_PROFILES.showy, { damage: dealt, maxHp, isKill: false, contact: false }).game.impactMs;
+
+/** Run the clock to the first frozen frame: the hit has landed, whatever its size. */
+async function settleToImpact(): Promise<void> {
+    for (let ms = 0; ms < 4_000 && !(battleClock.frozen || isHitStopped()); ms += 8) await settle(8);
+}
+
 describe('189d — the number and the sound happen at the impact, not at play', () => {
     it('the damage float and the impact sound wait for the trail to land', async () => {
         mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)]));
@@ -156,11 +167,13 @@ describe('189d — the number and the sound happen at the impact, not at play', 
         const dealt = 1000 - current.enemyParty[0].currentHp;
         expect(dealt).toBeGreaterThan(0);
 
+        const at = impactAt(dealt, 1000);
+
         await settle(0);
         expect(floatsOn('e1')).toEqual([]);
         expect(impactSounds()).toBe(0);
 
-        await settle(399);
+        await settle(at - 1);
         expect(floatsOn('e1')).toEqual([]);
         expect(impactSounds()).toBe(0);
 
@@ -170,9 +183,10 @@ describe('189d — the number and the sound happen at the impact, not at play', 
     });
 
     it('the HP bar, the float and the sound move on the same instant', async () => {
+        const at = impactAt(jabDamage(), 1000);
         mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)]));
         play();
-        await settle(399);
+        await settle(at - 1);
         const before = vfx.unitFx.e1?.hitKey ?? 0;
         await settle(1);
         expect(vfx.unitFx.e1?.hitKey).toBe(before + 1);
@@ -183,7 +197,8 @@ describe('189d — the number and the sound happen at the impact, not at play', 
         play();
         await settle(0);
         expect(isHitStopped()).toBe(false);
-        await settle(399);
+        const at = impactAt(jabDamage(), 1000);
+        await settle(at - 1);
         expect(isHitStopped()).toBe(false);
         await settle(1);
         expect(isHitStopped()).toBe(true);
@@ -195,7 +210,7 @@ describe('189d — a kill is heavier than a chip, and shakes the camera', () => 
         const dealt = jabDamage();
         mount(frame([fat('e1', 100_000), fat('e2', 100_000), fat('e3', 100_000)]));
         play();
-        await settle(400);
+        await settleToImpact();
         let chip = 0;
         for (; battleClock.frozen && chip < 1000; chip += 1) battleClock.advance(1);
 
@@ -205,7 +220,7 @@ describe('189d — a kill is heavier than a chip, and shakes the camera', () => 
         mount(frame([body('e1', { primaryElement: 'Nature', currentHp: Math.max(1, dealt - 1), maxHp: 100_000 }), fat('e2', 100), fat('e3', 100)]));
         play();
         expect(current.enemyParty[0].currentHp).toBe(0);
-        await settle(400);
+        await settleToImpact();
         let kill = 0;
         for (; battleClock.frozen && kill < 1000; kill += 1) battleClock.advance(1);
 
@@ -216,7 +231,7 @@ describe('189d — a kill is heavier than a chip, and shakes the camera', () => 
         const dealt = jabDamage();
         mount(frame([fat('e1', Math.round(dealt / 0.06)), fat('e2', 100), fat('e3', 100)]));
         play();
-        await settle(400);
+        await settleToImpact();
         expect(cameraShake.level).toBe(0);
 
         resetBattleClock();
@@ -224,7 +239,7 @@ describe('189d — a kill is heavier than a chip, and shakes the camera', () => 
         root = createRoot(container);
         mount(frame([fat('e1', Math.round(dealt / 0.2)), fat('e2', 100), fat('e3', 100)]));
         play();
-        await settle(400);
+        await settleToImpact();
         expect(cameraShake.level).toBeGreaterThan(0);
     });
 
@@ -232,7 +247,7 @@ describe('189d — a kill is heavier than a chip, and shakes the camera', () => 
         const dealt = jabDamage();
         mount(frame([fat('e1', Math.round(dealt / 0.2)), fat('e2', 100), fat('e3', 100)]));
         play();
-        await settle(400);
+        await settleToImpact();
         expect(battleClock.frozen || isHitStopped()).toBe(true);
 
         const offsets: Array<{ frozen: boolean; x: number; y: number; degrees: number }> = [];
@@ -255,7 +270,7 @@ describe('189d — the sounds of a multi-target hit are spaced by the cast, not 
     it('a lone hit is step 0', async () => {
         mount(frame([fat('e1', 1000), fat('e2', 1000), fat('e3', 1000)]));
         play();
-        await settle(400);
+        await settleToImpact();
         const call = sfx.mock.calls.find(([name]) => String(name).startsWith('impact'));
         expect(call?.[1]).toMatchObject({ step: 0 });
     });

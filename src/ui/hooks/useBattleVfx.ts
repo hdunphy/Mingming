@@ -478,7 +478,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
         const unsubscribeMoments = onStageMoment(landMoment);
         /**
          * A card's life on the stage (189e), from the presenter: it flies in (reveal + whoosh),
-         * launches the element (cast sound + the caster's lunge), and leaves when its sequence ends.
+         * launches the element (the cast sound; the caster's pose is the presenter's since 190c), and leaves when its sequence ends.
          * 147d: *"The card leaves the hand, then the element leaves the caster — … different sounds
          * because they are different moments. The enemy's card is the same whoosh three semitones
          * down."*
@@ -490,7 +490,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 setVfx(prev => ({ ...prev, playedCard: card }));
             } else if (signal.kind === 'launch') {
                 playSfx(castCue(GetProgramData(card.dataId)?.element));
-                triggerLunge(card.sourceId);
+                // The caster's lunge is its pose now (190c), sent by the cast's `pose` beat.
             } else {
                 // A newer card may already have replaced it: the key check makes that a no-op.
                 setVfx(prev => (prev.playedCard?.key === card.key ? { ...prev, playedCard: null } : prev));

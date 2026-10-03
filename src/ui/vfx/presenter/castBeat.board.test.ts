@@ -7,7 +7,12 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BoardSink } from '../displayed/boardOps';
+import { planAttack } from '../tiers/attackPlan';
+import { TIER_PROFILES } from '../tiers/tierProfiles';
 import { buildCastBeat, buildLooseBeat, emptyCast, emptyLoose } from './castBeat';
+
+/** Where Showy's plan lands a hit that deals nothing yet (these casts name no hits): 190c moved the impact off 400. */
+const IMPACT = planAttack(TIER_PROFILES.showy, { damage: 0, maxHp: 100, isKill: false, contact: false }).game.impactMs;
 
 function spyBoard() {
     const calls: string[] = [];
@@ -37,21 +42,21 @@ describe('189c — a cast moves the board with the thing that moves it', () => {
         cast.ops.push({ when: 'impact', op: { kind: 'damage', id: 'e1', applied: 10, absorbed: 0 } });
         cast.ops.push({ when: 'impact', op: { kind: 'damage', id: 'e2', applied: 12, absorbed: 3 } });
         const { board, play } = spyBoard();
-        expect(play(buildCastBeat(cast, board))).toEqual(['damage:e1:10/0@400', 'damage:e2:12/3@440']);
+        expect(play(buildCastBeat(cast, board))).toEqual([`damage:e1:10/0@${IMPACT}`, `damage:e2:12/3@${IMPACT + 40}`]);
     });
 
     it('a body the card did not name is hit with the last impact', () => {
         const cast = emptyCast(base);
         cast.ops.push({ when: 'impact', op: { kind: 'damage', id: 'a3', applied: 4, absorbed: 0 } });
         const { board, play } = spyBoard();
-        expect(play(buildCastBeat(cast, board))).toEqual(['damage:a3:4/0@440']);
+        expect(play(buildCastBeat(cast, board))).toEqual([`damage:a3:4/0@${IMPACT + 40}`]);
     });
 
     it('the price of the cast lands with the FIRST impact', () => {
         const cast = emptyCast(base);
         cast.ops.push({ when: 'first', op: { kind: 'damage', id: 'a1', applied: 5, absorbed: 0 } });
         const { board, play } = spyBoard();
-        expect(play(buildCastBeat(cast, board))).toEqual(['damage:a1:5/0@400']);
+        expect(play(buildCastBeat(cast, board))).toEqual([`damage:a1:5/0@${IMPACT}`]);
     });
 
     it('a tick and a Bark Shield land after the last impact, with the statuses', () => {
@@ -59,14 +64,14 @@ describe('189c — a cast moves the board with the thing that moves it', () => {
         cast.ops.push({ when: 'after', op: { kind: 'damage', id: 'e1', applied: 3, absorbed: 0 } });
         cast.ops.push({ when: 'after', op: { kind: 'bark', id: 'a1', points: 20 } });
         const { board, play } = spyBoard();
-        expect(play(buildCastBeat(cast, board))).toEqual(['damage:e1:3/0@440', 'bark:a1:20@440']);
+        expect(play(buildCastBeat(cast, board))).toEqual([`damage:e1:3/0@${IMPACT + 40}`, `bark:a1:20@${IMPACT + 40}`]);
     });
 
     it('a heal lands with the card on the body it heals', () => {
         const cast = emptyCast({ ...base, sourceId: 'a1', targetIds: ['a2'] });
         cast.ops.push({ when: 'impact', op: { kind: 'heal', id: 'a2', amount: 25 } });
         const { board, play } = spyBoard();
-        expect(play(buildCastBeat(cast, board))).toEqual(['heal:a2:25@400']);
+        expect(play(buildCastBeat(cast, board))).toEqual([`heal:a2:25@${IMPACT}`]);
     });
 
     it('a loose burst moves the board as the burst plays, and is not empty because of it', () => {
@@ -99,8 +104,8 @@ describe('189d — what the screen says as a hit lands', () => {
             action.run();
         }
         expect(said).toEqual([
-            { at: 400, targetId: 'e1', step: 0, targets: 2, sourceId: 'a1' },
-            { at: 440, targetId: 'e2', step: 1, targets: 2, sourceId: 'a1' },
+            { at: IMPACT, targetId: 'e1', step: 0, targets: 2, sourceId: 'a1' },
+            { at: IMPACT + 40, targetId: 'e2', step: 1, targets: 2, sourceId: 'a1' },
         ]);
     });
 
