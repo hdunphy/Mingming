@@ -9,7 +9,7 @@ import { TRAIL_MS } from './trails';
 
 describe('the hook status beat (ticket 171f)', () => {
     it('names the firmware that added the status', () => {
-        expect(hookBeatLabel('skoll_v2', undefined)).toBe('Ember Fuse');
+        expect(hookBeatLabel('skoll_v2', undefined)).toBe('Sunscorch');
         expect(hookFloatText('Burn', 1, 'EMBER_FUSE')).toBe('+1 Burn · EMBER_FUSE');
         expect(hookFloatText('Burn', 3, 'EMBER_FUSE')).toBe('+3 Burn · EMBER_FUSE');
         expect(hookFloatText('DarkStance', 1, undefined)).toBe('+1 Dark Stance');

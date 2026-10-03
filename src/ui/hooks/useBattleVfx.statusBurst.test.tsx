@@ -136,7 +136,7 @@ describe('167i — the absorbed float shows a whole number', () => {
 });
 
 describe('171f — a hook\'s status floats on its own, after the card, with its name', () => {
-    it('Ember Jab on a Burning target floats "Burn", then "+1 Burn · Ember Fuse"', () => {
+    it('Ember Jab on a Burning target floats "Burn", then "+1 Burn · Sunscorch"', () => {
         // Henry, 2026-09-29: "I don't see the burn getting added." It read "Burn ×2".
         const sfxSpy = vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
         act(() => {
@@ -161,7 +161,7 @@ describe('171f — a hook\'s status floats on its own, after the card, with its 
 
         act(() => { vi.advanceTimersByTime(700); });
         const after = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
-        expect(after).toEqual(['Burn', '+1 Burn · Ember Fuse']);
+        expect(after).toEqual(['Burn', '+1 Burn · Sunscorch']);
         expect(sfxSpy).toHaveBeenCalledTimes(2);
         sfxSpy.mockRestore();
     });
@@ -205,6 +205,6 @@ describe('184b — a Burn overflow floats as an overflow', () => {
         });
         act(() => { vi.advanceTimersByTime(710); });
         const texts = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
-        expect(texts).toEqual(['OVERFLOW · 1 BURN · Ember Fuse']);
+        expect(texts).toEqual(['OVERFLOW · 1 BURN · Sunscorch']);
     });
 });

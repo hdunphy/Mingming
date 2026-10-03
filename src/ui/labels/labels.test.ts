@@ -48,7 +48,7 @@ describe('183h plain()', () => {
 
     it('says an Instinct\'s name in Title Case, with no machine word, wherever it appears in a sentence', () => {
         expect(plain('UNBOUND_KERNEL and TIDAL_CRUSH_OS and harden_daemon')).toBe('Unbound and Tidal Crush and harden_daemon');
-        expect(plain("Ember's GALE_FORCE_OS creates a retaliatory updraft!")).toBe("Ember's Gale Force creates a retaliatory updraft!");
+        expect(plain("Ember's GALE_FORCE_OS creates a retaliatory updraft!")).toBe("Ember's Eagle's Gust creates a retaliatory updraft!");
         expect(plain('Mingming')).toBe('Mingming');
     });
 
@@ -70,9 +70,11 @@ describe('183 instinctName()', () => {
         expect(instinctName('TIDAL_CRUSH_OS')).toBe('Tidal Crush');
         expect(instinctName('ABYSSAL_INK_SYS')).toBe('Abyssal Ink');
         expect(instinctName('UNBOUND_KERNEL')).toBe('Unbound');
-        expect(instinctName('GENESIS_FIRMWARE')).toBe('Genesis');
+        expect(instinctName('GENESIS_FIRMWARE')).toBe('Ginnungagap');
         expect(instinctName('HOOFBEAT_DAEMON+')).toBe('Hoofbeat Aura+');
-        expect(instinctName('GOSSIP_NODE')).toBe('Gossip Node');
+        expect(instinctName('GOSSIP_NODE')).toBe('Branch Gossip');
+        // A name with no Norse entry is still re-cased and loses its machine word.
+        expect(instinctName('SOME_NEW_THING_OS')).toBe('Some New Thing');
         expect(instinctName('EINHERJAR_STANDARD')).toBe('Einherjar Standard');
     });
 

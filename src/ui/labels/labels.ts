@@ -9,10 +9,13 @@
  *   workshop      -> Den           patch  -> Rune      scrap     -> Amber
  *
  * `Mingming` stays. An Instinct's own name is shown by `instinctName()`: `TIDAL_CRUSH_OS` reads
- * "Tidal Crush", `ABYSSAL_INK_SYS` reads "Abyssal Ink" (Henry's 183 review: no OS, no capitals).
+ * "Tidal Crush", `ABYSSAL_INK_SYS` reads "Abyssal Ink" (Henry's 183 review: no OS, no capitals), and
+ * `CINDER_WALL_OS` reads "Muspel Wall" (ticket 183i: the Norse names live in `instinctNames.ts`).
  *
  * A separate `.ts` file with no React so the engine-facing tests and `plain()` can use it.
  */
+
+import { norseInstinctName } from './instinctNames';
 
 export type LabelId =
     | 'firmware' | 'os' | 'reflash' | 'blueprint' | 'assembly' | 'workshop'
@@ -138,8 +141,12 @@ const MACHINE_WORDS: ReadonlySet<string> = new Set(['OS', 'SYS', 'KERNEL', 'FIRM
  * "Tidal Crush". The machine words (`OS`, `SYS`, `KERNEL`, `FIRMWARE`) go, `DAEMON` is an Aura, the
  * underscores become spaces and each word is Title Case. A name that is only a machine word keeps it.
  * Anything else (a `+` on an upgraded Rune, `GENERIC_CORE`, an id used as a fallback) is only re-cased.
+ * A species Instinct is looked up in `instinctNames.ts` first and reads its Norse name (ticket 183i).
  */
 export function instinctName(raw: string): string {
+    // The 33 species Instincts have Norse names (ticket 183i); everything else is re-cased below.
+    const norse = norseInstinctName(raw);
+    if (norse !== undefined) return norse;
     const words = raw.split(/[_\s]+/).filter((word) => word.length > 0);
     const kept = words.filter((word) => !MACHINE_WORDS.has(word.toUpperCase()));
     return (kept.length > 0 ? kept : words)
