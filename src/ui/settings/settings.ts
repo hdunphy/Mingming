@@ -38,6 +38,7 @@ import { prefersReducedMotion, setReducedMotionOverride } from '../utils/motionP
 import { setCombatSounds } from '../audio/AudioEngine';
 import { BATTLE_SPEEDS, DEFAULT_BATTLE_SPEED, isInstantTier, type BattleSpeedTier } from '../vfx/clock/battleSpeedTiers';
 import { patchBattleSpeedInputs } from '../vfx/clock/battleClockRuntime';
+import { setActiveTier } from '../vfx/tiers/activeTier';
 
 export { BATTLE_SPEEDS, type BattleSpeedTier };
 
@@ -372,6 +373,7 @@ export function applySettings(settings: ISettings, root?: HTMLElement): void {
      * movement, not time.
      */
     patchBattleSpeedInputs({ tier: settings.battleSpeed, catchUp: settings.catchUp });
+    setActiveTier(settings.battleSpeed);
 
     setReducedMotionOverride(
         settings.reducedMotion === 'system' ? null : settings.reducedMotion === 'on',
