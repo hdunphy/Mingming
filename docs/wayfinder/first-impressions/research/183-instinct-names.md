@@ -1,6 +1,6 @@
 # Instinct names: current, and a Norse proposal (for Henry's review)
 
-Decision 2 of the 183 report. Nothing is renamed yet: ticket 183i does it once you approve or edit this list. A name that says "keep" is already fine. Ids and saves never change; only the shown name does.
+Decision 2 of the 183 report. **APPLIED 2026-10-03 as ticket 183i (`22bdff8`): Henry accepted every name, and the Proposed column is what the game now shows.** A name that says "keep" is already fine. Ids and saves never change; only the shown name does.
 
 | Mingming | Now | Proposed | Why | What it does |
 |---|---|---|---|---|
