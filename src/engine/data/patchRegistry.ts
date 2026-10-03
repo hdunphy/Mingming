@@ -129,7 +129,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
      */
     amplifier: {
         id: 'amplifier',
-        name: 'AMPLIFIER',
+        name: 'Fehu',
         text: 'Your firmware\'s number goes up: one more stack, or half again as much.',
         field: 'amount',
         reach: 'firmware',
@@ -172,7 +172,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
      */
     repeater: {
         id: 'repeater',
-        name: 'REPEATER',
+        name: 'Jera',
         text: 'A firmware that holds itself to once a turn gets one more.',
         field: 'triggers',
         reach: 'firmware',
@@ -206,7 +206,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
      */
     relay: {
         id: 'relay',
-        name: 'RELAY',
+        name: 'Mannaz',
         text: 'Firmware that only watches you now watches your whole side.',
         field: 'actor',
         reach: 'firmware',
@@ -228,7 +228,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
      */
     splitter: {
         id: 'splitter',
-        name: 'SPLITTER',
+        name: 'Gebo',
         text: 'What your firmware gives you, the rest of your side gets too.',
         field: 'target',
         reach: 'firmware',
@@ -258,7 +258,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
      */
     overclock: {
         id: 'overclock',
-        name: 'OVERCLOCK',
+        name: 'Uruz',
         text: 'Every stack you hold counts for one more when a card cashes it.',
         field: 'stacks',
         reach: 'body',
@@ -275,7 +275,7 @@ export const PATCHES: Readonly<Record<PatchId, PatchDefinition>> = Object.freeze
      */
     failsafe: {
         id: 'failsafe',
-        name: 'FAILSAFE',
+        name: 'Algiz',
         text: 'Whatever your firmware costs you, it stops costing.',
         field: 'drawback',
         reach: 'firmware',

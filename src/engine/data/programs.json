@@ -1,7 +1,7 @@
 {
     "harden_daemon": {
         "id": "harden_daemon",
-        "name": "Harden",
+        "name": "Dwarf-Forged",
         "description": "Daemon: Gain 1 Sharp.",
         "element": "None",
         "target": "Self",
@@ -619,7 +619,7 @@
     },
     "battery_pack": {
         "id": "battery_pack",
-        "name": "Battery Pack",
+        "name": "Mead Horn",
         "description": "Daemon: Max Energy +1.",
         "element": "Water",
         "target": "Self",
@@ -1510,7 +1510,7 @@
     },
     "fertile_ground_daemon": {
         "id": "fertile_ground_daemon",
-        "name": "FERTILE_GROUND",
+        "name": "Norns' Gift",
         "description": "Daemon: Draw extra card each turn.",
         "element": "Nature",
         "target": "Self",
@@ -3375,7 +3375,7 @@
     },
     "feedback_token": {
         "id": "feedback_token",
-        "name": "Feedback",
+        "name": "Tattle",
         "description": "Ratatoskr's retaliatory damage token.",
         "element": "None",
         "target": "Single",
@@ -5993,7 +5993,7 @@
     },
     "short_circuit": {
         "id": "short_circuit",
-        "name": "Short Circuit",
+        "name": "Wisdom's Price",
         "description": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
         "element": "None",
         "target": "Self",
@@ -6013,7 +6013,7 @@
     },
     "reactive_plating": {
         "id": "reactive_plating",
-        "name": "Reactive Plating",
+        "name": "Berserkergang",
         "description": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 per turn.",
         "element": "None",
         "target": "Self",
@@ -6064,7 +6064,7 @@
     },
     "scrubber": {
         "id": "scrubber",
-        "name": "Scrubber",
+        "name": "Eir's Remedy",
         "description": "Daemon: At the end of your turn, remove 1 Poison from each ally.",
         "element": "None",
         "target": "Self",
@@ -6107,7 +6107,7 @@
     },
     "drip_feed": {
         "id": "drip_feed",
-        "name": "Drip Feed",
+        "name": "Idunn's Apples",
         "description": "Daemon: At the end of your turn, each poisoned ally gains 1 Regen.",
         "element": "None",
         "target": "Self",
@@ -6347,7 +6347,7 @@
     },
     "overclock_core": {
         "id": "overclock_core",
-        "name": "Overclock Core",
+        "name": "Well of Mimir",
         "description": "Daemon (exhaust): Max Energy +1 for the rest of the battle.",
         "element": "None",
         "target": "Self",
@@ -6370,7 +6370,7 @@
     },
     "short_fuse": {
         "id": "short_fuse",
-        "name": "Short Fuse",
+        "name": "Hoarder's Toll",
         "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point.",
         "element": "None",
         "target": "Self",
@@ -6390,7 +6390,7 @@
     },
     "static_ward": {
         "id": "static_ward",
-        "name": "Static Ward",
+        "name": "Frigg's Oath",
         "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power.",
         "element": "None",
         "target": "Self",
@@ -6410,7 +6410,7 @@
     },
     "core_overclock": {
         "id": "core_overclock",
-        "name": "Core Overclock",
+        "name": "Megingjord",
         "description": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
         "element": "Fire",
         "target": "Self",
@@ -6430,7 +6430,7 @@
     },
     "cinder_armor": {
         "id": "cinder_armor",
-        "name": "Cinder Armor",
+        "name": "Emberhide",
         "description": "Daemon (exhaust): cards that add Burn also add 1 Sharp to the host.",
         "element": "Fire",
         "target": "Self",
@@ -6450,7 +6450,7 @@
     },
     "ember_ward": {
         "id": "ember_ward",
-        "name": "Ember Ward",
+        "name": "Brynhild's Ring",
         "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn.",
         "element": "Fire",
         "target": "Self",
@@ -6470,7 +6470,7 @@
     },
     "feedback_loop": {
         "id": "feedback_loop",
-        "name": "Feedback Loop",
+        "name": "Huginn's Dive",
         "description": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 7 power.",
         "element": "Water",
         "target": "Self",
@@ -6510,8 +6510,8 @@
     },
     "echo_chamber": {
         "id": "echo_chamber",
-        "name": "Echo Chamber",
-        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+        "name": "Gjallarhorn",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Tattle token in your hand.",
         "element": "Nature",
         "target": "Self",
         "category": "Daemon",
@@ -6530,7 +6530,7 @@
     },
     "thermal_overload": {
         "id": "thermal_overload",
-        "name": "Thermal Overload",
+        "name": "Surtr's Fever",
         "description": "Daemon (exhaust): your Burns deal 50% more damage. Host takes 5 Fire damage at turn end.",
         "element": "Fire",
         "target": "Self",
@@ -7396,7 +7396,7 @@
     },
     "overclock_core+": {
         "id": "overclock_core+",
-        "name": "Overclock Core+",
+        "name": "Well of Mimir+",
         "description": "Daemon (exhaust): Max Energy +1 for the rest of the battle, and gain 1 Energized now.",
         "element": "None",
         "target": "Self",
@@ -7426,7 +7426,7 @@
     },
     "short_fuse+": {
         "id": "short_fuse+",
-        "name": "Short Fuse+",
+        "name": "Hoarder's Toll+",
         "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 15 power per point.",
         "element": "None",
         "target": "Self",
@@ -7468,7 +7468,7 @@
     },
     "short_circuit+": {
         "id": "short_circuit+",
-        "name": "Short Circuit+",
+        "name": "Wisdom's Price+",
         "description": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 20 power to it.",
         "element": "None",
         "target": "Self",
@@ -7489,7 +7489,7 @@
     },
     "static_ward+": {
         "id": "static_ward+",
-        "name": "Static Ward+",
+        "name": "Frigg's Oath+",
         "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 11 power.",
         "element": "None",
         "target": "Self",
@@ -7510,7 +7510,7 @@
     },
     "core_overclock+": {
         "id": "core_overclock+",
-        "name": "Core Overclock+",
+        "name": "Megingjord+",
         "description": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
         "element": "Fire",
         "target": "Self",
@@ -7531,7 +7531,7 @@
     },
     "cinder_armor+": {
         "id": "cinder_armor+",
-        "name": "Cinder Armor+",
+        "name": "Emberhide+",
         "description": "Daemon (exhaust): cards that add Burn also add 4 Sharp to the host.",
         "element": "Fire",
         "target": "Self",
@@ -7552,7 +7552,7 @@
     },
     "ember_ward+": {
         "id": "ember_ward+",
-        "name": "Ember Ward+",
+        "name": "Brynhild's Ring+",
         "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 4 Burn.",
         "element": "Fire",
         "target": "Self",
@@ -7573,7 +7573,7 @@
     },
     "feedback_loop+": {
         "id": "feedback_loop+",
-        "name": "Feedback Loop+",
+        "name": "Huginn's Dive+",
         "description": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 10 power.",
         "element": "Water",
         "target": "Self",
@@ -7615,8 +7615,8 @@
     },
     "echo_chamber+": {
         "id": "echo_chamber+",
-        "name": "Echo Chamber+",
-        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand — two the first time each turn.",
+        "name": "Gjallarhorn+",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Tattle token in your hand — two the first time each turn.",
         "element": "Nature",
         "target": "Self",
         "category": "Daemon",
@@ -7638,7 +7638,7 @@
     },
     "reactive_plating+": {
         "id": "reactive_plating+",
-        "name": "Reactive Plating+",
+        "name": "Berserkergang+",
         "description": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 5 per turn.",
         "element": "None",
         "target": "Self",
@@ -7660,7 +7660,7 @@
     },
     "thermal_overload+": {
         "id": "thermal_overload+",
-        "name": "Thermal Overload+",
+        "name": "Surtr's Fever+",
         "description": "Daemon (exhaust): your Burns deal 75% more damage. Host takes 5 Fire damage at turn end.",
         "element": "Fire",
         "target": "Self",

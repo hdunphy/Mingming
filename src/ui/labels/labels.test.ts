@@ -71,7 +71,7 @@ describe('183 instinctName()', () => {
         expect(instinctName('ABYSSAL_INK_SYS')).toBe('Abyssal Ink');
         expect(instinctName('UNBOUND_KERNEL')).toBe('Unbound');
         expect(instinctName('GENESIS_FIRMWARE')).toBe('Ginnungagap');
-        expect(instinctName('HOOFBEAT_DAEMON+')).toBe('Hoofbeat Aura+');
+        expect(instinctName('HOOFBEAT_DAEMON+')).toBe('Hoofbeat+');
         expect(instinctName('GOSSIP_NODE')).toBe('Branch Gossip');
         // A name with no Norse entry is still re-cased and loses its machine word.
         expect(instinctName('SOME_NEW_THING_OS')).toBe('Some New Thing');

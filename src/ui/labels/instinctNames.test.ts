@@ -75,7 +75,7 @@ describe('183i Norse Instinct names', () => {
 
     it('looks a name up, and says nothing for one that is not a species Instinct', () => {
         expect(norseInstinctName('CINDER_WALL_OS')).toBe('Muspel Wall');
-        expect(norseInstinctName('SHORT_CIRCUIT')).toBeUndefined();
+        expect(norseInstinctName('SOME_NEW_THING_OS')).toBeUndefined();
         expect(norseInstinctName('toString')).toBeUndefined();
     });
 
@@ -84,8 +84,8 @@ describe('183i Norse Instinct names', () => {
         expect(plain("Hraesvelgr's UPDRAFT_KERNEL increases Max Energy by 1!")).toBe("Hraesvelgr's Stormrise increases Max Energy by 1!");
     });
 
-    it('leaves a Rune or an Aura to the old re-casing', () => {
-        expect(instinctName('SHORT_CIRCUIT')).toBe('Short Circuit');
-        expect(instinctName('HOOFBEAT_DAEMON+')).toBe('Hoofbeat Aura+');
+    it('leaves a name with no entry to the old re-casing (the Auras have their own table, ticket 192)', () => {
+        expect(instinctName('SOME_NEW_THING')).toBe('Some New Thing');
+        expect(instinctName('FAKE_DAEMON+')).toBe('Fake Aura+');
     });
 });

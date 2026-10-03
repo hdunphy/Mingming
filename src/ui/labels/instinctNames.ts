@@ -7,8 +7,7 @@
  * Four were already fine and keep their name (Unbound, Abyssal Ink, Tidal Crush, Treachery). They are
  * listed anyway so the table is the whole roster and a test can pin it.
  *
- * Only `instinctName()` in `labels.ts` reads this. Anything not listed here (a Rune, an Aura, an
- * Einherjar) is still re-cased by the old rules.
+ * Only `instinctName()` in `labels.ts` reads this. Anything not listed here is still re-cased by the old rules.
  */
 export const NORSE_INSTINCT_NAMES: Readonly<Record<string, string>> = {
     // species instinct id -> registry name : shown name
@@ -47,9 +46,57 @@ export const NORSE_INSTINCT_NAMES: Readonly<Record<string, string>> = {
     BLOOD_SCENT_OS: "Carrion Hunger",       // nidhoggr_v2
 };
 
-/** The Norse name for a registry name, or undefined when the Instinct is not a species Instinct. */
+/**
+ * TICKET 192 — THE NORSE AURA NAMES. Henry (2026-10-03, "Accept all including the feedback token").
+ * An Aura (a "Daemon" card) is named in two places: the card's own `name` in `programs.json`, which now
+ * says the Norse name outright, and the name of its entry in `hooks.json`, which stays in capitals and
+ * underscores because the log texts and the walker's output quote it. This table is the second place:
+ * the key is the hooks.json name, the value is what the player reads. A "+" card keeps its plus.
+ * Three keep their name (Einherjar Standard, Riptide, Hoofbeat); they are listed so the table is whole.
+ * Runes need no table: `patchRegistry.ts` carries their Norse names directly.
+ */
+export const NORSE_AURA_NAMES: Readonly<Record<string, string>> = {
+    DEFENSIVE_DAEMON: "Dwarf-Forged", // harden_daemon
+    "DEFENSIVE_DAEMON+": "Dwarf-Forged+",
+    FERTILE_GROUND: "Norns' Gift",    // fertile_ground_daemon
+    "FERTILE_GROUND+": "Norns' Gift+",
+    SHORT_CIRCUIT: "Wisdom's Price",  // short_circuit
+    "SHORT_CIRCUIT+": "Wisdom's Price+",
+    REACTIVE_PLATING: "Berserkergang", // reactive_plating
+    "REACTIVE_PLATING+": "Berserkergang+",
+    SCRUBBER: "Eir's Remedy",         // scrubber
+    "SCRUBBER+": "Eir's Remedy+",
+    DRIP_FEED: "Idunn's Apples",      // drip_feed
+    "DRIP_FEED+": "Idunn's Apples+",
+    OVERCLOCK_CORE: "Well of Mimir",  // overclock_core
+    "OVERCLOCK_CORE+": "Well of Mimir+",
+    SHORT_FUSE: "Hoarder's Toll",     // short_fuse
+    "SHORT_FUSE+": "Hoarder's Toll+",
+    STATIC_WARD: "Frigg's Oath",      // static_ward
+    "STATIC_WARD+": "Frigg's Oath+",
+    CORE_OVERCLOCK: "Megingjord",     // core_overclock
+    "CORE_OVERCLOCK+": "Megingjord+",
+    CINDER_ARMOR: "Emberhide",        // cinder_armor
+    "CINDER_ARMOR+": "Emberhide+",
+    EMBER_WARD: "Brynhild's Ring",    // ember_ward
+    "EMBER_WARD+": "Brynhild's Ring+",
+    FEEDBACK_LOOP: "Huginn's Dive",   // feedback_loop
+    "FEEDBACK_LOOP+": "Huginn's Dive+",
+    ECHO_CHAMBER_DAEMON: "Gjallarhorn", // echo_chamber
+    "ECHO_CHAMBER_DAEMON+": "Gjallarhorn+",
+    THERMAL_OVERLOAD: "Surtr's Fever", // thermal_overload
+    "THERMAL_OVERLOAD+": "Surtr's Fever+",
+    EINHERJAR_STANDARD: "Einherjar Standard", // einherjar_standard
+    "EINHERJAR_STANDARD+": "Einherjar Standard+",
+    RIPTIDE: "Riptide",               // riptide
+    "RIPTIDE+": "Riptide+",
+    HOOFBEAT_DAEMON: "Hoofbeat",      // hoofbeat
+    "HOOFBEAT_DAEMON+": "Hoofbeat+",
+};
+
+/** The Norse name for a registry name (a species Instinct, or an Aura's hooks.json name), or undefined when there is none. */
 export function norseInstinctName(registryName: string): string | undefined {
-    return Object.prototype.hasOwnProperty.call(NORSE_INSTINCT_NAMES, registryName)
-        ? NORSE_INSTINCT_NAMES[registryName]
-        : undefined;
+    if (Object.prototype.hasOwnProperty.call(NORSE_INSTINCT_NAMES, registryName)) return NORSE_INSTINCT_NAMES[registryName];
+    if (Object.prototype.hasOwnProperty.call(NORSE_AURA_NAMES, registryName)) return NORSE_AURA_NAMES[registryName];
+    return undefined;
 }

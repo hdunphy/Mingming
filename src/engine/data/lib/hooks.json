@@ -496,7 +496,7 @@
     "echo_chamber": {
         "id": "echo_chamber",
         "name": "ECHO_CHAMBER_DAEMON",
-        "description": "Whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+        "description": "Whenever you play a 0-cost card, generate a 0-cost Tattle token in your hand.",
         "hooks": [
             {
                 "id": "echo_chamber_daemon_hook",
@@ -515,7 +515,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s ECHO_CHAMBER_DAEMON generates Feedback!"
+                        "text": "{owner}'s Gjallarhorn generates Tattle!"
                     }
                 ]
             }
@@ -2044,7 +2044,7 @@
     "echo_chamber+": {
         "id": "echo_chamber+",
         "name": "ECHO_CHAMBER_DAEMON+",
-        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand — two the first time each turn.",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Tattle token in your hand — two the first time each turn.",
         "hooks": [
             {
                 "id": "echo_chamber_daemon_hook+",
@@ -2063,7 +2063,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s ECHO_CHAMBER_DAEMON+ generates Feedback!"
+                        "text": "{owner}'s Gjallarhorn+ generates Tattle!"
                     }
                 ]
             },

@@ -247,7 +247,7 @@ describe('Daemon System', () => {
         expect(p1?.daemons.length).toBe(0); // Should be cleared
     });
 
-    it('ECHO_CHAMBER_DAEMON should generate a Feedback token when a 0-cost card is played', () => {
+    it('ECHO_CHAMBER_DAEMON should generate a Tattle token when a 0-cost card is played', () => {
         // Override hand
         let state = {
             ...initialState,
@@ -273,9 +273,9 @@ describe('Daemon System', () => {
         };
         const nextState = battleReducer(state, playAction);
 
-        // 3. Verify that a feedback token was added to hand
+        // 3. Verify that a Tattle token (id `feedback_token`) was added to hand
         // Check logs only if the hook triggers successfully and uses the actual string provided by the hook
-        expect(nextState.logs.some(l => l.includes('ECHO_CHAMBER'))).toBe(true);
+        expect(nextState.logs.some(l => l.includes('Gjallarhorn'))).toBe(true);
         const generatedToken = nextState.playerDeck.hand.find(c => c.dataId === 'feedback_token');
         expect(generatedToken).toBeDefined();
         expect(generatedToken?.currentCost).toBe(0);

@@ -467,7 +467,7 @@ describe('MarketplaceNode', () => {
         const tiles = tilesIn(render({ ...run, deck: [...run.deck, bought.card] }));
 
         expect(tiles).toHaveLength(stockFor(run).offers.length);
-        expect(tiles[0].name).toBe(nameOf(bought.card.dataId));
+        expect(tiles[0].name).toBe(escapeHtml(nameOf(bought.card.dataId)));
         expect(tiles[0].plate).toBe('SOLD');
         expect(tiles[0].greyed).toBe(true);
         expect(tiles[0].disabled).toBe(true);
