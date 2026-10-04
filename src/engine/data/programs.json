@@ -248,7 +248,7 @@
         "description": "Gain 2 Strength. Deal 54 power.",
         "element": "Fire",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -1833,7 +1833,7 @@
         "description": "5 power. When discarded: gain 1 Energy.",
         "element": "Air",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -1862,7 +1862,7 @@
         "description": "15 power. When discarded: gain 2 Strengthened.",
         "element": "Air",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -2043,7 +2043,7 @@
         "description": "20 power. Apply 2 Weakened.",
         "element": "None",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -2071,7 +2071,7 @@
         "description": "18 power. Gain 2 Strengthened.",
         "element": "None",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
