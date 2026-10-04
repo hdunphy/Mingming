@@ -413,7 +413,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume all your Strength: 30 power per stack consumed.",
+      "text": "Consume all your Strength: 15 power per stack consumed.",
       "shape": "consume",
       "cur": "Strength",
       "status": "keep",

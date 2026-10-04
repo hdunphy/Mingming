@@ -259,8 +259,8 @@
   "id": "sun_devourer",
   "name": "Sun Devourer",
   "cost": 2,
-  "text": "Consume all your Strength: 30 power per stack consumed.",
-  "plus": "Consume all your Strength: 40 power per stack consumed.",
+  "text": "Consume all your Strength: 15 power per stack consumed.",
+  "plus": "Consume all your Strength: 20 power per stack consumed.",
   "rule": "consume: per-stack +40%"
  },
  {

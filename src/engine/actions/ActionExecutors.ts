@@ -565,7 +565,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
              * its OWN pile.
              *
              * §3's wording is *"worth one more in every payoff that reads them"*, and a consume is
-             * the payoff that reads hardest: Sun Devourer is 40 power a stack. But the patch is a
+             * the payoff that reads hardest: Sun Devourer+ is 20 power a stack (ticket 185c halved it from 40). But the patch is a
              * modifier on the body that HOLDS the currency, so it applies when the consume lands on
              * SELF (`sharp_edge`, `sun_devourer`, `bark_smash`) and not when it eats the enemy's
              * board (`crushing_depths`, `venom_glut`), which is the same line the target-side

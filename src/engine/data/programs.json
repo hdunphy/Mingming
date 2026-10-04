@@ -56,7 +56,7 @@
     "sun_devourer": {
         "id": "sun_devourer",
         "name": "Sun Devourer",
-        "description": "Consume all your Strength: 30 power per stack consumed.",
+        "description": "Consume all your Strength: 15 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -76,7 +76,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 30,
+                "power": 15,
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
@@ -8166,7 +8166,7 @@
     "sun_devourer+": {
         "id": "sun_devourer+",
         "name": "Sun Devourer+",
-        "description": "Consume all your Strength: 40 power per stack consumed.",
+        "description": "Consume all your Strength: 20 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -8187,7 +8187,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 20,
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
