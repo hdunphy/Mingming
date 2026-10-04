@@ -99,6 +99,14 @@ export type HookContext = {
      */
     action?: ProgramAction;
     /**
+     * TICKET 185b — **HP the target actually lost to THIS swing**, set at the same three per-hit
+     * sites as `action`, for the `onPostDamage` dispatch only (the board before the executor ran
+     * minus the board after, see `core/hitHpLoss.ts`). Bark Shield, temp HP and every other thing
+     * that stands between a swing and HP have already happened by then, so a fully soaked hit reads
+     * 0. Absent everywhere else, including the end-of-turn Burn and Poison ticks.
+     */
+    hpLost?: number;
+    /**
      * TICKET 171f — set by `HookFactory` while a data hook's `do` list runs, so a STATUS it applies
      * is reported as the hook's (`StatusSource.hookId`) rather than as the card that triggered it.
      * Event payload only: nothing in the battle state reads it.
@@ -126,6 +134,17 @@ export type HookCondition = {
      * asks about the CARD, this asks about the SWING.
      */
     isAttack?: boolean;
+    /**
+     * TICKET 185b — **passes when THIS swing took HP off its target.** Reads `context.hpLost`, so it
+     * is meaningful only at the per-hit `onPostDamage` dispatch; anywhere else it is false rather
+     * than accidentally true (a Burn or Poison tick is not an enemy action and never passes).
+     *
+     * Distinct from `isAttack` on purpose: that asks what KIND of swing it was, this asks whether
+     * it COST anything. A fully soaked attack passes `isAttack` and fails `hpLost`, which is the
+     * whole of Henry's "if an ally gets damaged by an enemy". `hpLost: true` is the only supported
+     * form; `false` is not a case anything needs.
+     */
+    hpLost?: boolean;
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;

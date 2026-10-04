@@ -66,6 +66,13 @@ export const ConditionValidator = {
             if ((context.action?.type === 'ATTACK') !== condition.isAttack) return false;
         }
 
+        // 1c. HP LOST Check — ticket 185b. Did THIS swing cost its target any HP? `hpLost` is set
+        // only at the per-hit onPostDamage dispatch, so everywhere else this is false rather than
+        // accidentally true. See `HookCondition.hpLost`.
+        if (condition.hpLost !== undefined) {
+            if (((context.hpLost ?? 0) > 0) !== condition.hpLost) return false;
+        }
+
         // 2. Program Checks
         if (condition.actionType && context.program) {
             // A program satisfies the actionType check if ANY of its actions match

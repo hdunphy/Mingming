@@ -145,7 +145,7 @@ dict(sp='Fenrir', el='Fire', id='fenrir_v2', os='CINDER_WALL', text='Whenever an
      kit=[('ignite',2,'A',2),('ember_jab',1,'A',1),('slag_strike',1,'A',1),('cinder_lance',1,'A',1),('sharp_edge',1,'A',0),('flashover',1,'B',0),('forage',1,'G',0)],
      pool=['inferno','molten_core','ember_ward','cinder_armor','ash_communion','heat_wave'],
      builds=[('Cinder ramp','ignite ignite ember_jab slag_strike cinder_lance sharp_edge molten_core forage'),('Burn control','ignite ignite inferno inferno molten_core flashover ember_ward forage'),('With Kraken v2','ignite ember_jab slag_strike cinder_lance sharp_edge inferno molten_core forage')]),
-dict(sp='Sköll', el='Fire', id='skoll_v1', os='TREACHERY_KERNEL', text='Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 Strength.',
+dict(sp='Sköll', el='Fire', id='skoll_v1', os='TREACHERY_KERNEL', text='Whenever an ally loses HP to an enemy, Sköll gains 1 Strength.',
      ally='fed by allies being hit; Howl gives Str back',
      laneA=('Flurry', 'Strength is added per hit — many small hits, each one bigger.'), laneB=('Pack leader', 'Keep the chip damage small, hand the Strength around.'),
      # TICKET 157-r1(b) (Henry, 2026-09-24): ONE payoff in the opening five. This kit had FOUR

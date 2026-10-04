@@ -530,7 +530,7 @@
     "skoll_v1": {
         "id": "skoll_v1",
         "name": "TREACHERY_KERNEL",
-        "description": "Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 stack of Strengthened.",
+        "description": "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength.",
         "hooks": [
             {
                 "id": "skoll_v1_hook",
@@ -538,7 +538,8 @@
                 "priority": 40,
                 "when": {
                     "source": "OPPONENT",
-                    "target": "ALLY"
+                    "target": "ALLY",
+                    "hpLost": true
                 },
                 "do": [
                     {

@@ -1408,7 +1408,7 @@
       "el": "Fire",
       "id": "skoll_v1",
       "os": "TREACHERY_KERNEL",
-      "text": "Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 Strength.",
+      "text": "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength.",
       "ally": "fed by allies being hit; Howl gives Str back",
       "laneA": [
         "Flurry",
