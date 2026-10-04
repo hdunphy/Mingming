@@ -28,7 +28,8 @@ import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { blueprintBankedModifier } from '../../engine/run/runSummary';
-import type { IRanchMember, IRunState, RunOutcome } from '../../engine/runTypes';
+import type { IRanchMember, IRanchState, IRunState, RunOutcome } from '../../engine/runTypes';
+import { MAX_TIER } from '../../engine/run/tiers/tierRegistry';
 import type { IMingmingState } from '../../engine/types';
 
 const STARTED_AT = 1_700_000_000_000;
@@ -63,11 +64,15 @@ function ended(outcome: RunOutcome, over: Partial<IRunState> = {}): IRunState {
     return { ...BASE, phase: 'ended', outcome, ...over };
 }
 
-function render(run: IRunState, endedAt = STARTED_AT + 42 * 60_000 + 13_000): string {
+function render(
+    run: IRunState,
+    endedAt = STARTED_AT + 42 * 60_000 + 13_000,
+    ranch: Partial<IRanchState> = {},
+): string {
     const store = configureStore({
         reducer: { game: gameReducer, run: runReducer },
         preloadedState: {
-            game: { ...createEmptyRanch(), roster: ROSTER },
+            game: { ...createEmptyRanch(), roster: ROSTER, ...ranch },
             run: { run },
         },
         middleware: (getDefault) => getDefault({ serializableCheck: false }),
@@ -110,9 +115,28 @@ describe('RunSummary — three large lines, led by what you kept', () => {
 
     it('says the gym is cleared on a victory and not cleared on the other two', () => {
         const gymName = GYM_REGISTRY[BASE.gymId]?.name ?? BASE.gymId;
-        expect(render(ended('victory', { tier: 1 }))).toContain(`${gymName} cleared · tier 1 unlocked`);
+        const cleared = { gymsCleared: [BASE.gymId], tierClears: { [BASE.gymId]: [0] } };
+        expect(render(ended('victory'), undefined, cleared)).toContain(`${gymName} cleared`);
         expect(render(ended('defeat'))).toContain(`${gymName} not cleared`);
         expect(render(ended('abandoned'))).toContain(`${gymName} not cleared`);
+    });
+
+    // TICKET 185f: the line names the tier the clear UNLOCKED (the one above the one cleared), read
+    // from the ranch's unlocked tiers; it used to print the tier that had just been cleared.
+    it('says the tier a clear UNLOCKED: a tier-0 clear reads "tier 1 unlocked"', () => {
+        const gymName = GYM_REGISTRY[BASE.gymId]?.name ?? BASE.gymId;
+        const cleared = { gymsCleared: [BASE.gymId], tierClears: { [BASE.gymId]: [0] } };
+        const markup = render(ended('victory', { tier: 0 }), undefined, cleared);
+        expect(markup).toContain(`${gymName} cleared · tier 1 unlocked`);
+        expect(markup).not.toContain('tier 0 unlocked');
+    });
+
+    it('says "top tier" and names no higher tier for a clear at the top tier', () => {
+        const gymName = GYM_REGISTRY[BASE.gymId]?.name ?? BASE.gymId;
+        const cleared = { gymsCleared: [BASE.gymId], tierClears: { [BASE.gymId]: [0, 1, 2, MAX_TIER] } };
+        const markup = render(ended('victory', { tier: MAX_TIER }), undefined, cleared);
+        expect(markup).toContain(`${gymName} cleared · top tier`);
+        expect(markup).not.toContain('unlocked');
     });
 
     it('has exactly three lines, whatever the outcome', () => {
