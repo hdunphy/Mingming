@@ -1,11 +1,12 @@
 # HANDOFF — first-impressions map (keep this current every session)
 
-*Last updated: 2026-10-04, after ticket 185 (the Strength nerf and reward weighting).*
+*Last updated: 2026-10-04, after ticket 193 (what the first three playtest nights found).*
 
 ## Where things stand
 
 - **Branch `first-impressions`**, started from `main` after PR #13 merged `playtest-polish`. The two 184d commits that came after the merge were carried over (`5857fef`, `ef954a6`). `playtest-polish` is finished; don't commit to it.
 - **184 is done** (184a–e, finished 2026-10-02 on this branch).
+- **193 is built** (2026-10-04). 193a–f and 193h–k are committed on this branch, one commit per row (`9782d4c`, `5ca0c60`, `146308c`, `046b685`, `e4ec4bf`, `ca9cefd`, `1d301c6`, `75f60a4`, `51400cf`, `713b9c5`), not pushed (give Henry `git push origin first-impressions`). The engine change is small (a card-less zap is not an attack, so a Driver's hook cannot crash on it); the rest is the playtester tool plus the run forecast in the game. `tsc`, `eslint src` and the whole vitest suite are green on a Linux copy except `runWalker.scrap` 174d (red on the parent too); `npm run gate` could not run there. **Henry still has to:** run `npm run gate`, run Night A and Night B (commands in the ticket's Resolution), and rule on a primed brief from their reports. See the ticket's `## Resolution`.
 - **185 is done** (2026-10-04). 185a–f (the Strength engine nerf, rewards that know your deck, the tier-unlocked line) are built and committed on this branch (`1a33f6f`, `f699f7a`, `be5c9ae`, `8a31148`, `12c3338`, `0bc056d`), plus Henry's rulings on the findings (`78727d7`, `0c7add2`), not pushed (give Henry `git push origin first-impressions`). `tsc`, `eslint src` and the whole vitest suite are green on a Linux copy except `runWalker.scrap` 174d, which fails the same way on the parent; `vite build` and `npm run gate` could not run there, so run `npm run gate` once. **Henry ruled the knock-ons too** (Adrenaline and Hamstring stay contact cards, Gullinbursti's lost priming is fine, Hexbloom+ stays a Status). **Henry still has to:** regenerate the design record's page and registry (`npm run decks`, then `python build.py`).
 - **182 is done and closed** (182a–d on this branch, last commit `507a824`, not pushed; see its Resolution). Then 183, below.
 - **183 is done and closed** (2026-10-03). 183a–h and Henry's review follow-ups were gated green on this branch (`936ae5f`); **183i** (the 33 Norse Instinct names, Henry: "accept all") is committed as `22bdff8`, UI only. Not pushed (give Henry `git push origin first-impressions`). `tsc`, `eslint src/ui` and the `src/ui` and `src/App` tests are green on a Linux copy for 183i; run `npm run gate` once locally. See its `## Resolution`. Next is 181c.
@@ -43,6 +44,7 @@ Two agents work at once **in this one folder, on branch `first-impressions`** (H
 2. When to start 180 (the agent playtester).
 3. On the other map: 170d, which walker fixes to build from 170c's ranked list.
 4. Retune the reward multipliers (×2, ×3) after play.
+5. Run the two playtest nights for 193 (haiku, then sonnet, on the 2026-10-04 seeds; commands in [193's Resolution](tickets/193-playtest-nights-findings.md)), and rule on a primed brief from their reports. Reword the forecast sentence if he wants.
 
 ## Traps on this machine
 
@@ -62,3 +64,4 @@ Two agents work at once **in this one folder, on branch `first-impressions`** (H
 - **189 status (2026-10-03): DONE.** See the line above.
 - **190 status (2026-10-03): DONE** (190a-g; 190h parked). See the line above and the ticket's Resolution.
 - **185 status (2026-10-04): DONE** (185a–f). See the line above and the ticket's Resolution.
+- **193 status (2026-10-04): BUILT** (193a–f, h–k; 193g is rulings only). The two follow-up nights are Henry's. See the line above and the ticket's Resolution.
