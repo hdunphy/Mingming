@@ -22,6 +22,7 @@ import type { IBattleState } from '../../engine/types';
 import { buildScenarioState } from '../scenarios/buildScenarioState';
 import type { ComposedSetup } from '../scenarios/scenarioSchema';
 import { applyStatJitter } from '../balance/runBatch';
+import { fightName } from './sideTag';
 
 /**
  * The walker's turn cap. `runWalker.ts` keeps it in a private `const WALK_MAX_TURNS`, and this
@@ -71,8 +72,7 @@ export interface StepResult {
     readonly hits: ReadonlyArray<HitTotal>;
 }
 
-const nameOf = (state: IBattleState, id: string): string =>
-    [...state.playerParty, ...state.enemyParty].find((e) => e.id === id)?.name ?? id;
+const nameOf = fightName;
 
 const sideOf = (state: IBattleState, id: string): 'PLAYER' | 'ENEMY' =>
     state.playerParty.some((e) => e.id === id) ? 'PLAYER' : 'ENEMY';
