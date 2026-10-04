@@ -2139,7 +2139,8 @@
                 "priority": 91,
                 "when": {
                     "source": "SELF",
-                    "actionType": "ATTACK"
+                    "actionType": "ATTACK",
+                    "programCategoryIn": ["Attack"]
                 },
                 "do": [
                     {
@@ -2159,6 +2160,7 @@
                 "when": {
                     "source": "SELF",
                     "actionType": "ATTACK",
+                    "programCategoryIn": ["Attack"],
                     "counter": {
                         "key": "tenth_strike",
                         "operator": "GTE",
@@ -2176,6 +2178,7 @@
                 "when": {
                     "source": "SELF",
                     "actionType": "ATTACK",
+                    "programCategoryIn": ["Attack"],
                     "counter": {
                         "key": "tenth_strike",
                         "operator": "GTE",
@@ -2297,7 +2300,8 @@
                 "priority": 91,
                 "when": {
                     "source": "SELF",
-                    "actionType": "ATTACK"
+                    "actionType": "ATTACK",
+                    "programCategoryIn": ["Attack"]
                 },
                 "do": [
                     {
@@ -2318,6 +2322,7 @@
                 "when": {
                     "source": "SELF",
                     "actionType": "ATTACK",
+                    "programCategoryIn": ["Attack"],
                     "counter": {
                         "key": "first_blood",
                         "operator": "EQ",
@@ -2339,6 +2344,7 @@
                 "when": {
                     "source": "SELF",
                     "actionType": "ATTACK",
+                    "programCategoryIn": ["Attack"],
                     "counter": {
                         "key": "first_blood",
                         "operator": "EQ",
@@ -2513,6 +2519,7 @@
                 "when": {
                     "source": "SELF",
                     "actionType": "ATTACK",
+                    "programCategoryIn": ["Attack"],
                     "programElement": "Dark"
                 },
                 "multiplier": 1.1
