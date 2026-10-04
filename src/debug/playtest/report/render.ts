@@ -9,7 +9,7 @@
  */
 import type { RunFact } from './facts';
 import { groupNotes } from './notes';
-import { TOP, cardTallies, commonReasons, invariantGroups, shelfTallies, surpriseGroups, upgradeTallies } from './tally';
+import { TOP, cardTallies, commonReasons, explainedTally, invariantGroups, shelfTallies, surpriseGroups, upgradeTallies } from './tally';
 
 const more = (total: number): string[] => (total > TOP ? [`- ...and ${total - TOP} more (see the logs in results).`] : []);
 const none = (items: ReadonlyArray<unknown>): string[] => (items.length === 0 ? ['None.'] : []);
@@ -45,6 +45,14 @@ function invariantSection(date: string, runs: ReadonlyArray<RunFact>): string[] 
     ];
 }
 
+/** One line for the differences a firmware or Aura accounted for (193c): counted, never listed as bugs. */
+function explainedLine(runs: ReadonlyArray<RunFact>): string[] {
+    const { total, by } = explainedTally(runs);
+    if (total === 0) return [];
+    const names = [...by.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([name, n]) => `${name} (${n})`);
+    return [`${total} explained by a firmware or Aura (not bugs, so not listed above): ${names.join(', ')}. Ticket 186d: card text stays clean and the combat log says what a firmware adds.`, ''];
+}
+
 function surpriseSection(date: string, runs: ReadonlyArray<RunFact>): string[] {
     const groups = surpriseGroups(runs);
     return [
@@ -55,6 +63,7 @@ function surpriseSection(date: string, runs: ReadonlyArray<RunFact>): string[] {
             `  Typical case: the agent expected ${json(g.prediction)} and got ${json(g.result)}. Replay: \`${replayCommand(date, g.session, g.atMove)}\``,
         ]),
         ...more(groups.length), '',
+        ...explainedLine(runs),
     ];
 }
 

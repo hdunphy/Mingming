@@ -35,7 +35,21 @@ export interface InvariantFinding {
     readonly detail: string;
 }
 
-export type Finding = SurpriseFinding | InvariantFinding;
+/**
+ * A prediction the game did not keep, because a firmware, Aura or Driver added its own effect on top
+ * (TICKET 193c). Ticket 186d ruled that card text stays clean and the log says what a firmware adds, so
+ * this is the ruling working. It is kept (the report counts them) but is not a surprise.
+ */
+export interface ExplainedFinding {
+    readonly kind: 'explained';
+    readonly atMove: number;
+    readonly subject: SurpriseFinding['subject'];
+    readonly differences: ReadonlyArray<Difference>;
+    /** The firmware / Aura / Driver names that fired and account for it. */
+    readonly by: ReadonlyArray<string>;
+}
+
+export type Finding = SurpriseFinding | InvariantFinding | ExplainedFinding;
 
 /** Record an invariant failure against the move being applied (the log has not grown by it yet). */
 export function flag(world: World, name: InvariantName, detail: string): void {

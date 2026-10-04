@@ -110,13 +110,19 @@ describe('180e — a prediction against the result', () => {
         expect(surprises(miss)).toHaveLength(1);
     });
 
-    it('a card whose effect is bigger than its text is caught: statuses are compared whole', () => {
-        // Desperate Strike's text promises one Strength; the firmware adds more on top.
+    it('a card whose effect is bigger than its text is compared whole, and a firmware\'s share is explained (193c)', () => {
+        // Desperate Strike's text promises one Strength; the firmware adds more on top. That is ticket
+        // 186d's ruling (card text stays clean, the log says what a firmware adds), so since 193c it is
+        // filed as explained by the firmware rather than as a surprise.
         const world = intoBattle();
         applyMove(world, { key: keyForCard(world, 'desperate_strike'), why: 'test', expect: { self: { Strengthened: 1 } } });
-        const [surprise] = surprises(world);
-        expect(surprise).toBeDefined();
-        if (surprise.kind === 'surprise') expect(surprise.differences[0].key).toBe('self');
+        expect(surprises(world)).toHaveLength(0);
+        const [explained] = world.findings.filter((f) => f.kind === 'explained');
+        expect(explained).toBeDefined();
+        if (explained.kind === 'explained') {
+            expect(explained.differences[0].key).toBe('self');
+            expect(explained.by.length).toBeGreaterThan(0);
+        }
     });
 
     it('compares units and statuses without regard to case or spacing', () => {

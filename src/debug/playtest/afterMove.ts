@@ -13,6 +13,7 @@
  */
 import { cardLine, macroLine } from './gameText';
 import { compare } from './expect/compare';
+import { explainDifferences } from './expect/explainedByLog';
 import { outcomeOf } from './expect/outcome';
 import { parsePrediction, PREDICTION_KEYS } from './expect/prediction';
 import { battleInvariants } from './invariants/battleInvariants';
@@ -44,8 +45,11 @@ function judgeExpectation(world: World, move: LoggedMove, atMove: number): void 
         world.view.news.push('(--expect is only checked on a card or a macro move; this move was not one.)');
         return;
     }
-    const differences = compare(parsed.prediction, outcomeOf(play), play.before);
-    if (differences.length === 0) return;
+    const allDifferences = compare(parsed.prediction, outcomeOf(play), play.before);
+    if (allDifferences.length === 0) return;
+    // 193c: a difference the game's own log explains (a firmware's or an Aura's extra effect) is filed
+    // as explained, so the report's Surprises list is only what nothing accounts for.
+    const { explained, unexplained: differences, by } = explainDifferences(play, allDifferences);
 
     const action = play.action;
     const isMacro = action.type === 'FIRE_MACRO';
@@ -53,12 +57,18 @@ function judgeExpectation(world: World, move: LoggedMove, atMove: number): void 
         ? play.before.playerDeck.hand.find((c) => c.id === action.payload.programId)?.dataId ?? action.payload.programId
         : action.type === 'FIRE_MACRO' ? action.payload.macroId : '';
     const name = cardNameFor(play.before, action) ?? dataId;
+    const subject = { type: isMacro ? 'macro' : 'card', id: dataId, name, text: isMacro ? macroLine(dataId) : cardLine(dataId) } as const;
+    if (explained.length > 0) {
+        world.findings.push({ kind: 'explained', atMove, subject, differences: explained, by });
+        world.view.news.push(`(${name} did more than its text says: ${by.join(' and ')} added to it. The combat log says what.)`);
+    }
+    if (differences.length === 0) return;
     const wanted = new Set(PREDICTION_KEYS.filter((k) => k in parsed.prediction));
     const full = outcomeOf(play) as unknown as Record<string, unknown>;
     world.findings.push({
         kind: 'surprise',
         atMove,
-        subject: { type: isMacro ? 'macro' : 'card', id: dataId, name, text: isMacro ? macroLine(dataId) : cardLine(dataId) },
+        subject,
         prediction: parsed.prediction,
         result: Object.fromEntries([...wanted].map((k) => [k, full[k]])),
         differences,
