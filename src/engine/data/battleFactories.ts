@@ -3,6 +3,7 @@ import { initializeBattleEntity } from '../types';
 import { GetProgramData } from './programRegistry';
 import { GetMingmingData } from './mingmingRegistry';
 import { applyDrivers } from './driverRegistry';
+import { tagMirrorFoes } from './mirrorNames';
 import { SeedStream, rollSeed } from '../core/SeedStream';
 import { beginTurn } from '../battleReducer';
 
@@ -303,6 +304,10 @@ export function createBattleState(
     if (enemyDrivers.length > 0) {
         enemyParty = enemyParty.map(e => applyDrivers(e, enemyDrivers));
     }
+
+    // A foe of the same species as a party member is named apart (`Kraken (foe)`), so the combat log
+    // and the board can tell a mirror fight's two units apart. Last, so nothing above sees the tag.
+    enemyParty = tagMirrorFoes(playerParty, enemyParty);
 
     // --- SHARED DECK INITIALIZATION ---
 

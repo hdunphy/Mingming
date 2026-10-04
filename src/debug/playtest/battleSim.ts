@@ -23,6 +23,7 @@ import { buildScenarioState } from '../scenarios/buildScenarioState';
 import type { ComposedSetup } from '../scenarios/scenarioSchema';
 import { applyStatJitter } from '../balance/runBatch';
 import { fightName } from './sideTag';
+import { tagMirrorFoes } from '../../engine/data/mirrorNames';
 
 /**
  * The walker's turn cap. `runWalker.ts` keeps it in a private `const WALK_MAX_TURNS`, and this
@@ -47,6 +48,8 @@ export function openBattle(input: OpenBattleInput): IBattleState {
     const built = buildScenarioState({ ...applyStatJitter(input.setup, input.seed), seed: input.seed }, 'PLAYER');
     return {
         ...built,
+        // As the game's own battle factory does: a foe of the party's species is named apart, so the combat log reads right.
+        enemyParty: tagMirrorFoes(built.playerParty, built.enemyParty),
         ...(input.enemyAiTier === undefined ? {} : { enemyAiTier: input.enemyAiTier }),
         ...(input.playerAiTier === undefined ? {} : { playerAiTier: input.playerAiTier }),
         ...(input.aiBeam === undefined ? {} : { aiBeam: input.aiBeam }),
