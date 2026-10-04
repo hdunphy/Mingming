@@ -163,7 +163,7 @@ So "1 per 3" is a nerf of roughly 85% at 21 Strength, and it leaves a 2-energy R
 
 ## Resolution
 
-Built 2026-10-04 on branch `first-impressions`, one commit per row, tests first and each shown failing on the parent: 185a `1a33f6f`, 185b `f699f7a`, 185c `be5c9ae`, 185d `8a31148`, 185e `12c3338`, 185f `0bc056d`. Not pushed.
+Built 2026-10-04 on branch `first-impressions`, one commit per row, tests first and each shown failing on the parent: 185a `1a33f6f`, 185b `f699f7a`, 185c `be5c9ae`, 185d `8a31148`, 185e `12c3338`, 185f `0bc056d`; Henry's rulings on the findings followed as `78727d7` and `0c7add2`. Not pushed.
 
 **What each row does**
 
@@ -181,15 +181,21 @@ Built 2026-10-04 on branch `first-impressions`, one commit per row, tests first 
 - **The parked gym draft (`rollDraftRounds`)** uses the same single draw with no party bias, so there is one draw in the code and not two.
 - **185f:** the line names the lowest unlocked tier above the one cleared. If the ranch shows none (the clear is not recorded yet) it says only "cleared".
 
-**Findings for Henry to rule (185a's report; nothing here was changed)**
+**Findings, and what Henry ruled (2026-10-04)**
 
-18 other hooks read `actionType: "ATTACK"` the same card-level way (the ticket counted 17). Forage and Forage+ (no element) reach only the two that have no element gate:
+18 other hooks read `actionType: "ATTACK"` the same card-level way (the ticket counted 17). Forage and Forage+ (no element) reached only the two that have no element gate, and Dark Pact (a Dark Skill that costs 3% of its max HP) reached the same two plus the Dark element Driver. Henry's rulings, built as two follow-up commits on top of the six rows (not pushed):
 
-1. **Tenth Strike** (3 hooks: count, boost, fire) and **First Blood** (3 hooks: count, fire, boost). Forage counts as one of Tenth Strike's attacks and uses up First Blood's "first attack" of the fight.
-2. **Dark Pact** (a Dark Skill with self-damage) reaches the same two, plus the Dark element Driver (`driver_element_dark_boost`).
-3. Not reached: `gullin_v2_ram` (Earth), `sleipnir_v2_hook` (Air), `einherjar_standard_hook` (Light) and the other eight element Drivers, because each is gated on an element Forage does not have.
+1. **"They should not read forage"** (`78727d7`). Tenth Strike (count, boost, fire) and First Blood (count, fire, boost) now also require `programCategoryIn: ["Attack"]`.
+2. **Dark Pact "works similarly" so it gets the same fix** (`78727d7`). It does (its ATTACK action is aimed at the caster), so the Dark Driver's boost hook has the same condition. The other eight element Drivers, `gullin_v2_ram` (Earth), `sleipnir_v2_hook` (Air) and `einherjar_standard_hook` (Light) never reached either card, because each is gated on an element they do not have, so they are unchanged.
+3. **The five damaging Skills: "are they mislabeled? Attacks are something that deals damage to an enemy"** (`0c7add2`). They are: Overdrive (54 power), Hamstring (20), Adrenaline (18), Feather Cache (5) and War Molt (15) each have an enemy-targeted ATTACK action. They are now Attack cards, so they feed fenrir_v1 again. Forage and Dark Pact stay Skills, because their damage is aimed at the caster. A rule test (`skillsThatHitAreAttacks.test.ts`) reads the whole registry and fails if any Skill carries an enemy-aimed damage action.
 
-A different side effect of 185a: Skills that really hit a target no longer feed fenrir_v1 either. They are Overdrive (54 power, and it gives Strength itself), Hamstring, Adrenaline, Feather Cache and War Molt. Henry rules whether any should count.
+Knock-ons of ruling 3 that Henry did not ask for and may want to look at:
+
+- **Contact cards (190c):** Adrenaline and Hamstring are single-target element None Attacks, so they now run in and hit like Tackle; the pinned list is thirteen, not eleven.
+- **Gullinbursti's UNSTOPPABLE_MASS** primes on a non-Attack card that applies a status. Hamstring, Adrenaline and Overdrive used to prime it and now do not, because they are Attacks. His own v1 deck holds none of them, but a run can draft them.
+- **Hexbloom+** is a Status card that also deals 7 power per Weakened to the target. Its base card is a Status that deals none, so it was left alone.
+- Their card banner reads ATTACK instead of SKILL.
+- No pinned walker hash moved.
 
 **Seeds that moved**
 
@@ -200,4 +206,4 @@ A different side effect of 185a: Skills that really hit a target no longer feed 
 
 **Checked:** `tsc -b` and `eslint src` clean; the engine suite green at each of rows a-d (2,018, 2,029, 2,035 and 2,054 tests); the whole suite run on the finished tree, where the only red test is `runWalker.scrap` 174d, which fails the same way on the parent.
 
-**Henry still has to:** run `npm run gate` once (`vite build` and the whole gate could not run in the Linux copy), and regenerate the design record's page and registry on his machine (`npm run decks`, then `python build.py`): `collection.json` and the card texts changed, and `registry.json` and `browser.html` were not touched. Then rule the findings above, and retune the two multipliers after play.
+**Henry still has to:** run `npm run gate` once (`vite build` and the whole gate could not run in the Linux copy), and regenerate the design record's page and registry on his machine (`npm run decks`, then `python build.py`): `collection.json` and the card texts changed, and `registry.json` and `browser.html` were not touched. Then retune the two multipliers after play.
