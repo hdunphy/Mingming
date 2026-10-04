@@ -23,6 +23,7 @@
  *   npm run playtest:night -- --starter kraken_v1  every session plays this starter (default: all twelve in turn)
  *   npm run playtest:night -- --max-usd 1          a dollar cap per session (default 3)
  *   npm run playtest:night -- --date 2026-10-02    resume or redo a particular night
+ *   npm run playtest:night -- --brief docs/playtest/other.md   give the driver another brief (193i)
  *   npm run playtest:night -- --date 2026-10-06 --seed-date 2026-10-04   a new night on 10-04's seeds (193k)
  *   npm run playtest:night -- --dry-run            print the plan and each driver command, run nothing
  *   npm run playtest:night -- --no-report          skip the morning report at the end
@@ -77,6 +78,8 @@ export function parseNightArgs(argv, today = todayLocal()) {
         maxTurns: number('max-turns', DEFAULTS.maxTurns),
         maxUsd: number('max-usd', DEFAULTS.maxUsd),
         starter: typeof flags.starter === 'string' ? flags.starter : undefined,
+        // 193i: another brief for the driver (the default is docs/playtest/agent-player.md)
+        briefPath: typeof flags.brief === 'string' ? flags.brief : undefined,
         // 193k: name the seeds after another night's date, to play that night's worlds again in a new folder
         seedDate: typeof flags['seed-date'] === 'string' ? flags['seed-date'] : undefined,
         // one session is a trial: play it in run mode, the cheap one, unless card mode is asked for
@@ -235,6 +238,19 @@ export async function runNight(options, deps, root = DEFAULTS.resultsRoot) {
     return done;
 }
 
+/**
+ * What the night prints, one line each. 193i: when EVERY planned session was already finished, the
+ * first line says so and how to get a fresh night, because a column of "already done" lines does not.
+ */
+export function summaryLines(done, options) {
+    const lines = done.map((d) => `${d.session}: ${d.skipped ? 'already done' : d.dryRun ? d.command : `${d.minutes} min${d.timedOut ? ' (hit the time limit)' : ''}${d.tokens ? `, ${d.tokens} tokens` : ''}`}`);
+    if (done.length > 0 && done.every((d) => d.skipped)) {
+        const folder = path.posix.join('results', 'playtest', options.date);
+        lines.unshift(`Every session for ${options.date} is already finished; use --date <new date> for a fresh night, or delete ${folder}.`);
+    }
+    return lines;
+}
+
 async function main() {
     const options = parseNightArgs(process.argv.slice(2));
     const deps = realDeps(options);
@@ -243,7 +259,7 @@ async function main() {
         process.stdout.write(`${plan.map((e) => `${e.session}: seed ${e.seed}, ${e.starter}, gym ${e.gym}, ${e.mode} mode`).join('\n')}\n`);
     }
     const done = await runNight(options, deps);
-    for (const d of done) process.stdout.write(`${d.session}: ${d.skipped ? 'already done' : d.dryRun ? d.command : `${d.minutes} min${d.timedOut ? ' (hit the time limit)' : ''}${d.tokens ? `, ${d.tokens} tokens` : ''}`}\n`);
+    process.stdout.write(summaryLines(done, options).map((line) => `${line}\n`).join(''));
     if (options.report && !options.dryRun) {
         const result = spawnSync('npm', ['run', '--silent', 'playtest:report', '--', options.date], { encoding: 'utf8', shell: onWindows });
         process.stdout.write(result.stdout ?? '');
