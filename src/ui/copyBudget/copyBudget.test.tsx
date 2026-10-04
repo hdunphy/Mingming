@@ -25,6 +25,10 @@ import WorkshopNode from '../screens/WorkshopNode';
 import EventNode from '../screens/EventNode';
 import GauntletNode from '../screens/GauntletNode';
 import RunSummary from '../screens/RunSummary';
+import RunStart from '../screens/RunStart';
+import { runForecast } from '../../engine/run/runForecast';
+import { gymSignatures } from '../../engine/run/gauntlet';
+import { plain } from '../labels/labels';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { ALL_TIP_IDS } from '../../engine/tips';
@@ -184,4 +188,31 @@ describe('the copy budget - shops, den, event, gym gate, run summary', () => {
             expect(problem(<RunSummary run={run} endedAt={1} />)).toBeNull();
         });
     }
+});
+
+/*
+ * TICKET 193j — the run-start screen's one paragraph is the run forecast, and each gym card's hover
+ * carries the forecast's detail lines, boss rule included.
+ */
+describe('the copy budget - the run-start screen (193j)', () => {
+    const markup = render(<RunStart />, { ...createEmptyRanch(), roster: [createRanchMember('kraken', 'kraken_v1')] });
+    const forecast = runForecast(offerGyms('any-seed')[0].biomes, 'gym_emberfall');
+
+    it('is inside the budget', () => {
+        expect(budgetProblem(readCopy(markup))).toBeNull();
+    });
+
+    it('its one paragraph is the forecast, not the old one-liner', () => {
+        expect(readCopy(markup).paragraphs).toEqual([forecast.sentence]);
+        expect(markup).not.toContain('Beat the gym leader at the end of the road.');
+    });
+
+    it('each gym card\'s hover has the gauntlet shape and that gym\'s boss rule', () => {
+        const hovers = [...markup.matchAll(/title="([^"]*)"/g)].map((m) => m[1].replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"'));
+        for (const offer of offerGyms('any-seed')) {
+            const [signature] = gymSignatures(offer.gym.id, offer.biomes);
+            const line = plain(`Boss rule, ${signature.name}: ${signature.description}`);
+            expect(hovers.some((h) => h.includes(line) && /fights in a row/.test(h)), offer.gym.id).toBe(true);
+        }
+    });
 });
