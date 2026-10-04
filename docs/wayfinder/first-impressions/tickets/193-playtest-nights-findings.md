@@ -184,7 +184,8 @@
 - **All three gyms have an authored boss.** The ticket said Tidewrack and Rootfall use the one-species-per-biome formula; `bosses.ts` authors all three, so every gym's hover reads its boss rule from that table. The one-per-biome wording is kept as the fallback for a gym with no authored boss and is tested with an invented gym id. The boss team's species are not named in the forecast (ticket 68 ruling 4 telegraphs the rule; the scout shows the team mid-run).
 - **The forecast sentence is a draft for Henry to reword.** Today it reads: *"Two elites guard the road to the gym, where three fights come back to back with only light repairs between. Bring a full team."* (126 characters.) It says "light repairs" because ticket 173 repairs 30% between gauntlet fights, so "no healing" would be untrue. The count, the fights and the repair come from the game's own constants, so a longer gauntlet or a 0% repair changes the sentence; the words are in one function, `sentenceFor` in `runForecast.ts`.
 - **An Elite is not marked HIGH RISK** (193e): the real map does not mark one, and the agent should see what a player sees.
-- **The real combat log has the same mirror ambiguity** that 193f fixed in the tool. That is a wording row for the UI and was not changed.
+- **The real combat log's mirror ambiguity is fixed too** (follow-up, commit `237faa8`). The enemy side is renamed when the battle is built (`tagMirrorFoes`, used by `createBattleState` and the playtester's `openBattle`), so the log, the nameplate and the tool all say `Kraken (foe)`. Enemy-versus-enemy duplicates are not renamed.
+- **The playtester now prints the game's words** (follow-up, commit `a7f3264`): firmware, card, macro, patch and Driver names and the relayed combat log go through the UI's `plain()`, so the agent reads Instinct, Aura, Alert and the Norse names as a player does. **This changes what the agent sees against the 2026-10-04 baseline.** For a pure A/B on the old words, revert that one commit before Night A.
 - **A firmware's explained share can hide a same-kind real bug in the same play.** The report counts how many differences were explained, by what, so a rising count is visible.
 - **The HP note on the status line** appears on every non-gauntlet screen while any member reads full. The token cost is small.
 - **The 2026-10-02 r01 replay could not be run to confirm the crash is gone**: that session was recorded before ticket 176's map, so its first move names a node the current map does not have. The nine tests in `cardlessZap.test.ts` (all red on the parent) are the proof instead.
@@ -194,7 +195,7 @@
 
 1. Run `npm run gate`.
 2. Look at the forecast sentence and reword it if he wants (`sentenceFor` in `src/engine/run/runForecast.ts`).
-3. Run Night A, then Night B, from the repo (the 2026-10-04 night is the baseline; do not change balance between them):
+3. Run Night A, then Night B, with one command from Git Bash (the 2026-10-04 night is the baseline; do not change balance between them): `bash scripts/overnight.sh` (follow-up, commit `15eaad2`; it checks the tool first, then plays both nights, and `DRY_RUN=1 bash scripts/overnight.sh` shows the plan without playing). The script runs exactly these:
    - `npm run playtest:night -- --date 2026-10-06 --seed-date 2026-10-04 --runs 9 --starter kraken_v1 --card-runs 0 --model haiku`
    - `npm run playtest:night -- --date 2026-10-06-sonnet --seed-date 2026-10-04 --runs 9 --starter kraken_v1 --card-runs 0 --model sonnet`
    - `npm run playtest:report -- 2026-10-06` and `npm run playtest:report -- 2026-10-06-sonnet`
