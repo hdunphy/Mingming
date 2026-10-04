@@ -14,6 +14,7 @@ import { resolveDriverStake, partyElementsOf } from '../../../engine/run/driverS
 import { rivalElementPlan, FIGHT_KINDS, surveyedEncounterLine } from '../../../engine/run/encounter';
 import { GetMingmingData } from '../../../engine/data/mingmingRegistry';
 import { PARTY_SIZE } from '../../../engine/party';
+import { AMBUSH_RISK } from '../../../engine/run/ambushRisk';
 import { isMarketNode } from '../../../engine/run/marketplace';
 import { isWorkshopNode } from '../../../engine/run/workshop';
 import type { IRegionNode } from '../../../engine/runTypes';
@@ -43,6 +44,8 @@ export function describeNode(world: World, laid: LaidOutNode): string {
         const elements = rival.length > 0 ? rival : (run.biomes[node.biomeIndex]?.elements ?? []);
         if (elements.length > 0) parts.push(elements.join(' + '));
     }
+    // 193e: the real map marks an Ambush; the tool called its Driver a bonus and an agent walked in.
+    if (node.kind === 'ambush') parts.push(AMBUSH_RISK);
     if (node.driverStake) {
         const party = partyOf(world).map((m) => GetMingmingData(m.definitionId));
         parts.push(`${node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${driverName(resolveDriverStake(node.driverStake, partyElementsOf(party)))}`);

@@ -58,6 +58,7 @@ import './RegionMap.css';
 import { Icon } from '../theme/Icon';
 import { iconPaths } from '../theme/icons';
 import { resolveDriverStake } from '../../engine/run/driverStakes';
+import { AMBUSH_RISK } from '../../engine/run/ambushRisk';
 import { driverText } from '../labels/driverText';
 
 const ELEMENT_COLOR: Record<string, string> = {
@@ -226,7 +227,7 @@ export default function RegionMap({
          * reading is that it is harder than the elite — so it says so, and calls the Driver its
          * bonus rather than its exam.
          */
-        if (laid.node.kind === 'ambush') parts.push('HIGH RISK — they outnumber you');
+        if (laid.node.kind === 'ambush') parts.push(AMBUSH_RISK);
         if (laid.node.driverStake) {
             parts.push(`${laid.node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${stakeName(laid.node.driverStake)}`);
         }
