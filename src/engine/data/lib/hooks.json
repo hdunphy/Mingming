@@ -72,7 +72,10 @@
                 "priority": 40,
                 "when": {
                     "source": "SELF",
-                    "actionType": "ATTACK"
+                    "actionType": "ATTACK",
+                    "programCategoryIn": [
+                        "Attack"
+                    ]
                 },
                 "do": [
                     {
@@ -98,7 +101,10 @@
                 "priority": 41,
                 "when": {
                     "source": "ALLY",
-                    "actionType": "ATTACK"
+                    "actionType": "ATTACK",
+                    "programCategoryIn": [
+                        "Attack"
+                    ]
                 },
                 "do": [
                     {

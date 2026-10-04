@@ -10,14 +10,18 @@
  *
  * The fights are named in `aiDeterminismFights.ts`. 10 × 1v1 and 10 × 2v2 against gym-boss members
  * run in a few seconds; the real-size 3v3 set is too slow for a gate and was checked by hand.
+ *
+ * RE-PINNED ON PURPOSE, TICKET 185 (a game change, not a refactor):
+ *   - 185a (only Attack cards feed UNBOUND_KERNEL): fights 0, 9, 10 and 14 have a fenrir_v1 in them,
+ *     and a Skill that used to feed it no longer does.
  */
 import { describe, it, expect } from 'vitest';
 import { determinismFights, hashOfFight } from './aiDeterminismFights';
 
 const EXPECTED: ReadonlyArray<string> = [
-    '4250cca4', '55457196', 'fbc0942a', '899c7f5b', '3cecc5b0',
-    '5781866a', 'c9c7121e', '8239b8e9', '94dea59d', '306eb1fb',
-    '92686876', 'a257050a', '6e46de2c', '4cdecdef', 'bd34728e',
+    'a5afe12b', '55457196', 'fbc0942a', '899c7f5b', '3cecc5b0',
+    '5781866a', 'c9c7121e', '8239b8e9', '94dea59d', 'c82ee87b',
+    'c1a2bbe6', 'a257050a', '6e46de2c', '4cdecdef', 'dea86e21',
     'f3e7ce8c', 'ba65bd3c', '4ad363e0', 'a26679b1', 'ce42103a',
 ];
 
