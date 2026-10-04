@@ -9,6 +9,7 @@
  */
 import type { RunFact } from './facts';
 import { groupNotes } from './notes';
+import { partyTable } from './partyTable';
 import { TOP, cardTallies, commonReasons, explainedTally, invariantGroups, shelfTallies, surpriseGroups, upgradeTallies } from './tally';
 
 const more = (total: number): string[] => (total > TOP ? [`- ...and ${total - TOP} more (see the logs in results).`] : []);
@@ -32,7 +33,7 @@ function summary(date: string, runs: ReadonlyArray<RunFact>): string[] {
     const spend = tokens > 0 || minutes > 0
         ? ` The driver reported ${tokens.toLocaleString('en-US')} tokens, ${Math.round(minutes)} minutes${cost > 0 ? ` and about $${cost.toFixed(2)}` : ''} in all.`
         : '';
-    return [`# Agent playtest night, ${date}`, '', `${parts.join(', ')}.${spend}`, ''];
+    return [`# Agent playtest night, ${date}`, '', `${parts.join(', ')}.${spend}`, '', ...partyTable(runs)];
 }
 
 function invariantSection(date: string, runs: ReadonlyArray<RunFact>): string[] {
@@ -77,7 +78,7 @@ function runsSection(runs: ReadonlyArray<RunFact>): string[] {
                 driver?.tokens === undefined ? null : `${driver.tokens.toLocaleString('en-US')} tokens`,
                 driver?.minutes === undefined ? null : `${Math.round(driver.minutes)} minutes${driver.timedOut ? ' (hit the time limit)' : ''}`,
             ].filter(Boolean).join(', ');
-            return `- ${r.session}: ${r.starter}, gym ${r.gym}, ${r.header.mode} mode. ${r.outcome}; ${plural(r.fights, 'fight')} won, biome ${r.biome}, ${plural(r.deckSize, 'card')} in the deck, ${r.scrap} scrap left, ${plural(r.decisions, 'decision')}${spend ? `, ${spend}` : ''}.`;
+            return `- ${r.session}: ${r.starter}, gym ${r.gym}, ${r.header.mode} mode. ${r.outcome}; ${plural(r.fights, 'fight')} won, biome ${r.biome}, ${plural(r.deckSize, 'card')} in the deck, ${r.scrap} scrap left, party of ${r.partySize}, ${plural(r.blueprints, 'blueprint')} unspent, ended at ${r.endedAt}, ${plural(r.decisions, 'decision')}${spend ? `, ${spend}` : ''}.`;
         }), '',
     ];
 }

@@ -13,6 +13,7 @@ import { GYM_REGISTRY } from '../../../engine/run/gyms';
 import type { Finding } from '../findings';
 import { firmwareName } from '../gameText';
 import { currentScreen } from '../screen';
+import { endFactsOf, type EndFacts } from './endFacts';
 import { readSession, sessionPath } from '../sessionFile';
 import type { MoveAbout, SessionFile } from '../types';
 import { runOf } from '../types';
@@ -41,7 +42,7 @@ export interface DriverFact {
     readonly timedOut?: boolean;
 }
 
-export interface RunFact {
+export interface RunFact extends EndFacts {
     readonly session: string;
     readonly header: SessionFile;
     /** The firmware the run started on, and the gym it was heading for, as the game names them. */
@@ -97,6 +98,7 @@ export function gatherRun(root: string, name: string): RunFact {
     for (const note of session.notes) notes.push({ text: note.text, screen: screenBefore[note.atMove] ?? finalScreen });
 
     const run = runOf(world);
+    const ended = endFactsOf(world);
     const here = run.nodes.find((n) => n.id === run.currentNodeId);
     const biomeIndex = here?.biomeIndex ?? 0;
     return {
@@ -109,6 +111,7 @@ export function gatherRun(root: string, name: string): RunFact {
         biome: `${biomeIndex + 1} of ${run.biomes.length}${run.biomes[biomeIndex] ? ` (${run.biomes[biomeIndex].name})` : ''}`,
         deckSize: run.deck.length,
         scrap: run.scrap,
+        ...ended,
         decisions: session.moves.filter((m) => m.chained !== true).length,
         findings: world.findings,
         notes,

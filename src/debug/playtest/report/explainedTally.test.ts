@@ -14,6 +14,7 @@ const explained = (by: string[]): Finding => ({ kind: 'explained', atMove: 3, su
 const run = (findings: Finding[]): RunFact => ({
     session: 'r01', header: { seed: 's', starter: 'kraken_v1', gymIndex: 0, mode: 'run', tier: 0, modifiers: [], moves: [], notes: [] } as never,
     starter: 'Kraken', gym: 'Emberfall', outcome: 'unfinished', fights: 0, biome: '1 of 3', deckSize: 10, scrap: 0, decisions: 0,
+    partySize: 1, blueprints: 0, endedAt: 'Elite', reachedGym: false,
     findings, notes: [], choices: [], shelfOffers: [],
 });
 
