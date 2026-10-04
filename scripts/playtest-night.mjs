@@ -23,6 +23,7 @@
  *   npm run playtest:night -- --starter kraken_v1  every session plays this starter (default: all twelve in turn)
  *   npm run playtest:night -- --max-usd 1          a dollar cap per session (default 3)
  *   npm run playtest:night -- --date 2026-10-02    resume or redo a particular night
+ *   npm run playtest:night -- --date 2026-10-06 --seed-date 2026-10-04   a new night on 10-04's seeds (193k)
  *   npm run playtest:night -- --dry-run            print the plan and each driver command, run nothing
  *   npm run playtest:night -- --no-report          skip the morning report at the end
  *   npm run playtest:night -- --card-runs 1 --turn-runs 0   how many sessions are card / turn mode
@@ -76,6 +77,8 @@ export function parseNightArgs(argv, today = todayLocal()) {
         maxTurns: number('max-turns', DEFAULTS.maxTurns),
         maxUsd: number('max-usd', DEFAULTS.maxUsd),
         starter: typeof flags.starter === 'string' ? flags.starter : undefined,
+        // 193k: name the seeds after another night's date, to play that night's worlds again in a new folder
+        seedDate: typeof flags['seed-date'] === 'string' ? flags['seed-date'] : undefined,
         // one session is a trial: play it in run mode, the cheap one, unless card mode is asked for
         cardRuns: number('card-runs', runs > 1 ? DEFAULTS.cardRuns : 0),
         turnRuns: number('turn-runs', DEFAULTS.turnRuns),
@@ -177,9 +180,16 @@ function playtest(args) {
     return { code: result.status ?? 1, out: `${result.stdout ?? ''}${result.stderr ?? ''}` };
 }
 
+/** The `plan` command's arguments for these options (193k adds `--seed-date`). */
+export const planArgs = (options) => [
+    'plan', '--date', options.date, '--runs', String(options.runs), '--card-runs', String(options.cardRuns), '--turn-runs', String(options.turnRuns),
+    ...(options.starter ? ['--starter', options.starter] : []),
+    ...(options.seedDate ? ['--seed-date', options.seedDate] : []),
+];
+
 export const realDeps = (options) => ({
     plan: () => {
-        const result = playtest(['plan', '--date', options.date, '--runs', String(options.runs), '--card-runs', String(options.cardRuns), '--turn-runs', String(options.turnRuns), ...(options.starter ? ['--starter', options.starter] : [])]);
+        const result = playtest(planArgs(options));
         if (result.code !== 0) throw new Error(`could not plan the night: ${result.out}`);
         return JSON.parse(result.out);
     },
