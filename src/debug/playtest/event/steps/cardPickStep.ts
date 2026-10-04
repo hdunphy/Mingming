@@ -10,8 +10,8 @@ export function cardPickStep({ ctx, outcome, slot, take }: StepInput): Section {
     const offer = offerCards(ctx, { count: outcome.count, rarities: outcome.rarities as Rarity[] }, slot);
     const lines = ['PICK ONE CARD:', ...offer.map((id) => `  ${cardLine(id)}`)];
     const moves = offer.flatMap((cardId) => [
-        { key: `event:take:${cardId}`, label: `Take ${cardName(cardId)} into the deck`, apply: () => take({ cardId, toCollection: false }) },
-        { key: `event:store:${cardId}`, label: `Send ${cardName(cardId)} to the collection`, apply: () => take({ cardId, toCollection: true }) },
+        { key: `event:take:${cardId}`, label: `Take ${cardName(cardId)} into the deck`, apply: () => take({ cardId, toCollection: false, offered: offer }) },
+        { key: `event:store:${cardId}`, label: `Send ${cardName(cardId)} to the collection`, apply: () => take({ cardId, toCollection: true, offered: offer }) },
     ]);
     return { lines, moves };
 }

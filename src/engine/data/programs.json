@@ -61,6 +61,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Strength",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -90,6 +92,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -153,6 +157,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -272,6 +278,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -356,6 +364,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -408,6 +418,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -435,6 +447,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -466,6 +480,8 @@
         "target": "Single",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -498,6 +514,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -602,6 +620,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -648,6 +668,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -671,6 +693,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Energy",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -699,6 +723,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Energy",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -744,6 +770,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -773,6 +801,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -796,6 +826,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -830,6 +862,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -858,6 +892,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -886,6 +922,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1015,6 +1053,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1044,6 +1084,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1072,6 +1114,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1101,6 +1145,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "glue",
+        "cur": "Energy",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1133,6 +1179,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1156,6 +1204,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1213,6 +1263,8 @@
         "target": "Single",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1241,6 +1293,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1292,6 +1346,8 @@
         "target": "Self",
         "category": "Heal",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1320,6 +1376,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "—",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1349,6 +1407,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1488,6 +1548,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1582,6 +1644,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1661,6 +1725,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3512,6 +3578,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3560,6 +3628,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "glue",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3587,6 +3657,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3635,6 +3707,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3697,6 +3771,8 @@
         "target": "Self",
         "category": "Heal",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -3726,6 +3802,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -3750,6 +3828,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -3805,6 +3885,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3841,6 +3923,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3909,6 +3993,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "cards",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -3936,6 +4022,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Dazed",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3996,6 +4084,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -4019,6 +4109,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -4047,6 +4139,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Weakened",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -4105,6 +4199,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Bark",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -4134,6 +4230,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "converter",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -4169,6 +4267,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -4739,6 +4839,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -5855,6 +5957,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -5905,6 +6009,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -5980,6 +6086,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "hate",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6000,6 +6108,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "hate",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6020,6 +6130,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6161,6 +6273,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6185,6 +6299,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6208,6 +6324,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Bark",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6231,6 +6349,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6263,6 +6383,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6286,6 +6408,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "—",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6308,6 +6432,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6331,6 +6457,8 @@
         "allyTarget": true,
         "category": "Heal",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "—",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6354,6 +6482,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6377,6 +6507,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "hate",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6397,6 +6529,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "hate",
+        "cur": "statuses",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6417,6 +6551,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6437,6 +6573,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "converter",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6457,6 +6595,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6477,6 +6617,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6497,6 +6639,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6517,6 +6661,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6537,6 +6683,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6558,6 +6706,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6586,6 +6736,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6617,6 +6769,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6644,6 +6798,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6677,6 +6833,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6700,6 +6858,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6723,6 +6883,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Weakened",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6757,6 +6919,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "consume",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6786,6 +6950,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6811,6 +6977,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -6839,6 +7007,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6872,6 +7042,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6906,6 +7078,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6934,6 +7108,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "consume",
+        "cur": "Poison",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6963,6 +7139,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Energy",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -6985,6 +7163,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -7017,6 +7197,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -7041,6 +7223,8 @@
         "allyTarget": true,
         "category": "Heal",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -7070,6 +7254,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -7094,6 +7280,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -7123,6 +7311,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -7152,6 +7342,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -7182,6 +7374,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Weakened",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -7208,6 +7402,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Bark",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -7231,6 +7427,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "consume",
+        "cur": "Bark",
         "baseCost": 2,
         "constraints": [
             "not_stunned",

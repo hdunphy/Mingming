@@ -52,7 +52,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import runReducer, {
     startRun, enterNode, resolveEncounter, endRun, addRunScrap, addRunCards, addRunCollection,
     buyMarketCard, recruitIntoParty, beginGauntlet, advanceGauntlet, finishGauntlet,
-    recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
+    recordFightBlueprintOutcome, recordCardOffer, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
 } from '../../ui/store/runSlice';
 import { junkToRemove } from './junkPolicy';
 import { chooseDraftPickBest, type DraftPolicy } from './draftPolicy';
@@ -69,6 +69,7 @@ import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { createIntroRun } from '../../engine/run/intro/createIntroRun';
 import { introRules } from '../../engine/run/intro/introRules';
 import { rollDropTable } from '../../engine/RewardSystem';
+import { ownedCardIdsOf } from '../../engine/rewards/ownedCards';
 import { fightBonusFor } from '../../engine/run/fightBonus';
 import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold, JUNK_REMOVAL_PRICE, upgradeAllowanceFor, upgradeBenchKeyFor } from '../../engine/run/marketplace';
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
@@ -764,7 +765,7 @@ export function playEventNode(
         if (outcome.type === 'CARD_PICK') {
             const offered = offerCards(eventCtx, { count: outcome.count, rarities: outcome.rarities }, slot);
             const decision = pickFor(offered);
-            if (decision.taken !== null) picks[index] = { cardId: decision.taken, toCollection: decision.toCollection };
+            if (decision.taken !== null) picks[index] = { cardId: decision.taken, toCollection: decision.toCollection, offered };
         } else if (outcome.type === 'BLUEPRINT_PICK') {
             // A species the walker does not hold yet beats one it does: a second copy is a spare.
             const offered = offerBlueprints(eventCtx, outcome.count, slot);
@@ -1071,6 +1072,8 @@ export function walkRun(input: WalkInput): WalkResult {
             dryFights: run.blueprintDryFights ?? 0,
             bonus: fightBonusFor({ nodeKind: node.kind, biomeIndex: node.biomeIndex, biomeCount: run.biomes.length, gauntlet: null }),
             heldPatches: run.patches ?? {},
+            ownedCardIds: ownedCardIdsOf(run),
+            recentOffers: run.recentOffers ?? [],
         });
         // The walker has no macro policy (it never fires macros), so leave bundle.macroChoices unclaimed.
 
@@ -1096,6 +1099,8 @@ export function walkRun(input: WalkInput): WalkResult {
 
         for (const choice of bundle.cardChoices) {
             const offered = choice.options.map((o) => o.dataId);
+            // Ticket 185e: the shown cards are remembered whichever way the pick goes.
+            store.dispatch(recordCardOffer(offered));
             const decision = choosePick(offered, deckIds(), partyElements());
             picks.push(decision);
             if (decision.taken === null) {

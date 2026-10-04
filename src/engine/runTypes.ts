@@ -376,6 +376,17 @@ export interface IRunState {
     readonly blueprintDryFights?: number;
 
     /**
+     * TICKET 185e — **THE CARDS THE LAST TWO CARD PICKS SHOWED**, one array of card ids per pick,
+     * oldest pick first. A fight reward and an event card pick both leave their offer here (taken or
+     * skipped alike), and the next offer leaves those cards out (`rewards/recentOffers`), so the same
+     * card is not shown again straight away.
+     *
+     * Saved with the run so a resume offers the same cards the uninterrupted run would. Optional,
+     * `blueprintDryFights`' precedent: a save from before this field parses to `[]`.
+     */
+    readonly recentOffers?: ReadonlyArray<ReadonlyArray<string>>;
+
+    /**
      * How many times each marketplace node's stock has been REFRESHED, by node id.
      *
      * Ticket 142 §7 (Henry, 2026-09-11): *"make it static per run so whenever you come back it has
@@ -736,6 +747,8 @@ export const RunStateSchema = z.object({
     // run that predates the field — no fights have gone dry as far as this counter knows — so the
     // parse can supply it and every reader downstream is spared a `?? 0`.
     blueprintDryFights: z.number().int().min(0).default(0),
+    // Ticket 185e, add-only: the last two card picks' shown cards. A save without it parses to [].
+    recentOffers: z.array(z.array(z.string())).default([]),
     // Ticket 142 §7, add-only like the field above it.
     marketRefreshes: z.record(z.string(), z.number().int().min(0)).default({}),
     // Ticket 171b, add-only. `.optional()` rather than `.default({})` so a save without it reads

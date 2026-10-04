@@ -110,9 +110,11 @@ describe('170e — the walker', () => {
     // TICKET 176 (the map redesign) moved all three once, on purpose: the walks now run on towns and
     // one-way routes, so every node, fight and shop a walk meets is different. What each test holds
     // down is unchanged: leaving the option out must reproduce the same walk the modifier alone makes.
+    // TICKET 185e moved all three once, on purpose: card offers are one weighted draw now and leave out
+    // the last two picks' cards, so every walk is offered different cards from the same seed.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, string]> = [
-        ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '227ddfed9c11375e'],
-        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '894a922118a40505'],
+        ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '9e1cbbc29cfeec7d'],
+        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, 'f95299a3bf1d182c'],
     ];
 
     it.each(GOLDEN)('%s: leaving draftPolicy out reproduces the 169j Draft Start walk exactly', (seed, starter, gymIndex, hash) => {
@@ -121,7 +123,7 @@ describe('170e — the walker', () => {
 
     it('draftPolicy does nothing without the draft_start modifier', () => {
         // 170a's pinned default walk for this seed (no modifier, no option).
-        expect(hashOf(walkRun({ seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1, draftPolicy: 'best' }))).toBe('8d3268e9a8996896');
+        expect(hashOf(walkRun({ seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1, draftPolicy: 'best' }))).toBe('cbae1ed75c400704');
     });
 
     it("'best' reaches the walk: the same seed and modifier, a different run", () => {

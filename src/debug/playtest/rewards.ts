@@ -17,9 +17,10 @@ import {
 } from '../../ui/store/gameSlice';
 import {
     addDriver, addRunCards, addRunCollection, addRunScrap, advanceGauntlet, endRun, finishGauntlet, fitPatch,
-    recordBankedBlueprint, recordFightBlueprintOutcome, resolveEncounter, takeRewardMacro,
+    recordBankedBlueprint, recordCardOffer, recordFightBlueprintOutcome, resolveEncounter, takeRewardMacro,
 } from '../../ui/store/runSlice';
 import { gymClearBlueprints, rollDropTable } from '../../engine/RewardSystem';
+import { ownedCardIdsOf } from '../../engine/rewards/ownedCards';
 import { authoredBossFor } from '../../engine/run/bosses';
 import { fightBonusFor } from '../../engine/run/fightBonus';
 import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFight';
@@ -73,6 +74,8 @@ export function startRewards(world: World, node: IRegionNode, battle: IBattleSta
         firstRun: (ranch.runsCompleted ?? 0) === 0,
         ...(bonus === undefined ? {} : { bonus }),
         heldPatches: run.patches ?? {},
+        ownedCardIds: ownedCardIdsOf(run),
+        recentOffers: run.recentOffers ?? [],
     });
 
     world.store.dispatch(recordFightBlueprintOutcome({ dropped: rolled.blueprints.length > 0 }));
@@ -125,6 +128,8 @@ export function claimRewards(world: World): void {
     const forDeck: IRunCard[] = [];
     const forCollection: IRunCard[] = [];
     flow.cardChoices.forEach((choice, index) => {
+        // Ticket 185e: shown cards, taken or skipped, are left out of the next two offers.
+        store.dispatch(recordCardOffer(choice.options.map((o) => o.dataId)));
         const answer = cardAnswers[index];
         if (!answer || answer.picked === null) { news.push('Skipped a card choice.'); return; }
         const option = choice.options[answer.picked];

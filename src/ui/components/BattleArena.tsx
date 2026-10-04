@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { type RootState } from '../store/store';
@@ -52,11 +52,13 @@ import {
     finishGauntlet,
     recordBankedBlueprint,
     recordFightBlueprintOutcome,
+    recordCardOffer,
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
 import { fightBonusFor } from '../../engine/run/fightBonus';
 import { logRunEvent } from '../store/runLogMiddleware';
+import { ownedCardIdsOf } from '../../engine/rewards/ownedCards';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx } from '../hooks/useBattleVfx';
@@ -747,6 +749,9 @@ const BattleArena: React.FC = () => {
      * the effect up.
      */
     const dryFights: number = run?.blueprintDryFights ?? 0;
+    // Ticket 185e: what the run holds and what its last two picks showed, for the offer's weights.
+    const ownedCardIds = useMemo(() => (run ? ownedCardIdsOf(run) : []), [run]);
+    const recentOffers = run?.recentOffers;
 
     /**
      * TICKET 59 (Henry, 2026-09-09): the opening run pays +10 points of blueprint on every kind
@@ -845,6 +850,8 @@ const BattleArena: React.FC = () => {
                 firstRun,
                 bonus,
                 heldPatches: run?.patches ?? {},
+                ownedCardIds,
+                recentOffers,
             });
             const paid = scrapMultiplier === 1 ? rolled : { ...rolled, scraps: rolled.scraps * scrapMultiplier };
             const bundle = driverStake ? { ...paid, driver: driverStake } : paid;
@@ -857,7 +864,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, scrapMultiplier, driverStake, dryFights, firstRun, bonus, run?.patches]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, scrapMultiplier, driverStake, dryFights, firstRun, bonus, run?.patches, ownedCardIds, recentOffers]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -1070,6 +1077,8 @@ const BattleArena: React.FC = () => {
             const taken = new Set(chosenCards.map(card => card.instanceId));
             for (const choice of rewardBundle.cardChoices) {
                 const offered = choice.options.map(option => option.dataId);
+                // Ticket 185e: shown cards, taken or not, are left out of the next two offers.
+                dispatch(recordCardOffer(offered));
                 const mine = choice.options.find(option => taken.has(option.instanceId));
                 dispatch(logRunEvent(mine
                     ? { kind: 'CARD_PICKED', dataId: mine.dataId, offered }

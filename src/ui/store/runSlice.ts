@@ -86,6 +86,7 @@ import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
 import { snapshotMarketParty } from '../../engine/run/marketParty';
 import { healBetweenFights } from '../../engine/run/gauntletHeal';
 import type { IRewardPartyMember } from '../../engine/RewardSystem';
+import { rememberOffer } from '../../engine/rewards/recentOffers';
 import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { nodeRole } from '../../engine/run/regionGraph';
@@ -1628,6 +1629,20 @@ const runSlice = createSlice({
             };
         },
 
+        /**
+         * TICKET 185e — **REMEMBER THE CARDS A PICK SHOWED**, so the next offer leaves them out.
+         *
+         * Called once per card pick, a fight's or an event's, with the offered card ids, whether the
+         * player took one or skipped. Only the last `RECENT_OFFER_MEMORY` (2) picks are kept. It is
+         * written when the pick is CLAIMED and not when it is rolled, so a crash between the two
+         * re-rolls the identical offer from the identical memory.
+         */
+        recordCardOffer: (state, action: PayloadAction<ReadonlyArray<string>>): RunSliceState => {
+            const run = state.run as IRunState | null;
+            if (!run) return { run: null };
+            return { run: { ...run, recentOffers: rememberOffer(run.recentOffers ?? [], action.payload) } };
+        },
+
         recordBankedBlueprint: (state, action: PayloadAction<string>): RunSliceState => {
             const run = state.run as IRunState | null;
             if (!run) return { run: null };
@@ -1687,6 +1702,7 @@ export const {
     addDriver,
     recordBankedBlueprint,
     recordFightBlueprintOutcome,
+    recordCardOffer,
 } = runSlice.actions;
 
 /**

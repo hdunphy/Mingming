@@ -390,6 +390,8 @@ export function createRun(input: CreateRunInput): IRunState {
         // starts owing nothing is a fact worth writing down, and the field is optional only so that
         // saves written before the floor existed still parse.
         blueprintDryFights: 0,
+        // Ticket 185e: nothing has been offered yet.
+        recentOffers: [],
 
         startedAt,
     };

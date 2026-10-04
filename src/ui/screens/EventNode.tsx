@@ -108,7 +108,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         () => (pick && pickedOutcome && pickedOutcome.type === 'CARD_PICK'
             ? offerCards(ctx, { count: pickedOutcome.count, rarities: pickedOutcome.rarities as Rarity[] }, `${pick.choice.id}:${pick.outcomeIndex}`)
             : []),
-        // The offer is a function of the node and the pick; the run's other fields cannot change it.
+        // The offer is a function of the node and the pick, and of the run's cards and last picks, which do not change while a pick is open.
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [pick, node.id, node.visited, run.seed],
     );
@@ -256,7 +256,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
     if (pick && pickedOutcome && pickedOutcome.type === 'CARD_PICK') {
         const take = (): void => {
             if (selected === null) return;
-            takePick({ cardId: selected, toCollection });
+            takePick({ cardId: selected, toCollection, offered: offer });
         };
         return shell(plain(event.name).toUpperCase(), (
             <>

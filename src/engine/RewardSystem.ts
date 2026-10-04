@@ -44,6 +44,10 @@ import { createOwnedProgram } from './gameTypes';
 import { FIGHT_KINDS } from './run/encounter';
 import type { NodeKind } from './runTypes';
 import type { IBattleEntity, Element, Rarity } from './types';
+import { weighCandidates, pickByWeight } from './rewards/weightedCardPick';
+import { drawOffer } from './rewards/offerDraw';
+import { candidatesAfterRecent } from './rewards/recentOffers';
+import { offerTasteFor, type OfferTaste } from './rewards/offerTaste';
 
 // --- Rarity Distribution Constants ---
 
@@ -56,9 +60,6 @@ import type { IBattleEntity, Element, Rarity } from './types';
  */
 export const SALVAGE_CHOICES_PER_FOE = 3;
 
-/** Bounded rerolls when hunting for distinct cards within one pick-1-of-3. */
-const SALVAGE_REROLL_LIMIT = 24;
-
 /** Exported for ticket 168's event card picks, which roll rarity the way a fight reward does. */
 export const RARITY_WEIGHTS: Record<Rarity, number> = {
     'Common': 50,
@@ -66,6 +67,41 @@ export const RARITY_WEIGHTS: Record<Rarity, number> = {
     'Rare': 15,
     'Epic': 5
 };
+
+/**
+ * TICKET 185e (Henry, 2026-10-02) — **THE TWO NUMBERS THAT BEND AN OFFER TOWARD THE PARTY.**
+ *
+ * An offered card's weight is `RARITY_WEIGHTS[rarity] ÷ (cards of that rarity) × a multiplier`. The
+ * multiplier is 1 unless the card is about a currency the party's firmware runs on:
+ *
+ *   - `SYNERGY_MULTIPLIER` (×2): the card's currency (`cur`) matches a currency of ANY party firmware.
+ *   - `MISSING_PAYOFF_MULTIPLIER` (×3): the card PAYS (`shape` `scalar` or `consume`) a party currency
+ *     the run holds no payoff for yet (deck plus collection). It REPLACES the synergy multiplier, it
+ *     does not stack with it.
+ *
+ * Both are first guesses, named here so a retune after play touches one line each.
+ */
+export const SYNERGY_MULTIPLIER = 2;
+export const MISSING_PAYOFF_MULTIPLIER = 3;
+
+const OFFER_MULTIPLIERS = { synergy: SYNERGY_MULTIPLIER, missingPayoff: MISSING_PAYOFF_MULTIPLIER } as const;
+
+/**
+ * The run's say in an offer: its party's currencies, the cards it holds and the last two picks'
+ * shown cards. One call site for fights and events so they cannot drift apart.
+ */
+export function offerTasteForRun(
+    party: ReadonlyArray<IRewardPartyMember>,
+    ownedCardIds: ReadonlyArray<string>,
+    recentOffers: ReadonlyArray<ReadonlyArray<string>>,
+): OfferTaste {
+    return offerTasteFor(party, ownedCardIds, recentOffers, OFFER_MULTIPLIERS);
+}
+
+/** The rarity of a registered card, for the weighted draw. */
+export function rarityOfCard(cardId: string): Rarity | undefined {
+    return ProgramRegistry[cardId]?.rarity;
+}
 
 // ---------------------------------------------------------------------------------------------
 // Blueprint drops (ticket 12, piece 2)
@@ -593,46 +629,21 @@ export function rewardCardPool(
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Roll a card from a pool based on rarity weights.
+ * Roll ONE card from a pool: a single weighted draw (ticket 185e), where it used to roll a rarity
+ * and then pick evenly inside it. At multiplier 1 the odds are exactly the old ones.
+ *
+ * What still calls this is the parked gym draft (`rollDraftRounds`), which has no party and so no
+ * multiplier. A fight reward and an event pick go through `drawOffer` and the run's `OfferTaste`.
  */
 /*
  * TICKET 55: `nextSeed` was annotated `number` here and in `rollForEntity`, and it was WRONG — the
  * PRNG these take is constructed from `currentSeed: string | number` (see `rollDropTable`), so the
- * seed it hands back is whichever kind went in. The declaration only compiled because `PRNG` typed
- * `nextSeed` as `any`; the proof it was wrong is three lines below the second one, where the caller
- * calls `.toString()` on a value the signature claims is already a number.
+ * seed it hands back is whichever kind went in.
  */
 function rollCardFromPool(poolIds: string[], prng: PRNG): { cardId: string; nextSeed: PrngSeed } {
-    // 1. Determine rarity tier
-    const rarityRoll = prng.nextInt(1, 100);
-    const currentSeed = rarityRoll.nextSeed;
-    let selectedRarity: Rarity = 'Common';
-
-    let cumulative = 0;
-    for (const [rarity, weight] of Object.entries(RARITY_WEIGHTS)) {
-        cumulative += weight;
-        if (rarityRoll.value <= cumulative) {
-            selectedRarity = rarity as Rarity;
-            break;
-        }
-    }
-
-    // 2. Filter pool by rarity
-    let filteredPool = poolIds.filter(id => ProgramRegistry[id].rarity === selectedRarity);
-
-    // Fallback if rarity tier is empty in this pool (ensure we always have something)
-    if (filteredPool.length === 0) {
-        filteredPool = poolIds.filter(id => ProgramRegistry[id].rarity === 'Common');
-    }
-
-    // Final fallback to absolute pool if still empty
-    if (filteredPool.length === 0) {
-        filteredPool = poolIds;
-    }
-
-    // 3. Pick random card from filtered cohort
-    const cardPick = new PRNG(currentSeed).nextInt(0, filteredPool.length - 1);
-    return { cardId: filteredPool[cardPick.value], nextSeed: cardPick.nextSeed };
+    const draw = prng.next();
+    const weighted = weighCandidates(poolIds, rarityOfCard, RARITY_WEIGHTS, () => 1, 'fallToCommon');
+    return { cardId: pickByWeight(weighted, draw.value), nextSeed: draw.nextSeed };
 }
 
 /**
@@ -655,6 +666,8 @@ function rollForEntity(
     guaranteed: boolean,
     /** Ticket 59: the player has finished no runs (`blueprintRateFor`'s second modifier). */
     firstRun: boolean,
+    /** Ticket 185e: the run's multipliers and its recently shown cards. */
+    taste: OfferTaste,
 ): { blueprint: string | null; cardChoice: ICardChoice; nextSeed: PrngSeed } {
     // 1. Blueprint, at the node-kind rate. Rolled even at rate 0 and at rate 1 so the seed chain
     //    advances identically whatever the node is — an alpha and a wild consume the same number of
@@ -695,14 +708,25 @@ function rollForEntity(
     // What is NOT filtered: the run deck. A card the player already holds is still offered, because
     // the tuned decks run doubles and a second `ignite` is often the right reward
     // (`economy-session.md`: the run BUILDS toward the 20-25 cards a good 3v3 deck wants).
-    const pickedIds: string[] = [];
-    let attempts = 0;
-    while (pickedIds.length < SALVAGE_CHOICES_PER_FOE && attempts < SALVAGE_REROLL_LIMIT) {
-        attempts++;
-        const { cardId, nextSeed } = rollCardFromPool(pool, new PRNG(currentSeed));
-        currentSeed = nextSeed;
-        if (!pickedIds.includes(cardId)) pickedIds.push(cardId);
-    }
+    //
+    // TICKET 185e: ONE weighted draw per card (`drawOffer`), over the pool minus the last two picks'
+    // shown cards (let back in, oldest first, only if that would leave fewer than three). Each
+    // later card is drawn from what is left, which is the old "reroll until distinct" as a
+    // distribution. The seed chain is advanced one draw per card.
+    const candidates = candidatesAfterRecent(pool, taste.recent, SALVAGE_CHOICES_PER_FOE);
+    const pickedIds: string[] = drawOffer({
+        candidates,
+        count: SALVAGE_CHOICES_PER_FOE,
+        rarityOf: rarityOfCard,
+        rarityWeights: RARITY_WEIGHTS,
+        multiplierOf: taste.multiplierOf,
+        rule: 'fallToCommon',
+        nextU: () => {
+            const draw = new PRNG(currentSeed).next();
+            currentSeed = draw.nextSeed;
+            return draw.value;
+        },
+    });
     // Deterministic sweep for pools too small (or too rarity-lopsided) for the random draws to
     // finish, then a cyclic pad. The pad is the degenerate case only — `rewardCardPool` never
     // returns an empty pool — and it exists because a choice with fewer than one option can never
@@ -766,6 +790,17 @@ export interface IRewardRollInput {
     readonly bonus?: FightBonus;
     /** TICKET 166e: patches already held on the run's bodies (rosterId -> patchIds). */
     readonly heldPatches?: Readonly<Record<string, ReadonlyArray<string>>>;
+    /**
+     * TICKET 185e: the card ids the run holds, deck plus collection (`ownedCardIdsOf`). The
+     * missing-payoff multiplier asks whether any of them pays a party currency out. Defaults to
+     * none, which is what a debug scenario means: a run with nothing in it.
+     */
+    readonly ownedCardIds?: ReadonlyArray<string>;
+    /**
+     * TICKET 185e: the cards shown on the run's last two card picks, oldest pick first
+     * (`IRunState.recentOffers`). They are left out of this offer. Defaults to none.
+     */
+    readonly recentOffers?: ReadonlyArray<ReadonlyArray<string>>;
 }
 
 /**
@@ -825,6 +860,7 @@ export function gymClearBlueprints(bossSpecies: ReadonlyArray<string>): string[]
 
 export function rollDropTable(input: IRewardRollInput): IRewardBundle {
     const { defeated, nodeKind, party, seed, dryFights = 0, firstRun = false, heldPatches = {} } = input;
+    const taste = offerTasteForRun(party, input.ownedCardIds ?? [], input.recentOffers ?? []);
     const bonus = input.bonus !== undefined ? input.bonus : null;
 
     /*
@@ -888,7 +924,7 @@ export function rollDropTable(input: IRewardRollInput): IRewardBundle {
         // Only get rewards for fainted enemies
         if (entity.currentHp > 0) continue;
 
-        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids, bodies, pityOwed, firstRun);
+        const result = rollForEntity(entity, nodeKind, pool, new PRNG(currentSeed), ids, bodies, pityOwed, firstRun, taste);
         pityOwed = false;
 
         defeatedCount += 1;

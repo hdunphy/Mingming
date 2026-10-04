@@ -25,7 +25,7 @@ import { introRules } from '../../engine/run/intro/introRules';
 import type { IRanchState, IRegionNode, IRunCard, IRunState } from '../../engine/runTypes';
 import { addBlueprint, assembleMingming } from '../store/gameSlice';
 import {
-    addRunCards, addRunCollection, addRunScrap, addTempDriver, buyMarketCard, recordBankedBlueprint,
+    addRunCards, addRunCollection, addRunScrap, addTempDriver, buyMarketCard, recordBankedBlueprint, recordCardOffer,
     recruitIntoParty, resolveEvent, revealCurrentBiome, spendRunScrap, startEventFight, takeRewardMacro,
 } from '../store/runSlice';
 import {
@@ -108,6 +108,9 @@ function applyJunk(dispatch: OutcomeDispatch, ctx: OutcomeContext, index: number
 function applyCardPick(dispatch: OutcomeDispatch, ctx: OutcomeContext, pick: CardPickResult, price: number): void {
     const instanceId = mintInstanceId(ctx, 'event-card', 'evt');
     const card: IRunCard = { instanceId, dataId: pick.cardId, ownerId: null };
+    // Ticket 185e: the shown cards are remembered whichever one was taken. Recorded first, so a
+    // crash after it can only mean the offer is left out of the next one, never a card taken twice.
+    if (pick.offered) dispatch(recordCardOffer(pick.offered));
     // A priced pick (Data Broker) rides ONE action into the deck — the card and the scrap together,
     // as a stall purchase does. A card sent to the collection has no such action, so it is added
     // first and the price taken after: a crash between leaves the player with a free card, not robbed.
