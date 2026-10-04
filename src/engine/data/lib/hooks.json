@@ -329,16 +329,16 @@
     "core_overclock": {
         "id": "core_overclock",
         "name": "CORE_OVERCLOCK",
-        "description": "Daemon: +20% damage per stack of Strength. No cap.",
+        "description": "Daemon: +1 power for every 2 Strength you hold.",
         "hooks": [
             {
                 "id": "daemon_double_strength",
-                "trigger": "onDamageCalculated",
+                "trigger": "onPowerCalculated",
                 "priority": 40,
                 "when": {
                     "source": "SELF"
                 },
-                "multiplier": 1.2,
+                "bonus": 0.5,
                 "scaling": "STRENGTH_STACKS"
             }
         ]
@@ -1930,16 +1930,16 @@
     "core_overclock+": {
         "id": "core_overclock+",
         "name": "CORE_OVERCLOCK+",
-        "description": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+        "description": "Daemon (exhaust): +1 power for every Strength you hold.",
         "hooks": [
             {
                 "id": "daemon_double_strength+",
-                "trigger": "onDamageCalculated",
+                "trigger": "onPowerCalculated",
                 "priority": 40,
                 "when": {
                     "source": "SELF"
                 },
-                "multiplier": 1.3,
+                "bonus": 1,
                 "scaling": "STRENGTH_STACKS"
             }
         ]

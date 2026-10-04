@@ -83,8 +83,8 @@
   "id": "core_overclock",
   "name": "Core Overclock",
   "cost": 2,
-  "text": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
-  "plus": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+  "text": "Daemon (exhaust): +1 power for every 2 Strength you hold.",
+  "plus": "Daemon (exhaust): +1 power for every Strength you hold.",
   "rule": "daemon: number +40%"
  },
  {

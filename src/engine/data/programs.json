@@ -6411,7 +6411,7 @@
     "core_overclock": {
         "id": "core_overclock",
         "name": "Megingjord",
-        "description": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+        "description": "Daemon (exhaust): +1 power for every 2 Strength you hold.",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",
@@ -7511,7 +7511,7 @@
     "core_overclock+": {
         "id": "core_overclock+",
         "name": "Megingjord+",
-        "description": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+        "description": "Daemon (exhaust): +1 power for every Strength you hold.",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",

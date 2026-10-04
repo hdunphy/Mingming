@@ -28,6 +28,8 @@ for c in CARDS:
         if 'Max 3 per turn' in t: new = t.replace('Max 3 per turn', 'Max 5 per turn'); rule = 'daemon: cap widens'
         elif 'Max Energy +1' in t: new = 'Daemon (exhaust): Max Energy +1 for the rest of the battle, and gain 1 Energized now.'; rule = 'daemon: adds an immediate effect'
         elif '+20% damage per stack' in t: new = t.replace('+20%', '+30%'); rule = 'daemon: number +40%'
+        # 185d: Core Overclock became flat power (+1 per 2 Strength); its + doubles the rate (+1 per Strength).
+        elif '+1 power for every 2 Strength' in t: new = t.replace('every 2 Strength', 'every Strength'); rule = 'daemon: rate doubles'
         elif '50% more damage' in t: new = t.replace('50% more damage', '75% more damage'); rule = 'daemon: number +50%'
         elif 'also add 1 Sharp' in t: new = t.replace('1 Sharp', f'{1+k} Sharp'); rule = f'daemon: +{k} stacks (1 + cost)'
         elif 'the attacker gains 1 Burn' in t: new = t.replace('1 Burn', f'{1+k} Burn'); rule = f'daemon: +{k} stacks (1 + cost)'

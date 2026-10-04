@@ -135,7 +135,7 @@
       "el": "Fire",
       "cat": "Daemon",
       "tgt": "Self",
-      "text": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+      "text": "Daemon (exhaust): +1 power for every 2 Strength you hold.",
       "shape": "scalar",
       "cur": "Strength",
       "status": "keep"
