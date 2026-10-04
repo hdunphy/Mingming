@@ -189,7 +189,7 @@ Built 2026-10-04 on branch `first-impressions`, one commit per row, tests first 
 2. **Dark Pact "works similarly" so it gets the same fix** (`78727d7`). It does (its ATTACK action is aimed at the caster), so the Dark Driver's boost hook has the same condition. The other eight element Drivers, `gullin_v2_ram` (Earth), `sleipnir_v2_hook` (Air) and `einherjar_standard_hook` (Light) never reached either card, because each is gated on an element they do not have, so they are unchanged.
 3. **The five damaging Skills: "are they mislabeled? Attacks are something that deals damage to an enemy"** (`0c7add2`). They are: Overdrive (54 power), Hamstring (20), Adrenaline (18), Feather Cache (5) and War Molt (15) each have an enemy-targeted ATTACK action. They are now Attack cards, so they feed fenrir_v1 again. Forage and Dark Pact stay Skills, because their damage is aimed at the caster. A rule test (`skillsThatHitAreAttacks.test.ts`) reads the whole registry and fails if any Skill carries an enemy-aimed damage action.
 
-Knock-ons of ruling 3 that Henry did not ask for and may want to look at:
+Knock-ons of ruling 3 that Henry did not ask for. He looked at them the same day and ruled each (a contact card is kept, the Gullinbursti change is fine, Hexbloom+ stays a Status):
 
 - **Contact cards (190c):** Adrenaline and Hamstring are single-target element None Attacks, so they now run in and hit like Tackle; the pinned list is thirteen, not eleven.
 - **Gullinbursti's UNSTOPPABLE_MASS** primes on a non-Attack card that applies a status. Hamstring, Adrenaline and Overdrive used to prime it and now do not, because they are Attacks. His own v1 deck holds none of them, but a run can draft them.
