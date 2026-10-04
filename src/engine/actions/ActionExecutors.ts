@@ -1,3 +1,4 @@
+import { standInProgram } from './standInProgram';
 import type { IBattleState, IBattleEntity, ProgramData, Element, StatusEffectInstance } from '../types';
 import type { ActionType, ProgramAction, AttackActionData, StatusActionData, HealActionData, DrawActionData, EnergyActionData, MaxEnergyActionData, GenerateCardActionData, CleanseActionData, DiscardActionData, ExhaustActionData, ReturnActionData, SearchActionData, MultiplyStatusActionData, TriggerStatusActionData, PlayLastCardActionData, TauntActionData, BuffNextProgramActionData, RedirectTargetActionData, ForceDiscardActionData, ShiftStanceActionData, ReviveActionData, StatusType } from '../types';
 import type { HookAction, HookContext } from '../core/Hooks';
@@ -412,7 +413,7 @@ export class AttackExecutor extends ActionExecutor<AttackActionData> {
             // fenrir_v1's 2% recoil floored to 1 HP and had no second setting.
             damage = Math.max(1, Math.floor(target.maxHp * actionData.percentMaxHp / 100));
         } else if (source) {
-            const programToUse = program || ({ element: element } as ProgramData);
+            const programToUse = program || standInProgram(element);
 
             // SHARP_STACKS scaling handled by the shared helper (also used by
             // the UI damage preview, so preview and reality cannot drift).

@@ -76,7 +76,8 @@ export const ConditionValidator = {
         // 2. Program Checks
         if (condition.actionType && context.program) {
             // A program satisfies the actionType check if ANY of its actions match
-            const hasAction = context.program.actions.some(a => a.type === condition.actionType);
+            // `?.` so a program with no list (a malformed stand-in) is simply "no action matches", never a throw (193a).
+            const hasAction = !!context.program.actions?.some(a => a.type === condition.actionType);
             if (!hasAction) return false;
         }
         if (condition.programElement && context.program?.element !== condition.programElement) return false;
