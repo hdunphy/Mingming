@@ -1,11 +1,12 @@
 # HANDOFF — first-impressions map (keep this current every session)
 
-*Last updated: 2026-10-03, after ticket 176 (the map redesign).*
+*Last updated: 2026-10-04, after ticket 185 (the Strength nerf and reward weighting).*
 
 ## Where things stand
 
 - **Branch `first-impressions`**, started from `main` after PR #13 merged `playtest-polish`. The two 184d commits that came after the merge were carried over (`5857fef`, `ef954a6`). `playtest-polish` is finished; don't commit to it.
 - **184 is done** (184a–e, finished 2026-10-02 on this branch).
+- **185 is done** (2026-10-04). 185a–f (the Strength engine nerf, rewards that know your deck, the tier-unlocked line) are built and committed on this branch (`1a33f6f`, `f699f7a`, `be5c9ae`, `8a31148`, `12c3338`, `0bc056d`), not pushed (give Henry `git push origin first-impressions`). `tsc`, `eslint src` and the whole vitest suite are green on a Linux copy except `runWalker.scrap` 174d, which fails the same way on the parent; `vite build` and `npm run gate` could not run there, so run `npm run gate` once. **Henry still has to:** rule the findings in 185's Resolution (the Tenth Strike and First Blood Drivers, the Dark Driver, the damaging Skills), and regenerate the design record's page and registry (`npm run decks`, then `python build.py`).
 - **182 is done and closed** (182a–d on this branch, last commit `507a824`, not pushed; see its Resolution). Then 183, below.
 - **183 is done and closed** (2026-10-03). 183a–h and Henry's review follow-ups were gated green on this branch (`936ae5f`); **183i** (the 33 Norse Instinct names, Henry: "accept all") is committed as `22bdff8`, UI only. Not pushed (give Henry `git push origin first-impressions`). `tsc`, `eslint src/ui` and the `src/ui` and `src/App` tests are green on a Linux copy for 183i; run `npm run gate` once locally. See its `## Resolution`. Next is 181c.
 - **189 work for tonight is complete** (2026-10-03). 189a-e ("Hits land when they land", UI only) are built and committed on this branch (`c7b9732`, `3ecee26`, `412a991`, `43986c7`, `b9090cf`), not pushed. Nothing under `src/engine` changed. The tests, `tsc` and `eslint src/ui` are green on a Linux copy; `npm run gate` itself and the `sfxSamples` audio check could not run there, so run `npm run gate` once locally. **190 can start.** The enemy's turn is now slower on purpose (each enemy card hovers 1 s before it attacks); speed tiers are 190's job.
@@ -41,11 +42,13 @@ Two agents work at once **in this one folder, on branch `first-impressions`** (H
 1. ~~181c: make the Google Form and its pre-filled link (181 §1.3a).~~ **Done 2026-10-02**: the form exists (`https://forms.gle/XSnrVrcADbyTkruA9`) and 181c has its pre-filled link template. Nothing for Henry here.
 2. When to start 180 (the agent playtester).
 3. On the other map: 170d, which walker fixes to build from 170c's ranked list.
+4. Rule the 185 findings (Resolution of [185](tickets/185-strength-nerf-and-reward-weighting.md)): the Tenth Strike and First Blood Drivers and the Dark Driver also count Forage-type cards, and the five damaging Skills no longer feed fenrir_v1. Retune the reward multipliers (×2, ×3) after play.
 
 ## Traps on this machine
 
 - **Git cannot unlink its own lock and temp files** through the agent's shell. After every git command, move `.git/*.lock`, `.git/objects/maintenance.lock`, `.git/next-index-*.lock` and `.git/objects/*/tmp_obj_*` into `_to_delete/git-locks/` (gitignored). `_to_delete/unlock.sh` does all of it. Leave a lock alone if it is less than a minute old: another agent may be committing.
 - **Switching branches can leave files behind**, for the same reason: files the target branch doesn't have stay as untracked files, and files it changes may keep their old content while `git status` looks clean. After a switch, compare against the branch tip (`git diff --stat HEAD`, and `git cat-file --filters HEAD:<path>` to rewrite a stale file in place) before building.
+- **Git cannot rename over an existing file here either**, so `git update-ref`, `git commit` and index writes fail with "Operation not permitted" and leave a `.lock`. 185 built its commits with plumbing (a private `GIT_INDEX_FILE`, `git hash-object -w --path=<file>`, `commit-tree`), wrote the branch ref and `.git/index` in place (`cat new > file`), and parked the leftovers in `_to_delete/git-locks/`.
 - **Stage explicit paths only** (`git commit -- <paths>`). More than one agent shares this working tree.
 - **Merging to `main` publishes the game** to GitHub Pages (the deploy runs on every push to `main`).
 - Local git thinks the repo's default branch is `steam-release-prep`. Check a pull request's base branch before merging.
@@ -58,3 +61,4 @@ Two agents work at once **in this one folder, on branch `first-impressions`** (H
 - **183 status (2026-10-03): DONE** (183a–i). See the line above and the ticket's Resolution.
 - **189 status (2026-10-03): DONE.** See the line above.
 - **190 status (2026-10-03): DONE** (190a-g; 190h parked). See the line above and the ticket's Resolution.
+- **185 status (2026-10-04): DONE** (185a–f). See the line above and the ticket's Resolution.
