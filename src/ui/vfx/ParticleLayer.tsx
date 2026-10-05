@@ -61,7 +61,6 @@ import type { StageAnchors } from '../hooks/useStageAnchors';
 import type { ClockFrame } from './clock/BattleClock';
 import { EffectField } from './attacks/EffectField';
 import { ParticleField } from './particles';
-import { FxCompositor } from './FxCompositor';
 import { setParticleSink, setStageAnchors } from './emit';
 import { battleDriver } from './clock/battleClockRuntime';
 
@@ -94,9 +93,6 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
         const field = new ParticleField();
         // Ticket 190d: beams, walls and waves, beside the particles they throw.
         const effects = new EffectField();
-        // Ticket 198b-1: the effects are drawn additively on their own canvas, then laid over the
-        // stage in ordinary blending — see `FxCompositor`.
-        const compositor = new FxCompositor(ctx);
         // Backing store vs CSS box — see the header. The DPR is the only correction in the
         // transform; the coordinate system stays the stage box's own, untouched.
         let cssW = 1;
@@ -109,7 +105,6 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
             canvas.width = Math.round(cssW * ratio);
             canvas.height = Math.round(cssH * ratio);
             ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-            compositor.resize(cssW, cssH, ratio);
         };
         resize();
         window.addEventListener('resize', resize);
@@ -128,12 +123,25 @@ const ParticleLayer: React.FC<Props> = ({ anchors }) => {
             // The effects first: they throw particles into the field this same frame.
             const shapes = effects.step(frame.gameDt, (seeds) => field.spawn(seeds));
             const live = field.step(frame.gameDt);
+            /*
+             * Straight onto this canvas, which is transparent and which the browser lays over the
+             * stage in ordinary blending. Drawing light ('lighter') on it sums the effects among
+             * THEMSELVES, so a hundred flames still run up to a white-hot core, and the finished
+             * frame covers the sand where it is dense and blends at its edges, like a sprite.
+             *
+             * 198b-1 did the same sum on a second, offscreen canvas and then copied the whole
+             * stage-sized bitmap over this one every frame. The pixels were identical (checked at
+             * device pixel ratios 1 and 2), and the copy was the stutter on big hits: it scales with
+             * the canvas, not the particle count. See `ParticleLayer.draw.test.tsx`.
+             */
             // CSS pixels, not `canvas.width/height` — those are DEVICE pixels, and under the DPR
             // transform they describe an area twice the canvas on a retina screen.
-            compositor.frame((fx) => {
-                effects.draw(fx);
-                field.draw(fx);
-            });
+            ctx.clearRect(0, 0, cssW, cssH);
+            effects.draw(ctx);
+            field.draw(ctx);
+            // An effect may leave light blending on; the next frame starts from ordinary.
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = 'source-over';
 
             /*
              * THE IDLE RULE (§2a): *"a single `rAF` loop that runs only while `alive > 0"`*. With

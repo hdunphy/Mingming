@@ -13,8 +13,9 @@
  *   - a particle with no `size2` thinned to 40%; in the lab it keeps its size;
  *   - the old field drew everything in ordinary blending and stamped a sprite with a DARK RIM round
  *     it (194k-3), so a hundred overlapping flame particles made a brown-edged tube instead of a
- *     white-hot column. The lab draws light additively over a white-centred sprite; the layer
- *     (`ParticleLayer`) is what makes that work over a light stage;
+ *     white-hot column. The lab draws light additively over a white-centred sprite; the layer's
+ *     canvas is transparent and sits over the stage in ordinary blending, which is what makes
+ *     that work over a light stage (`ParticleLayer`);
  *   - the lab's kinds (`glow`, `soft`, `bubble`, `glint`, a speed-stretched `drop`, a rotating
  *     `leaf`...) were approximated with others.
  *
