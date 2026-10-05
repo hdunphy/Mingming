@@ -38,7 +38,8 @@
 
 .town-square { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; }
 .town-say { margin: 0; color: var(--amber); font-style: italic; }
-.town-buildings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+/* 194n: a 2x2 grid of four buttons, whatever the width (it was auto-fit: 4x1 or 3+1). */
+.town-buildings { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .town-building {
     display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
     min-height: 120px; padding: 16px;

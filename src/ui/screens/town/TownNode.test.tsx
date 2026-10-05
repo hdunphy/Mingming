@@ -133,6 +133,24 @@ describe('176c — the town square and its buildings', () => {
         expect(again.querySelector('.town-square')).toBeNull();
     });
 
+    it('194n: the square is four building buttons and no rail; a building brings the rail back', async () => {
+        const { host } = await openTown();
+        expect(host.querySelectorAll('.town-building')).toHaveLength(4);
+        expect(host.querySelector('.town-rail'), 'no rail on the square').toBeNull();
+
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="shop"]')!);
+        const rail = host.querySelector('.town-rail');
+        expect(rail, 'the rail is back inside a building').not.toBeNull();
+        expect(rail!.querySelectorAll('.town-tab')).toHaveLength(4);
+    });
+
+    it('194n: the square draws LEAVE TOWN and the amber count once each', async () => {
+        const { host } = await openTown();
+        const leaves = [...host.querySelectorAll('button')].filter((b) => b.textContent?.trim() === 'LEAVE TOWN');
+        expect(leaves).toHaveLength(1);
+        expect(host.querySelectorAll('[aria-label="Amber held"], .town-dock-scrap')).toHaveLength(1);
+    });
+
     it('LEAVE TOWN calls onLeave', async () => {
         const store = makeStore();
         store.dispatch(startRun(runAtTown(0)));
