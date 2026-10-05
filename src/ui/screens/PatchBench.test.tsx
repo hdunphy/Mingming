@@ -113,3 +113,29 @@ describe('166e — PatchBench at the gate', () => {
         expect(text).not.toContain(getPatch('amplifier')!.text);
     });
 });
+
+// TICKET 195g: the bench named a body by its species ID ("kraken · Fehu"), the way the tool named it "mm_0jbxbmp_1".
+describe('195g — PatchBench names the body, not its id', () => {
+    it('prints the species name, and a nickname when it has one', () => {
+        const run = makeRun();
+        const nicknamed: IRanchState = { ...RANCH, roster: [PARTY[0], { ...PARTY[1], nickname: 'Brand' }] };
+        const store = configureStore({ reducer: { run: runReducer }, preloadedState: { run: { run } } });
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const root = createRoot(host);
+        act(() => {
+            root.render(
+                <Provider store={store}>
+                    <PatchBench run={run} ranch={nicknamed} venue="gate" benchKey="patch:node_gate:1" />
+                </Provider>,
+            );
+        });
+        const names = Array.from(host.querySelectorAll('button.rs-row .rs-rnm')).map((el) => el.textContent ?? '');
+        act(() => { root.unmount(); });
+        host.remove();
+        expect(names.length).toBeGreaterThan(0);
+        expect(names.some((n) => n.startsWith('Kraken · '))).toBe(true);
+        expect(names.some((n) => n.startsWith('Brand · '))).toBe(true);
+        expect(names.some((n) => /^(kraken|fenrir) · /.test(n))).toBe(false);
+    });
+});

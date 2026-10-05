@@ -40,7 +40,8 @@ export function patchSection(world: World, options: PatchBenchOptions): Section 
         const member = roster.find((m) => m.id === memberId);
         if (!member) continue;
         const held = run.patches?.[memberId] ?? [];
-        if (held.length >= PATCH_SLOTS) continue;
+        // 195g: a body that already carries its one Rune is listed as such, so no one wonders whether a second would stack.
+        if (held.length >= PATCH_SLOTS) { lines.push(`  ${memberName(member)}: already has ${patchName(held[0])}`); continue; }
         const os = effectiveOS(run, member);
         const offers = free
             ? gatePatchChoices(os, held)

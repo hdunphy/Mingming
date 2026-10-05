@@ -29,6 +29,8 @@ import { MACRO_SLOTS, type IRegionNode, type IRunCard } from '../../engine/runTy
 import type { IBattleState } from '../../engine/types';
 import { FIRST_TRACE_LINE, noteTraceGained } from './firstTrace';
 import { cardName, macroName, memberName, patchName, speciesName } from './gameText';
+import { partyOf } from './party';
+import { dispatchChecked } from './stalls';
 import type { RewardAnswer, RewardFlow, World } from './types';
 import { runOf } from './types';
 
@@ -69,7 +71,9 @@ export function startRewards(world: World, node: IRegionNode, battle: IBattleSta
     const rolled = rollDropTable({
         defeated: battle.enemyParty,
         nodeKind,
-        party: battle.playerParty,
+        // 195g: the team's roster ids, as the game's own battle carries them. The fight builder makes up its own
+        // entity ids, and a Rune offer keyed by those named a body that is not on the team.
+        party: partyOf(world),
         seed: battle.seed,
         dryFights: run.blueprintDryFights ?? 0,
         firstRun: (ranch.runsCompleted ?? 0) === 0,
@@ -148,9 +152,10 @@ export function claimRewards(world: World): void {
     if (patch?.memberId) {
         const offer = flow.patchOffers.find((o) => o.memberId === patch.memberId);
         if (offer) {
-            store.dispatch(fitPatch({ memberId: offer.memberId, patchId: offer.patchId }));
-            const member = store.getState().game.roster.find((m) => m.id === offer.memberId);
-            news.push(`Fitted ${patchName(offer.patchId)} to ${member ? memberName(member) : offer.memberId}.`);
+            if (dispatchChecked(world, fitPatch({ memberId: offer.memberId, patchId: offer.patchId }), 'fit rune')) {
+                const member = store.getState().game.roster.find((m) => m.id === offer.memberId);
+                news.push(`Fitted ${patchName(offer.patchId)} to ${member ? memberName(member) : offer.memberId}.`);
+            }
         }
     }
     const macro = flow.answers.find((a): a is Extract<RewardAnswer, { kind: 'macro' }> => a.kind === 'macro');

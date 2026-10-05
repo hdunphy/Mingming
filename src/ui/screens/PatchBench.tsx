@@ -20,6 +20,7 @@ import { useDispatch } from 'react-redux';
 
 import { Icon } from '../theme/Icon';
 import { fitPatch } from '../store/runSlice';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { getPatch, PATCH_SLOTS } from '../../engine/data/patchRegistry';
 import { describePatchOn } from '../../engine/data/patchText';
 import { gatePatchChoices, offerablePatchIds, SHOP_STOCK_PATCH } from '../../engine/data/patchRanking';
@@ -136,7 +137,7 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                                         benchKey: free ? benchKey : undefined,
                                     }))}
                                 >
-                                    <span className="rs-rnm">{member.nickname ?? member.definitionId} · <b>{plain(patch.name)}</b></span>
+                                    <span className="rs-rnm">{member.nickname ?? GetMingmingData(member.definitionId).name} · <b>{plain(patch.name)}</b></span>
                                     <span className="rs-t">{plain(describePatchOn(effectiveOS(run, member), patchId))}</span>
                                     <span className="rs-sellp">
                                         {free ? 'FREE' : <>−{patchPrice} <Icon name="scrap" size={11} /></>}
