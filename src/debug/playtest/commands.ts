@@ -10,6 +10,7 @@
  */
 import { MingmingRegistry, LAUNCH_SPECIES } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
+import { applyKeys } from './chain';
 import { parsePrediction } from './expect/prediction';
 import { gymFor } from './night/gymFor';
 import { planNight } from './night/plan';
@@ -17,9 +18,9 @@ import { cardLine } from './gameText';
 import { currentScreen } from './screen';
 import { renderScreen, screenJson } from './render';
 import { missingSessionMessage, readSession, sessionExists, writeSession } from './sessionFile';
-import { IllegalMoveError, applyMove, createWorld, enforceBudget, replayWorld } from './world';
+import { createWorld, replayWorld } from './world';
 import type { ParsedArgs } from './args';
-import type { LoggedMove, PlaytestMode, SessionFile, SessionHeader, World } from './types';
+import type { PlaytestMode, SessionFile, SessionHeader, World } from './types';
 
 export interface CommandResult {
     readonly out: string;
@@ -105,7 +106,7 @@ function parseNumbers(raw: string): number[] | null {
     return parts.map(Number);
 }
 
-function applyNumbered(root: string, args: ParsedArgs, numbers: ReadonlyArray<number>): CommandResult {
+function applyNumbered(root: string, args: ParsedArgs, numbers: ReadonlyArray<number>, viaMoves = false): CommandResult {
     const name = sessionName(args);
     if (isRefusal(name)) return name;
     const why = text(args, 'why');
@@ -135,30 +136,14 @@ function applyNumbered(root: string, args: ParsedArgs, numbers: ReadonlyArray<nu
     // Numbers address the screen as it is NOW. They are turned into keys up front, so a later number
     // in a list still means the move the agent saw, even though the screen changes as the list runs.
     const screen = currentScreen(world);
-    const keys: string[] = [];
     for (const n of numbers) {
-        const move = screen.moves[n - 1];
-        if (!move) return refuse(`There is no move ${n}: this screen has ${screen.moves.length}. Nothing was changed.`);
-        keys.push(move.key);
+        if (!screen.moves[n - 1]) return refuse(`There is no move ${n}: this screen has ${screen.moves.length}. Nothing was changed.`);
     }
-
-    const applied: LoggedMove[] = [];
-    for (const [i, key] of keys.entries()) {
-        const move: LoggedMove = { key, why, ...(expect !== undefined && i === 0 ? { expect } : {}), ...(i > 0 ? { chained: true as const } : {}) };
-        try {
-            applyMove(world, move, i < keys.length - 1);
-        } catch (error) {
-            if (!(error instanceof IllegalMoveError)) throw error;
-            if (applied.length === 0) return refuse(`${error.message}. Nothing was changed.`);
-            // The list stopped at the first illegal move; what came before it stands.
-            enforceBudget(world);
-            writeSession(root, name, { ...session, moves: [...session.moves, ...applied] });
-            return refuse(`Stopped at move ${i + 1} of ${keys.length}: ${error.message}. The ${applied.length} before it were applied.\n\n${renderScreen(world)}`);
-        }
-        applied.push(move);
-    }
+    const { applied, stop, failed } = applyKeys(world, screen, numbers, why, expect, viaMoves);
+    if (failed && applied.length === 0) return refuse(stop!);
     writeSession(root, name, { ...session, moves: [...session.moves, ...applied] });
-    return ok(show(world, args));
+    if (failed) return refuse(`${stop}\n\n${renderScreen(world)}`);
+    return ok(stop === null ? show(world, args) : `${stop}\n\n${show(world, args)}`);
 }
 
 export function cmdMove(root: string, args: ParsedArgs): CommandResult {
@@ -172,7 +157,7 @@ export function cmdMoves(root: string, args: ParsedArgs): CommandResult {
     const raw = args.positional[0];
     const numbers = raw === undefined ? null : parseNumbers(raw);
     if (numbers === null) return refuse('Usage: moves --session <name> <n,n,n> --why "<reason>". The numbers are move numbers on the screen as it is now.');
-    return applyNumbered(root, args, numbers);
+    return applyNumbered(root, args, numbers, true);
 }
 
 export function cmdCard(root: string, args: ParsedArgs): CommandResult {

@@ -21,6 +21,9 @@ Commands:
 - `move --session <name> <n> --why "<one sentence>"` takes move number n.
 - `moves --session <name> <n,n,n> --why "<one sentence>"` takes several moves in a row, where the
   screen allows it (not in card mode: there it is one move per call).
+  A list stops after the first move that changes what the screen offers (a purchase that removes a
+  line, say), says which numbers it did not take, and shows the screen numbered afresh. A sale is never
+  taken in a list: make it with `move`.
 - `card --session <name> <card name>` shows one card's full text.
 - `note --session <name> "<text>"` writes a note for the people who read your run.
 - `replay --session <name> --to <n>` shows the screen as it was after your first n moves. It only reads.
