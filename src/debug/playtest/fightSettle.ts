@@ -11,6 +11,7 @@ import type { IRegionNode } from '../../engine/runTypes';
 import type { IBattleState } from '../../engine/types';
 import type { BattleOutcome } from '../../engine/battleOutcome';
 import type { HitTotal } from './battleSim';
+import { carriedFrom } from './carriedHp';
 import { speciesName } from './gameText';
 import { startRewards } from './rewards';
 import type { FightReport, World } from './types';
@@ -58,8 +59,7 @@ export function settleFight(world: World, place: FightPlace, end: FightEnd): voi
     }
     const node = runOf(world).nodes.find((n) => n.id === place.nodeId)!;
     if (place.context === 'gauntlet') {
-        const carried = end.state.playerParty.map((p) => ({ memberId: p.id, hp: p.currentHp, maxHp: p.maxHp }));
-        startRewards(world, node, end.state, carried);
+        startRewards(world, node, end.state, carriedFrom(world, end.state));
         return;
     }
     startRewards(world, node, end.state);

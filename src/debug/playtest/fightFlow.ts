@@ -21,6 +21,7 @@ import type { IRegionNode } from '../../engine/runTypes';
 import type { IBattleState } from '../../engine/types';
 import { setupFor, withCarriedHp } from '../balance/runWalker';
 import { autoPlay, openBattle, type AutoResult } from './battleSim';
+import { carriedForFight } from './carriedHp';
 import { failFight, settleFight, type FightPlace } from './fightSettle';
 import { partyOf } from './party';
 import type { World } from './types';
@@ -38,7 +39,7 @@ export function buildFight(world: World, encounter: Encounter, carriedHp?: Reado
         encounter.seed, party, run.deck.map((c) => c.dataId), encounter.enemyParty, encounter.enemyDeckIds,
         encounter.enemyDrivers ?? [], [...(run.drivers ?? []), ...tempDriverIds(run)], run.patches,
     );
-    const setup = withCarriedHp(built, party, carriedHp);
+    const setup = withCarriedHp(built, party, carriedForFight(world, carriedHp));
     return openBattle({ setup, seed: encounter.seed, enemyAiTier: encounter.enemyAiTier, aiBeam: encounter.aiBeam });
 }
 
