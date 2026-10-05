@@ -170,7 +170,7 @@ describe('the copy budget - shops, den, event, gym gate, run summary', () => {
         )).toBeNull();
     });
 
-    it('the gym gate: one short note, and the bonus is called "Pick a bonus"', () => {
+    it('the gym gate: one short note, and the rune offer says one: "Free rune: pick one" (194q)', () => {
         const { run, node } = standingOn('gym');
         const gate = {
             ...run, phase: 'gauntlet' as const,
@@ -178,7 +178,8 @@ describe('the copy budget - shops, den, event, gym gate, run summary', () => {
         };
         const markup = render(<GauntletNode run={gate} node={node} ranch={ranch} onEditLoadout={() => {}} />, ranch);
         expect(budgetProblem(readCopy(markup))).toBeNull();
-        expect(markup).toContain('Pick a bonus');
+        expect(markup).toContain('Free rune: pick one');
+        expect(markup).not.toMatch(/choice of two|Pick a bonus/i);
         expect(markup).not.toMatch(/<h2>[^<]*PATCH/i);
     });
 

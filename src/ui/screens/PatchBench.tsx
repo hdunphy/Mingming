@@ -110,8 +110,9 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
             title={`A rune rides your instinct - one slot per body, and it stays fitted for the run.${free ? ' Each body is offered the two that change the most about its own instinct.' : ''}`}
         >
             <h2>
-                {free ? 'Pick a bonus' : 'INSTINCT RUNE'}
-                <span className="mk-sub">({free ? 'choice of two, free' : `${patchPrice} amber`})</span>
+                {/* 194q: it said "choice of two", and Henry took one rune. One per gate visit is the rule (163 §3). */}
+                {free ? 'Free rune: pick one' : 'INSTINCT RUNE'}
+                {!free && <span className="mk-sub">({patchPrice} amber)</span>}
             </h2>
             <div className="mk-rows">
                 {isGateUsed ? (
