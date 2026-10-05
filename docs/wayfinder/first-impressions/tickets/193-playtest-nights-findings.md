@@ -195,7 +195,7 @@
 
 1. Run `npm run gate`.
 2. Look at the forecast sentence and reword it if he wants (`sentenceFor` in `src/engine/run/runForecast.ts`).
-3. Run Night A, then Night B, with one command from Git Bash (the 2026-10-04 night is the baseline; do not change balance between them): `bash scripts/overnight.sh` (follow-up, commit `15eaad2`; it checks the tool first, then plays both nights, and `DRY_RUN=1 bash scripts/overnight.sh` shows the plan without playing). The script runs exactly these:
+3. Run Night A, then Night B, with one command from any terminal (the 2026-10-04 night is the baseline; do not change balance between them): `npm run overnight` (follow-up, commit `d12f515`; it checks the tool first, then plays both nights, and `npm run overnight -- --dry-run` shows the plan without playing). It replaced a bash script that did not start under PowerShell. The script runs exactly these:
    - `npm run playtest:night -- --date 2026-10-06 --seed-date 2026-10-04 --runs 9 --starter kraken_v1 --card-runs 0 --model haiku`
    - `npm run playtest:night -- --date 2026-10-06-sonnet --seed-date 2026-10-04 --runs 9 --starter kraken_v1 --card-runs 0 --model sonnet`
    - `npm run playtest:report -- 2026-10-06` and `npm run playtest:report -- 2026-10-06-sonnet`

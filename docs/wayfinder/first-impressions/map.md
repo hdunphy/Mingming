@@ -4,6 +4,8 @@ Label: `wayfinder:map` · Branch: `first-impressions` · Charted 2026-10-02 (spl
 
 **Tracker conventions (local-markdown, same as deck-archetypes):** tickets are files in [`tickets/`](tickets/). Each carries `Type`, `Status`, and what it is blocked by. **Ticket numbers are kept from deck-archetypes** (commit messages, reports and the Claude project docs all cite them); **new tickets here start at 185.** Resolutions go in the ticket's `## Resolution` section on close and are gisted under "Decisions so far".
 
+**Gate status (2026-10-04):** `npm run gate` passed at `2caa83e` (= `origin/first-impressions`). Everything through that commit is pushed and gated; see [HANDOFF](HANDOFF.md) for what came after.
+
 ## Destination
 
 **Playtest round 2 goes out on a build whose first impression does not read as AI-made**, and its results are written up. That means: one sentence of copy per screen, a short intro run for new players, the direction-B "Slant" UI kit, on-screen words that fit the animal-inspired Pokémon direction, and the Fenrir test commission under way. **Done when** ticket 181's release procedure has run and `playtest-results/round-2-friends/summary.md` exists. After that: the map redesign (176), localization prep (175), and the "Long Road" modifier (176's follow-up).
