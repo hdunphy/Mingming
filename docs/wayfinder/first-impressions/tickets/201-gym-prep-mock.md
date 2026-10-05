@@ -1,4 +1,4 @@
-# Ticket 195: A mock for the gym prep screen
+# Ticket 201: A mock for the gym prep screen
 
 **Type:** design pass, mock only; no game code. **Status:** opened 2026-10-04, split out of [194r](194-henry-playtest-2026-10-04.md). Not started.
 

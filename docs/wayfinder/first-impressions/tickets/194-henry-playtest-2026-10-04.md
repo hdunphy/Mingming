@@ -1,6 +1,6 @@
 # Ticket 194: What Henry's 2026-10-04 Rootfall run found
 
-**Type:** one balance ruling (194a), one card ruling (194b), battle bugs (194c–194g), battle readability and feel (194h–194l), run screens (194m–194r). **Status:** written 2026-10-04 from `playtest-results/2026-10-04` (Henry's notes, the run log, 16 fight logs, the run-over screenshot). Nothing built. **Henry ruled decisions 1–8 the same evening** (see *Rulings* at the bottom); **decision 9 (194k, darken the stage) is still open.** The gym prep redesign moved to [ticket 195](195-gym-prep-mock.md).
+**Type:** one balance ruling (194a), one card ruling (194b), battle bugs (194c–194g), battle readability and feel (194h–194l), run screens (194m–194r). **Status:** written 2026-10-04 from `playtest-results/2026-10-04` (Henry's notes, the run log, 16 fight logs, the run-over screenshot). Nothing built. **Henry ruled decisions 1–8 the same evening** (see *Rulings* at the bottom); **decision 9 (194k, darken the stage) is still open.** The gym prep redesign moved to [ticket 195](201-gym-prep-mock.md).
 
 **Where it comes from.** Henry played one full run and wrote 20 notes, then asked for a review. Every number below comes from `mingming_run_log.json` and the `mingming_fight_log_*_N.json` files (file N = fight N). The file and line pointers were checked against the tree at `0980f356`; line numbers drift, so search for the quoted names.
 
@@ -54,7 +54,7 @@ Compared with 2026-10-02 (turn-1 wins, "Fenrir and Skoll v1 are both very OP"), 
 | 194o | Sell tiles need the count, deck vs collection, and a "sold" response | Screen |
 | 194p | Runes cannot be seen on the map, shop, roster, loadout or gym prep | Screen. **Ruled: everywhere a Mingming is shown, plus Totems on the loadout** |
 | 194q | The gate's "Pick a bonus (choice of two, free)" reads as two runes | Copy |
-| 194r | The gym prep screen needs a redesign | **Moved to [195](195-gym-prep-mock.md)** |
+| 194r | The gym prep screen needs a redesign | **Moved to [201](201-gym-prep-mock.md)** |
 
 ---
 
@@ -391,7 +391,7 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 **Build.**
 
 - **One small `RuneTag`** (the rune's name, or its letter where space is tight, with the per-Instinct rune text as its tooltip), shared by `PatchHolders` and every new place. No screen writes the line itself.
-- **Everywhere a Mingming is shown in a run gets it,** loadout first: the loadout editor, the ranch roster, the town's party rows (shop, upgrades, den), the map's party strip, the gym gate (195's mock includes it), and the summon and retrain screens. The builder lists any other place found and adds it.
+- **Everywhere a Mingming is shown in a run gets it,** loadout first: the loadout editor, the ranch roster, the town's party rows (shop, upgrades, den), the map's party strip, the gym gate (201's mock includes it), and the summon and retrain screens. The builder lists any other place found and adds it.
 - **Totems on the loadout screen.** The run's Totems as a row of named tags with their rule as a tooltip, the way the ranch's Vault section lists them. Totems belong to the run, not to one body, so they sit once on the screen, not on each member.
 
 **Tests.** A run member with a rune shows its `RuneTag` on the loadout editor, the roster and the town party rows; a member without one shows nothing. The loadout screen lists the run's Totems, and shows nothing when there are none.
@@ -408,7 +408,7 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 
 ---
 
-## 194r: The gym prep screen needs a redesign (moved to ticket 195)
+## 194r: The gym prep screen needs a redesign (moved to ticket 201)
 
 **Henry:** *"Gym prep screen probably needs a redesign."*
 
@@ -416,7 +416,7 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 
 **Next step.** A design pass, not code: a mock in the Slant kit showing party with HP and runes, the two free picks side by side, the three fights ahead, and one Begin button. Henry approves the mock before building.
 
-**Ruled (Henry, 2026-10-04):** *"Yes do a mock, this is probably its own card."* Moved to [ticket 195](195-gym-prep-mock.md). Nothing to build here.
+**Ruled (Henry, 2026-10-04):** *"Yes do a mock, this is probably its own card."* Moved to [ticket 201](201-gym-prep-mock.md). Nothing to build here.
 
 ---
 
@@ -429,7 +429,7 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 5. **194j:** *"Maybe a glyph that players will learn."*
 6. **194l:** *"Quieter."*
 7. **194p:** *"On the load out screen and anywhere else we see the mingming, we should also see what rune it holds. We should see the Totems somewhere as well probably loadout."*
-8. **194r:** *"Yes do a mock, this is probably its own card."* Now ticket 195.
+8. **194r:** *"Yes do a mock, this is probably its own card."* Now ticket 201.
 
 ## Rulings, 2026-10-05 (on the build report)
 
@@ -447,4 +447,4 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 
 ## Done when
 
-Every row is built, ruled out, or moved to another ticket with a note here (194k's second pass is [198](198-battle-vfx-follow-on.md); 194j's glyphs are [199](199-instinct-glyphs-by-henry.md); 194r is [195](195-gym-prep-mock.md)), and a Rootfall run against huldra_v2 shows the 194a change working.
+Every row is built, ruled out, or moved to another ticket with a note here (194k's second pass is [198](198-battle-vfx-follow-on.md); 194j's glyphs are [199](199-instinct-glyphs-by-henry.md); 194r is [201](201-gym-prep-mock.md)), and a Rootfall run against huldra_v2 shows the 194a change working.
