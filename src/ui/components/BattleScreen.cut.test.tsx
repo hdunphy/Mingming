@@ -105,10 +105,10 @@ describe('182a battle - the hand', () => {
         expect(store.getState().battle.selectedSourceId).toBe('p1');
     });
 
-    it('leaves the caster to the player with two monsters', async () => {
+    it('194g: with two monsters the first one standing IS the caster from the first frame (no phantom selection)', async () => {
         const { store } = await open([FENRIR, SKOLL]);
         await flush();
-        expect(store.getState().battle.selectedSourceId).toBeNull();
+        expect(store.getState().battle.selectedSourceId).toBe('p1');
     });
 
     it('does not let a click on the only monster un-pick it', async () => {
@@ -118,12 +118,13 @@ describe('182a battle - the hand', () => {
         expect(store.getState().battle.selectedSourceId).toBe('p1');
     });
 
-    it('with two monsters a click on the picked one still un-picks it (as today)', async () => {
+    it('194g: with two monsters a click switches the caster, and a click on the picked one keeps it', async () => {
         const { store, host } = await open([FENRIR, SKOLL]);
-        await click(host.querySelector('[data-testid="stage-slot-p1"]')!);
-        expect(store.getState().battle.selectedSourceId).toBe('p1');
-        await click(host.querySelector('[data-testid="stage-slot-p1"]')!);
-        expect(store.getState().battle.selectedSourceId).toBeNull();
+        await flush();
+        await click(host.querySelector('[data-testid="stage-slot-p2"]')!);
+        expect(store.getState().battle.selectedSourceId).toBe('p2');
+        await click(host.querySelector('[data-testid="stage-slot-p2"]')!);
+        expect(store.getState().battle.selectedSourceId).toBe('p2');
     });
 });
 

@@ -76,6 +76,7 @@ import { useBattleSpeedControls } from '../vfx/clock/useBattleSpeedControls';
 import { useViewportSize } from '../hooks/useStageAnchors';
 import { consoleHeightAt, stageScale } from './stageGeometry';
 import { useCardDrag } from '../hooks/useCardDrag';
+import { defaultCasterId } from '../utils/defaultCaster';
 
 const TurnBanner: React.FC<{ side: 'PLAYER' | 'ENEMY' }> = ({ side }) => (
     <motion.div
@@ -273,14 +274,17 @@ const BattleArena: React.FC = () => {
 
     /*
      * TICKET 182a — "NO CASTER — PRESS W / E / R" is cut, so the screen may never be left with no
-     * caster when there is only one candidate. One living monster is picked for the player (at the
-     * start, and again if it is the last one standing). With two or more the player still picks,
-     * by clicking a plate or pressing W / E / R, exactly as before.
+     * caster. TICKET 194g (Henry: "First mingming UI shows as selected at battle start, but it isn't
+     * really selected") extended it from one living monster to every party: the stage always lit the
+     * first living body when nothing was picked, so a pick the hand did not use was on screen. The
+     * store now holds a living caster from the first frame (the first one standing, as the stage
+     * always showed), again if the picked one falls, and a click on the picked one keeps it. The
+     * player still switches by clicking a plate or pressing W / E / R.
      */
     useEffect(() => {
-        if (!battleState || selectedSourceId) return;
-        const living = battleState.playerParty.filter(p => p.currentHp > 0);
-        if (living.length === 1) dispatch(selectSource(living[0].id));
+        if (!battleState) return;
+        const next = defaultCasterId(battleState.playerParty, selectedSourceId);
+        if (next) dispatch(selectSource(next));
     }, [battleState, selectedSourceId, dispatch]);
 
     /*
@@ -1209,11 +1213,10 @@ const BattleArena: React.FC = () => {
 
         // Friendly = source (caster). Clicking an ally selects or switches the active caster (ticket 165b)
         if (!isEnemy) {
-            // TICKET 182a: with ONE living monster it is the caster, always - un-picking it would
-            // leave a hand that can play nothing and no text to say why.
-            const livingAllies = battleState?.playerParty.filter(p => p.currentHp > 0).length ?? 0;
-            if (livingAllies <= 1 && selectedSourceId === entity.id) return;
-            dispatch(selectSource(selectedSourceId === entity.id ? null : entity.id));
+            // TICKET 182a / 194g: the caster is never un-picked - leaving none would leave a hand that
+            // can play nothing and no text to say why. A click on another body switches to it.
+            if (selectedSourceId === entity.id) return;
+            dispatch(selectSource(entity.id));
             return;
         }
 
