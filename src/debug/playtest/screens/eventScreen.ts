@@ -9,6 +9,7 @@
  */
 import { hasUpgrade } from '../../../engine/data/plusRegistry';
 import { playableChoices } from '../../../engine/run/events/eventChoices';
+import { choiceDetail } from '../../../engine/run/events/eventDetail';
 import { EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP, EMPTY_RELAY_TEXT } from '../../../engine/run/events/emptyRelay';
 import { eventResolvedAt } from '../../../engine/run/events/eventState';
 import { applyEmptyRelay } from '../../../ui/events/applyOutcome';
@@ -77,7 +78,7 @@ export function eventScreen(world: World): Screen {
     const moves: Move[] = [];
     for (const choice of playableChoices(event)) {
         const blocked = choiceBlockedReason(choice, ctx);
-        lines.push(`  ${plain(choice.label)}: ${blocked ? `[no: ${plain(blocked)}]` : plain(choice.detail)}`);
+        lines.push(`  ${plain(choice.label)}: ${blocked ? `[no: ${plain(blocked)}]` : plain(choiceDetail(choice))}`);
         if (blocked === null) moves.push({ key: `event:choose:${choice.id}`, label: plain(choice.label), apply: (w) => chooseChoice(w, node, flow, choice) });
     }
     return { id: 'event', body: lines, moves };

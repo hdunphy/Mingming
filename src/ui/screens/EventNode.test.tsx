@@ -22,6 +22,8 @@ import { offerGyms } from '../../engine/run/gyms';
 import { BUILT_EVENTS, drawEvent } from '../../engine/run/events/eventDraw';
 import { gambleWins } from '../../engine/run/events/eventGamble';
 import { JUNK_CARD_ID } from '../../engine/run/junk';
+import { describeDriver } from '../../engine/data/driverRegistry';
+import { plain } from '../labels/labels';
 import type { EventRanchView } from '../../engine/run/events/eventContext';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
@@ -246,6 +248,23 @@ describe('EventNode', () => {
         expect(store.getState().run.run!.tempDrivers).toEqual([{ driverId: 'driver_frayed_signal', fightsLeft: 1 }]);
         expect(store.getState().run.run!.scrap).toBe(10);
         expect(host.textContent).toContain('The relay is dark');
+    });
+
+    // TICKET 195f: "Frayed Signal next fight." named a debuff and said nothing about it.
+    it('195f: Push through says what Frayed Signal does, in the debuff\'s own words', async () => {
+        const store = makeStore({ ...seenRun(allBut('corrupted_stream')), scrap: 10 });
+        await mount(store);
+        const push = byText('Push through')!;
+        expect(push.textContent).toContain('Frayed Signal next fight:');
+        expect(push.textContent).toContain(plain(describeDriver('driver_frayed_signal').description));
+    });
+
+    it('195f: Dig deeper says what Static Haze does, in the debuff\'s own words', async () => {
+        const store = makeStore(seenRun(allBut('scrap_cache')));
+        await mount(store);
+        const dig = byText('Dig deeper')!;
+        expect(dig.textContent).toContain('Static Haze next fight:');
+        expect(dig.textContent).toContain(plain(describeDriver('driver_static_haze').description));
     });
 
     it('lets Corrupted Stream be paid off with 25 scrap, and then gives no Driver', async () => {

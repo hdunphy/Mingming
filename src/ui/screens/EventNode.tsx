@@ -53,6 +53,7 @@ import { UpgradeBench } from './UpgradeBench';
 import { cardFace, colorFor } from './runShell';
 import './runShell.css';
 import './EventNode.css';
+import { choiceDetail } from '../../engine/run/events/eventDetail';
 import { plain } from '../labels/labels';
 import { useFirstTraceLine } from '../hooks/useFirstTraceLine';
 
@@ -321,7 +322,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
                         >
                             <span className="ev-label">{plain(choice.label)}</span>
                             <span className="ev-detail">
-                                {plain(blocked ?? choice.detail)}
+                                {plain(blocked ?? choiceDetail(choice))}
                             </span>
                         </button>
                     );
