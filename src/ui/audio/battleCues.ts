@@ -23,7 +23,7 @@
 
 import { ElementalMatrix } from '../../engine/combatUtils';
 import type { DamageCause, StatusSource } from '../../engine/events';
-import type { Element, IBattleEntity, StatusType } from '../../engine/types';
+import type { Element, IBattleEntity, ProgramData, StatusType } from '../../engine/types';
 import { isSampleCue } from './sfxSamples';
 import type { SfxName } from './sfxRecipes';
 
@@ -54,6 +54,16 @@ export function castCue(element: Element | undefined): SfxName {
         case 'Nature': return 'castNature';
         default: return 'castNone';
     }
+}
+
+/**
+ * The cast cue of one card (194l). A Heal or a Skill is not an attack, so it does not play its
+ * element's attack whoosh (War Pact is a Fire Skill, and Henry heard `castFire` over a heal); it plays
+ * the support cast. Everything else is `castCue` of its element.
+ */
+export function castCueFor(card: Pick<ProgramData, 'category' | 'element'> | undefined): SfxName {
+    if (card && (card.category === 'Heal' || card.category === 'Skill')) return 'castSupport';
+    return castCue(card?.element);
 }
 
 /**

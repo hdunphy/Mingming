@@ -218,6 +218,25 @@ export function gainForDb(db: number): number {
 }
 
 /**
+ * How much quieter `recoil` plays than the impacts (194l, Henry: *"Quieter"*).
+ *
+ * `recoil` shares the `hit` sample with every impact, so a recoil landing right after the impact on
+ * the target sounded like the hit playing twice. Starting at -9 dB; this is the one number to tune
+ * by ear.
+ */
+export const RECOIL_DB = -9;
+
+/** A cue's own level, in dB below its sample. Cues not listed play at 0 dB. */
+export const CUE_LEVEL_DB: Readonly<Record<string, number>> = {
+    recoil: RECOIL_DB,
+};
+
+/** The linear gain a cue plays at, before the bus and the master. */
+export function cueGain(name: string): number {
+    return gainForDb(CUE_LEVEL_DB[name] ?? 0);
+}
+
+/**
  * The cues everything else ducks under.
  *
  * 147b names four. They are the moments where something big happened and the rest of the board's

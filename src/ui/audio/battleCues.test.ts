@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    castCue, causeCue, cryCue, effectivenessAgainst, HIT_BIG_FRACTION, hookCue, impactCue,
+    castCue, castCueFor, causeCue, cryCue, effectivenessAgainst, HIT_BIG_FRACTION, hookCue, impactCue,
     isPlayerSide, shieldCue, statusCue, SUPER_EFFECTIVE_AT, tickCue,
 } from './battleCues';
 import { isSampleCue, SAMPLE_FALLBACK } from './sfxSamples';
@@ -27,6 +27,24 @@ const unit = (over: Partial<IBattleEntity> = {}): IBattleEntity => ({
 /** Every cue any rule here can return must be a real, playable name. */
 const playable = (cue: string): boolean =>
     isSampleCue(cue) || (ALL_RECIPE_NAMES as readonly string[]).includes(cue);
+
+describe('194l — a heal or a skill does not cast with an attack sound', () => {
+    it('plays the support cast for a Heal or a Skill, whatever its element', () => {
+        expect(castCueFor({ category: 'Heal', element: 'Nature' })).toBe('castSupport');
+        // War Pact: a Fire Skill whose low-HP branch heals. Henry heard castFire over it.
+        expect(castCueFor({ category: 'Skill', element: 'Fire' })).toBe('castSupport');
+    });
+
+    it('keeps the element whoosh for an attack, and the plain one for a missing card', () => {
+        expect(castCueFor({ category: 'Attack', element: 'Fire' })).toBe('castFire');
+        expect(castCueFor({ category: 'Attack', element: 'Water' })).toBe('castWater');
+        expect(castCueFor(undefined)).toBe('castNone');
+    });
+
+    it('names a playable cue', () => {
+        expect(playable(castCueFor({ category: 'Heal', element: 'None' }))).toBe(true);
+    });
+});
 
 describe('147d — the impact ladder', () => {
     it('gives super-effective its own sound whatever the element', () => {

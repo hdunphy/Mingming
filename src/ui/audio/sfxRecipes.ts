@@ -27,6 +27,7 @@ export type RecipeName =
     | 'hitCrit'
     | 'absorbed'
     | 'heal'
+    | 'castSupport'
     | 'statusApply'
     | 'death'
     | 'levelUp'
@@ -52,6 +53,7 @@ export const ALL_RECIPE_NAMES = [
     'hitCrit',
     'absorbed',
     'heal',
+    'castSupport',
     'statusApply',
     'death',
     'levelUp',
@@ -203,6 +205,15 @@ export const SFX_RECIPES: Record<RecipeName, SfxRecipe> = {
     heal: (s) => {
         s.tone({ freq: 523.25, type: 'sine', attack: 0.01, decay: 0.14, gain: 0.16 });
         s.tone({ freq: 784, type: 'sine', delay: 0.09, attack: 0.01, decay: 0.2, gain: 0.16 });
+    },
+
+    /**
+     * The cast of a card that does not attack (194l): a Heal or a Skill. A soft single sine rising a
+     * fifth, with none of the noise burst the elemental whooshes lead with, so a heal is not announced
+     * by an attack's sound. The `heal` pair above is the landing; this is the card leaving.
+     */
+    castSupport: (s) => {
+        s.tone({ freq: 440, endFreq: 660, type: 'sine', attack: 0.012, decay: 0.16, gain: 0.14 });
     },
 
     /** Tiny glitch tick; pitch varied per status so stacks read differently. */

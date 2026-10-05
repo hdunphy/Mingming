@@ -9,9 +9,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    DUCK_DB, DUCK_MS, DUCKING_CUES, gainForDb, MULTI_HIT_SEMITONES, NON_COMBAT_CUES,
+    cueGain, DUCK_DB, DUCK_MS, DUCKING_CUES, gainForDb, MULTI_HIT_SEMITONES, NON_COMBAT_CUES,
     pitchForCardsPlayed, pitchForDamage, pitchForStacks, semitones, SFX_COALESCE_WINDOW_MS,
-    SFX_SPACING_MAX_LAG_MS, SFX_SPACING_MS, SfxRateLimiter, SfxSpacer,
+    RECOIL_DB, SFX_SPACING_MAX_LAG_MS, SFX_SPACING_MS, SfxRateLimiter, SfxSpacer,
 } from './limiters';
 import { SAMPLE_CUES } from './sfxSamples';
 
@@ -84,6 +84,21 @@ describe('147b — ducking', () => {
 
     it('names the four big moments and nothing else', () => {
         expect([...DUCKING_CUES].sort()).toEqual(['defeat', 'hitBig', 'kill', 'victory']);
+    });
+});
+
+describe('194l — the recoil plays under the impacts', () => {
+    it('starts at -9 dB, and its gain is below every impact\'s', () => {
+        expect(RECOIL_DB).toBe(-9);
+        expect(cueGain('recoil')).toBeCloseTo(gainForDb(-9), 6);
+        for (const impact of ['impactNormal', 'impactFire', 'impactWater', 'impactNature', 'impactSuper', 'hitBig']) {
+            expect(cueGain('recoil'), impact).toBeLessThan(cueGain(impact));
+        }
+    });
+
+    it('leaves every other cue at full level', () => {
+        expect(cueGain('impactNormal')).toBe(1);
+        expect(cueGain('castFire')).toBe(1);
     });
 });
 

@@ -7,7 +7,7 @@ import { JS_COLOR } from '../theme/jsColors';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
 import {
-    castCue, causeCue, cryCue, HIT_BIG_FRACTION, hookCue, impactCue,
+    castCueFor, causeCue, cryCue, HIT_BIG_FRACTION, hookCue, impactCue,
     shieldCue, statusCue, tickCue,
 } from '../audio/battleCues';
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
@@ -511,7 +511,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 playSfx('cardFly', { pitch: card.fromPlayer ? 1 : semitones(-3) });
                 setVfx(prev => ({ ...prev, playedCard: card }));
             } else if (signal.kind === 'launch') {
-                playSfx(castCue(GetProgramData(card.dataId)?.element));
+                playSfx(castCueFor(GetProgramData(card.dataId)));
                 // The caster's lunge is its pose now (190c), sent by the cast's `pose` beat.
             } else {
                 // A newer card may already have replaced it: the key check makes that a no-op.
