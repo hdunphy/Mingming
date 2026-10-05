@@ -31,6 +31,7 @@ import type { DamagePreview } from '../../utils/damagePreview';
 import { PLAQUE_W, type StageRect } from '../stageGeometry';
 import { DaemonTags, FirmwareChip, UnitPreview } from '../UnitReadouts';
 import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
+import { PlaqueHpPreview } from './PlaqueHpPreview';
 import { StatusChipRow } from './StatusChipRow';
 
 /** The HP bar's track width at reference scale: what is left of the plaque beside `414/1125`. */
@@ -93,7 +94,6 @@ export const UnitPlaque: React.FC<UnitPlaqueProps> = ({
                         <span className="stage-plaque-value k-display">
                             {shown.hp}
                             <span className="stage-plaque-max">/{entity.maxHp}</span>
-                            {previewDamage > 0 && <span className="stage-plaque-preview-hp"> (-{previewDamage})</span>}
                         </span>
                     </div>
                     <div className="stage-plaque-row stage-plaque-lower">
@@ -106,6 +106,8 @@ export const UnitPlaque: React.FC<UnitPlaqueProps> = ({
             </SlantPanel>
             {preview && (
                 <div className="stage-plaque-preview">
+                    {/* 194e: the HP number gets its own line out here, where the panel's clip cannot cut it. */}
+                    <PlaqueHpPreview damage={previewDamage} />
                     <UnitPreview preview={preview} className="stage-preview-row" />
                 </div>
             )}

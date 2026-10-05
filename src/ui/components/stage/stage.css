@@ -286,8 +286,22 @@
 
 .stage-plaque-max { color: var(--text-mute); }
 
-/* The damage the held card would do, inline in the HP readout. */
-.stage-plaque-preview-hp { color: var(--hp-low-hi); }
+/* 194e: the damage the held card would do, on its own line under the plaque (see PlaqueHpPreview).
+   It sits outside the panel's clip-path, so a four-digit number cannot be cut off. */
+.stage-plaque-preview-hp {
+    align-self: flex-start;
+    padding: 1px 6px;
+    background: var(--panel);
+    color: var(--hp-low-hi);
+    font-family: var(--font-display, inherit);
+    font-size: 15px;
+    font-weight: 800;
+    font-style: italic;
+    line-height: 1.1;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.stage-plaque-preview-hp-unit { font-size: 11px; color: var(--text-mute); }
 
 /* The status chips: icon x N, on slanted plates. The row alone takes the pointer back, because a
    chip whose tooltip cannot be hovered has stopped explaining itself. */
