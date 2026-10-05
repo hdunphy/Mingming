@@ -146,7 +146,7 @@ function overclocked(source: IBattleEntity | undefined, stacks: number): number 
 
 export function getEffectiveAttackPower(
     source: IBattleEntity,
-    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower' | 'scalingStatus'>,
+    action: Pick<AttackActionData, 'power' | 'scaling' | 'scalingPower' | 'scalingStatus' | 'scalingCap'>,
     target?: IBattleEntity,
 ): number {
     const power = action.power || 0;
@@ -264,6 +264,15 @@ export function getEffectiveAttackPower(
         const pctMissing = source.maxHp > 0
             ? ((source.maxHp - source.currentHp) / source.maxHp) * 100
             : 0;
+        // TICKET 194b: `scalingCap` on the action overrides the shared constant, and `null` means
+        // no cap at all (Ragnarok Edge, ruled by Henry). Absent keeps `MISSING_HP_PCT_CAP`, so
+        // Bloodlust and Last Rites are untouched. An overridden scaler floors its bonus like the
+        // other scalers do, because 1.5 x a fractional percent is a fractional power; the epsilon
+        // stops 80% missing, which divides out to 79.999..., from reading as 79.
+        if ('scalingCap' in action && action.scalingCap !== undefined) {
+            const cap = action.scalingCap === null ? Number.POSITIVE_INFINITY : action.scalingCap;
+            return power + Math.floor((action.scalingPower || 0) * Math.min(pctMissing, cap) + 1e-9);
+        }
         return power + (action.scalingPower || 0) * Math.min(pctMissing, MISSING_HP_PCT_CAP);
     }
     if (action.scaling === 'STRENGTH_STACKS') {
@@ -559,7 +568,13 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             if (!target) return state;
 
             const existingStatus = target.statusEffects.find(s => s.type === status);
-            const consumedStacks = existingStatus ? existingStatus.stacks : 0;
+            // TICKET 194c: Bark Shield stacks are a fractional %maxHp (decay x0.8, absorbed
+            // damage subtracts), so a consume read 47.863... stacks and `bark_smash` paid out
+            // on a number `BARKSHIELD_STACKS` would have floored. Count whole stacks, with an
+            // epsilon so a 3.9999999999 left by the decay still counts 4. The shield is removed
+            // whenever ANY of it exists: that is `heldStacks`, not the floored count.
+            const heldStacks = existingStatus ? existingStatus.stacks : 0;
+            const consumedStacks = Math.floor(heldStacks + 1e-6);
 
             /*
              * TICKET 163c — OVERCLOCK counts for a CONSUME too, and only when the caster is eating
@@ -580,7 +595,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             const counted = targetId === sourceId ? overclocked(source, consumedStacks) : consumedStacks;
 
             let newState: IBattleState = { ...state, lastStatusConsumed: counted };
-            if (consumedStacks > 0) {
+            if (heldStacks > 0) {
                 const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                     party.map(e => {
                         if (e.id !== targetId) return e;

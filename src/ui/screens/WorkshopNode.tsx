@@ -68,6 +68,8 @@ import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { PARTY_SIZE } from '../../engine/party';
 import { minimumActiveDeck, RECRUIT_KIT_SIZE } from '../../engine/run/createRun';
 import { effectiveOS } from '../../engine/run/effectiveOS';
+import { RuneTag } from '../components/RuneTag';
+import { runeIdsOf } from '../components/runeIds';
 import { OSGrammarRow } from '../components/OSGrammarRow';
 import {
     WORKSHOP_ASSEMBLY_SCRAP,
@@ -698,6 +700,8 @@ export default function WorkshopNode({
                                                 ? 'bench this one ⇄'
                                                 : `${instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)} · ${reflashBlockFor(member, ranch) === null ? 'retrain' : blockLabel('no-blueprint')}`}
                                         </span>
+                                        {/* 194p: the rune this body holds. */}
+                                        <RuneTag patchIds={runeIdsOf(run, member.id)} osId={effectiveOS(run, member)} />
                                     </span>
                                 </button>
                             );
@@ -720,6 +724,7 @@ export default function WorkshopNode({
                                     <span className="ws-bptext">
                                         <span className="ws-bpnm">{member.nickname ?? data.name}</span>
                                         <span className="ws-bpct">benched · retrain</span>
+                                        <RuneTag patchIds={runeIdsOf(run, member.id)} osId={effectiveOS(run, member)} />
                                     </span>
                                 </button>
                             );

@@ -114,9 +114,11 @@ describe('170e — the walker', () => {
     // the last two picks' cards, so every walk is offered different cards from the same seed.
     // TICKET 195a moved the kraken_v1 walk once, on purpose: Bark Smash deals 5 a point and Bark Smash+ 8, so a walk
     // that meets either card plays a different game from the same seed (f95299a3bf1d182c -> 993f6acb27185273).
+    // TICKET 194 moved it again (194a, 194b: see ghostWalk.test.ts: 993f6acb27185273 -> 8981a5c39483d37c).
+    // The two rulings land together, so the pinned value is the one measured with both: c1318fcb1bd5d8ee.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, string]> = [
         ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '9e1cbbc29cfeec7d'],
-        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '993f6acb27185273'],
+        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, 'c1318fcb1bd5d8ee'],
     ];
 
     it.each(GOLDEN)('%s: leaving draftPolicy out reproduces the 169j Draft Start walk exactly', (seed, starter, gymIndex, hash) => {

@@ -17,12 +17,18 @@ import type { BattleSpeedTier } from '../clock/battleSpeedTiers';
 export const PROFILE_KEYS = ['slow', 'showy', 'snappy'] as const;
 export type ProfileKey = (typeof PROFILE_KEYS)[number];
 
-/** Share of max HP that reads as a full-strength hit. The same 0.45 as ticket 189d's severity. */
-const FULL_HIT_FRACTION = 0.45;
+/**
+ * Share of max HP that reads as a full-strength hit. TICKET 194k-1: this was 0.45, set against the
+ * Battle Juice Lab's 100-HP units (where a "Solid 22" is s = 0.70). The game's units have
+ * 1,100-1,350 HP and Henry's 10-04 logs have a median hit of 50 (4%), so at 0.45 the median hit was
+ * s = 0.31 and every effect sat at the bottom of its range. At 0.15 the median hit is s = 0.54, the
+ * 75th percentile (103) is 0.77 and the 90th (214) is 1.0: where the lab's Chip and Solid sit.
+ */
+export const FULL_HIT_FRACTION = 0.15;
 
 const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
 
-/** `s = clamp(sqrt((damage / maxHp) / 0.45), 0, 1)` — the square root keeps a chip felt. */
+/** `s = clamp(sqrt((damage / maxHp) / 0.15), 0, 1)` — the square root keeps a chip felt. */
 export function damageScale(damage: number, maxHp: number): number {
     if (!(maxHp > 0) || !(damage > 0)) return 0;
     return clamp01(Math.sqrt(damage / maxHp / FULL_HIT_FRACTION));
@@ -62,7 +68,12 @@ export interface TierProfile {
     readonly cardOutMs: number;
     /** How long the enemy's card hovers on screen before it plays. */
     readonly enemyHoverMs: number;
-    /** A hit under this share of the target's max HP shakes the target and nothing else. */
+    /**
+     * A hit under this damage scale `s` shakes the target and nothing else. TICKET 194k-2: every
+     * big-hit threshold below is a number on `s`, as the lab has it, NOT a share of max HP. 190
+     * converted them to shares and, on 1,100-HP bodies, that left the dim and the charge-up for
+     * about 1% of hits.
+     */
     readonly cameraShakeFrom: number;
     /** Camera trauma a hit adds (0..1). */
     readonly trauma: Curve;
@@ -70,9 +81,9 @@ export interface TierProfile {
     readonly targetShakePx: Curve;
     /** Multiplies how many particles every burst throws. */
     readonly particleScale: number;
-    /** The stage dims for a hit at or over this share of max HP; null never dims. */
+    /** The stage dims for a hit whose damage scale `s` is at or over this; null never dims. */
     readonly dimFrom: number | null;
-    /** The attacker charges up for a hit at or over this share; null never charges. */
+    /** The attacker charges up for a hit whose damage scale `s` is at or over this; null never charges. */
     readonly chargeFrom: number | null;
     /** Fraction the stage zooms in on a big hit; 0 is none. */
     readonly cameraPunch: number;
@@ -95,7 +106,8 @@ const SHOWY: TierProfile = {
     cardInMs: 180,
     cardOutMs: 160,
     enemyHoverMs: 1000,
-    cameraShakeFrom: 0.12,
+    // The lab's 12% of a 100-HP body, as s: sqrt(0.12 / 0.45) = 0.52 (about 4% of max HP on the game's curve).
+    cameraShakeFrom: 0.52,
     trauma: between(0.3, 0.85),
     targetShakePx: between(4, 11),
     particleScale: 1.3,
@@ -118,7 +130,7 @@ const SNAPPY: TierProfile = {
     cardInMs: 150,
     cardOutMs: 140,
     enemyHoverMs: 1000,
-    cameraShakeFrom: 0.2,
+    cameraShakeFrom: 0.67,   // the lab's 20%: sqrt(0.2 / 0.45)
     trauma: between(0.25, 0.7),
     targetShakePx: between(3, 8),
     particleScale: 0.85,
@@ -142,7 +154,7 @@ const SLOW: TierProfile = {
     statusOnly: { wiggleMs: 380, orbMs: 400, landingMs: 650 },
     cardInMs: 220,
     cardOutMs: 200,
-    cameraShakeFrom: 0.08,
+    cameraShakeFrom: 0.42,   // the lab's 8%: sqrt(0.08 / 0.45)
     trauma: (s) => Math.min(1, SHOWY.trauma(s) + 0.1),
     targetShakePx: between(5, 13),
     particleScale: 1.5,

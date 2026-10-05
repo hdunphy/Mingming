@@ -1,36 +1,37 @@
 /**
- * TICKET 190f - STRENGTHENED LANDS: red chevrons rise with a few embers, and the sprite pumps up.
+ * TICKET 190f — STRENGTH LANDS: the lab's `statusLand('Strength')` line for line (TICKET 198b-4).
+ * 7 red chevrons rising off the feet one after another, and 12 glow embers rising with them; the
+ * sprite pumps up (`reaction: 'pump'`).
  */
 
 import { randomIn } from '../attacks/curves';
-import type { ParticleSeed } from '../particles';
 import { particle } from '../attacks/seeds';
-import { boxOf } from './bodyBox';
+import type { ParticleSeed } from '../particles';
+import { boxOf, centreOf, feetOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 import { countFor } from './stackFactor';
 
-const CHEVRONS = 4;
-const EMBERS = 5;
+export const CHEVRONS = 7;
+export const EMBERS = 12;
+const STRENGTH = [255, 84, 84] as const;
 
 export const strengthLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math.random }) => {
     const rand = randomIn(rng);
     const box = boxOf(at);
+    const c = centreOf(box);
+    const f = feetOf(box);
     const seeds: ParticleSeed[] = [];
 
     for (let i = 0; i < countFor(CHEVRONS, stacks, stacksAdded); i += 1) {
         seeds.push(particle({
-            x: box.x + box.w * rand(0.25, 0.75), y: box.y + box.h * rand(0.55, 0.9),
-            vx: 0, vy: -rand(80, 140), ay: -30, drag: 0.01,
-            life: rand(600, 800), size: rand(5, 7),
-            rgb: [232, 70, 60], rgb2: [170, 30, 30], a: 0.95, kind: 'chevron',
+            x: c.x + rand(-45, 45), y: f.y - rand(0, 30), vy: -rand(110, 160),
+            life: rand(600, 850), size: rand(7, 10), rgb: STRENGTH, kind: 'chev', add: false, fadeIn: i * 50,
         }));
     }
     for (let i = 0; i < countFor(EMBERS, stacks, stacksAdded); i += 1) {
         seeds.push(particle({
-            x: box.x + box.w * rand(0.2, 0.8), y: box.y + box.h * rand(0.6, 0.95),
-            vx: rand(-20, 20), vy: -rand(60, 130), ay: -rand(60, 140), drag: 0.02,
-            life: rand(420, 700), size: rand(2.6, 4), size2: 1,
-            rgb: [255, 190, 90], rgb2: [224, 60, 24], a: 0.95, kind: 'flame',
+            x: c.x + rand(-40, 40), y: f.y - rand(0, 20), vy: -rand(80, 200),
+            life: rand(400, 700), size: 4, size2: 1, rgb: [255, 200, 150], rgb2: STRENGTH,
         }));
     }
     return { seeds, reaction: 'pump' };

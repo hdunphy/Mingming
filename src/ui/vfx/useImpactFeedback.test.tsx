@@ -130,8 +130,8 @@ describe('189d — how long, how hard', () => {
         expect(readFreeze()).toBeLessThan(lone);
     });
 
-    it('a 6%-of-max-HP hit adds no camera trauma; a 20% hit does', () => {
-        hit(6);
+    it('a 2%-of-max-HP hit adds no camera trauma; a 20% hit does (194k-2: the line is s 0.52, about 4%)', () => {
+        hit(2);
         expect(cameraShake.level).toBe(0);
         hit(20);
         expect(cameraShake.level).toBeGreaterThan(0);

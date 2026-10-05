@@ -13,6 +13,8 @@
  * that mark into words, once, for the preview chip and the battle float alike.
  */
 
+import { displayStacks } from '../components/displayStacks';
+
 /** One status chip on the hover preview. `overflow` is set when the pile went off: what is left. */
 export interface StatusChange {
     readonly status: string;
@@ -29,7 +31,9 @@ export function overflowText(status: string, remaining: number): string {
 /** A preview chip's text: the overflow wording, or a signed stack change (`+2 POISON`). */
 export function statusChipText(change: StatusChange): string {
     if (change.overflow !== undefined) return overflowText(change.status, change.overflow);
-    return `${change.delta > 0 ? '+' : ''}${change.delta} ${change.status.toUpperCase()}`;
+    // 194c: through `displayStacks`, so a fractional Bark Shield never prints `4.00000001`.
+    const delta = displayStacks(change.delta);
+    return `${delta > 0 ? '+' : ''}${delta} ${change.status.toUpperCase()}`;
 }
 
 /**

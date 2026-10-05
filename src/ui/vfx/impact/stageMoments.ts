@@ -58,7 +58,21 @@ export interface HealMoment {
     readonly amount: number;
 }
 
-export type StageMoment = HitMoment | TickMoment | CostMoment | HealMoment;
+/**
+ * TICKET 198b-3: a status LANDING, said by the presenter when the orb arrives (or, after a damage
+ * card, as the rider lands): the float, the sound and the plaque's ring bump play here, not when
+ * the engine applied it at the start of the cast. The lab's `statusLand` floats "+2 Poison" as the
+ * particles go off, and so does this. `overflow` is 184b's: the pile left after a detonation.
+ */
+export interface StatusMoment {
+    readonly kind: 'status';
+    readonly targetId: string;
+    readonly status: StatusType;
+    readonly stacks: number;
+    readonly overflow?: number;
+}
+
+export type StageMoment = HitMoment | TickMoment | CostMoment | HealMoment | StatusMoment;
 export type DamageMoment = HitMoment | TickMoment | CostMoment;
 
 /** What the collector records from an event; the beat fills in what only the cast knows. */
@@ -66,7 +80,8 @@ export type MomentDraft =
     | Omit<HitMoment, 'sourceId' | 'step' | 'targets'>
     | TickMoment
     | CostMoment
-    | HealMoment;
+    | HealMoment
+    | StatusMoment;
 
 export interface CastContext {
     readonly sourceId: string | undefined;

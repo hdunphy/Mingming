@@ -1,33 +1,35 @@
 /**
- * TICKET 190f - DAZED LANDS: three stars circle the head, and the sprite wobbles. Always three: the
- * stars are the status, and a fourth would be a different drawing.
+ * TICKET 190f — DAZED LANDS: the lab's `statusLand('Dazed')` (TICKET 198b-4). Three yellow
+ * five-pointed stars circle over the head for 1.2 s, 40 px wide and 11 px tall, a turn and a half;
+ * the sprite wobbles (`reaction: 'wobble'`).
  */
 
 import type { ParticleSeed } from '../particles';
 import { boxOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 
+export const STAR_PX = 8;
 const STARS = 3;
-const TURNS = 1.5;
-const LIFE_MS = 1000;
+const LIFE_MS = 1200;
+/** Radians per ms (the lab's `age * 0.008`). */
+const SPIN = 0.008;
+const RX = 40;
+const RY = 11;
 
 export const dazedLanding: LandingMaker = ({ at }) => {
     const box = boxOf(at);
-    const cx = box.x + box.w / 2;
-    const headY = box.y + box.h * 0.18;
-    const rx = box.w * 0.28;
-    const ry = box.h * 0.07;
+    const top = { x: box.x + box.w / 2, y: box.y - 4 };
     const seeds: ParticleSeed[] = [];
 
     for (let i = 0; i < STARS; i += 1) {
-        const phase = (i / STARS) * Math.PI * 2;
+        const phase = (i * Math.PI * 2) / STARS;
         seeds.push({
-            x: cx + rx * Math.cos(phase), y: headY + ry * Math.sin(phase), vx: 0, vy: 0,
-            life: LIFE_MS, size: 5.5,
-            r: 255, g: 232, b: 110, r2: 255, g2: 200, b2: 60, a: 1, shape: 'star',
+            x: top.x + RX * Math.cos(phase), y: top.y + RY * Math.sin(phase), vx: 0, vy: 0,
+            life: LIFE_MS, size: STAR_PX,
+            r: 255, g: 220, b: 90, a: 1, shape: 'star',
             path: (t) => ({
-                x: cx + rx * Math.cos(phase + t * Math.PI * 2 * TURNS),
-                y: headY + ry * Math.sin(phase + t * Math.PI * 2 * TURNS),
+                x: top.x + RX * Math.cos(phase + t * LIFE_MS * SPIN),
+                y: top.y + RY * Math.sin(phase + t * LIFE_MS * SPIN),
             }),
         });
     }

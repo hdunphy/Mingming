@@ -3652,7 +3652,7 @@
     "ragnarok_edge": {
         "id": "ragnarok_edge",
         "name": "Ragnarok Edge",
-        "description": "20 power. +1 power per 1% of your max HP missing (max 50%).",
+        "description": "20 power. +1 power per 1% of your max HP missing.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -3671,7 +3671,8 @@
                 "power": 20,
                 "target": "TARGET",
                 "scaling": "MISSING_HP",
-                "scalingPower": 1
+                "scalingPower": 1,
+                "scalingCap": null
             }
         ]
     },
@@ -8394,7 +8395,7 @@
     "ragnarok_edge+": {
         "id": "ragnarok_edge+",
         "name": "Ragnarok Edge+",
-        "description": "30 power. +1 power per 1% of your max HP missing (max 50%).",
+        "description": "30 power. +1.5 power per 1% of your max HP missing.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -8412,7 +8413,8 @@
                 "power": 30,
                 "target": "TARGET",
                 "scaling": "MISSING_HP",
-                "scalingPower": 1
+                "scalingPower": 1.5,
+                "scalingCap": null
             }
         ]
     },

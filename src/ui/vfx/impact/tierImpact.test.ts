@@ -39,17 +39,18 @@ describe('190b — impact numbers follow the active tier', () => {
         expect(hitStopLengthMs(hit)).toBe(110);
     });
 
-    it('the camera starts shaking at 8% on Slow, 12% on Showy and 20% on Snappy', () => {
-        const nine = { applied: 9, maxHp: 100, isKill: false, resisted: false };
-        const fifteen = { ...nine, applied: 15 };
+    it('the camera starts shaking at s 0.42 on Slow, 0.52 on Showy and 0.67 on Snappy (194k-2)', () => {
+        // On a 100-HP body: 3% is s 0.45, 5% is s 0.58, 8% is s 0.73.
+        const three = { applied: 3, maxHp: 100, isKill: false, resisted: false };
+        const five = { ...three, applied: 5 };
         setActiveTier('slow');
-        expect(addsCameraTrauma(nine)).toBe(true);
+        expect(addsCameraTrauma(three)).toBe(true);
         setActiveTier('showy');
-        expect(addsCameraTrauma(nine)).toBe(false);
-        expect(addsCameraTrauma(fifteen)).toBe(true);
+        expect(addsCameraTrauma(three)).toBe(false);
+        expect(addsCameraTrauma(five)).toBe(true);
         setActiveTier('snappy');
-        expect(addsCameraTrauma(fifteen)).toBe(false);
-        expect(addsCameraTrauma({ ...nine, applied: 20 })).toBe(true);
+        expect(addsCameraTrauma(five)).toBe(false);
+        expect(addsCameraTrauma({ ...three, applied: 8 })).toBe(true);
     });
 
     it('trauma is Snappy 0.25..0.7, Slow Showy + 0.1, and a kill adds 0.25 (capped at 1)', () => {

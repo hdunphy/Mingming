@@ -389,6 +389,8 @@ export interface AttackActionData extends ProgramAction {
   readonly power: number;
   readonly element?: Element;
   readonly scalingPower?: number; // MISSING_HP: power added per 1% of maxHP missing (ticket 26)
+  /** MISSING_HP: overrides `MISSING_HP_PCT_CAP` for this action; `null` is no cap (ticket 194b). */
+  readonly scalingCap?: number | null;
   /**
    * TICKET 138 amendment: self-inflicted recoil, denominated in percent of the VICTIM's max HP.
    *

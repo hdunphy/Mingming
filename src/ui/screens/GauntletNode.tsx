@@ -67,6 +67,8 @@ import { introRules } from '../../engine/run/intro/introRules';
 import './GauntletNode.css';
 import { Icon } from '../theme/Icon';
 import { plain } from '../labels/labels';
+import { RuneTag } from '../components/RuneTag';
+import { runeIdsOf } from '../components/runeIds';
 
 export interface GauntletNodeProps {
     readonly run: IRunState;
@@ -93,6 +95,9 @@ interface MemberLine {
     readonly down: boolean;
     /** HP the 30% repair gave back after the last fight (ticket 173). */
     readonly healed: number;
+    /** 194p: the rune it holds, and the Instinct it runs (for the rune's tooltip). */
+    readonly runes: ReadonlyArray<string>;
+    readonly osId: string;
 }
 
 export default function GauntletNode({ run, node, ranch, onEditLoadout }: GauntletNodeProps): ReactNode {
@@ -125,6 +130,8 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                 currentHp: carried === undefined ? entity.maxHp : carried,
                 down: gauntlet.downedMemberIds.includes(id),
                 healed: gauntlet.healedHp?.[id] ?? 0,
+                runes: runeIdsOf(run, id),
+                osId: withEffectiveOS(run, member).activeOS,
             });
         }
         return lines;
@@ -213,6 +220,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                             <div className="gn-row-card">
                                 <span className="gn-row-name">{member.name}</span>
                                 <span className="gn-row-meta">{member.element}</span>
+                                <RuneTag patchIds={member.runes} osId={member.osId} />
                                 {member.down && <span className="gn-tag danger">Down — revivable</span>}
                                 {!member.down && member.healed > 0 && (
                                     <span className="gn-tag">+{member.healed} repaired</span>

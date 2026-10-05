@@ -52,10 +52,14 @@ export const FIRMWARE_COUNTERS: Readonly<Partial<Record<string, CounterReader>>>
             : 'Drew its card this turn; back next turn.'),
     }),
 
-    // BARK_SHIELD_OS — a one-time wall at the end of Huldra's first turn.
+    // BARK_SHIELD_OS — a one-time wall at the end of Huldra's OWN first turn (194a): the player's
+    // Huldra raises it when the player's turn ends, an enemy Huldra when the enemy's does. The
+    // words say which, because "her first turn" read as the player's end-turn for an enemy.
     huldra_v2: oneShotCounter({
         fired: { key: 'huldra_shield_init' },
-        armedText: 'Raises its Bark Shields at the end of Huldra\'s first turn.',
+        armedText: ({ state, owner }) => (state.playerParty.some((member) => member.id === owner.id)
+            ? 'Raises its Bark Shields when your first turn ends.'
+            : 'Raises its Bark Shields at the end of the enemy\'s first turn.'),
     }),
 
     // UNBOUND_KERNEL's berserk clause — not a counter but a live number, ruled in (decision 3).

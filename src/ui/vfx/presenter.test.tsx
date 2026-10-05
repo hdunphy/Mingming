@@ -487,7 +487,9 @@ describe('190d — the element attack of a cast, end to end', () => {
         advance(4_000);
         const big = effects[0].durationMs;
         effects.length = 0;
-        act(() => { play(); });
+        // 194k-1: on a 100-HP body a hit of 20 is already a full-strength hit (s = 1), so the chip
+        // that must pour shorter than the 90 is a 5.
+        act(() => { play('cinder_slash', [{ target: 'foe', applied: 5 }]); });
         advance(8_000);
         expect(big).toBeGreaterThan(effects[effects.length - 1].durationMs);
     });

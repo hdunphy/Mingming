@@ -1,26 +1,32 @@
 /**
- * TICKET 190f - BURN LANDS: flames lick up the body, with an orange glow behind them. One tongue per
- * stack, four at the most (the same cap the standing tongues have, 146a).
+ * TICKET 190f — BURN LANDS: the lab's `statusLand('Burn')` line for line (TICKET 198b-4). 24 glow
+ * flames born pale yellow across the lower body, rising fast and thinning as they cool to the Burn
+ * orange, each with a little fade-in so they do not all appear on one frame. (190f's standing
+ * tongues and the big body glow are gone: the lab has neither.)
  */
 
 import { randomIn } from '../attacks/curves';
 import { particle } from '../attacks/seeds';
-import { burnEmitter } from '../emitters';
-import { boxOf, centreOf } from './bodyBox';
+import type { ParticleSeed } from '../particles';
+import { boxOf, centreOf, feetOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
+import { countFor } from './stackFactor';
+
+export const FLAMES = 24;
+const BURN = [255, 122, 47] as const;
 
 export const burnLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math.random }) => {
     const rand = randomIn(rng);
     const box = boxOf(at);
-    const centre = centreOf(box);
-    const counted = stacksAdded ? Math.ceil(stacks / 2) : stacks;
-    const tongues = Math.max(1, Math.min(4, Math.round(counted)));
+    const c = centreOf(box);
+    const f = feetOf(box);
+    const seeds: ParticleSeed[] = [];
 
-    const seeds = burnEmitter({ x: box.x, y: box.y, w: box.w, h: box.h }, tongues, rng);
-    seeds.push(particle({
-        x: centre.x + rand(-8, 8), y: centre.y + box.h * 0.12,
-        life: 520, size: box.h * 0.26, size2: box.h * 0.4,
-        rgb: [255, 170, 70], rgb2: [224, 93, 40], a: 0.3, kind: 'puff',
-    }));
+    for (let i = 0; i < countFor(FLAMES, stacks, stacksAdded); i += 1) {
+        seeds.push(particle({
+            x: c.x + rand(-45, 45), y: f.y - rand(0, 40), vx: rand(-15, 15), vy: -rand(140, 320), drag: 0.03,
+            life: rand(380, 680), size: rand(7, 11), size2: 2, rgb: [255, 230, 150], rgb2: BURN, fadeIn: rand(0, 200),
+        }));
+    }
     return { seeds };
 };

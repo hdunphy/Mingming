@@ -19,15 +19,25 @@
  *
  * RE-PINNED ON PURPOSE, TICKET 195a (a game change): Bark Smash deals 5 a point and Bark Smash+ 8, so fights 4, 13, 15
  * and 18 are played differently (4, 13 and 15 have a huldra_v2, whose kit holds Bark Smash). The other sixteen did not move.
+ * RE-PINNED ON PURPOSE, TICKET 194 (two game rulings, found by taking the hashes on each commit):
+ *   - 194a (an enemy Huldra v2 no longer shields before she acts): fights 4, 12, 13, 15, 18 and 19 have a
+ *     huldra_v2 or a Rootfall/Emberfall boss that fields one. Fights 0, 9, 10, 14 and 16 did not move at 194a.
+ *   - 194b (Ragnarok Edge loses its cap, Ragnarok Edge+ scales 1.5 per 1%): fights 0, 9, 10, 14 and 16 have
+ *     a fenrir fighting past 50% missing HP. Fights 4, 12, 13, 15, 18 and 19 are unchanged by it.
+ * No later 194 row moved any of the twenty.
+ *
+ * AFTER MERGING 195a AND 194 the list below is measured with both applied. It is 194's list with three fights moved
+ * again by 195a (Bark Smash 5 a point, Bark Smash+ 8): 4 (06aceb8d -> 5bcf5e37), 12 (28926034 -> 71b31120) and
+ * 15 (3a4b479b -> 7a0b1c1b). Fights 13 and 18 moved at 195a on its own, but with 194a in they match 194's values.
  */
 import { describe, it, expect } from 'vitest';
 import { determinismFights, hashOfFight } from './aiDeterminismFights';
 
 const EXPECTED: ReadonlyArray<string> = [
-    'a5afe12b', '55457196', '112193f2', '899c7f5b', '3978635f',
-    '5781866a', 'c9c7121e', '8e7423ec', '94dea59d', 'c82ee87b',
-    'c1a2bbe6', 'a257050a', '6e46de2c', '31df1e59', 'dea86e21',
-    '27e52d4e', 'ba65bd3c', '4ad363e0', '2bee97b9', 'ce42103a',
+    '379cb0f9', '55457196', '112193f2', '899c7f5b', '5bcf5e37',
+    '5781866a', 'c9c7121e', '8e7423ec', '94dea59d', '725bee70',
+    '0362db14', 'a257050a', '71b31120', '734ec7a5', 'aeb81c7b',
+    '7a0b1c1b', 'f4a902bf', '4ad363e0', '6c709cc6', '2135677b',
 ];
 
 describe('177a — the AI is byte-identical on twenty fixed fights', () => {

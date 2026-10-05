@@ -131,3 +131,30 @@ describe('189d — what the screen says as a hit lands', () => {
         expect(said).toEqual([{ step: 0, sourceId: undefined }, { step: 1, sourceId: undefined }]);
     });
 });
+
+describe('198b-3 - a status is SAID when it lands, not when the engine applied it', () => {
+    it('a status-only card says one `status` moment per body as the orb arrives, with the merged stacks', () => {
+        const said: Array<{ kind: string; at: number; targetId?: string; stacks?: number; overflow?: number }> = [];
+        const cast = emptyCast({ ...base, element: 'Water', targetIds: ['e1'], attack: true });
+        cast.statuses.push({ targetId: 'e1', status: 'Poison', stacks: 1 }, { targetId: 'e1', status: 'Poison', stacks: 2, overflow: 3 });
+        const beat = buildCastBeat(cast, spyBoard().board, (moment) => {
+            if (moment.kind === 'status') said.push({ kind: moment.kind, at: now, targetId: moment.targetId, stacks: moment.stacks, overflow: moment.overflow });
+        });
+        let now = 0;
+        for (const action of [...beat.actions].sort((a, b) => a.at - b.at)) { now = action.at; action.run(); }
+        // Attack-category, no hits, applies a status: the status timeline (wiggle, orb, landing).
+        const landsAt = TIER_PROFILES.showy.statusOnly.wiggleMs + TIER_PROFILES.showy.statusOnly.orbMs;
+        expect(said).toEqual([{ kind: 'status', at: landsAt, targetId: 'e1', stacks: 3, overflow: 3 }]);
+        expect(beat.actions.some((action) => action.label === 'orb')).toBe(true);
+        expect(beat.actions.some((action) => action.label === 'trail')).toBe(false);
+    });
+
+    it('a loose status (no card behind it) is said at once', () => {
+        const said: string[] = [];
+        const burst = emptyLoose();
+        burst.applied.push({ status: 'Burn', targetId: 'p1', stacks: 2 });
+        const beat = buildLooseBeat(burst, spyBoard().board, (moment) => { said.push(`${moment.kind}:${moment.targetId}`); });
+        for (const action of beat.actions) action.run();
+        expect(said).toEqual(['status:p1']);
+    });
+});

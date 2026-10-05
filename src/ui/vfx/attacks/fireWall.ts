@@ -3,7 +3,7 @@
  * it; each body is hit as the wall passes. Ported from the lab's `fxFireWall`.
  */
 
-import { type AttackBuild, type AttackInput, type HitTime, centerOf, framesOf } from './AttackEffect';
+import { type AttackBuild, type AttackInput, type HitTime, centerOf, labTicks } from './AttackEffect';
 import { clamp, inOut, invInOut, lerp, randomIn } from './curves';
 import { LIGHT_BLEND } from './glow';
 import { particle } from './seeds';
@@ -43,7 +43,7 @@ export function fireWall(input: AttackInput): AttackBuild {
         effect: {
             durationMs: total + FADE_MS,
             step(age, dt, spawn) {
-                flames += framesOf(dt) * (0.2 + 0.28 * s) * pm * intensity(age);
+                flames += labTicks(dt) * (0.2 + 0.28 * s) * pm * intensity(age);
                 const x = wallX(Math.min(age, total));
                 while (flames >= 1) {
                     flames -= 1;
@@ -57,9 +57,11 @@ export function fireWall(input: AttackInput): AttackBuild {
             },
             draw(ctx, age) {
                 const x = wallX(Math.min(age, total));
+                const k = intensity(age);
+                // The lab's one additive column: a soft orange band 100 px wide, 28% at the middle.
                 const gradient = ctx.createLinearGradient(x - 50, 0, x + 50, 0);
                 gradient.addColorStop(0, 'rgba(255,100,40,0)');
-                gradient.addColorStop(0.5, `rgba(255,140,60,${0.28 * intensity(age)})`);
+                gradient.addColorStop(0.5, `rgba(255,140,60,${0.28 * k})`);
                 gradient.addColorStop(1, 'rgba(255,100,40,0)');
                 ctx.globalCompositeOperation = LIGHT_BLEND;
                 ctx.fillStyle = gradient;

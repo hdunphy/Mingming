@@ -332,6 +332,35 @@ describe('189c — with the presenter idle, displayed equals real', () => {
     });
 });
 
+describe('194d — two Huldras: both walls reach the screen without the safety net', () => {
+    it('after both turns end, each Huldra shows her 75-stack wall and the board never needed a snap', async () => {
+        // Henry (fight 11, 2026-10-04): "Two huldra's with the barksheild OS/instinct but the second
+        // one didn't get the shield?" The engine log shows both walls. This is the other half: that
+        // each grant (50 on herself, 25 from the other) is recorded as a board op for the right
+        // body, so the displayed bark equals the real bark with no correction.
+        const huldra = (id: string) => body(id, { primaryElement: 'Nature', maxHp: 1000, currentHp: 1000, activeOS: 'huldra_v2' });
+        const state = frame({ enemy: [huldra('e1'), huldra('e2'), body('e3', { primaryElement: 'Nature', maxHp: 1000, currentHp: 1000 })] });
+        mount(state);
+
+        dispatchBurst({ type: 'END_TURN' } as BattleAction);     // the player's turn ends: no wall yet (194a)
+        await settle(20_000);
+        expect(barkShieldPoints(realOf('e1'))).toBe(0);
+        expect(barkShieldPoints(realOf('e2'))).toBe(0);
+
+        dispatchBurst({ type: 'END_TURN' } as BattleAction);     // the enemy turn ends: both walls rise
+        const walls = ['e1', 'e2'].map((id) => realOf(id).statusEffects.find((s) => s.type === 'BarkShield')?.stacks);
+        expect(walls).toEqual([75, 75]);
+
+        await settle(20_000);
+        expect(presenter.isIdle()).toBe(true);
+        expect(shownText('e1').split('|')[1]).toBe('750');
+        expect(shownText('e2').split('|')[1]).toBe('750');
+        expect(shownText('e3').split('|')[1]).toBe('500');   // 25 from each Huldra, 50 stacks of 1,000 HP
+        everyBodyShowsTheTruth();
+        expectNoSnapNeeded();
+    });
+});
+
 
 describe('189d — with the cast sequence off, the board and the screen still move, at once', () => {
     it('vfx off: the HP text moves as the hit arrives, with no safety-net correction', async () => {

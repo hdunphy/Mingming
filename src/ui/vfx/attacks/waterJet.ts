@@ -4,7 +4,7 @@
  * from the lab's `fxJet`.
  */
 
-import { type AttackBuild, type AttackInput, centerOf, framesOf, muzzleOf } from './AttackEffect';
+import { type AttackBuild, type AttackInput, centerOf, labTicks, muzzleOf } from './AttackEffect';
 import { bez2, inQuad, lerp, outQuad, randomIn } from './curves';
 import { drawGlowAt, LIGHT_BLEND } from './glow';
 import { particle } from './seeds';
@@ -40,7 +40,7 @@ export function waterJet(input: AttackInput): AttackBuild {
         effect: {
             durationMs: pourEnd + TAIL_MS,
             step(age, dt, spawn) {
-                const frames = framesOf(dt);
+                const frames = labTicks(dt);
                 if (age < pourEnd) {
                     drops += frames * (0.25 + 0.35 * s) * pm;
                     const head = bez2(from, control, to, outQuad(Math.min(1, age / headMs)));
@@ -48,7 +48,7 @@ export function waterJet(input: AttackInput): AttackBuild {
                         drops -= 1;
                         spawn([particle({
                             x: head.x, y: head.y, vx: d * rand(40, 160), vy: rand(-220, -40), ay: 950,
-                            life: rand(350, 600), size: rand(2, 4), rgb: [195, 232, 255], kind: 'drop',
+                            life: rand(350, 600), size: rand(2, 4), rgb: [195, 232, 255], kind: 'drop', add: false,
                         })]);
                     }
                 }
@@ -58,12 +58,12 @@ export function waterJet(input: AttackInput): AttackBuild {
                         spray -= 1;
                         spawn([particle({
                             x: to.x - d * 20, y: to.y, vx: -d * rand(60, 220), vy: rand(-260, -60), ay: 900,
-                            life: rand(400, 650), size: rand(2.5, 4), rgb: [205, 238, 255], kind: 'drop',
+                            life: rand(400, 650), size: rand(2.5, 4), rgb: [205, 238, 255], kind: 'drop', add: false,
                         })]);
                         if ((input.rng ?? Math.random)() < 0.3) {
                             spawn([particle({
                                 x: to.x, y: to.y, vx: rand(-40, 40), vy: rand(-30, 10), life: 600, size: 12, size2: 36,
-                                rgb: [170, 215, 255], a: 0.3,
+                                rgb: [170, 215, 255], kind: 'soft', a: 0.3,
                             })]);
                         }
                     }

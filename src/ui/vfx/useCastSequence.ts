@@ -270,14 +270,20 @@ export function useCastSequence(battleState: IBattleState | null): CastPresenter
                             );
                         }
                     }
-                    if (immediate) return;
+                    if (immediate) {
+                        // 198b-3: no beat to land it on, so it is said at once (a hook's own float is `useBattleVfx`'s).
+                        if (!isHookStatus(event.source)) {
+                            emitStageMoment({ kind: 'status', targetId: event.targetId, status: event.status, stacks: event.stacks, overflow: event.overflowRemaining });
+                        }
+                        return;
+                    }
                     // Belongs to the cast whose window is open. A status that lands with no window
                     // is an engine expiry or a turn-boundary effect: a loose beat, queued behind
                     // whatever is still playing (189b) rather than played over it.
                     if (open && isHookStatus(event.source)) {
                         open.hookStatuses.push({ hookId: event.source.hookId, targetId: event.targetId, status: event.status, stacks: event.stacks });
-                    } else if (open) open.statuses.push({ targetId: event.targetId, status: event.status, stacks: event.stacks });
-                    else looseBurst().applied.push({ status: event.status, targetId: event.targetId, stacks: event.stacks });
+                    } else if (open) open.statuses.push({ targetId: event.targetId, status: event.status, stacks: event.stacks, overflow: event.overflowRemaining });
+                    else looseBurst().applied.push({ status: event.status, targetId: event.targetId, stacks: event.stacks, overflow: event.overflowRemaining });
                     return;
                 }
                 case 'STATUS_REMOVED': {

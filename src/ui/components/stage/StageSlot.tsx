@@ -16,6 +16,7 @@ import { CasterCursor } from './CasterCursor';
 import { Platform } from './Platform';
 import { StageSprite } from './StageSprite';
 import { TargetFlag } from './TargetFlag';
+import type { TargetMark } from './targetMark';
 import { UnitPlaque } from './UnitPlaque';
 
 export interface StageSlotProps {
@@ -27,6 +28,8 @@ export interface StageSlotProps {
     isActive: boolean;
     isTargeted: boolean;
     verdict: TargetVerdict | null;
+    /** 194h: STRONG = the preview's target (or the unit an unaimed card hits), SOFT = another legal choice. */
+    mark: TargetMark;
     /** Ticket 145b: what the held card would do to this unit. Null unless it is the hover target. */
     preview: DamagePreview | null;
     fx?: UnitFx;
@@ -37,7 +40,7 @@ export interface StageSlotProps {
 }
 
 export const StageSlot: React.FC<StageSlotProps> = ({
-    entity, isEnemy, rect, plaque, scale, isActive, isTargeted, verdict, preview, fx, battleState,
+    entity, isEnemy, rect, plaque, scale, isActive, isTargeted, verdict, mark, preview, fx, battleState,
     onClick, onPointerUp, onHoverChange,
 }) => {
     // A legal target the pointer is on (or the chosen one) shows the cursor; the words come with the
@@ -54,6 +57,7 @@ export const StageSlot: React.FC<StageSlotProps> = ({
                     isActive ? 'stage-slot-active' : '',
                     isTargeted ? 'stage-slot-targeted' : '',
                     verdict ? (verdict.ok ? 'stage-slot-legal' : 'stage-slot-illegal') : '',
+                    mark ? `stage-slot-mark-${mark}` : '',
                 ].filter(Boolean).join(' ')}
                 data-testid={`stage-slot-${entity.id}`}
                 style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
@@ -73,6 +77,7 @@ export const StageSlot: React.FC<StageSlotProps> = ({
                 scale={scale}
                 isActive={isActive}
                 preview={preview}
+                mark={mark}
                 battleState={battleState}
             />
         </>

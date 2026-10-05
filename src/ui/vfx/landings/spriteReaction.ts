@@ -60,3 +60,30 @@ export function reactionKeys(kind: ReactionKind): ReactionKeys {
             };
     }
 }
+
+/**
+ * TICKET 194k-5 - THE BODY GLOW every status landing adds: the sprite glows in the status colour for
+ * 450 ms, as the lab's does (`u.glow = S.rgb; play(450, ...)`). A `drop-shadow` filter, so it follows
+ * the art's own outline rather than its box. It is a separate signal from the reactions above
+ * because a landing can have both (Poison dulls AND glows purple), and two animations never share
+ * one element's filter: the glow plays on its own wrapper.
+ */
+export const GLOW_MS = 450;
+
+export interface GlowKeys {
+    readonly durationMs: number;
+    readonly times: readonly number[];
+    readonly filter: readonly string[];
+}
+
+export function glowKeys(rgb: { readonly r: number; readonly g: number; readonly b: number }): GlowKeys {
+    const at = (alpha: number): string => `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+    const shadow = (blur: number, wide: number, alpha: number): string =>
+        `drop-shadow(0 0 ${blur}px ${at(alpha)}) drop-shadow(0 0 ${wide}px ${at(alpha)})`;
+    return {
+        durationMs: GLOW_MS,
+        times: [0, 0.15, 1],
+        // Same shape at both ends, so the glow starts and ends at nothing.
+        filter: [shadow(0, 0, 0), shadow(8, 22, 0.95), shadow(0, 0, 0)],
+    };
+}

@@ -94,6 +94,8 @@ import { upgradeHeading } from './town/townText';
 import { introRules } from '../../engine/run/intro/introRules';
 import { CardFace, ElementMark } from './CardChassis';
 import { CardPeek } from './CardPeek';
+import { SoldStamps } from './SoldStamps';
+import { useSoldStamps } from './useSoldStamps';
 import { useCardPeek } from '../hooks/useCardPeek';
 import { useFirstTraceLine } from '../hooks/useFirstTraceLine';
 import { plain } from '../labels/labels';
@@ -242,16 +244,21 @@ export default function MarketplaceNode({
         playSfx('rewardClaim');
     };
 
-    const sell = (stack: SellStack): void => {
+    // TICKET 194o: a sale answers where the tile was, since the tile's count drops or the tile goes.
+    const { stamps, stamp } = useSoldStamps();
+
+    const sell = (stack: SellStack, from?: Element): void => {
         if (stack.junk) {
             if (scrap < stack.price) { playSfx('uiError'); return; }
             dispatch(removeJunkCard({ instanceId: stack.instances[0].instanceId, price: stack.price }));
             playSfx('uiClick');
+            if (from) stamp('REMOVED', `-${stack.price} amber`, from);
             return;
         }
         if (stack.inDeck && atFloor) { playSfx('uiError'); return; }
         dispatch(sellRunCard({ instanceId: stack.instances[0].instanceId, price: stack.price }));
         playSfx('rewardClaim');
+        if (from) stamp('SOLD', `+${stack.price} amber`, from);
     };
 
     /** TICKET 169g: the stall refresh, at Tight Budget's rate when that is on. */
@@ -555,12 +562,13 @@ export default function MarketplaceNode({
                                     className={`rs-card mk-sell-tile ${stack.junk ? 'junk' : ''}`}
                                     style={{ ['--el' as string]: colorFor(face.element) }}
                                     disabled={blocked}
-                                    onClick={() => sell(stack)}
+                                    onClick={(event) => sell(stack, event.currentTarget)}
                                 >
-                                    <CardFace
-                                        face={face}
-                                        tags={`${stack.inDeck ? 'deck' : 'collection'}${stack.instances.length > 1 ? ` ×${stack.instances.length}` : ''}`}
-                                    />
+                                    <CardFace face={face} />
+                                    {/* 194o: which pile and how many, as a plate on the tile (it was a tag line nobody saw). */}
+                                    <span className="mk-sell-pile" data-pile={stack.inDeck ? 'deck' : 'collection'}>
+                                        {stack.inDeck ? 'DECK' : 'COLLECTION'}{stack.instances.length > 1 ? ` ×${stack.instances.length}` : ''}
+                                    </span>
                                     <span className={`rs-price mk-sell-plate ${stack.junk ? 'remove' : 'sell'}`}>
                                         {stack.junk ? `REMOVE — ${stack.price} amber` : `SELL +${stack.price} amber`}
                                     </span>
@@ -599,7 +607,7 @@ export default function MarketplaceNode({
                                         className="rs-row"
                                         style={{ ['--el' as string]: colorFor(face.element) }}
                                         disabled={blocked}
-                                        onClick={() => sell(stack)}
+                                        onClick={(event) => sell(stack, event.currentTarget)}
                                     >
                                         <span className="rs-g">{face.cost}</span>
                                         <ElementMark element={face.element} compact />
@@ -631,6 +639,7 @@ export default function MarketplaceNode({
                 </div>
                 )}
             </div>
+            <SoldStamps stamps={stamps} />
         </Frame>
     );
 }

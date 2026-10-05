@@ -36,7 +36,7 @@ import type { StageAnchors } from '../hooks/useStageAnchors';
  */
 import { burstFor } from './emitters';
 import type { AttackEffect } from './attacks/AttackEffect';
-import { orbSeed } from './choreo/orb';
+import { orbEffect } from './choreo/orb';
 import { speedLineSeeds } from './choreo/speedLines';
 import { buildImpact } from './impacts/buildImpact';
 import { matchupOf } from './impacts/impactCount';
@@ -170,6 +170,11 @@ export function emitEffect(effect: AttackEffect): void {
     sink.wake();
 }
 
+/** The charge-up before a big hit (190g / 198b-4): an effect at the caster's mouth through the wind-up. */
+export function emitCharge(effect: AttackEffect): void {
+    emitEffect(effect);
+}
+
 /**
  * The orb of a status-only card (190c): lobbed from `from` to `to`, or rising off `from` and dropping
  * back when `self`.
@@ -177,8 +182,8 @@ export function emitEffect(effect: AttackEffect): void {
 export function emitOrb(
     from: EmitAt, to: EmitAt, color: { r: number; g: number; b: number }, lifeMs: number, self: boolean,
 ): void {
-    if (!sink) return;
-    sink.spawn([orbSeed(from, to, color, lifeMs, self)]);
+    if (!sink?.addEffect) return;
+    sink.addEffect(orbEffect(from, to, color, lifeMs, self));
     sink.wake();
 }
 

@@ -22,8 +22,9 @@ import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
 import { JS_COLOR } from '../theme/jsColors';
 import { anchorFor, emit, emitSeeds, plaqueFor, type EmitAt } from './emit';
+import { plainImpact } from './impacts/plainImpact';
 import { landingFor } from './landings/landingFor';
-import { emitSpriteReaction } from './landings/reactionSignals';
+import { emitSpriteGlow, emitSpriteReaction } from './landings/reactionSignals';
 
 interface Rgb { r: number; g: number; b: number }
 
@@ -37,6 +38,9 @@ export const statusColor = (status: StatusType): Rgb => hexToRgb(STATUS_COLORS[s
 
 /** What a removal looks like: grey, because the thing that had a colour is gone. */
 const GREY: Rgb = { r: 150, g: 155, b: 162 };
+const WHITE: Rgb = { r: 255, g: 255, b: 255 };
+/** The lab's `round((12 + 26 * 1) * 1.4)`. */
+export const DEATH_SPARKS = Math.round((12 + 26) * 1.4);
 
 /**
  * APPLY — §2f: *"a `ring` in `STATUS_COLORS[status]` expanding from the target's sprite anchor + the
@@ -61,6 +65,8 @@ export function emitStatusApplied(status: StatusType, targetId: string, stacksAd
         const built = landing({ at, plaque: plaqueFor(targetId), stacks, stacksAdded });
         emitSeeds(built.seeds);
         if (built.reaction) emitSpriteReaction({ targetId, reaction: built.reaction });
+        // 194k-5: and every landing makes the body glow in the status colour for 450 ms.
+        emitSpriteGlow({ targetId, color: statusColor(status) });
         return;
     }
     const color = statusColor(status);
@@ -160,12 +166,12 @@ export function emitSelfCost(casterId: string): void {
  * 145b already draws the body as a 40%-brightness silhouette, which is the standing read. This is
  * the moment, on the ruling that has governed every tell in 146.
  */
-export function emitDeath(targetId: string): void {
+export function emitDeath(targetId: string, direction: 1 | -1 = 1): void {
     const at = anchorFor(targetId);
     if (!at) return;
-    emit('ring', at, { color: GREY, intensity: 1 });
-    emit('puff', at, { color: GREY, intensity: 9 });
-    emit('spark', at, { color: { r: 210, g: 214, b: 220 }, intensity: 8 });
+    // TICKET 198b-4: the lab's `death()` throws `burst('None', u, 1, 1.4, dir)`: a full-strength
+    // white spark burst at 1.4x, flying on from the attacker, with its white ring.
+    emitSeeds(plainImpact({ at, s: 1, matchup: 'normal', isKill: true, direction, particleScale: 1, color: WHITE }, DEATH_SPARKS, WHITE));
 }
 
 /** Convenience for a caller that has an anchor already resolved. */

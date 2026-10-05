@@ -73,3 +73,29 @@ describe('190e - the matchup tag has a float of its own', () => {
         expect(tags[0]).toContain('hud-float-tag');
     });
 });
+
+describe('194k-4 - the number is drawn at the profile size with an outline, and labels are 20 px', () => {
+    const tagOf = (f: CombatFloat): string => floatTags([f])[0];
+    const px = (tag: string): number => Number(/font-size:([\d.]+)px/.exec(tag)?.[1] ?? NaN);
+    const stroke = (tag: string): number => Number(/-webkit-text-stroke-width:([\d.]+)px/.exec(tag)?.[1] ?? NaN);
+
+    it('a damage float with a size writes it inline, with an outline of 18% and at least 4 px', () => {
+        const tag = tagOf({ ...float(1, 'damage', 0), px: 50 });
+        expect(px(tag)).toBe(50);
+        expect(stroke(tag)).toBe(9);
+        expect(stroke(tagOf({ ...float(2, 'damage', 0), px: 30 }))).toBeGreaterThanOrEqual(4);
+    });
+
+    it('status, tag, absorbed and proc labels are 20 px with a 4 px outline', () => {
+        for (const kind of ['status', 'tag', 'absorbed', 'proc'] as const) {
+            const tag = tagOf(float(1, kind, 0));
+            expect(px(tag)).toBe(20);
+            expect(stroke(tag)).toBe(4);
+        }
+    });
+
+    it('a 60 px number is stacked further from the one under it than a small one', () => {
+        const [a, b] = floatTags([{ ...float(1, 'damage', 0), px: 60 }, { ...float(2, 'damage', 1), px: 60 }]);
+        expect(startY(b) - startY(a)).toBe(42);
+    });
+});

@@ -13,15 +13,22 @@ const SNAPPY = TIER_PROFILES.snappy;
 const SLOW = TIER_PROFILES.slow;
 
 describe('190b — damageScale (s)', () => {
-    it('is clamp(sqrt((damage / maxHp) / 0.45), 0, 1)', () => {
+    it('is clamp(sqrt((damage / maxHp) / 0.15), 0, 1)', () => {
         expect(damageScale(0, 100)).toBe(0);
-        expect(damageScale(45, 100)).toBe(1);
+        expect(damageScale(15, 100)).toBe(1);
         expect(damageScale(200, 100)).toBe(1);
-        expect(damageScale(11.25, 100)).toBeCloseTo(0.5, 6);
+        expect(damageScale(3.75, 100)).toBeCloseTo(0.5, 6);
     });
 
-    it('keeps a chip quick and a 45 from being three times a 15', () => {
-        expect(damageScale(45, 100) / damageScale(15, 100)).toBeLessThan(1.8);
+    it('194k-1: the game\'s median hit (50 of 1,150) reads 0.54, the 75th and 90th percentiles 0.77 and 1.0', () => {
+        // The 10-04 fight logs, 610 hits: median 50, p75 103, p90 214, on bodies of 1,100-1,350 HP.
+        expect(damageScale(50, 1150)).toBeCloseTo(0.54, 2);
+        expect(damageScale(103, 1150)).toBeCloseTo(0.77, 2);
+        expect(damageScale(214, 1150)).toBe(1);
+    });
+
+    it('keeps a chip quick and a hit three times the size from being three times the effect', () => {
+        expect(damageScale(150, 1150) / damageScale(50, 1150)).toBeLessThan(1.8);
     });
 
     it('survives a zero max HP and a negative hit', () => {
@@ -77,7 +84,7 @@ describe('190b — the Snappy column', () => {
         expect(SNAPPY.statusOnly).toEqual({ wiggleMs: 200, orbMs: 220, landingMs: 340 });
         expect([SNAPPY.cardInMs, SNAPPY.cardOutMs]).toEqual([150, 140]);
         expect(SNAPPY.enemyHoverMs).toBe(1000);
-        expect(SNAPPY.cameraShakeFrom).toBe(0.2);
+        expect(SNAPPY.cameraShakeFrom).toBe(0.67);
         expect(SNAPPY.trauma(0)).toBeCloseTo(0.25);
         expect(SNAPPY.trauma(1)).toBeCloseTo(0.7);
         expect(SNAPPY.targetShakePx(0)).toBe(3);
@@ -107,7 +114,7 @@ describe('190b — the Showy column', () => {
         expect(SHOWY.statusOnly).toEqual({ wiggleMs: 300, orbMs: 320, landingMs: 520 });
         expect([SHOWY.cardInMs, SHOWY.cardOutMs]).toEqual([180, 160]);
         expect(SHOWY.enemyHoverMs).toBe(1000);
-        expect(SHOWY.cameraShakeFrom).toBe(0.12);
+        expect(SHOWY.cameraShakeFrom).toBe(0.52);
         expect(SHOWY.trauma(0)).toBeCloseTo(0.3);
         expect(SHOWY.trauma(1)).toBeCloseTo(0.85);
         expect(SHOWY.targetShakePx(0)).toBe(4);
@@ -140,7 +147,7 @@ describe('190b — the Slow column is a heavier Showy', () => {
         expect([SLOW.knockbackMs, SLOW.returnMs]).toEqual([220, 250]);
         expect(SLOW.statusOnly).toEqual({ wiggleMs: 380, orbMs: 400, landingMs: 650 });
         expect([SLOW.cardInMs, SLOW.cardOutMs]).toEqual([220, 200]);
-        expect(SLOW.cameraShakeFrom).toBe(0.08);
+        expect(SLOW.cameraShakeFrom).toBe(0.42);
         expect(SLOW.trauma(0.5)).toBeCloseTo(SHOWY.trauma(0.5) + 0.1);
         expect(SLOW.targetShakePx(0)).toBe(5);
         expect(SLOW.targetShakePx(1)).toBe(13);

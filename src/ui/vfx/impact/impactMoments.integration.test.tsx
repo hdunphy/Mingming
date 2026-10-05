@@ -233,9 +233,9 @@ describe('189d — a kill is heavier than a chip, and shakes the camera', () => 
         expect(kill).toBeGreaterThan(chip);
     });
 
-    it('a 6%-of-max-HP hit adds no camera trauma; a 20% hit does', async () => {
+    it('a 2%-of-max-HP hit adds no camera trauma; a 20% hit does (194k-2: the line is s 0.52, about 4%)', async () => {
         const dealt = jabDamage();
-        mount(frame([fat('e1', Math.round(dealt / 0.06)), fat('e2', 100), fat('e3', 100)]));
+        mount(frame([fat('e1', Math.round(dealt / 0.02)), fat('e2', 100), fat('e3', 100)]));
         play();
         await settleToImpact();
         expect(cameraShake.level).toBe(0);
@@ -364,7 +364,7 @@ describe('190g - the camera punch', () => {
 
     it('does not punch for a small hit', async () => {
         const dealt = jabDamage();
-        mount(frame([fat('e1', Math.round(dealt / 0.2)), fat('e2', 100), fat('e3', 100)]));
+        mount(frame([fat('e1', Math.round(dealt / 0.02)), fat('e2', 100), fat('e3', 100)]));
         play();
         await settleToImpact();
         expect(cameraPunch.active).toBe(false);

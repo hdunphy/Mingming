@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PARTICLE_POOL, ParticleField } from './particles';
+import { labKindOf } from './particleShapes';
 import { PARTICLES_PER_TONGUE, burnEmitter, burstFor } from './emitters';
 import { emit, hasParticleSink, setParticleSink, type ParticleKind } from './emit';
 
@@ -27,7 +28,7 @@ const seed = (over: Partial<Parameters<ParticleField['spawn']>[0][number]> = {})
 });
 
 describe('146a — the pool', () => {
-    it('holds 600 and never grows', () => {
+    it('holds PARTICLE_POOL (1,600 since 194k-6) and never grows', () => {
         // §2's number. The cap is the budget: a pool that grows under load is how a juice layer
         // becomes the reason a fight stutters, and a dropped particle is invisible.
         const field = new ParticleField();
@@ -115,7 +116,7 @@ describe('146a — the Burn emitter', () => {
         // which is the status being drawn.
         const rng = counterRng();
         for (const p of burnEmitter(ANCHOR, 4, rng)) {
-            expect(p.y).toBeGreaterThanOrEqual(ANCHOR.y + ANCHOR.h * 0.4);
+            expect(p.y).toBeGreaterThanOrEqual(ANCHOR.y + ANCHOR.h * 0.6);
             expect(p.y).toBeLessThanOrEqual(ANCHOR.y + ANCHOR.h);
             expect(p.x).toBeGreaterThan(ANCHOR.x);
             expect(p.x).toBeLessThan(ANCHOR.x + ANCHOR.w);
@@ -124,18 +125,15 @@ describe('146a — the Burn emitter', () => {
         }
     });
 
-    it('gives every tongue its own lean, so four are not one flame drawn four times', () => {
-        const leans = burnEmitter(ANCHOR, 4, counterRng()).map((p) => p.lean);
-        expect(new Set(leans).size).toBeGreaterThan(1);
-        for (const lean of leans) expect(Math.abs(lean!)).toBeLessThan(0.2);
-    });
-
-    it('burns QUICK — every tongue is gone inside half a second', () => {
-        // Henry's ruling: "a quick burn that fades away going up". The fire persists because the
-        // emitter keeps firing; no individual flame does. A long life is what turns this back into
-        // the steady jet the first tuning drew.
+    it('198b-1: each flame is the lab\'s Burn particle — a glow, 7-11 px thinning to 2, with a fade-in', () => {
         for (const p of burnEmitter(ANCHOR, 4, counterRng())) {
-            expect(p.life).toBeLessThanOrEqual(500);
+            expect(p.shape).toBe('glow');
+            expect(p.size).toBeGreaterThanOrEqual(7);
+            expect(p.size).toBeLessThanOrEqual(11);
+            expect(p.size2).toBe(2);
+            expect(p.fadeIn).toBeLessThanOrEqual(200);
+            expect(p.life).toBeGreaterThanOrEqual(380);
+            expect(p.life).toBeLessThanOrEqual(680);
         }
     });
 
@@ -207,10 +205,10 @@ describe('146a — the emit vocabulary', () => {
         }
     });
 
-    it('gives every seed a shape from the closed vocabulary', () => {
+    it('gives every seed a shape the field draws (198b-1: the lab\'s kinds, or an alias of one)', () => {
         for (const kind of KINDS) {
             for (const seed of burstFor(kind, AT, { rng: counterRng() })) {
-                expect(KINDS).toContain(seed.shape);
+                expect(['glow', 'soft', 'spark', 'drop', 'leaf', 'star', 'glint', 'plus', 'chev', 'bubble', 'ring', 'plank']).toContain(labKindOf(seed.shape ?? 'glow'));
             }
         }
     });
@@ -289,12 +287,12 @@ describe('190d — a particle that grows to size2', () => {
         expect(old).toBeLessThanOrEqual(20);
     });
 
-    it('still thins with age when there is no size2', () => {
+    it('198b-1: keeps its size when there is no size2, as the lab\'s particles do', () => {
         const field = new ParticleField();
         field.spawn([seed({ size: 10, life: 1000, shape: 'leaf' })]);
         const young = radiusesDrawn(field)[0];
         field.step(800);
-        expect(radiusesDrawn(field)[0]).toBeLessThan(young);
+        expect(radiusesDrawn(field)[0]).toBeCloseTo(young, 5);
     });
 });
 

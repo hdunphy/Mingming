@@ -3,7 +3,7 @@
  * is hit as the crest passes. Ported from the lab's `fxWave`.
  */
 
-import { type AttackBuild, type AttackInput, type HitTime, centerOf, framesOf } from './AttackEffect';
+import { type AttackBuild, type AttackInput, type HitTime, centerOf, labTicks } from './AttackEffect';
 import { inOut, invInOut, lerp, randomIn } from './curves';
 import { particle } from './seeds';
 
@@ -52,14 +52,14 @@ export function tidalWave(input: AttackInput): AttackBuild {
             durationMs: total + FADE_MS,
             step(age, dt, spawn) {
                 if (age > total) return;
-                drops += framesOf(dt) * (0.12 + 0.16 * s) * pm;
+                drops += labTicks(dt) * (0.12 + 0.16 * s) * pm;
                 const front = edge(age);
                 while (drops >= 1) {
                     drops -= 1;
                     const p = front[Math.floor((input.rng ?? Math.random)() * front.length)];
                     spawn([particle({
                         x: p.x, y: p.y, vx: d * rand(120, 280), vy: rand(-180, 40), ay: 700,
-                        life: rand(300, 550), size: rand(2, 3.5), rgb: [215, 240, 255], kind: 'drop', a: 0.75,
+                        life: rand(300, 550), size: rand(2, 3.5), rgb: [215, 240, 255], kind: 'drop', add: false, a: 0.75,
                     })]);
                 }
             },

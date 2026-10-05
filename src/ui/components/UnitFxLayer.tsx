@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
+import { floatFontPx, floatSizing, slotStepPx } from '../vfx/floatStyle';
 
 /**
  * Shared combat-FX renderers, extracted from MingmingUnit so both the sidebar
@@ -60,12 +61,12 @@ interface FxFloatsProps {
     rise?: number;
 }
 
-/**
- * TICKET 167h: how far each slot starts below the one before it. The six slots used to fan out
- * SIDEWAYS, which put a burst of hits in a wide row that still overlapped at the ends; they now
- * stack upward, newest lowest, so every number of a burst has a line of its own.
+/*
+ * TICKET 167h: each slot starts below the one before it. The six slots used to fan out SIDEWAYS,
+ * which put a burst of hits in a wide row that still overlapped at the ends; they now stack upward,
+ * newest lowest, so every number of a burst has a line of its own. The step is 22 px, or most of
+ * the float's own height when it is a big number (`slotStepPx`, 194k-4).
  */
-const SLOT_STEP_PX = 22;
 /** Where the status column sits, left of the damage column, so a status never covers a number. */
 const STATUS_COLUMN_LEFT = 'calc(50% - 70px)';
 
@@ -74,12 +75,12 @@ export const FxFloats: React.FC<FxFloatsProps> = ({ fx, rise = 70 }) => (
     <AnimatePresence>
         {(fx?.floats ?? []).map(f => {
             // Vertical only. The offset holds for the whole life, so the stack stays a stack.
-            const slotY = f.slot * SLOT_STEP_PX;
+            const slotY = f.slot * slotStepPx(floatFontPx(f.kind, f.px));
             return (
                 <motion.div
                     key={f.id}
                     className={`hud-float hud-float-${f.kind}`}
-                    style={{ color: f.color, left: f.kind === 'status' ? STATUS_COLUMN_LEFT : '50%' }}
+                    style={{ color: f.color, left: f.kind === 'status' ? STATUS_COLUMN_LEFT : '50%', ...floatSizing(f.kind, f.px) }}
                     initial={{ opacity: 0, y: 6 + slotY, scale: f.kind === 'crit' ? 0.6 : 0.7 }}
                     animate={{
                         opacity: [0, 1, 1, 0],

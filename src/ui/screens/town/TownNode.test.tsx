@@ -18,6 +18,7 @@ import { createRun } from '../../../engine/run/createRun';
 import { offerGyms } from '../../../engine/run/gyms';
 import { frozenMarketParty } from '../../../engine/run/marketParty';
 import { sellPrice } from '../../../engine/run/marketplace';
+import { STAMP_MS } from '../useSoldStamps';
 import { click, clickText, fire, flush, makeStore, mount, type TestStore } from '../../../testing/interaction';
 import type { IRanchMember, IRanchState, IRunState } from '../../../engine/runTypes';
 
@@ -133,6 +134,38 @@ describe('176c — the town square and its buildings', () => {
         expect(again.querySelector('.town-square')).toBeNull();
     });
 
+    it('194n: the square is four building buttons and no rail; a building brings the rail back', async () => {
+        const { host } = await openTown();
+        expect(host.querySelectorAll('.town-building')).toHaveLength(4);
+        expect(host.querySelector('.town-rail'), 'no rail on the square').toBeNull();
+
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="shop"]')!);
+        const rail = host.querySelector('.town-rail');
+        expect(rail, 'the rail is back inside a building').not.toBeNull();
+        expect(rail!.querySelectorAll('.town-tab')).toHaveLength(4);
+    });
+
+    it('194n: the square draws LEAVE TOWN and the amber count once each', async () => {
+        const { host } = await openTown();
+        const leaves = [...host.querySelectorAll('button')].filter((b) => b.textContent?.trim() === 'LEAVE TOWN');
+        expect(leaves).toHaveLength(1);
+        expect(host.querySelectorAll('[aria-label="Amber held"], .town-dock-scrap')).toHaveLength(1);
+    });
+
+    it('194p: the Den\'s party rows and the Shop\'s rune strip show the rune a body holds', async () => {
+        const { store, host } = await openTown();
+        const id = store.getState().run.run!.partyIds[0];
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="workshop"]')!);
+        expect(host.querySelector('.ws-bpc .rune-tag'), 'no rune, no tag').toBeNull();
+
+        await act(async () => { store.dispatch(setRun({ ...store.getState().run.run!, patches: { [id]: ['amplifier'] } })); });
+        expect(host.querySelector('.ws-bpc .rune-tag')?.getAttribute('data-rune')).toBe('amplifier');
+
+        await clickText(host, '← Town square');
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="shop"]')!);
+        expect(host.querySelector('.mk-patch-held .rune-tag')?.getAttribute('data-rune')).toBe('amplifier');
+    });
+
     it('LEAVE TOWN calls onLeave', async () => {
         const store = makeStore();
         store.dispatch(startRun(runAtTown(0)));
@@ -191,6 +224,50 @@ describe('176c — the Shop tab', () => {
         }
         const sample = run.deck.find((c) => !c.dataId.startsWith('junk'))!;
         expect(sellPrice(sample.dataId)).toBeGreaterThan(0);
+    });
+
+    it('194o: every sell tile says its pile and its count on a plate', async () => {
+        const { store, host } = await openTown();
+        const run = store.getState().run.run!;
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="shop"]')!);
+
+        for (const tile of host.querySelectorAll('.mk-sell-tile')) {
+            const pile = tile.querySelector('.mk-sell-pile')!;
+            expect(pile.textContent).toMatch(/^(DECK|COLLECTION)( ×\d+)?$/);
+            expect(pile.getAttribute('data-pile')).toBe(/^DECK/.test(pile.textContent!) ? 'deck' : 'collection');
+        }
+        // A stack of duplicates says how many.
+        const counts = new Map<string, number>();
+        for (const c of run.deck) counts.set(c.dataId, (counts.get(c.dataId) ?? 0) + 1);
+        const stacked = [...counts.values()].filter((n) => n > 1).length;
+        const labelled = [...host.querySelectorAll('.mk-sell-pile')].filter((p) => /×\d+$/.test(p.textContent!)).length;
+        expect(labelled).toBeGreaterThanOrEqual(stacked > 0 ? 1 : 0);
+    });
+
+    it('194o: selling a card shows a SOLD stamp with the amber, which clears itself', async () => {
+        const { store, host } = await openTown();
+        // A starting deck sits at its floor, where deck tiles are dead: sell from the collection.
+        const spare = store.getState().run.run!.deck.find((c) => !c.dataId.startsWith('junk'))!;
+        await act(async () => {
+            store.dispatch(setRun({ ...store.getState().run.run!, collection: [{ ...spare, instanceId: 'spare-194o' }] }));
+        });
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="shop"]')!);
+        const tile = [...host.querySelectorAll<HTMLButtonElement>('.mk-sell-tile')]
+            .find((t) => !t.disabled && /^SELL \+/.test(t.querySelector('.mk-sell-plate')!.textContent!))!;
+        const amount = Number(/\+(\d+) amber/.exec(tile.querySelector('.mk-sell-plate')!.textContent!)![1]);
+        const before = store.getState().run.run!.scrap;
+        expect(document.body.querySelector('.mk-sold-stamp')).toBeNull();
+
+        await click(tile);
+
+        expect(store.getState().run.run!.scrap).toBe(before + amount);
+        const stamp = document.body.querySelector('.mk-sold-stamp');
+        expect(stamp, 'the stamp appears').not.toBeNull();
+        expect(stamp!.textContent).toContain('SOLD');
+        expect(stamp!.textContent).toContain(`+${amount} amber`);
+
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, STAMP_MS + 80)); });
+        expect(document.body.querySelector('.mk-sold-stamp'), 'and clears').toBeNull();
     });
 
     it('does not mount the shelf until the Shop is opened, then freezes the team it was opened with', async () => {

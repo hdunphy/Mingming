@@ -27,7 +27,7 @@ import {
     RESISTED_AT, SUPER_EFFECTIVE_AT, addsCameraTrauma, cameraTraumaFor, damageSeverity, hitStopLengthMs, vibratePx,
 } from './impact/impactMath';
 import { attachCamera, cameraPunch, cameraShake, resetImpactFx, setShakeStrength, spriteShakes, wakeImpactFx } from './impact/impactRuntime';
-import { hitShare, isBigHit } from './choreo/bigHit';
+import { isBigHit } from './choreo/bigHit';
 import { activeProfile } from './tiers/activeTier';
 import { onStageMoment } from './impact/stageMoments';
 
@@ -73,14 +73,14 @@ export function useImpactFeedback(cameraRef: RefObject<HTMLElement | null>): voi
                 cameraShake.add(cameraTraumaFor(severity, moment.isLethal));
             }
             /*
-             * TICKET 190g: the camera punch. A big hit (the share the tier charges up from, or any kill)
+             * TICKET 190g: the camera punch. A big hit (the damage scale the tier charges up from, or any kill)
              * zooms the picture by `cameraPunch x s` and eases it back; Snappy and Fast have none. It is
              * camera motion, so the shake slider at 0 and a resisted hit both leave it out (reduced motion
              * and Instant never get here at all).
              */
             const profile = activeProfile();
             if (gates.shake > 0 && !resisted && profile.cameraPunch > 0
-                && (moment.isLethal || isBigHit(hitShare(moment.applied, moment.maxHp), profile.chargeFrom))) {
+                && (moment.isLethal || isBigHit(severity, profile.chargeFrom))) {
                 cameraPunch.punch(profile.cameraPunch * severity);
             }
             wakeImpactFx();

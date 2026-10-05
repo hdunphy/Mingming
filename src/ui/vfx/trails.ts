@@ -81,6 +81,27 @@ export function elementColor(element: TrailElement): Rgb {
     return TOKEN_FALLBACK[element] ?? TOKEN_FALLBACK.None;
 }
 
+/**
+ * TICKET 198b-4: the lab's `ELEM[el].hot` — the colour a Fire, Water or Nature particle is BORN in
+ * before it cools to the element's own. The other elements are born white.
+ */
+const HOT: Partial<Record<TrailElement, Rgb>> = {
+    Fire: { r: 255, g: 238, b: 170 },
+    Water: { r: 215, g: 240, b: 255 },
+    Nature: { r: 215, g: 255, b: 180 },
+};
+
+export const elementHot = (element: TrailElement): Rgb => HOT[element] ?? { r: 255, g: 255, b: 255 };
+
+/** The lab's `ELEM[el].num`: the colour of a damage number in that element. */
+const NUM: Partial<Record<TrailElement, Rgb>> = {
+    Fire: { r: 255, g: 128, b: 92 },
+    Water: { r: 110, g: 190, b: 255 },
+    Nature: { r: 110, g: 225, b: 130 },
+};
+
+export const elementNumberColor = (element: TrailElement): Rgb => NUM[element] ?? { r: 240, g: 244, b: 250 };
+
 /** The centre of an anchor — a slot rect, or a bare point. */
 const centre = (at: EmitAt): { x: number; y: number } => ({
     x: at.w ? at.x + at.w / 2 : at.x,

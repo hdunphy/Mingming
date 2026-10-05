@@ -10,10 +10,14 @@ import { describe, expect, it } from 'vitest';
 import { TIER_PROFILES } from './tierProfiles';
 import { planAttack, planStatusOnly } from './attackPlan';
 
-const hit = { damage: 45, maxHp: 100, isKill: false, contact: false } as const;
+/**
+ * A full-strength hit on a game-sized body: 173 of 1,150 HP is 15% of max, which is s = 1 on the
+ * game's curve (194k-1). The lab's "Heavy 45" was 45 of 100 HP; the totals below are the lab's.
+ */
+const hit = { damage: 173, maxHp: 1150, isKill: false, contact: false } as const;
 
 describe('190b — planAttack', () => {
-    it('totals 1740 ms (plus or minus 10) for Showy at 45 damage', () => {
+    it('totals 1740 ms (plus or minus 10) for Showy at a full-strength (s = 1) hit', () => {
         const plan = planAttack(TIER_PROFILES.showy, hit);
         expect(Math.abs(plan.totalMs - 1740)).toBeLessThanOrEqual(10);
     });
@@ -45,15 +49,22 @@ describe('190b — planAttack', () => {
         expect(plan.segments.find((s) => s.kind === 'hitstop')!.startMs).toBeCloseTo(plan.impactAtMs);
     });
 
-    it('is longer for a bigger hit, but a 45 is not three times a 15', () => {
-        const small = planAttack(TIER_PROFILES.showy, { ...hit, damage: 15 });
+    it('a median game hit (50 of 1,150) plays about 1.5 s on Showy, not the chip it used to be', () => {
+        const median = planAttack(TIER_PROFILES.showy, { ...hit, damage: 50 });
+        expect(median.totalMs).toBeGreaterThan(1300);
+        expect(median.totalMs).toBeLessThan(1740);
+    });
+
+    it('is longer for a bigger hit, but a full hit is not three times a small one', () => {
+        // 50 of 1,150 is the 10-04 logs' median hit (s = 0.54); 15 of 1,150 is a chip.
+        const small = planAttack(TIER_PROFILES.showy, { ...hit, damage: 50 });
         const big = planAttack(TIER_PROFILES.showy, hit);
         expect(big.totalMs).toBeGreaterThan(small.totalMs);
         expect(big.totalMs / small.totalMs).toBeLessThan(1.8);
     });
 
     it('lengthens only the travel and the freeze as damage grows, never the lunge or the return', () => {
-        const small = planAttack(TIER_PROFILES.showy, { ...hit, damage: 5 });
+        const small = planAttack(TIER_PROFILES.showy, { ...hit, damage: 15 });
         const big = planAttack(TIER_PROFILES.showy, hit);
         const ms = (plan: typeof big, kind: string) => plan.segments.find((s) => s.kind === kind)!.durationMs;
         expect(ms(big, 'lunge')).toBe(ms(small, 'lunge'));

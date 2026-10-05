@@ -34,6 +34,8 @@ import { effectiveOS } from '../../engine/run/effectiveOS';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
 import { cardFace, colorFor, groupByData } from './runShell';
+import { RuneTag } from '../components/RuneTag';
+import { runeIdsOf } from '../components/runeIds';
 import './runShell.css';
 import './BoundaryAlert.css';
 
@@ -88,6 +90,7 @@ export default function BoundaryAlert({
                     <span className="ba-who">
                         <span className="ba-nm">{member.nickname ?? data.name}</span>
                         <span className="ba-os">{effectiveOS(run, member)}</span>
+                        <RuneTag patchIds={runeIdsOf(run, id)} osId={effectiveOS(run, member)} />
                     </span>
                     <span className="ba-en">{data.primaryElement}</span>
                 </div>

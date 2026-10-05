@@ -397,6 +397,8 @@ button.ranch-card { cursor: pointer; }
 .ranch-run-meta { display: flex; align-items: center; gap: 0.9rem; }
 .run-scrap { display: inline-flex; align-items: center; gap: 0.25rem; }
 .run-party-faces { display: flex; gap: 0.35rem; margin-left: auto; }
+/* 194p: a face and the rune it holds, side by side. */
+.run-party-slot { display: inline-flex; align-items: center; gap: 0.2rem; }
 .run-party-face {
     display: inline-grid;
     place-items: center;

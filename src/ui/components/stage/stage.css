@@ -108,6 +108,14 @@
     justify-content: center;
 }
 
+.stage-art-glow {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
 .stage-art {
     max-width: 100%;
     max-height: 100%;
@@ -159,10 +167,7 @@
     100% { transform: translateX(0); filter: none; }
 }
 
-.stage-sprite-frame .hud-float-damage { font-size: 1.6rem; }
-.stage-sprite-frame .hud-float-crit { font-size: 2rem; }
 .stage-sprite-frame .hud-float-heal { font-size: 1.5rem; }
-.stage-sprite-frame .hud-float { text-shadow: 0 2px 0 var(--page); }
 .stage-sprite-frame .hud-hit-flash,
 .stage-sprite-frame .hud-heal-pulse { border-radius: 50%; }
 .stage-sprite-frame .hud-status-ring { border-radius: 50%; }
@@ -170,6 +175,16 @@
 /* Ticket 22's before-you-commit verdict: a unit the held card cannot land on is dimmed, and says
    so under its feet (`TargetFlag`). A legal one is left alone. */
 .stage-slot-illegal .stage-sprite-frame { opacity: 0.55; }
+
+/* ---- who the held card is aimed at (194h) --------------------------------------------------
+   STRONG: the unit the preview numbers are for (or that an unaimed card will hit) - a hard yellow
+   frame on the body and on its plaque, the one selection colour, held for as long as the preview
+   shows. SOFT: every other legal choice while a card is held - a thin translucent frame, so the
+   player sees the options before the pointer is on one. Hard outlines only: no glow, no blur. */
+.stage-slot-mark-strong { outline: 4px solid var(--select); outline-offset: 2px; z-index: 4; }
+.stage-slot-mark-soft { outline: 2px solid color-mix(in srgb, var(--select) 55%, transparent); outline-offset: 2px; }
+.stage-plaque-mark-strong { outline: 3px solid var(--select); outline-offset: 2px; }
+.stage-plaque-mark-soft { outline: 2px solid color-mix(in srgb, var(--select) 55%, transparent); outline-offset: 2px; }
 
 /* ---- the target feedback ------------------------------------------------------------------ */
 
@@ -286,8 +301,22 @@
 
 .stage-plaque-max { color: var(--text-mute); }
 
-/* The damage the held card would do, inline in the HP readout. */
-.stage-plaque-preview-hp { color: var(--hp-low-hi); }
+/* 194e: the damage the held card would do, on its own line under the plaque (see PlaqueHpPreview).
+   It sits outside the panel's clip-path, so a four-digit number cannot be cut off. */
+.stage-plaque-preview-hp {
+    align-self: flex-start;
+    padding: 1px 6px;
+    background: var(--panel);
+    color: var(--hp-low-hi);
+    font-family: var(--font-display, inherit);
+    font-size: 15px;
+    font-weight: 800;
+    font-style: italic;
+    line-height: 1.1;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.stage-plaque-preview-hp-unit { font-size: 11px; color: var(--text-mute); }
 
 /* The status chips: icon x N, on slanted plates. The row alone takes the pointer back, because a
    chip whose tooltip cannot be hovered has stopped explaining itself. */

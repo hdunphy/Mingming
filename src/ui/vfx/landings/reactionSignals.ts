@@ -22,3 +22,24 @@ export function onSpriteReaction(listener: Listener): () => void {
 export function emitSpriteReaction(signal: SpriteReactionSignal): void {
     for (const listener of [...listeners]) listener(signal);
 }
+
+/**
+ * TICKET 194k-5 - THE BODY GLOW of a status landing, sent to the same `StageSprite`. The colour is the
+ * status's own (the plaque badge's).
+ */
+export interface SpriteGlowSignal {
+    readonly targetId: string;
+    readonly color: { readonly r: number; readonly g: number; readonly b: number };
+}
+
+type GlowListener = (signal: SpriteGlowSignal) => void;
+const glowListeners = new Set<GlowListener>();
+
+export function onSpriteGlow(listener: GlowListener): () => void {
+    glowListeners.add(listener);
+    return () => { glowListeners.delete(listener); };
+}
+
+export function emitSpriteGlow(signal: SpriteGlowSignal): void {
+    for (const listener of [...glowListeners]) listener(signal);
+}

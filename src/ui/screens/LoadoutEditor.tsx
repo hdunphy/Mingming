@@ -65,6 +65,9 @@ import { CardTileFace, ElementMark } from './CardChassis';
 import { CardPeek } from './CardPeek';
 import { useCardPeek } from '../hooks/useCardPeek';
 import { OSGrammarRow } from '../components/OSGrammarRow';
+import { RuneTag } from '../components/RuneTag';
+import { runeIdsOf } from '../components/runeIds';
+import { TotemRow } from '../components/TotemRow';
 
 /** Eight big cards, four across and two down. The mockup's page size, and the reason it pages. */
 export const CARDS_PER_PAGE = 8;
@@ -291,6 +294,9 @@ export default function LoadoutEditor({
                 </div>
             )}
 
+            {/* 194p: the run's Totems, once, above the party (they belong to the run, not to one body). */}
+            <TotemRow drivers={run.drivers} tempDrivers={run.tempDrivers} />
+
             {/* TICKET 158-r1: the firmware on the field. A benched body is not feeding anybody's
                 currency, so the mark on a bench row reads against the PARTY, not the roster. */}
             <div className="led-roster">
@@ -311,6 +317,8 @@ export default function LoadoutEditor({
                             <span className="rs-mem-text">
                                 <span className="rs-mnm">{member.nickname ?? data.name}</span>
                                 <span className="rs-os">{member.activeOS}</span>
+                                {/* 194p: what rune it holds, right where you pick who to bench. */}
+                                <RuneTag patchIds={runeIdsOf(run, id)} osId={member.activeOS} />
                             </span>
                             <span className="rs-meta">
                                 {swapping
@@ -361,6 +369,7 @@ export default function LoadoutEditor({
                             <span className="rs-mem-text">
                                 <span className="rs-mnm">{member.nickname ?? data.name}</span>
                                 <span className="rs-os">{member.activeOS}</span>
+                                <RuneTag patchIds={runeIdsOf(run, id)} osId={member.activeOS} />
                             </span>
                             <span className="rs-meta">{swapping === id ? 'pick a slot' : 'benched'}</span>
                             {/* A benched body still shows its grammar, and the mark answers the

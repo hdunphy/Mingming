@@ -1,7 +1,9 @@
 /**
- * TICKET 190d — a particle written the way the Battle Juice Lab wrote them, made into a seed for the
- * game's `ParticleField`. Keeps the ported numbers recognisable (the lab's `drag` is the share of
- * speed lost per 1/60 s; the field wants the share kept per second).
+ * TICKET 190d — a particle written the way the Battle Juice Lab writes them (`P({...})`), made into
+ * a seed for the game's `ParticleField`. Every lab field is here under the lab's name, so an effect
+ * ported from the lab reads the same as its source: `ay` is downward acceleration, `drag` is the
+ * share of speed lost per 1/60 s (the field wants the share kept per second), `kind` defaults to
+ * `glow` and `add` to true, as the lab's do.
  */
 
 import type { ParticleSeed, ParticleShape } from '../particles';
@@ -13,7 +15,7 @@ export interface LabParticle {
     readonly y: number;
     readonly vx?: number;
     readonly vy?: number;
-    /** Downward acceleration, px/s^2 (the lab's `ay`; negative rises). */
+    /** Downward acceleration, px/s^2 (negative rises). */
     readonly ay?: number;
     /** Share of speed lost per 1/60 s. */
     readonly drag?: number;
@@ -24,6 +26,13 @@ export interface LabParticle {
     readonly rgb: Rgb;
     readonly rgb2?: Rgb;
     readonly a?: number;
+    /** Milliseconds of fade-in from nothing. */
+    readonly fadeIn?: number;
+    /** Rotation at birth (radians) and per second. */
+    readonly rot?: number;
+    readonly vr?: number;
+    /** Additive blending; the lab's default is true. */
+    readonly add?: boolean;
     readonly kind?: ParticleShape;
 }
 
@@ -39,6 +48,10 @@ export function particle(p: LabParticle): ParticleSeed {
         r: p.rgb[0], g: p.rgb[1], b: p.rgb[2],
         r2: p.rgb2?.[0], g2: p.rgb2?.[1], b2: p.rgb2?.[2],
         a: p.a ?? 1,
-        shape: p.kind ?? 'puff',
+        fadeIn: p.fadeIn,
+        rot: p.rot,
+        vr: p.vr,
+        add: p.add ?? true,
+        shape: p.kind ?? 'glow',
     };
 }

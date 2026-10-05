@@ -34,7 +34,7 @@
  * wider than any frame, so the map pans sideways, and it scrolls itself to keep you in view.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { IRegionNode } from '../../engine/runTypes';
@@ -56,6 +56,8 @@ import {
 } from './regionLayout';
 import './RegionMap.css';
 import { Icon } from '../theme/Icon';
+import { MapNodeTooltip } from '../components/MapNodeTooltip';
+import type { AnchoredRect } from '../hooks/useAnchoredRect';
 import { iconPaths } from '../theme/icons';
 import { resolveDriverStake } from '../../engine/run/driverStakes';
 import { AMBUSH_RISK } from '../../engine/run/ambushRisk';
@@ -130,6 +132,8 @@ export default function RegionMap({
     // scrolls to put the node you are standing on near the middle (a plain assignment, so it also
     // works where `scrollTo` does not exist).
     const canvasRef = useRef<HTMLDivElement>(null);
+    // TICKET 194m: the open node tooltip (its words and where the node is), or none.
+    const [tip, setTip] = useState<{ lines: string[]; rect: AnchoredRect } | null>(null);
     const here = layout.byId.get(currentNodeId);
     const hereX = here ? centreOf(here).x : 0;
     useEffect(() => {
@@ -262,6 +266,26 @@ export default function RegionMap({
             ? `${describe(laid)}. A rival fields the elements this road needs.`
             : describe(laid);
 
+    /**
+     * TICKET 194m: what the styled tooltip says for a node: what it is, then the rival's reason or the
+     * Totem at stake. These were two SVG `<title>`s (the browser's own tooltip).
+     */
+    const tipLinesOf = (laid: LaidOutNode): string[] => {
+        const lines = [describe(laid)];
+        if (laid.node.kind === 'rival') lines.push('A rival fields the elements this road needs.');
+        if (laid.node.driverStake) lines.push(`Totem at stake: ${stakeName(laid.node.driverStake)}`);
+        return lines;
+    };
+
+    /** Open the tooltip over a node's `<g>` (a mouse hover, or the keyboard focus on its Travel button). */
+    const showTip = (laid: LaidOutNode, anchor: Element | null): void => {
+        if (!anchor) return;
+        const box = anchor.getBoundingClientRect();
+        setTip({ lines: tipLinesOf(laid), rect: { top: box.top, bottom: box.bottom, left: box.left, right: box.right } });
+    };
+    const showTipFor = (laid: LaidOutNode): void =>
+        showTip(laid, canvasRef.current?.querySelector(`[data-node-id="${laid.node.id}"]`) ?? null);
+
     /** The short name written on the map under a node. */
     const captionOf = (laid: LaidOutNode): string => {
         const name = laid.node.scout ? `${nodeLabelFor(laid.node)} (scout)` : nodeLabelFor(laid.node);
@@ -290,6 +314,7 @@ export default function RegionMap({
                 tabIndex={0}
                 role="group"
                 aria-label="Region map — scroll or use the arrow keys to pan across the biomes"
+                onScroll={() => setTip(null)}
             >
                 <svg
                     viewBox={`0 0 ${width} ${height}`}
@@ -403,10 +428,13 @@ export default function RegionMap({
                                     laid.node.kind === 'ambush' ? 'risk' : '',
                                     laid.node.driverStake ? 'staked' : '',
                                 ].filter(Boolean).join(' ')}
+                                data-node-id={laid.node.id}
+                                // TICKET 194m: the name stays for assistive tech; the hover is the styled tooltip below.
+                                aria-label={hoverOf(laid)}
                                 onClick={laid.reachable ? () => onTravel(laid.node) : undefined}
+                                onMouseEnter={(event) => showTip(laid, event.currentTarget)}
+                                onMouseLeave={() => setTip(null)}
                             >
-                                {/* TICKET 182a: the key line is gone, so every node says what it is on hover. */}
-                                <title>{hoverOf(laid)}</title>
                                 {shape.kind === 'box' ? (
                                     <>
                                         <rect
@@ -468,9 +496,7 @@ export default function RegionMap({
                                     <circle
                                         cx={x} cy={y} r={r + 5}
                                         className="rm-node-stake-ring"
-                                    >
-                                        <title>{`Totem at stake: ${stakeName(laid.node.driverStake)}`}</title>
-                                    </circle>
+                                    />
                                 )}
                                 {laid.node.scout && shape.kind === 'disc' && (
                                     <circle
@@ -516,7 +542,14 @@ export default function RegionMap({
                 <ul className="rm-travel-list">
                     {reachable.map((laid) => (
                         <li key={laid.node.id}>
-                            <button type="button" className="rm-travel-button" onClick={() => onTravel(laid.node)}>
+                            <button
+                                type="button"
+                                className="rm-travel-button"
+                                onClick={() => onTravel(laid.node)}
+                                // 194m: a keyboard player reaches the same tooltip through the Travel list.
+                                onFocus={() => showTipFor(laid)}
+                                onBlur={() => setTip(null)}
+                            >
                                 <span aria-hidden="true" className="rm-travel-icon">
                                     <Icon name={nodeIconFor(laid.node)} size={15} />
                                 </span>
@@ -527,6 +560,7 @@ export default function RegionMap({
                     {reachable.length === 0 && <li className="rm-travel-empty">Nowhere to go from here.</li>}
                 </ul>
             </nav>
+            {tip && <MapNodeTooltip lines={tip.lines} rect={tip.rect} />}
         </div>
     );
 }

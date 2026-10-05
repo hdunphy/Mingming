@@ -21,6 +21,10 @@
  *
  * TICKET 195a moved the kraken tier-0 walk once, on purpose: Bark Smash deals 5 a point and Bark Smash+ 8, so a walk
  * that meets either card plays a different game (acc09b5fe3339bde -> 672180eee007a6bd). The other three did not move.
+ * After 194 and 195a are merged together, the two kraken walks measure the same as with 194 alone (the values below):
+ * with 194a in, Huldra's Bark Smash no longer changes what these two walks meet.
+ * TICKET 194 re-pinned the two kraken_v1 walks on purpose (194a: an enemy Huldra v2 no longer shields before
+ * she acts; 194b: Ragnarok Edge lost its cap). The two fenrir_v2 walks did not move.
  */
 import { createHash } from 'node:crypto';
 
@@ -35,8 +39,8 @@ const hashOf = (value: unknown): string =>
 describe('170a — the default walk is unchanged', () => {
     // [seed, starter, gymIndex, tier] -> hash of JSON.stringify(walkRun(...)) on the parent of 170a.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, number, string]> = [
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '672180eee007a6bd'],
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '88eaccfcdc8cf265'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, 'bdba9c99839aba86'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '12b709b4581e0545'],
         ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'cbae1ed75c400704'],
         ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '9ec0bff685eb34aa'],
     ];

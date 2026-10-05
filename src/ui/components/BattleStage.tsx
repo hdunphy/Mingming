@@ -11,6 +11,7 @@ import { elementKey } from '../theme/kit/elementGlyphs';
 import { computeDamagePreview } from '../utils/damagePreview';
 import { BiomeBackdrop } from './stage/BiomeBackdrop';
 import { StageSlot } from './stage/StageSlot';
+import { targetHighlight } from './stage/targetHighlight';
 import './stage/stage.css';
 
 /**
@@ -128,6 +129,20 @@ const BattleStage: React.FC<BattleStageProps> = ({
         ? playerParty.find(p => p.id === selectedSourceId) ?? null
         : null;
 
+    // TICKET 194h: who the held card is aimed at, once for the whole board. A unit the card cannot
+    // land on is neither marked nor previewed, so the strong mark and the preview agree.
+    const verdictOf = (entity: IBattleEntity, isEnemy: boolean) =>
+        selectedCardData ? targetVerdict(selectedCardData, entity, isEnemy, caster) : null;
+    const highlight = targetHighlight({
+        card: selectedCardData,
+        units: [
+            ...playerParty.map((entity) => ({ id: entity.id, legal: verdictOf(entity, false)?.ok ?? false, isEnemy: false })),
+            ...enemyParty.map((entity) => ({ id: entity.id, legal: verdictOf(entity, true)?.ok ?? false, isEnemy: true })),
+        ],
+        casterId: selectedSourceId,
+        hoveredId: hoveredEntityId ?? null,
+    });
+
     const renderSide = (party: ReadonlyArray<IBattleEntity>, isEnemy: boolean) =>
         party.map((entity, index) => {
             const slot = anchors.slots[entity.id];
@@ -146,12 +161,13 @@ const BattleStage: React.FC<BattleStageProps> = ({
                     scale={anchors.scale}
                     isActive={!isEnemy && index === activeAllyIndex}
                     isTargeted={selectedTargetId === entity.id}
-                    verdict={selectedCardData ? targetVerdict(selectedCardData, entity, isEnemy, caster) : null}
+                    verdict={verdictOf(entity, isEnemy)}
+                    mark={highlight.strong.has(entity.id) ? 'strong' : highlight.soft.has(entity.id) ? 'soft' : null}
                     // Computed for the HOVER TARGET only, exactly as the HUD card did it: the
                     // preview simulates the play, so asking for six of them every render would be
                     // six speculative battles a frame to answer a question about one unit.
                     preview={
-                        hoveredEntityId === entity.id && selectedCardId
+                        hoveredEntityId === entity.id && selectedCardId && (verdictOf(entity, isEnemy)?.ok ?? true)
                             ? computeDamagePreview(battleState, selectedSourceId, selectedCardId, entity.id)
                             : null
                     }

@@ -3,18 +3,21 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { damageScale } from '../tiers/tierProfiles';
+
 import {
-    addsCameraTrauma, cameraTraumaFor, damageSeverity, hitStopLengthMs, SMALL_HIT_FRACTION, targetShakePx, vibratePx,
+    addsCameraTrauma, cameraTraumaFor, damageSeverity, hitStopLengthMs, targetShakePx, vibratePx,
 } from './impactMath';
 
 const plain = { superEffective: false, resisted: false, targets: 1 };
 
 describe('189d — severity', () => {
-    it('is clamp(sqrt((damage / maxHp) / 0.45), 0, 1)', () => {
+    it('is clamp(sqrt((damage / maxHp) / 0.15), 0, 1), the same curve as the damage scale (194k-1)', () => {
         expect(damageSeverity(0, 100)).toBe(0);
-        expect(damageSeverity(45, 100)).toBe(1);
+        expect(damageSeverity(15, 100)).toBe(1);
         expect(damageSeverity(90, 100)).toBe(1);
-        expect(damageSeverity(11.25, 100)).toBeCloseTo(0.5, 6);   // sqrt(0.25)
+        expect(damageSeverity(3.75, 100)).toBeCloseTo(0.5, 6);    // sqrt(0.25)
+        expect(damageSeverity(50, 1150)).toBeCloseTo(damageScale(50, 1150), 12);
     });
 
     it('survives a zero max and a negative hit', () => {
@@ -62,17 +65,20 @@ describe('189d — the shudder and the shake', () => {
 
 describe('189d — camera trauma', () => {
     const hit = (applied: number, over: Partial<{ isKill: boolean; resisted: boolean }> = {}) =>
-        ({ applied, maxHp: 100, isKill: false, resisted: false, ...over });
+        ({ applied, maxHp: 1150, isKill: false, resisted: false, ...over });
 
-    it('a 6%-of-max-HP hit adds no camera trauma; a 20% hit does', () => {
-        expect(addsCameraTrauma(hit(6))).toBe(false);
-        expect(addsCameraTrauma(hit(20))).toBe(true);
+    it('a 2%-of-max-HP hit adds no camera trauma; a 20% hit does', () => {
+        expect(addsCameraTrauma(hit(23))).toBe(false);
+        expect(addsCameraTrauma(hit(230))).toBe(true);
     });
 
-    it('the line is 12% of max HP', () => {
-        expect(SMALL_HIT_FRACTION).toBe(0.12);
-        expect(addsCameraTrauma(hit(11))).toBe(false);
-        expect(addsCameraTrauma(hit(12))).toBe(true);
+    it('194k-2: the line is damage scale s 0.52 on Showy, about 4% of max HP, not the lab\'s 12% of a 100-HP body', () => {
+        expect(damageSeverity(46, 1150)).toBeLessThan(0.52);        // 4.0%
+        expect(addsCameraTrauma(hit(46))).toBe(false);
+        expect(damageSeverity(47, 1150)).toBeGreaterThanOrEqual(0.52); // 4.1%
+        expect(addsCameraTrauma(hit(47))).toBe(true);
+        // The 10-04 median (50) now shakes the camera; before it took 138.
+        expect(addsCameraTrauma(hit(50))).toBe(true);
     });
 
     it('a kill always does, a resisted hit never does', () => {

@@ -2,9 +2,11 @@
  * TICKET 190d — THE FLAME BEAM (Fire, single target). A pouring stream of flame from the caster's
  * mouth with a bright core; embers splash back off the target while it pours; the tail pulls in after.
  * Ported from the lab's `fxFlame`. Length grows with the damage (head + sustain come from the profile).
+ * TICKET 198b-2: back to the lab's strokes and spawn rate; the column's body is its particles (about
+ * 160-420 a second), the strokes are only the glow down its middle.
  */
 
-import { type AttackBuild, type AttackInput, centerOf, framesOf, muzzleOf } from './AttackEffect';
+import { type AttackBuild, type AttackInput, centerOf, labTicks, muzzleOf } from './AttackEffect';
 import { drawGlowAt, LIGHT_BLEND } from './glow';
 import { randomIn } from './curves';
 import { particle } from './seeds';
@@ -34,7 +36,7 @@ export function flameBeam(input: AttackInput): AttackBuild {
         effect: {
             durationMs: pourEnd + TAIL_MS,
             step(age, dt, spawn) {
-                const frames = framesOf(dt);
+                const frames = labTicks(dt);
                 if (age < pourEnd) {
                     flames += frames * (0.16 + 0.26 * s) * pm;
                     while (flames >= 1) {
@@ -69,6 +71,7 @@ export function flameBeam(input: AttackInput): AttackBuild {
                 const x2 = from.x + dx * head;
                 const y2 = from.y + dy * head;
                 const flicker = 0.85 + 0.1 * Math.sin(age * 0.09) + 0.05 * Math.sin(age * 0.23);
+                // The lab's three additive strokes: a wide faint red, a narrower orange, a thin hot core.
                 ctx.globalCompositeOperation = LIGHT_BLEND;
                 ctx.lineCap = 'round';
                 const line = (width: number, colour: string): void => {

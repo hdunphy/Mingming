@@ -7,7 +7,7 @@ import { JS_COLOR } from '../theme/jsColors';
 import { getElementAccent } from '../utils/contrastText';
 import { playSfx, primeSfxSamples } from '../audio/AudioEngine';
 import {
-    castCue, causeCue, cryCue, HIT_BIG_FRACTION, hookCue, impactCue,
+    castCueFor, causeCue, cryCue, HIT_BIG_FRACTION, hookCue, impactCue,
     shieldCue, statusCue, tickCue,
 } from '../audio/battleCues';
 import { pitchForDamage, pitchForStacks, semitones } from '../audio/limiters';
@@ -16,6 +16,7 @@ import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '
 import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
 import { driverText } from '../labels/driverText';
 import { RESISTED_AT, SUPER_EFFECTIVE_AT, damageSeverity } from '../vfx/impact/impactMath';
+import { activeProfile } from '../vfx/tiers/activeTier';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
 import { type StageMoment, onStageMoment } from '../vfx/impact/stageMoments';
 import { type CardSignal, onCardSignal } from '../vfx/presenter/cardSignals';
@@ -47,6 +48,8 @@ export interface CombatFloat {
     color: string;
     /** 0..5 vertical slot (ticket 167h) so rapid hits stack instead of overlapping dead-center. */
     slot: number;
+    /** TICKET 194k-4: a damage number's font size in px, `TierProfile.damageNumberPx(s)` for this hit. */
+    px?: number;
 }
 
 export interface UnitFx {
@@ -226,9 +229,6 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     const slotRef = React.useRef<Record<string, number>>({});
     // Pending timeouts, cleared on unmount (pendingTimeoutsRef pattern from MingmingUnit).
     const pendingTimeoutsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
-    // TICKET 166b: STATUS_APPLIED events from one reducer burst, merged by body + status.
-    // 184b: `overflow` is the pile left behind when one of the merged applications set it off.
-    const statusBurstRef = React.useRef<Map<string, { targetId: string; status: StatusType; stacks: number; overflow?: number }> | null>(null);
     /*
      * TICKET 171f: statuses a HOOK applied (EMBER_FUSE's Burn), held out of the burst above and
      * played as their own beat after the card. Keyed hookId|body|status so Pack Tactics' three fuses
@@ -266,12 +266,12 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     }, []);
 
     React.useEffect(() => {
-        const pushFloat = (entityId: string, kind: FloatKind, text: string, color: string) => {
+        const pushFloat = (entityId: string, kind: FloatKind, text: string, color: string, px?: number) => {
             const id = floatIdRef.current++;
             const slot = (slotRef.current[entityId] = ((slotRef.current[entityId] ?? -1) + 1) % FLOAT_SLOTS);
             setVfx(prev => {
                 const unit = prev.unitFx[entityId] ?? EMPTY_UNIT_FX;
-                let floats = [...unit.floats, { id, kind, text, color, slot }];
+                let floats = [...unit.floats, { id, kind, text, color, slot, ...(px === undefined ? {} : { px }) }];
                 if (floats.length > MAX_FLOATS_PER_UNIT) {
                     floats = floats.slice(floats.length - MAX_FLOATS_PER_UNIT);
                 }
@@ -293,54 +293,39 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             pendingTimeoutsRef.current.push(timeout);
         };
 
-        const flushStatusBurst = () => {
-            const burst = statusBurstRef.current;
-            statusBurstRef.current = null;
-            if (!burst || burst.size === 0) return;
-            const entries = [...burst.values()];
-
-            // One sound per distinct status, in the order they arrived.
-            const sounded = new Set<StatusType>();
-            for (const entry of entries) {
-                if (sounded.has(entry.status)) continue;
-                sounded.add(entry.status);
-                /*
-                 * 147d. The two stances keep their own synthesized cues — they are the only
-                 * statuses that change how a whole unit BEHAVES, and 147 §8 left them out of
-                 * the sample pack for that reason. Everything else is the STS family model:
-                 * up for a buff, down for a debuff, and a cue of its own for the two that put
-                 * a wall in front of a body.
-                 */
-                if (entry.status === 'DarkStance') {
-                    playSfx('stanceDark');
-                } else if (entry.status === 'LightStance') {
-                    playSfx('stanceLight');
-                } else {
-                    playSfx(statusCue(entry.status), { pitch: statusPitch(entry.status) });
-                }
+        /**
+         * TICKET 198b-3 — A STATUS LANDS. Said by the presenter as a `status` moment when the orb
+         * arrives (or the rider lands), not when the engine applied it at the start of the cast
+         * (166b gathered the burst and floated it 0 ms later; the float then sat on the target for
+         * most of a second before the particles did). One sound, one plaque bump and one float per
+         * body per status; the presenter has already merged a cast's entries (`groupStatusTells`).
+         */
+        const landStatus = (moment: Extract<StageMoment, { kind: 'status' }>): void => {
+            /*
+             * 147d. The two stances keep their own synthesized cues — they are the only
+             * statuses that change how a whole unit BEHAVES, and 147 §8 left them out of
+             * the sample pack for that reason. Everything else is the STS family model:
+             * up for a buff, down for a debuff, and a cue of its own for the two that put
+             * a wall in front of a body.
+             */
+            if (moment.status === 'DarkStance') {
+                playSfx('stanceDark');
+            } else if (moment.status === 'LightStance') {
+                playSfx('stanceLight');
+            } else {
+                playSfx(statusCue(moment.status), { pitch: statusPitch(moment.status) });
             }
-
-            // One ring bump per body, coloured by the last status that body received.
-            const ringColour = new Map<string, string>();
-            for (const entry of entries) ringColour.set(entry.targetId, STATUS_COLORS[entry.status as StatusType] ?? JS_COLOR.textDim);
+            const colour = STATUS_COLORS[moment.status] ?? JS_COLOR.textDim;
             setVfx(prev => {
-                const unitFx = { ...prev.unitFx };
-                for (const [targetId, colour] of ringColour) {
-                    const unit = unitFx[targetId] ?? EMPTY_UNIT_FX;
-                    unitFx[targetId] = { ...unit, statusKey: unit.statusKey + 1, statusColor: colour };
-                }
-                return { ...prev, unitFx };
+                const unit = prev.unitFx[moment.targetId] ?? EMPTY_UNIT_FX;
+                return { ...prev, unitFx: { ...prev.unitFx, [moment.targetId]: { ...unit, statusKey: unit.statusKey + 1, statusColor: colour } } };
             });
-
-            // One float per body per status, with the stack count.
-            for (const entry of entries) {
-                // 184b: a pile that went off says OVERFLOW and what is left, not "+4" on a badge
-                // that has just dropped to 2.
-                const text = entry.overflow !== undefined
-                    ? overflowText(entry.status, entry.overflow)
-                    : statusFloatText(entry.status, entry.stacks);
-                pushFloat(entry.targetId, 'status', text, STATUS_COLORS[entry.status as StatusType] ?? JS_COLOR.textDim);
-            }
+            // 184b: a pile that went off says OVERFLOW and what is left, not "+4" on a badge
+            // that has just dropped to 2.
+            const text = moment.overflow !== undefined
+                ? overflowText(moment.status, moment.overflow)
+                : statusFloatText(moment.status, moment.stacks);
+            pushFloat(moment.targetId, 'status', text, colour);
         };
 
         const flushHookBurst = () => {
@@ -381,6 +366,10 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
          * kill is a kill) instead of looking the body up as it goes.
          */
         const landMoment = (moment: StageMoment): void => {
+            if (moment.kind === 'status') {
+                landStatus(moment);
+                return;
+            }
             if (moment.kind === 'heal') {
                 playSfx('heal');
                 pushFloat(moment.targetId, 'heal', `+${moment.amount}`, HEAL_COLOR);
@@ -464,7 +453,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             }
             const color =
                 element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
-            pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${applied}`, color);
+            pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${applied}`, color, activeProfile().damageNumberPx(damageSeverity(applied, moment.maxHp)));
             /*
              * TICKET 190e: the matchup, named on the body. It is a gameplay tell (the type chart landing),
              * so it reads as words and not only as a bigger burst. Hits only: a tick or a toll has no matchup.
@@ -508,7 +497,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                 playSfx('cardFly', { pitch: card.fromPlayer ? 1 : semitones(-3) });
                 setVfx(prev => ({ ...prev, playedCard: card }));
             } else if (signal.kind === 'launch') {
-                playSfx(castCue(GetProgramData(card.dataId)?.element));
+                playSfx(castCueFor(GetProgramData(card.dataId)));
                 // The caster's lunge is its pose now (190c), sent by the cast's `pose` beat.
             } else {
                 // A newer card may already have replaced it: the key check makes that a no-op.
@@ -544,20 +533,8 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
                         });
                         return;
                     }
-                    // TICKET 166b: gathered, not played. Every status of one cast arrives in the same
-                    // synchronous reducer burst; a 0 ms timeout runs after the burst and plays it once.
-                    let burst = statusBurstRef.current;
-                    if (!burst) {
-                        burst = new Map();
-                        statusBurstRef.current = burst;
-                        pendingTimeoutsRef.current.push(setTimeout(flushStatusBurst, 0));
-                    }
-                    const key = `${event.targetId}|${event.status}`;
-                    const previous = burst.get(key);
-                    burst.set(key, {
-                        targetId: event.targetId, status: event.status, stacks: (previous?.stacks ?? 0) + event.stacks,
-                        overflow: nextOverflowRemaining(previous?.overflow, event.stacks, event.overflowRemaining),
-                    });
+                    // TICKET 198b-3: a status the card itself applied is not heard here any more.
+                    // The presenter says it again as a `status` moment when it lands (`landStatus`).
                     return;
                 }
                 case 'STATUS_REMOVED': {
@@ -649,7 +626,6 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             unsubscribeCards();
             timeouts.forEach(clearTimeout);
             timeouts.length = 0;
-            statusBurstRef.current = null;
             hookBurstRef.current = null;
         };
     }, [triggerLunge]);

@@ -1,32 +1,32 @@
 /**
- * TICKET 190f - SHARP LANDS: white glints flash across the body, and one slash glint cuts through it.
+ * TICKET 190f — SHARP LANDS: the lab's `statusLand('Sharp')` (TICKET 198b-4). 5 pale four-pointed
+ * glints flashing across the body one after another, and one fast white slash from the upper left
+ * to the lower right (the lab draws the slash as a growing line; here it is one long spark).
  */
 
 import { randomIn } from '../attacks/curves';
-import type { ParticleSeed } from '../particles';
 import { particle } from '../attacks/seeds';
-import { boxOf } from './bodyBox';
+import type { ParticleSeed } from '../particles';
+import { boxOf, centreOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 import { countFor } from './stackFactor';
 
-const GLINTS = 5;
+export const GLINTS = 5;
+const SHARP = [225, 240, 255] as const;
 
 export const sharpLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math.random }) => {
     const rand = randomIn(rng);
-    const box = boxOf(at);
+    const c = centreOf(boxOf(at));
     const seeds: ParticleSeed[] = [];
 
     for (let i = 0; i < countFor(GLINTS, stacks, stacksAdded); i += 1) {
         seeds.push(particle({
-            x: box.x + box.w * rand(0.15, 0.85), y: box.y + box.h * rand(0.2, 0.85),
-            life: rand(300, 450), size: rand(3.5, 6), size2: 1,
-            rgb: [255, 255, 255], rgb2: [225, 238, 255], a: 1, kind: 'star',
+            x: c.x + rand(-45, 45), y: c.y + rand(-40, 30),
+            life: rand(380, 520), size: rand(9, 15), rgb: SHARP, kind: 'glint', rot: rand(-0.3, 0.3), fadeIn: 60 + i * 70,
         }));
     }
-    // The slash: one fast line from the upper left to the lower right.
     seeds.push(particle({
-        x: box.x + box.w * 0.12, y: box.y + box.h * 0.18, vx: 560, vy: 420, drag: 0,
-        life: 260, size: 3, rgb: [255, 255, 255], a: 1, kind: 'streak',
+        x: c.x - 55, y: c.y - 45, vx: 1540, vy: 1260, life: 150, size: 3, rgb: [240, 248, 255], kind: 'spark',
     }));
     return { seeds };
 };

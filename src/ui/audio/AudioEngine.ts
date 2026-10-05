@@ -28,6 +28,7 @@ import {
 import {
     DUCK_DB,
     DUCK_MS,
+    cueGain,
     DUCKING_CUES,
     gainForDb,
     NON_COMBAT_CUES,
@@ -478,6 +479,8 @@ function voiceOut(name: SfxName, opts: SfxOptions, step: number, now: number): v
         if (!context || context.state !== 'running' || !masterGain) return;
 
         const bus = context.createGain();
+        // A cue's own level (194l: the recoil sits under the impacts).
+        bus.gain.value = cueGain(name);
         /*
          * The cue that causes a duck must not be ducked by it, so the big moments connect past
          * `duckGain` straight to master. Everything else goes through it.
