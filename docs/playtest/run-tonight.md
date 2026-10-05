@@ -67,7 +67,7 @@ report before the full night, so the night starts clean.
 
 ## Step 3: the night
 
-**Shortcut:** `bash scripts/overnight.sh` (from Git Bash, at the repo root) does the checks and then plays Night A (haiku) and Night B (sonnet) on the 2026-10-04 seeds. `DRY_RUN=1` shows the plan; the header of the script lists the settings. The rest of this step is what it runs.
+**Shortcut:** `npm run overnight` (any terminal, at the repo root) does the checks and then plays Night A (haiku) and Night B (sonnet) on the 2026-10-04 seeds. `npm run overnight -- --dry-run` shows the plan; the header of `scripts/overnight.mjs` lists the flags. The rest of this step is what it runs.
 
 When the trial looks like a real playthrough, run the night. Ten sessions is the default (nine in `run`
 mode and one in `card` mode, where the agent predicts every card and so finds wording bugs).

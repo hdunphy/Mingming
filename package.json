@@ -27,6 +27,7 @@
     "canary:short": "vite-node src/debug/balance/runRunGate.ts -- --cells wild:biome0,elite:biome0 --iterations 60 --gate-structural",
     "playtest": "vite-node src/debug/playtest/cli.ts",
     "playtest:night": "node scripts/playtest-night.mjs",
+    "overnight": "node scripts/overnight.mjs",
     "playtest:report": "vite-node src/debug/playtest/report/cli.ts"
   },
   "dependencies": {
