@@ -43,16 +43,17 @@ describe('194k-5 - a top-up lands as visibly as a fresh status', () => {
 describe('194k-5 - the lab\'s counts and sizes, at one stack added', () => {
     it('Strength: 7 chevrons of 7-10 px and 12 embers of 4 px thinning to 1', () => {
         const seeds = seedsOf('Strengthened');
-        const chevrons = shape(seeds, 'chevron');
+        const chevrons = shape(seeds, 'chev');
         expect(chevrons).toHaveLength(7);
         expect(within(chevrons, 7, 10)).toBe(true);
-        const embers = shape(seeds, 'puff');
+        const embers = shape(seeds, 'glow');
         expect(embers).toHaveLength(12);
         expect(embers.every((e) => e.size === 4 && e.size2 === 1)).toBe(true);
     });
 
-    it('Burn: 24 flames of 7-11 px thinning to 2, over the standing tongues', () => {
-        const flames = shape(seedsOf('Burn'), 'puff').filter((p) => p.size2 === 2);
+    it('Burn: 24 glow flames of 7-11 px thinning to 2, and nothing else', () => {
+        const flames = shape(seedsOf('Burn'), 'glow');
+        expect(seedsOf('Burn')).toHaveLength(24);
         expect(flames).toHaveLength(24);
         expect(within(flames, 7, 11)).toBe(true);
         expect(flames.every((f) => f.vy <= -140 && f.vy >= -320)).toBe(true);
@@ -60,7 +61,7 @@ describe('194k-5 - the lab\'s counts and sizes, at one stack added', () => {
 
     it('Poison: 14 bubbles of 3-8 px and 6 drips', () => {
         const seeds = seedsOf('Poison');
-        const bubbles = shape(seeds, 'puff');
+        const bubbles = shape(seeds, 'bubble');
         expect(bubbles).toHaveLength(14);
         expect(within(bubbles, 3, 8)).toBe(true);
         expect(shape(seeds, 'drop')).toHaveLength(6);
@@ -73,17 +74,17 @@ describe('194k-5 - the lab\'s counts and sizes, at one stack added', () => {
     });
 
     it('Weakened: 6 chevrons of 7-10 px', () => {
-        const chevrons = shape(seedsOf('Weakened'), 'chevron');
+        const chevrons = shape(seedsOf('Weakened'), 'chev');
         expect(chevrons).toHaveLength(6);
         expect(within(chevrons, 7, 10)).toBe(true);
     });
 
     it('Sharp: 5 glints of 9-15 px and the slash', () => {
         const seeds = seedsOf('Sharp');
-        const glints = shape(seeds, 'star');
+        const glints = shape(seeds, 'glint');
         expect(glints).toHaveLength(5);
         expect(within(glints, 9, 15)).toBe(true);
-        expect(shape(seeds, 'streak')).toHaveLength(1);
+        expect(shape(seeds, 'spark')).toHaveLength(1);
     });
 
     it('Regen: 9 plus signs of 4-6 px and 14 motes thinning from 5 to 2', () => {
@@ -91,19 +92,16 @@ describe('194k-5 - the lab\'s counts and sizes, at one stack added', () => {
         const pluses = shape(seeds, 'plus');
         expect(pluses).toHaveLength(9);
         expect(within(pluses, 4, 6)).toBe(true);
-        const motes = shape(seeds, 'puff');
+        const motes = shape(seeds, 'glow');
         expect(motes).toHaveLength(14);
         expect(motes.every((m) => m.size === 5 && m.size2 === 2)).toBe(true);
     });
 
-    it('Bark Shield: 9 planks of the lab\'s 26 x 10 px', () => {
+    it('Bark Shield: 9 planks of the lab\'s 26 px', () => {
         const planks = shape(seedsOf('BarkShield'), 'plank');
         expect(planks).toHaveLength(9);
-        // The field draws a plank 2.2 x 0.8 of its size.
-        for (const plank of planks) {
-            expect(plank.size * 2.2).toBeGreaterThanOrEqual(25);
-            expect(plank.size * 0.8).toBeGreaterThanOrEqual(9);
-        }
+        // The field draws a plank 2 x 0.6 of its size (the lab's `plank` kind).
+        for (const plank of planks) expect(plank.size * 2).toBe(26);
     });
 });
 

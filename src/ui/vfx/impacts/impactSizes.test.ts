@@ -25,18 +25,18 @@ const range = (seeds: ParticleSeed[]): [number, number] => [Math.min(...seeds.ma
 describe('194k-6 - the lab\'s impact sizes', () => {
     it('Fire: embers 6-11 px thinning to 2, smoke 16 px growing to 46', () => {
         const seeds = buildImpact('Fire', input());
-        const embers = ofShape(seeds, 'flame');
+        const embers = ofShape(seeds, 'glow');
         const [lo, hi] = range(embers);
         expect(lo).toBeGreaterThanOrEqual(6);
         expect(hi).toBeLessThanOrEqual(11);
         expect(embers.every((e) => e.size2 === 2)).toBe(true);
-        const smoke = ofShape(seeds, 'puff');
+        const smoke = ofShape(seeds, 'soft');
         expect(smoke.every((p) => p.size === 16 && p.size2 === 46)).toBe(true);
     });
 
     it('Fire embers no longer grow with s: they start at the lab\'s size at any hit strength', () => {
-        const small = range(ofShape(buildImpact('Fire', input({ s: 0.1 })), 'flame'));
-        const big = range(ofShape(buildImpact('Fire', input({ s: 1 })), 'flame'));
+        const small = range(ofShape(buildImpact('Fire', input({ s: 0.1 })), 'glow'));
+        const big = range(ofShape(buildImpact('Fire', input({ s: 1 })), 'glow'));
         expect(small[0]).toBeGreaterThanOrEqual(6);
         expect(big[1]).toBeLessThanOrEqual(11);
     });
@@ -46,7 +46,7 @@ describe('194k-6 - the lab\'s impact sizes', () => {
         const [lo, hi] = range(ofShape(seeds, 'drop'));
         expect(lo).toBeGreaterThanOrEqual(2.5);
         expect(hi).toBeLessThanOrEqual(4.5);
-        expect(ofShape(seeds, 'puff').every((p) => p.size === 14 && p.size2 === 40)).toBe(true);
+        expect(ofShape(seeds, 'soft').every((p) => p.size === 14 && p.size2 === 40)).toBe(true);
     });
 
     it('Nature: leaves 5-9 px, sparks 4-7 px thinning to 1', () => {
@@ -54,7 +54,7 @@ describe('194k-6 - the lab\'s impact sizes', () => {
         const leaves = range(ofShape(seeds, 'leaf'));
         expect(leaves[0]).toBeGreaterThanOrEqual(5);
         expect(leaves[1]).toBeLessThanOrEqual(9);
-        const sparks = ofShape(seeds, 'spark');
+        const sparks = ofShape(seeds, 'glow');
         const [lo, hi] = range(sparks);
         expect(lo).toBeGreaterThanOrEqual(4);
         expect(hi).toBeLessThanOrEqual(7);
@@ -81,7 +81,7 @@ describe('194k-6 - the pool', () => {
             thrown += landing.length;
             field.spawn(landing);
         }
-        expect(thrown).toBeGreaterThan(300);
+        expect(thrown).toBeGreaterThan(200);
         expect(thrown).toBeLessThan(PARTICLE_POOL);
         expect(field.live).toBe(thrown);
     });

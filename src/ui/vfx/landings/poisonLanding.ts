@@ -1,37 +1,35 @@
 /**
- * TICKET 190f - POISON LANDS: purple bubbles rise off the body and green drips fall from it, and the
- * sprite dulls for a moment. TICKET 194k-5: the lab's 14 bubbles of 3-8 px and 6 drips (the game had 6 and 4).
+ * TICKET 190f — POISON LANDS: the lab's `statusLand('Poison')` line for line (TICKET 198b-4). 14
+ * purple outlined bubbles rising off the body and 6 green drips falling, each fading in over its
+ * first few hundred ms; the sprite dulls (`reaction: 'dull'`).
  */
 
 import { randomIn } from '../attacks/curves';
-import type { ParticleSeed } from '../particles';
 import { particle } from '../attacks/seeds';
-import { boxOf } from './bodyBox';
+import type { ParticleSeed } from '../particles';
+import { boxOf, centreOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 import { countFor } from './stackFactor';
 
 export const BUBBLES = 14;
 export const DRIPS = 6;
+const POISON = [176, 96, 232] as const;
 
 export const poisonLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math.random }) => {
     const rand = randomIn(rng);
-    const box = boxOf(at);
+    const c = centreOf(boxOf(at));
     const seeds: ParticleSeed[] = [];
 
     for (let i = 0; i < countFor(BUBBLES, stacks, stacksAdded); i += 1) {
         seeds.push(particle({
-            x: box.x + box.w * rand(0.22, 0.78), y: box.y + box.h * rand(0.55, 0.92),
-            vx: rand(-14, 14), vy: -rand(40, 90), ay: -rand(0, 14), drag: 0.01,
-            life: rand(700, 1050), size: rand(3, 8), size2: rand(5, 9),
-            rgb: [176, 96, 214], rgb2: [120, 52, 170], a: 0.75, kind: 'puff',
+            x: c.x + rand(-40, 40), y: c.y + rand(-5, 40), vy: -rand(40, 90), vx: rand(-10, 10),
+            life: rand(700, 1050), size: rand(3, 8), rgb: POISON, kind: 'bubble', add: false, fadeIn: rand(0, 300),
         }));
     }
     for (let i = 0; i < countFor(DRIPS, stacks, stacksAdded); i += 1) {
         seeds.push(particle({
-            x: box.x + box.w * rand(0.25, 0.75), y: box.y + box.h * rand(0.3, 0.6),
-            vx: rand(-8, 8), vy: rand(0, 40), ay: rand(420, 560), drag: 0.01,
-            life: rand(500, 800), size: rand(3, 4), size2: 2,
-            rgb: [140, 220, 90], rgb2: [70, 150, 50], a: 0.9, kind: 'drop',
+            x: c.x + rand(-35, 35), y: c.y + rand(-10, 20), vy: 20, ay: 420,
+            life: rand(500, 800), size: 3, rgb: [150, 230, 110], kind: 'drop', add: false, fadeIn: rand(0, 300),
         }));
     }
     return { seeds, reaction: 'dull' };

@@ -9,7 +9,8 @@
  * 4% hit dims on Slow.
  */
 
-import { randomIn, inQuad, lerp } from '../attacks/curves';
+import type { AttackEffect } from '../attacks/AttackEffect';
+import { drawGlowAt } from '../attacks/glow';
 import type { ParticleSeed } from '../particles';
 import type { TrackKey } from '../impact/Track';
 import type { AttackPlan } from '../tiers/attackPlan';
@@ -18,8 +19,6 @@ import { damageScale } from '../tiers/tierProfiles';
 /** The dark layer never goes past this opacity (at s = 1). */
 export const DIM_PEAK = 0.4;
 /** How far from the mouth a charging spark starts. */
-const SPARK_START_MIN_PX = 60;
-const SPARK_START_MAX_PX = 110;
 
 /** `s` for a hit: the same number the pour, the shake and the freeze grow on. */
 export const hitScale = (damage: number, maxHp: number): number => damageScale(damage, maxHp);
@@ -43,32 +42,51 @@ export function dimKeys(game: Pick<AttackPlan['game'], 'windupEndMs' | 'impactMs
 export interface ChargeInput {
     /** Where the mouth is, in stage-box coordinates. */
     readonly muzzle: { readonly x: number; readonly y: number };
-    /** The wind-up: the sparks arrive as it ends. */
+    /** The wind-up: the charge runs for exactly this long. */
     readonly durationMs: number;
-    readonly s: number;
-    readonly particleScale: number;
+    /** The element's body colour, and the hot colour the motes are born in. */
     readonly color: { readonly r: number; readonly g: number; readonly b: number };
+    readonly hot: { readonly r: number; readonly g: number; readonly b: number };
     readonly rng?: () => number;
 }
 
-export function chargeSparks(input: ChargeInput): ParticleSeed[] {
-    const rand = randomIn(input.rng ?? Math.random);
-    const count = Math.max(1, Math.round((8 + 10 * input.s) * input.particleScale));
-    const life = Math.max(120, Math.round(input.durationMs));
-    const seeds: ParticleSeed[] = [];
-    for (let i = 0; i < count; i += 1) {
-        const angle = rand(0, Math.PI * 2);
-        const radius = rand(SPARK_START_MIN_PX, SPARK_START_MAX_PX);
-        const start = { x: input.muzzle.x + Math.cos(angle) * radius, y: input.muzzle.y + Math.sin(angle) * radius };
-        seeds.push({
-            x: start.x, y: start.y, vx: 0, vy: 0, life, size: rand(2.6, 3.8),
-            r: 255, g: 250, b: 225, r2: input.color.r, g2: input.color.g, b2: input.color.b,
-            a: 1, shape: 'spark',
-            path: (t) => {
-                const u = inQuad(Math.min(1, Math.max(0, t)));
-                return { x: lerp(start.x, input.muzzle.x, u), y: lerp(start.y, input.muzzle.y, u) };
-            },
-        });
-    }
-    return seeds;
+/** Motes per game millisecond (the lab's `acc += g * 0.35`). */
+export const CHARGE_MOTES_PER_MS = 0.35;
+
+/**
+ * TICKET 198b-4 — the lab's `chargeFx`, line for line: through the wind-up, 350 motes a second are
+ * born on a ring 60-90 px round the mouth and fly straight into it over their 180-260 ms life, each
+ * growing from 3 to 7 px as it cools from the hot colour to the element's; the mouth itself glows,
+ * 10 px swelling to 36 by the end. (190g threw one batch of sparks on paths instead.)
+ */
+export function chargeEffect(input: ChargeInput): AttackEffect {
+    const rng = input.rng ?? Math.random;
+    const rand = (lo: number, hi: number): number => lo + rng() * (hi - lo);
+    const ms = Math.max(1, input.durationMs);
+    const { muzzle: o, color, hot } = input;
+    let acc = 0;
+    return {
+        durationMs: ms,
+        step(_age, dt, spawn) {
+            acc += dt * CHARGE_MOTES_PER_MS;
+            const seeds: ParticleSeed[] = [];
+            while (acc >= 1) {
+                acc -= 1;
+                const a = rand(0, Math.PI * 2);
+                const r = rand(60, 90);
+                const life = rand(180, 260);
+                seeds.push({
+                    x: o.x + Math.cos(a) * r, y: o.y + Math.sin(a) * r,
+                    vx: (-Math.cos(a) * r) / life * 1000, vy: (-Math.sin(a) * r) / life * 1000,
+                    life, size: 3, size2: 7,
+                    r: hot.r, g: hot.g, b: hot.b, r2: color.r, g2: color.g, b2: color.b,
+                    shape: 'glow',
+                });
+            }
+            if (seeds.length) spawn(seeds);
+        },
+        draw(ctx, age) {
+            drawGlowAt(ctx, o.x, o.y, 10 + 26 * (age / ms), [color.r, color.g, color.b], 0.8);
+        },
+    };
 }

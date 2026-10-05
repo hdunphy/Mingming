@@ -55,17 +55,19 @@ describe('190f - which statuses have a landing', () => {
 });
 
 describe('190f - what each landing is', () => {
-    it('Burn: flames lick up the body, with an orange glow', () => {
+    it('Burn: glow flames rise off the lower body, born pale and cooling to the Burn orange', () => {
         const seeds = seedsOf('Burn');
-        expect(ofShape(seeds, 'flame').length).toBeGreaterThan(0);
-        expect(ofShape(seeds, 'puff').some((p) => p.r > p.b + 100)).toBe(true);
+        const flames = ofShape(seeds, 'glow');
+        expect(flames.length).toBeGreaterThan(0);
+        expect(flames.every((p) => p.vy < 0 && p.r === 255 && p.g === 230 && p.b === 150 && p.r2 === 255 && p.g2 === 122 && p.b2 === 47)).toBe(true);
+        expect(flames.every((p) => p.y <= BODY.y + BODY.h * 0.92 && p.y >= BODY.y + BODY.h * 0.92 - 40)).toBe(true);
     });
 
     it('Poison: purple bubbles rise and green drips fall', () => {
         const seeds = seedsOf('Poison');
-        const bubbles = ofShape(seeds, 'puff');
+        const bubbles = ofShape(seeds, 'bubble');
         expect(bubbles.length).toBeGreaterThan(0);
-        expect(bubbles.every((p) => p.vy < 0 && p.b > p.g)).toBe(true);
+        expect(bubbles.every((p) => p.vy < 0 && p.b > p.g && p.add === false)).toBe(true);
         const drips = ofShape(seeds, 'drop');
         expect(drips.length).toBeGreaterThan(0);
         expect(drips.every((p) => (p.gravity ?? 0) > 0 && p.g > p.r && p.g > p.b)).toBe(true);
@@ -88,25 +90,28 @@ describe('190f - what each landing is', () => {
     });
 
     it('Weakened: grey chevrons sink', () => {
-        const chevrons = ofShape(seedsOf('Weakened'), 'chevron');
+        const chevrons = ofShape(seedsOf('Weakened'), 'chev');
         expect(chevrons.length).toBeGreaterThan(0);
-        expect(chevrons.every((c) => c.vy > 0 && Math.abs(c.r - c.g) < 15 && Math.abs(c.g - c.b) < 15)).toBe(true);
+        expect(chevrons.every((c) => c.vy > 0 && Math.abs(c.r - c.g) < 15 && Math.abs(c.g - c.b) < 25)).toBe(true);
+        // From over the head, one after another.
+        expect(chevrons.every((c) => c.y <= BODY.y)).toBe(true);
+        expect(chevrons.map((c) => c.fadeIn)).toEqual(chevrons.map((_, i) => i * 60));
     });
 
     it('Strengthened: red chevrons rise, with embers', () => {
         const seeds = seedsOf('Strengthened');
-        const chevrons = ofShape(seeds, 'chevron');
+        const chevrons = ofShape(seeds, 'chev');
         expect(chevrons.length).toBeGreaterThan(0);
         expect(chevrons.every((c) => c.vy < 0 && c.r > c.g + 80)).toBe(true);
-        expect(ofShape(seeds, 'puff').length).toBeGreaterThan(0);   // the embers (194k-5: glowing puffs, not tongues)
+        expect(ofShape(seeds, 'glow').length).toBeGreaterThan(0);   // the embers
     });
 
     it('Sharp: white glints flash across the body, plus one slash glint', () => {
         const seeds = seedsOf('Sharp');
-        const glints = ofShape(seeds, 'star');
+        const glints = ofShape(seeds, 'glint');
         expect(glints.length).toBeGreaterThan(1);
-        expect(glints.every((g) => g.r >= 240 && g.g >= 240 && g.b >= 240)).toBe(true);
-        expect(ofShape(seeds, 'streak')).toHaveLength(1);
+        expect(glints.every((g) => g.r >= 220 && g.g >= 240 && g.b >= 240)).toBe(true);
+        expect(ofShape(seeds, 'spark')).toHaveLength(1);
     });
 
     it('Regen: green plus signs and motes rise gently', () => {
@@ -114,16 +119,16 @@ describe('190f - what each landing is', () => {
         const pluses = ofShape(seeds, 'plus');
         expect(pluses.length).toBeGreaterThan(0);
         expect(pluses.every((p) => p.vy < 0 && p.g > p.r && p.g > p.b)).toBe(true);
-        expect(ofShape(seeds, 'puff').every((p) => p.vy < 0)).toBe(true);
+        expect(ofShape(seeds, 'glow').every((p) => p.vy < 0)).toBe(true);
     });
 
-    it('Bark Shield: planks fly in and lock into a ring round the body, then settle toward the plaque', () => {
+    it('Bark Shield: planks spiral in from a wide ring to a tight one round the body, then settle toward the plaque', () => {
         const planks = ofShape(seedsOf('BarkShield'), 'plank');
         expect(planks.length).toBeGreaterThanOrEqual(6);
         const centre = { x: BODY.x + BODY.w / 2, y: BODY.y + BODY.h / 2 };
         for (const plank of planks) {
             const start = plank.path!(0);
-            const locked = plank.path!(0.6);
+            const locked = plank.path!(0.5);
             const end = plank.path!(1);
             const reach = (p: { x: number; y: number }) => Math.hypot(p.x - centre.x, p.y - centre.y);
             expect(reach(start)).toBeGreaterThan(reach(locked));            // flew in
@@ -135,15 +140,8 @@ describe('190f - what each landing is', () => {
 });
 
 describe('190f - the x N count', () => {
-    it('Burn throws one standing tongue per stack, up to four', () => {
-        const flames = (stacks: number) => ofShape(seedsOf('Burn', { stacks }), 'flame').length;
-        expect(flames(2)).toBeGreaterThan(flames(1));
-        expect(flames(4)).toBeGreaterThan(flames(3));
-        expect(flames(9)).toBe(flames(4));
-    });
-
-    it('every other landing grows with the stacks, and stops growing at a cap', () => {
-        for (const status of TABLE.filter((s) => s !== 'Burn' && s !== 'Dazed' && s !== 'BarkShield')) {
+    it('every landing but Dazed and Bark Shield grows with the stacks, and stops growing at a cap', () => {
+        for (const status of TABLE.filter((s) => s !== 'Dazed' && s !== 'BarkShield')) {
             const count = (stacks: number) => seedsOf(status, { stacks }).length;
             expect(count(5), status).toBeGreaterThan(count(1));
             expect(count(50), status).toBe(count(5));

@@ -12,6 +12,7 @@ import type { BattleSpeedTier } from '../clock/battleSpeedTiers';
 import { setParticleSink, setStageAnchors } from '../emit';
 import { resetImpactFx, stageDim } from '../impact/impactRuntime';
 import type { ParticleSeed } from '../particles';
+import type { AttackEffect } from '../attacks/AttackEffect';
 import { buildCastBeat, emptyCast } from '../presenter/castBeat';
 import { resetActiveTier, setActiveTier } from '../tiers/activeTier';
 import { planAttack } from '../tiers/attackPlan';
@@ -26,13 +27,15 @@ const ANCHORS = {
 } as unknown as StageAnchors;
 
 let spawned: ParticleSeed[][];
+let effects: AttackEffect[];
 
 beforeEach(() => {
     spawned = [];
+    effects = [];
     localStorage.clear();
     saveSettings(DEFAULT_SETTINGS);
     setStageAnchors(ANCHORS);
-    setParticleSink({ spawn: (seeds) => { spawned.push([...seeds]); }, wake: () => undefined });
+    setParticleSink({ spawn: (seeds) => { spawned.push([...seeds]); }, addEffect: (effect) => { effects.push(effect); }, wake: () => undefined });
     resetActiveTier();
 });
 afterEach(() => {
@@ -108,20 +111,19 @@ describe('190g - the dim and the charge, played', () => {
         expect(stageDim.active).toBe(false);
     });
 
-    it('the charge throws sparks that end in the caster\'s mouth', () => {
-        buildCastBeat(hitFor(80)).actions.find((action) => action.label === 'charge')!.run();
-        const sparks = spawned.flat().filter((seed) => seed.shape === 'spark');
-        expect(sparks.length).toBeGreaterThan(5);
-        // a1 stands at x=100 (w 190), facing right: the mouth is in front of it.
-        const ends = sparks.map((seed) => seed.path!(1));
-        expect(new Set(ends.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`)).size).toBe(1);
-        expect(ends[0].x).toBeGreaterThan(100 + 95);
-    });
-
-    it('the sparks arrive as the wind-up ends', () => {
+    it('198b-4: the charge is one effect at the caster\'s mouth that runs through the wind-up and throws motes into it', () => {
         buildCastBeat(hitFor(80)).actions.find((action) => action.label === 'charge')!.run();
         const plan = planAttack(profileFor('showy'), { damage: 80, maxHp: 100, isKill: false, contact: false });
-        expect(spawned.flat()[0].life).toBe(Math.max(120, Math.round(plan.game.windupEndMs)));
+        expect(effects).toHaveLength(1);
+        expect(effects[0].durationMs).toBe(plan.game.windupEndMs);
+        effects[0].step(16, 16, (seeds) => spawned.push([...seeds]));
+        const motes = spawned.flat();
+        expect(motes.length).toBeGreaterThan(3);
+        // a1 stands at x=100 (w 190), facing right: the mouth is in front of it, and every mote's
+        // velocity times its life carries it there.
+        const ends = motes.map((seed) => ({ x: seed.x + (seed.vx * seed.life) / 1000, y: seed.y + (seed.vy * seed.life) / 1000 }));
+        expect(new Set(ends.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`)).size).toBe(1);
+        expect(ends[0].x).toBeGreaterThan(100 + 95);
     });
 
     it('the clock is untouched until the action runs', () => {

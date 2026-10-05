@@ -52,7 +52,7 @@ describe('190e - a multi-target card gives every body its own impact', () => {
         cast.hits.push(hitOn('e1', 5), hitOn('e2', 45));
         for (const action of buildCastBeat(cast).actions.filter((a) => a.label === 'impact')) action.run();
 
-        const embers = spawned.map((seeds) => seeds.filter((seed) => seed.shape === 'flame').length);
+        const embers = spawned.map((seeds) => seeds.filter((seed) => seed.shape === 'glow').length);
         const scale = activeProfile().particleScale;
         expect(embers).toEqual([
             impactCount(damageScale(5, 100), 'normal', scale),
@@ -61,7 +61,7 @@ describe('190e - a multi-target card gives every body its own impact', () => {
         expect(embers[1]).toBeGreaterThan(embers[0]);
     });
 
-    it('a super-effective card gives every body the white ring and the star sparks', () => {
+    it('a super-effective card gives every body the white ring and the eight stars', () => {
         const cast = emptyCast({
             element: 'Water', sourceId: 'a1', targetIds: ['e1', 'e2'], doubled: true, resisted: false,
         });
@@ -69,7 +69,7 @@ describe('190e - a multi-target card gives every body its own impact', () => {
         for (const action of buildCastBeat(cast).actions.filter((a) => a.label === 'impact')) action.run();
         for (const seeds of spawned) {
             expect(seeds.some((seed) => seed.shape === 'ring' && seed.g >= 250)).toBe(true);
-            expect(seeds.filter((seed) => seed.shape === 'spark').length).toBeGreaterThanOrEqual(6);
+            expect(seeds.filter((seed) => seed.shape === 'star').length).toBe(8);
         }
     });
 

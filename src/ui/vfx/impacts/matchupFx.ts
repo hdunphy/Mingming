@@ -1,54 +1,42 @@
 /**
- * TICKET 190e - WHAT A MATCHUP AND A KILL ADD on top of the element's own burst.
- *
- * Super effective: a white ring and a fan of star sparks. Resisted: a grey fizzle (a few slow grey puffs
- * that go nowhere). A kill: a white ring, bigger than the rest.
+ * TICKET 190e — WHAT A MATCHUP OR A KILL ADDS, the lab's `superRing` and `fizzle` line for line
+ * (TICKET 198b-4). A super-effective hit, or a kill, gets the big white ring and eight pale stars
+ * spinning outward; a resisted hit gets six grey soft puffs drifting up.
  */
 
 import { randomIn } from '../attacks/curves';
 import { particle } from '../attacks/seeds';
 import type { EmitAt } from '../emit';
 import type { ParticleSeed } from '../particles';
-import { hitPoint } from './hitPoint';
-import { ringSeed } from './ringSeed';
+import { centreOf } from './hitPoint';
 
-const WHITE = { r: 255, g: 255, b: 255 };
-export const FIZZLE_GREY = { r: 150, g: 155, b: 162 };
-const STAR_SPARKS = 10;
-const FIZZLE_PUFFS = 4;
+export const FIZZLE_GREY = { r: 120, g: 125, b: 135 };
+export const SUPER_STARS = 8;
+export const FIZZLE_PUFFS = 6;
 
-export function superEffectiveFx(at: EmitAt, s: number, direction: 1 | -1, rng: () => number): ParticleSeed[] {
-    const rand = randomIn(rng);
-    const point = hitPoint(at, direction);
-    const seeds: ParticleSeed[] = [ringSeed(at, WHITE, 8 + 3 * s, 420)];
-    for (let i = 0; i < STAR_SPARKS; i += 1) {
-        const angle = (i / STAR_SPARKS) * Math.PI * 2 + rand(-0.2, 0.2);
-        const speed = rand(180, 420);
+export function superRing(at: EmitAt): ParticleSeed[] {
+    const c = centreOf(at);
+    const seeds: ParticleSeed[] = [particle({ x: c.x, y: c.y, kind: 'ring', size: 20, size2: 130, life: 380, rgb: [255, 255, 255] })];
+    for (let i = 0; i < SUPER_STARS; i += 1) {
+        const a = (i / SUPER_STARS) * Math.PI * 2;
         seeds.push(particle({
-            x: point.x, y: point.y,
-            vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, ay: 80, drag: 0.05,
-            life: rand(380, 620), size: rand(2.2, 3.4), size2: 0.8,
-            rgb: [255, 252, 215], rgb2: [255, 214, 90], a: 1, kind: 'spark',
+            x: c.x, y: c.y, vx: Math.cos(a) * 360, vy: Math.sin(a) * 360, drag: 0.1,
+            life: 380, size: 7, kind: 'star', rgb: [255, 240, 170], vr: 6,
         }));
     }
     return seeds;
 }
 
-export function resistedFx(at: EmitAt, direction: 1 | -1, rng: () => number): ParticleSeed[] {
+export function fizzle(at: EmitAt, rng: () => number): ParticleSeed[] {
     const rand = randomIn(rng);
-    const point = hitPoint(at, direction);
+    const c = centreOf(at);
     const seeds: ParticleSeed[] = [];
     for (let i = 0; i < FIZZLE_PUFFS; i += 1) {
         seeds.push(particle({
-            x: point.x + rand(-10, 10), y: point.y + rand(-8, 12),
-            vx: direction * rand(-10, 40), vy: -rand(10, 40), ay: -10, drag: 0.03,
-            life: rand(500, 700), size: rand(6, 9), size2: rand(14, 18),
-            rgb: [FIZZLE_GREY.r, FIZZLE_GREY.g, FIZZLE_GREY.b], rgb2: [110, 114, 120], a: 0.55, kind: 'puff',
+            x: c.x + rand(-15, 15), y: c.y + rand(-10, 10), vx: rand(-20, 20), vy: rand(-50, -20),
+            life: rand(500, 800), size: 10, size2: 30, rgb: [FIZZLE_GREY.r, FIZZLE_GREY.g, FIZZLE_GREY.b],
+            kind: 'soft', add: false, a: 0.55,
         }));
     }
     return seeds;
-}
-
-export function killRing(at: EmitAt, s: number): ParticleSeed {
-    return ringSeed(at, WHITE, 10 + 3 * s, 480);
 }
