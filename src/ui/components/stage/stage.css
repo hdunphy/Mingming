@@ -171,6 +171,16 @@
    so under its feet (`TargetFlag`). A legal one is left alone. */
 .stage-slot-illegal .stage-sprite-frame { opacity: 0.55; }
 
+/* ---- who the held card is aimed at (194h) --------------------------------------------------
+   STRONG: the unit the preview numbers are for (or that an unaimed card will hit) - a hard yellow
+   frame on the body and on its plaque, the one selection colour, held for as long as the preview
+   shows. SOFT: every other legal choice while a card is held - a thin translucent frame, so the
+   player sees the options before the pointer is on one. Hard outlines only: no glow, no blur. */
+.stage-slot-mark-strong { outline: 4px solid var(--select); outline-offset: 2px; z-index: 4; }
+.stage-slot-mark-soft { outline: 2px solid color-mix(in srgb, var(--select) 55%, transparent); outline-offset: 2px; }
+.stage-plaque-mark-strong { outline: 3px solid var(--select); outline-offset: 2px; }
+.stage-plaque-mark-soft { outline: 2px solid color-mix(in srgb, var(--select) 55%, transparent); outline-offset: 2px; }
+
 /* ---- the target feedback ------------------------------------------------------------------ */
 
 .stage-target-flag {

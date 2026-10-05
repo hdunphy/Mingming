@@ -32,6 +32,7 @@ import { PLAQUE_W, type StageRect } from '../stageGeometry';
 import { DaemonTags, FirmwareChip, UnitPreview } from '../UnitReadouts';
 import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
 import { PlaqueHpPreview } from './PlaqueHpPreview';
+import type { TargetMark } from './targetMark';
 import { StatusChipRow } from './StatusChipRow';
 
 /** The HP bar's track width at reference scale: what is left of the plaque beside `414/1125`. */
@@ -46,12 +47,14 @@ export interface UnitPlaqueProps {
     readonly isActive: boolean;
     /** What the held card would do to this unit. Null unless it is the hover target. */
     readonly preview: DamagePreview | null;
+    /** 194h: the same mark as the sprite's, so the plaque and the body read as one target. */
+    readonly mark?: TargetMark;
     /** 184c: the counters on the plaque (firmware, daemons) read the battle. */
     readonly battleState: IBattleState;
 }
 
 export const UnitPlaque: React.FC<UnitPlaqueProps> = ({
-    entity, isEnemy, plaque, scale, isActive, preview, battleState,
+    entity, isEnemy, plaque, scale, isActive, preview, mark = null, battleState,
 }) => {
     // TICKET 189c: what the player SEES moves at the impact, not when the engine resolved the card.
     // Targeting and the damage preview below keep reading the real entity.
@@ -65,6 +68,7 @@ export const UnitPlaque: React.FC<UnitPlaqueProps> = ({
                 isEnemy ? 'is-enemy stage-enemy-shift' : 'is-ally',
                 isActive ? 'stage-plaque-active' : '',
                 isDead ? 'stage-plaque-dead' : '',
+                mark ? `stage-plaque-mark-${mark}` : '',
             ].filter(Boolean).join(' ')}
             data-testid={`stage-plaque-${entity.id}`}
             style={{ left: plaque.x, top: plaque.y, width: PLAQUE_W, transform: `scale(${scale})` }}
