@@ -7,11 +7,11 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "6 power, twice.",
+      "text": "5 power, three times.",
       "shape": "enabler",
       "cur": "cards",
       "status": "revise",
-      "why": "Seed Spit minus the Poison, as the 0e multi-hit: two Dazed-on-target hits for one INSTIGATOR proc. Tackle is the flat 0e."
+      "why": "Seed Spit minus the Poison, as the 0e multi-hit: three hits for one INSTIGATOR proc (167b: 5 power x3, 5 x4 upgraded). Tackle is the flat 0e."
     },
     {
       "id": "ash_communion",
@@ -44,7 +44,7 @@
       "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume your Bark Shield: 6 power per point consumed.",
+      "text": "Consume your Bark Shield: 5 power per point consumed.",
       "shape": "consume",
       "cur": "Bark",
       "status": "new",
@@ -163,7 +163,7 @@
     },
     {
       "id": "cinder_armor",
-      "name": "Cinder Armor",
+      "name": "Emberhide",
       "cost": 2,
       "el": "Fire",
       "cat": "Daemon",
@@ -199,12 +199,12 @@
     },
     {
       "id": "core_overclock",
-      "name": "Core Overclock",
+      "name": "Megingjord",
       "cost": 2,
       "el": "Fire",
       "cat": "Daemon",
       "tgt": "Self",
-      "text": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+      "text": "Daemon (exhaust): +1 power for every 2 Strength you hold.",
       "shape": "scalar",
       "cur": "Strength",
       "status": "keep"
@@ -297,12 +297,12 @@
     },
     {
       "id": "echo_chamber",
-      "name": "Echo Chamber",
+      "name": "Gjallarhorn",
       "cost": 2,
       "el": "Nature",
       "cat": "Daemon",
       "tgt": "Self",
-      "text": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+      "text": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Tattle token in your hand.",
       "shape": "enabler",
       "cur": "cards",
       "status": "keep"
@@ -322,7 +322,7 @@
     },
     {
       "id": "ember_ward",
-      "name": "Ember Ward",
+      "name": "Brynhild's Ring",
       "cost": 2,
       "el": "Fire",
       "cat": "Daemon",
@@ -335,7 +335,7 @@
     },
     {
       "id": "feedback_loop",
-      "name": "Feedback Loop",
+      "name": "Huginn's Dive",
       "cost": 1,
       "el": "Water",
       "cat": "Daemon",
@@ -623,7 +623,7 @@
     },
     {
       "id": "overclock_core",
-      "name": "Overclock Core",
+      "name": "Well of Mimir",
       "cost": 2,
       "el": "None",
       "cat": "Daemon",
@@ -657,6 +657,19 @@
       "shape": "scalar",
       "cur": "Dazed",
       "status": "new"
+    },
+    {
+      "id": "poison_injection",
+      "name": "Poison Injection",
+      "cost": 0,
+      "el": "Water",
+      "cat": "Attack",
+      "tgt": "Single",
+      "text": "Apply 1 Poison.",
+      "shape": "enabler",
+      "cur": "Poison",
+      "status": "new",
+      "why": "Henry 09-30 (ticket 172): Jormungandr's Tackle becomes a 0e Poison card, in both decks. The registry's old Poison Injection, reworded. One stack: a 0e card is a one-job card, and TOXIN_FANG pays +10 per stack on every attack that follows."
     },
     {
       "id": "pollen_cloud",
@@ -697,7 +710,7 @@
     },
     {
       "id": "reactive_plating",
-      "name": "Reactive Plating",
+      "name": "Berserkergang",
       "cost": 2,
       "el": "None",
       "cat": "Daemon",
@@ -846,7 +859,7 @@
     },
     {
       "id": "short_circuit",
-      "name": "Short Circuit",
+      "name": "Wisdom's Price",
       "cost": 2,
       "el": "None",
       "cat": "Daemon",
@@ -858,7 +871,7 @@
     },
     {
       "id": "short_fuse",
-      "name": "Short Fuse",
+      "name": "Hoarder's Toll",
       "cost": 2,
       "el": "None",
       "cat": "Daemon",
@@ -897,14 +910,14 @@
       "id": "slander",
       "name": "Slander",
       "cost": 2,
-      "el": "Water",
+      "el": "Nature",
       "cat": "Attack",
       "tgt": "Single",
       "text": "15 power per stack of Dazed on the target.",
       "shape": "scalar",
       "cur": "Dazed",
       "status": "revise",
-      "why": "Was Nature (Rat). Per-stack Dazed is Kraken’s; Rat keeps the binary \"if Dazed\" riders."
+      "why": "Nature since 167d (Henry, 2026-09-28). It left Kraken v1, which now runs a second Crushing Depths, and is a run-only card so a Nature party (Ratatoskr, Huldra) can be offered it. Per-stack Dazed stays the card's job; Kraken keeps Crushing Depths."
     },
     {
       "id": "snap",
@@ -959,7 +972,7 @@
     },
     {
       "id": "static_ward",
-      "name": "Static Ward",
+      "name": "Frigg's Oath",
       "cost": 2,
       "el": "None",
       "cat": "Daemon",
@@ -977,7 +990,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume all your Strength: 30 power per stack consumed.",
+      "text": "Consume all your Strength: 15 power per stack consumed.",
       "shape": "consume",
       "cur": "Strength",
       "status": "keep",
@@ -990,7 +1003,7 @@
       "el": "Water",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "25 power. If an effect drew you a card this turn, refund 1 Energy.",
+      "text": "25 power. If an effect drew your team a card this turn, refund 1 Energy.",
       "shape": "glue",
       "cur": "Energy",
       "status": "revise",
@@ -1023,7 +1036,7 @@
     },
     {
       "id": "thermal_overload",
-      "name": "Thermal Overload",
+      "name": "Surtr's Fever",
       "cost": 2,
       "el": "Fire",
       "cat": "Daemon",
@@ -1383,7 +1396,7 @@
       "el": "Fire",
       "id": "skoll_v1",
       "os": "TREACHERY_KERNEL",
-      "text": "Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 stack of Strengthened.",
+      "text": "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength.",
       "kit": [
         [
           "fury_strike",
@@ -1727,7 +1740,7 @@
           1
         ],
         [
-          "tackle",
+          "poison_injection",
           1,
           "G",
           0
@@ -1803,7 +1816,7 @@
           0
         ],
         [
-          "tackle",
+          "poison_injection",
           1,
           "G",
           1
@@ -1874,13 +1887,7 @@
         ],
         [
           "crushing_depths",
-          1,
-          "B",
-          0
-        ],
-        [
-          "slander",
-          1,
+          2,
           "B",
           0
         ]
@@ -1957,6 +1964,12 @@
         ],
         [
           "tackle",
+          1,
+          "G",
+          0
+        ],
+        [
+          "surge_protection",
           1,
           "G",
           1
@@ -2165,11 +2178,12 @@
     "short_fuse",
     "riptide",
     "short_circuit",
-    "static_ward"
+    "static_ward",
+    "slander"
   ],
   "generated": {
     "from": "registry",
-    "cards": 98,
+    "cards": 99,
     "os": 12
   }
 }
