@@ -16,15 +16,18 @@
  *     and a Skill that used to feed it no longer does.
  *   - 185b (Sköll's TREACHERY fires only on real HP loss): fights 2 and 7 have a skoll_v1 in them.
  * Nothing else moved: 185c (Sun Devourer) and 185d (Core Overclock) touch no card these fights play.
+ *
+ * RE-PINNED ON PURPOSE, TICKET 195a (a game change): Bark Smash deals 5 a point and Bark Smash+ 8, so fights 4, 13, 15
+ * and 18 are played differently (4, 13 and 15 have a huldra_v2, whose kit holds Bark Smash). The other sixteen did not move.
  */
 import { describe, it, expect } from 'vitest';
 import { determinismFights, hashOfFight } from './aiDeterminismFights';
 
 const EXPECTED: ReadonlyArray<string> = [
-    'a5afe12b', '55457196', '112193f2', '899c7f5b', '3cecc5b0',
+    'a5afe12b', '55457196', '112193f2', '899c7f5b', '3978635f',
     '5781866a', 'c9c7121e', '8e7423ec', '94dea59d', 'c82ee87b',
-    'c1a2bbe6', 'a257050a', '6e46de2c', '4cdecdef', 'dea86e21',
-    'f3e7ce8c', 'ba65bd3c', '4ad363e0', 'a26679b1', 'ce42103a',
+    'c1a2bbe6', 'a257050a', '6e46de2c', '31df1e59', 'dea86e21',
+    '27e52d4e', 'ba65bd3c', '4ad363e0', '2bee97b9', 'ce42103a',
 ];
 
 describe('177a — the AI is byte-identical on twenty fixed fights', () => {

@@ -18,6 +18,9 @@
  * TICKET 185e re-pinned all four on purpose, once: a card offer is one weighted draw now (and leaves
  * out the last two picks' cards), so every walk is offered different cards from the same seed.
  * Rows 185a-d moved none of them; the four were taken on the commit before 185e and again on it.
+ *
+ * TICKET 195a moved the kraken tier-0 walk once, on purpose: Bark Smash deals 5 a point and Bark Smash+ 8, so a walk
+ * that meets either card plays a different game (acc09b5fe3339bde -> 672180eee007a6bd). The other three did not move.
  */
 import { createHash } from 'node:crypto';
 
@@ -32,7 +35,7 @@ const hashOf = (value: unknown): string =>
 describe('170a — the default walk is unchanged', () => {
     // [seed, starter, gymIndex, tier] -> hash of JSON.stringify(walkRun(...)) on the parent of 170a.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, number, string]> = [
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, 'acc09b5fe3339bde'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '672180eee007a6bd'],
         ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '88eaccfcdc8cf265'],
         ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'cbae1ed75c400704'],
         ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '9ec0bff685eb34aa'],

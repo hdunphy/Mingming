@@ -112,9 +112,11 @@ describe('170e — the walker', () => {
     // down is unchanged: leaving the option out must reproduce the same walk the modifier alone makes.
     // TICKET 185e moved all three once, on purpose: card offers are one weighted draw now and leave out
     // the last two picks' cards, so every walk is offered different cards from the same seed.
+    // TICKET 195a moved the kraken_v1 walk once, on purpose: Bark Smash deals 5 a point and Bark Smash+ 8, so a walk
+    // that meets either card plays a different game from the same seed (f95299a3bf1d182c -> 993f6acb27185273).
     const GOLDEN: ReadonlyArray<readonly [string, string, number, string]> = [
         ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '9e1cbbc29cfeec7d'],
-        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, 'f95299a3bf1d182c'],
+        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '993f6acb27185273'],
     ];
 
     it.each(GOLDEN)('%s: leaving draftPolicy out reproduces the 169j Draft Start walk exactly', (seed, starter, gymIndex, hash) => {

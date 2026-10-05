@@ -755,8 +755,8 @@
   "id": "bark_smash",
   "name": "Bark Smash",
   "cost": 2,
-  "text": "Consume your Bark Shield: 6 power per point consumed.",
-  "plus": "Consume your Bark Shield: 10 power per point consumed.",
+  "text": "Consume your Bark Shield: 5 power per point consumed.",
+  "plus": "Consume your Bark Shield: 8 power per point consumed.",
   "rule": "consume: per-stack +40%"
  },
  {
