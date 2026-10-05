@@ -309,6 +309,35 @@ describe('the run log middleware, over a whole run', () => {
         expect(rowsOf('FIGHT_TURN')).toHaveLength(before);
     });
 
+    describe('the turn logs switch', () => {
+        const playOneTurn = () => {
+            const store = makeStore();
+            store.dispatch(startRun(makeRun()));
+            store.dispatch(startBattle({ setup: SETUP, enemyIds: ['fenrir'], sectorElement: 'Fire' }));
+            const board = store.getState().battle.battle!;
+            store.dispatch(playProgram({
+                sourceId: board.playerParty[0].id,
+                targetId: board.enemyParty[0].id,
+                programId: board.playerDeck.hand[0].id,
+            }));
+            store.dispatch(endTurn());
+            store.dispatch(setBattleState(null));
+        };
+
+        it('is on by default: the fight has its turn rows', () => {
+            expect(DEFAULT_SETTINGS.turnLogs).toBe(true);
+            playOneTurn();
+            expect(rowsOf('FIGHT_TURN').length).toBeGreaterThan(0);
+        });
+
+        it('off: no turn rows, but the fight still opens, closes and counts its text', () => {
+            saveSettings({ ...DEFAULT_SETTINGS, turnLogs: false });
+            playOneTurn();
+            expect(rowsOf('FIGHT_TURN')).toHaveLength(0);
+            expect(kinds()).toEqual(expect.arrayContaining(['FIGHT_STARTED', 'FIGHT_DECK', 'FIGHT_LOG', 'FIGHT_ENDED']));
+        });
+    });
+
     it('writes the fight\'s transcript to its own key, and points the row at it', () => {
         /*
          * Henry, 2026-09-20: *"Should we instead add a log for each fight and reference it in the

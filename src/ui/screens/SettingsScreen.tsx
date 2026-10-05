@@ -492,6 +492,29 @@ export default function SettingsScreen(): ReactNode {
                             : 'Off. Runs keep every turn and deck, but not the combat text.'}
                     </p>
 
+                    {/* Henry, 2026-10-05. The per-turn rows, one level under the combat text above. */}
+                    <div className="settings-row">
+                        <span className="settings-label">Save turn logs</span>
+                        <div className="settings-control settings-choices">
+                            {([false, true] as const).map((choice) => (
+                                <button
+                                    key={String(choice)}
+                                    type="button"
+                                    className={`settings-choice k-button is-quiet ${settings.turnLogs === choice ? 'active is-on' : ''}`}
+                                    aria-pressed={settings.turnLogs === choice}
+                                    onClick={() => update({ ...settings, turnLogs: choice })}
+                                >
+                                    {choice ? 'On' : 'Off'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="settings-note">
+                        {settings.turnLogs
+                            ? 'On. Each turn of a fight is a row in the run log: cards played, damage, statuses, party HP.'
+                            : 'Off. Runs keep each fight\'s start, deck and result, but not what happened turn by turn.'}
+                    </p>
+
                     {/*
                       * Desktop only, and only when the toggle is on: a folder the player has been told
                       * about is a folder they should be able to open without hunting for AppData.

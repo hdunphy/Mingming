@@ -173,6 +173,8 @@ const emptyTurn = (): TurnAccumulator => ({
 });
 
 let turnRows: TurnAccumulator = emptyTurn();
+/** The `turnLogs` setting as it stood when the open fight began; see `wantsTurnLogs`. */
+let turnLogsOn = true;
 /**
  * The last board and run the middleware saw, for the listener to stamp against.
  *
@@ -203,7 +205,7 @@ const sideOf = (entityId: string): 'PLAYER' | 'ENEMY' =>
 function flushTurn(): void {
     const row = turnRows;
     turnRows = emptyTurn();
-    if (!fightOpen || !current) return;
+    if (!fightOpen || !current || !turnLogsOn) return;
     // A turn in which literally nothing happened is not worth a row; an empty enemy turn is common
     // while a unit is stunned or asleep.
     if (row.cardsPlayed.length === 0 && row.damageDealt === 0
@@ -226,7 +228,7 @@ function flushTurn(): void {
 
 function onBattleEvent(event: BattleEvent): void {
     try {
-        if (isSimulating() || !fightOpen) return;
+        if (isSimulating() || !fightOpen || !turnLogsOn) return;
 
         switch (event.type) {
             case 'PROGRAM_PLAYED':
@@ -275,6 +277,20 @@ function onBattleEvent(event: BattleEvent): void {
 function wantsBattleLogs(): boolean {
     try {
         return loadSettings().battleLogs;
+    } catch {
+        return true;
+    }
+}
+
+/**
+ * Whether the per-turn rows are wanted — the `turnLogs` setting. Read ONCE, when a fight opens,
+ * and held in `turnLogsOn`: the listener runs on every battle event and a settings read is a
+ * storage read. Same rule as the battle logs: the switch means it from the next fight on. Default
+ * on, and on if settings cannot be read.
+ */
+function wantsTurnLogs(): boolean {
+    try {
+        return loadSettings().turnLogs;
     } catch {
         return true;
     }
@@ -390,6 +406,7 @@ export function resetRunLogRecorder(): void {
     current = null;
     seq = 0;
     fightOpen = false;
+    turnLogsOn = true;
     turnRows = emptyTurn();
     lastBoard = null;
     lastRun = null;
@@ -527,6 +544,7 @@ export function createRunLogMiddleware(
             if (!battleBefore && battleAfter) {
                 const node = nodeOf(runAfter, runAfter?.currentNodeId);
                 fightOpen = true;
+                turnLogsOn = wantsTurnLogs();
                 record(runAfter, {
                     kind: 'FIGHT_STARTED',
                     nodeKind: runAfter && node ? fightKindOf(runAfter, node) : 'wild',

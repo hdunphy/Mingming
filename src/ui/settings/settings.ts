@@ -132,6 +132,17 @@ export interface ISettings {
     readonly battleLogs: boolean;
 
     /**
+     * ── TURN LOGS — Henry, 2026-10-05. ──────────────────────────────────────
+     *
+     * The run log's per-turn rows (`FIGHT_TURN`: cards played, damage dealt and taken, statuses
+     * applied, party HP). Everything else in the log stays: the fight's start, deck, text pointer
+     * and end, the scrap curve, the run's own rows. ON by default, because a bug report is mostly
+     * read off those rows; a switch because they are the part that grows with how much happens in
+     * a fight, and the log is rewritten to disk as the run goes on.
+     */
+    readonly turnLogs: boolean;
+
+    /**
      * ── COMBAT SOUNDS — ticket 147b. ────────────────────────────────────────
      *
      * The fight's own noise — casts, impacts, ticks, cries, OS tells — as distinct from the
@@ -209,6 +220,9 @@ const SettingsFields = z.object({
     // field existed parses into the behaviour that player already had — 156 shipped them on.
     battleLogs: z.boolean().default(true),
     // `.default(true)` as above: a blob written before this field parses into the behaviour that
+    // player already had — the per-turn rows were always written.
+    turnLogs: z.boolean().default(true),
+    // `.default(true)` as above: a blob written before this field parses into the behaviour that
     // player already had — the fight made noise.
     combatSounds: z.boolean().default(true),
     // `.default(true)` as above: a blob written before this field parses into the behaviour that
@@ -241,7 +255,7 @@ export const SettingsSchema = z.preprocess(migrateLegacySettings, SettingsFields
 export const DEFAULT_SETTINGS: ISettings = {
     reducedMotion: 'system', textScale: 1, autoSaveRunLog: false,
     particles: true, battleSpeed: DEFAULT_BATTLE_SPEED, screenShake: DEFAULT_SCREEN_SHAKE,
-    hitStop: true, flashes: true, catchUp: true, battleLogs: true, combatSounds: true,
+    hitStop: true, flashes: true, catchUp: true, battleLogs: true, turnLogs: true, combatSounds: true,
     showEnemyHand: true, showAdvancedContent: false, showTips: true,
 };
 
