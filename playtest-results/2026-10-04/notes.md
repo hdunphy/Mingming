@@ -1,0 +1,20 @@
+- Sounds seem to play twice. This comes from the fenrir recoil. So maybe not a bug.
+- Fenrir OS has two tool tips
+- The VFX don't look like the mock. They look really small. Not as juicy
+- map tooltip is unstyled
+- Damage numbers seem thin
+- Can't see the status appliers
+- The town looks wrong. It was supposed to be a 2x2 grid of four buttons, hide the redundant tabs when at this view.
+- Sell cards need to show the card count and if its in the deck vs collection. Also some sort of animation or confirmation it was sold.
+- Ragnorock's edge should increase the % damage on upgrade. it just adds 10power which is not very interesting
+- First mingming UI shows as selected at battle start, but it isn't really selected
+- The HP damage preview is hidden in the overflow.
+- I think heals still use the attack sound
+- The OS need some indicator so at a glance I know which version it is. Either a icon or text like before we had v1 and v2 although it doesn't make sense anymore to have that.
+- The enemy targeting is not clear. They don't get highlighted
+- VFX sometimes lag like on a multihit with a kill. 
+- Removing barkshield still shows a large number in the preview like 4.00000001
+- Two huldra's with the barksheild OS/instinct but the second one didn't get the shield?
+- I don't think I can see the runes anywhere in the map/shop/roster/load out/gym prep screen. So I can't tell what I already have. 
+- Gym rune offer says Pick a Bonus (choice of Two, Free) but only gave me one.
+- Gym prep screen probably needs a redesign
