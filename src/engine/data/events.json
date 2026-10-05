@@ -144,7 +144,7 @@
       {
         "id": "survey",
         "label": "Survey",
-        "detail": "Reveal this biome's map.",
+        "detail": "See who waits in every fight in this biome.",
         "outcomes": [
           {
             "type": "MAP_REVEAL"

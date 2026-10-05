@@ -1304,76 +1304,6 @@ body {
   }
 }
 
-/* Firmware Terminal Overlay */
-.firmware-terminal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--page);
-  z-index: 5000;
-  display: flex;
-  flex-direction: column;
-  padding: 40px;
-  font-family: var(--font-body);
-  color: var(--hp);
-  overflow: hidden;
-}
-
-.terminal-scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to bottom,
-      rgba(18, 16, 16, 0) 50%,
-      rgba(0, 0, 0, 0.1) 50%);
-  background-size: 100% 4px;
-  z-index: 5001;
-  pointer-events: none;
-}
-
-.terminal-scrolling-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 4px;
-  font-size: 0.8rem;
-  opacity: 0.8;
-}
-
-.terminal-line {
-  white-space: nowrap;
-  animation: terminal-line-fade 0.1s steps(1) forwards;
-}
-
-@keyframes terminal-line-fade {
-  from {
-    opacity: 0;
-    transform: translateX(-5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.terminal-header {
-  font-size: 1.5rem;
-  font-weight: 900;
-  margin-bottom: 20px;
-  text-shadow: 0 0 10px var(--hp);
-}
-
-.terminal-cost-display {
-  background: rgba(0, 255, 0, 0.1);
-  border: 1px solid var(--hp);
-  padding: 10px;
-  margin-top: 20px;
-  display: flex;
-  justify-content: space-between;
-}
-
 /* Installation Wizard */
 .wizard-step {
   padding: 20px;
@@ -2128,30 +2058,32 @@ body {
   letter-spacing: 0.06em;
 }
 
+.hud-float-tag {
+  /* Ticket 190e: SUPER EFFECTIVE / RESISTED - a label under the number, in its own colour. */
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
 .hud-float-absorbed {
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 2px;
 }
 
-/* Hit flash — white/red scanline sweep over the unit card */
+/* Hit flash — ticket 190e: a plain white flash of about 90 ms over the body that took the hit. It is
+   drawn with ordinary blending (a screen blend of white over a near-white card shows nothing). */
 .hud-hit-flash {
   position: absolute;
   inset: 0;
   border-radius: 6px;
   pointer-events: none;
   z-index: 105;
-  background:
-    repeating-linear-gradient(0deg,
-      rgba(255, 255, 255, 0.12) 0px,
-      rgba(255, 255, 255, 0.12) 1px,
-      transparent 2px,
-      transparent 4px),
-    linear-gradient(120deg,
-      rgba(255, 255, 255, 0.85) 0%,
-      rgba(255, 70, 70, 0.55) 55%,
-      rgba(255, 255, 255, 0.65) 100%);
-  mix-blend-mode: screen;
+  background: radial-gradient(circle at 50% 55%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.75) 60%,
+      rgba(255, 255, 255, 0.35) 100%);
   opacity: 0;
 }
 
@@ -2789,9 +2721,8 @@ body {
    that fires twice in a turn must flash twice, and a transition would simply
    stay lit.
 
-   `data-animations="off"` kills it, the same switch the rest of 146 reads. It
-   is deliberately NOT under `vfx`: the chip flash is the cheapest attribution
-   in the game and the last thing worth losing. ── */
+   Reduced motion kills it (the media query below, or the player's own override). It
+   is the cheapest attribution in the game and the last thing worth losing. ── */
 @keyframes os-chip-flash {
   0%   { filter: none; transform: scale(1); }
   25%  { filter: brightness(2.6) drop-shadow(0 0 6px currentColor); transform: scale(1.22); }
@@ -2800,7 +2731,7 @@ body {
 [data-os-flash="on"] .hud-os-icon {
   animation: os-chip-flash 320ms ease-out;
 }
-[data-animations="off"] [data-os-flash="on"] .hud-os-icon {
+:root[data-reduced-motion="on"] [data-os-flash="on"] .hud-os-icon {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3076,13 +3007,19 @@ body {
 }
 .ehp.open { transform: none; }
 
-/* Off means off — 146a's rule for the VFX switches, applied to the slide. */
-:root[data-animations="off"] .ehp { transition: none; }
+/* Reduced motion means no slide (190a: the old animations switch is retired; this is its reduced-motion half). */
+:root[data-reduced-motion="on"] .ehp { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduced-motion="off"]) .ehp { transition: none; }
+}
 
 /* TICKET 167g: the enemies slide to meet the panel with the panel's own 200 ms, and not at all
-   with animations off. Enemies only: an ally's active-step has never animated and must not start. */
+   under reduced motion. Enemies only: an ally's active-step has never animated and must not start. */
 .stage-enemy-shift { transition: left 200ms ease; }
-:root[data-animations="off"] .stage-enemy-shift { transition: none; }
+:root[data-reduced-motion="on"] .stage-enemy-shift { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduced-motion="off"]) .stage-enemy-shift { transition: none; }
+}
 
 .ehp-tab {
   position: absolute;

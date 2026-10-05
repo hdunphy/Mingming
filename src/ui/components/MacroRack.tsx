@@ -84,10 +84,11 @@ export default function MacroRack({
                         type="button"
                         className={`macro-slot k-slant ${macro.rarity === 'Rare' ? 'rare' : ''} ${preview.ok ? '' : 'blocked'}`}
                         disabled={!preview.ok}
-                        // The tooltip carries the true number and the refusal, for the same reason
+                        // The tooltip carries the true number and the refusal (Henry, 183 review: no second line on the chip), for the same reason
                         // `MarketplaceNode` prints what a player is short of: a silently inert
                         // control is indistinguishable from a bug to whoever is holding the pad.
                         title={`${macro.name} — ${preview.line}`}
+                        aria-label={`${macro.name} — ${preview.line}`}
                         onClick={() => {
                             if (!preview.ok) return;
                             playSfx('rewardClaim');
@@ -96,7 +97,6 @@ export default function MacroRack({
                     >
                         <span className="macro-slot-index">{slot + 1}</span>
                         <span className="macro-slot-name">{macro.name}</span>
-                        <span className="macro-slot-line">{preview.line}</span>
                     </button>
                 );
             })}

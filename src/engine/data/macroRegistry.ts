@@ -314,8 +314,11 @@ export const MacroRegistry: Readonly<Record<string, IMacroDefinition>> = {
          * ("reveals the current biome's node types") without naming the thing. "Ping Sweep" is
          * chosen to sit in the same command-line register as Cache Pull and Free Exec. **Flagged as
          * an unruled naming call, not a decision.**
+         *
+         * TICKET 176d: every node's type is visible from the start now, so what a sweep reveals is
+         * the species in the biome's fights (`encounter.surveyedEncounters`).
          */
-        description: 'Reveals every node type in the biome you are standing in. Fires from the map.',
+        description: 'Shows which Mingmings wait in every fight in the biome you are standing in. Fires from the map.',
         rarity: 'Common',
         targeting: 'MAP',
         // Empty on purpose: this macro changes the RUN, not a battle. Its effect is a

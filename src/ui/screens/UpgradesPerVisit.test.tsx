@@ -24,6 +24,7 @@ import { startRun } from '../store/runSlice';
 import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
+import { withPlainShop } from '../../testing/plainShop';
 import { click, makeStore, mount, type TestStore } from '../../testing/interaction';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
@@ -41,12 +42,13 @@ function runAt(kind: 'marketplace' | 'workshop'): IRunState {
         party: [KRAKEN],
         startedAt: 1_700_000_000_000,
     });
-    const node = run.nodes.find((n) => n.kind === kind)!;
+    // The generator makes towns now; this test is about the plain stall and bay, so the first town stands in.
+    const { run: plain, node } = withPlainShop(run, kind);
     return {
-        ...run,
+        ...plain,
         scrap: 1000,
         currentNodeId: node.id,
-        nodes: run.nodes.map((n) => (n.id === node.id ? { ...n, visited: n.visited + 1 } : n)),
+        nodes: plain.nodes.map((n) => (n.id === node.id ? { ...n, visited: n.visited + 1 } : n)),
     };
 }
 

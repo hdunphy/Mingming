@@ -32,6 +32,8 @@
 
 /* --- roster strip --- */
 
+/* TICKET 176c: the roster portrait is the face of the member, so it is drawn big (about 72 px). */
+.led-roster .rs-dot { width: 72px; height: 72px; font-size: 30px; }
 .led-roster { display: flex; gap: 10px; padding: 10px 18px 0; flex: none; flex-wrap: wrap; }
 /* Every party chip is a landing site while a benched member is picked up. */
 .led-target { border-color: var(--text-faint); }

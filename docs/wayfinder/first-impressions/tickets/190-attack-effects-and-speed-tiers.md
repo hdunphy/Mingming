@@ -1,6 +1,6 @@
 # Ticket 190: The new attack effects and the five speed tiers
 
-**Type:** battle presentation and settings. Nothing under `src/engine` changes. **Status:** RULED (Henry, 2026-10-02), all decisions answered, not started. **In the playtest round 2 build** (it blocks 181; 190h stays parked). **Blocked by:** [189](189-impact-timing.md) for every row. 190a also waits for 183f, which restyles the settings screen. 190e also waits for 183b, which builds the plaques that show the HP ghost chunk.
+**Type:** battle presentation and settings. Nothing under `src/engine` changes. **Status:** DONE 2026-10-03 (190a-g built; see `## Resolution`; 190h stays parked). **In the playtest round 2 build** (it blocks 181; 190h stays parked). **Blocked by:** [189](189-impact-timing.md) for every row. 190a also waits for 183f, which restyles the settings screen. 190e also waits for 183b, which builds the plaques that show the HP ghost chunk.
 
 **Where this comes from.** This is the same research pass as 189:
 - the **Battle Juice Lab** artifact (https://claude.ai/artifact/QzDRnvRLHquCYnwNPHtm4p);
@@ -207,4 +207,29 @@ For drawing our own, Krita fits the HD art better than Aseprite.
 1. **D1, the old Effects and Animations switches: "Retire".** Both `vfx` and `animations` are removed from Settings. A save with `animations: false` migrates to `battleSpeed: instant`. Effects are covered by Particles and Flashes. Remove the `data-vfx`/`data-animations` attributes and their CSS, and keep `resolveVfxGates`' reduced-motion behaviour on the switches that remain.
 2. **D2, the fast-forward key: "Shift works".** Hold **Shift** for ×3. Add it to the keybind list (`keybinds.ts`) and the Steam Input template. Space stays End Turn.
 
+**Rulings on the build questions (Henry, 2026-10-03):**
+- **Which Shift:** **Right Shift** fast-forwards and **Left Shift** keeps ally targeting. *"If that doesn't work don't add the hotkey."*
+- **Controller:** the right-stick click sends Right Shift.
+- **Catch-up:** the enemy's cards already played this turn count as "queued".
+- **Old saves:** `animations: false` becomes `battleSpeed: instant` (D1); `vfx: false` becomes `flashes: false`.
+- **Contact cards:** the list is in the 190c commit message; all of them still dash in. Henry can exempt any card by adding it to `CONTACT_EXEMPT`.
+
 Also ruled: **190 is in the playtest round 2 build** (*"Both before playtesting"*), except 190h, which stays parked.
+
+---
+
+## Resolution
+
+Built 2026-10-03 on branch `first-impressions`, one commit per row: 190a `12fd7b6` (the five battle speeds and the settings), 190b `974a757` (the tier profiles and the attack plan), 190c `984a309` (choreography), 190d `c9ea81f` (the element attacks), 190e `0b4719e` (impacts), 190f `4d42c7d` (status landings), 190g `df0e105` (big-hit extras). One extra commit, `204d9bb`, repaired the core-loop (`App.loop`) tests that 189 left red: they now cross an enemy turn and a kill at Instant. Nothing under `src/engine` changed (`git diff --stat e354032..HEAD -- src/engine` is empty). Not pushed. 190h stays parked.
+
+**Where it differs from the plan above:**
+- **Fast and Instant** read the Snappy profile; Fast is the clock at 2x and Instant skips the show.
+- **Right Shift, not Shift:** Left Shift is ally targeting (see the rulings above). The Steam Input file has no Shift layer, so the controller's right-stick click sends `RIGHT_SHIFT`. Those key names are unverified against Steam.
+- **RESISTED cannot happen yet:** the engine's type chart lists advantages only, so no hit is ever resisted today. The tag and the half-size burst are built and tested by sending a hit by hand.
+- **The "xN" on a status landing** is read as the stacks added: 1x to 2x over 1 to 5 stacks, half for a stack added to a status that is already there. Burn tongues are capped at 4.
+- **Statuses outside the eight** (Asleep, Stunned, Energized, StableOS, DarkStance, LightStance and so on) keep the old ring and puff.
+- **Riders** (a status the card applies after its hit) land when the caster walks back.
+- **The big-hit thresholds** are shares of max HP per tier (dim from 0.6 on Showy and 0.35 on Slow; charge-up from 0.5 and 0.3). The camera punch uses the charge-up threshold, plus any kill, and it is off when the shake slider is 0.
+- **Light is drawn with normal blending**, not additive, because additive vanishes over the near-white cards. The stage dim sits under the bodies, so the fighters stay bright.
+
+**Checked:** tests written first and shown failing on the parent for every row; `tsc` and `eslint src/ui` clean; the `src/ui` and `src/App` suites green on a Linux copy (2,174 tests). `npm run gate` (vite build included) and the `sfxSamples` audio check could not run in that copy, so run `npm run gate` once on Henry's machine. **Nothing was looked at in a real browser:** the effects, the dim, the zoom and the sprite reactions are covered by logic tests only, so Henry's own check is to play a fight at each speed and look.

@@ -591,6 +591,9 @@ export interface ShiftStanceActionData extends ProgramAction {
 }
 
 export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic';
+
+/** TICKET 185e — a card's job in a deck, as the design record names it. See `ProgramData.shape`. */
+export type CardShape = 'enabler' | 'scalar' | 'consume' | 'glue' | 'converter' | 'hate';
 export const RARITIES: Rarity[] = ['Common', 'Uncommon', 'Rare', 'Epic'];
 
 export interface ProgramData {
@@ -601,6 +604,19 @@ export interface ProgramData {
   readonly target: TargetType;
   readonly category: ProgramCategory;
   readonly rarity: Rarity;
+  /**
+   * TICKET 185e — WHAT THIS CARD IS FOR, in the design record's words (`collection.json`): an
+   * `enabler` makes the currency, a `scalar` or `consume` card PAYS it out (a payoff), `glue` and
+   * `hate` and `converter` do the rest. Carried on the Early-Access base cards only; an upgraded
+   * `+` card answers for its base through `upgradeOf` (`rewards/cardCurrency.ts`).
+   *
+   * Moved into the registry the way ticket 158-r1 moved the firmware currency: the reward offer has
+   * to read it at run time, and a design file is a record, not a runtime source.
+   * `rewards/cardCurrency.test.ts` fails if the two ever disagree.
+   */
+  readonly shape?: CardShape;
+  /** TICKET 185e — the currency this card feeds or spends (`Strength`, `Burn`, `cards`, ...), or `—` for none. */
+  readonly cur?: string;
   /**
    * Energy cost. The string 'X' marks an X-COST card (ticket 22): it costs ALL of the
    * source's current Energy, minimum 1, resolved at play time by getEffectiveCardCost.

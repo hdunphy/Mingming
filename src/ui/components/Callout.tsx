@@ -5,6 +5,7 @@ import type { Tip } from '../../engine/tips';
 import { markTipSeen } from '../store/gameSlice';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { useShowTips } from '../settings/useShowTips';
+import { loadSettings, saveSettings } from '../settings/settings';
 import './Callout.css';
 
 /**
@@ -25,7 +26,8 @@ import './Callout.css';
  * - **Its text is not a `<p>`.** A toast is transient, not screen copy, so it does not count against
  *   the copy budget (`copyBudget.test.tsx`).
  * - "Skip tips" is gone. A toast does not need skipping; the **Show tips** switch in Settings (183d)
-  turns the toasts off for good, and back on.
+  turns the toasts off for good, and back on. Henry's 183 review asked for the off switch on the
+  toast too, so it carries one small "Hide tips" button: the same setting, turned off from here.
  *
  * Reduced motion is honoured by not animating at all (the entrance is a CSS transition, and the
  * class that carries it is dropped): `prefersReducedMotion` is the repo's existing gate.
@@ -78,6 +80,17 @@ const Callout: React.FC<CalloutProps> = ({ tip, placement = 'panel' }) => {
             data-testid={`callout-${shown.id}`}
         >
             <span className="callout-text">{shown.body}</span>
+            {/* TICKET 183 follow-up (Henry): the toast can switch itself off. It is the same
+                setting as Settings' "Show tips", so the two never disagree. */}
+            <button
+                type="button"
+                className="callout-hide"
+                // A press anywhere else dismisses the toast; this one must reach its own click first.
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => saveSettings({ ...loadSettings(), showTips: false })}
+            >
+                Hide tips
+            </button>
         </aside>
     );
 };

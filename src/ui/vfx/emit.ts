@@ -35,7 +35,14 @@ import type { StageAnchors } from '../hooks/useStageAnchors';
  * alternative — a third module holding four type declarations — buys nothing.
  */
 import { burstFor } from './emitters';
-import { impactFor, trailSeed, type TrailElement } from './trails';
+import type { AttackEffect } from './attacks/AttackEffect';
+import { orbSeed } from './choreo/orb';
+import { speedLineSeeds } from './choreo/speedLines';
+import { buildImpact } from './impacts/buildImpact';
+import { matchupOf } from './impacts/impactCount';
+import { activeProfile } from './tiers/activeTier';
+import { damageScale } from './tiers/tierProfiles';
+import { elementColor, trailSeed, type TrailElement } from './trails';
 
 /**
  * The whole particle vocabulary of ticket 146 — §2a names these seven and no others.
@@ -68,6 +75,8 @@ export interface EmitOpts {
 /** What a mounted `ParticleLayer` offers the module. */
 export interface ParticleSink {
     spawn(seeds: ReadonlyArray<ParticleSeed>): void;
+    /** Ticket 190d: take a live attack effect (a beam, a wall, a wave) to step and draw. */
+    addEffect?(effect: AttackEffect): void;
     /** Wake the rAF loop — the layer parks itself when nothing is alive. */
     wake(): void;
 }
@@ -99,6 +108,9 @@ export function plaqueFor(entityId: string): EmitAt | null {
 }
 
 /** The reveal lane box, and the hand fan's centre — 146c flies the played card between them. */
+/** The uniform scale the stage is placed at (1 at exactly 1280x800), or 1 with no stage. */
+export const stageScale = (): number => anchors?.scale ?? 1;
+
 export const revealAnchor = (): EmitAt | null => anchors?.reveal ?? null;
 export const handAnchor = (): EmitAt | null => anchors?.hand ?? null;
 export const discardAnchor = (): EmitAt | null => anchors?.discard ?? null;
@@ -138,40 +150,77 @@ export function emit(kind: ParticleKind, at: EmitAt, opts: EmitOpts = {}): void 
  * and the interesting arguments are `from`/`to` rather than `intensity`. Folding it into `emit`
  * would mean a `toward` that most kinds ignore and an intensity this one does.
  */
-export function emitTrail(element: TrailElement, from: EmitAt, to: EmitAt): void {
+export function emitTrail(element: TrailElement, from: EmitAt, to: EmitAt, lifeMs?: number): void {
     if (!sink) return;
-    sink.spawn([trailSeed(element, from, to)]);
+    sink.spawn([trailSeed(element, from, to, lifeMs)]);
+    sink.wake();
+}
+
+/** Spawn seeds a caller built itself (190f: the status landings). */
+export function emitSeeds(seeds: ReadonlyArray<ParticleSeed>): void {
+    if (!sink || seeds.length === 0) return;
+    sink.spawn(seeds);
+    sink.wake();
+}
+
+/** Start an element attack (190d): the layer steps it on the battle clock and draws it under the particles. */
+export function emitEffect(effect: AttackEffect): void {
+    if (!sink?.addEffect) return;
+    sink.addEffect(effect);
     sink.wake();
 }
 
 /**
- * The burst where a trail lands. §2d's impact column.
- *
- * `ring` goes out first and in the element's colour, so the moment of contact has an edge on it
- * before the element's own particles read — a burst with no ring reads as something appearing
- * rather than as something arriving.
+ * The orb of a status-only card (190c): lobbed from `from` to `to`, or rising off `from` and dropping
+ * back when `self`.
  */
-export function emitImpact(element: TrailElement, at: EmitAt, doubled = false, resisted = false): void {
+export function emitOrb(
+    from: EmitAt, to: EmitAt, color: { r: number; g: number; b: number }, lifeMs: number, self: boolean,
+): void {
     if (!sink) return;
-    const { kind, count, color, gravity } = impactFor(element);
+    sink.spawn([orbSeed(from, to, color, lifeMs, self)]);
+    sink.wake();
+}
 
-    /*
-     * §2c's effectiveness reading, which is a real gameplay tell and not decoration: *"Super-
-     * effective: the ring is doubled and takes the attacker's colour; resisted: half-size ring,
-     * grey puff, the float reads smaller."* A player who can see the matchup landing does not have
-     * to remember the type chart mid-fight.
-     */
-    const ringColor = resisted ? { r: 150, g: 155, b: 162 } : color;
-    emit('ring', at, { color: ringColor, intensity: 1 });
-    if (doubled) emit('ring', at, { color: ringColor, intensity: 1 });
+/** Speed lines behind a contact card's dash (190c): `count` streaks at `at`, flying back from `direction`. */
+export function emitSpeedLines(at: EmitAt, direction: 1 | -1, count: number, rng: () => number = Math.random): void {
+    if (!sink) return;
+    sink.spawn(speedLineSeeds(at, direction, count, rng));
+    sink.wake();
+}
 
-    // The fall is already right per kind — `burstFor` gives `drop` positive gravity and `flame`
-    // negative — so the impact does not restate it. `gravity` on the style is there for the SHED
-    // particles, where the head's own motion would otherwise swamp it.
-    void gravity;
+/** What a landing burst needs to know about the hit it dresses. */
+export interface ImpactSpec {
+    /** HP this body lost, and its max: together they size the burst (`damageScale`). */
+    readonly damage: number;
+    readonly maxHp: number;
+    readonly doubled: boolean;
+    readonly resisted: boolean;
+    readonly isKill: boolean;
+    /** +1 when the attacker stands to the left of the target, -1 to the right. */
+    readonly direction: 1 | -1;
+    readonly rng?: () => number;
+}
 
-    emit(resisted ? 'puff' : kind, at, {
-        intensity: resisted ? Math.ceil(count / 2) : (doubled ? count * 2 : count),
-        color: resisted ? { r: 150, g: 155, b: 162 } : color,
+/**
+ * The burst where an attack lands - ticket 190e (it was §2d's impact column before).
+ *
+ * Fire, Water and Nature each throw their own (`impacts/`); the count follows the damage, the matchup
+ * and the tier. A super-effective hit adds a white ring and star sparks, a resisted one a grey fizzle,
+ * a kill a white ring. The ring goes out first, so the moment of contact has an edge on it.
+ */
+export function emitImpact(element: TrailElement, at: EmitAt, spec: ImpactSpec): void {
+    if (!sink) return;
+    const seeds = buildImpact(element, {
+        at,
+        s: damageScale(spec.damage, spec.maxHp),
+        matchup: matchupOf(spec.doubled, spec.resisted),
+        isKill: spec.isKill,
+        direction: spec.direction,
+        particleScale: activeProfile().particleScale,
+        color: elementColor(element),
+        rng: spec.rng,
     });
+    sink.spawn(seeds);
+    sink.wake();
 }

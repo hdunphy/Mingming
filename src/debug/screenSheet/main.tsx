@@ -46,9 +46,22 @@ const ranch = {
     runsCompleted: 2,
 };
 
+// `?totems=1` puts a run in the store that holds three Totems and one event penalty, for the Vault tab.
+const withTotems = params.get('totems') === '1';
+const totemRun: IRunState = {
+    ...createRun({
+        seed: 'screen-sheet',
+        offer: offerGyms('offer-seed')[0],
+        party: ROSTER.map((m) => ({ ...m, blueprintsCollected: 0 })),
+        startedAt: 1_700_000_000_000,
+    }),
+    drivers: ['driver_war_footing', 'driver_first_blood', 'driver_element_fire'],
+    tempDrivers: [{ driverId: 'driver_frayed_signal', fightsLeft: 1 }],
+} as unknown as IRunState;
+
 const store = configureStore({
     reducer: { battle: battleReducer, game: gameReducer, run: runReducer, ui: uiReducer },
-    preloadedState: { game: ranch },
+    preloadedState: withTotems ? { game: ranch, run: { run: totemRun } } as unknown as undefined : { game: ranch },
     middleware: (getDefault) => getDefault({ serializableCheck: false }),
 });
 

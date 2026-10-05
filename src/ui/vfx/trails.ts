@@ -213,10 +213,10 @@ function styleFor(element: TrailElement, color: Rgb): TrailStyle {
 /**
  * The trail head itself: one `streak` particle following the element's path, shedding as it goes.
  *
- * Its life IS the travel time, so `TRAIL_MS` and the path's progress are the same clock and the
+ * Its life IS the travel time (`TRAIL_MS`, or the length 190c's plan gives it), so the life and the path's progress are the same clock and the
  * head cannot arrive early or linger past the impact it is supposed to cause.
  */
-export function trailSeed(element: TrailElement, from: EmitAt, to: EmitAt): ParticleSeed {
+export function trailSeed(element: TrailElement, from: EmitAt, to: EmitAt, lifeMs: number = TRAIL_MS): ParticleSeed {
     const a = centre(from);
     const b = centre(to);
     const color = elementColor(element);
@@ -227,9 +227,10 @@ export function trailSeed(element: TrailElement, from: EmitAt, to: EmitAt): Part
         // Ignored — `path` owns the motion — but a seed without them is a seed with holes in it,
         // and the direction is the honest value for anything that reads velocity (the `streak`
         // shape takes its length from speed).
-        vx: (b.x - a.x) / (TRAIL_MS / 1000),
-        vy: (b.y - a.y) / (TRAIL_MS / 1000),
-        life: TRAIL_MS,
+        vx: (b.x - a.x) / (lifeMs / 1000),
+        vy: (b.y - a.y) / (lifeMs / 1000),
+        // Ticket 190c: the head crosses in as long as the plan's travel (it grows with the damage).
+        life: lifeMs,
         size: 3.2,
         r: Math.min(255, color.r + 60), g: Math.min(255, color.g + 60), b: Math.min(255, color.b + 60),
         r2: color.r, g2: color.g, b2: color.b,

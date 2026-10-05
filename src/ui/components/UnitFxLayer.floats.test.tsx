@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { FxFloats } from './UnitFxLayer';
+import { FxFloats, FxTransientOverlays } from './UnitFxLayer';
 import type { CombatFloat, FloatKind, UnitFx } from '../hooks/useBattleVfx';
 
 /**
@@ -12,7 +12,7 @@ import type { CombatFloat, FloatKind, UnitFx } from '../hooks/useBattleVfx';
  */
 
 const fxOf = (floats: CombatFloat[]): UnitFx => ({
-    floats, hitKey: 0, hitIntensity: 0, healKey: 0, statusKey: 0, statusColor: '#fff', lungeKey: 0,
+    floats, hitKey: 0, hitIntensity: 0, flashKey: 0, healKey: 0, statusKey: 0, statusColor: '#fff', lungeKey: 0,
 });
 const float = (id: number, kind: FloatKind, slot: number): CombatFloat =>
     ({ id, kind, text: `f${id}`, color: '#fff', slot });
@@ -51,5 +51,25 @@ describe('167h — floating numbers stack instead of fanning out', () => {
     it('no longer takes a slotSpacing: the sideways fan is gone', () => {
         const html = renderToStaticMarkup(<FxFloats fx={fxOf([float(1, 'damage', 3)])} />);
         expect(html).not.toContain('calc(50% +');
+    });
+});
+
+describe('190e - the hit flash is white and about 90 ms, and only draws when the flash key moved', () => {
+    const flashMarkup = (over: Partial<UnitFx>): string =>
+        renderToStaticMarkup(<FxTransientOverlays fx={{ ...fxOf([]), ...over }} />);
+
+    it('draws nothing before the first flash', () => {
+        expect(flashMarkup({ hitKey: 3, flashKey: 0 })).not.toContain('hud-hit-flash');
+    });
+
+    it('draws the flash once a flash was asked for', () => {
+        expect(flashMarkup({ hitKey: 3, flashKey: 2 })).toContain('hud-hit-flash');
+    });
+});
+
+describe('190e - the matchup tag has a float of its own', () => {
+    it('renders as a hud-float-tag', () => {
+        const tags = floatTags([float(1, 'tag', 0)]);
+        expect(tags[0]).toContain('hud-float-tag');
     });
 });

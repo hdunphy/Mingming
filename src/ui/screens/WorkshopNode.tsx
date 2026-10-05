@@ -93,12 +93,15 @@ import { ElementMark } from './CardChassis';
 import { cardFace, colorFor } from './runShell';
 import { junkNote, readDeckFloor } from './deckFloor';
 import { UpgradeBench } from './UpgradeBench';
-import { UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
+import { upgradeAllowanceFor, upgradeBenchKeyFor } from '../../engine/run/marketplace';
+import { useCardPeek } from '../hooks/useCardPeek';
+import { CardPeek } from './CardPeek';
+import { upgradeHeading } from './town/townText';
 import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
 import { WORKSHOP_DUPLICATE_CLAUSE } from './partyRuleText';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
 export interface ReflashTarget {
@@ -124,6 +127,12 @@ export interface WorkshopNodeProps {
      */
     readonly initialSpeciesId?: string;
     readonly initialReflash?: ReflashTarget;
+    /**
+     * TICKET 176c: drawn as the WORKSHOP tab of a town. `TownShell` owns the frame, the header and
+     * the dock, so this draws the panels only: no top bar (the retrain view keeps a BACK) and no
+     * upgrade bench (that is its own tab).
+     */
+    readonly inTown?: boolean;
 }
 
 /** Why an assembly row is refused, in the player's words rather than the type's. */
@@ -146,6 +155,8 @@ function blockLabel(block: WorkshopBlock): string {
 
 /** A list of data ids as rows, duplicates collapsed to ×N, payoff first and tagged. */
 function EngineRows({ ids }: { ids: ReadonlyArray<string> }): ReactNode {
+    // TICKET 176c: every engine row shows the full card on hover, the way the loadout's deck rows do.
+    const { peek, at, peekHandlers } = useCardPeek();
     const counted: Array<{ dataId: string; n: number }> = [];
     for (const id of ids) {
         const seen = counted.find((entry) => entry.dataId === id);
@@ -157,7 +168,12 @@ function EngineRows({ ids }: { ids: ReadonlyArray<string> }): ReactNode {
             {counted.map(({ dataId, n }, index) => {
                 const face = cardFace(dataId);
                 return (
-                    <div key={dataId} className="rs-row static" style={{ ['--el' as string]: colorFor(face.element) }}>
+                    <div
+                        key={dataId}
+                        className="rs-row static"
+                        style={{ ['--el' as string]: colorFor(face.element) }}
+                        {...peekHandlers({ face, count: n })}
+                    >
                         <span className="rs-g">{face.cost}</span>
                         <ElementMark element={face.element} compact />
                         <span className="rs-rnm">{face.name}</span>
@@ -167,12 +183,13 @@ function EngineRows({ ids }: { ids: ReadonlyArray<string> }): ReactNode {
                     </div>
                 );
             })}
+            <CardPeek peek={peek} at={at} className="engine-peek" />
         </div>
     );
 }
 
 export default function WorkshopNode({
-    run, node, ranch, biomeName, onEditLoadout, onLeave, initialSpeciesId, initialReflash,
+    run, node, ranch, biomeName, onEditLoadout, onLeave, initialSpeciesId, initialReflash, inTown = false,
 }: WorkshopNodeProps): ReactNode {
     const dispatch = useDispatch();
     // Read-back access for the cross-slice checks below. `useSelector`'s value is the one this
@@ -302,7 +319,22 @@ export default function WorkshopNode({
         setReflash(null);
     };
 
-    const topBar = (
+    const Frame = inTown ? 'div' : 'section';
+    const topBar = inTown ? (
+        reflash ? (
+            <div className="rs-top">
+                <span className="rs-title">
+                    {`RETRAIN — ${(memberOf(reflash.memberId)
+                        ? GetMingmingData(memberOf(reflash.memberId)!.definitionId).name
+                        : reflash.memberId).toUpperCase()}`}
+                </span>
+                <span className="rs-spacer" />
+                <button type="button" className="rs-btn primary" onClick={() => { playSfx('uiClick'); setReflash(null); }}>
+                    BACK
+                </button>
+            </div>
+        ) : null
+    ) : (
         <div className="rs-top">
             <span className="rs-title">
                 {reflash
@@ -339,7 +371,7 @@ export default function WorkshopNode({
         const short = shortBy(reflashPrice);
 
         return (
-            <section className="ws rs-frame rs-fixed">
+            <Frame className={inTown ? 'ws ws-town' : 'ws rs-frame rs-fixed'}>
                 {topBar}
                 <div className="ws-body reflash">
                     <div className="rs-panel ws-cmpwrap">
@@ -352,7 +384,7 @@ export default function WorkshopNode({
                                 title={plain((member && getOSBehavior(member.activeOS)?.description) ?? undefined)}
                             >
                                 <h3>
-                                    {member ? getOSBehavior(member.activeOS)?.name ?? member.activeOS : '—'}
+                                    {member ? instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS) : '—'}
                                     <span className="ws-tagcur"> · CURRENT</span>
                                 </h3>
                                 {member && <OSGrammarRow osId={member.activeOS} partyOS={partyOS} />}
@@ -364,7 +396,7 @@ export default function WorkshopNode({
 
                             <div className="ws-oscard offer">
                                 <h3>
-                                    {getOSBehavior(targetOS)?.name ?? (targetOS || '—')}
+                                    {targetOS ? instinctName(getOSBehavior(targetOS)?.name ?? targetOS) : '—'}
                                     <span className="ws-tagnew"> · AFTER RETRAIN</span>
                                 </h3>
                                 <p className="ws-osdesc">
@@ -391,7 +423,7 @@ export default function WorkshopNode({
                                         className={`rs-f ${id === targetOS ? 'on' : ''}`}
                                         onClick={() => setReflash({ ...reflash, targetOS: id })}
                                     >
-                                        {getOSBehavior(id)?.name ?? id}
+                                        {instinctName(getOSBehavior(id)?.name ?? id)}
                                     </button>
                                 ))}
                             </div>
@@ -417,14 +449,14 @@ export default function WorkshopNode({
                         </div>
                     </div>
                 </div>
-            </section>
+            </Frame>
         );
     }
 
     // --- the bay ---
 
     return (
-        <section className="ws rs-frame rs-fixed">
+        <Frame className={inTown ? 'ws ws-town' : 'ws rs-frame rs-fixed'}>
             {topBar}
             <div className="ws-body">
                 <div className="rs-panel">
@@ -546,7 +578,7 @@ export default function WorkshopNode({
                                                 onClick={() => { setOsId(id); playSfx('uiClick'); }}
                                             >
                                                 <span className="ws-oshead">
-                                                    <span className="rs-rnm">{os?.name ?? id}</span>
+                                                    <span className="rs-rnm">{instinctName(os?.name ?? id)}</span>
                                                     {id === chosenOS && <span className="rs-t">chosen</span>}
                                                 </span>
                                                 <span className="ws-osdesc">
@@ -653,7 +685,7 @@ export default function WorkshopNode({
                                         <span className="ws-bpct">
                                             {swappingOut
                                                 ? 'bench this one ⇄'
-                                                : `${getOSBehavior(member.activeOS)?.name ?? member.activeOS} · ${reflashBlockFor(member, ranch) === null ? 'retrain' : blockLabel('no-blueprint')}`}
+                                                : `${instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)} · ${reflashBlockFor(member, ranch) === null ? 'retrain' : blockLabel('no-blueprint')}`}
                                         </span>
                                     </span>
                                 </button>
@@ -698,14 +730,16 @@ export default function WorkshopNode({
                       * screen is about bodies — which is why it sits at the foot of the bay rather
                       * than competing with the assembly stage.
                       */}
-                    <UpgradeBench
-                        run={run}
-                        benchKey={`${node.id}:${node.visited}`}
-                        allowance={UPGRADES_PER_VISIT}
-                        heading="UPGRADE — UP TO TWO CARDS IN YOUR DECK"
-                    />
+                    {!inTown && (
+                        <UpgradeBench
+                            run={run}
+                            benchKey={upgradeBenchKeyFor(node)}
+                            allowance={upgradeAllowanceFor(node)}
+                            heading={upgradeHeading(upgradeAllowanceFor(node))}
+                        />
+                    )}
                 </div>
             </div>
-        </section>
+        </Frame>
     );
 }

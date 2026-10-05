@@ -21,7 +21,9 @@
 import { STATUS_COLORS } from '../../engine/data/statusGlossary';
 import type { StatusType } from '../../engine/types';
 import { JS_COLOR } from '../theme/jsColors';
-import { anchorFor, emit, plaqueFor, type EmitAt } from './emit';
+import { anchorFor, emit, emitSeeds, plaqueFor, type EmitAt } from './emit';
+import { landingFor } from './landings/landingFor';
+import { emitSpriteReaction } from './landings/reactionSignals';
 
 interface Rgb { r: number; g: number; b: number }
 
@@ -45,9 +47,22 @@ const GREY: Rgb = { r: 150, g: 155, b: 162 };
  * ties the thing that happened to the body it happened to AND to the row where the player will read
  * it for the next five turns.
  */
-export function emitStatusApplied(status: StatusType, targetId: string, stacksAdded = false): void {
+export function emitStatusApplied(status: StatusType, targetId: string, stacksAdded = false, stacks = 1): void {
     const at = anchorFor(targetId);
     if (!at) return;
+
+    /*
+     * TICKET 190f: eight statuses have a landing of their own (`landings/`), grown by the stacks that
+     * landed (the x N of the float). The rest - Asleep, Stunned, Energized, StableOS, the two Stances -
+     * keep the ring and the puff below.
+     */
+    const landing = landingFor(status);
+    if (landing) {
+        const built = landing({ at, plaque: plaqueFor(targetId), stacks, stacksAdded });
+        emitSeeds(built.seeds);
+        if (built.reaction) emitSpriteReaction({ targetId, reaction: built.reaction });
+        return;
+    }
     const color = statusColor(status);
 
     /*

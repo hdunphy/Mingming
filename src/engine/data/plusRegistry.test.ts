@@ -53,8 +53,12 @@ describe('163a — the table is the registry', () => {
          * and rules it, and what ships has to be that. A generator that rounded 65 to 60 on the
          * way in would pass every other test in this file.
          */
+        // Ticket 192 renamed the Feedback token to Tattle in the game. The design record (upgrades.json) is
+        // regenerated on Henry's machine and still says "Feedback token", so that one word is the only
+        // difference this test lets through.
+        const ruled = (text: string): string => text.replace('Tattle token', 'Feedback token');
         const drift = TABLE
-            .filter((row) => ProgramRegistry[`${row.id}+`]?.description !== row.plus)
+            .filter((row) => ruled(ProgramRegistry[`${row.id}+`]?.description ?? '') !== row.plus)
             .map((row) => `${row.id}+: registry "${ProgramRegistry[`${row.id}+`]?.description}" vs table "${row.plus}"`);
         expect(drift).toEqual([]);
     });

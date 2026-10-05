@@ -1,6 +1,6 @@
 # Ticket 189: Hits land when they land (the battle clock and impact timing)
 
-**Type:** battle presentation (UI timing only). Nothing under `src/engine` changes, so no balance number, grid or walker read moves. **Status:** RULED (Henry, 2026-10-02), all decisions answered, not started. **In the playtest round 2 build** (it blocks 181). **Blocked by:** 189a and 189b by nothing (they touch no file 183 touches); 189c–e by **183b** (D1 answered: *"After"*).
+**Type:** battle presentation (UI timing only). Nothing under `src/engine` changes, so no balance number, grid or walker read moves. **Status:** **DONE 2026-10-03** (189a-e built, see `## Resolution`); ruled by Henry 2026-10-02. **In the playtest round 2 build** (it blocks 181). **Blocked by:** 189a and 189b by nothing (they touch no file 183 touches); 189c–e by **183b** (D1 answered: *"After"*).
 
 **Where this comes from.** Henry, 2026-10-02: *"I'm not happy with the current VFX and game juice."* That started a research pass and a playable prototype:
 - the **Battle Juice Lab** artifact (https://claude.ai/artifact/QzDRnvRLHquCYnwNPHtm4p);
@@ -207,3 +207,20 @@ Recoil, toll and DoT ticks keep their own sounds and floats, as their own queued
 
 1. **D1, order against ticket 183: "After".** 189c–e are built after 183b, so the new plaque reads the displayed board from the start. 189a and 189b share no files with 183 and may start any time.
 2. **D2, playtest round 2: "Both before playtesting".** 189 and 190 are in the round-2 build and block ticket 181. 190h stays parked.
+
+## Resolution
+
+Built 2026-10-03 on branch `first-impressions`, one commit per row: 189a `c7b9732` (the battle clock), 189b `3ecee26` (the presenter queue), 189c `412a991` (the displayed board), 189d `43986c7` (impact), 189e `b9090cf` (pacing). Nothing under `src/engine` changed (`git diff --stat 936ae5f..HEAD -- src/engine` is empty). Not pushed.
+
+**Where it differs from the plan above:**
+- The presenter schedules with `clock.after` (a synchronous callback on game time) rather than awaiting promises, so a beat that starts mid-frame lands on the right millisecond.
+- The card's flight is not bridged to the clock's speed control; `PlayedCardReveal` keeps framer-motion's own timing (190 owns the speed tiers).
+- The heal float and sound moved to the impact as well as the damage ones, and `hitIntensity` on a unit's fx is now the hit's severity.
+- The caster's lunge and the cast sound now fire at launch (after the hover), not when the card arrives.
+- `TURN_START` no longer clears the played-card reveal; a card leaves when its sequence ends. The first action of an enemy turn keeps the 1.2 s opening pause.
+- With the cast sequence off (vfx off, reduced motion) the trails and impacts land at once and the board moves with them, but the card still comes in, hovers and leaves, so the enemy's turn is still readable.
+- The camera shake moves `.stage-area` with the CSS `translate`/`rotate` properties, so it composes with the fade-in. The shake-strength slider is 190a.
+- Enemy turns are slower on purpose: each enemy card hovers 1 s. Tiers that shorten this are 190.
+
+**Checked:** tests written first and shown failing on the parent for every row; `tsc` and `eslint src/ui` clean; the `src/ui` and `src/debug/stageSheet` suites green on a Linux copy of the tree. `npm run gate` (vite build included) and the `sfxSamples` audio-file check could not run in that copy, so run `npm run gate` once on Henry's machine. Henry's own check, "play a fight and the hits land where they are drawn", is still his to do.
+

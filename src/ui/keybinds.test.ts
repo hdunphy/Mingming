@@ -20,6 +20,8 @@ import {
     CYCLE_KEY,
     END_TURN_KEY,
     ENEMY_KEYS,
+    FAST_FORWARD_CODE,
+    ALLY_SHIFT_CODE,
     KEYBINDS,
     MACRO_KEYS,
     keybindLegend,
@@ -79,5 +81,29 @@ describe('keybindLegend', () => {
             { id: 'y', keys: 'F2', action: 'Do another' },
         ]);
         expect(legend).toBe('F1 DO A THING · F2 DO ANOTHER');
+    });
+});
+
+describe('190a — fast-forward and ally targeting use the two different Shift keys', () => {
+    it('Right Shift fast-forwards and Left Shift targets allies', () => {
+        expect(FAST_FORWARD_CODE).toBe('ShiftRight');
+        expect(ALLY_SHIFT_CODE).toBe('ShiftLeft');
+    });
+
+    it('lists fast-forward as a held key in the table, so the legend and the settings screen show it', () => {
+        const row = KEYBINDS.find((bind) => bind.id === 'fastforward');
+        expect(row).toBeDefined();
+        expect(row?.keys).toContain('⇧');
+        expect(row?.keys.toLowerCase()).toContain('right');
+        expect(keybindLegend()).toContain('FAST-FORWARD');
+    });
+
+    it('says in the ally row that it is the LEFT Shift', () => {
+        const ally = KEYBINDS.find((bind) => bind.id === 'ally');
+        expect(ally?.keys.toLowerCase()).toContain('left');
+    });
+
+    it('keeps Space as End Turn', () => {
+        expect(END_TURN_KEY).toBe(' ');
     });
 });

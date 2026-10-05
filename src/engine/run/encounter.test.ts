@@ -97,7 +97,7 @@ function node(over: Partial<IRegionNode> = {}): IRegionNode {
         kind: 'wild',
         biomeIndex: 0,
         layer: 2,
-        pocket: false,
+        detour: false,
         edges: [],
         visited: 1,
         ...over,

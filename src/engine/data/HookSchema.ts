@@ -8,6 +8,9 @@ const HookConditionSchema = z.object({
     actionType: z.string().optional(),
     programElement: z.string().optional(),
     isAttack: z.boolean().optional(),
+    // Ticket 185b. zod strips undeclared keys, so without this line `hpLost` would be dropped from
+    // the hook data and skoll_v1 would fire on every enemy action again, silently.
+    hpLost: z.boolean().optional(),
     isToken: z.boolean().optional(),
     statusApplied: z.string().optional(),
     statusAppliedIn: z.array(z.string()).optional(),

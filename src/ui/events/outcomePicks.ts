@@ -6,7 +6,12 @@
  */
 
 /** A card pick: which card, and whether it goes to the deck or the run collection. */
-export interface CardPickResult { readonly cardId: string; readonly toCollection: boolean }
+export interface CardPickResult {
+    readonly cardId: string;
+    readonly toCollection: boolean;
+    /** Ticket 185e: the cards the pick SHOWED, remembered so the next two offers leave them out. */
+    readonly offered?: ReadonlyArray<string>;
+}
 
 /** A blueprint pick (Wild Tracks): the species, banked to the ranch at once. */
 export interface BlueprintPickResult { readonly speciesId: string }

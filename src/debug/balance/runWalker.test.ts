@@ -113,15 +113,17 @@ describe('157 — the route policy (§3: shortest path, and the tie-break is the
     it('only ever steps to a node on a SHORTEST path to the gym', () => {
         const run = aRun();
         const gymNodeId = run.nodes.find((n) => n.kind === 'gym')!.id;
-        const byId = new Map(run.nodes.map((n) => [n.id, n]));
 
-        // Distances by BFS, computed here independently of the implementation.
+        // Distances by BFS over the REVERSED links (176b: roads are one-way, so `edges` point away
+        // from the gym), computed here independently of the implementation.
+        const before = new Map<string, string[]>();
+        for (const n of run.nodes) for (const edge of n.edges) before.set(edge, [...(before.get(edge) ?? []), n.id]);
         const dist = new Map<string, number>([[gymNodeId, 0]]);
         let frontier = [gymNodeId];
         while (frontier.length > 0) {
             const next: string[] = [];
             for (const id of frontier) {
-                for (const edge of byId.get(id)?.edges ?? []) {
+                for (const edge of before.get(id) ?? []) {
                     if (dist.has(edge)) continue;
                     dist.set(edge, (dist.get(id) ?? 0) + 1);
                     next.push(edge);

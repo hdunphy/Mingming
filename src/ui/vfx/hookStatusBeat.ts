@@ -19,6 +19,7 @@
 import type { StatusSource } from '../../engine/events';
 import type { StatusType } from '../../engine/types';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
+import { instinctName } from '../labels/labels';
 import { GetProgramData } from '../../engine/data/programRegistry';
 
 /**
@@ -39,7 +40,7 @@ export function isHookStatus(source: StatusSource | undefined): source is Status
 
 /** The name the float carries: the OS's name (EMBER_FUSE), or the daemon card's. */
 export function hookBeatLabel(osId: string | undefined, daemonId: string | undefined): string | undefined {
-    if (osId) return getOSBehavior(osId)?.name;
+    if (osId) { const name = getOSBehavior(osId)?.name; return name === undefined ? undefined : instinctName(name); }
     if (daemonId) return GetProgramData(daemonId)?.name;
     return undefined;
 }

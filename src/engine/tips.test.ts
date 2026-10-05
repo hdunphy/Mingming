@@ -23,6 +23,7 @@ import { GetMingmingData } from './data/mingmingRegistry';
 import { initializeBattleEntity } from './types';
 import type { IBattleEntity, IBattleState, IMingmingState, ProgramEntity } from './types';
 import type { IRunState } from './runTypes';
+import { isWorkshopNode } from './run/workshop';
 
 // --- Fixtures -----------------------------------------------------------------------------------
 
@@ -197,7 +198,7 @@ describe('nextMapTip', () => {
         // Standing on the entry node, whose neighbours are layer 1. Whether one of them is a
         // workshop is a property of the seed, so the test asserts the PREDICATE both ways by moving
         // the run rather than hoping the seed obliges.
-        const workshop = r.nodes.find((n) => n.kind === 'workshop');
+        const workshop = r.nodes.find((n) => isWorkshopNode(n.kind));
         expect(workshop).toBeDefined();
         const neighbour = r.nodes.find((n) => n.edges.includes(workshop!.id))!;
 

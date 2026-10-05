@@ -60,6 +60,26 @@ export function surpriseGroups(runs: ReadonlyArray<RunFact>): SurpriseGroup[] {
     return [...groups.values()].sort((a, b) => b.count - a.count || (a.card < b.card ? -1 : 1));
 }
 
+export interface ExplainedTally {
+    readonly total: number;
+    /** How many explained differences each firmware, Aura or Driver accounts for. */
+    readonly by: ReadonlyMap<string, number>;
+}
+
+/** The differences the game's own log explained (193c), which are not surprises and are only counted. */
+export function explainedTally(runs: ReadonlyArray<RunFact>): ExplainedTally {
+    const by = new Map<string, number>();
+    let total = 0;
+    for (const run of runs) {
+        for (const f of run.findings) {
+            if (f.kind !== 'explained') continue;
+            total += f.differences.length;
+            for (const name of f.by) by.set(name, (by.get(name) ?? 0) + 1);
+        }
+    }
+    return { total, by };
+}
+
 export interface CardTally {
     readonly card: string;
     readonly offered: number;

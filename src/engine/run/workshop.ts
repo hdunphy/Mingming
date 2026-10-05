@@ -144,7 +144,7 @@ export const RECRUITS_PER_RUN = PARTY_SIZE - 1;
  *   reached by a *solo* party, and a solo party's wilds field one body and pay **10** flat. 25 is
  *   therefore **three won fights**; the 75 this replaces would have been **eight**, and a node that
  *   costs eight fights on first sight is a node the player walks past. The guaranteed blueprint is
- *   at the biome-1 pocket alpha (`BLUEPRINT_DROP_RATE.alpha = 1.0`), which is a single body and so
+ *   at the biome-1 detour alpha (`BLUEPRINT_DROP_RATE.alpha = 1.0`), which is a single body and so
  *   pays 10 as well — so the alpha plus two wilds buys both halves of the price. Re-entry pays full
  *   rewards (ticket 07: *"markets and workshops can be revisited at the price of re-fighting the
  *   wilds on the way"*), so that errand is always available.
@@ -234,7 +234,8 @@ export const WORKSHOP_REFLASH_SCRAP = 15;
 
 /** Which node kinds this module serves. One per biome, by ticket 07. */
 export function isWorkshopNode(kind: NodeKind): boolean {
-    return kind === 'workshop';
+    // Ticket 176: a town is a market and a workshop in one node. 'workshop' stays for old code paths and tests.
+    return kind === 'workshop' || kind === 'town';
 }
 
 /**

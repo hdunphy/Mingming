@@ -1,6 +1,6 @@
 # Ticket 183: Art direction and UI kit
 
-**Type:** design, then UI. **Status:** RULED (Henry, 2026-10-02): direction **B, "Slant"**, built on the existing battle geometry, and all seven decisions answered (D1–D7 at the bottom). **Rows 183a–183e are buildable now, in order.** 183f and 183h wait on ticket 182 landing; 183g waits on 183a.  **Ticket 176 (map and town redesign) stays blocked until 183a–183c ship; then 176c and 176e are drawn in this kit** (see "What this does to ticket 176").
+**Type:** design, then UI. **Status:** **DONE 2026-10-03** (Henry's review answers built and the Norse Instinct names applied as 183i; see `## Resolution`). Direction **B, "Slant"**; rows 183a–183i built. **183a–183c have shipped, so ticket 176's block on this ticket is met** (Henry says when 176 starts); 176c and 176e are drawn in this kit (see "What this does to ticket 176").
 
 **Henry (2026-10-02), in his words:**
 
@@ -245,10 +245,9 @@ The console's pieces are small components under `src/ui/components/console/` (`P
 
 ### 183e built (2026-10-02)
 
-`rowY(index, partySize)` in `src/ui/components/stageGeometry.ts` is `62 + (3 - partySize) x 85 + index x 170`; `spriteRect` and `plaqueRect` take the same trailing `partySize` (default 3, so every old caller is unchanged). `useStageAnchors` passes `battleRowCount`, the larger side's size, so both sides share the same rows. Tests in `stageGeometry.test.ts` and `BattleStage.test.tsx`: 3v3 is pixel-identical, 1v1 is y=232, 2v2 is 147/317, and a death moves no row (the count is the size at the start of the fight, never the living count). Screenshots: `research/183-screens/183e/`, taken with the stage sheet's new `?party=N&foes=N`.
+`rowY(index, partySize)` in `src/ui/components/stageGeometry.ts` is `62 + (3 - partySize) x 85 + index x 170`; `spriteRect` and `plaqueRect` take the same trailing `partySize` (default 3, so every old caller is unchanged). `useStageAnchors` passes each side its own count (`sideRowCount`), so each side centres by itself. Tests in `stageGeometry.test.ts` and `BattleStage.test.tsx`: 3v3 is pixel-identical, 1v1 is y=232, 2v2 is 147/317, and a death moves no row (the count is the size at the start of the fight, never the living count). Screenshots: `research/183-screens/183e/`, taken with the stage sheet's new `?party=N&foes=N`.
 
-- A lopsided fight (2 against 3) keeps three rows for both sides; the smaller side sits in the top rows rather than centring, so each row is a face-off. If you would rather each side centre on its own, say so: it is a change to what `battleRowCount` returns.
-
+- A- A lopsided fight (2 against 3) centres each side on its own count: the two allies at y=147 and y=317, the three foes at 62, 232 and 402 (Henry's ruling, 183 review).
 ## 183f: The other screens
 
 After 182's text cut lands. `RanchScreen`, `RunStart`, `SettingsScreen`, `RunSummary`, the starter picker: `SlantPanel` tabs and buttons, the kit's type, the three starters as cards built from `CardFace` with the monster's three stats where the rules text goes (172's ruling). No new layout; this is paint. Screenshots per screen.
@@ -313,6 +312,68 @@ Only what a player reads changed. Ids, save schemas, registries, test ids, run-l
 - Tests that pinned old words in expected text were updated (31 test files; only the words in the expected text changed). One test file changed in kind: `App.starterPicker.test.tsx` is rewritten for the real-button starter of 183f, so its Enter and Space key tests became "it is a real button" checks, because jsdom does not turn a key press on a button into a click; the click path is still covered.
 - Two sweeps keep it that way (`src/ui/labels/`): `sourceSweep.test.ts` reads every string a component can print and fails on an old word; `dataSweep.test.tsx` runs `plain()` over every card, draught, rune, Totem, event, modifier, tier, Instinct and Codex string and renders the big screens (menu, Ranch tabs, Settings, summary) and fails on a leftover.
 - Not renamed: Instinct proper names with `_OS` / `_KERNEL`, the dev-only panels, and the engine's own log lines.
+
+### 183 follow-up 2 built (2026-10-02)
+
+Henry's answers to the 183 report, built.
+
+- **Tip toast has a "Hide tips" button** (`Callout.tsx`). It sets the same `showTips` switch Settings has, so the next tip does not appear and Settings shows it Off. A press on the button does not count as the "press anywhere to dismiss" gesture, so the click lands.
+- **Each side centres on its own count** (`sideRowCount` in `stageGeometry.ts`, used by `useStageAnchors`). 2 against 3: the two allies sit at y=147 and y=317, the three foes at 62, 232 and 402. 3v3, 2v2 and 1v1 do not move. Screenshots retaken in `research/183-screens/183e/`; this supersedes the 183e note that a lopsided fight keeps three rows.
+- **Instinct names without OS and capitals** (`instinctName()` in `labels.ts`): `TIDAL_CRUSH_OS` reads "Tidal Crush", `ABYSSAL_INK_SYS` "Abyssal Ink". The machine words (`OS`, `SYS`, `KERNEL`, `FIRMWARE`) are dropped and `DAEMON` reads "Aura", so `UNBOUND_KERNEL` is "Unbound", `GENESIS_FIRMWARE` "Genesis", `HOOFBEAT_DAEMON` "Hoofbeat Aura", and `GOSSIP_NODE` stays "Gossip Node". This supersedes the 183h line that said proper names stay. Ids, saves and the registry keep the old names. Every place that prints an Instinct's name asks `instinctName()`, and `plain()` converts a name written inside a sentence (the battle log, the "already on the field" lines, the top bar). The combat log and top bar now go through `plain()` too, which they did not before. A test pins that every Instinct has its own shown name, none with an underscore or in capitals, and the data sweep fails a rendered screen that still prints one.
+- **Instinct terminal** repainted (`FirmwareTerminal.tsx`, new `FirmwareTerminal.css`): the green terminal with fake system logs is a kit plate. Pick a Mingming on the left, the two Instincts as plates (the open one yellow), the price and a Retrain button. The flow and the price (one trace of that species) are unchanged. The old `.terminal-*` rules are gone from `index.css`.
+- **Codex** repainted: tabs are kit buttons, progress bars are slanted, the cells are slanted chips, the Instinct and Status lists are plates in columns. Its notes are one line each.
+- **Vault** repainted: roomier plates, a plate (not a dashed box) for the empty state, one-line copy.
+- **Settings** paragraphs cut: every note is a line (the longest is about 120 characters). "Follow system uses your instinct setting" was a bad word swap from 183h (it meant the operating system); it now says "your computer's setting". New `longTabs.test.tsx` fails Settings, the Vault or any Codex page that grows a paragraph over 140 characters.
+- The kit's quiet button keeps its yellow when the pointer is on the chosen tab (`.k-button.is-quiet.is-on:hover`).
+- Screenshots: `research/183-screens/183f2/` (`terminal`, `codex`, `vault`, `settings`; both sizes). The Vault shots use the screen sheet's new `?totems=1`.
+- Left as they are, and flagged in the report: the status named "StableOS" (a game status, not an Instinct) still prints "OS"; Instincts that lost their machine word ("Unbound", "Genesis") now read as one word.
+
+### 183 close-out built (2026-10-02)
+
+Henry's answers to the last four decisions, built.
+
+- **Draught chips** keep one line: the name. The "what it will do, or why it cannot be used" line moved into the chip's tooltip (and its screen-reader label), which already carried it (`MacroRack.tsx`).
+- **"StableOS" is now "Alert"** (the status that makes a unit immune to Stunned and Asleep, so it cannot be locked down). The status glossary says Alert, and `plain()` turns the old word into Alert in the combat log. The status's type id is still `StableOS`, so no save or balance run moves.
+- **The roster button and the terminal's title say "Retrain"** (they were "Instinct terminal"). It opens the retrain screen, not the party.
+- **A Windows-only build error is fixed** (`2213aae`): on a case-insensitive file system `./StarterStats` resolved to `starterStats.ts` instead of `StarterStats.tsx`. The logic file is now `starterStatValues.ts`.
+- **The Instinct names to Norse-ify** are listed with their descriptions in `research/183-instinct-names.md`, with a proposed name for each of the 33 (the Control's "Unmarked" is the 33rd). Henry said yes to all of them on 2026-10-03; they were built as 183i, below.
+
+### 183i built (2026-10-03)
+
+Henry (2026-10-03): *"Instinct renames are good, accept all."* All 33 species Instincts now read their Norse name (`research/183-instinct-names.md`, the Proposed column): for example Cinder Wall is Muspel Wall, Ember Fuse is Sunscorch, Updraft is Stormrise, Corrupted Gold is Andvari's Curse. Four names were already fine and are unchanged (Unbound, Abyssal Ink, Tidal Crush, Treachery).
+
+- **One table, one lookup:** `src/ui/labels/instinctNames.ts` maps each registry name (`CINDER_WALL_OS`) to the name shown; `instinctName()` in `labels.ts` asks it first and falls back to the old re-casing for Runes, Auras and the rest. `plain()` already sends a name written inside a sentence through `instinctName()`, so the combat log, the rules text and the top bar follow without a change.
+- **Nothing else moved:** ids, saves, the registry, sound cue ids and the walker's output keep the old names, and nothing under `src/engine` changed.
+- **Tests:** `instinctNames.test.ts` pins all 33 pairs by hand (it fails on the parent: 2 of 6). Three older tests that had an old name in their expected text now say the new one (`labels.test.ts`, `hookStatusBeat.test.ts`, `useBattleVfx.statusBurst.test.tsx`).
+- **Not renamed (not Instincts):** the Auras (Recursion, Defensive, Hoofbeat, Echo Chamber) and the Runes (Short Circuit, Reactive Plating, Overclock Core, Drip Feed, Scrubber) keep their current names. Henry can ask for the same Norse pass on them later.
+
+## Resolution
+
+Closed 2026-10-03. Built 2026-10-02 to 2026-10-03 on branch `first-impressions`:
+
+| Row | What | Commit |
+|---|---|---|
+| 183a | the Slant kit: tokens v2, Barlow bundled, seven components, two guards | `fdc34b9` |
+| 183a sweep | every hex colour in screens and components moved onto tokens; the ratchet is a flat ban | `f61dc6e` |
+| 183b | the battle stage: backdrop bands, platforms, plaques, top band, enemy-hand backs, target words, 14 status icons | `54d0ffa` |
+| 183c | the card: one `CardFace` for the hand, shop, collection, rewards, event pick and the upgrade pair | `6f0ab1b` |
+| 183b follow-up, 183d, 183e | the stage after Henry's review, the console and toasts, rows centred by party size | `99c0cc5` |
+| 183f, 183g | the other screens in the kit; the map and town pieces for 176 | `f357788` |
+| 183h | the naming pass: Instinct, Retrain, Trace, Summon, Den, Aura, Draught, Rune, Totem, Amber, Card | `5ff9e41` |
+| follow-up 2 | Hide tips, per-side centring, Instinct names in Title Case, terminal / Codex / Vault / Settings repaint | `e5f7f48` |
+| Windows build fix | `starterStats.ts` renamed `starterStatValues.ts` | `2213aae` |
+| close-out | Draught chips lose the second line, StableOS reads Alert, Retrain button | `936ae5f` |
+| 183i | the 33 Norse Instinct names | `22bdff8` |
+
+**Where it differs from the plan above:**
+- An Instinct's name drops its machine word and capitals (`TIDAL_CRUSH_OS` reads "Tidal Crush"); this replaced 183h's first line that proper names stay (follow-up 2). 183i then replaced the derived names with the Norse ones.
+- Each side of a battle centres on its own count, so a 2-against-3 fight no longer keeps three rows.
+- "StableOS" reads "Alert" and the roster button and screen read "Retrain" (close-out).
+- The type mark is deleted and Bark Shield is a bar over the HP bar, both as ruled.
+
+**Checked:** the full gate was green at the close-out commit `936ae5f` (383 files, 4,643 tests, build). For 183i: `tsc`, `eslint src/ui` and the whole `src/ui` and `src/App` suites are green on a Linux copy, and the new test fails on the parent. `npm run gate` has not been re-run since 183i (or since 189 and 190), so run it once on Henry's machine before the push. The 183 rows changed only two engine files, `statusGlossary.ts` and `tips.ts`, and only the words in them.
+
+**What this unblocks:** ticket 176 (its block on 183a–c is met; Henry decides when it starts) and 181c–e. Art commissions are tracked below and are not part of this ticket's done.
 
 ## Art commissions
 

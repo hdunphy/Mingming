@@ -42,7 +42,7 @@ import { SCALING_LABEL } from './scalingLabels';
 import type { IBattleEntity, IBattleState } from '../../engine/types';
 import { CounterPip } from './CounterPip';
 import { readDaemonCounter, readFirmwareCounter } from '../counters/readCounter';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 
 /*
  * `SCALING_LABEL` and `formatMultiplier` are NOT redefined here. They already exist — the labels in
@@ -119,7 +119,7 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
                     })() : {}}
                 >
                     <div className="tooltip-header">
-                        <span className="tooltip-os-name">{behavior?.name}</span>
+                        <span className="tooltip-os-name">{behavior ? instinctName(behavior.name) : ''}</span>
                         <span className="tooltip-os-version">{entity.activeOS.includes('_v2') ? 'v2.0' : 'v1.0'}</span>
                     </div>
                     <div className="tooltip-divider" />

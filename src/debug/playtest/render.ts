@@ -8,6 +8,8 @@
  */
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { countedDeckSize } from '../../engine/run/junk';
+import { forecastFor } from './forecastBlock';
+import { hpNote } from './hpNote';
 import { currentScreen } from './screen';
 import { firmwareName, macroName, memberName } from './gameText';
 import type { Screen, World } from './types';
@@ -32,7 +34,7 @@ export function statusLine(world: World): string {
         `${biome ? `${biome.name} (${biome.elements.join(' + ')})` : 'no biome'}`,
         `gym: ${gym?.name ?? run.gymId}`,
         `scrap ${run.scrap}`,
-        `party: ${party.join('; ')}${benched > 0 ? `; ${benched} on the bench` : ''}`,
+        `party: ${party.join('; ')}${benched > 0 ? `; ${benched} on the bench` : ''}${party.some((p) => p.endsWith('HP full')) && hpNote(run) ? ` ${hpNote(run)}` : ''}`,
         `deck ${countedDeckSize(run.deck)}${stored > 0 ? ` (+${stored} in the collection)` : ''}`,
         `macros: ${run.macros.map((m) => macroName(m)).join(', ')}`,
         `tier ${run.tier}`,
@@ -41,6 +43,9 @@ export function statusLine(world: World): string {
 
 export function renderScreen(world: World, screen: Screen = currentScreen(world)): string {
     const lines: string[] = [`[${statusLine(world)}]`];
+    // 193j: the run forecast, on the first screen of a session only.
+    const forecast = forecastFor(world);
+    if (forecast) lines.push(forecast);
     if (world.view.news.length > 0) lines.push(...world.view.news);
     lines.push(...screen.body);
     if (screen.moves.length > 0) {

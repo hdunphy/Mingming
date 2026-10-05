@@ -162,8 +162,13 @@ describe('141e — skoll_v1 keeps her 1-stack trigger; the PAYOFF card is the kn
      * ticket predicted it might, because an enemy attacking two or three times a turn is +4-6
      * uncapped Strength a turn. e2 ships.
      *
-     * The ticket guessed 25 power a stack for e2 and that undershot at 41.9. 30 measures 49.1,
-     * which is inside the gate and as close to 50 as this knob gets in fives.
+     * The ticket guessed 25 power a stack for e2 and that undershot at 41.9. 30 measured 49.1,
+     * which was inside the gate and as close to 50 as this knob gets in fives.
+     *
+     * TICKET 185c halved it (2026-10-02, Henry: *"Halve it now. We don't care about 1v1 numbers
+     * except at the start"*) after a Rootfall run turned 8 Strength into 1,514 damage on turn one.
+     * The standing ruling is that the 1v1 grid no longer gates card changes, so this card is NOT
+     * re-measured against the 45-60 gate; only the opening of a run is read.
      */
     it('an enemy attack on an ally gives her 1 Strengthened — the trigger is unchanged', () => {
         const state = play({
@@ -181,12 +186,15 @@ describe('141e — skoll_v1 keeps her 1-stack trigger; the PAYOFF card is the kn
         expect(stacks(state.playerParty[0], 'Strengthened')).toBe(0);
     });
 
-    it('sun_devourer pays 30 a stack — the measured number, not the ticket\'s guess of 25', () => {
+    it('sun_devourer pays 15 a stack, and the + version 20 (ticket 185c, halved from 30 and 40)', () => {
         const card = ProgramRegistry.sun_devourer;
         const hit = card.actions.find(a => a.type === 'ATTACK');
-        expect(hit?.power).toBe(30);
+        expect(hit?.power).toBe(15);
         expect(hit?.scaling).toBe('STATUS_CONSUMED');
-        expect(card.description).toContain('30 power per stack consumed');
+        expect(card.description).toContain('15 power per stack consumed');
+        const plusHit = ProgramRegistry['sun_devourer+'].actions.find(a => a.type === 'ATTACK');
+        expect(plusHit?.power).toBe(20);
+        expect(ProgramRegistry['sun_devourer+'].description).toContain('20 power per stack consumed');
     });
 
     it('and it still scales with the pile it eats', () => {

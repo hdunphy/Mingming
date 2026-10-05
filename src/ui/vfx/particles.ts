@@ -37,6 +37,12 @@ export interface ParticleSeed {
     /** Milliseconds. */
     readonly life: number;
     readonly size: number;
+    /**
+     * Ticket 190d: what the size grows (or shrinks) to by the end of the life. Without it a particle
+     * thins as it ages (`0.4 + 0.6 t`), which is right for an ember and wrong for smoke, mist or the
+     * body of a beam, which spread out.
+     */
+    readonly size2?: number;
     readonly r: number;
     readonly g: number;
     readonly b: number;
@@ -99,7 +105,10 @@ export interface ParticleSeed {
  * easy. Both are gone: `puff` IS the soft blob under the name the ticket gave it, and a shape with
  * no row asking for it is a shape nobody tunes.
  */
-export type ParticleShape = 'flame' | 'drop' | 'leaf' | 'spark' | 'puff' | 'ring' | 'streak';
+export type ParticleShape =
+    | 'flame' | 'drop' | 'leaf' | 'spark' | 'puff' | 'ring' | 'streak'
+    // Ticket 190f: the shapes the status landings are spelled with (the ticket names each of them).
+    | 'chevron' | 'plus' | 'star' | 'plank';
 
 interface Particle {
     alive: boolean;
@@ -117,6 +126,7 @@ interface Particle {
     vx: number; vy: number;
     life: number; maxLife: number;
     size: number;
+    size2: number | null;
     r: number; g: number; b: number; a: number;
     r2: number; g2: number; b2: number;
     drag: number; gravity: number;
@@ -201,6 +211,7 @@ const blank = (): Particle => ({
     x: 0, y: 0, vx: 0, vy: 0,
     life: 0, maxLife: 1,
     size: 1,
+    size2: null,
     r: 255, g: 255, b: 255, a: 1,
     r2: 255, g2: 255, b2: 255,
     drag: 1, gravity: 0,
@@ -240,6 +251,7 @@ export class ParticleField {
             p.vx = seed.vx; p.vy = seed.vy;
             p.life = seed.life; p.maxLife = Math.max(1, seed.life);
             p.size = seed.size;
+            p.size2 = seed.size2 ?? null;
             p.r = seed.r; p.g = seed.g; p.b = seed.b;
             p.r2 = seed.r2 ?? seed.r; p.g2 = seed.g2 ?? seed.g; p.b2 = seed.b2 ?? seed.b;
             p.a = seed.a ?? 1;
@@ -369,7 +381,7 @@ export class ParticleField {
             const atlas = p.shape === 'puff' ? rampAtlas(p.r, p.g, p.b, p.r2, p.g2, p.b2) : null;
             if (atlas) {
                 // One stamp. `s` is a radius, the sprite is a diameter square.
-                const s = p.size * (0.4 + 0.6 * t);
+                const s = radiusAt(p, t);
                 const step = atlas[Math.min(RAMP_STEPS - 1, Math.max(0, Math.round(k * (RAMP_STEPS - 1))))];
                 ctx.drawImage(step, p.x - s, p.y - s, s * 2, s * 2);
             } else {
@@ -493,8 +505,13 @@ function drawFlame(
     tongue(halfW * 0.44, h * 0.55, p.x + p.lean * h * 0.44, p.y - h * 0.12, p.y + h * 0.30);
 }
 
+/** A particle's radius at remaining life `t`: thinning as it ages, or heading for `size2` if it has one. */
+function radiusAt(p: Particle, t: number): number {
+    return p.size2 === null ? p.size * (0.4 + 0.6 * t) : p.size + (p.size2 - p.size) * (1 - t);
+}
+
 function drawShape(ctx: CanvasRenderingContext2D, p: Particle, t: number): void {
-    const s = p.size * (0.4 + 0.6 * t);
+    const s = radiusAt(p, t);
     switch (p.shape) {
         case 'spark': {
             /*
@@ -558,6 +575,51 @@ function drawShape(ctx: CanvasRenderingContext2D, p: Particle, t: number): void 
             ctx.stroke();
             return;
         }
+        case 'chevron': {
+            // A "v" that points the way it is travelling up or down: sinking points down, rising up.
+            const dir = p.vy >= 0 ? 1 : -1;
+            const half = s * 1.4;
+            const rise = s * 0.55;
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.lineWidth = Math.max(1.5, s * 0.45);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(p.x - half, p.y - dir * rise);
+            ctx.lineTo(p.x, p.y + dir * rise);
+            ctx.lineTo(p.x + half, p.y - dir * rise);
+            ctx.stroke();
+            return;
+        }
+        case 'plus': {
+            const arm = s * 0.3;
+            ctx.fillRect(p.x - arm, p.y - s, arm * 2, s * 2);
+            ctx.fillRect(p.x - s, p.y - arm, s * 2, arm * 2);
+            return;
+        }
+        case 'star': {
+            // A four-pointed glint: long thin points, a small waist.
+            ctx.beginPath();
+            for (let i = 0; i < 8; i += 1) {
+                const radius = i % 2 === 0 ? s : s * 0.28;
+                const angle = (Math.PI / 4) * i - Math.PI / 2;
+                const px = p.x + Math.cos(angle) * radius;
+                const py = p.y + Math.sin(angle) * radius;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            return;
+        }
+        case 'plank':
+            // A short board, turning a little as it flies (the angle follows where it is).
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.x * 0.03 + p.y * 0.02);
+            ctx.fillRect(-s * 1.1, -s * 0.4, s * 2.2, s * 0.8);
+            ctx.restore();
+            return;
         case 'puff':
         default:
             /*

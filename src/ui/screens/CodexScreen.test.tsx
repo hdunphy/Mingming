@@ -72,7 +72,7 @@ describe('CodexScreen', () => {
         // Two denominators exist; the screen has to say which one it is counting against or a
         // player reads "6 of 16" as being 10 short of something they can reach today.
         expect(render({}, 'species')).toContain('post-launch');
-        expect(render()).toMatch(/ship at\s+Early Access|Early Access/);
+        expect(render()).toMatch(/in this build/);
     });
 
     it('lists every milestone and marks only the fired ones', () => {

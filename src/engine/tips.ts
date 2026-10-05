@@ -216,7 +216,7 @@ export function nextBattleTip(state: IBattleState, seen: SeenTips): Tip | null {
  * The next map tip, or `null`.
  *
  * `map:workshop` waits until a workshop is **one step away**, which is the only one of the three
- * that is genuinely contextual — every biome has exactly one (`REGION_PARAMS.guaranteedMiddleKinds`),
+ * that is genuinely contextual — every biome has exactly one, in its town (`REGION_PARAMS.biomeRows`),
  * so "there is a workshop somewhere" would be true from the first frame and would teach nothing
  * about where.
  */
@@ -247,7 +247,8 @@ export function nextMapTip(run: IRunState, seen: SeenTips): Tip | null {
 }
 
 function workshopIsAdjacent(run: IRunState): boolean {
-    return kindIsAdjacent(run, 'workshop');
+    // Ticket 176: the workshop is in the town now.
+    return kindIsAdjacent(run, 'workshop') || kindIsAdjacent(run, 'town');
 }
 
 /** Whether a node of `kind` is one step from where the player is standing. */

@@ -27,6 +27,7 @@ import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import { hasUpgrade } from '../../engine/data/plusRegistry';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
+import { plainShop } from '../../testing/plainShop';
 
 declare global {
     var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -57,7 +58,7 @@ function makeRun(scrap: number, modifiers: string[]): IRunState {
         startedAt: 1_700_000_000_000,
         modifiers,
     });
-    const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = plainShop(run, 'marketplace');
     return {
         ...run,
         scrap,

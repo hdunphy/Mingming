@@ -367,10 +367,16 @@ describe('183e — the rows are centred by party size', () => {
         expect(topOf(markup, 'stage-slot-e1')).toBe(147);
     });
 
-    it('a 3v1 keeps the three rows: the larger side sets the layout', () => {
+    it('a 3v1 centres each side on its own: the three on 62/232/402, the one on 232', () => {
         const markup = render({}, state(ALLIES, [ENEMIES[0]]));
-        expect(topOf(markup, 'stage-slot-p1')).toBe(62);
-        expect(topOf(markup, 'stage-slot-e1')).toBe(62);
+        expect(['p1', 'p2', 'p3'].map((id) => topOf(markup, `stage-slot-${id}`))).toEqual([62, 232, 402]);
+        expect(topOf(markup, 'stage-slot-e1')).toBe(232);
+    });
+
+    it('a 2v3 centres the pair on 147/317 and leaves the trio where the mock puts it', () => {
+        const markup = render({}, state(ALLIES.slice(0, 2), ENEMIES));
+        expect(['p1', 'p2'].map((id) => topOf(markup, `stage-slot-${id}`))).toEqual([147, 317]);
+        expect(['e1', 'e2', 'e3'].map((id) => topOf(markup, `stage-slot-${id}`))).toEqual([62, 232, 402]);
     });
 
     it('a death moves no row', () => {

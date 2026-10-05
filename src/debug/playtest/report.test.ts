@@ -134,6 +134,7 @@ describe('180f — the morning report from a fixture night', () => {
 const stub = (over: Partial<RunFact> = {}): RunFact => ({
     session: 'r01', header: { seed: 's', starter: 'x', gymIndex: 0, mode: 'run', tier: 0, modifiers: [], moves: [], notes: [] },
     starter: 'Firmware', gym: 'Gym', outcome: 'defeat', fights: 1, biome: '1 of 3', deckSize: 8, scrap: 0, decisions: 4,
+    partySize: 1, blueprints: 0, endedAt: 'Elite', reachedGym: false,
     findings: [], notes: [], choices: [], shelfOffers: [], ...over,
 });
 

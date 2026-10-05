@@ -26,6 +26,7 @@ import { offerGyms } from '../../engine/run/gyms';
 import { ALL_TIP_IDS, TIP_REGISTRY } from '../../engine/tips';
 import type { IGauntletProgress, IRanchMember, IRunState, NodeKind, RunOutcome } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
+import { withPlainShop } from '../../testing/plainShop';
 
 const MEMBER: IMingmingState = {
     id: 'mm1',
@@ -76,11 +77,15 @@ function render(run: IRunState, seenTips: ReadonlyArray<string> = ALL_TIP_IDS): 
 
 /** Stand the player on the first node of a given kind, as `enterNode` would leave them. */
 function standingOn(kind: NodeKind, over: Partial<IRunState> = {}): IRunState {
-    const target = BASE.nodes.find((n) => n.kind === kind && n.id !== BASE.currentNodeId)!;
+    // The generator makes towns (176c), not plain shops: a test about the stall or the bay itself
+    // stands on the first town, retyped to the building it wants.
+    const plain = kind === 'marketplace' || kind === 'workshop' ? withPlainShop(BASE, kind) : null;
+    const base = plain ? plain.run : BASE;
+    const target = plain ? plain.node : base.nodes.find((n) => n.kind === kind && n.id !== base.currentNodeId)!;
     return {
-        ...BASE,
+        ...base,
         currentNodeId: target.id,
-        nodes: BASE.nodes.map((n) => (n.id === target.id ? { ...n, visited: n.visited + 1 } : n)),
+        nodes: base.nodes.map((n) => (n.id === target.id ? { ...n, visited: n.visited + 1 } : n)),
         ...over,
     };
 }
@@ -192,6 +197,51 @@ describe('RunScreen — a node that fired says so', () => {
         // The stall is open, so the way back in is NOT on screen — it is the closed state's copy.
         expect(markup).not.toContain('Back to the stall');
         expect(markup).toContain('LEAVE');
+    });
+
+    describe('176d — what a survey shows', () => {
+        // Every node's type is on the map from the start; a Ping Sweep or a Relay Tower Survey adds
+        // WHO waits in each fight of the biome it was fired in, to the node's hover.
+        const titles = (markup: string): string[] => [...markup.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => m[1]);
+        const speciesTitles = (markup: string): string[] =>
+            titles(markup).filter((t) => /^(Wild|Rival|Elite|Alpha|Ambush|Scout [a-z]+): /.test(t));
+        const biomesOf = (list: string[]): string[] =>
+            [...new Set(list.map((t) => /biome (\d)/.exec(t)![1]))].sort();
+
+        it('shows no species anywhere before a survey', () => {
+            expect(speciesTitles(render(BASE))).toEqual([]);
+        });
+
+        it('shows the species of every fight in the surveyed biome, and in no other', () => {
+            const markup = render({ ...BASE, fightsResolved: 3, modifiers: ['reveal:biome:1'] });
+            const shown = speciesTitles(markup);
+            expect(shown.length).toBeGreaterThan(3);
+            expect(biomesOf(shown)).toEqual(['2']);
+        });
+
+        it('two surveyed biomes show two', () => {
+            const markup = render({ ...BASE, fightsResolved: 3, modifiers: ['reveal:biome:0', 'reveal:biome:2'] });
+            expect(biomesOf(speciesTitles(markup))).toEqual(['1', '3']);
+        });
+
+        it('shows every node\'s type from the start, with no fog', () => {
+            const markup = render(BASE);
+            expect(markup).not.toContain('Unknown');
+            expect(markup).not.toContain('fogged');
+        });
+    });
+
+    it('opens a town on its square, whole screen, and not as a stall or a bay (176c)', () => {
+        const markup = render(standingOn('town'));
+
+        expect(markup).toContain('Town square');
+        expect(markup).toContain('LEAVE TOWN');
+        for (const building of ['Shop', 'Upgrades', 'Den', 'Loadout']) expect(markup).toContain(building);
+        // The square rolls no shelf and mounts no bay: those open with their tabs.
+        expect(markup).not.toContain('MARKETPLACE');
+        expect(markup).not.toContain('STOCK');
+        expect(markup).not.toContain('TRACES');
+        expect(markup).not.toContain('nothing here yet');
     });
 });
 

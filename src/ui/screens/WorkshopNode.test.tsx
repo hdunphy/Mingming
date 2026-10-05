@@ -66,6 +66,8 @@ import { hasUpgrade } from '../../engine/data/plusRegistry';
 import { cardFace } from './runShell';
 import type { IMingmingState } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
+import { instinctName } from '../labels/labels';
+import { plainShop } from '../../testing/plainShop';
 
 /** `renderToStaticMarkup` escapes text; several firmware descriptions carry apostrophes. See the twin
  *  in `MarketplaceNode.test.tsx` — comparing raw registry strings silently skips exactly those. */
@@ -94,7 +96,7 @@ function makeRun(scrap: number, over: Partial<IRunState> = {}): IRunState {
         party: [KRAKEN],
         startedAt: 1_700_000_000_000,
     });
-    const node = run.nodes.find((n) => n.kind === 'workshop')!;
+    const node = plainShop(run, 'workshop');
     return {
         ...run,
         scrap,
@@ -380,7 +382,7 @@ describe('WorkshopNode — the summon stage', () => {
         for (const osId of definition.availableOS) {
             const name = getOSBehavior(osId)?.name;
             expect(name).toBeTruthy();
-            expect(markup).toContain(`<span class="rs-rnm">${escapeHtml(name!)}</span>`);
+            expect(markup).toContain(`<span class="rs-rnm">${escapeHtml(instinctName(name!))}</span>`);
             expect(markup).not.toContain(`>${osId}<`);
         }
         expect(markup.match(/<button type="button" class="ws-oschoice/g)?.length).toBe(definition.availableOS.length);
@@ -557,8 +559,8 @@ describe('WorkshopNode — the retrain comparison', () => {
             { initialReflash: { memberId: 'mm1', targetOS: 'kraken_v2' } },
         );
 
-        expect(markup).toContain(escapeHtml(from!.name));
-        expect(markup).toContain(escapeHtml(to!.name));
+        expect(markup).toContain(escapeHtml(instinctName(from!.name)));
+        expect(markup).toContain(escapeHtml(instinctName(to!.name)));
         expect(markup).toContain(escapeHtml(from!.description));
         expect(markup).toContain(escapeHtml(to!.description));
         expect(markup).toContain(' · CURRENT');
@@ -630,11 +632,11 @@ describe('WorkshopNode — the party and bench column', () => {
         // has to carry both what the member is running and whether this node can do anything about
         // it. `no blueprints` is the rack's label doing its live work here.
         const withBlueprint = render(makeRun(400), makeRanch({ kraken: 1 }));
-        expect(withBlueprint).toContain('ABYSSAL_INK_SYS · retrain');
+        expect(withBlueprint).toContain('Abyssal Ink · retrain');
         expect(withBlueprint).toContain(`1 trace + ${WORKSHOP_REFLASH_SCRAP} amber`);
 
         const without = render(makeRun(400), makeRanch({}));
-        expect(without).toContain('ABYSSAL_INK_SYS · no traces');
+        expect(without).toContain('Abyssal Ink · no traces');
     });
 
     it('shows a benched member in the same column, and retrains it too', () => {

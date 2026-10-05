@@ -33,8 +33,8 @@ export const PATCH_TEXT: Readonly<Record<string, Partial<Record<PatchId, string>
         overclock: overclock('Fenrir'),
     },
     skoll_v1: {
-        amplifier: 'Sköll gains 2 Strengthened instead of 1 whenever an ally takes damage from an enemy attack.',
-        splitter: 'Whenever an ally is hit by an enemy attack, the rest of your side gains 1 Strengthened too.',
+        amplifier: 'Sköll gains 2 Strengthened instead of 1 whenever an ally loses HP to an enemy.',
+        splitter: 'Whenever an ally loses HP to an enemy, the rest of your side gains 1 Strengthened too.',
         overclock: overclock('Sköll'),
     },
     skoll_v2: {

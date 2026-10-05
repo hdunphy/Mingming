@@ -20,6 +20,7 @@ import { createRun } from '../../engine/run/createRun';
 import { offerGyms } from '../../engine/run/gyms';
 import { RunStateSchema } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
+import { standBeside } from '../../testing/standBeside';
 import type { IRunState } from '../../engine/runTypes';
 
 const member = (id: string, definitionId: string, activeOS: string): IMingmingState => ({
@@ -30,7 +31,8 @@ const PARTY = [member('mm1', 'kraken', 'kraken_v1'), member('mm2', 'fenrir', 'fe
 function standingOn(kind: IRunState['nodes'][number]['kind']): RunSliceState {
     const run = createRun({ seed: 'temp-driver-reducer', offer: offerGyms('offer-seed')[0], party: PARTY, startedAt: 1_700_000_000_000 });
     const target = run.nodes.find((n) => n.kind === kind && n.id !== run.currentNodeId)!;
-    return runReducer(runReducer(undefined, startRun(run)), enterNode(target.id));
+    // Travel is one-way (176b): stand beside the target first.
+    return runReducer(runReducer(undefined, startRun(standBeside(run, target.id))), enterNode(target.id));
 }
 
 const temp = (state: RunSliceState) => state.run!.tempDrivers ?? [];

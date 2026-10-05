@@ -83,8 +83,8 @@
   "id": "core_overclock",
   "name": "Core Overclock",
   "cost": 2,
-  "text": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
-  "plus": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+  "text": "Daemon (exhaust): +1 power for every 2 Strength you hold.",
+  "plus": "Daemon (exhaust): +1 power for every Strength you hold.",
   "rule": "daemon: number +40%"
  },
  {
@@ -259,8 +259,8 @@
   "id": "sun_devourer",
   "name": "Sun Devourer",
   "cost": 2,
-  "text": "Consume all your Strength: 30 power per stack consumed.",
-  "plus": "Consume all your Strength: 40 power per stack consumed.",
+  "text": "Consume all your Strength: 15 power per stack consumed.",
+  "plus": "Consume all your Strength: 20 power per stack consumed.",
   "rule": "consume: per-stack +40%"
  },
  {

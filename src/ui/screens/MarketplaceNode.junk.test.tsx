@@ -18,6 +18,7 @@ import { JUNK_REMOVAL_PRICE } from '../../engine/run/marketplace';
 import { JUNK_CARD_ID } from '../../engine/run/junk';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
+import { plainShop } from '../../testing/plainShop';
 
 const PARTY: IMingmingState[] = [
     { id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10 },
@@ -30,7 +31,7 @@ function makeRun(scrap: number, withJunk: boolean): IRunState {
         party: PARTY,
         startedAt: 1_700_000_000_000,
     });
-    const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = plainShop(run, 'marketplace');
     return {
         ...run,
         scrap,

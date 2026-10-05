@@ -25,7 +25,7 @@ import {
     rollMarketStock,
     upgradedCardPrice,
 } from '../marketplace';
-import { WORKSHOP_ASSEMBLY_SCRAP, WORKSHOP_REFLASH_SCRAP, planRecruit, planReflash } from '../workshop';
+import { WORKSHOP_ASSEMBLY_SCRAP, WORKSHOP_REFLASH_SCRAP, planRecruit, planReflash, isWorkshopNode } from '../workshop';
 import { shopPrice } from './shopPrice';
 
 const KRAKEN: IMingmingState = {
@@ -120,7 +120,7 @@ describe('shopPrice — the sites that quote a price', () => {
 
     it('the workshop recruit is 35 instead of 25', () => {
         const ranch = makeRanch({ fenrir: 1 }, [rosterMember('mm1', 'kraken', 'kraken_v1')]);
-        const node = { ...TIGHT.nodes.find((n) => n.kind === 'workshop')!, visited: 1 };
+        const node = { ...TIGHT.nodes.find((n) => isWorkshopNode(n.kind))!, visited: 1 };
 
         const plain = planRecruit({ ranch, run: PLAIN, node, speciesId: 'fenrir' })!;
         const tight = planRecruit({ ranch, run: TIGHT, node, speciesId: 'fenrir' })!;
@@ -133,7 +133,7 @@ describe('shopPrice — the sites that quote a price', () => {
     it('the workshop reflash is 20 instead of 15', () => {
         const member = rosterMember('mm1', 'kraken', 'kraken_v1');
         const ranch = makeRanch({ kraken: 1 }, [member]);
-        const node = { ...TIGHT.nodes.find((n) => n.kind === 'workshop')!, visited: 1 };
+        const node = { ...TIGHT.nodes.find((n) => isWorkshopNode(n.kind))!, visited: 1 };
 
         const plain = planReflash({ ranch, run: PLAIN, node, member, targetOS: 'kraken_v2' })!;
         const tight = planReflash({ ranch, run: TIGHT, node, member, targetOS: 'kraken_v2' })!;

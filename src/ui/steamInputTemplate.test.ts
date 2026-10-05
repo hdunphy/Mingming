@@ -67,13 +67,21 @@ describe('37 — the Steam Input template', () => {
         expect(vdf).toContain('joystick_mouse');
     });
 
+    it('sends Right Shift from the right stick click, for hold-to-fast-forward (190a)', () => {
+        // The right stick is the cursor, and its click is free. Held, it is the fast-forward key.
+        expect(vdf).toContain('key_press RIGHT_SHIFT');
+        const line = vdf.split('\n').find((l) => l.includes('RIGHT_SHIFT')) ?? '';
+        expect(line).toMatch(/click/i);
+        expect(fs.readFileSync(path.join('steam', 'controller_config', 'README.md'), 'utf8')).toContain('Right stick click');
+    });
+
     it('covers every row of KEYBINDS, so a new binding cannot ship uncontrolled', () => {
         /*
          * The tripwire, stated against the TABLE rather than against a list of keys repeated here.
          * `ally` rides the same W/E/R the caster row does (Shift is a layer, not a key), so it is
          * satisfied by the caster keys; every other row names something asserted above.
          */
-        const covered = new Set(['card', 'caster', 'ally', 'enemy', 'cycle', 'cast', 'macro', 'endturn', 'clear']);
+        const covered = new Set(['card', 'caster', 'ally', 'enemy', 'cycle', 'cast', 'macro', 'endturn', 'clear', 'fastforward']);
         const uncovered = KEYBINDS.map((b) => b.id).filter((id) => !covered.has(id));
         expect(uncovered, `KEYBINDS gained ${uncovered.join(', ')} — bind it in the template or add it here with a reason`).toEqual([]);
     });

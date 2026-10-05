@@ -17,6 +17,7 @@ import { offerGyms } from './gyms';
 import { rollMarketStock } from './marketplace';
 import { JUNK_CARD_ID, countedDeckSize, isJunkCard } from './junk';
 import type { IMingmingState } from '../types';
+import { plainShop } from '../../testing/plainShop';
 
 const KRAKEN: IMingmingState = {
     id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1',
@@ -55,7 +56,7 @@ describe('junk is never offered or counted', () => {
     it('is never in a market’s stock', () => {
         for (let i = 0; i < 60; i += 1) {
             const run = createRun({ seed: `junk-market-${i}`, offer: offerGyms('offer-seed')[0], party: [KRAKEN], startedAt: 1 });
-            const node = { ...run.nodes.find((n) => n.kind === 'marketplace')!, visited: 1 };
+            const node = { ...plainShop(run, 'marketplace'), visited: 1 };
             const stock = rollMarketStock({ run, node, party: [{ definitionId: 'kraken', activeOS: 'kraken_v1' }] });
             expect(stock.offers.map((offer) => offer.card.dataId)).not.toContain(JUNK_CARD_ID);
         }

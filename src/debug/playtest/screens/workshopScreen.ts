@@ -2,7 +2,7 @@
  * TICKET 180b — THE WORKSHOP: assembly, reflash, the team, the upgrade bench, and the way out.
  * Composed from `screens/workshop/` and the shared upgrade bench; this module only stacks them.
  */
-import { UPGRADES_PER_VISIT } from '../../../engine/run/marketplace';
+import { upgradeAllowanceFor, upgradeBenchKeyFor } from '../../../engine/run/marketplace';
 import { hereNode, leaveStall } from '../stalls';
 import type { Move, Screen, World } from '../types';
 import { runOf } from '../types';
@@ -12,14 +12,18 @@ import { reflashSection } from './workshop/reflash';
 import { teamLines } from './workshop/teamLines';
 import { openLoadout } from './loadoutScreen';
 import { upgradeSection } from './upgradeBench';
+import { townDoors } from './townScreen';
 
 export function workshopScreen(world: World): Screen {
     const node = hereNode(world);
     const run = runOf(world);
     const assembly = assemblySection(world);
     const reflash = reflashSection(world);
-    const upgrades = upgradeSection(world, { benchKey: `${node.id}:${node.visited}`, allowance: UPGRADES_PER_VISIT, free: false, keyPrefix: 'workshop' });
-    const leave: Move = { key: 'leave', label: 'Leave the workshop', apply: leaveStall };
+    // A town's one upgrade bench is in its shop; a plain workshop keeps its own.
+    const upgrades = node.kind === 'town'
+        ? { lines: [], moves: [] as Move[] }
+        : upgradeSection(world, { benchKey: upgradeBenchKeyFor(node), allowance: upgradeAllowanceFor(node), free: false, keyPrefix: 'workshop' });
+    const leave: Move = { key: 'leave', label: node.kind === 'town' ? 'Leave the town' : 'Leave the workshop', apply: leaveStall };
 
     return {
         id: 'workshop',
@@ -27,6 +31,6 @@ export function workshopScreen(world: World): Screen {
             `${nodeLabel(node)}, visit ${node.visited}. Scrap: ${run.scrap}.`,
             ...assembly.lines, ...reflash.lines, ...teamLines(world), ...upgrades.lines,
         ],
-        moves: [...assembly.moves, ...reflash.moves, ...upgrades.moves, openLoadout, leave],
+        moves: [...assembly.moves, ...reflash.moves, ...upgrades.moves, ...townDoors(world, 'workshop'), openLoadout, leave],
     };
 }

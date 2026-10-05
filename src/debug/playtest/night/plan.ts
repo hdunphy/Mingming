@@ -1,7 +1,7 @@
 /**
  * TICKET 180f — WHICH SESSIONS A NIGHT PLAYS.
  *
- * A night is N sessions, one after another (A5: ten by default). Seeds are `pt<date>:<i>`, the
+ * A night is N sessions, one after another (A5: ten by default). Seeds are `pt<seed date>:<i>` (the seed date is the date unless 193k's `--seed-date` says otherwise), the
  * starters rotate through the twelve Early Access starters and the gyms through the three on offer,
  * so a night covers as much of the game as N allows. Modes follow A2: `run` for most, plus one
  * `card` run a night aimed at surprises (and `turn` runs when asked for). Pure, so the nightly
@@ -28,6 +28,11 @@ export interface NightOptions {
     /** How many sessions, just before the card ones, are played in `turn` mode. Default 0. */
     readonly turnRuns?: number;
     readonly tier?: number;
+    /**
+     * TICKET 193k: the date the seeds are named after (default: the night's own date). A night on a new
+     * date with an old seed date plays the same worlds again, in a results folder of its own.
+     */
+    readonly seedDate?: string;
 }
 
 export const DEFAULT_NIGHT_RUNS = 10;
@@ -45,7 +50,7 @@ export function planNight(date: string, starters: ReadonlyArray<string>, options
         return {
             index,
             session: `r${String(index).padStart(2, '0')}`,
-            seed: `pt${date}:${index}`,
+            seed: `pt${options.seedDate ?? date}:${index}`,
             starter: starters[i % starters.length],
             gym: i % GYMS_ON_OFFER,
             mode,

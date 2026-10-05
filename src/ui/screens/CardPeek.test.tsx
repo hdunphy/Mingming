@@ -24,6 +24,7 @@ import { placePeek } from './peekPlacement';
 import { stageScale } from '../components/stageGeometry';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
+import { plainShop } from '../../testing/plainShop';
 
 const PARTY: IMingmingState[] = [
     { id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1', blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10 },
@@ -41,7 +42,7 @@ function makeRun(scrap: number, over: Partial<IRunState> = {}): IRunState {
 
 function makeMarketRun(scrap: number, over: Partial<IRunState> = {}): { run: IRunState; node: IRegionNode } {
     const run = makeRun(scrap, over);
-    const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = plainShop(run, 'marketplace');
     const runWithNode: IRunState = {
         ...run,
         currentNodeId: market.id,

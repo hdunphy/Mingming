@@ -13,6 +13,8 @@ import { describe, expect, it } from 'vitest';
 
 import RanchScreen from './RanchScreen';
 import { createRanchMember } from '../../engine/gameTypes';
+import { runForecast } from '../../engine/run/runForecast';
+import { offerGyms } from '../../engine/run/gyms';
 import { addBlueprint, addToRoster } from '../store/gameSlice';
 import { click, clickText, findText, makeStore, mount } from '../../testing/interaction';
 
@@ -33,7 +35,8 @@ describe('Expedition (182a)', () => {
     it('says one line, not two paragraphs', async () => {
         const { host } = await ranch('expedition', withKraken);
         const paragraphs = [...host.querySelectorAll('p')].map((p) => p.textContent?.trim());
-        expect(paragraphs).toEqual(['Beat the gym leader at the end of the road.']);
+        // 193j: the one line is the run forecast (it was "Beat the gym leader at the end of the road.").
+        expect(paragraphs).toEqual([runForecast(offerGyms('any-seed')[0].biomes, 'gym_emberfall').sentence]);
         expect(host.textContent).not.toContain('Three leaders');
         expect(host.textContent).not.toContain('One wild in three');
     });

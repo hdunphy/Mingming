@@ -69,6 +69,12 @@ function dataNumbers(node: unknown, acc = new Set<number>()): Set<number> {
             acc.add(Math.round(Math.abs(1 - value) * 100));
             acc.add(Math.round(value * 100));
         }
+        // TICKET 185d: a rate below one is printed "1 for every N", the same number stated the other
+        // way up. Core Overclock's `bonus: 0.5` reads "+1 power for every 2 Strength".
+        if (key === 'bonus' && typeof value === 'number' && value > 0 && value < 1) {
+            acc.add(1);
+            acc.add(Math.round(1 / value));
+        }
         // "GT:50" in a HEALTH_THRESHOLD conditional.
         if (key === 'value' && typeof value === 'string') {
             const n = value.match(/\d+/);
@@ -235,7 +241,9 @@ describe('ticket 150e — a bonus names the unit its trigger actually pays in', 
      * firmware was looked at".
      */
     it('finds the bonus hooks it is here to judge', () => {
-        expect(bonusHooks.map(h => h.hookId).sort()).toEqual(['gullin_v2_ram', 'jorm_v2_toxin_fang']);
+        // 185d added the two Core Overclock hooks: flat power per Strength, on the power side.
+        expect(bonusHooks.map(h => h.hookId).sort())
+            .toEqual(['daemon_double_strength', 'daemon_double_strength+', 'gullin_v2_ram', 'jorm_v2_toxin_fang']);
     });
 
     it('never prints "power" for a bonus that is paid in flat HP', () => {

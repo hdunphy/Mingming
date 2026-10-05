@@ -66,7 +66,8 @@ describe('142c — a rival and a scout say what they are', () => {
     });
 
     it('leaves an ordinary fight on its own biome element', () => {
-        const wild = graph.nodes.find((n) => n.kind === 'wild')!;
+        // A wild with a road into it: the run's own entry node has none, so nothing stands "beside" it.
+    const wild = graph.nodes.find((n) => n.kind === 'wild' && graph.nodes.some((m) => m.edges.includes(n.id)))!;
         const markup = render(beside(wild.id), graph.nodes, RIVAL_ELEMENTS);
         expect(markup).toContain(`Wild, ${BIOME_ELEMENTS[wild.biomeIndex]}`);
     });
@@ -118,22 +119,43 @@ describe('17 — the stakes are said before the player commits', () => {
         expect(markup).toMatch(/rm-node[^"]* risk/);
     });
 
-    it('keeps the stake behind the fog — a node you cannot see the kind of does not show its prize', () => {
-        // Standing at the entry, an exit elite two or more layers away is fogged.
+    it('says a far node\'s stake from the first step - there is no fog (176d)', () => {
+        // Standing at the entry, an exit elite several rows away shows its prize too.
         const far = staked.find((n) => n.driverStake && n.layer >= 3)!;
         const markup = render(graph.entryNodeId, staked, RIVAL_ELEMENTS);
         const name = far.driverStake === 'driver_first_blood' ? 'FIRST BLOOD' : 'ANTIVENOM';
-        // The other planted node may be revealed; assert on the far one's absence only if it is
-        // the only carrier of that name.
-        if (!staked.some((n) => n.id !== far.id && n.driverStake === far.driverStake)) {
-            expect(markup).not.toContain(name);
-        }
+        expect(markup).toContain(name);
     });
 
     it('says nothing about stakes when no node has one', () => {
         const markup = render(graph.entryNodeId, graph.nodes, RIVAL_ELEMENTS);
         expect(markup).not.toContain('rm-legend-stakes');
         expect(markup).not.toContain('rm-node-stake-ring');
+    });
+});
+
+describe('176d — who waits in a fight, after a survey', () => {
+    const wild = graph.nodes.find((n) => n.kind === 'wild' && graph.nodes.some((m) => m.edges.includes(n.id)))!;
+
+    it('adds the species to the node\'s hover and its Travel line when the map is given them', () => {
+        const from = graph.nodes.find((n) => n.edges.includes(wild.id))!;
+        const markup = renderToStaticMarkup(
+            <RegionMap
+                nodes={graph.nodes}
+                currentNodeId={from.id}
+                biomeNames={BIOME_NAMES}
+                biomeElements={BIOME_ELEMENTS}
+                encounters={{ [wild.id]: 'Skoll, Huldra' }}
+                onTravel={() => {}}
+            />,
+        );
+        expect(markup).toContain('<title>Wild: Skoll, Huldra, ');
+        expect(markup).toMatch(/Wild: Skoll, Huldra, [^<]*<\/button>/);
+    });
+
+    it('prints no species when it is given none', () => {
+        const markup = render(graph.entryNodeId);
+        expect(markup).not.toMatch(/<title>(Wild|Rival|Elite|Alpha|Ambush): /);
     });
 });
 
@@ -144,6 +166,8 @@ describe('RegionMap', () => {
         // second circle for its gold visit badge, and counting those would make "one disc per node"
         // fail for a reason it is not about.
         const circles = markup.match(/<circle[^>]*class="rm-node-disc"/g)?.length ?? 0;
+        // A town is a rounded box, not a disc (176e).
+        const boxes = markup.match(/<rect[^>]*class="rm-node-disc rm-town-box"/g)?.length ?? 0;
         // `class="rm-edge"`, not every `<line>`: ticket 34 added the biome seams, which are also
         // lines and are decoration rather than graph. Counting all of them would make this test
         // fail for a reason it is not about.
@@ -151,11 +175,12 @@ describe('RegionMap', () => {
         // prefix. Still not every `<line>`: the biome seams are decoration, not graph.
         const lines = markup.match(/<line[^>]*class="rm-edge/g)?.length ?? 0;
 
-        expect(circles).toBe(graph.nodes.length);
-        // Edges are stored on both endpoints (ticket 07: walkable both ways), so drawing straight
-        // from the arrays would paint every line twice.
-        const halfEdges = graph.nodes.reduce((sum, n) => sum + n.edges.length, 0);
-        expect(lines).toBe(halfEdges / 2);
+        expect(circles + boxes).toBe(graph.nodes.length);
+        expect(boxes).toBe(graph.nodes.filter((n) => n.kind === 'town').length);
+        // Edges are forward links only since ticket 176: each is stored once, on the node it leaves,
+        // so drawing straight from the arrays paints every road exactly once.
+        const edges = graph.nodes.reduce((sum, n) => sum + n.edges.length, 0);
+        expect(lines).toBe(edges);
     });
 
     it('paints one backdrop band per biome, tinted by its element (ticket 34)', () => {
@@ -187,43 +212,30 @@ describe('RegionMap', () => {
         expect(markup.match(/rm-travel-button/g)?.length).toBe(start.edges.length);
     });
 
-    it('never names a fogged node’s kind — not in the picture, not in the button label', () => {
+    it('names every node\'s kind from the first step, the gym included (176d)', () => {
         const start = graph.nodes.find((n) => n.id === graph.entryNodeId)!;
         const playerColumn = columnOf(start);
-        const fogged = graph.nodes.filter((n) => n.visited === 0 && columnOf(n) > playerColumn + 1);
-        expect(fogged.length).toBeGreaterThan(0);
+        const far = graph.nodes.filter((n) => n.visited === 0 && columnOf(n) > playerColumn + 1);
+        expect(far.length).toBeGreaterThan(0);
 
         const markup = render();
-        // The gym sits in the last column, so on turn one its icon must not be on screen. This is
-        // the specific leak worth guarding: an "always show the destination" convenience would
-        // quietly hand the player the one node the fog is most interesting about.
-        expect(markup).not.toContain('🏛');
-        // Every fogged node draws the placeholder glyph and nothing that names it.
-        expect(markup.match(/rm-node fogged/g)?.length).toBe(fogged.length);
-        expect(markup.match(/rm-node-icon">·/g)?.length).toBe(fogged.length);
+        // The gym is in the last column and its hover is on the page on turn one, as is every other
+        // node's: routing is a decision about the whole road.
+        expect(markup).toMatch(/<title>Gym/);
+        expect(markup).not.toContain('fogged');
+        expect(markup).not.toContain('Unknown');
+        expect(markup).not.toContain('rm-node-icon">·');
     });
 
-    it('reveals a node you have already stood on, however far behind', () => {
+    it('has no visit badge any more (176e): a node is entered once, so the path walked is lit instead', () => {
         const far = graph.nodes.find((n) => columnOf(n) >= 10)!;
         const walked = graph.nodes.map((n) => (n.id === far.id ? { ...n, visited: 3 } : n));
-        const markup = render(graph.entryNodeId, walked);
-        // Revealed: it draws its real icon and its visit count, not the fog placeholder.
-        // Ticket 34 part two: the count is a gold shoulder badge now, not a '×N' beside the node.
-        expect(markup).toContain('rm-visit-count');
-        expect(markup).toMatch(/rm-visit-count">3</);
-        expect(markup.match(/rm-node fogged/g)?.length).toBe(
-            graph.nodes.filter((n) => columnOf(n) > columnOf(graph.nodes.find((m) => m.id === graph.entryNodeId)!) + 1).length - 1,
-        );
-    });
-
-    it('shows a visit COUNT rather than greying a node out', () => {
-        // Ticket 07: entering a node triggers it again, always, and farming is fine. A map that
-        // showed a cleared wild as spent would be telling the player the opposite.
-        const start = graph.nodes.find((n) => n.id === graph.entryNodeId)!;
-        const markup = render();
-        expect(start.visited).toBe(1);
-        expect(markup).toMatch(/rm-visit-count">1</);
-        expect(markup).not.toMatch(/cleared|spent|exhausted/i);
+        for (const markup of [render(), render(graph.entryNodeId, walked)]) {
+            expect(markup).not.toContain('rm-visit');
+            expect(markup).not.toMatch(/visited \d/);
+        }
+        // The start has been entered, so it is on the walked path.
+        expect(render()).toMatch(/class="rm-node current taken/);
     });
 
     it('has no "You are here" sentence (182a); the where-you-are words live on the node hover', () => {
@@ -240,21 +252,21 @@ describe('RegionMap', () => {
 });
 
 describe('2026-09-25 playtest — the start node, and a key for the icons', () => {
-    it('calls the node the run starts on Start, and says walking back in is a fight', () => {
+    it('calls the node the run starts on Start', () => {
         // Henry: "I start on node one, but never encounter a fight." It wore the wild's blade.
+        // 176e: travel is one-way, so nothing walks back into it, and the hover no longer says so.
         const markup = render(graph.entryNodeId);
-        // 182a: the sentence is gone; the same words are the start node's hover.
-        expect(markup).toContain('<title>Start, Fire, walking back in is a Wild fight');
+        expect(markup).toContain('<title>Start, Fire, ');
+        expect(markup).not.toContain('walking back in');
     });
 
     it('has no key line under the map (182a); the icons keep their hover', () => {
         const markup = render(graph.entryNodeId);
         expect(markup).not.toContain('rm-legend-key');
         expect(markup).not.toContain('Map key');
-        // One layer of visibility from the start: the layer-1 nodes are revealed, and biome 0's
-        // layer 1 is always a fight (ticket 24), so a Wild hover is on the map.
+        // Biome 0's first route row is always a fight (ticket 24), so a Wild hover is on the map.
         expect(markup).toMatch(/<title>Wild, /);
-        // The gym is several biomes away and fogged: its hover says Unknown, never Gym.
-        expect(markup).not.toMatch(/<title>Gym/);
+        // And so is the gym, several biomes away: with no fog (176d) its hover says Gym from turn one.
+        expect(markup).toMatch(/<title>Gym/);
     });
 });

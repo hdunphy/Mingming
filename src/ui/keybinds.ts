@@ -56,6 +56,13 @@ export const CAST_KEY = 'Enter';
 export const END_TURN_KEY = ' ';
 export const CLEAR_KEY = 'Escape';
 
+/**
+ * Ticket 190a. Hold RIGHT Shift to fast-forward the fight (x3); LEFT Shift is the ally-targeting
+ * modifier. Compared by `KeyboardEvent.code` because `key` is just "Shift" for both.
+ */
+export const FAST_FORWARD_CODE = 'ShiftRight';
+export const ALLY_SHIFT_CODE = 'ShiftLeft';
+
 /** Cards are `1`-`9`, positionally. Not a list, because the digit IS the index. */
 export const CARD_KEY_MIN = '1';
 export const CARD_KEY_MAX = '9';
@@ -79,12 +86,12 @@ export const KEYBINDS: ReadonlyArray<Keybind> = [
     },
     {
         id: 'ally',
-        keys: '⇧W/E/R',
+        keys: 'Left ⇧ W/E/R',
         action: 'Target ally',
-        detail: 'Shift turns the same three keys into targeting, for heals and buffs.',
+        detail: 'Left Shift turns the same three keys into targeting, for heals and buffs.',
     },
     { id: 'enemy', keys: 'A/S/D', action: 'Target enemy', detail: 'By slot, whether or not it is alive.' },
-    { id: 'cycle', keys: 'Tab', action: 'Cycle enemies', detail: 'Shift+Tab goes the other way. Skips the dead.' },
+    { id: 'cycle', keys: 'Tab', action: 'Cycle enemies', detail: 'Left Shift+Tab goes the other way. Skips the dead.' },
     {
         id: 'cast',
         keys: 'Enter',
@@ -93,6 +100,12 @@ export const KEYBINDS: ReadonlyArray<Keybind> = [
     },
     { id: 'macro', keys: 'Z/X/C', action: 'Fire draught', detail: 'The three slots on the rack beside the hand.' },
     { id: 'endturn', keys: 'Space', action: 'End turn' },
+    {
+        id: 'fastforward',
+        keys: 'Right ⇧ (hold)',
+        action: 'Fast-forward',
+        detail: 'Hold Right Shift and the fight plays three times as fast. Let go and it slows back down.',
+    },
     {
         id: 'clear',
         keys: 'Esc',

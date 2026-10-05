@@ -8,7 +8,11 @@
  */
 
 import { ProgramRegistry } from '../../data/programRegistry';
-import { RARITY_WEIGHTS, rewardCardPool } from '../../RewardSystem';
+import { RARITY_WEIGHTS, offerTasteForRun, rarityOfCard, rewardCardPool } from '../../RewardSystem';
+import { drawOffer } from '../../rewards/offerDraw';
+import { candidatesAfterRecent } from '../../rewards/recentOffers';
+import { NO_TASTE, type OfferTaste } from '../../rewards/offerTaste';
+import { ownedCardIdsOf } from '../../rewards/ownedCards';
 import { SeedStream } from '../../core/SeedStream';
 import { nodeSeed } from '../nodeSeed';
 import { partyMembersOf } from './eventContext';
@@ -20,29 +24,23 @@ export function rollCardChoices(
     rarities: ReadonlyArray<Rarity>,
     count: number,
     stream: SeedStream,
+    /** Ticket 185e: the run's multipliers and recently shown cards. Omitted means a plain draw. */
+    taste: OfferTaste = NO_TASTE,
 ): string[] {
     const allowed = pool.filter((id) => rarities.includes(ProgramRegistry[id]?.rarity as Rarity));
-    const chosen: string[] = [];
 
-    for (let slot = 0; slot < count; slot += 1) {
-        const remaining = allowed.filter((id) => !chosen.includes(id));
-        if (remaining.length === 0) break;
-
-        // Only rarities that still have a card left can be rolled, or the roll could land on an
-        // empty cohort and waste the slot.
-        const live = rarities.filter((rarity) => remaining.some((id) => ProgramRegistry[id]?.rarity === rarity));
-        const total = live.reduce((sum, rarity) => sum + RARITY_WEIGHTS[rarity], 0);
-        let roll = stream.next() * total;
-        let picked = live[live.length - 1];
-        for (const rarity of live) {
-            if (roll < RARITY_WEIGHTS[rarity]) { picked = rarity; break; }
-            roll -= RARITY_WEIGHTS[rarity];
-        }
-
-        const cohort = remaining.filter((id) => ProgramRegistry[id]?.rarity === picked);
-        chosen.push(cohort[stream.nextInt(0, cohort.length - 1)]);
-    }
-    return chosen;
+    // Ticket 185e: ONE weighted draw per slot, over the cards the last two picks did not just show
+    // (let back in, oldest first, only if that would leave fewer than `count`). Only rarities that
+    // still have a card left are rolled (`liveOnly`), exactly as before.
+    return drawOffer({
+        candidates: candidatesAfterRecent(allowed, taste.recent, count),
+        count,
+        rarityOf: rarityOfCard,
+        rarityWeights: RARITY_WEIGHTS,
+        multiplierOf: taste.multiplierOf,
+        rule: 'liveOnly',
+        nextU: () => stream.next(),
+    });
 }
 
 /**
@@ -56,5 +54,7 @@ export function offerCards(
     slot: string,
 ): string[] {
     const stream = new SeedStream(new SeedStream(nodeSeed(ctx.run, ctx.node, 'event-offer')).fork(slot));
-    return rollCardChoices(rewardCardPool(partyMembersOf(ctx)), outcome.rarities, outcome.count, stream);
+    const party = partyMembersOf(ctx);
+    const taste = offerTasteForRun(party, ownedCardIdsOf(ctx.run), ctx.run.recentOffers ?? []);
+    return rollCardChoices(rewardCardPool(party), outcome.rarities, outcome.count, stream, taste);
 }

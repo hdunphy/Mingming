@@ -8,21 +8,14 @@
 
 import { SeedStream } from '../../core/SeedStream';
 import type { IRegionNode } from '../../runTypes';
-import { REGION_PARAMS } from '../regionGraph';
-
-/** The middle layers (1 to 3), where a wild can become an elite without touching an entry or exit. */
-const FIRST_MIDDLE_LAYER = 1;
-const LAST_MIDDLE_LAYER = 3;
+import { isScriptedOpening, nodeRole } from '../regionGraph';
 
 /**
  * Whether `node` may be converted. A plain wild on the main road, in a middle layer, and never the
  * scripted opening fight of biome 0 (the first step out of the entry stays a wild, ticket 24).
  */
 function canBecomeElite(node: IRegionNode): boolean {
-    if (node.kind !== 'wild' || node.pocket) return false;
-    if (node.layer < FIRST_MIDDLE_LAYER || node.layer > LAST_MIDDLE_LAYER) return false;
-    if (node.biomeIndex === 0 && node.layer === REGION_PARAMS.scriptedOpeningLayer) return false;
-    return true;
+    return node.kind === 'wild' && nodeRole(node) === 'route' && !isScriptedOpening(node);
 }
 
 /**

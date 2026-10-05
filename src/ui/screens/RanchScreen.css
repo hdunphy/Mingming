@@ -84,10 +84,11 @@
 }
 
 .ranch-empty {
-    border: 2px dashed var(--panel-3);
-    padding: 1rem;
+    --k-cut: 8px;
+    background: var(--panel);
+    padding: 0.9rem 1.6rem;
     color: var(--text-mute);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
 
 /* `.ranch-button` is `.k-button`; `.subtle` is its quiet form (`.is-quiet`). */
@@ -246,10 +247,10 @@ button.ranch-card { cursor: pointer; }
     gap: 0.6rem;
 }
 
-.ranch-driver { padding: 0.8rem 0.9rem; }
+.ranch-driver { padding: 0.9rem 1.7rem; }
 
-.ranch-driver-name { font-family: var(--font-display); font-weight: 800; font-style: italic; text-transform: uppercase; font-size: 1.05rem; margin-bottom: 0.25rem; }
-.ranch-driver-desc { font-size: 0.8rem; color: var(--text-dim); line-height: 1.45; }
+.ranch-driver-name { font-family: var(--font-display); font-weight: 800; font-style: italic; text-transform: uppercase; font-size: 1.2rem; margin-bottom: 0.3rem; }
+.ranch-driver-desc { font-size: 0.9rem; color: var(--text-dim); line-height: 1.45; }
 
 /* --- Run start (ticket 09) --- */
 

@@ -164,7 +164,7 @@ export const DAEMON_COUNTERS: Readonly<Partial<Record<string, CounterReader>>> =
     'echo_chamber+': perTurnCounter({
         used: { key: 'echo_chamber_plus_encore', scope: 'OWNER' },
         limit: 'gate',
-        readyText: () => 'The first 0-cost card this turn makes two Feedback tokens.',
+        readyText: () => 'The first 0-cost card this turn makes two Tattle tokens.',
         spentText: 'Two-token bonus used this turn; back next turn.',
     }),
 };

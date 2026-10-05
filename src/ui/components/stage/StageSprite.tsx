@@ -1,10 +1,18 @@
 import React, { useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimate } from 'framer-motion';
 
 import type { IBattleEntity } from '../../../engine/types';
 import type { UnitFx } from '../../hooks/useBattleVfx';
 import { elementVars } from '../../theme/kit/elementGlyphs';
 import { prefersReducedMotion } from '../../utils/motionPrefs';
+import { poseToFramer } from '../../vfx/choreo/attackPose';
+import { onAttackPose } from '../../vfx/choreo/poseSignals';
+import { onSpriteReaction } from '../../vfx/landings/reactionSignals';
+import { reactionKeys } from '../../vfx/landings/spriteReaction';
+import { useClockedControls } from '../../vfx/clock/useClockedControls';
+import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
+import { targetShakePx } from '../../vfx/impact/impactMath';
+import { spriteShakes, wakeImpactFx } from '../../vfx/impact/impactRuntime';
 import MonsterArtPlaceholder from '../MonsterArtPlaceholder';
 import { MONSTER_ART_ENABLED } from '../monsterArtPolicy';
 import { SPRITE_H, SPRITE_W } from '../stageGeometry';
@@ -31,11 +39,18 @@ interface StageSpriteProps {
 }
 
 export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, width }) => {
-    const controls = useAnimation();
+    const [scope, animate] = useAnimate();
+    // TICKET 190f: the status reactions (dull, wobble, slump, pump) play on the ART, not on the frame
+    // that carries the lunge and the shake, so the two never fight over one transform.
+    const [artScope, animateArt] = useAnimate();
+    // TICKET 189a: the lunge is held to the battle clock (speed, hit-stop freeze, Instant).
+    const track = useClockedControls();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
     const [artBroken, setArtBroken] = React.useState(false);
-    const prevHpRef = React.useRef(entity.currentHp);
-    const isDead = entity.currentHp <= 0;
+    // TICKET 189c: knocked out only after the killing impact, not when the engine says so.
+    const shown = useDisplayedUnit(entity);
+    const prevHpRef = React.useRef(shown.hp);
+    const isDead = shown.isDown;
 
     useEffect(() => {
         // ticket 55: reviewed, not a defect. "Reset state when a prop changes"; the `key` React
@@ -45,43 +60,72 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
     }, [entity.artReference]);
 
     useEffect(() => {
-        if (entity.currentHp <= 0 && prevHpRef.current > 0) {
+        if (shown.hp <= 0 && prevHpRef.current > 0) {
             // ticket 55: reviewed. A 500ms one-shot owned by a timer, fired on an HP crossing only
             // a ref can see.
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setDeathGlitch(true);
             const timeout = setTimeout(() => setDeathGlitch(false), 500);
-            prevHpRef.current = entity.currentHp;
+            prevHpRef.current = shown.hp;
             return () => clearTimeout(timeout);
         }
-        prevHpRef.current = entity.currentHp;
-    }, [entity.currentHp]);
+        prevHpRef.current = shown.hp;
+    }, [shown.hp]);
 
     const hitKey = fx?.hitKey ?? 0;
     const hitIntensity = fx?.hitIntensity ?? 0;
     useEffect(() => {
-        if (!hitKey) return;
+        if (!hitKey || !scope.current) return;
         if (prefersReducedMotion()) {
-            controls.start({ x: 0, y: 0, opacity: [1, 0.6, 1], transition: { duration: 0.25 } });
+            animate(scope.current, { x: 0, y: 0, opacity: [1, 0.6, 1] }, { duration: 0.25 });
             return;
         }
-        const amp = 5 + 14 * hitIntensity;
-        controls.start({
-            x: [0, -amp, amp, -amp * 0.5, amp * 0.5, 0],
-            transition: { duration: 0.2 + 0.12 * hitIntensity },
-        });
-    }, [hitKey, hitIntensity, controls]);
+        // TICKET 189d: the target's jolt is the sprites' shudder field's, in GAME time, so a freeze
+        // holds it and a shake that starts under a freeze starts when it lifts. `hitIntensity` is the
+        // hit's severity, and the hit itself is drawn at the impact (the key moves then).
+        spriteShakes.shake(entity.id, targetShakePx(hitIntensity));
+        wakeImpactFx();
+    }, [hitKey, hitIntensity, animate, scope, entity.id]);
 
-    // Lunge toward the reveal lane: an ally moves right, an enemy left. Purely horizontal now that
-    // the columns face each other across the lane.
+    // The frame the field writes its `translate` to; it composes with the lunge's `transform`.
+    useEffect(() => {
+        const el = scope.current;
+        return el ? spriteShakes.attach(entity.id, el) : undefined;
+    }, [entity.id, scope]);
+
+    /*
+     * TICKET 190c — THE ATTACKER'S POSE. The presenter sends the whole pose when this body's cast
+     * begins (crouch, lunge, hold until the hit, walk back; or a status-only card's wiggle); it plays
+     * as ONE animation on the battle clock, so a hit-stop holds it where it is and Instant finishes it.
+     * Reduced motion keeps the body still.
+     */
+    useEffect(() => onAttackPose((signal) => {
+        if (signal.sourceId !== entity.id || prefersReducedMotion() || !scope.current) return;
+        const framer = poseToFramer(signal.pose);
+        track(animate(scope.current, framer.values, {
+            duration: framer.durationS, times: framer.times, ease: framer.ease,
+        }));
+    }), [entity.id, animate, scope, track]);
+
+    useEffect(() => onSpriteReaction((signal) => {
+        if (signal.targetId !== entity.id || prefersReducedMotion() || !artScope.current) return;
+        const keys = reactionKeys(signal.reaction);
+        track(animateArt(artScope.current, { ...keys.values } as Record<string, number[] | string[]>, {
+            duration: keys.durationMs / 1000, times: [...keys.times], ease: 'easeInOut',
+        }));
+    }), [entity.id, animateArt, artScope, track]);
+
+    // A nudge toward the reveal lane for an action that has no cast behind it (an enemy's intent):
+    // an ally moves right, an enemy left.
     const lungeKey = fx?.lungeKey ?? 0;
     useEffect(() => {
-        if (!lungeKey || prefersReducedMotion()) return;
-        controls.start({
-            x: [0, isEnemy ? -34 : 34, 0],
-            transition: { duration: 0.28, times: [0, 0.35, 1], ease: 'easeOut' },
-        });
-    }, [lungeKey, isEnemy, controls]);
+        if (!lungeKey || prefersReducedMotion() || !scope.current) return;
+        track(animate(
+            scope.current,
+            { x: [0, isEnemy ? -34 : 34, 0] },
+            { duration: 0.28, times: [0, 0.35, 1], ease: 'easeOut' },
+        ));
+    }, [lungeKey, isEnemy, animate, scope, track]);
 
     const showArt = MONSTER_ART_ENABLED && !!entity.artReference && !artBroken;
     const height = width * (SPRITE_H / SPRITE_W);
@@ -89,23 +133,25 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
     return (
         <motion.div
             className={`stage-sprite-frame ${isDead ? 'stage-sprite-dead' : ''} ${deathGlitch ? 'stage-death-glitch' : ''}`}
-            animate={controls}
+            ref={scope}
             style={{ width, height }}
         >
-            {showArt ? (
-                <img
-                    src={new URL(`../../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
-                    alt={entity.name}
-                    className="stage-art"
-                    draggable={false}
-                    style={{ transform: isEnemy ? 'scaleX(-1)' : 'none' }}
-                    onError={() => setArtBroken(true)}
-                />
-            ) : (
-                // The art-less fallback earns the same dead state, or a species without a sprite yet
-                // would be the one unit on the board that never looks terminated.
-                <MonsterArtPlaceholder className="stage-art-wip" style={elementVars(entity.primaryElement)} />
-            )}
+            <div className="stage-art-reaction" ref={artScope}>
+                {showArt ? (
+                    <img
+                        src={new URL(`../../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
+                        alt={entity.name}
+                        className="stage-art"
+                        draggable={false}
+                        style={{ transform: isEnemy ? 'scaleX(-1)' : 'none' }}
+                        onError={() => setArtBroken(true)}
+                    />
+                ) : (
+                    // The art-less fallback earns the same dead state, or a species without a sprite yet
+                    // would be the one unit on the board that never looks terminated.
+                    <MonsterArtPlaceholder className="stage-art-wip" style={elementVars(entity.primaryElement)} />
+                )}
+            </div>
 
             <FxTransientOverlays fx={fx} />
             <FxFloats fx={fx} rise={90} />

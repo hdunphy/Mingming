@@ -17,7 +17,7 @@ import {
     ACTIVE_STEP, CONSOLE_H, EHP_OPEN_WIDTH, EHP_RIGHT_INSET, EHP_TAB_WIDTH, ENEMY_MIN_SHIFT,
     ENEMY_PANEL_GAP, PLAQUE_W, REF_HEIGHT, REF_WIDTH, REVEAL_RECT, ROW_PITCH,
     SPRITE_H, SPRITE_MAX_W, SPRITE_W, STAGE_H, TOP_BAR_H,
-    battleRowCount, consoleHeightAt, enemyShiftFor, place, plaqueRect, rowY, spriteRect, stageScale, spriteWidthAt,
+    sideRowCount, consoleHeightAt, enemyShiftFor, place, plaqueRect, rowY, spriteRect, stageScale, spriteWidthAt,
 } from './stageGeometry';
 
 /** Straight off the mock's final frame. ally 1 is the active one there, which is why it is at 330. */
@@ -313,11 +313,11 @@ describe('183e — the rows are centred by party size (D5, ruled)', () => {
         }
     });
 
-    it('draws the larger side\'s count, between one and three', () => {
-        expect(battleRowCount(1, 1)).toBe(1);
-        expect(battleRowCount(3, 1)).toBe(3);
-        expect(battleRowCount(1, 2)).toBe(2);
-        expect(battleRowCount(0, 0)).toBe(1);
-        expect(battleRowCount(5, 5)).toBe(3);
+    it('draws a side on its own count, between one and three', () => {
+        expect(sideRowCount(1)).toBe(1);
+        expect(sideRowCount(2)).toBe(2);
+        expect(sideRowCount(3)).toBe(3);
+        expect(sideRowCount(0)).toBe(1);
+        expect(sideRowCount(5)).toBe(3);
     });
 });

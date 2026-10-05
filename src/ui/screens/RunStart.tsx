@@ -32,7 +32,9 @@ import { rollSeed } from '../../engine/core/SeedStream';
 import { partyBlockFor } from '../../engine/party';
 import { toMingmingState } from '../../engine/run/battleSetup';
 import { createRun } from '../../engine/run/createRun';
-import { gymSignatures } from '../../engine/run/gauntlet';
+import { withOpeningFight } from '../../engine/run/openingFight';
+import { runForecast } from '../../engine/run/runForecast';
+import { forecastHover } from '../../engine/run/forecastText';
 import { TIERS, tierRule } from '../../engine/run/tiers/tierRegistry';
 import { leaderDriverTierLine } from '../../engine/run/tiers/tierText';
 import { clearsByGym, modifiersUnlocked, unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
@@ -64,12 +66,12 @@ function useOfferScreen(): ReadonlyArray<IGymOffer> {
 /**
  * TICKET 182a — everything a gym card used to print under its route, as one hover.
  *
- * The leader's signature passive (ticket 68 ruling 4, the telegraph), the tier line (169e) and the
- * pair the rivals field (142c). It is the same information; the card face is now a name, an element
- * and three biome names.
+ * TICKET 193j: the leader's signature passive (ticket 68 ruling 4, the telegraph) now comes inside the
+ * run forecast's detail lines, with the gauntlet's shape above it, all built from the tables the
+ * gauntlet itself uses (`runForecast`). Then the tier line (169e) and the pair the rivals field (142c).
  */
 function offerHover(offer: IGymOffer, tier: number): string {
-    const lines = gymSignatures(offer.gym.id, offer.biomes).map((s) => plain(`${s.name}: ${s.description}`));
+    const lines = [forecastHover(runForecast(offer.biomes, offer.gym.id))];
     const tierLine = leaderDriverTierLine(tier);
     if (tierLine) lines.push(tierLine);
     lines.push(`Rivals field: ${pathElementsFor(offer.gym.element).join(' / ')}`);
@@ -80,6 +82,8 @@ export default function RunStart(): ReactNode {
     const dispatch = useDispatch();
     const roster = useSelector((s: RootState) => s.game.roster);
     const offers = useOfferScreen();
+    // 193j: the sentence does not depend on which gym; every offer is the same three-biome road.
+    const forecastSentence = useMemo(() => runForecast(offers[0]?.biomes ?? [], offers[0]?.gym.id ?? '').sentence, [offers]);
     const [chosen, setChosen] = useState<IGymOffer | null>(null);
     const [partyIds, setPartyIds] = useState<string[]>([]);
     const ranch = useSelector((s: RootState) => s.game);
@@ -159,7 +163,8 @@ export default function RunStart(): ReactNode {
         // card instance ids, and (later) encounter contents. One roll, so a run replays from one
         // string. `startedAt` is injected for the same reason the engine never calls `Date.now()`:
         // a module that reads the clock cannot be tested deterministically.
-        dispatch(startRun(createRun({
+        // Henry, 2026-10-03: the run opens on its first fight (`withOpeningFight`).
+        dispatch(startRun(withOpeningFight(createRun({
             seed,
             offer: chosen,
             // Ticket 169e: the tier picked above. It is fixed for the whole run.
@@ -172,7 +177,7 @@ export default function RunStart(): ReactNode {
             // doc comment.
             party: party.map(toMingmingState),
             startedAt: Date.now(),
-        })));
+        }))));
         playSfx('breach');
     };
 
@@ -211,10 +216,11 @@ export default function RunStart(): ReactNode {
 
             {!chosen && (
                 <>
-                    {/* TICKET 182a: one line. The two paragraphs on routes and rivals are gone (the
+                    {/* TICKET 193j: that one line is the run forecast (what the road holds and what the gym asks for).
+                        TICKET 182a: one line. The two paragraphs on routes and rivals are gone (the
                         rivals' elements are on each gym's hover, and the map's rival node explains
                         itself, 142c). */}
-                    <p className="ranch-note">Beat the gym leader at the end of the road.</p>
+                    <p className="ranch-note">{plain(forecastSentence)}</p>
                     {/* Ticket 169e: the tier row. A locked tier is disabled and says how to open it.
                         TICKET 182b: not drawn until a tier above 0 is unlocked. */}
                     {showTiers && (

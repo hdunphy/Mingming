@@ -86,6 +86,6 @@ describe('ProgramRegistry Inflation', () => {
         const data = GetProgramData('feedback_token');
         console.log("Feedback Token Data:", data);
         expect(data.id).toBe('feedback_token');
-        expect(data.name).toBe('Feedback');
+        expect(data.name).toBe('Tattle');
     });
 });

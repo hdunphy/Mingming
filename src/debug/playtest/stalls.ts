@@ -73,4 +73,4 @@ export const hereNode = (world: World): IRegionNode => {
 };
 
 /** Walk out of the stall: `RunScreen`'s `setClosedNodeId(current.id)`. The node is not spent. */
-export const leaveStall = (world: World): void => { world.view.closedStall = hereNode(world).id; };
+export const leaveStall = (world: World): void => { world.view.closedStall = hereNode(world).id; world.view.townPart = null; };

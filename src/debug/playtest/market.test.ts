@@ -12,7 +12,7 @@ import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { upgradeIdFor } from '../../engine/data/plusRegistry';
 import { isJunkCard } from '../../engine/run/junk';
 import {
-    JUNK_REMOVAL_PRICE, MARKET_REFRESH_PRICE, UPGRADES_PER_VISIT, isOfferSold, rollMacroStock,
+    JUNK_REMOVAL_PRICE, MARKET_REFRESH_PRICE, UPGRADES_PER_VISIT, isOfferSold, rollMacroStock, upgradeAllowanceFor, upgradeBenchKeyFor,
     rollMarketStock, sellPrice,
 } from '../../engine/run/marketplace';
 import { marketPartyFor } from '../../engine/run/marketParty';
@@ -52,12 +52,15 @@ describe('180b — arriving at a market', () => {
         expect(keysOf(world)).toContain('leave');
     });
 
-    it('leaving shows the map with a way back in, and going back in shows the market again', () => {
+    it('leaving shows the map with a way back in, and going back in shows the town square, then the market (176c)', () => {
         const world = marketWorld();
         press(world, 'leave');
         expect(currentScreen(world).id).toBe('map');
         expect(keysOf(world)).toContain('reopen');
         press(world, 'reopen');
+        // A town opens on its square; the market is one door off it.
+        expect(currentScreen(world).id).toBe('town');
+        press(world, 'town:shop');
         expect(currentScreen(world).id).toBe('market');
     });
 });
@@ -167,7 +170,9 @@ describe('180b — selling, junk, patches and upgrades', () => {
 
         const run = runOf(world);
         const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
-        const expected = expectedRun(world, upgradeDeckCard({ instanceId: 'up-0', benchKey: `${node.id}:${node.visited}`, free: false, allowance: UPGRADES_PER_VISIT }));
+        // A town's bench is its own pool (176c): the key and the allowance come from the node, and a
+        // biome-0 town allows two, the same as a plain market.
+        const expected = expectedRun(world, upgradeDeckCard({ instanceId: 'up-0', benchKey: upgradeBenchKeyFor(node), free: false, allowance: upgradeAllowanceFor(node) }));
         press(world, 'market:upgrade:up-0');
         expect(runOf(world)).toEqual(expected);
         expect(runOf(world).deck.find((c) => c.instanceId === 'up-0')!.dataId).toBe(upgradeIdFor(ids[0]));
@@ -205,6 +210,7 @@ describe('180b — a market on a real route', () => {
         }
         expect(reached, 'a seed reaches a market').not.toBeNull();
         const world = reached!;
+        // `walkTo` goes through the town's shop door for a test that asked for a market.
         expect(currentScreen(world).id).toBe('market');
         press(world, 'leave');
         press(world, 'reopen');

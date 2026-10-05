@@ -114,6 +114,9 @@
     color: var(--text-mute);
 }
 
+/* A note says what the row above it does; the next row starts a new thing and gets room. */
+.settings-note + :not(.settings-note) { margin-top: 14px; }
+
 .settings-choices {
     display: flex;
     gap: 6px;
@@ -194,4 +197,12 @@
 
 .settings-pending strong {
     color: var(--text-dim);
+}
+
+/* 190a: the screen-shake slider and its readout. */
+.settings-value {
+    min-width: 3ch;
+    margin-left: 0.5rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }

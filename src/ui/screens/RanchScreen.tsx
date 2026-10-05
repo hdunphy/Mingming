@@ -68,7 +68,7 @@ import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
-import { plain } from '../labels/labels';
+import { instinctName, plain } from '../labels/labels';
 import { driverText } from '../labels/driverText';
 
 
@@ -179,11 +179,11 @@ function RosterSection({
             <div className="ranch-section-head">
                 <h2>Roster ({roster.length})</h2>
                 <button type="button" className="ranch-button k-button" onClick={onOpenFirmware}>
-                    <Icon name="firmware" size={15} /> Instinct terminal
+                    <Icon name="firmware" size={15} /> Retrain
                 </button>
             </div>
             {roster.length === 0 && (
-                <div className="ranch-empty">
+                <div className="ranch-empty k-slant">
                     No mingmings yet. Spend a trace in <strong>Summon</strong> to build one.
                 </div>
             )}
@@ -194,7 +194,7 @@ function RosterSection({
                         <div className="ranch-card-species">{GetMingmingData(member.definitionId).name}</div>
                         <StatRoll member={member} />
                         <div className="ranch-card-os">
-                            <strong>{getOSBehavior(member.activeOS)?.name ?? member.activeOS}</strong>
+                            <strong>{instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)}</strong>
                             <span>{plain(getOSBehavior(member.activeOS)?.description)}</span>
                         </div>
                     </div>
@@ -286,7 +286,7 @@ function AssemblySection({
             <Callout tip={seenTips.includes(RANCH_BLUEPRINT_TIP.id) ? null : RANCH_BLUEPRINT_TIP} />
 
             {held.length === 0 && (
-                <div className="ranch-empty">
+                <div className="ranch-empty k-slant">
                     No traces. They drop from fights and from alpha nodes; each one builds exactly one
                     mingming.
                 </div>
@@ -379,7 +379,7 @@ function OsPicker({
                             onClick={() => onPick(id)}
                             aria-pressed={osId === id}
                         >
-                            <strong>{getOSBehavior(id)?.name ?? id}</strong>
+                            <strong>{instinctName(getOSBehavior(id)?.name ?? id)}</strong>
                             <span>{plain(getOSBehavior(id)?.description ?? 'No instinct description.')}</span>
                         </button>
                     ))}
@@ -408,12 +408,11 @@ function VaultSection({ drivers, tempDrivers }: {
                 <h2>Vault</h2>
             </div>
             <p className="ranch-note">
-                Totems held by the run in progress: party-wide passives won from elites. A totem is lost
-                with the run that won it, so there is nothing here to carry into the next one.
+                Party-wide passives won from elites. They end with the run that won them.
             </p>
             {drivers.length === 0 && tempIds.length === 0 && (
-                <div className="ranch-empty">
-                    Nothing installed. Totems are won from elites inside a run and are lost when it ends.
+                <div className="ranch-empty k-slant">
+                    No totems yet. Win one from an elite.
                 </div>
             )}
             <div className="ranch-driver-grid">

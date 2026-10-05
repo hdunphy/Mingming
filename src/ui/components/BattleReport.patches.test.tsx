@@ -56,7 +56,7 @@ describe('167j — the rune offer says who already runs a rune', () => {
         const lines = holderLines();
         expect(lines).toHaveLength(1);
         expect(lines[0]).toContain('Skoll');
-        expect(lines[0].toLowerCase()).toContain('amplifier');
+        expect(lines[0].toLowerCase()).toContain('fehu');
         expect(lines[0]).toMatch(/Skoll\s+—\s+/);
         expect(host.textContent).toContain('INSTINCT RUNE');
     });

@@ -211,10 +211,12 @@ export function cmdPlan(_root: string, args: ParsedArgs): CommandResult {
     for (const [name, value] of Object.entries(options)) {
         if (value !== undefined && (!Number.isInteger(value) || value < 0)) return refuse(`--${name === 'cardRuns' ? 'card-runs' : name === 'turnRuns' ? 'turn-runs' : name} must be a whole number.`);
     }
+    const seedDate = text(args, 'seed-date');
+    if (seedDate !== undefined && !/^[A-Za-z0-9._-]+$/.test(seedDate)) return refuse('--seed-date must be a date like 2026-10-04.');
     const only = text(args, 'starter');
     if (only !== undefined && !starterFirmwares().includes(only)) return refuse(`"${only}" is not a starter. One of: ${starterFirmwares().join(', ')}`);
     try {
-        return ok(JSON.stringify(planNight(date, only === undefined ? starterFirmwares() : [only], options), null, 2));
+        return ok(JSON.stringify(planNight(date, only === undefined ? starterFirmwares() : [only], { ...options, ...(seedDate === undefined ? {} : { seedDate }) }), null, 2));
     } catch (error) {
         return refuse(error instanceof Error ? error.message : String(error));
     }

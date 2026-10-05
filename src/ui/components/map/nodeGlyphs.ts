@@ -54,6 +54,6 @@ export function iconKindFor(kind: NodeKind, isStart = false): NodeIconKind {
         case 'gym': return 'gym';
         case 'alpha': return 'detour';
         case 'event': return 'event';
-        case 'marketplace': case 'workshop': return 'town';
+        case 'marketplace': case 'workshop': case 'town': return 'town';
     }
 }

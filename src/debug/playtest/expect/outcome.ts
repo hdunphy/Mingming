@@ -16,6 +16,7 @@
 import type { BattleAction } from '../../../engine/battleReducer';
 import type { IBattleEntity, IBattleState, ProgramEntity } from '../../../engine/types';
 import type { HitTotal } from '../battleSim';
+import { fightName } from '../sideTag';
 
 export interface PlayRecord {
     readonly action: BattleAction;
@@ -62,7 +63,7 @@ function statusDelta(before: IBattleEntity | undefined, after: IBattleEntity | u
 export function outcomeOf(play: PlayRecord): Outcome {
     const { before, after, action } = play;
     const casterId = action.type === 'PLAY_PROGRAM' || action.type === 'FIRE_MACRO' ? action.payload.sourceId : '';
-    const enemyNames = new Set(before.enemyParty.map((e) => e.name));
+    const enemyNames = new Set(before.enemyParty.map((e) => fightName(before, e.id)));
 
     const status: Record<string, Record<string, number>> = {};
     let self: Record<string, number> = {};

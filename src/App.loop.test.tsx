@@ -12,10 +12,12 @@
  * through the real clicks of the ones before it rather than through a fixture. If an earlier step
  * breaks, several tests fail — that is the point, the loop IS the fixture.
  *
- * The enemy turn runs on real `setTimeout`s (a 1.2 s beat per action), so the END TURN test drives
- * fake timers. Everything else is instantaneous.
+ * Since ticket 189 the screen has its own clock: an enemy card hovers a second, plays its attack and
+ * leaves, and a kill waits for the presenter before VIEW REWARDS appears. These tests are about the
+ * LOOP, not the show, so the ones that cross an enemy turn or a kill play at INSTANT (ticket 190a),
+ * where every wait resolves at once. The pacing itself is tested in `ui/vfx/pacing`.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 
 import { makeStore, mountApp, click, clickText, findText, fire, flush } from './testing/interaction';
@@ -23,6 +25,9 @@ import type { TestStore } from './testing/interaction';
 import { setBattleState } from './ui/store/battleSlice';
 import { setRun } from './ui/store/runSlice';
 import { GetProgramData } from './engine/data/programRegistry';
+import { DEFAULT_SETTINGS, applySettings, saveSettings } from './ui/settings/settings';
+import { resetBattleClock } from './ui/vfx/clock/battleClockRuntime';
+import { displayedBoard } from './ui/vfx/displayed/displayedBoardRuntime';
 
 /*
  * One seed, so the offer, the graph and the opening hand are the same every run. The engine never
@@ -57,7 +62,7 @@ async function beginRunWithFirstOffer(host: HTMLElement): Promise<void> {
     await clickText(host, 'Start run');
 }
 
-/** Biome 0's layer 1 is always a fight (ticket 24), so the first travel button is a battle. */
+/** The run's first road is always a fight (ticket 24), so the first travel button is a battle. */
 async function enterFirstNode(host: HTMLElement): Promise<void> {
     await click(host.querySelector('.rm-travel-button')!);
     await flush();
@@ -92,22 +97,57 @@ async function playAnAttackAtTheEnemy(host: HTMLElement, store: TestStore): Prom
     return hand[index].id;
 }
 
-/** A fresh save walked to the region map. */
-async function atTheMap(store: TestStore): Promise<HTMLElement> {
+/**
+ * A fresh save walked to Begin run, at the speed asked for. Since Henry's 2026-10-03 ruling the run
+ * opens straight into its first fight (the start node), so this is where that fight begins.
+ */
+async function beginRun(store: TestStore, instant: boolean): Promise<HTMLElement> {
     const host = await mountApp(store);
     await pickStarter(host, 'KRAKEN');
     await assembleFirstBlueprint(host);
+    if (instant) {
+        // After the mount (which clears storage) and before the fight mounts and reads its settings.
+        const settings = { ...DEFAULT_SETTINGS, battleSpeed: 'instant' } as const;
+        saveSettings(settings);
+        applySettings(settings);
+    }
     await beginRunWithFirstOffer(host);
     return host;
 }
 
-/** A fresh save walked into its first fight, on the player's turn. */
+/** A fresh save walked into its first fight (the start node's), on the player's turn. */
 async function inTheFirstFight(store: TestStore): Promise<HTMLElement> {
-    const host = await atTheMap(store);
-    await enterFirstNode(host);
+    const host = await beginRun(store, false);
     expect(store.getState().battle.battle?.activeSide).toBe('PLAYER');
     return host;
 }
+
+/** Like `inTheFirstFight`, with the battle speed at Instant: no hover, no show, no waiting. */
+async function inTheFirstFightAtInstant(store: TestStore): Promise<HTMLElement> {
+    const host = await beginRun(store, true);
+    expect(store.getState().battle.battle?.activeSide).toBe('PLAYER');
+    return host;
+}
+
+/** A fresh save, its opening fight won, standing on the region map (at Instant speed). */
+async function atTheMap(store: TestStore): Promise<HTMLElement> {
+    const host = await beginRun(store, true);
+    const live = store.getState().battle.battle!;
+    const weakened = { ...live, enemyParty: live.enemyParty.map((enemy) => ({ ...enemy, currentHp: 1 })) };
+    await act(async () => { displayedBoard.reset(weakened); store.dispatch(setBattleState(weakened)); });
+    await playAnAttackAtTheEnemy(host, store);
+    await clickText(host, 'VIEW REWARDS');
+    await flush();
+    for (const skip of [...host.querySelectorAll('button')].filter((b) => b.textContent?.trim() === 'SKIP')) {
+        await click(skip);
+    }
+    await clickText(host, 'CONTINUE SYNCHRONIZATION');
+    await flush();
+    expect(store.getState().run.run!.phase).toBe('map');
+    return host;
+}
+
+afterEach(() => resetBattleClock());
 
 describe('the core loop, click by click', () => {
     it('starter picked → the picker is gone and the trace is held', async () => {
@@ -137,7 +177,7 @@ describe('the core loop, click by click', () => {
         expect(host.textContent).toContain('Summoned');
     });
 
-    it('a gym offer, a party, Begin run → a run exists with the chosen party, on the map', async () => {
+    it('a gym offer, a party, Begin run → a run exists with the chosen party, in its opening fight', async () => {
         const store = makeStore();
         const host = await mountApp(store);
         await pickStarter(host, 'KRAKEN');
@@ -149,13 +189,17 @@ describe('the core loop, click by click', () => {
         const run = store.getState().run.run;
         expect(run).not.toBeNull();
         expect(run!.partyIds).toEqual([store.getState().game.roster[0].id]);
-        expect(run!.phase).toBe('map');
-        expect(host.querySelector('.rm-travel-button')).not.toBeNull();
+        // Henry, 2026-10-03: the run opens on the fight at its start node, not on the map.
+        expect(run!.phase).toBe('encounter');
+        expect(run!.currentNodeId).toBe('b0l0n0');
+        expect(store.getState().battle.battle).not.toBeNull();
+        expect(host.querySelector('.battle-screen')).not.toBeNull();
     });
 
     it('a node clicked on the region map → a battle exists and the run is in its encounter', async () => {
         const store = makeStore();
         const host = await atTheMap(store);
+        // The opening fight is won, so the map is up and no battle is running.
         expect(store.getState().battle.battle).toBeNull();
 
         await enterFirstNode(host);
@@ -185,7 +229,7 @@ describe('the core loop, click by click', () => {
 
     it('END TURN → the enemy acts and the turn comes back to the player', async () => {
         const store = makeStore();
-        const host = await inTheFirstFight(store);
+        const host = await inTheFirstFightAtInstant(store);
         const before = store.getState().battle.battle!;
 
         vi.useFakeTimers();
@@ -217,12 +261,14 @@ describe('the core loop, click by click', () => {
 
     it('a fight won → VIEW REWARDS, the report, CONTINUE → the run advances back to the map', async () => {
         const store = makeStore();
-        const host = await inTheFirstFight(store);
+        const host = await inTheFirstFightAtInstant(store);
         // Put the enemy on its last hit point so the next card wins; the loop, not the balance, is
         // what is under test here.
         const live = store.getState().battle.battle!;
         const weakened = { ...live, enemyParty: live.enemyParty.map((enemy) => ({ ...enemy, currentHp: 1 })) };
-        await act(async () => { store.dispatch(setBattleState(weakened)); });
+        // Setting the state by hand is not a play, so no beat moves the displayed board with it (ticket
+        // 189c's safety net would call that a missing beat); tell the board the way a loaded fight is.
+        await act(async () => { displayedBoard.reset(weakened); store.dispatch(setBattleState(weakened)); });
         const fightsBefore = store.getState().run.run!.fightsResolved;
 
         await playAnAttackAtTheEnemy(host, store);
@@ -267,11 +313,15 @@ describe('the core loop, click by click', () => {
         expect(host.querySelector('.rm-travel-button')!.textContent).toContain('stakes: FIRST BLOOD');
         expect(host.querySelector('.rm-node-stake-ring')).not.toBeNull();
 
+        // The kill and the report are the claim, not the show: play the fight at Instant.
+        const instant = { ...DEFAULT_SETTINGS, battleSpeed: 'instant' } as const;
+        saveSettings(instant);
+        applySettings(instant);
         await enterFirstNode(host);
         expect(store.getState().run.run!.drivers).toEqual([]);
         const live = store.getState().battle.battle!;
         const weakened = { ...live, enemyParty: live.enemyParty.map((enemy) => ({ ...enemy, currentHp: 1 })) };
-        await act(async () => { store.dispatch(setBattleState(weakened)); });
+        await act(async () => { displayedBoard.reset(weakened); store.dispatch(setBattleState(weakened)); });
 
         await playAnAttackAtTheEnemy(host, store);
         // An elite fields the player's own party size; one hit at 1 HP kills one body. Finish the rest.

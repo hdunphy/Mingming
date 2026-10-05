@@ -76,7 +76,10 @@
 	{
 		"id"	"4"
 		"mode"	"joystick_mouse"
-		"inputs"	{ }
+		"inputs"
+		{
+			"click"	{ "activators" { "Full_Press" { "bindings" { "binding" "key_press RIGHT_SHIFT" } } } }	// Hold to fast-forward (Right Shift)
+		}
 	}
 
 	"preset"

@@ -28,7 +28,7 @@ import { BUILT_EVENTS } from '../../engine/run/events/eventDraw';
 import EventNode from '../../ui/screens/EventNode';
 import { SeedStream } from '../../engine/core/SeedStream';
 import { createRanchMember } from '../../engine/gameTypes';
-import { rollMarketStock } from '../../engine/run/marketplace';
+import { isMarketNode, rollMarketStock } from '../../engine/run/marketplace';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import type { IMingmingState } from '../../engine/types';
 import type { IRunCard, IRunState } from '../../engine/runTypes';
@@ -58,7 +58,7 @@ function baseRun(scrap: number): IRunState {
         party: PARTY,
         startedAt: 1_700_000_000_000,
     });
-    const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = run.nodes.find((n) => isMarketNode(n.kind))!;
     return {
         ...run,
         scrap,

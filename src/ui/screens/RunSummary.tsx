@@ -48,7 +48,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { bankedBlueprintCounts, summarizeRun } from '../../engine/run/runSummary';
@@ -62,6 +62,9 @@ import { autoSaveRunLog } from '../settings/exportRunLog';
 import { loadSettings } from '../settings/settings';
 import { teardownRun } from '../store/runTeardown';
 import { introRules } from '../../engine/run/intro/introRules';
+import { unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
+import { clearLine } from '../../engine/run/tiers/tierUnlockLine';
+import type { RootState } from '../store/store';
 import './RunSummary.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
@@ -110,6 +113,8 @@ function headlineFor(run: IRunState): HeadlineCopy {
 
 export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode {
     const dispatch = useDispatch();
+    // Ticket 185f: the tiers the ranch has open, for the line that says what this clear unlocked.
+    const ranch = useSelector((state: RootState) => state.game);
 
     /**
      * One clock reading for the life of this panel. Lazy `useState` rather than a bare `Date.now()`
@@ -217,7 +222,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
     const unlocked = introRules(run).intro
         ? (run.outcome === 'victory' ? 'The real gyms are open' : 'The real gyms are still open to you')
         : run.outcome === 'victory'
-            ? `${gymName} cleared · tier ${run.tier} unlocked`
+            ? clearLine(gymName, run.tier, unlockedTiers(ranch))
             : `${gymName} not cleared`;
 
     return (

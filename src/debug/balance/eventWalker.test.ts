@@ -61,7 +61,8 @@ describe('chooseEventChoice', () => {
 describe('walkRun across event nodes', () => {
     // Seeds whose shortest path to the gym crosses an event node early (the walker only steps onto
     // an event when it is the only node on that path, so most seeds never see one).
-    const SEEDS = ['ev-8', 'ev-33'];
+    // (Re-found for the 176 map: its routes branch, so fewer seeds are forced across an event early.)
+    const SEEDS = ['ev-44', 'ev-61'];
 
     it('records EVENT_RESOLVED when a walk crosses an event node, and does not throw', () => {
         for (const seed of SEEDS) {
@@ -75,7 +76,7 @@ describe('walkRun across event nodes', () => {
     }, 120_000);
 
     it('is repeatable: the same seed resolves the same events the same way', () => {
-        const resolutions = (): string[] => walkRun({ seed: 'ev-33', starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 4 })
+        const resolutions = (): string[] => walkRun({ seed: 'ev-44', starter: 'kraken_v1', gymIndex: 0, stopAfterFights: 4 })
             .log.events.flatMap((e) => (e.kind === 'EVENT_RESOLVED' ? [`${e.eventId}:${e.choiceId}`] : []));
         expect(resolutions()).toEqual(resolutions());
     }, 120_000);

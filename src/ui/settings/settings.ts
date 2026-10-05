@@ -36,6 +36,16 @@ import { z } from 'zod';
 import { getSaveStorage } from '../../engine/save/storage';
 import { prefersReducedMotion, setReducedMotionOverride } from '../utils/motionPrefs';
 import { setCombatSounds } from '../audio/AudioEngine';
+import { BATTLE_SPEEDS, DEFAULT_BATTLE_SPEED, isInstantTier, type BattleSpeedTier } from '../vfx/clock/battleSpeedTiers';
+import { patchBattleSpeedInputs } from '../vfx/clock/battleClockRuntime';
+import { setActiveTier } from '../vfx/tiers/activeTier';
+
+export { BATTLE_SPEEDS, type BattleSpeedTier };
+
+/** The shake slider runs 0-100; 60 is the ruled default (Henry, 2026-10-02: "60% is good"). */
+export const SHAKE_MIN = 0;
+export const SHAKE_MAX = 100;
+export const DEFAULT_SCREEN_SHAKE = 60;
 
 /** One key, no slot prefix — see the header. */
 export const SETTINGS_STORAGE_KEY = 'mingming_settings';
@@ -83,25 +93,28 @@ export interface ISettings {
      */
     readonly autoSaveRunLog: boolean;
     /**
-     * ── TICKET 146a — THE THREE VFX SWITCHES ──────────────────────────────────────────────────
+     * ── TICKET 146a's `particles`, AND TICKET 190a's BATTLE SWITCHES ───────────────────────────
      *
-     * Three, not one, because they fail differently and a player who wants one of them off rarely
-     * wants all three off:
+     * `particles` — the canvas layer. The first thing to cost frames on a weak machine, and the one
+     * a player is most likely to turn off for performance rather than for comfort.
      *
-     * - `particles` — the canvas layer. The first thing to cost frames on a weak machine, and the
-     *   one a player is most likely to turn off for performance rather than for comfort.
-     * - `vfx` — flashes, trails, impact bursts, status tells, OS tells. What things LOOK like.
-     * - `animations` — card flight, lunges, lifts, hit-stop, shake. What MOVES, which is the axis
-     *   motion sensitivity actually runs along.
+     * 190a retired the two other 146a switches (`vfx` "Effects" and `animations` "Animations", ruled
+     * D1, 2026-10-02) in favour of the five battle speeds. An old save is migrated on load:
+     * `animations: false` becomes Instant, and `vfx: false` becomes `flashes: false`.
      *
-     * All default ON. **Off means off**, not reduced: with `animations` off the card appears in the
-     * lane and the discard count ticks; with `vfx` off the plaque numbers and badges are the only
-     * feedback. The game is fully playable with all three off, which is the property that makes
-     * them safe to expose at all.
+     * All default ON / Showy. Reduced motion still outranks every one of them (`resolveVfxGates`).
      */
     readonly particles: boolean;
-    readonly vfx: boolean;
-    readonly animations: boolean;
+    /** Slow · Showy · Snappy · Fast · Instant. Default Showy (ruled). Instant skips every effect AND every wait. */
+    readonly battleSpeed: BattleSpeedTier;
+    /** Camera shake strength, 0-100. Default 60 (ruled). The target's own shudder is not part of it. */
+    readonly screenShake: number;
+    /** The freeze on a heavy hit. */
+    readonly hitStop: boolean;
+    /** Hit flashes and the big-move stage dim. Keep under WCAG's three flashes a second. */
+    readonly flashes: boolean;
+    /** When cards are queued the clock runs up to x1.6. Default ON (ruled). */
+    readonly catchUp: boolean;
 
     /**
      * ── BATTLE LOGS — Henry, 2026-09-20, with the split that made them cheap. ──────────────
@@ -176,7 +189,7 @@ export interface ISettings {
  * writing*, so a hand-edited file is not silently rewritten. `textScale` is bounded rather than
  * enumerated so that a future rung does not invalidate a stored value from a newer build.
  */
-export const SettingsSchema = z.object({
+const SettingsFields = z.object({
     reducedMotion: z.enum(MOTION_CHOICES).default('system'),
     textScale: z.number().min(0.5).max(2).default(1),
     // `.default(false)` rather than required, so a settings blob written before this field existed
@@ -186,8 +199,12 @@ export const SettingsSchema = z.object({
     // before these fields existed still parses, and it parses into the behaviour that player
     // already had — everything on.
     particles: z.boolean().default(true),
-    vfx: z.boolean().default(true),
-    animations: z.boolean().default(true),
+    // 190a. `.default()` so a blob from before the five tiers parses into Showy and everything on.
+    battleSpeed: z.enum(BATTLE_SPEEDS).default(DEFAULT_BATTLE_SPEED),
+    screenShake: z.number().min(SHAKE_MIN).max(SHAKE_MAX).default(DEFAULT_SCREEN_SHAKE),
+    hitStop: z.boolean().default(true),
+    flashes: z.boolean().default(true),
+    catchUp: z.boolean().default(true),
     // `.default(true)` for the same reason as the three above: a settings blob written before this
     // field existed parses into the behaviour that player already had — 156 shipped them on.
     battleLogs: z.boolean().default(true),
@@ -203,45 +220,84 @@ export const SettingsSchema = z.object({
     showTips: z.boolean().default(true),
 });
 
+/**
+ * The retired 146a switches, read out of an old blob BEFORE the strict parse drops them (zod strips
+ * unknown keys). `animations: false` -> Instant; `vfx: false` -> flashes off. A value the player has
+ * already chosen on the new build is never overridden.
+ */
+export function migrateLegacySettings(raw: unknown): unknown {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
+    const old = raw as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...old };
+    if (old.animations === false && old.battleSpeed === undefined) next.battleSpeed = 'instant';
+    if (old.vfx === false && old.flashes === undefined) next.flashes = false;
+    delete next.animations;
+    delete next.vfx;
+    return next;
+}
+
+export const SettingsSchema = z.preprocess(migrateLegacySettings, SettingsFields);
+
 export const DEFAULT_SETTINGS: ISettings = {
     reducedMotion: 'system', textScale: 1, autoSaveRunLog: false,
-    particles: true, vfx: true, animations: true, battleLogs: true, combatSounds: true,
+    particles: true, battleSpeed: DEFAULT_BATTLE_SPEED, screenShake: DEFAULT_SCREEN_SHAKE,
+    hitStop: true, flashes: true, catchUp: true, battleLogs: true, combatSounds: true,
     showEnemyHand: true, showAdvancedContent: false, showTips: true,
 };
 
-/** What `vfx` resolves to once reduced motion has had its say. */
+/** What the effects layer resolves to once reduced motion and Instant have had their say. */
 export type VfxLevel = 'full' | 'flashes' | 'off';
 
-/** The three switches as the layer and the stylesheet actually see them. */
+/** The switches as the layer and the stylesheet actually see them. */
 export interface VfxGates {
     readonly particles: boolean;
+    /** Movement: lunges, card flight, sprite motion. Off under reduced motion and at Instant. */
     readonly animations: boolean;
     readonly vfx: VfxLevel;
+    /** The freeze on a heavy hit. */
+    readonly hitStop: boolean;
+    /** Camera shake strength, 0-1. */
+    readonly shake: number;
+    /** Hit flashes and the big-move dim. */
+    readonly flashes: boolean;
 }
 
 /**
- * RESOLVE THE SWITCHES AGAINST REDUCED MOTION — ticket 146a's mapping, in one place.
+ * RESOLVE THE SWITCHES AGAINST REDUCED MOTION AND INSTANT — ticket 146a's mapping, in one place,
+ * widened by ticket 190a.
  *
- * *"`reducedMotion` stays and maps to: particles off, animations off, vfx → flashes only."*
+ * *"`reducedMotion` stays and maps to: particles off, animations off, vfx -> flashes only."* Reduced
+ * motion OUTRANKS the switches rather than sitting beside them, and the asymmetry is the point: a
+ * player who has asked their OS for less motion has said something about their body, and a stored
+ * `hitStop: true` or a shake of 100 from before that is not consent. The switches can only ever turn
+ * things further off. With 190a that adds: no hit-stop and no shake.
  *
- * Reduced motion OUTRANKS the three switches rather than sitting beside them, and the asymmetry is
- * the point: a player who has asked their OS for less motion has said something about their body,
- * and a stored `animations: true` from before that is not consent. The switches can only ever turn
- * things further off.
+ * `flashes only` is what survives reduced motion: a flash has no motion in it - it is one frame
+ * brighter - so it keeps the feedback that says WHICH unit was hit without any of the movement that
+ * is being declined. It is still the player's own switch: `flashes: false` turns it off there too.
  *
- * `flashes only` is what survives: a flash has no motion in it — it is one frame brighter — so it
- * keeps the feedback that says WHICH unit was hit without any of the movement that is being
- * declined. It is the reason `vfx` is three-valued here and a boolean in storage.
+ * INSTANT runs nothing: no particles, no movement, no effects, no freeze, no shake, no flash. The
+ * numbers and the HP bar are the whole of the feedback.
  *
- * One function, called by `applySettings` for the DOM attributes and by the layer for its own gate,
- * so CSS and JavaScript cannot come to different conclusions about the same player.
+ * One function, called by `applySettings` for the DOM attributes and by the layers for their own
+ * gates, so CSS and JavaScript cannot come to different conclusions about the same player.
  */
 export function resolveVfxGates(settings: ISettings, reduced: boolean = prefersReducedMotion()): VfxGates {
-    if (reduced) return { particles: false, animations: false, vfx: 'flashes' };
+    if (isInstantTier(settings.battleSpeed)) {
+        return { particles: false, animations: false, vfx: 'off', hitStop: false, shake: 0, flashes: false };
+    }
+    if (reduced) {
+        return {
+            particles: false, animations: false, vfx: 'flashes', hitStop: false, shake: 0, flashes: settings.flashes,
+        };
+    }
     return {
         particles: settings.particles,
-        animations: settings.animations,
-        vfx: settings.vfx ? 'full' : 'off',
+        animations: true,
+        vfx: 'full',
+        hitStop: settings.hitStop,
+        shake: settings.screenShake / SHAKE_MAX,
+        flashes: settings.flashes,
     };
 }
 
@@ -311,6 +367,14 @@ export function applySettings(settings: ISettings, root?: HTMLElement): void {
      */
     setCombatSounds(settings.combatSounds);
 
+    /*
+     * Ticket 190a: the battle speed and catch-up reach the battle clock. Before the DOM guard for
+     * the same reason as the line above. Reduced motion does not touch the clock speed: it removes
+     * movement, not time.
+     */
+    patchBattleSpeedInputs({ tier: settings.battleSpeed, catchUp: settings.catchUp });
+    setActiveTier(settings.battleSpeed);
+
     setReducedMotionOverride(
         settings.reducedMotion === 'system' ? null : settings.reducedMotion === 'on',
     );
@@ -324,20 +388,18 @@ export function applySettings(settings: ISettings, root?: HTMLElement): void {
 
     /*
      * Ticket 146a: *"Each switch is a `data-` attribute on the root like `data-reduced-motion` so
-     * CSS and the layer read the same truth."*
+     * CSS and the layer read the same truth."* 190a (ruled D1) removed `data-vfx` and
+     * `data-animations` with the switches they mirrored; `data-particles` stays.
      *
-     * The RESOLVED gates are stamped, not the raw stored booleans. A stylesheet asking
+     * The RESOLVED gate is stamped, not the raw stored boolean. A stylesheet asking
      * `[data-particles="off"]` wants to know whether particles are running, and under reduced
-     * motion they are not — whatever the stored switch says. Publishing the raw value here is how
-     * CSS and JavaScript end up disagreeing about the same player.
+     * motion they are not - whatever the stored switch says.
      *
      * `setReducedMotionOverride` above runs first on purpose: `resolveVfxGates` defaults to
      * `prefersReducedMotion()`, which reads that override.
      */
     const gates = resolveVfxGates(settings);
     element.setAttribute('data-particles', gates.particles ? 'on' : 'off');
-    element.setAttribute('data-animations', gates.animations ? 'on' : 'off');
-    element.setAttribute('data-vfx', gates.vfx);
 
     /*
      * TICKET 159c, stamped the same way and pointedly NOT through `gates`.

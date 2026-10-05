@@ -1,6 +1,6 @@
 # Ticket 185: The Strength engine nerf, and rewards that know your deck
 
-**Type:** balance (card and firmware data), reward economy, one text fix. **Status:** RULED (Henry, 2026-10-02), and all three decisions were answered the same day (see the bottom). **185a–185e are buildable now.** 185f touches `RunSummary.tsx`, so it waits until ticket 182 has finished with that file.
+**Type:** balance (card and firmware data), reward economy, one text fix. **Status:** DONE 2026-10-04 (185a–f built; see `## Resolution`). Ruled by Henry on 2026-10-02, and all three decisions were answered the same day (see the bottom).
 
 **Where this comes from.** Henry's Rootfall run on 2026-10-02 (`playtest-results/2026-10-02/rootfall-fenrir_v1/`), started with fenrir_v1 and later joined by skoll_v1 and huldra_v2, all three with AMPLIFIER. The run won the gym at tier 0 in 13 fights. Every fight after the first ended in 1–3 turns, and each of the gym's three fights took 2. The review is the Claude project doc "playtest-2026-10-02-rootfall-fenrir-v1-review". In short, four things stacked:
 
@@ -158,3 +158,52 @@ So "1 per 3" is a nerf of roughly 85% at 21 Strength, and it leaves a 2-energy R
 3. **Sköll's text and ticks (185b):** "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength." Burn and Poison ticks do not count.
 
 **Next step:** an agent builds 185a–185e in order, one commit per row, and reports the fight-one reads for the fenrir_v1 and skoll_v1 starters. 185f follows once 182 is done with `RunSummary.tsx`.
+
+---
+
+## Resolution
+
+Built 2026-10-04 on branch `first-impressions`, one commit per row, tests first and each shown failing on the parent: 185a `1a33f6f`, 185b `f699f7a`, 185c `be5c9ae`, 185d `8a31148`, 185e `12c3338`, 185f `0bc056d`; Henry's rulings on the findings followed as `78727d7` and `0c7add2`. Not pushed.
+
+**What each row does**
+
+- **185a:** both fenrir_v1 hooks now also require `programCategoryIn: ["Attack"]`, so Forage and every other Skill stop feeding UNBOUND_KERNEL. The AMPLIFIER and SPLITTER transforms clone the hook, so they carry the condition (tested); RELAY is still never offered.
+- **185b:** a new hook condition, `hpLost`, is set at all three per-hit sites in `battleReducer` from the target's HP before and after the hit. skoll_v1 fires only when it is true, so a hit that Bark Shield soaks and a status-only card give her nothing. Burn and Poison ticks never reach `onPostDamage`. The text is Henry's sentence, in the game, the patch text and the design record.
+- **185c:** Sun Devourer is 15 power per Strength stack, 20 upgraded.
+- **185d:** Core Overclock is flat power in `onPowerCalculated`: +1 per 2 Strength (floor), +1 per Strength upgraded. At 0, 1, 2, 3, 6 and 21 Strength the base card adds 0, 0, 1, 1, 3 and 10 power and the upgrade adds 0, 1, 2, 3, 6 and 21, on every hit of a multi-hit card.
+- **185e:** `shape` and `cur` are on all 99 cards in `programs.json` (a test reads `collection.json`). A card offer is one weighted draw: `RARITY_WEIGHTS[rarity] / (cards of that rarity) x multiplier`, and at multiplier 1 that is exactly the old odds (tested against a separate restatement of the old roll). `SYNERGY_MULTIPLIER = 2` and `MISSING_PAYOFF_MULTIPLIER = 3` sit beside `RARITY_WEIGHTS`. The last two picks' shown cards are left out (`IRunState.recentOffers`, saved with the run, written when a pick is claimed, in a fight and in an event) and come back oldest first only if the pool cannot fill three. The shop is untouched. The code is a set of small modules in `src/engine/rewards/`.
+- **185f:** the summary line comes from `tiers/tierUnlockLine.ts` and `unlockedTiers`: "Rootfall cleared · tier 1 unlocked" after a tier-0 clear, "Rootfall cleared · top tier" at `MAX_TIER`.
+
+**Where it differs from the plan above**
+
+- **Cohort sizes after the recent-card rule (185e):** the "cards of that rarity" in the weight counts only the cards still in the offer after the last two picks' cards are taken out, so the rarity odds stay the rarity odds.
+- **Distinct cards in one offer (185e):** each later card is drawn from what is left, with the first draw's weights. That is the same distribution as the old "reroll until it is not a repeat", without the bounded loop.
+- **The parked gym draft (`rollDraftRounds`)** uses the same single draw with no party bias, so there is one draw in the code and not two.
+- **185f:** the line names the lowest unlocked tier above the one cleared. If the ranch shows none (the clear is not recorded yet) it says only "cleared".
+
+**Findings, and what Henry ruled (2026-10-04)**
+
+18 other hooks read `actionType: "ATTACK"` the same card-level way (the ticket counted 17). Forage and Forage+ (no element) reached only the two that have no element gate, and Dark Pact (a Dark Skill that costs 3% of its max HP) reached the same two plus the Dark element Driver. Henry's rulings, built as two follow-up commits on top of the six rows (not pushed):
+
+1. **"They should not read forage"** (`78727d7`). Tenth Strike (count, boost, fire) and First Blood (count, fire, boost) now also require `programCategoryIn: ["Attack"]`.
+2. **Dark Pact "works similarly" so it gets the same fix** (`78727d7`). It does (its ATTACK action is aimed at the caster), so the Dark Driver's boost hook has the same condition. The other eight element Drivers, `gullin_v2_ram` (Earth), `sleipnir_v2_hook` (Air) and `einherjar_standard_hook` (Light) never reached either card, because each is gated on an element they do not have, so they are unchanged.
+3. **The five damaging Skills: "are they mislabeled? Attacks are something that deals damage to an enemy"** (`0c7add2`). They are: Overdrive (54 power), Hamstring (20), Adrenaline (18), Feather Cache (5) and War Molt (15) each have an enemy-targeted ATTACK action. They are now Attack cards, so they feed fenrir_v1 again. Forage and Dark Pact stay Skills, because their damage is aimed at the caster. A rule test (`skillsThatHitAreAttacks.test.ts`) reads the whole registry and fails if any Skill carries an enemy-aimed damage action.
+
+Knock-ons of ruling 3 that Henry did not ask for. He looked at them the same day and ruled each (a contact card is kept, the Gullinbursti change is fine, Hexbloom+ stays a Status):
+
+- **Contact cards (190c):** Adrenaline and Hamstring are single-target element None Attacks, so they now run in and hit like Tackle; the pinned list is thirteen, not eleven.
+- **Gullinbursti's UNSTOPPABLE_MASS** primes on a non-Attack card that applies a status. Hamstring, Adrenaline and Overdrive used to prime it and now do not, because they are Attacks. His own v1 deck holds none of them, but a run can draft them.
+- **Hexbloom+** is a Status card that also deals 7 power per Weakened to the target. Its base card is a Status that deals none, so it was left alone.
+- Their card banner reads ATTACK instead of SKILL.
+- No pinned walker hash moved.
+
+**Seeds that moved**
+
+- Rows a and b re-pinned `aiDeterminism` fights 0, 9, 10, 14 and 2, 7. Rows c and d moved none.
+- Row e moved every card offer from the same seed, and the blueprint roll of a fight's second and third corpse (the first corpse's roll and every rate are unchanged). Re-pinned: the four multi-body rows of `PARENT_PAYOUTS`, the four `ghostWalk` goldens and the three `draftPolicy` goldens. All seven pinned values (six distinct walks) were computed at every row, which is how we know rows a-d moved none of them.
+
+**Fight-one reads** (300 seeds each, the 85% target; walker `--fight 1`): fenrir_v1 98.0% and skoll_v1 94.7% on the finished tree, against 99.3% and 94.7% before. All are above the bar. The 1v1 grid was not re-run (standing ruling).
+
+**Checked:** `tsc -b` and `eslint src` clean; the engine suite green at each of rows a-d (2,018, 2,029, 2,035 and 2,054 tests); the whole suite run on the finished tree, where the only red test is `runWalker.scrap` 174d, which fails the same way on the parent.
+
+**Henry still has to:** run `npm run gate` once (`vite build` and the whole gate could not run in the Linux copy), and regenerate the design record's page and registry on his machine (`npm run decks`, then `python build.py`): `collection.json` and the card texts changed, and `registry.json` and `browser.html` were not touched. Then retune the two multipliers after play.

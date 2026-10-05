@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import MainMenuView from '../MainMenuView';
 import { GetMingmingData } from '../../../engine/data/mingmingRegistry';
 import { makeStore, mount, click } from '../../../testing/interaction';
-import { STARTER_STAT_SCALE, starterStats } from './starterStats';
+import { STARTER_STAT_SCALE, starterStats } from './starterStatValues';
 
 const IDS = ['kraken', 'fenrir', 'ratatoskr'] as const;
 

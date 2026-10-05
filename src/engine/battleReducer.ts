@@ -23,6 +23,7 @@ import { discardHand, HAND_SIZE_LIMIT } from './deckLogic';
 import { ActionExecutorRegistry } from './actions/ActionExecutors';
 import { actionConditionsMet } from './actions/actionConditions';
 import { ConditionValidator } from './core/ConditionValidator';
+import { hpLostInHit } from './core/hitHpLoss';
 import { generateIntents } from './core/IntentUtils';
 import { applyMutations, executeResolutionStack, executeDraw, executeStatusDamageCalculated, executeCostCalculated, crossedDownHalf, fireHpThresholdCrossed } from './resolutionEngine';
 import { getOSBehavior } from './data/firmwareRegistry';
@@ -539,6 +540,7 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                         }
                     }
 
+                    const stateBeforeHit = finalState;
                     const executor = ActionExecutorRegistry[modifiedAction.type];
                     if (executor) {
                         finalState = executor.execute(finalState, sourceId, tId, modifiedAction, programData, hitContext);
@@ -546,8 +548,11 @@ function handlePlayProgram(state: IBattleState, payload: { sourceId: string; tar
                         console.warn(`[BattleReducer] No executor found for action type: ${modifiedAction.type}`);
                     }
 
-                    // Post-Damage Phase
-                    const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
+                    // Post-Damage Phase. Ticket 185b: `hpLost` is what this swing really took off
+                    // the target, Bark Shield and all, for hooks that only care about a real hit.
+                    const { state: afterPost } = executeResolutionStack('onPostDamage', {
+                        ...hitContext, state: finalState, hpLost: hpLostInHit(stateBeforeHit, finalState, tId),
+                    });
                     finalState = afterPost;
 
                 }
@@ -806,6 +811,7 @@ function handleFireMacro(
         if (isCancelled) continue;
         finalState = afterMod;
 
+        const stateBeforeHit = finalState;
         const executor = ActionExecutorRegistry[action.type];
         if (executor) {
             finalState = executor.execute(finalState, sourceId, tId, action, macroProgram, hitContext);
@@ -813,7 +819,9 @@ function handleFireMacro(
             console.warn(`[BattleReducer] No executor found for macro action type: ${action.type}`);
         }
 
-        const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
+        const { state: afterPost } = executeResolutionStack('onPostDamage', {
+            ...hitContext, state: finalState, hpLost: hpLostInHit(stateBeforeHit, finalState, tId),
+        });
         finalState = afterPost;
     }
 
@@ -962,6 +970,7 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                 finalState = afterMod;
 
                 // Execution
+                const stateBeforeHit = finalState;
                 const executor = ActionExecutorRegistry[action.type];
                 if (executor) {
                     finalState = executor.execute(finalState, sourceId, tId, action, dummyProgram, hitContext);
@@ -969,8 +978,10 @@ function handleExecuteIntent(state: IBattleState, payload: { sourceId: string })
                     console.warn(`[BattleReducer] No executor found for intent action type: ${action.type}`);
                 }
 
-                // Post-Damage Phase
-                const { state: afterPost } = executeResolutionStack('onPostDamage', { ...hitContext, state: finalState });
+                // Post-Damage Phase (ticket 185b: with the HP this swing really took, see above)
+                const { state: afterPost } = executeResolutionStack('onPostDamage', {
+                    ...hitContext, state: finalState, hpLost: hpLostInHit(stateBeforeHit, finalState, tId),
+                });
                 finalState = afterPost;
             }
         }

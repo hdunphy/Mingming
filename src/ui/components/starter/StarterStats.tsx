@@ -4,7 +4,7 @@
  */
 import type { ReactElement } from 'react';
 
-import { STARTER_STAT_SCALE, starterStats } from './starterStats';
+import { STARTER_STAT_SCALE, starterStats } from './starterStatValues';
 
 export function StarterStats({ speciesId }: { readonly speciesId: string }): ReactElement {
     return (

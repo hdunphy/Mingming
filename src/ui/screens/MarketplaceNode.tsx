@@ -69,7 +69,9 @@ import {
     rollMarketStock,
     type IMacroOffer,
     type IMarketOffer,
-    UPGRADES_PER_VISIT,
+    patchBenchKeyFor,
+    upgradeAllowanceFor,
+    upgradeBenchKeyFor,
 } from '../../engine/run/marketplace';
 import { getMacro, macroOfferBlockFor } from '../../engine/data/macroRegistry';
 import { MACRO_SLOTS } from '../../engine/runTypes';
@@ -87,6 +89,8 @@ import './MarketplaceNode.css';
 import { Icon } from '../theme/Icon';
 import { UpgradeBench } from './UpgradeBench';
 import { PatchBench } from './PatchBench';
+import { FirmwareRows } from './town/FirmwareRows';
+import { upgradeHeading } from './town/townText';
 import { introRules } from '../../engine/run/intro/introRules';
 import { CardFace, ElementMark } from './CardChassis';
 import { CardPeek } from './CardPeek';
@@ -134,10 +138,16 @@ export interface MarketplaceNodeProps {
     readonly onEditLoadout: () => void;
     /** Closes the stall back to the map. See `RunScreen` for why leaving is a UI state and not a move. */
     readonly onLeave: () => void;
+    /**
+     * TICKET 176c: drawn as the SHOP tab of a town. `TownShell` owns the frame, the header and the
+     * dock, so this draws the shelves only: no top bar, no upgrade bench (that is its own tab), the
+     * blueprint's two firmware under the blueprint, and the sell list as a grid of tiles.
+     */
+    readonly inTown?: boolean;
 }
 
 export default function MarketplaceNode({
-    run, node, party, biomeName, ranch, onEditLoadout, onLeave,
+    run, node, party, biomeName, ranch, onEditLoadout, onLeave, inTown = false,
 }: MarketplaceNodeProps): ReactNode {
     const dispatch = useDispatch();
     const { peek, at, peekHandlers } = useCardPeek();
@@ -250,8 +260,10 @@ export default function MarketplaceNode({
     /** The shortfall, in the words the player needs: what they are short, not that they are short. */
     const shortBy = (price: number): number => Math.max(0, price - scrap);
 
+    const Frame = inTown ? 'div' : 'section';
     return (
-        <section className="mk rs-frame rs-fixed">
+        <Frame className={inTown ? 'mk mk-town' : 'mk rs-frame rs-fixed'}>
+            {!inTown && (
             <div className="rs-top">
                 <span className="rs-title">MARKETPLACE</span>
                 <span className="rs-ctx">
@@ -274,6 +286,7 @@ export default function MarketplaceNode({
                     LEAVE
                 </button>
             </div>
+            )}
 
             <div className="mk-body">
                 <div className="rs-panel mk-center">
@@ -383,6 +396,7 @@ export default function MarketplaceNode({
                                     </span>
                                 </button>
                             </div>
+                            {inTown && <FirmwareRows speciesId={blueprintOffer.speciesId} />}
                         </>
                     )}
 
@@ -503,16 +517,64 @@ export default function MarketplaceNode({
                   */}
                 {/* TICKET 163d — the stall stocks AMPLIFIER (163 §3: "the boring one every OS can
                     take and the workshop's default stock"). One rider, every body, for scrap. */}
-                {ranch && marketRules.patchBench && <PatchBench run={run} ranch={ranch} venue="shop" />}
+                {ranch && marketRules.patchBench && (
+                    <PatchBench
+                        run={run}
+                        ranch={ranch}
+                        venue="shop"
+                        benchKey={inTown ? patchBenchKeyFor(node) : undefined}
+                    />
+                )}
 
-                <UpgradeBench
-                    run={run}
-                    benchKey={`${node.id}:${node.visited}`}
-                    allowance={UPGRADES_PER_VISIT}
-                    heading="UPGRADE — UP TO TWO CARDS IN YOUR DECK"
-                />
+                {!inTown && (
+                    <UpgradeBench
+                        run={run}
+                        benchKey={upgradeBenchKeyFor(node)}
+                        allowance={upgradeAllowanceFor(node)}
+                        heading={upgradeHeading(upgradeAllowanceFor(node))}
+                    />
+                )}
 
-                {marketRules.sell && (
+                {marketRules.sell && inTown && (
+                <div className="rs-panel mk-sell mk-sell-grid">
+                    <h2>SELL — YOUR CARDS <span className="mk-sub">(deck + collection)</span></h2>
+                    <div className="mk-grid mk-sell-tiles" style={STALL_TILE}>
+                        {sellable.map((stack) => {
+                            const face = cardFace(stack.instances[0].dataId);
+                            const blocked = stack.junk ? scrap < stack.price : stack.inDeck && atFloor;
+                            return (
+                                <button
+                                    key={stack.key}
+                                    type="button"
+                                    className={`rs-card mk-sell-tile ${stack.junk ? 'junk' : ''}`}
+                                    style={{ ['--el' as string]: colorFor(face.element) }}
+                                    disabled={blocked}
+                                    onClick={() => sell(stack)}
+                                >
+                                    <CardFace
+                                        face={face}
+                                        tags={`${stack.inDeck ? 'deck' : 'collection'}${stack.instances.length > 1 ? ` ×${stack.instances.length}` : ''}`}
+                                    />
+                                    <span className={`rs-price mk-sell-plate ${stack.junk ? 'remove' : 'sell'}`}>
+                                        {stack.junk ? `REMOVE — ${stack.price} amber` : `SELL +${stack.price} amber`}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                        {sellable.length === 0 && <span className="mk-empty">Nothing to sell.</span>}
+                    </div>
+                    <div
+                        className={`rs-pill mk-pill ${atFloor ? 'at-floor' : ''}`}
+                        title={`${atFloor
+                            ? `At the floor (${floor}) - deck tiles are dead until you add cards or bench a member. Collection tiles still sell.`
+                            : `Selling from the deck respects the floor (${floor}) - tiles grey out at the limit.`} Sell ${SELL_PRICE_BY_ENERGY.join('/')} by cost against buy ${CARD_PRICE_BY_ENERGY.join('/')}.`}
+                    >
+                        DECK <b>{reading.counted}</b> / floor {floor}{junkNote(reading)}
+                    </div>
+                </div>
+                )}
+
+                {marketRules.sell && !inTown && (
                 <div className="rs-panel mk-sell">
                     <h2>SELL — YOUR CARDS <span className="mk-sub">(deck + collection)</span></h2>
                     <div className="mk-rows">
@@ -563,6 +625,6 @@ export default function MarketplaceNode({
                 </div>
                 )}
             </div>
-        </section>
+        </Frame>
     );
 }

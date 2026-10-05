@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { type RootState } from '../store/store';
@@ -52,19 +52,27 @@ import {
     finishGauntlet,
     recordBankedBlueprint,
     recordFightBlueprintOutcome,
+    recordCardOffer,
     resolveEncounter,
     reviveGauntletMember,
 } from '../store/runSlice';
 import { fightBonusFor } from '../../engine/run/fightBonus';
 import { logRunEvent } from '../store/runLogMiddleware';
+import { ownedCardIdsOf } from '../../engine/rewards/ownedCards';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
-import { useBattleVfx, PLAYED_CARD_REVEAL_MS } from '../hooks/useBattleVfx';
+import { useBattleVfx } from '../hooks/useBattleVfx';
 import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
 import { useImpactFeedback } from '../vfx/useImpactFeedback';
+import { StageDimLayer } from '../vfx/StageDimLayer';
+import { battleClock } from '../vfx/clock/battleClockRuntime';
+import { useDisplayedBoardSync } from '../vfx/displayed/useDisplayedBoard';
+import { useBattleEndGate } from '../vfx/pacing/useBattleEndGate';
+import { paceEnemyAction } from '../vfx/pacing/enemyActionPacer';
 import { useCastSequence } from '../vfx/useCastSequence';
+import { useBattleSpeedControls } from '../vfx/clock/useBattleSpeedControls';
 import { useViewportSize } from '../hooks/useStageAnchors';
 import { consoleHeightAt, stageScale } from './stageGeometry';
 import { useCardDrag } from '../hooks/useCardDrag';
@@ -210,17 +218,16 @@ const BattleArena: React.FC = () => {
     }, [stageControls]);
 
     /*
-     * TICKET 146e — HIT-STOP AND THE SCALED SHAKE.
+     * TICKET 146e — HIT-STOP AND THE SCALED SHAKE; 189d — AT THE IMPACT.
      *
-     * This replaces the threshold shake that lived here: a fixed 3px nudge above 33% of max HP,
-     * which is a boolean pretending to be feedback — a 34% hit and a lethal one shook identically,
-     * and everything below the line shook not at all.
-     *
-     * Ruling 2 makes it continuous: *"Everything gets a hit stop but it scales with damage."* The
-     * hook owns both the stop and the shake because they run off one number, and two sources
-     * driving `stageControls` would race.
+     * Ruling 2: *"Everything gets a hit stop but it scales with damage."* The hook owns the stop,
+     * the vibration and the camera trauma because they run off one number. It hears the presenter's
+     * impact moment, not the engine's event, and the camera it moves is the stage area (`cameraRef`),
+     * which composes with `stageControls`' fade because the camera writes `translate`/`rotate` and
+     * the fade writes `opacity`.
      */
-    useImpactFeedback(battleState, stageControls);
+    const cameraRef = useRef<HTMLDivElement>(null);
+    useImpactFeedback(cameraRef);
 
     /*
      * TICKET 146c — THE CAST SEQUENCE. Owns steps 2-4 (trail, impact, status tells) and the queue
@@ -228,7 +235,12 @@ const BattleArena: React.FC = () => {
      * Steps 1 and 5 — the card's flight to the lane and out to the discard — are
      * `PlayedCardReveal`'s, because the card is a React element and these are particles.
      */
-    useCastSequence(battleState);
+    const presenter = useCastSequence(battleState);
+    // TICKET 189c: the HP bars, HP text, Bark bands and knocked-out looks show the DISPLAYED board,
+    // which the presenter moves at each impact; this keeps it equal to real state when idle.
+    useDisplayedBoardSync(battleState, presenter);
+    // TICKET 190a: Right Shift fast-forwards, Left Shift targets allies, and catch-up reads the backlog.
+    const { shiftKeys, backlog } = useBattleSpeedControls(presenter.queued);
 
     // 155b: the console's height, published as a custom property — see the note on the root below.
     const viewport = useViewportSize();
@@ -350,7 +362,7 @@ const BattleArena: React.FC = () => {
             const pickAlly = (index: number) => {
                 const unit = battleState.playerParty[index];
                 if (!unit || unit.currentHp <= 0) { playSfx('uiError'); return; }
-                dispatch(e.shiftKey ? selectTarget(unit.id) : selectSource(unit.id));
+                dispatch(shiftKeys.isAllyModifier(e) ? selectTarget(unit.id) : selectSource(unit.id));
             };
             const casterSlot = CASTER_KEYS.indexOf(e.key.toLowerCase() as typeof CASTER_KEYS[number]);
             if (casterSlot !== -1) pickAlly(casterSlot);
@@ -369,7 +381,7 @@ const BattleArena: React.FC = () => {
                 e.preventDefault();
                 if (aliveEnemies.length > 0) {
                     const at = aliveEnemies.findIndex(en => en.id === selectedTargetId);
-                    const step = e.shiftKey ? -1 : 1;
+                    const step = shiftKeys.isAllyModifier(e) ? -1 : 1;
                     const next = (at + step + aliveEnemies.length) % aliveEnemies.length;
                     dispatch(selectTarget(aliveEnemies[at === -1 ? 0 : next].id));
                 }
@@ -467,7 +479,7 @@ const BattleArena: React.FC = () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag, endTurnNudge]);
+    }, [battleState, dispatch, selectedSourceId, selectedTargetId, selectedCardId, endDrag, endTurnNudge, shiftKeys]);
 
     useEffect(() => {
         if (battleState?.activeSide !== prevSideRef.current) {
@@ -485,6 +497,8 @@ const BattleArena: React.FC = () => {
     // Enemy AI Turn Automation
     useEffect(() => {
         if (!battleState || battleState.activeSide !== 'ENEMY') {
+            // 190a: a new turn for catch-up's purposes; the enemy's count starts again.
+            backlog.turnStarted();
             if (aiPrevSideRef.current !== battleState?.activeSide) {
                 aiPrevSideRef.current = battleState?.activeSide;
             }
@@ -498,6 +512,7 @@ const BattleArena: React.FC = () => {
 
         let cancelled = false;
 
+        const firstOfTurn = aiPrevSideRef.current !== 'ENEMY';
         const runAI = async () => {
             // TICKET 127: THINK DURING THE PAUSE, NOT AFTER IT.
             //
@@ -522,28 +537,27 @@ const BattleArena: React.FC = () => {
             // and the cast sequence keep animating while the enemy thinks; the main-thread path
             // remains as the fallback where no Worker is available (tests, and a worker that failed to start).
             //
-            // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL.
-            //
-            // Henry: *"show the cards that get played, animate them to show center screen ... That
-            // animation can eat up the time as well."* So the between-actions beat is no longer a
-            // blind 600ms - it is `PLAYED_CARD_REVEAL_MS` with the previous card on screen, and the
-            // search runs after it. Wall-clock is about what it was; the time now carries the
-            // information the player was having to dig out of the combat log.
-            const pauseMs = aiPrevSideRef.current !== 'ENEMY' ? 1200 : PLAYED_CARD_REVEAL_MS;
-            const DEBOUNCE_MS = 50;
-
-            await new Promise(r => setTimeout(r, DEBOUNCE_MS));
-            if (cancelled) return;
-
-            const thinkStart = performance.now();
-            const brain = enemyBrainRef.current;
-            const action = brain ? await brain.decide(battleState) : getBestAction(battleState);
-            if (cancelled) return;
-            const thoughtFor = performance.now() - thinkStart;
-
-            await new Promise(r => setTimeout(r, Math.max(0, pauseMs - DEBOUNCE_MS - thoughtFor)));
-            if (cancelled) return;
+            // TICKET 127, second half: BETWEEN CARDS THE PAUSE IS THE REVEAL. TICKET 189e: and the
+            // reveal is the presenter's. The enemy's card arrives, hovers one second so it can be read,
+            // plays its attack and leaves; the next action is dispatched only when all of that is over
+            // (`paceEnemyAction` waits for `whenIdle`), with the search running under the hover. The
+            // fixed 1.2 s between actions is gone; the opening pause at the start of a turn stays.
+            const action = await paceEnemyAction({
+                firstOfTurn,
+                think: async () => {
+                    const brain = enemyBrainRef.current;
+                    return brain ? brain.decide(battleState) : getBestAction(battleState);
+                },
+                idle: presenter.whenIdle,
+                clock: battleClock,
+                cancelled: () => cancelled,
+            });
+            if (!action) return;
             aiPrevSideRef.current = 'ENEMY';
+            // 190a: the enemy's cards already played this turn are catch-up's backlog, so a long enemy
+            // turn speeds up. The first card of a turn plays at normal speed; each one after it counts.
+            if (firstOfTurn) backlog.turnStarted();
+            else if (action.type !== 'END_TURN') backlog.enemyActed();
 
             if (action.type === 'PLAY_PROGRAM') {
                 dispatch(playProgram(action.payload));
@@ -560,7 +574,7 @@ const BattleArena: React.FC = () => {
         runAI();
 
         return () => { cancelled = true; };
-    }, [battleState, dispatch, triggerLunge]);
+    }, [battleState, dispatch, triggerLunge, presenter, backlog]);
 
     /**
      * Fire a macro out of the rack — **the two-slice write, in the ruled order.**
@@ -669,6 +683,22 @@ const BattleArena: React.FC = () => {
     const isVictory = battleState ? isPlayerVictory(battleState) : false;
     const isDefeat = battleState ? isPlayerDefeat(battleState) : false;
 
+    /*
+     * TICKET 189e — THE BANNER AND THE STINGER WAIT FOR THE KILLING BLOW TO BE DRAWN.
+     *
+     * `isVictory`/`isDefeat` read the REAL state, which already says "over" the moment the engine
+     * resolved the card, while the trail is still on its way: the stinger and the banner used to
+     * arrive before the blow that earned them. The logic below (the reward roll, the banking, the
+     * AI's stop) keeps reading the real flags; what is SHOWN and HEARD (`showVictory`, `showDefeat`)
+     * waits until the presenter has nothing left to play, so the last impact, the knock-out and the
+     * card leaving all happen first.
+     */
+    const endKey = `${battleState?.seed ?? ''}`;
+    const battleOver = isVictory || isDefeat;
+    const endShown = useBattleEndGate(battleOver, endKey, presenter);
+    const showVictory = isVictory && endShown;
+    const showDefeat = isDefeat && endShown;
+
     // TICKET 11 DELETED THE SAVE WIPE THAT USED TO LIVE HERE.
     //
     // The old effect called `deleteSave()` the moment the player's last unit fell. That was
@@ -719,6 +749,9 @@ const BattleArena: React.FC = () => {
      * the effect up.
      */
     const dryFights: number = run?.blueprintDryFights ?? 0;
+    // Ticket 185e: what the run holds and what its last two picks showed, for the offer's weights.
+    const ownedCardIds = useMemo(() => (run ? ownedCardIdsOf(run) : []), [run]);
+    const recentOffers = run?.recentOffers;
 
     /**
      * TICKET 59 (Henry, 2026-09-09): the opening run pays +10 points of blueprint on every kind
@@ -740,14 +773,14 @@ const BattleArena: React.FC = () => {
     }, [battleSeed]);
     useEffect(() => {
         if (endSoundPlayedRef.current) return;
-        if (isVictory) {
+        if (showVictory) {
             endSoundPlayedRef.current = true;
             playSfx('victory');
-        } else if (isDefeat) {
+        } else if (showDefeat) {
             endSoundPlayedRef.current = true;
             playSfx('defeat');
         }
-    }, [isVictory, isDefeat]);
+    }, [showVictory, showDefeat]);
 
     // Audio: charge-up zap when a next-program discount primes on a player unit
     // (e.g. Gullinbursti's UNSTOPPABLE_MASS). Watches the modifier appearing.
@@ -817,6 +850,8 @@ const BattleArena: React.FC = () => {
                 firstRun,
                 bonus,
                 heldPatches: run?.patches ?? {},
+                ownedCardIds,
+                recentOffers,
             });
             const paid = scrapMultiplier === 1 ? rolled : { ...rolled, scraps: rolled.scraps * scrapMultiplier };
             const bundle = driverStake ? { ...paid, driver: driverStake } : paid;
@@ -829,7 +864,7 @@ const BattleArena: React.FC = () => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setRewardBundle(bundle);
         }
-    }, [isVictory, battleState, rewardBundle, nodeKind, scrapMultiplier, driverStake, dryFights, firstRun, bonus, run?.patches]);
+    }, [isVictory, battleState, rewardBundle, nodeKind, scrapMultiplier, driverStake, dryFights, firstRun, bonus, run?.patches, ownedCardIds, recentOffers]);
 
     /**
      * **BANK THE BLUEPRINTS THE MOMENT THEY DROP, NOT WHEN THE PLAYER PRESSES CONTINUE.**
@@ -1042,6 +1077,8 @@ const BattleArena: React.FC = () => {
             const taken = new Set(chosenCards.map(card => card.instanceId));
             for (const choice of rewardBundle.cardChoices) {
                 const offered = choice.options.map(option => option.dataId);
+                // Ticket 185e: shown cards, taken or not, are left out of the next two offers.
+                dispatch(recordCardOffer(offered));
                 const mine = choice.options.find(option => taken.has(option.instanceId));
                 dispatch(logRunEvent(mine
                     ? { kind: 'CARD_PICKED', dataId: mine.dataId, offered }
@@ -1258,14 +1295,14 @@ const BattleArena: React.FC = () => {
             />
             <AnimatePresence>
                 {showTurnBanner && <TurnBanner key="turn-banner" side={battleState.activeSide} />}
-                {isVictory && !showReport && (
+                {showVictory && !showReport && (
                     <WinLossOverlay
                         key="win-overlay"
                         result="WIN"
                         onShowReport={() => setShowReport(true)}
                     />
                 )}
-                {isDefeat && (
+                {showDefeat && (
                     <WinLossOverlay
                         key="loss-overlay"
                         result="LOSS"
@@ -1305,9 +1342,12 @@ const BattleArena: React.FC = () => {
             {/* Stage: Top 70% (controls: fade-in on mount + big-hit shake) */}
             <motion.div
                 className="stage-area"
+                ref={cameraRef}
                 initial={{ opacity: 0 }}
                 animate={stageControls}
             >
+                {/* 190g: the dark layer a huge hit's wind-up draws (below the bodies). */}
+                <StageDimLayer />
                 {/* Center stage: big spotlight sprites for the selected unit + focus enemy */}
                 <BattleStage
                     battleState={battleState}

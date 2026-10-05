@@ -111,8 +111,8 @@ describe('RanchScreen', () => {
     it('the vault reports the RUN’s drivers, and says so when there is no run', () => {
         const markup = render({ roster: [member('a1', 'kraken')] }, 'vault');
 
-        expect(markup).toContain('Nothing installed');
-        expect(markup).toMatch(/run-scoped|lost when it ends/i);
+        expect(markup).toContain('No totems yet');
+        expect(markup).toMatch(/run-scoped|lost when it ends|end with the run/i);
     });
 
     it('has a codex tab, and it opens on the overview — ticket 31', () => {

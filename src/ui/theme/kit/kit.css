@@ -114,12 +114,34 @@
 .k-hp-fill {
     height: 100%;
     background: var(--k-fill);
+    /* 189c: the fill drains to its new value over 240 ms. */
+    transition: width 240ms ease-out;
+}
+
+/*
+ * 189c: the pale chunk where the bar was. The displayed board holds it for 380 ms, then moves its
+ * width, which drains over 420 ms. It sits behind the fill, so only the lost part shows.
+ */
+.k-hp-ghost {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: var(--text);
+    opacity: 0.55;
+    transition: width 420ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .k-hp-fill,
+    .k-hp-ghost { transition: none; }
 }
 
 /* The 3px lighter band along the top of the fill. */
 .k-hp-band {
     height: 3px;
     background: var(--k-band);
+    transition: width 240ms ease-out;
 }
 
 /* Bark Shield: a brown band laid over the bar, with its HP as a small number on it. */
@@ -311,4 +333,7 @@ button.k-plate:focus-visible { --k-plate-edge: var(--select); outline: none; }
 .k-button.is-quiet:hover:not(:disabled),
 .k-button.is-quiet:focus-visible { background: var(--panel-3); }
 .k-button.is-on { background: var(--select); color: var(--ink); }
+/* The chosen tab stays yellow under the pointer. */
+.k-button.is-quiet.is-on:hover:not(:disabled),
+.k-button.is-quiet.is-on:focus-visible { background: var(--select); }
 .k-button.is-danger { background: var(--hp-low); color: var(--text); }

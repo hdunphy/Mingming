@@ -34,3 +34,11 @@ export function oldWordsIn(markup: string): string[] {
     }
     return [...new Set(found)];
 }
+
+/** A name still printed in capitals with underscores (`TIDAL_CRUSH_OS`, `ACTIVE_KERNEL`): a screen should say "Tidal Crush". */
+const CAPS_NAME = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/;
+
+export function capsNamesIn(markup: string): string[] {
+    const found = printedStrings(markup).filter((line) => CAPS_NAME.test(line)).map((line) => line.slice(0, 110));
+    return [...new Set(found)];
+}

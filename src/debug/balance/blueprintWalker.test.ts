@@ -12,6 +12,7 @@ import { buyMarketBlueprintIfOffered, executeWorkshopRecruit } from './runWalker
 import { rollBlueprintOffer, isBlueprintSlotSold, MARKET_BLUEPRINT_PRICE } from '../../engine/run/marketplace';
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
 import type { IMingmingState } from '../../engine/types';
+import { plainShop } from '../../testing/plainShop';
 
 const SOLO: IMingmingState[] = [{
     id: 'mm1', definitionId: 'fenrir', activeOS: 'fenrir_v1',
@@ -67,7 +68,7 @@ describe('Ticket 164g — In the walker, blueprints and recruits are free', () =
         it('1. A walker run that buys a market blueprint loses exactly its price, and a revisit to the same shelf does not buy it again', () => {
             const { store } = setupRun('market-bp-test');
             const run = store.getState().run.run!;
-            const marketNode = run.nodes.find((n) => n.kind === 'marketplace')!;
+            const marketNode = plainShop(run, 'marketplace');
             expect(marketNode).toBeDefined();
 
             // Give the run enough scrap to buy the blueprint
@@ -108,7 +109,7 @@ describe('Ticket 164g — In the walker, blueprints and recruits are free', () =
             const initialScrap = store.getState().run.run!.scrap;
 
             const run = store.getState().run.run!;
-            const workshopNode = run.nodes.find((n) => n.kind === 'workshop')!;
+            const workshopNode = plainShop(run, 'workshop');
             expect(workshopNode).toBeDefined();
 
             const party = [...SOLO];
@@ -137,7 +138,7 @@ describe('Ticket 164g — In the walker, blueprints and recruits are free', () =
             store.dispatch(addRunScrap(100));
 
             const run = store.getState().run.run!;
-            const workshopNode = run.nodes.find((n) => n.kind === 'workshop')!;
+            const workshopNode = plainShop(run, 'workshop');
 
             const party = [...SOLO]; // fenrir
             const roster = [...party];
@@ -184,7 +185,7 @@ describe('Ticket 169j — the walker\'s recruit and the modifiers', () => {
 
     it('No Recruits: no recruit, no phantom roster member, no blueprint spent, no scrap taken', () => {
         const { store, gym } = setupModifiedRun(['no_recruits']);
-        const workshopNode = store.getState().run.run!.nodes.find((n) => n.kind === 'workshop')!;
+        const workshopNode = plainShop(store.getState().run.run!, 'workshop');
         const roster = [...SOLO];
         const ledger = new BlueprintLedger();
         ledger.add('kraken');
@@ -201,7 +202,7 @@ describe('Ticket 169j — the walker\'s recruit and the modifiers', () => {
 
     it('Tight Budget: the recruit costs 35, the price the workshop shows', () => {
         const { store, gym } = setupModifiedRun(['tight_budget']);
-        const workshopNode = store.getState().run.run!.nodes.find((n) => n.kind === 'workshop')!;
+        const workshopNode = plainShop(store.getState().run.run!, 'workshop');
         const ledger = new BlueprintLedger();
         ledger.add('kraken');
         const scrapBefore = store.getState().run.run!.scrap;
@@ -213,7 +214,7 @@ describe('Ticket 169j — the walker\'s recruit and the modifiers', () => {
     it('Tight Budget: a purse of 30 cannot afford the recruit, though 25 would have', () => {
         const { store, gym } = setupModifiedRun(['tight_budget']);
         const run = store.getState().run.run!;
-        const workshopNode = run.nodes.find((n) => n.kind === 'workshop')!;
+        const workshopNode = plainShop(run, 'workshop');
         store.dispatch(spendRunScrap(run.scrap - 30));
         const ledger = new BlueprintLedger();
         ledger.add('kraken');
@@ -223,7 +224,7 @@ describe('Ticket 169j — the walker\'s recruit and the modifiers', () => {
 
     it('an event recruit at price 0 stays free under Tight Budget', () => {
         const { store, gym } = setupModifiedRun(['tight_budget']);
-        const workshopNode = store.getState().run.run!.nodes.find((n) => n.kind === 'workshop')!;
+        const workshopNode = plainShop(store.getState().run.run!, 'workshop');
         const ledger = new BlueprintLedger();
         ledger.add('kraken');
         const scrapBefore = store.getState().run.run!.scrap;

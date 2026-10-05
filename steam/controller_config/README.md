@@ -45,6 +45,7 @@ every key constant that table exports, so a NEW binding fails the build until th
 | D-pad, held with Left grip | `A` `S` `D` | Target enemy by slot |
 | Left grip + A/B/X | `Z` `X` `C` | Fire macro 1–3 |
 | Right stick | mouse move | |
+| Right stick click (hold) | `Right Shift` | Fast-forward the fight (x3) |
 | Left stick | `W`/`E`/`R` + `⇧` | Ally targeting, via the shift layer |
 
 ## What still needs a human

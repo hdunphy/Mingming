@@ -1,5 +1,6 @@
 /** TICKET 180d — what a move did, as the lines printed above the next battle screen. */
 import type { IBattleState } from '../../../engine/types';
+import { plain } from '../../../ui/labels/labels';
 import type { HitTotal } from '../battleSim';
 
 const MAX_LINES = 6;
@@ -24,10 +25,10 @@ export function downedLines(before: IBattleState, after: IBattleState): string[]
 /**
  * What the game's own combat log gained between two states, as the player reads it in the log panel:
  * the card's effects, the firmware's (a card's text never lists those), statuses, damage taken. The
- * lines are the game's text, printed as it wrote them. Cut to `LOG_LINES`, with a count of the rest.
+ * lines are the game's text, in the words the log panel shows (`plain`, as `CombatLog` does). Cut to `LOG_LINES`, with a count of the rest.
  */
 export function logLines(before: IBattleState, after: IBattleState, cap: number = LOG_LINES): string[] {
-    const added = after.logs.slice(before.logs.length).map((line) => line.trim()).filter((line) => line.length > 0);
+    const added = after.logs.slice(before.logs.length).map((line) => plain(line.trim())).filter((line) => line.length > 0);
     if (added.length === 0) return [];
     const shown = added.slice(0, cap).map((line) => `  ${line}`);
     if (added.length > cap) shown.push(`  ...and ${added.length - cap} more log lines.`);

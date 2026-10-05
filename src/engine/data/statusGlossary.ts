@@ -48,7 +48,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Asleep',
         icon: '💤',
         description:
-            'Cannot act. Applied at 3 stacks; reapplying while asleep does nothing, so it can never be extended. Loses 1 stack per turn AND 1 stack per incoming attack - so three hits break it, absorbed ones included. Statuses and damage-over-time do not. Waking grants 1 turn of StableOS, which refuses Asleep and Stunned outright.',
+            'Cannot act. Applied at 3 stacks; reapplying while asleep does nothing, so it can never be extended. Loses 1 stack per turn AND 1 stack per incoming attack - so three hits break it, absorbed ones included. Statuses and damage-over-time do not. Waking grants 1 turn of Alert, which refuses Asleep and Stunned outright.',
     },
     Weakened: {
         name: 'Weakened',
@@ -78,7 +78,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
         name: 'Stunned',
         icon: '⚡',
         description:
-            'Cannot act this turn. Does not stack; wears off at end of turn and then grants 1 turn of StableOS.',
+            'Cannot act this turn. Does not stack; wears off at end of turn and then grants 1 turn of Alert.',
     },
     Regen: {
         name: 'Regen',
@@ -93,10 +93,10 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
             'At the next energy refill, gain 1 bonus energy per stack — even beyond the energy cap. All stacks are consumed by that refill.',
     },
     StableOS: {
-        name: 'StableOS',
+        name: 'Alert',
         icon: '💠',
         description:
-            'System stabilized: immune to Stunned and Asleep. Wears off at end of turn.',
+            'Alert: immune to Stunned and Asleep, so you cannot be locked down. Wears off at end of turn.',
     },
     BarkShield: {
         name: 'Bark Shield',

@@ -105,7 +105,7 @@ function makeRun(seed = 'market-run-1', party = SOLO): IRunState {
 const RUN = makeRun();
 
 /** Every marketplace the generated region contains — ticket 07 puts one in each of the three biomes. */
-const MARKETS = RUN.nodes.filter((n) => n.kind === 'marketplace');
+const MARKETS = RUN.nodes.filter((n) => isMarketNode(n.kind));
 
 /** A market as `enterNode` leaves it: visit-incremented. */
 function visited(node: IRegionNode, visit: number): IRegionNode {
@@ -179,7 +179,7 @@ describe('the market is static per run, and moves only on a paid refresh', () =>
 
     it('rolls a different stock in a different run', () => {
         const other = makeRun('a-different-run');
-        const otherMarket = other.nodes.filter((n) => n.kind === 'marketplace')[0];
+        const otherMarket = other.nodes.filter((n) => isMarketNode(n.kind))[0];
         expect(stockAt(visited(otherMarket, 1), other).seed).not.toBe(stockAt(MARKET).seed);
     });
 
@@ -373,7 +373,7 @@ describe('what is in the stock', () => {
                 let seen = false;
                 for (let seed = 0; seed < 12 && !seen; seed += 1) {
                     const run = makeRun(`neutral-reach-${species}-${seed}`, party);
-                    for (const node of run.nodes.filter((n) => n.kind === 'marketplace')) {
+                    for (const node of run.nodes.filter((n) => isMarketNode(n.kind))) {
                         for (const visit of [1, 2, 3]) {
                             const stock = stockAt(visited(node, visit), run, party);
                             if (stock.offers.some((o) => o.card.dataId === 'hamstring')) seen = true;
@@ -436,6 +436,7 @@ describe('what is in the stock', () => {
 
     it('serves marketplaces and nothing else', () => {
         expect(isMarketNode('marketplace')).toBe(true);
+        expect(isMarketNode('town')).toBe(true);   // ticket 176: a town is a market and a workshop
         for (const kind of ['wild', 'elite', 'alpha', 'ambush', 'workshop', 'event', 'gym'] as const) {
             expect(isMarketNode(kind)).toBe(false);
         }

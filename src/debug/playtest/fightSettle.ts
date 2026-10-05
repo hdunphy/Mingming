@@ -15,6 +15,7 @@ import { speciesName } from './gameText';
 import { startRewards } from './rewards';
 import type { FightReport, World } from './types';
 import { runOf } from './types';
+import { fightName } from './sideTag';
 
 const TOP_HITS = 5;
 
@@ -27,7 +28,7 @@ export function reportFor(node: IRegionNode, battle: IBattleState, won: boolean,
         turns,
         truncated,
         party: battle.playerParty.map((e) => ({ name: e.name, hp: Math.max(0, e.currentHp), maxHp: e.maxHp })),
-        foes: battle.enemyParty.map((e) => ({ name: e.name || speciesName(e.definitionId) })),
+        foes: battle.enemyParty.map((e) => ({ name: e.name ? fightName(battle, e.id) : speciesName(e.definitionId) })),
         hits: hits.slice(0, TOP_HITS),
     };
 }

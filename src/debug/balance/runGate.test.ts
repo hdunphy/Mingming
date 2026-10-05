@@ -13,6 +13,7 @@ import {
     CELLS,
     describeBossOverride,
     NO_FIRMWARE_OS,
+    NoSuchNodeError,
     RUN_GATE_TARGETS,
     FLOOR_BANDS,
     TUNED_OS_IDS,
@@ -336,8 +337,14 @@ describe('the two arms — which player the gate is measuring (ticket 67, Henry 
         // being comparable to anything measured after it.
         const cell = CELLS.find((c) => c.id === 'wild:biome2')!;
         for (let i = 0; i < 12; i += 1) {
-            expect(sampleFight(cell, i, 'blind').lineup).toEqual(lineupFor(i, cell.partySize));
-            expect(sampleFight(cell, i).lineup).toEqual(lineupFor(i, cell.partySize));
+            // Biome 2 is five route nodes now (one of them the scout), so a seed can hold no wild
+            // at all. `measure` re-rolls those; this loop does the same by skipping the index.
+            try {
+                expect(sampleFight(cell, i, 'blind').lineup).toEqual(lineupFor(i, cell.partySize));
+                expect(sampleFight(cell, i).lineup).toEqual(lineupFor(i, cell.partySize));
+            } catch (error) {
+                if (!(error instanceof NoSuchNodeError)) throw error;
+            }
         }
     });
 

@@ -76,7 +76,7 @@ import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
 import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import { fightNodeFor, isEventFight } from '../../engine/run/eventFight';
-import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan } from '../../engine/run/encounter';
+import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan, surveyedEncounters } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
@@ -93,6 +93,7 @@ import BoundaryAlert from './BoundaryAlert';
 import SettingsButton from '../components/SettingsButton';
 import GauntletNode from './GauntletNode';
 import LoadoutEditor from './LoadoutEditor';
+import TownNode from './town/TownNode';
 import MarketplaceNode from './MarketplaceNode';
 import RegionMap from './RegionMap';
 import Callout from '../components/Callout';
@@ -177,6 +178,18 @@ export default function RunScreen(): ReactNode {
     );
 
     const revealedBiomes = useMemo(() => revealedBiomesFrom(run?.modifiers ?? []), [run]);
+
+    /**
+     * TICKET 176d: who waits in every fight of a surveyed biome. Rolled here, from the current party,
+     * because the map takes nodes and names and no run. Empty until a Ping Sweep or a Relay Tower
+     * Survey has been fired, so an unsurveyed map prints no species anywhere.
+     */
+    const surveyedFights = useMemo(
+        () => (run && revealedBiomes.length > 0
+            ? surveyedEncounters(run, marketParty.map((m) => toMingmingState(m)), revealedBiomes)
+            : {}),
+        [run, revealedBiomes, marketParty],
+    );
 
     /**
      * Fire the encounter the run's phase is asking for.
@@ -302,6 +315,24 @@ export default function RunScreen(): ReactNode {
 
     const stallOpen = closedNodeId !== run.currentNodeId;
 
+    /*
+     * TICKET 176c: a town is one node that is both the market and the workshop, so it is answered
+     * BEFORE the two kind checks below (`isMarketNode` and `isWorkshopNode` both say yes to it).
+     * `TownNode` owns the square, the tabs and the loadout editor; this only supplies the party.
+     */
+    if (current.kind === 'town' && stallOpen) {
+        return (
+            <TownNode
+                run={run}
+                node={current}
+                party={marketParty}
+                ranch={ranch}
+                biomeName={biome?.name}
+                onLeave={() => setClosedNodeId(current.id)}
+            />
+        );
+    }
+
     if (isMarketNode(current.kind) && stallOpen) {
         return (
             <>
@@ -396,7 +427,7 @@ export default function RunScreen(): ReactNode {
 
             <section className="ranch-section ranch-section-wide">
                 <div className="ranch-section-head">
-                    <h2><Icon name={NODE_ICON[current.kind]} size={18} /> {NODE_LABEL[current.kind]}{current.pocket ? ' (pocket)' : ''}</h2>
+                    <h2><Icon name={NODE_ICON[current.kind]} size={18} /> {NODE_LABEL[current.kind]}{current.detour ? ' (detour)' : ''}</h2>
                 </div>
 
                 {/*
@@ -411,7 +442,9 @@ export default function RunScreen(): ReactNode {
                         className="ranch-button"
                         onClick={() => { setClosedNodeId(null); playSfx('uiClick'); }}
                     >
-                        {isMarketNode(current.kind) ? 'Back to the stall' : 'Back to the summon bay'}
+                        {current.kind === 'town'
+                            ? 'Back into town'
+                            : isMarketNode(current.kind) ? 'Back to the stall' : 'Back to the summon bay'}
                     </button>
                 )}
 
@@ -451,10 +484,8 @@ export default function RunScreen(): ReactNode {
                         { biomeIndex: i, kind: 'rival' } as IRegionNode,
                         PARTY_SIZE,
                     ))}
-                    // Ticket 15: the fog's third clause. Derived here rather than inside the map,
-                    // because `regionLayout` is a pure function of the node set and knows nothing
-                    // about a run — see its header.
-                    revealedBiomes={revealedBiomes}
+                    // Ticket 176d: the species of every fight in a surveyed biome, rolled above.
+                    encounters={surveyedFights}
                     onTravel={travel}
                 />
 

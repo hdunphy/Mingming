@@ -1,7 +1,7 @@
 {
     "harden_daemon": {
         "id": "harden_daemon",
-        "name": "Harden",
+        "name": "Dwarf-Forged",
         "description": "Daemon: Gain 1 Sharp.",
         "element": "None",
         "target": "Self",
@@ -56,11 +56,13 @@
     "sun_devourer": {
         "id": "sun_devourer",
         "name": "Sun Devourer",
-        "description": "Consume all your Strength: 30 power per stack consumed.",
+        "description": "Consume all your Strength: 15 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Strength",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -76,7 +78,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 30,
+                "power": 15,
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }
@@ -90,6 +92,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -153,6 +157,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -242,7 +248,7 @@
         "description": "Gain 2 Strength. Deal 54 power.",
         "element": "Fire",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Uncommon",
         "baseCost": 2,
         "constraints": [
@@ -272,6 +278,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -356,6 +364,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -408,6 +418,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -435,6 +447,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -466,6 +480,8 @@
         "target": "Single",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -498,6 +514,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -602,6 +620,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -619,7 +639,7 @@
     },
     "battery_pack": {
         "id": "battery_pack",
-        "name": "Battery Pack",
+        "name": "Mead Horn",
         "description": "Daemon: Max Energy +1.",
         "element": "Water",
         "target": "Self",
@@ -648,6 +668,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -671,6 +693,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Energy",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -699,6 +723,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Energy",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -744,6 +770,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -773,6 +801,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -796,6 +826,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -830,6 +862,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -858,6 +892,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -886,6 +922,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1015,6 +1053,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1044,6 +1084,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1072,6 +1114,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1101,6 +1145,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "glue",
+        "cur": "Energy",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1133,6 +1179,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1156,6 +1204,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1213,6 +1263,8 @@
         "target": "Single",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1241,6 +1293,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1292,6 +1346,8 @@
         "target": "Self",
         "category": "Heal",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1320,6 +1376,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "—",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1349,6 +1407,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -1488,6 +1548,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -1510,7 +1572,7 @@
     },
     "fertile_ground_daemon": {
         "id": "fertile_ground_daemon",
-        "name": "FERTILE_GROUND",
+        "name": "Norns' Gift",
         "description": "Daemon: Draw extra card each turn.",
         "element": "Nature",
         "target": "Self",
@@ -1582,6 +1644,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1661,6 +1725,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -1767,7 +1833,7 @@
         "description": "5 power. When discarded: gain 1 Energy.",
         "element": "Air",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 0,
         "constraints": [
@@ -1796,7 +1862,7 @@
         "description": "15 power. When discarded: gain 2 Strengthened.",
         "element": "Air",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -1977,7 +2043,7 @@
         "description": "20 power. Apply 2 Weakened.",
         "element": "None",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -2005,7 +2071,7 @@
         "description": "18 power. Gain 2 Strengthened.",
         "element": "None",
         "target": "Single",
-        "category": "Skill",
+        "category": "Attack",
         "rarity": "Common",
         "baseCost": 1,
         "constraints": [
@@ -3375,7 +3441,7 @@
     },
     "feedback_token": {
         "id": "feedback_token",
-        "name": "Feedback",
+        "name": "Tattle",
         "description": "Ratatoskr's retaliatory damage token.",
         "element": "None",
         "target": "Single",
@@ -3512,6 +3578,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3560,6 +3628,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "glue",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3587,6 +3657,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3635,6 +3707,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3697,6 +3771,8 @@
         "target": "Self",
         "category": "Heal",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -3726,6 +3802,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -3750,6 +3828,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -3805,6 +3885,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3841,6 +3923,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "HP",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3909,6 +3993,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "cards",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -3936,6 +4022,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Dazed",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -3996,6 +4084,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -4019,6 +4109,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -4047,6 +4139,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Rare",
+        "shape": "consume",
+        "cur": "Weakened",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -4105,6 +4199,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Bark",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -4134,6 +4230,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "converter",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -4169,6 +4267,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -4739,6 +4839,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -5855,6 +5957,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -5905,6 +6009,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -5980,6 +6086,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "hate",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -5993,13 +6101,15 @@
     },
     "short_circuit": {
         "id": "short_circuit",
-        "name": "Short Circuit",
+        "name": "Wisdom's Price",
         "description": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 15 power to it.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "hate",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6013,13 +6123,15 @@
     },
     "reactive_plating": {
         "id": "reactive_plating",
-        "name": "Reactive Plating",
+        "name": "Berserkergang",
         "description": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 3 per turn.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6064,7 +6176,7 @@
     },
     "scrubber": {
         "id": "scrubber",
-        "name": "Scrubber",
+        "name": "Eir's Remedy",
         "description": "Daemon: At the end of your turn, remove 1 Poison from each ally.",
         "element": "None",
         "target": "Self",
@@ -6107,7 +6219,7 @@
     },
     "drip_feed": {
         "id": "drip_feed",
-        "name": "Drip Feed",
+        "name": "Idunn's Apples",
         "description": "Daemon: At the end of your turn, each poisoned ally gains 1 Regen.",
         "element": "None",
         "target": "Self",
@@ -6161,6 +6273,8 @@
         "target": "Side",
         "category": "Status",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6185,6 +6299,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Uncommon",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6208,6 +6324,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Bark",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6231,6 +6349,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Poison",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6263,6 +6383,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6286,6 +6408,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "—",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6308,6 +6432,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6331,6 +6457,8 @@
         "allyTarget": true,
         "category": "Heal",
         "rarity": "Common",
+        "shape": "glue",
+        "cur": "—",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6347,13 +6475,15 @@
     },
     "overclock_core": {
         "id": "overclock_core",
-        "name": "Overclock Core",
+        "name": "Well of Mimir",
         "description": "Daemon (exhaust): Max Energy +1 for the rest of the battle.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6370,13 +6500,15 @@
     },
     "short_fuse": {
         "id": "short_fuse",
-        "name": "Short Fuse",
+        "name": "Hoarder's Toll",
         "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 10 power per point.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "hate",
+        "cur": "Energy",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6390,13 +6522,15 @@
     },
     "static_ward": {
         "id": "static_ward",
-        "name": "Static Ward",
+        "name": "Frigg's Oath",
         "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 8 power.",
         "element": "None",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "hate",
+        "cur": "statuses",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6410,13 +6544,15 @@
     },
     "core_overclock": {
         "id": "core_overclock",
-        "name": "Core Overclock",
-        "description": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+        "name": "Megingjord",
+        "description": "Daemon (exhaust): +1 power for every 2 Strength you hold.",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6430,13 +6566,15 @@
     },
     "cinder_armor": {
         "id": "cinder_armor",
-        "name": "Cinder Armor",
+        "name": "Emberhide",
         "description": "Daemon (exhaust): cards that add Burn also add 1 Sharp to the host.",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "converter",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6450,13 +6588,15 @@
     },
     "ember_ward": {
         "id": "ember_ward",
-        "name": "Ember Ward",
+        "name": "Brynhild's Ring",
         "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 1 Burn.",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6470,13 +6610,15 @@
     },
     "feedback_loop": {
         "id": "feedback_loop",
-        "name": "Feedback Loop",
+        "name": "Huginn's Dive",
         "description": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 7 power.",
         "element": "Water",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6497,6 +6639,8 @@
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6510,13 +6654,15 @@
     },
     "echo_chamber": {
         "id": "echo_chamber",
-        "name": "Echo Chamber",
-        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand.",
+        "name": "Gjallarhorn",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Tattle token in your hand.",
         "element": "Nature",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6530,13 +6676,15 @@
     },
     "thermal_overload": {
         "id": "thermal_overload",
-        "name": "Thermal Overload",
+        "name": "Surtr's Fever",
         "description": "Daemon (exhaust): your Burns deal 50% more damage. Host takes 5 Fire damage at turn end.",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",
         "exhaust": true,
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6558,6 +6706,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6586,6 +6736,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6617,6 +6769,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6644,6 +6798,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Strength",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6677,6 +6833,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Strength",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6700,6 +6858,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Weakened",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -6723,6 +6883,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Weakened",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6757,6 +6919,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "consume",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6786,6 +6950,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Burn",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6811,6 +6977,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Burn",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -6839,6 +7007,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6872,6 +7042,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6906,6 +7078,8 @@
         "target": "Self",
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Energy",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -6934,6 +7108,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "consume",
+        "cur": "Poison",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -6963,6 +7139,8 @@
         "target": "Side",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "consume",
+        "cur": "Energy",
         "baseCost": 3,
         "constraints": [
             "not_stunned",
@@ -6985,6 +7163,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "cards",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -7017,6 +7197,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Uncommon",
+        "shape": "scalar",
+        "cur": "cards",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -7041,6 +7223,8 @@
         "allyTarget": true,
         "category": "Heal",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -7070,6 +7254,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -7094,6 +7280,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Sharp",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -7123,6 +7311,8 @@
         "target": "Single",
         "category": "Status",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Dazed",
         "baseCost": 0,
         "constraints": [
             "not_stunned",
@@ -7152,6 +7342,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Dazed",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -7182,6 +7374,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "scalar",
+        "cur": "Weakened",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -7208,6 +7402,8 @@
         "allyTarget": true,
         "category": "Skill",
         "rarity": "Common",
+        "shape": "enabler",
+        "cur": "Bark",
         "baseCost": 1,
         "constraints": [
             "not_stunned",
@@ -7231,6 +7427,8 @@
         "target": "Single",
         "category": "Attack",
         "rarity": "Common",
+        "shape": "consume",
+        "cur": "Bark",
         "baseCost": 2,
         "constraints": [
             "not_stunned",
@@ -7396,7 +7594,7 @@
     },
     "overclock_core+": {
         "id": "overclock_core+",
-        "name": "Overclock Core+",
+        "name": "Well of Mimir+",
         "description": "Daemon (exhaust): Max Energy +1 for the rest of the battle, and gain 1 Energized now.",
         "element": "None",
         "target": "Self",
@@ -7426,7 +7624,7 @@
     },
     "short_fuse+": {
         "id": "short_fuse+",
-        "name": "Short Fuse+",
+        "name": "Hoarder's Toll+",
         "description": "Daemon (exhaust): an enemy that ends its turn with unspent Energy takes 15 power per point.",
         "element": "None",
         "target": "Self",
@@ -7468,7 +7666,7 @@
     },
     "short_circuit+": {
         "id": "short_circuit+",
-        "name": "Short Circuit+",
+        "name": "Wisdom's Price+",
         "description": "Daemon (exhaust): whenever an enemy draws a card outside its draw phase, deal 20 power to it.",
         "element": "None",
         "target": "Self",
@@ -7489,7 +7687,7 @@
     },
     "static_ward+": {
         "id": "static_ward+",
-        "name": "Static Ward+",
+        "name": "Frigg's Oath+",
         "description": "Daemon (exhaust): whenever an enemy applies a status to your side, it takes 11 power.",
         "element": "None",
         "target": "Self",
@@ -7510,8 +7708,8 @@
     },
     "core_overclock+": {
         "id": "core_overclock+",
-        "name": "Core Overclock+",
-        "description": "Daemon (exhaust): +30% damage per stack of Strength. No cap.",
+        "name": "Megingjord+",
+        "description": "Daemon (exhaust): +1 power for every Strength you hold.",
         "element": "Fire",
         "target": "Self",
         "category": "Daemon",
@@ -7531,7 +7729,7 @@
     },
     "cinder_armor+": {
         "id": "cinder_armor+",
-        "name": "Cinder Armor+",
+        "name": "Emberhide+",
         "description": "Daemon (exhaust): cards that add Burn also add 4 Sharp to the host.",
         "element": "Fire",
         "target": "Self",
@@ -7552,7 +7750,7 @@
     },
     "ember_ward+": {
         "id": "ember_ward+",
-        "name": "Ember Ward+",
+        "name": "Brynhild's Ring+",
         "description": "Daemon (exhaust): whenever an ally is hit by an attack, the attacker gains 4 Burn.",
         "element": "Fire",
         "target": "Self",
@@ -7573,7 +7771,7 @@
     },
     "feedback_loop+": {
         "id": "feedback_loop+",
-        "name": "Feedback Loop+",
+        "name": "Huginn's Dive+",
         "description": "Daemon (exhaust): whenever an effect draws you a card, hit a random enemy for 10 power.",
         "element": "Water",
         "target": "Self",
@@ -7615,8 +7813,8 @@
     },
     "echo_chamber+": {
         "id": "echo_chamber+",
-        "name": "Echo Chamber+",
-        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Feedback token in your hand — two the first time each turn.",
+        "name": "Gjallarhorn+",
+        "description": "Daemon (exhaust): whenever you play a 0-cost card, generate a 0-cost Tattle token in your hand — two the first time each turn.",
         "element": "Nature",
         "target": "Self",
         "category": "Daemon",
@@ -7638,7 +7836,7 @@
     },
     "reactive_plating+": {
         "id": "reactive_plating+",
-        "name": "Reactive Plating+",
+        "name": "Berserkergang+",
         "description": "Daemon (exhaust): when an ally takes damage from an enemy attack, it gains 1 Sharp. Max 5 per turn.",
         "element": "None",
         "target": "Self",
@@ -7660,7 +7858,7 @@
     },
     "thermal_overload+": {
         "id": "thermal_overload+",
-        "name": "Thermal Overload+",
+        "name": "Surtr's Fever+",
         "description": "Daemon (exhaust): your Burns deal 75% more damage. Host takes 5 Fire damage at turn end.",
         "element": "Fire",
         "target": "Self",
@@ -8166,7 +8364,7 @@
     "sun_devourer+": {
         "id": "sun_devourer+",
         "name": "Sun Devourer+",
-        "description": "Consume all your Strength: 40 power per stack consumed.",
+        "description": "Consume all your Strength: 20 power per stack consumed.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -8187,7 +8385,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 40,
+                "power": 20,
                 "scaling": "STATUS_CONSUMED",
                 "target": "TARGET"
             }

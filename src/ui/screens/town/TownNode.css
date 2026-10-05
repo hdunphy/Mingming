@@ -1,0 +1,69 @@
+/*
+ * TICKET 176c (M7) - the town screen: the square, the rail, the tab body and the dock. The tab
+ * bodies are the market's and the workshop's own panels, drawn without their own frames.
+ */
+
+.town { display: flex; flex-direction: column; }
+
+.town-main { flex: 1; display: flex; min-height: 0; }
+
+.town-rail {
+    width: 150px; flex: none;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 12px 10px;
+    border-right: 1px solid var(--panel);
+    background: var(--page);
+}
+.town-tab {
+    background: var(--panel); border: 1px solid var(--panel-2); border-radius: 5px;
+    color: var(--text-dim); font: inherit; font-weight: 700; letter-spacing: 1px;
+    padding: 9px 10px; text-align: left; cursor: pointer;
+}
+.town-tab.on { border-color: var(--el-water); color: var(--text); }
+
+.town-body { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+.town-body > .mk, .town-body > .ws, .town-body > .town-upgrades { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.town-upgrades { padding: 12px 18px; overflow: auto; }
+
+.town-dock {
+    height: 46px; flex: none;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    border-top: 1px solid var(--panel);
+    background: var(--page);
+}
+.town-dock-scrap { color: var(--amber); font-weight: 700; letter-spacing: 1px; }
+
+/* --- the square --- */
+
+.town-square { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; }
+.town-say { margin: 0; color: var(--amber); font-style: italic; }
+.town-buildings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.town-building {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    min-height: 120px; padding: 16px;
+    background: var(--panel); border: 1px solid var(--panel-2); border-radius: 8px;
+    color: var(--text-dim); font: inherit; text-align: left; cursor: pointer;
+}
+.town-building:hover, .town-building:focus-visible { border-color: var(--el-water); color: var(--text); }
+.town-building-nm { font-size: 16px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text); }
+.town-building-st { font-size: 12px; color: var(--text-mute); }
+
+/* --- the Shop tab: the stall without its frame --- */
+
+.mk-town .mk-body { flex-direction: column; overflow: auto; }
+.mk-town .mk-center { flex: none; overflow: visible; }
+.mk-town .mk-sell { width: auto; }
+.mk-sell-tiles { padding: 4px 0; }
+.mk-sell-plate.sell { background: var(--hp); color: var(--page); }
+.mk-sell-plate.remove { background: var(--panel-2); color: var(--text); }
+
+/* The two firmware under the blueprint: name, one line, and the start kit as peekable rows. */
+.mk-firmware { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.mk-fw { display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid var(--panel-2); border-left: 3px solid var(--el); border-radius: 5px; background: var(--page); }
+.mk-fw-nm { font-weight: 800; letter-spacing: 1px; font-size: 12px; color: var(--text); }
+.mk-fw-desc { font-size: 11px; color: var(--text-mute); }
+
+/* --- the Workshop tab: the bay without its frame --- */
+
+.ws-town .ws-body { overflow: auto; }

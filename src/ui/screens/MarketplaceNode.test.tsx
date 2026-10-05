@@ -73,6 +73,7 @@ import type { IMingmingState } from '../../engine/types';
 import { MACRO_SLOTS } from '../../engine/runTypes';
 import type { IRunCard, IRunState } from '../../engine/runTypes';
 import { plain } from '../labels/labels';
+import { plainShop } from '../../testing/plainShop';
 
 /**
  * `renderToStaticMarkup` escapes text, and several card descriptions carry apostrophes and
@@ -101,7 +102,7 @@ function makeRun(scrap: number, over: Partial<IRunState> = {}): IRunState {
         party: PARTY,
         startedAt: 1_700_000_000_000,
     });
-    const market = run.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = plainShop(run, 'marketplace');
     return {
         ...run,
         scrap,
@@ -467,7 +468,7 @@ describe('MarketplaceNode', () => {
         const tiles = tilesIn(render({ ...run, deck: [...run.deck, bought.card] }));
 
         expect(tiles).toHaveLength(stockFor(run).offers.length);
-        expect(tiles[0].name).toBe(nameOf(bought.card.dataId));
+        expect(tiles[0].name).toBe(escapeHtml(nameOf(bought.card.dataId)));
         expect(tiles[0].plate).toBe('SOLD');
         expect(tiles[0].greyed).toBe(true);
         expect(tiles[0].disabled).toBe(true);

@@ -17,19 +17,26 @@ import { describeDriver } from '../../engine/data/driverRegistry';
 import { numericBaseCost } from '../../engine/types';
 import type { IRanchMember, IRegionNode } from '../../engine/runTypes';
 import { NODE_LABEL, isRunStart, nodeLabelFor } from '../../ui/screens/regionLayout';
+import { plain } from '../../ui/labels/labels';
 
 export const speciesName = (definitionId: string): string => GetMingmingData(definitionId)?.name ?? definitionId;
 
 export const memberName = (member: Pick<IRanchMember, 'id' | 'definitionId' | 'nickname'>): string =>
     member.nickname ?? speciesName(member.definitionId);
 
+/*
+ * THE GAME'S WORDS. Tickets 183h and 192 renamed things on the screens (Instinct, Aura, the Norse
+ * names) through the UI's `plain()`. Everything below that prints the game's own names and rule text
+ * goes through it too, so the agent reads what a player reads. `plain` is the whole seam: when a word
+ * is renamed again, nothing here changes.
+ */
 export const firmwareName = (osId: string | undefined): string =>
-    osId === undefined ? '-' : (getOSBehavior(osId)?.name ?? osId);
+    osId === undefined ? '-' : plain(getOSBehavior(osId)?.name ?? osId);
 
 export const firmwareText = (osId: string | undefined): string =>
-    osId === undefined ? '' : (getOSBehavior(osId)?.description ?? '');
+    osId === undefined ? '' : plain(getOSBehavior(osId)?.description ?? '');
 
-export const cardName = (dataId: string): string => GetProgramData(dataId)?.name || dataId;
+export const cardName = (dataId: string): string => plain(GetProgramData(dataId)?.name || dataId);
 
 export function cardCost(dataId: string): number | string {
     const data = GetProgramData(dataId);
@@ -40,27 +47,27 @@ export function cardCost(dataId: string): number | string {
 export function cardLine(dataId: string): string {
     const data = GetProgramData(dataId);
     if (!data) return `${dataId} (unknown card)`;
-    return `${data.name || dataId} (${numericBaseCost(data.baseCost)}e, ${data.element ?? 'None'}): ${data.description ?? ''}`.trimEnd();
+    return plain(`${data.name || dataId} (${numericBaseCost(data.baseCost)}e, ${data.element ?? 'None'}): ${data.description ?? ''}`.trimEnd());
 }
 
 export const macroLine = (macroId: string): string => {
     const macro = getMacro(macroId);
-    return macro ? `${macro.name}: ${macro.description}` : macroId;
+    return macro ? plain(`${macro.name}: ${macro.description}`) : macroId;
 };
 
-export const macroName = (macroId: string | null): string => (macroId === null ? 'empty' : (getMacro(macroId)?.name ?? macroId));
+export const macroName = (macroId: string | null): string => (macroId === null ? 'empty' : plain(getMacro(macroId)?.name ?? macroId));
 
-export const patchName = (patchId: string): string => getPatch(patchId)?.name ?? patchId;
+export const patchName = (patchId: string): string => plain(getPatch(patchId)?.name ?? patchId);
 export const patchLine = (osId: string | undefined, patchId: string): string =>
-    `${patchName(patchId)}: ${describePatchOn(osId, patchId)}`;
+    plain(`${patchName(patchId)}: ${describePatchOn(osId, patchId)}`);
 
 export const driverLine = (driverId: string): string => {
     const driver = describeDriver(driverId);
-    return `${driver.name}: ${driver.description}`;
+    return plain(`${driver.name}: ${driver.description}`);
 };
 
 /** The map's own word for a node (it calls the run's first node by its own name). */
 export const nodeLabel = (node: IRegionNode): string => nodeLabelFor(node);
 export const nodeKindLabel = (kind: IRegionNode['kind']): string => NODE_LABEL[kind];
 export { isRunStart };
-export const driverName = (driverId: string): string => describeDriver(driverId).name;
+export const driverName = (driverId: string): string => plain(describeDriver(driverId).name);

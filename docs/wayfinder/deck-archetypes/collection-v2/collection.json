@@ -135,7 +135,7 @@
       "el": "Fire",
       "cat": "Daemon",
       "tgt": "Self",
-      "text": "Daemon (exhaust): +20% damage per stack of Strength. No cap.",
+      "text": "Daemon (exhaust): +1 power for every 2 Strength you hold.",
       "shape": "scalar",
       "cur": "Strength",
       "status": "keep"
@@ -413,7 +413,7 @@
       "el": "Fire",
       "cat": "Attack",
       "tgt": "Single",
-      "text": "Consume all your Strength: 30 power per stack consumed.",
+      "text": "Consume all your Strength: 15 power per stack consumed.",
       "shape": "consume",
       "cur": "Strength",
       "status": "keep",
@@ -1408,7 +1408,7 @@
       "el": "Fire",
       "id": "skoll_v1",
       "os": "TREACHERY_KERNEL",
-      "text": "Whenever an allied Mingming takes damage from an enemy attack, Sköll gains 1 Strength.",
+      "text": "Whenever an ally loses HP to an enemy, Sköll gains 1 Strength.",
       "ally": "fed by allies being hit; Howl gives Str back",
       "laneA": [
         "Flurry",

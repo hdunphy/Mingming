@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 import runReducer, { freezeMarketParty, rerollMarketStock } from '../../ui/store/runSlice';
 import { createRun } from './createRun';
 import { offerGyms } from './gyms';
-import { rollMarketStock, rollMacroStock } from './marketplace';
+import { rollMarketStock, rollMacroStock, isMarketNode } from './marketplace';
 import { marketPartyFor, snapshotMarketParty } from './marketParty';
 import type { IRewardPartyMember } from '../RewardSystem';
 import type { IMingmingState } from '../types';
@@ -34,7 +34,7 @@ function atMarket(): { run: IRunState; nodeId: string } {
         party: [KRAKEN],
         startedAt: 1_700_000_000_000,
     });
-    const market = base.nodes.find((n) => n.kind === 'marketplace')!;
+    const market = base.nodes.find((n) => isMarketNode(n.kind))!;
     const run = {
         ...base,
         scrap: 500,

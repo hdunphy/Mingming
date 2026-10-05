@@ -52,7 +52,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import runReducer, {
     startRun, enterNode, resolveEncounter, endRun, addRunScrap, addRunCards, addRunCollection,
     buyMarketCard, recruitIntoParty, beginGauntlet, advanceGauntlet, finishGauntlet,
-    recordFightBlueprintOutcome, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
+    recordFightBlueprintOutcome, recordCardOffer, addDriver, fitPatch, upgradeDeckCard, buyMarketBlueprint, removeJunkCard,
 } from '../../ui/store/runSlice';
 import { junkToRemove } from './junkPolicy';
 import { chooseDraftPickBest, type DraftPolicy } from './draftPolicy';
@@ -69,8 +69,9 @@ import { rollGauntletFight, GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { createIntroRun } from '../../engine/run/intro/createIntroRun';
 import { introRules } from '../../engine/run/intro/introRules';
 import { rollDropTable } from '../../engine/RewardSystem';
+import { ownedCardIdsOf } from '../../engine/rewards/ownedCards';
 import { fightBonusFor } from '../../engine/run/fightBonus';
-import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold, JUNK_REMOVAL_PRICE, UPGRADES_PER_VISIT } from '../../engine/run/marketplace';
+import { rollMarketStock, rollBlueprintOffer, isMarketNode, upgradePrice, isBlueprintSlotSold, JUNK_REMOVAL_PRICE, upgradeAllowanceFor, upgradeBenchKeyFor } from '../../engine/run/marketplace';
 import { WORKSHOP_ASSEMBLY_SCRAP } from '../../engine/run/workshop';
 import { BlueprintLedger } from './BlueprintLedger';
 import { drawEvent } from '../../engine/run/events/eventDraw';
@@ -167,10 +168,15 @@ export interface StepReason {
  *
  * §3: *"Henry's ruled route [counter, gym element, gym biome] (142d); shortest path node by node."*
  * The biome ORDER is already fixed by the gym offer, so "the ruled route" is a property of the graph
- * rather than a choice this function makes. What is left is which node inside the layer.
+ * rather than a choice this function makes. What is left is which node inside the row.
  *
- * **Shortest path first, and the tie-break is the policy.** A breadth-first search from the current
- * node gives every neighbour's distance to the gym; anything not on a shortest path is discarded
+ * **Ticket 176: the map is one-way**, so `edges` are forward links and a node's distance to the gym is
+ * found by a breadth-first search over the REVERSED links, starting at the gym. A detour is never on
+ * a shortest path (it is one stop longer than the plain link it hangs off), so the walker skips them
+ * unless `takeDetours` is set (M8); then a detour is always taken when it is offered.
+ *
+ * **Shortest path first, and the tie-break is the policy.** The search gives every neighbour's
+ * distance to the gym; anything not on a shortest path is discarded
  * outright, because a walker that wanders is measuring a different run length than the one being
  * asked about. Among the neighbours that ARE on a shortest path, the tie-break is:
  *
@@ -188,10 +194,18 @@ export function chooseStep(
     run: IRunState,
     gymNodeId: string,
     hasRecruitableBlueprint: boolean | number,
+    takeDetours = false,
 ): StepReason | null {
     const byId = new Map(run.nodes.map((node) => [node.id, node]));
     const current = byId.get(run.currentNodeId);
     if (!current || current.id === gymNodeId) return null;
+
+    // The links read backwards: who can step to this node. Forward-only edges need the reverse to
+    // search outwards from the gym.
+    const cameFrom = new Map<string, string[]>();
+    for (const node of run.nodes) {
+        for (const edge of node.edges) cameFrom.set(edge, [...(cameFrom.get(edge) ?? []), node.id]);
+    }
 
     // BFS distance to the gym from every node, so a neighbour can be tested for "on a shortest path".
     const dist = new Map<string, number>([[gymNodeId, 0]]);
@@ -199,10 +213,10 @@ export function chooseStep(
     while (frontier.length > 0) {
         const next: string[] = [];
         for (const id of frontier) {
-            for (const edge of byId.get(id)?.edges ?? []) {
-                if (dist.has(edge)) continue;
-                dist.set(edge, (dist.get(id) ?? 0) + 1);
-                next.push(edge);
+            for (const source of cameFrom.get(id) ?? []) {
+                if (dist.has(source)) continue;
+                dist.set(source, (dist.get(id) ?? 0) + 1);
+                next.push(source);
             }
         }
         frontier = next;
@@ -211,17 +225,21 @@ export function chooseStep(
     const here = dist.get(current.id);
     if (here === undefined) return null;
 
-    const onPath = current.edges
+    const offered = current.edges
         .map((id) => byId.get(id))
-        .filter((node): node is IRegionNode => node !== undefined)
-        .filter((node) => (dist.get(node.id) ?? Infinity) === here - 1);
+        .filter((node): node is IRegionNode => node !== undefined && node.visited === 0);
+    // M8: with the flag, a detour is always taken when it is offered (the "greedy player").
+    const detour = takeDetours ? offered.find((node) => node.detour) : undefined;
+    if (detour) return { nodeId: detour.id, kind: detour.kind, why: 'detour (the greedy walk)' };
+
+    const onPath = offered.filter((node) => (dist.get(node.id) ?? Infinity) === here - 1);
     if (onPath.length === 0) return null;
 
     const canRecruit = typeof hasRecruitableBlueprint === 'boolean'
         ? hasRecruitableBlueprint
         : hasRecruitableBlueprint > 0;
     const rank = (node: IRegionNode): number => {
-        if (node.kind === 'workshop' && canRecruit) return 0;
+        if ((node.kind === 'workshop' || node.kind === 'town') && canRecruit) return 0;
         if (isMarketNode(node.kind)) return 1;
         if (isFightNode(node.kind)) return 2;
         return 3;
@@ -464,6 +482,11 @@ export interface WalkInput {
      * means anything and neither should be read. `summariseFightOne` reads `byFightIndex` alone.
      */
     readonly stopAfterFights?: number;
+    /**
+     * TICKET 176 (M8): take every detour the map offers. Off by default, so the walker measures the
+     * plain route; on, it measures the "greedy player" who picks up every extra fight.
+     */
+    readonly takeDetours?: boolean;
     /**
      * TICKET 169j: the difficulty tier to play (0-3). Left out it is the gym's own tier, which is
      * what every walk before 169 played, so the default reproduces them exactly.
@@ -742,7 +765,7 @@ export function playEventNode(
         if (outcome.type === 'CARD_PICK') {
             const offered = offerCards(eventCtx, { count: outcome.count, rarities: outcome.rarities }, slot);
             const decision = pickFor(offered);
-            if (decision.taken !== null) picks[index] = { cardId: decision.taken, toCollection: decision.toCollection };
+            if (decision.taken !== null) picks[index] = { cardId: decision.taken, toCollection: decision.toCollection, offered };
         } else if (outcome.type === 'BLUEPRINT_PICK') {
             // A species the walker does not hold yet beats one it does: a second copy is a spare.
             const offered = offerBlueprints(eventCtx, outcome.count, slot);
@@ -1049,6 +1072,8 @@ export function walkRun(input: WalkInput): WalkResult {
             dryFights: run.blueprintDryFights ?? 0,
             bonus: fightBonusFor({ nodeKind: node.kind, biomeIndex: node.biomeIndex, biomeCount: run.biomes.length, gauntlet: null }),
             heldPatches: run.patches ?? {},
+            ownedCardIds: ownedCardIdsOf(run),
+            recentOffers: run.recentOffers ?? [],
         });
         // The walker has no macro policy (it never fires macros), so leave bundle.macroChoices unclaimed.
 
@@ -1074,6 +1099,8 @@ export function walkRun(input: WalkInput): WalkResult {
 
         for (const choice of bundle.cardChoices) {
             const offered = choice.options.map((o) => o.dataId);
+            // Ticket 185e: the shown cards are remembered whichever way the pick goes.
+            store.dispatch(recordCardOffer(offered));
             const decision = choosePick(offered, deckIds(), partyElements());
             picks.push(decision);
             if (decision.taken === null) {
@@ -1171,7 +1198,7 @@ export function walkRun(input: WalkInput): WalkResult {
          * second slot cannot be usable when the first was not. With an allowance of one this is
          * the walk it always was.
          */
-        const allowance = free ? 1 : UPGRADES_PER_VISIT;
+        const allowance = free ? 1 : upgradeAllowanceFor(node);
         for (let slot = 0; slot < allowance; slot += 1) {
             const run = runNow();
             const choice = chooseUpgrade(run.deck, run.scrap, free, (base) => shopPrice(run, base));
@@ -1188,7 +1215,7 @@ export function walkRun(input: WalkInput): WalkResult {
             const before = run.deck.filter((c) => c.upgraded === true).length;
             const scrapBefore = run.scrap;
             store.dispatch(upgradeDeckCard({
-                instanceId: choice.instanceId, benchKey: `${node.id}:${node.visited}`, free, allowance,
+                instanceId: choice.instanceId, benchKey: free ? `${node.id}:${node.visited}` : upgradeBenchKeyFor(node), free, allowance,
             }));
             if (runNow().deck.filter((c) => c.upgraded === true).length === before) { benchesMissed += 1; return; }
             upgraded.push({ from: choice.from, to: choice.to, price: choice.price });
@@ -1276,6 +1303,12 @@ export function walkRun(input: WalkInput): WalkResult {
             // in full — the reward roll is part of what that fight WAS, and dropping it would make
             // the truncated walk disagree with the full one about the run it just played.
             if (input.stopAfterFights !== undefined && fights.length >= input.stopAfterFights) break;
+        } else if (node.kind === 'town') {
+            // Ticket 176c: a town is both. The workshop first, so a recruit happens before the market
+            // shelf is rolled for the new team (171b), then the one upgrade bench with the biome's allowance.
+            workshop(node);
+            shop(node);
+            upgradeBench(node, false);
         } else if (isMarketNode(node.kind)) {
             shop(node);
             upgradeBench(node, false);
@@ -1322,7 +1355,7 @@ export function walkRun(input: WalkInput): WalkResult {
 
         const held = new Set(partyMembers().map((m) => m.definitionId));
         const hasRecruitable = runNow().partyIds.length < 3 && blueprintLedger.recruitable(held).length > 0;
-        const next = chooseStep(runNow(), gymNodeId, hasRecruitable);
+        const next = chooseStep(runNow(), gymNodeId, hasRecruitable, input.takeDetours === true);
         if (!next) break;
         steps.push(next);
         store.dispatch(enterNode(next.nodeId));
