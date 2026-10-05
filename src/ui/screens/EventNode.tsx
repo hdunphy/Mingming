@@ -54,6 +54,7 @@ import { cardFace, colorFor } from './runShell';
 import './runShell.css';
 import './EventNode.css';
 import { plain } from '../labels/labels';
+import { useFirstTraceLine } from '../hooks/useFirstTraceLine';
 
 export interface EventNodeProps {
     readonly run: IRunState;
@@ -93,6 +94,9 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
     const [upgrading, setUpgrading] = useState<EventChoice | null>(null);
     /** What the last choice did, shown above the dark line so a bad roll is not silent. */
     const [note, setNote] = useState<string>('');
+    /** TICKET 195b: a Trace was taken from this event, so a save's first one says where to use it. */
+    const [tookTrace, setTookTrace] = useState(false);
+    const firstTraceLine = useFirstTraceLine(tookTrace);
 
     const resolved = eventResolvedAt(run, node.id);
     const visitKey = `${node.id}:${node.visited}`;
@@ -138,6 +142,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
             <>
                 {/* TICKET 182a: the result note is a line, not a paragraph - the screen's one <p> is the text below. */}
                 {note !== '' && <div className="ev-note">{note}</div>}
+                {firstTraceLine && <div className="ev-note" data-testid="first-trace-line">{firstTraceLine}</div>}
                 <p className="ev-text">The relay is dark. Nothing here now.</p>
             </>
         ), true);
@@ -171,6 +176,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         // branch that was actually applied.
         const played = resolveGambles({ run, node }, choice);
         setNote(describeApplied(played, run.scrap, picks, ctx));
+        if (played.outcomes.some((outcome, index) => outcome.type === 'BLUEPRINT_PICK' && picks[index] !== undefined)) setTookTrace(true);
         // The ranch is read at the moment of applying, not at render: a recruit spends a blueprint and
         // checks the roster after, and both have to be the store's own view.
         applyChoice(dispatch, {

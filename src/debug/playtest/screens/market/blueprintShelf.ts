@@ -7,6 +7,7 @@
 import { isBlueprintSlotSold, rollBlueprintOffer } from '../../../../engine/run/marketplace';
 import { addBlueprint } from '../../../../ui/store/gameSlice';
 import { buyMarketBlueprint } from '../../../../ui/store/runSlice';
+import { FIRST_TRACE_LINE, noteTraceGained } from '../../firstTrace';
 import { speciesName } from '../../gameText';
 import { dispatchChecked, hereNode, priceNote, shortBy } from '../../stalls';
 import type { Move, Section, World } from '../../types';
@@ -29,6 +30,7 @@ export function blueprintShelf(world: World): Section {
                 w.store.dispatch(addBlueprint(offer.speciesId));
                 if (dispatchChecked(w, buyMarketBlueprint({ nodeId: node.id, price: offer.price }), 'buy blueprint')) {
                     w.view.news.push(`Bought the ${speciesName(offer.speciesId)} blueprint.`);
+                    if (noteTraceGained(w)) w.view.news.push(FIRST_TRACE_LINE);
                 }
             },
         });

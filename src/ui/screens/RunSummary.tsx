@@ -49,6 +49,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useFirstTraceLine } from '../hooks/useFirstTraceLine';
 
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { bankedBlueprintCounts, summarizeRun } from '../../engine/run/runSummary';
@@ -188,6 +189,8 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
     const gymName = gym?.name ?? run.gymId;
     const headline = headlineFor(run);
     const bankedEntries = Object.entries(banked);
+    // TICKET 195b: the gym's payout can be a save's first Trace; say where to use it.
+    const firstTraceLine = useFirstTraceLine(bankedEntries.length > 0);
 
     /**
      * Leave. **The single teardown path** — see `store/runTeardown.ts`: the codex merge, the
@@ -240,6 +243,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
                     >
                         You kept: {kept}
                     </li>
+                    {firstTraceLine && <li className="rs-big-line k-plate" data-testid="first-trace-line">{firstTraceLine}</li>}
                     <li className="rs-big-line k-plate">{reached}</li>
                     <li className="rs-big-line k-plate">{unlocked}</li>
                 </ul>

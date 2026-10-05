@@ -656,6 +656,14 @@ export interface IRanchState {
      * sets it to `true`, and a save with `true` never sees the intro again.
      */
     readonly introDone?: boolean;
+
+    /**
+     * TICKET 195b — has this save shown the first-Trace line ("Summon it in the Den.")?
+     *
+     * Add-only, `.default(false)` and no version bump, like `introDone`: a save written before the field
+     * has not shown it. Set when the line has been shown, never cleared; a wiped save starts false again.
+     */
+    readonly traceHintShown?: boolean;
 }
 
 export interface IRanchMember {
@@ -848,6 +856,8 @@ export const RanchStateSchema = z.object({
     // Ticket 59, same add-only shape as `seenTips` above: absent means zero completed runs.
     runsCompleted: z.number().int().min(0).default(0),
     introDone: z.boolean().default(true),
+    // Ticket 195b: the first-Trace line has been shown. Add-only; absent means it has not.
+    traceHintShown: z.boolean().default(false),
 });
 
 /**

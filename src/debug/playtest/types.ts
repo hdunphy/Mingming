@@ -92,6 +92,8 @@ export interface RewardFlow {
     readonly carried?: ReadonlyArray<{ readonly memberId: string; readonly hp: number; readonly maxHp: number }>;
     readonly scraps: number;
     readonly blueprints: ReadonlyArray<string>;
+    /** Ticket 195b: these Trace(s) are the save's first, so the screen that shows them also says what they are for. */
+    readonly firstTrace?: boolean;
     readonly driver: string | null;
     readonly cardChoices: ReadonlyArray<RewardCardChoice>;
     readonly patchOffers: ReadonlyArray<{ readonly memberId: string; readonly patchId: string }>;

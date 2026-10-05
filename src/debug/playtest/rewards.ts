@@ -27,6 +27,7 @@ import { eventFightScrapMultiplier, fightKindOf } from '../../engine/run/eventFi
 import { paysDriver, partyElementsOf, resolveDriverStake } from '../../engine/run/driverStakes';
 import { MACRO_SLOTS, type IRegionNode, type IRunCard } from '../../engine/runTypes';
 import type { IBattleState } from '../../engine/types';
+import { FIRST_TRACE_LINE, noteTraceGained } from './firstTrace';
 import { cardName, macroName, memberName, patchName, speciesName } from './gameText';
 import type { RewardAnswer, RewardFlow, World } from './types';
 import { runOf } from './types';
@@ -84,11 +85,14 @@ export function startRewards(world: World, node: IRegionNode, battle: IBattleSta
         world.store.dispatch(recordBankedBlueprint(species));
     }
 
+    // 195b: the save's first Trace says where to use it, on the screen that shows the reward.
+    const firstTrace = rolled.blueprints.length > 0 && noteTraceGained(world);
     const flow: RewardFlow = {
         nodeId: node.id,
         ...(carried === undefined ? {} : { carried }),
         scraps: rolled.scraps * scrapMultiplier,
         blueprints: [...rolled.blueprints],
+        ...(firstTrace ? { firstTrace: true } : {}),
         driver: driverStake ?? rolled.driver ?? null,
         cardChoices: rolled.cardChoices.map((choice) => ({
             from: choice.sourceEntityName,
@@ -123,6 +127,8 @@ export function claimRewards(world: World): void {
         news.push(`Claimed ${flow.scraps} scrap.`);
     }
     for (const species of flow.blueprints) news.push(`Banked a blueprint: ${speciesName(species)}.`);
+    // 195b: a reward with nothing to decide is claimed unseen, so the line goes in the news; otherwise the reward screen carried it.
+    if (flow.firstTrace && flow.answers.length === 0) news.push(FIRST_TRACE_LINE);
 
     const cardAnswers = flow.answers.filter((a): a is Extract<RewardAnswer, { kind: 'card' }> => a.kind === 'card');
     const forDeck: IRunCard[] = [];
@@ -179,6 +185,7 @@ function settleEncounter(world: World, flow: RewardFlow): void {
     for (const speciesId of gymClearBlueprints((authoredBossFor(run.gymId)?.members ?? []).map((m) => m.species))) {
         store.dispatch(addBlueprint(speciesId));
         store.dispatch(recordBankedBlueprint(speciesId));
+        if (noteTraceGained(world)) world.view.news.push(FIRST_TRACE_LINE);
     }
     store.dispatch(markGymCleared(run.gymId));
     store.dispatch(recordTierCleared(run.tier));

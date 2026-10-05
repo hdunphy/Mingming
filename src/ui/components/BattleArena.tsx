@@ -62,6 +62,7 @@ import { ownedCardIdsOf } from '../../engine/rewards/ownedCards';
 import type { IRunCard, NodeKind } from '../../engine/runTypes';
 import type { IRewardBundle, IOwnedProgram } from '../../engine/gameTypes';
 import { useBattleVfx } from '../hooks/useBattleVfx';
+import { useFirstTraceLine } from '../hooks/useFirstTraceLine';
 import PlayedCardReveal from './PlayedCardReveal';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import { playSfx } from '../audio/AudioEngine';
@@ -205,6 +206,8 @@ const BattleArena: React.FC = () => {
     // Epic 3.5: Post-battle state
     const [rewardBundle, setRewardBundle] = useState<IRewardBundle | null>(null);
     const [showReport, setShowReport] = useState(false);
+    // TICKET 195b: "Summon it in the Den." under a save's first Trace, once the report that shows it is up.
+    const firstTraceLine = useFirstTraceLine(showReport && (rewardBundle?.blueprints.length ?? 0) > 0);
 
     // Combat juice: event-bus driven VFX (floats, flashes, lunges, arena shake)
     const vfx = useBattleVfx(battleState);
@@ -1315,6 +1318,7 @@ const BattleArena: React.FC = () => {
                         bundle={rewardBundle}
                         winners={battleState.playerParty}
                         macroRack={run?.macros ?? [null, null, null]}
+                        firstTraceLine={firstTraceLine}
                         heldPatches={run?.patches ?? {}}
                         onContinue={handleContinue}
                     />

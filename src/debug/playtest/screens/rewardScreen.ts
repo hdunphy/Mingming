@@ -8,6 +8,7 @@
  */
 import { MACRO_SLOTS } from '../../../engine/runTypes';
 import { firstFreeMacroSlot } from '../../../engine/data/macroRegistry';
+import { FIRST_TRACE_LINE } from '../firstTrace';
 import { answerReward, nextDecision } from '../rewards';
 import { cardLine, cardName, driverLine, macroLine, macroName, memberName, patchLine, speciesName } from '../gameText';
 import type { Move, Screen, World } from '../types';
@@ -25,6 +26,7 @@ export function rewardScreen(world: World): Screen {
         const paid = [`${flow.scraps} scrap`, ...flow.blueprints.map((b) => `a ${speciesName(b)} blueprint`)];
         if (flow.driver) paid.push(`the driver ${driverLine(flow.driver)}`);
         body.push(`REWARDS: ${paid.join('; ')}.`);
+        if (flow.firstTrace) body.push(FIRST_TRACE_LINE);
     }
 
     const moves: Move[] = [];

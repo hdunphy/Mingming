@@ -48,7 +48,7 @@
  * inherits screens that already work without a mouse rather than screens that need retrofitting.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 
@@ -95,6 +95,7 @@ import { introRules } from '../../engine/run/intro/introRules';
 import { CardFace, ElementMark } from './CardChassis';
 import { CardPeek } from './CardPeek';
 import { useCardPeek } from '../hooks/useCardPeek';
+import { useFirstTraceLine } from '../hooks/useFirstTraceLine';
 import { plain } from '../labels/labels';
 
 /**
@@ -172,6 +173,9 @@ export default function MarketplaceNode({
     // and refreshes with the rest of the stall.
     const blueprintOffer = useMemo(() => rollBlueprintOffer(run, node), [run, node]);
     const blueprintSold = isBlueprintSlotSold(run, node);
+    // TICKET 195b: a save's first Trace says where to use it, here, under the tile just bought.
+    const [boughtTrace, setBoughtTrace] = useState(false);
+    const firstTraceLine = useFirstTraceLine(boughtTrace);
     // TICKET 182c: what this run's market shows. The card stall and the upgrade bench are in every market.
     const marketRules = introRules(run).market;
 
@@ -232,6 +236,7 @@ export default function MarketplaceNode({
      * is a bug report.
      */
     const purchaseBlueprint = (offer: IBlueprintOffer): void => {
+        setBoughtTrace(true);
         dispatch(addBlueprint(offer.speciesId));
         dispatch(buyMarketBlueprint({ nodeId: node.id, price: offer.price }));
         playSfx('rewardClaim');
@@ -396,6 +401,7 @@ export default function MarketplaceNode({
                                     </span>
                                 </button>
                             </div>
+                            {firstTraceLine && <p className="mk-hint" data-testid="first-trace-line">{firstTraceLine}</p>}
                             {inTown && <FirmwareRows speciesId={blueprintOffer.speciesId} />}
                         </>
                     )}

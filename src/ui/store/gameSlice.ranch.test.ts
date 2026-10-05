@@ -92,7 +92,7 @@ describe('assembleMingming — one blueprint, atomically', () => {
         const after = gameReducer(before, assembleMingming(member('mm1', 'kraken', 'kraken_v1')));
 
         expect(Object.keys(after).sort()).toEqual(
-            ['blueprints', 'codex', 'codexMilestones', 'gymsCleared', 'highestTierCleared', 'introDone', 'roster', 'runsCompleted', 'seenTips', 'tierClears'],
+            ['blueprints', 'codex', 'codexMilestones', 'gymsCleared', 'highestTierCleared', 'introDone', 'roster', 'runsCompleted', 'seenTips', 'tierClears', 'traceHintShown'],
         );
         // Still no CARDS. Ticket 31 added three codex ledgers and assembly writes two of them —
         // `seen`/`played` are the card ones and both stay empty, which is the claim this test makes.

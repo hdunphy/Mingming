@@ -78,6 +78,8 @@ export function createEmptyRanch(): IRanchState {
         // TICKET 182c: a NEW save has not played the intro. (A save written before the field is
         // parsed with `.default(true)`: that player already plays the normal game.)
         introDone: false,
+        // TICKET 195b: a NEW save has not shown the first-Trace line.
+        traceHintShown: false,
     };
 }
 
@@ -127,6 +129,11 @@ const gameSlice = createSlice({
          */
         setIntroDone: (state, action: PayloadAction<boolean>) => {
             state.introDone = action.payload;
+        },
+
+        /** TICKET 195b: the first-Trace line has been shown on this save. Never cleared. */
+        markTraceHintShown: (state) => {
+            state.traceHintShown = true;
         },
 
         // --- Blueprints ---
@@ -411,6 +418,7 @@ export const {
     addToRoster,
     removeFromRoster,
     setIntroDone,
+    markTraceHintShown,
     addBlueprint,
     spendBlueprint,
     assembleMingming,

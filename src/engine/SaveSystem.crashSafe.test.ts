@@ -68,6 +68,7 @@ function goodRanch(overrides: Partial<IRanchState> = {}): IRanchState {
         codexMilestones: [],
         runsCompleted: 0,
         introDone: true,
+        traceHintShown: false,
         ...overrides,
     };
 }

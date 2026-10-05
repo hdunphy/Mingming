@@ -15,6 +15,7 @@ import { applyChoice, isInteractiveOutcome } from '../../../ui/events/applyOutco
 import { describeApplied } from '../../../ui/events/describeOutcome';
 import type { OutcomePick } from '../../../ui/events/outcomePicks';
 import { playFightNode } from '../fightFlow';
+import { FIRST_TRACE_LINE, noteTraceGained } from '../firstTrace';
 import type { EventFlow, World } from '../types';
 import { runOf } from '../types';
 import { eventContextOf } from './arrival';
@@ -74,6 +75,10 @@ export function finish(world: World, node: IRegionNode, event: EventDefinition, 
     const ctx = eventContextOf(world, node);
     const note = describeApplied(choice, run.scrap, picks, ctx);
     if (note !== '') world.view.news.push(note);
+    // 195b: a Trace taken from the event is the save's first, so it says where to use it, under the note.
+    if (choice.outcomes.some((outcome, index) => outcome.type === 'BLUEPRINT_PICK' && picks[index] !== undefined) && noteTraceGained(world)) {
+        world.view.news.push(FIRST_TRACE_LINE);
+    }
     applyChoice(
         (action) => world.store.dispatch(action),
         { run, node, ranch: world.store.getState().game, rosterHas: (id) => world.store.getState().game.roster.some((m) => m.id === id) },

@@ -31,6 +31,8 @@ interface BattleReportProps {
     bundle: IRewardBundle;
     winners: ReadonlyArray<IBattleEntity>;
     macroRack?: ReadonlyArray<string | null>;
+    /** TICKET 195b: "Summon it in the Den.", printed under the Trace when this is the save's first. The container decides. */
+    firstTraceLine?: string | null;
     /**
      * TICKET 167j: the patches the run's bodies already hold (`rosterId -> patchIds`), so the patch
      * offer can say who has what. Defaults to none.
@@ -103,6 +105,7 @@ const BattleReport: React.FC<BattleReportProps> = ({
     bundle,
     winners,
     macroRack = [null, null, null],
+    firstTraceLine = null,
     heldPatches = {},
     onContinue,
 }) => {
@@ -410,6 +413,11 @@ const BattleReport: React.FC<BattleReportProps> = ({
                                             <span style={{ color: 'var(--select)', fontWeight: '900', fontSize: '0.7rem' }}>+1</span>
                                         </div>
                                     ))}
+                                    {firstTraceLine && (
+                                        <div className="trace-hint" data-testid="first-trace-line" style={{ marginTop: '6px', color: 'var(--text-dim)', fontSize: '0.75rem' }}>
+                                            {firstTraceLine}
+                                        </div>
+                                    )}
                                 </motion.div>
                             )}
                             {/*
