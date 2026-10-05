@@ -7422,7 +7422,7 @@
     "bark_smash": {
         "id": "bark_smash",
         "name": "Bark Smash",
-        "description": "Consume your Bark Shield: 6 power per point consumed.",
+        "description": "Consume your Bark Shield: 5 power per point consumed.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -7444,7 +7444,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 6,
+                "power": 5,
                 "target": "TARGET",
                 "scaling": "STATUS_CONSUMED"
             }
@@ -10180,7 +10180,7 @@
     "bark_smash+": {
         "id": "bark_smash+",
         "name": "Bark Smash+",
-        "description": "Consume your Bark Shield: 10 power per point consumed.",
+        "description": "Consume your Bark Shield: 8 power per point consumed.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -10201,7 +10201,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 10,
+                "power": 8,
                 "target": "TARGET",
                 "scaling": "STATUS_CONSUMED"
             }
