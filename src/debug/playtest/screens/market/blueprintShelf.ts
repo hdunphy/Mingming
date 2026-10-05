@@ -20,16 +20,16 @@ export function blueprintShelf(world: World): Section {
     if (!offer) return { lines: [], moves: [] };
 
     const sold = isBlueprintSlotSold(run, node);
-    const lines = ['BLUEPRINT (one body, spend it at a workshop):', `  ${speciesName(offer.speciesId)} [${sold ? 'SOLD' : priceNote(world, offer.price)}]`];
+    const lines = ['TRACE (one body, spend it in a Den):', `  ${speciesName(offer.speciesId)} [${sold ? 'SOLD' : priceNote(world, offer.price)}]`];
     const moves: Move[] = [];
     if (!sold && shortBy(world, offer.price) <= 0) {
         moves.push({
             key: 'market:blueprint',
-            label: `Buy the ${speciesName(offer.speciesId)} blueprint (${offer.price} scrap)`,
+            label: `Buy the ${speciesName(offer.speciesId)} trace (${offer.price} amber)`,
             apply: (w) => {
                 w.store.dispatch(addBlueprint(offer.speciesId));
                 if (dispatchChecked(w, buyMarketBlueprint({ nodeId: node.id, price: offer.price }), 'buy blueprint')) {
-                    w.view.news.push(`Bought the ${speciesName(offer.speciesId)} blueprint.`);
+                    w.view.news.push(`Bought the ${speciesName(offer.speciesId)} trace.`);
                     if (noteTraceGained(w)) w.view.news.push(FIRST_TRACE_LINE);
                 }
             },

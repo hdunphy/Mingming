@@ -48,7 +48,7 @@ export const shortBy = (world: World, price: number): number => Math.max(0, pric
 
 export const priceNote = (world: World, price: number): string => {
     const short = shortBy(world, price);
-    return short > 0 ? `${price} scrap, ${short} short` : `${price} scrap`;
+    return short > 0 ? `${price} amber, ${short} short` : `${price} amber`;
 };
 
 export const ownedCards = (world: World): ReadonlyArray<IRunCard> => {

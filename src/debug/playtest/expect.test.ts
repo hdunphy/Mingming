@@ -180,7 +180,7 @@ describe('180e — expectations at the command line', () => {
         const root = tempRoot();
         run(root, `new --session s1 --seed ps1 --starter ${starter()} --gym 0 --mode card`);
         const result = run(root, 'move --session s1 1 --why "x" --expect \'{"hits": 1}\'');
-        expect(result.out).toMatch(/only checked on a card or a macro/);
+        expect(result.out).toMatch(/only checked on a card or a draught/);
     });
 
     it('replay shows the screen as it was after the first n moves, and changes nothing', () => {

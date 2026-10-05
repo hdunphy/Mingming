@@ -28,10 +28,10 @@ export function patchSection(world: World, options: PatchBenchOptions): Section 
     const { roster } = world.store.getState().game;
     const free = options.venue === 'gate';
     const price = free ? 0 : shopPrice(run, SHOP_PATCH_PRICE);
-    const title = free ? 'PATCH BENCH (free, one patch at the gate):' : `PATCH BENCH (${price} scrap):`;
+    const title = free ? 'RUNE BENCH (free, one rune at the gate):' : `RUNE BENCH (${price} amber):`;
 
     if (free && options.benchKey && (run.patchBenchesUsed ?? []).includes(options.benchKey)) {
-        return { lines: [title, '  a patch is already fitted here'], moves: [] };
+        return { lines: [title, '  a rune is already fitted here'], moves: [] };
     }
 
     const lines = [title];
@@ -50,7 +50,7 @@ export function patchSection(world: World, options: PatchBenchOptions): Section 
             if (!free && run.scrap < price) continue;
             moves.push({
                 key: `patch:${options.venue}:${memberId}:${patchId}`,
-                label: `Fit ${patchName(patchId)} on ${memberName(member)} (${free ? 'free' : `${price} scrap`})`,
+                label: `Fit ${patchName(patchId)} on ${memberName(member)} (${free ? 'free' : `${price} amber`})`,
                 apply: (w) => {
                     const action = fitPatch({ memberId, patchId, price, benchKey: free ? options.benchKey : undefined });
                     if (dispatchChecked(w, action, 'fit patch')) w.view.news.push(`Fitted ${patchName(patchId)} on ${memberName(member)}.`);
@@ -58,6 +58,6 @@ export function patchSection(world: World, options: PatchBenchOptions): Section 
             });
         }
     }
-    if (lines.length === 1) lines.push('  every body already runs a patch');
+    if (lines.length === 1) lines.push('  every body already runs a rune');
     return { lines, moves };
 }

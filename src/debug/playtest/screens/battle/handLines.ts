@@ -8,6 +8,7 @@
 import { getMacro } from '../../../../engine/data/macroRegistry';
 import { GetProgramData } from '../../../../engine/data/programRegistry';
 import type { IBattleState } from '../../../../engine/types';
+import { plain } from '../../../../ui/labels/labels';
 import { macroLine } from '../../gameText';
 
 export function handLines(state: IBattleState): string[] {
@@ -15,7 +16,7 @@ export function handLines(state: IBattleState): string[] {
     for (const card of state.playerDeck.hand) {
         const data = GetProgramData(card.dataId);
         const cost = data.baseCost === 'X' ? 'X' : card.currentCost;
-        const line = `${data.name || card.dataId} (${cost}e, ${data.element ?? 'None'}): ${data.description ?? ''}`.trimEnd();
+        const line = plain(`${data.name || card.dataId} (${cost}e, ${data.element ?? 'None'}): ${data.description ?? ''}`.trimEnd());
         const held = groups.get(line);
         if (held) held.count += 1;
         else groups.set(line, { line, count: 1 });
@@ -29,9 +30,9 @@ export function handLines(state: IBattleState): string[] {
 
 export function rackLines(rack: ReadonlyArray<string | null>): string[] {
     const held = rack.map((id, slot) => ({ id, slot })).filter((r) => r.id !== null);
-    if (held.length === 0) return ['MACROS: none in the rack.'];
+    if (held.length === 0) return ['DRAUGHTS: none in the rack.'];
     return [
-        'MACROS (fire free, once):',
+        'DRAUGHTS (fire free, once):',
         ...held.map(({ id }) => `  ${macroLine(id!)}${getMacro(id)?.targeting === 'MAP' ? ' [map only]' : ''}`),
     ];
 }

@@ -23,7 +23,7 @@ export function townDoors(world: World, here: 'square' | 'shop' | 'workshop'): M
         doors.push({ key: 'town:shop', label: 'Go to the shop', apply: (w) => { w.view.townPart = 'shop'; } });
     }
     if (here !== 'workshop') {
-        doors.push({ key: 'town:workshop', label: 'Go to the workshop', apply: (w) => { w.view.townPart = 'workshop'; } });
+        doors.push({ key: 'town:workshop', label: 'Go to the den', apply: (w) => { w.view.townPart = 'workshop'; } });
     }
     if (here !== 'square') {
         doors.push({ key: 'town:square', label: 'Back to the town square', apply: (w) => { w.view.townPart = null; } });
@@ -40,7 +40,7 @@ export function townScreen(world: World): Screen {
     return {
         id: 'town',
         body: [
-            `${nodeLabel(node)}. Scrap: ${run.scrap}. A town has a shop (cards, macros, a blueprint, patches, upgrades) and a workshop (assemble, reflash, the team).`,
+            `${nodeLabel(node)}. Amber: ${run.scrap}. A town has a shop (cards, draughts, a trace, runes, upgrades) and a den (summon, retrain, the team).`,
             `Upgrades left on this visit: ${left}.`,
         ],
         moves: [...townDoors(world, 'square'), openLoadout, leave],

@@ -34,11 +34,11 @@ export function statusLine(world: World): string {
     return [
         `${biome ? `${biome.name} (${biome.elements.join(' + ')})` : 'no biome'}`,
         `gym: ${gym?.name ?? run.gymId}`,
-        `scrap ${run.scrap}`,
+        `amber ${run.scrap}`,
         `traces ${tracesHeld(world.store.getState().game, run)}`,
         `party: ${party.join('; ')}${benched > 0 ? `; ${benched} on the bench` : ''}${party.some((p) => p.endsWith('HP full')) && hpNote(run) ? ` ${hpNote(run)}` : ''}`,
         `deck ${countedDeckSize(run.deck)}${stored > 0 ? ` (+${stored} in the collection)` : ''}`,
-        `macros: ${run.macros.map((m) => macroName(m)).join(', ')}`,
+        `draughts: ${run.macros.map((m) => macroName(m)).join(', ')}`,
         `tier ${run.tier}`,
     ].join(' | ');
 }

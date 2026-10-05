@@ -42,7 +42,7 @@ export function sellList(world: World): Section {
                 apply: (w) => {
                     const action = junk ? removeJunkCard({ instanceId, price }) : sellRunCard({ instanceId, price });
                     if (dispatchChecked(w, action, junk ? 'remove junk' : 'sell')) {
-                        w.view.news.push(junk ? `Removed ${cardName(dataId)}.` : `Sold ${cardName(dataId)} for ${price} scrap.`);
+                        w.view.news.push(junk ? `Removed ${cardName(dataId)}.` : `Sold ${cardName(dataId)} for ${price} amber.`);
                     }
                 },
             });

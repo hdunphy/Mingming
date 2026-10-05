@@ -49,7 +49,7 @@ export function upgradeSection(world: World, options: BenchOptions): Section {
         if (spent || run.scrap < price) continue;
         moves.push({
             key: `${keyPrefix}:upgrade:${stack.instances[0].instanceId}`,
-            label: `Upgrade ${cardName(stack.dataId)} to ${cardName(to)} (${price === 0 ? 'free' : `${price} scrap`})`,
+            label: `Upgrade ${cardName(stack.dataId)} to ${cardName(to)} (${price === 0 ? 'free' : `${price} amber`})`,
             about: { verb: 'upgrade', items: [cardName(stack.dataId)] },
             apply: (w) => {
                 dispatchChecked(w, upgradeDeckCard({ instanceId: stack.instances[0].instanceId, benchKey, free, allowance }), 'upgrade');

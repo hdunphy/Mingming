@@ -26,22 +26,22 @@ function reflash(world: World, memberId: string, targetOS: string): void {
     const member = ranch.roster.find((m) => m.id === memberId);
     const plan = member ? planReflash({ ranch, run, node: hereNode(world), member, targetOS }) : null;
     const before = member ? (ranch.blueprints[member.definitionId] ?? 0) : 0;
-    if (!member || !plan || run.scrap < plan.scrap || before < 1) { world.view.news.push('Nothing happened (reflash).'); return; }
+    if (!member || !plan || run.scrap < plan.scrap || before < 1) { world.view.news.push('Nothing happened (retrain).'); return; }
 
     world.store.dispatch(swapOS({ id: member.id, targetOS }));
     if ((world.store.getState().game.blueprints[member.definitionId] ?? 0) >= before) {
-        world.view.news.push('Nothing happened (reflash).');
+        world.view.news.push('Nothing happened (retrain).');
         return;
     }
     world.store.dispatch(reflashEngine({ memberId: member.id, retireIds: plan.retireIds, cards: plan.cards, price: plan.scrap }));
-    world.view.news.push(`Reflashed ${memberName(member)} to ${firmwareName(targetOS)}.`);
+    world.view.news.push(`Retrained ${memberName(member)} to ${firmwareName(targetOS)}.`);
 }
 
 export function reflashSection(world: World): Section {
     const run = runOf(world);
     const ranch = world.store.getState().game;
     const price = shopPrice(run, WORKSHOP_REFLASH_SCRAP);
-    const lines = [`REFLASH (${price} scrap and one blueprint of that species; swaps the firmware and its engine):`];
+    const lines = [`RETRAIN (${price} amber and one trace of that species; swaps the instinct and its engine):`];
     const moves: Move[] = [];
 
     const everyone = [...run.partyIds, ...(run.bench ?? [])]
@@ -50,7 +50,7 @@ export function reflashSection(world: World): Section {
     for (const member of everyone) {
         const block = reflashBlockFor(member, ranch);
         const here = `${memberName(member)} (${firmwareName(run.osOverrides?.[member.id] ?? member.activeOS)})`;
-        if (block !== null) { lines.push(`  ${here}: ${block === 'no-blueprint' ? 'no blueprint' : 'no other firmware'}`); continue; }
+        if (block !== null) { lines.push(`  ${here}: ${block === 'no-blueprint' ? 'no trace' : 'no other instinct'}`); continue; }
         for (const targetOS of reflashOptionsFor(member)) {
             const plan = planReflash({ ranch, run, node: hereNode(world), member, targetOS });
             lines.push(`  ${here} -> ${firmwareName(targetOS)}: ${firmwareText(targetOS)}`);
@@ -59,11 +59,11 @@ export function reflashSection(world: World): Section {
             if (!plan || shortBy(world, price) > 0) continue;
             moves.push({
                 key: `workshop:reflash:${member.id}:${targetOS}`,
-                label: `Reflash ${memberName(member)} to ${firmwareName(targetOS)} (${price} scrap)`,
+                label: `Retrain ${memberName(member)} to ${firmwareName(targetOS)} (${price} amber)`,
                 apply: (w) => reflash(w, member.id, targetOS),
             });
         }
     }
-    if (lines.length === 1) lines.push('  nobody to reflash');
+    if (lines.length === 1) lines.push('  nobody to retrain');
     return { lines, moves };
 }

@@ -64,7 +64,7 @@ export function cmdNew(root: string, args: ParsedArgs): CommandResult {
     const seed = text(args, 'seed');
     const starter = text(args, 'starter');
     if (!seed) return refuse('--seed <text> is required.');
-    if (!starter) return refuse(`--starter <firmware> is required. One of: ${starterFirmwares().join(', ')}`);
+    if (!starter) return refuse(`--starter <instinct> is required. One of: ${starterFirmwares().join(', ')}`);
     if (!starterFirmwares().includes(starter)) return refuse(`"${starter}" is not a starter. One of: ${starterFirmwares().join(', ')}`);
     const mode = (text(args, 'mode') ?? 'run') as PlaytestMode;
     if (!MODES.includes(mode)) return refuse(`--mode must be one of ${MODES.join(', ')}.`);

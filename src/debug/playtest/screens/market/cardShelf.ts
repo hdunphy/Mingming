@@ -30,11 +30,11 @@ export function cardShelf(world: World): Section {
         if (sold || shortBy(world, offer.price) > 0) continue;
         moves.push({
             key: `market:buy:${offer.card.instanceId}`,
-            label: `Buy ${cardName(offer.card.dataId)} (${offer.price} scrap)`,
+            label: `Buy ${cardName(offer.card.dataId)} (${offer.price} amber)`,
             about: { verb: 'buy', items: [cardName(offer.card.dataId)] },
             apply: (w) => {
                 if (dispatchChecked(w, buyMarketCard({ card: offer.card, price: offer.price }), 'buy')) {
-                    w.view.news.push(`Bought ${cardName(offer.card.dataId)} for ${offer.price} scrap.`);
+                    w.view.news.push(`Bought ${cardName(offer.card.dataId)} for ${offer.price} amber.`);
                 }
             },
         });

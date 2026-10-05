@@ -40,27 +40,27 @@ function assemble(world: World, speciesId: string, osId: string, destination: De
     const swapOut = typeof destination === 'object' ? destination.swapOut : undefined;
     const runForPlan = swapOut ? { ...run, partyIds: run.partyIds.filter((id) => id !== swapOut) } : run;
     const plan = planRecruit({ ranch, run: runForPlan, node: hereNode(world), speciesId, osId });
-    if (!plan || run.scrap < plan.scrap) { world.view.news.push('Nothing happened (assemble).'); return; }
+    if (!plan || run.scrap < plan.scrap) { world.view.news.push('Nothing happened (summon).'); return; }
 
     if (swapOut) world.store.dispatch(benchPartyMember(swapOut));
     world.store.dispatch(assembleMingming(plan.member));
     if (!world.store.getState().game.roster.some((m) => m.id === plan.member.id)) {
-        world.view.news.push('Nothing happened (assemble).');
+        world.view.news.push('Nothing happened (summon).');
         return;
     }
     const recruit = { memberId: plan.member.id, cards: plan.cards, price: plan.scrap };
     world.store.dispatch(destination === 'bench' ? recruitToBench(recruit) : recruitIntoParty(recruit));
-    world.view.news.push(`Assembled ${speciesName(speciesId)} on ${firmwareName(osId)}${destination === 'bench' ? ' (bench)' : ''}.`);
+    world.view.news.push(`Summoned ${speciesName(speciesId)} on ${firmwareName(osId)}${destination === 'bench' ? ' (bench)' : ''}.`);
 }
 
 export function assemblySection(world: World): Section {
     const run = runOf(world);
     const ranch = world.store.getState().game;
-    if (recruitingBlocked(run)) return { lines: ['BLUEPRINTS: recruiting is switched off for this run.'], moves: [] };
+    if (recruitingBlocked(run)) return { lines: ['TRACES: recruiting is switched off for this run.'], moves: [] };
 
     const price = shopPrice(run, WORKSHOP_ASSEMBLY_SCRAP);
     const partyFull = run.partyIds.length >= PARTY_SIZE;
-    const lines = [`BLUEPRINTS (assembly costs ${price} scrap and one blueprint; party ${run.partyIds.length}/${PARTY_SIZE}):`];
+    const lines = [`TRACES (a summon costs ${price} amber and one trace; party ${run.partyIds.length}/${PARTY_SIZE}):`];
     const moves: Move[] = [];
 
     for (const entry of workshopSpecies(ranch, run)) {
@@ -89,12 +89,12 @@ export function assemblySection(world: World): Section {
             };
             const toDeck = summonCardsText(summonCardCount(entry.speciesId, osId));
             const toCollection = summonCardsText(summonCardCount(entry.speciesId, osId), 'collection');
-            if (!partyFull) add('party', `Assemble ${base} into the party (${toDeck})`, 'party');
-            add('bench', `Assemble ${base} onto the bench (${toCollection})`, 'bench');
+            if (!partyFull) add('party', `Summon ${base} into the party (${toDeck})`, 'party');
+            add('bench', `Summon ${base} onto the bench (${toCollection})`, 'bench');
             if (partyFull) {
                 for (const id of run.partyIds) {
                     const out = ranch.roster.find((m) => m.id === id);
-                    if (out) add(`swap-${id}`, `Assemble ${base} and bench ${memberName(out)} (${toDeck})`, { swapOut: id });
+                    if (out) add(`swap-${id}`, `Summon ${base} and bench ${memberName(out)} (${toDeck})`, { swapOut: id });
                 }
             }
         }

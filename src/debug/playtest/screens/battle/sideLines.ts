@@ -6,6 +6,7 @@
  * is `calculateDamage` against the unit the enemy will pick, the same call `MingmingUnit` makes).
  * A glossary line follows for each status in play, from the game's own `statusGlossary`.
  */
+import { plain } from '../../../../ui/labels/labels';
 import { calculateDamage } from '../../../../engine/combatUtils';
 import { statusGlossary } from '../../../../engine/data/statusGlossary';
 import type { IBattleEntity, IBattleState, ProgramData } from '../../../../engine/types';
@@ -65,6 +66,6 @@ export function statusLegend(state: IBattleState): string[] {
     for (const e of [...state.playerParty, ...state.enemyParty]) if (e.currentHp > 0) for (const s of e.statusEffects) present.add(s.type);
     return [...present].sort().flatMap((type) => {
         const entry = statusGlossary[type as keyof typeof statusGlossary];
-        return entry ? [`  ${entry.name}: ${entry.description}`] : [];
+        return entry ? [plain(`  ${entry.name}: ${entry.description}`)] : [];
     });
 }

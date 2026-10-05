@@ -100,7 +100,7 @@ export function mapScreen(world: World): Screen {
     if (here && (isMarketNode(here.node.kind) || isWorkshopNode(here.node.kind)) && world.view.closedStall === here.node.id) {
         moves.push({
             key: 'reopen',
-            label: `Go back into the ${here.node.kind === 'town' ? 'town' : isMarketNode(here.node.kind) ? 'market' : 'workshop'}`,
+            label: `Go back into the ${here.node.kind === 'town' ? 'town' : isMarketNode(here.node.kind) ? 'market' : 'den'}`,
             apply: (w) => { w.view.closedStall = null; },
         });
     }
@@ -112,7 +112,7 @@ export function mapScreen(world: World): Screen {
         if (here && isBiomeRevealed(run, here.node.biomeIndex)) return;
         moves.push({
             key: `survey:${slot}`,
-            label: `Use the macro ${macro.name} (rack slot ${slot + 1}) on this biome`,
+            label: `Use the draught ${macro.name} (rack slot ${slot + 1}) on this biome`,
             apply: (w) => { w.store.dispatch(fireMapReveal(slot)); w.view.news.push(`Used ${macro.name}.`); },
         });
     });

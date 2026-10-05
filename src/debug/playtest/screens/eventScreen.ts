@@ -20,6 +20,7 @@ import { hereNode } from '../stalls';
 import type { Move, Screen, World } from '../types';
 import { runOf } from '../types';
 import { nodeLabel } from '../gameText';
+import { plain } from '../../../ui/labels/labels';
 import { upgradeSection } from './upgradeBench';
 
 const leaveEvent = (world: World): void => {
@@ -31,7 +32,7 @@ export function eventScreen(world: World): Screen {
     const run = runOf(world);
     const node = hereNode(world);
     const ctx = eventContextOf(world, node);
-    const head = `${nodeLabel(node)}, visit ${node.visited}. Scrap: ${run.scrap}.`;
+    const head = `${nodeLabel(node)}, visit ${node.visited}. Amber: ${run.scrap}.`;
     const flow = flowAt(world, node);
     const back: Move = { key: 'event:back', label: 'Go back', apply: backOut };
 
@@ -42,9 +43,9 @@ export function eventScreen(world: World): Screen {
     if (flow.event === null) {
         return {
             id: 'event',
-            body: [head, EMPTY_RELAY_TEXT],
+            body: [head, plain(EMPTY_RELAY_TEXT)],
             moves: [{
-                key: 'event:salvage', label: `Salvage (+${EMPTY_RELAY_SCRAP} scrap)`,
+                key: 'event:salvage', label: `Salvage (+${EMPTY_RELAY_SCRAP} amber)`,
                 apply: (w) => applyEmptyRelay((a) => w.store.dispatch(a), { run, node }, EMPTY_RELAY_ID, EMPTY_RELAY_SCRAP),
             }],
         };
@@ -63,21 +64,21 @@ export function eventScreen(world: World): Screen {
         const moves = [...bench.moves];
         if (finished) moves.push({ key: 'event:done', label: 'Done', apply: (w) => finish(w, node, event, active.choice, {}) });
         if (used === 0) moves.push(back);
-        return { id: 'event', body: [head, event.name, `Upgrade ${allowance} cards.`, ...bench.lines], moves };
+        return { id: 'event', body: [head, plain(event.name), `Upgrade ${allowance} cards.`, ...bench.lines], moves };
     }
 
     if (active?.outcome && flow.choiceId !== null) {
         const slot = `${flow.choiceId}:${flow.outcomeIndex}`;
         const step = stepSection({ world, ctx, flow, outcome: active.outcome, slot, take: (pick) => takePick(world, node, flow, pick) });
-        return { id: 'event', body: [head, event.name, ...step.lines], moves: [...step.moves, back] };
+        return { id: 'event', body: [head, plain(event.name), ...step.lines], moves: [...step.moves, back] };
     }
 
-    const lines = [head, event.name, event.text];
+    const lines = [head, plain(event.name), plain(event.text)];
     const moves: Move[] = [];
     for (const choice of playableChoices(event)) {
         const blocked = choiceBlockedReason(choice, ctx);
-        lines.push(`  ${choice.label}: ${blocked ? `[no: ${blocked}]` : choice.detail}`);
-        if (blocked === null) moves.push({ key: `event:choose:${choice.id}`, label: choice.label, apply: (w) => chooseChoice(w, node, flow, choice) });
+        lines.push(`  ${plain(choice.label)}: ${blocked ? `[no: ${plain(blocked)}]` : plain(choice.detail)}`);
+        if (blocked === null) moves.push({ key: `event:choose:${choice.id}`, label: plain(choice.label), apply: (w) => chooseChoice(w, node, flow, choice) });
     }
     return { id: 'event', body: lines, moves };
 }

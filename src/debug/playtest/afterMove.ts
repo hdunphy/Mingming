@@ -42,7 +42,7 @@ function judgeExpectation(world: World, move: LoggedMove, atMove: number): void 
     }
     const play = world.lastPlay;
     if (!play) {
-        world.view.news.push('(--expect is only checked on a card or a macro move; this move was not one.)');
+        world.view.news.push('(--expect is only checked on a card or a draught move; this move was not one.)');
         return;
     }
     const allDifferences = compare(parsed.prediction, outcomeOf(play), play.before);

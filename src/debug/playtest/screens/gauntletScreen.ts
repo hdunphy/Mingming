@@ -45,9 +45,9 @@ export function gauntletScreen(world: World): Screen {
         const healed = gauntlet.healedHp?.[id] ?? 0;
         lines.push(`  ${memberName(member)} ${hp}/${entity.maxHp}${down ? ' (down)' : ''}${!down && healed > 0 ? ` (+${healed} repaired)` : ''}`);
     }
-    lines.push(`MACROS: ${run.macros.map((id) => (id === null ? 'empty' : macroLine(id))).join(' | ')}`);
+    lines.push(`DRAUGHTS: ${run.macros.map((id) => (id === null ? 'empty' : macroLine(id))).join(' | ')}`);
     const elements = gauntletOpponentElements({ run, node, fightIndex: gauntlet.fightIndex });
-    lines.push(`${boss ? 'THE LEADER\'S OWN TEAM (signature firmware)' : 'NEXT OPPONENT (type known, names hidden)'}: ${GAUNTLET_ENEMY_COUNT} of them: ${elements.join(', ')}`);
+    lines.push(`${boss ? 'THE LEADER\'S OWN TEAM (signature instinct)' : 'NEXT OPPONENT (type known, names hidden)'}: ${GAUNTLET_ENEMY_COUNT} of them: ${elements.join(', ')}`);
 
     const moves: Move[] = [];
     if (first) {

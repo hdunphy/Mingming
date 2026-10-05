@@ -11,7 +11,7 @@ export function macroPickStep({ ctx, outcome, slot, take }: StepInput): Section 
     const choices = offerMacros(ctx, outcome.count, slot);
     const rack = ctx.run.macros;
     const full = firstFreeMacroSlot(rack) === -1;
-    const lines = [`PICK ONE MACRO${full ? ' (the rack is full, so it replaces a slot)' : ''}:`, ...choices.map((id) => `  ${macroLine(id)}`)];
+    const lines = [`PICK ONE DRAUGHT${full ? ' (the rack is full, so it replaces a slot)' : ''}:`, ...choices.map((id) => `  ${macroLine(id)}`)];
     const moves: Move[] = [];
     for (const macroId of choices) {
         if (!full) { moves.push({ key: `event:macro:${macroId}`, label: `Take ${macroName(macroId)}`, apply: () => take({ macroId }) }); continue; }

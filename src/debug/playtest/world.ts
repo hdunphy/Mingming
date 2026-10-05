@@ -41,7 +41,7 @@ export function createWorld(header: SessionHeader): World {
         }
     }
     const species = speciesOwningFirmware(header.starter);
-    if (!species) throw new Error(`no species owns the firmware "${header.starter}"`);
+    if (!species) throw new Error(`no species owns the instinct "${header.starter}"`);
 
     const member: IRanchMember = {
         id: 'mm1', definitionId: species, activeOS: header.starter,

@@ -124,9 +124,9 @@ export function claimRewards(world: World): void {
 
     if (flow.scraps > 0) {
         store.dispatch(addRunScrap(flow.scraps));
-        news.push(`Claimed ${flow.scraps} scrap.`);
+        news.push(`Claimed ${flow.scraps} amber.`);
     }
-    for (const species of flow.blueprints) news.push(`Banked a blueprint: ${speciesName(species)}.`);
+    for (const species of flow.blueprints) news.push(`Banked a trace: ${speciesName(species)}.`);
     // 195b: a reward with nothing to decide is claimed unseen, so the line goes in the news; otherwise the reward screen carried it.
     if (flow.firstTrace && flow.answers.length === 0) news.push(FIRST_TRACE_LINE);
 
@@ -159,7 +159,7 @@ export function claimRewards(world: World): void {
             macroId: macro.macroId,
             ...(macro.replaceSlot === undefined ? {} : { replaceSlot: macro.replaceSlot }),
         }));
-        news.push(`Took the macro ${macroName(macro.macroId)}.`);
+        news.push(`Took the draught ${macroName(macro.macroId)}.`);
     }
     if (forDeck.length > 0) store.dispatch(addRunCards(forDeck));
     if (forCollection.length > 0) store.dispatch(addRunCollection(forCollection));

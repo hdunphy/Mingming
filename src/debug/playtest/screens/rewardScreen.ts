@@ -23,8 +23,8 @@ export function rewardScreen(world: World): Screen {
 
     if (world.view.fight) body.push(...fightReportLines(world.view.fight));
     if (flow.answers.length === 0) {
-        const paid = [`${flow.scraps} scrap`, ...flow.blueprints.map((b) => `a ${speciesName(b)} blueprint`)];
-        if (flow.driver) paid.push(`the driver ${driverLine(flow.driver)}`);
+        const paid = [`${flow.scraps} amber`, ...flow.blueprints.map((b) => `a ${speciesName(b)} trace`)];
+        if (flow.driver) paid.push(`the totem ${driverLine(flow.driver)}`);
         body.push(`REWARDS: ${paid.join('; ')}.`);
         if (flow.firstTrace) body.push(FIRST_TRACE_LINE);
     }
@@ -54,7 +54,7 @@ export function rewardScreen(world: World): Screen {
         });
     } else if (decision.kind === 'patch') {
         const roster = world.store.getState().game.roster;
-        body.push('PATCH OFFER (take one for a team member, or none):');
+        body.push('RUNE OFFER (take one for a team member, or none):');
         for (const offer of flow.patchOffers) {
             const member = roster.find((m) => m.id === offer.memberId);
             body.push(`  ${member ? memberName(member) : offer.memberId}: ${patchLine(member?.activeOS, offer.patchId)}`);
@@ -64,10 +64,10 @@ export function rewardScreen(world: World): Screen {
                 apply: (w) => answerReward(w, { kind: 'patch', memberId: offer.memberId }),
             });
         }
-        moves.push({ key: 'patch:skip', label: 'Take no patch', apply: (w) => answerReward(w, { kind: 'patch', memberId: null }) });
+        moves.push({ key: 'patch:skip', label: 'Take no rune', apply: (w) => answerReward(w, { kind: 'patch', memberId: null }) });
     } else {
         const rackFull = firstFreeMacroSlot(run.macros) === -1;
-        body.push(`MACRO OFFER (take one, or none)${rackFull ? '; the rack is full, so taking one replaces a slot' : ''}:`);
+        body.push(`DRAUGHT OFFER (take one, or none)${rackFull ? '; the rack is full, so taking one replaces a slot' : ''}:`);
         for (const macroId of flow.macroOffers) body.push(`  ${macroLine(macroId)}`);
         for (const macroId of flow.macroOffers) {
             if (!rackFull) {
@@ -86,7 +86,7 @@ export function rewardScreen(world: World): Screen {
                 });
             }
         }
-        moves.push({ key: 'macro:skip', label: 'Take no macro', apply: (w) => answerReward(w, { kind: 'macro', macroId: null }) });
+        moves.push({ key: 'macro:skip', label: 'Take no draught', apply: (w) => answerReward(w, { kind: 'macro', macroId: null }) });
     }
 
     return { id: 'reward', body, moves };

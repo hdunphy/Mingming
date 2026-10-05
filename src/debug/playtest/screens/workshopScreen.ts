@@ -23,12 +23,12 @@ export function workshopScreen(world: World): Screen {
     const upgrades = node.kind === 'town'
         ? { lines: [], moves: [] as Move[] }
         : upgradeSection(world, { benchKey: upgradeBenchKeyFor(node), allowance: upgradeAllowanceFor(node), free: false, keyPrefix: 'workshop' });
-    const leave: Move = { key: 'leave', label: node.kind === 'town' ? 'Leave the town' : 'Leave the workshop', apply: leaveStall };
+    const leave: Move = { key: 'leave', label: node.kind === 'town' ? 'Leave the town' : 'Leave the den', apply: leaveStall };
 
     return {
         id: 'workshop',
         body: [
-            `${nodeLabel(node)}, visit ${node.visited}. Scrap: ${run.scrap}.`,
+            `${nodeLabel(node)}, visit ${node.visited}. Amber: ${run.scrap}.`,
             ...assembly.lines, ...reflash.lines, ...teamLines(world), ...upgrades.lines,
         ],
         moves: [...assembly.moves, ...reflash.moves, ...upgrades.moves, ...townDoors(world, 'workshop'), openLoadout, leave],

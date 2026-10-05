@@ -33,7 +33,7 @@ export function marketScreen(world: World): Screen {
 
     const refresh: Move[] = run.scrap < refreshPrice ? [] : [{
         key: 'market:refresh',
-        label: `Refresh the stall (${refreshPrice} scrap)`,
+        label: `Refresh the stall (${refreshPrice} amber)`,
         apply: (w) => {
             const party = liveRanchParty(w);
             if (dispatchChecked(w, rerollMarketStock({ nodeId: node.id, price: refreshPrice, party }), 'refresh')) w.view.news.push('The stall was restocked.');
@@ -44,7 +44,7 @@ export function marketScreen(world: World): Screen {
     return {
         id: 'market',
         body: [
-            `${nodeLabel(node)}, visit ${node.visited}. Scrap: ${run.scrap}. This stock is fixed for the run; a refresh is ${priceNote(world, refreshPrice)}.`,
+            `${nodeLabel(node)}, visit ${node.visited}. Amber: ${run.scrap}. This stock is fixed for the run; a refresh is ${priceNote(world, refreshPrice)}.`,
             ...cards.lines, ...blueprint.lines, ...macros.lines, ...patches.lines, ...upgrades.lines, ...sell.lines,
         ],
         moves: [...cards.moves, ...blueprint.moves, ...macros.moves, ...refresh, ...patches.moves, ...upgrades.moves, ...sell.moves, ...townDoors(world, 'shop'), openLoadout, leave],

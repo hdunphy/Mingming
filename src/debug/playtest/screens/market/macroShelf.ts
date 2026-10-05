@@ -21,7 +21,7 @@ export function macroShelf(world: World): Section {
     const offers = rollMacroStock({ run, node, party });
     const free = run.macros.filter((slot) => slot === null).length;
 
-    const lines = [`MACROS (single use, fires free; rack ${MACRO_SLOTS - free}/${MACRO_SLOTS} full):`];
+    const lines = [`DRAUGHTS (single use, fires free; rack ${MACRO_SLOTS - free}/${MACRO_SLOTS} full):`];
     lines.push(`  rack: ${run.macros.map((id) => macroName(id)).join(' | ')}`);
     const moves: Move[] = [];
     for (const offer of offers) {
@@ -32,15 +32,15 @@ export function macroShelf(world: World): Section {
         if (block !== null || shortBy(world, offer.price) > 0) continue;
         moves.push({
             key: `market:macro:${offer.macroId}`,
-            label: `Buy the macro ${macroName(offer.macroId)} (${offer.price} scrap)`,
+            label: `Buy the draught ${macroName(offer.macroId)} (${offer.price} amber)`,
             about: { verb: 'buy', items: [macroName(offer.macroId)] },
             apply: (w) => {
                 if (dispatchChecked(w, buyMacro({ macroId: offer.macroId, price: offer.price }), 'buy macro')) {
-                    w.view.news.push(`Bought the macro ${macroName(offer.macroId)}.`);
+                    w.view.news.push(`Bought the draught ${macroName(offer.macroId)}.`);
                 }
             },
         });
     }
-    if (offers.length === 0) lines.push('  (no macros this visit)');
+    if (offers.length === 0) lines.push('  (no draughts this visit)');
     return { lines, moves };
 }

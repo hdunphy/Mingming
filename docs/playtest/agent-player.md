@@ -40,10 +40,10 @@ reason like "it was first" is a fine reason when it is the true one.
 
 ## Battles
 
-Some sessions play the fights yourself. The moves then are the plays your hand allows, the macros in
+Some sessions play the fights yourself. The moves then are the plays your hand allows, the draughts in
 your rack, and END TURN. END TURN gives the turn to the enemy and brings it back to you, and the screen
 tells you what the enemy did. After every play the screen also prints the lines the game added to its
-combat log, the same ones a player reads in the log panel. Macros are single use: use one when it is
+combat log, the same ones a player reads in the log panel. Draughts are single use: use one when it is
 worth the most. A battle that runs very long is ended as a loss, so go for the win. You also have a
 limit on how many calls a whole session may take; when you run out, the run is ended where it stands,
 so do not waste calls on looking at things twice.
@@ -63,7 +63,7 @@ will do, written before it happens, and the tool tells you afterwards where you 
 - `draw`: how many cards you will draw. `energy`: the change in your energy (a cost shows as a minus).
 - `created`: how many new cards appear. `exhausted`: how many cards leave play.
 
-A unit's firmware (its built-in passive) can add to what a card does: an extra status, a cost in HP, a
+A unit's instinct (its built-in passive) can add to what a card does: an extra status, a cost in HP, a
 bonus. The card's text does not list those. The lines of the combat log printed after each play do, so
 read them, and put what you learned into your next predictions.
 
@@ -86,6 +86,6 @@ Keep notes to a few sentences. Say what you saw, not what you think the fix is.
 ## Keeping your head clear
 
 Your session may be long. Keep a running plan of three lines or fewer in your head, and update it as
-you go: what your deck is trying to do, what you need next, and what you are saving scrap for. Do not
+you go: what your deck is trying to do, what you need next, and what you are saving amber for. Do not
 repeat old screens back to yourself. When the run ends (a win or a loss), write one last note: how it
 felt overall, and the one thing you would change first. Then stop.

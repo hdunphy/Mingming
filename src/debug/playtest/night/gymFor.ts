@@ -19,7 +19,7 @@ function gymElementBeatenBy(starterElement: string): string {
 /** The index in `offerGyms(seed)` of the gym this starter's element beats. */
 export function gymFor(seed: string, starter: string): number {
     const species = speciesOwningFirmware(starter);
-    if (!species) throw new Error(`no species owns the firmware "${starter}"`);
+    if (!species) throw new Error(`no species owns the instinct "${starter}"`);
     const element = gymElementBeatenBy(MingmingRegistry[species].primaryElement);
     const index = offerGyms(gymOfferSeed(seed)).findIndex((offer) => offer.gym.element === element);
     if (index < 0) throw new Error(`the gym offer for ${seed} has no ${element} gym`);

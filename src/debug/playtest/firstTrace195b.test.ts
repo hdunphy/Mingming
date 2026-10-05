@@ -61,7 +61,7 @@ describe('195b — the reward screen', () => {
     it('carries the line under the Trace the fight paid, once', () => {
         const world = worldAtRewardWithTrace();
         const screen = text(world);
-        expect(screen).toMatch(/blueprint|trace/i);
+        expect(screen).toMatch(/trace/i);
         expect(count(screen)).toBe(1);
         expect(screen.indexOf(FIRST_TRACE_LINE)).toBeGreaterThan(screen.indexOf('REWARDS'));
         expect(world.view.reward!.firstTrace).toBe(true);

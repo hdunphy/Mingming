@@ -36,8 +36,8 @@ export function macroMoves(state: IBattleState, rack: ReadonlyArray<string | nul
                 moves.push({
                     key: macroKey(slot, source.id, target.id),
                     label: macro.targeting === 'SELF'
-                        ? `Fire ${macroName(macroId)} (macro) from ${source.name}`
-                        : `Fire ${macroName(macroId)} (macro) from ${source.name} → ${target.name}`,
+                        ? `Fire ${macroName(macroId)} (draught) from ${source.name}`
+                        : `Fire ${macroName(macroId)} (draught) from ${source.name} → ${target.name}`,
                     apply: (world) => fireMacro(world, slot, source.id, target.id),
                 });
             }
