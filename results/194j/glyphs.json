@@ -1,0 +1,349 @@
+{
+ "fenrir_v1": {
+  "shown": "Unbound",
+  "hint": "a snapped chain link: attacks cost him, and make him stronger",
+  "paths": [
+   "M9.5 7.5h-2a4.5 4.5 0 0 0 0 9h2",
+   "M14.5 16.5h2a4.5 4.5 0 0 0 0-9h-2",
+   "M13.2 5.5 10.8 18.5",
+   "M12 2.5v1.5",
+   "M12 20v1.5"
+  ]
+ },
+ "fenrir_v2": {
+  "shown": "Muspel Wall",
+  "hint": "a crenellated wall under a flame: burn feeds his Sharp",
+  "paths": [
+   "M4 20.5V13h3v2.5h3V13h4v2.5h3V13h3v7.5z",
+   "M12 2.5c2 2.2 3 3.4 3 5.2a3 3 0 0 1-6 0c0-1.8 1-3 3-5.2"
+  ]
+ },
+ "kraken_v1": {
+  "shown": "Abyssal Ink",
+  "hint": "a squid: draws darken the enemy",
+  "paths": [
+   "M5.5 11.5a6.5 6.5 0 0 1 13 0z",
+   "M7.5 11.5c0 3-1.5 4-1.5 7",
+   "M12 11.5v8",
+   "M16.5 11.5c0 3 1.5 4 1.5 7",
+   "M9.5 14.5c0 2-.5 3 .5 4.5",
+   "M14.5 14.5c0 2 .5 3-.5 4.5"
+  ]
+ },
+ "kraken_v2": {
+  "shown": "Tidal Crush",
+  "hint": "a breaking wave: heavy water hits harder",
+  "paths": [
+   "M3 19h18",
+   "M4.5 19c0-6 3.8-10 8.5-10 3.2 0 5.5 2 5.5 4.3 0 2-1.6 3.2-3.2 3",
+   "M13 9c-1.2-2-3-3.2-5.3-3.4",
+   "M10 14c1 .3 1.8 1 2 2"
+  ]
+ },
+ "fafnir_v1": {
+  "shown": "Dragon's Hoard",
+  "hint": "a gem on a coin pile: unused Energy is stored",
+  "paths": [
+   "M12 2.5 17 7.5 12 15.5 7 7.5z",
+   "M7 7.5h10",
+   "M4 21h16",
+   "M6 18h12",
+   "M8.5 15.5l-.1.1"
+  ]
+ },
+ "fafnir_v2": {
+  "shown": "Andvari's Curse",
+  "hint": "a gem ring: each debuff feeds him",
+  "paths": [
+   "M3.5 15a8.5 5 0 1 0 17 0 8.5 5 0 1 0-17 0",
+   "M7 15a5 2.2 0 1 0 10 0 5 2.2 0 1 0-10 0",
+   "M12 2.5l3.2 3.3-3.2 4-3.2-4z",
+   "M8.8 5.8h6.4"
+  ]
+ },
+ "skoll_v1": {
+  "shown": "Treachery",
+  "hint": "a dagger and a drop: an ally's wound is his gain",
+  "paths": [
+   "M5.89 19.28 L9.67 11.35 L13.04 14.18z",
+   "M8.29 10.19 L14.42 15.34",
+   "M11.36 12.77 L15.54 7.79",
+   "M15.58 5.87 L17.42 7.41",
+   "M20 4.5a1.8 1.8 0 0 1-1.8-1.8c0-1.2 1.2-2.5 1.8-3.2.6.7 1.8 2 1.8 3.2A1.8 1.8 0 0 1 20 4.5"
+  ]
+ },
+ "skoll_v2": {
+  "shown": "Sunscorch",
+  "hint": "a sun with a flame heart: hits on a burning target spread the burn",
+  "paths": [
+   "M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13",
+   "M12 2v2",
+   "M12 20v2",
+   "M2 12h2",
+   "M20 12h2",
+   "M5 5l1.4 1.4",
+   "M17.6 17.6 19 19",
+   "M19 5l-1.4 1.4",
+   "M6.4 17.6 5 19",
+   "M12 8.5c1.4 1.6 2.2 2.4 2.2 3.8a2.2 2.2 0 0 1-4.4 0c0-1.4.8-2.2 2.2-3.8"
+  ]
+ },
+ "jormungandr_v1": {
+  "shown": "Midgard Coil",
+  "hint": "a coiled serpent: the fifth Water card draws",
+  "paths": [
+   "M12 12.5a1.7 1.7 0 0 1 3.4 0 3.9 3.9 0 0 1-7.8 0 6.1 6.1 0 0 1 12.2 0 8.3 8.3 0 0 1-16.6 0",
+   "M20.5 12.5l1.5 2.2",
+   "M20.5 12.5l-1.7 2.4"
+  ]
+ },
+ "jormungandr_v2": {
+  "shown": "Venomfang",
+  "hint": "twin fangs over a drop: attacks hit harder on poison",
+  "paths": [
+   "M5.5 3.5h5c0 5-1.2 9-3.2 12.5-2-3.5-1.8-8-1.8-12.5z",
+   "M18.5 3.5h-5c0 5 1.2 9 3.2 12.5 2-3.5 1.8-8 1.8-12.5z",
+   "M12 22a2 2 0 0 1-2-2c0-1.3 1.3-2.7 2-3.5.7.8 2 2.2 2 3.5a2 2 0 0 1-2 2"
+  ]
+ },
+ "gullinbursti_v1": {
+  "shown": "Golden Bristles",
+  "hint": "a boar's bristled back: Sharp charges his next attack",
+  "paths": [
+   "M3 14l1.8-6 2.2 5 2.2-7 2.2 6 2.2-6 2.2 6 2.2-5 1.8 6",
+   "M3 14c1.5 3.5 5 5.5 9 5.5s7.5-2 9-5.5"
+  ]
+ },
+ "gullinbursti_v2": {
+  "shown": "Tuskrush",
+  "hint": "a tusk and speed lines: Sharp on every hit, Dazed on himself",
+  "paths": [
+   "M7 4h5",
+   "M7 4c8 0 13 6 12.5 15.5",
+   "M12 4c1.2 5 3.8 10 7.5 15.5",
+   "M2.5 11h3",
+   "M2.5 15h2.2",
+   "M2.5 19h1.5"
+  ]
+ },
+ "hraesvelgr_v1": {
+  "shown": "Eagle's Gust",
+  "hint": "wind: a discard blows into damage",
+  "paths": [
+   "M3 9h10.5a3 3 0 1 0-3-3",
+   "M3 13.5h14.5a3 3 0 1 1-3 3",
+   "M3 18h6.5"
+  ]
+ },
+ "hraesvelgr_v2": {
+  "shown": "Stormrise",
+  "hint": "a cloud and an up-arrow: max Energy rises",
+  "paths": [
+   "M7 14.5a3.5 3.5 0 0 1 .3-7A5 5 0 0 1 16.7 8.4a3.1 3.1 0 0 1 .3 6.1",
+   "M12 21v-7",
+   "M9.2 16.8 12 14l2.8 2.8"
+  ]
+ },
+ "sleipnir_v1": {
+  "shown": "Eightfold Stride",
+  "hint": "a horseshoe: every free card is a step",
+  "paths": [
+   "M7.2 21c-1.8-2.4-2.4-6-1.6-9a6.5 6.5 0 0 1 12.8 0c.8 3 .2 6.6-1.6 9",
+   "M5.9 12.5h.01",
+   "M6.5 16.5h.01",
+   "M18.1 12.5h.01",
+   "M17.5 16.5h.01",
+   "M8.4 6.5h.01",
+   "M15.6 6.5h.01"
+  ]
+ },
+ "sleipnir_v2": {
+  "shown": "Odin's Charge",
+  "hint": "a spear: an Air attack calls up a hoof strike",
+  "paths": [
+   "M19.07 4.93 L16.67 11.01 L13.06 10.94 L12.99 7.33z",
+   "M13.06 10.94 L4.93 19.07",
+   "M9.17 11.29 L12.71 14.83"
+  ]
+ },
+ "ratatoskr_v1": {
+  "shown": "Branch Gossip",
+  "hint": "a speech bubble: a free card heals",
+  "paths": [
+   "M4.5 5h15v10h-7l-4 4v-4h-4z",
+   "M8.5 8.5h7",
+   "M8.5 11.5h4"
+  ]
+ },
+ "ratatoskr_v2": {
+  "shown": "Tale-Bearer",
+  "hint": "a scroll with a spark: a free card at an enemy daze it",
+  "paths": [
+   "M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7",
+   "M7 4a2 2 0 0 0-2 2v2h4",
+   "M9 4v16",
+   "M12.5 8.5h3.5",
+   "M12.5 12h3.5",
+   "M12.5 15.5h2"
+  ]
+ },
+ "huldra_v1": {
+  "shown": "Glamour",
+  "hint": "a hand mirror: she mirrors every buff as a curse",
+  "paths": [
+   "M7.06 9.73a6 6 0 1 0 12 0 6 6 0 0 0-12 0",
+   "M9.46 9.73a3.6 3.6 0 1 0 7.2 0 3.6 3.6 0 0 0-7.2 0",
+   "M10.73 14.72 L7.99 20.61",
+   "M5.99 19.68 L9.98 21.54",
+   "M10.86 9.53a2.4 2.4 0 0 1 1.6-1.9"
+  ]
+ },
+ "huldra_v2": {
+  "shown": "Elderwood Ward",
+  "hint": "a tree in a shield: a Bark Shield for all",
+  "paths": [
+   "M12 3 19 6v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z",
+   "M12 8v9",
+   "M12 11.5 9.2 9",
+   "M12 14l2.8-2.5"
+  ]
+ },
+ "ymir_v1": {
+  "shown": "Rimeheart",
+  "hint": "a frosted heart: it gains Bark every turn",
+  "paths": [
+   "M12 20.5s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z",
+   "M12 9.5v6",
+   "M9.4 11l5.2 3",
+   "M14.6 11l-5.2 3"
+  ]
+ },
+ "ymir_v2": {
+  "shown": "Jötun Patience",
+  "hint": "an hourglass: one card a turn, but ice hits harder",
+  "paths": [
+   "M7 3.5h10",
+   "M7 20.5h10",
+   "M8 3.5v3l4 5.5-4 5.5v3",
+   "M16 3.5v3l-4 5.5 4 5.5v3",
+   "M10 18.5h4"
+  ]
+ },
+ "draugr_v1": {
+  "shown": "Restless Dead",
+  "hint": "a coffin: it acts while asleep and wakes with a draw",
+  "paths": [
+   "M9 3.5h6l3.5 5L16.5 20.5h-9L5.5 8.5z",
+   "M12 8v8",
+   "M9.5 11h5"
+  ]
+ },
+ "draugr_v2": {
+  "shown": "Barrow Chill",
+  "hint": "a barrow under frost: fewer afflictions, less damage",
+  "paths": [
+   "M3 20.5h18",
+   "M5 20.5a7 7 0 0 1 14 0",
+   "M10.5 20.5v-3h3v3",
+   "M12 3v6",
+   "M9.4 4.5l5.2 3",
+   "M14.6 4.5l-5.2 3"
+  ]
+ },
+ "valkyrie_v1": {
+  "shown": "Valhalla's Call",
+  "hint": "a winged helm: a card from the discard plays free",
+  "paths": [
+   "M8 20v-4a4 4 0 0 1 8 0v4z",
+   "M12 12v-1.5",
+   "M7.5 14c-2.5.2-4.7-1.2-6-4.5 2.6-.3 4.7.6 6.2 2.5",
+   "M16.5 14c2.5.2 4.7-1.2 6-4.5-2.6-.3-4.7.6-6.2 2.5",
+   "M5.5 11.5c-1.2-.2-2.2-.8-3-1.8"
+  ]
+ },
+ "valkyrie_v2": {
+  "shown": "Folkvangr Dawn",
+  "hint": "a sunrise over the field: a shuffle strikes and heals",
+  "paths": [
+   "M3 19h18",
+   "M7 19a5 5 0 0 1 10 0",
+   "M12 7v3",
+   "M5.3 10.3 7.2 12.2",
+   "M18.7 10.3l-1.9 1.9",
+   "M3.5 15h2",
+   "M18.5 15h2"
+  ]
+ },
+ "audhumbla_v1": {
+  "shown": "Ginnungagap",
+  "hint": "a rift between two edges: overflow healing grows Energy",
+  "paths": [
+   "M9.5 3 7.5 8l3 4-3 4 2 5",
+   "M14.5 3l2 5-3 4 3 4-2 5"
+  ]
+ },
+ "audhumbla_v2": {
+  "shown": "Elder Milk",
+  "hint": "a drop with a plus: every heal grants Regen",
+  "paths": [
+   "M12 3.5c3.3 4.3 5.5 7.2 5.5 10.2a5.5 5.5 0 0 1-11 0c0-3 2.2-5.9 5.5-10.2",
+   "M12 11.5v5",
+   "M9.5 14h5"
+  ]
+ },
+ "hel_v1": {
+  "shown": "Twin Faces",
+  "hint": "a divided disc: Dark and Light stances",
+  "paths": [
+   "M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17",
+   "M12 3.5v17",
+   "M12 7.5a4.5 4.5 0 0 1 0 9"
+  ]
+ },
+ "hel_v2": {
+  "shown": "Helgrind",
+  "hint": "a barred gate: Dark spells cost blood, not Energy",
+  "paths": [
+   "M5 20.5v-9a7 7 0 0 1 14 0v9",
+   "M9 20.5v-9",
+   "M12 20.5v-11",
+   "M15 20.5v-9",
+   "M3.5 20.5h17"
+  ]
+ },
+ "control_v1": {
+  "shown": "Unmarked",
+  "hint": "a bare ring, struck out: no Instinct",
+  "paths": [
+   "M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17",
+   "M6 18 18 6"
+  ]
+ },
+ "nidhoggr_v1": {
+  "shown": "Rootgnaw",
+  "hint": "roots under the ground: poison never fades",
+  "paths": [
+   "M3.5 5h17",
+   "M12 5v16",
+   "M12 10l-5.5 4v6",
+   "M12 10l5.5 4v6",
+   "M12 14.5l-2.8 2.2",
+   "M12 14.5l2.8 2.2",
+   "M9.5 5v2",
+   "M14.5 5v2"
+  ]
+ },
+ "nidhoggr_v2": {
+  "shown": "Carrion Hunger",
+  "hint": "an open maw over a drop: blood below half feeds him",
+  "paths": [
+   "M3.5 4h17",
+   "M5.5 4l2 4.5L9.5 4",
+   "M14.5 4l2 4.5 2-4.5",
+   "M3.5 21h17",
+   "M6 21l2.2-4.5L10.4 21",
+   "M13.6 21l2.2-4.5 2.2 4.5",
+   "M12 17.5a2.6 2.6 0 0 1-2.6-2.6c0-1.7 1.8-3.6 2.6-4.5.8.9 2.6 2.8 2.6 4.5a2.6 2.6 0 0 1-2.6 2.6"
+  ]
+ }
+}
