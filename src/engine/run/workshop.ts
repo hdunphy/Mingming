@@ -362,6 +362,14 @@ export function workshopSpecies(ranch: IRanchState, run: IRunState): IWorkshopSp
 }
 
 /**
+ * TICKET 195c — how many Traces the player holds in all (every species' count, summed). The town's Den
+ * tile, the run's status line in the game and the playtest tool's header all read this, so they agree.
+ */
+export function tracesHeld(ranch: IRanchState, run: IRunState): number {
+    return workshopSpecies(ranch, run).reduce((sum, entry) => sum + entry.blueprints, 0);
+}
+
+/**
  * Which species the player can actually build here: a blueprint is held, the species is **not
  * already in the party** (the standing species clause), and the party is not full.
  *

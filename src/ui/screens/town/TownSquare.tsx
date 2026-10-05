@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 
 import { minimumActiveDeck } from '../../../engine/run/createRun';
 import { upgradeAllowanceFor } from '../../../engine/run/marketplace';
-import { workshopSpecies } from '../../../engine/run/workshop';
+import { tracesHeld } from '../../../engine/run/workshop';
 import type { IRanchState, IRegionNode, IRunState, TownTab } from '../../../engine/runTypes';
 import { Icon } from '../../theme/Icon';
 import { junkNote, readDeckFloor } from '../deckFloor';
@@ -25,7 +25,7 @@ const BUILDING_ICON = { shop: 'marketplace', upgrades: 'attack', workshop: 'work
 export function TownSquare({ run, node, ranch, onOpen }: TownSquareProps): ReactNode {
     const allowance = upgradeAllowanceFor(node);
     const left = upgradesLeftAt(run, node);
-    const traces = workshopSpecies(ranch, run).reduce((sum, entry) => sum + entry.blueprints, 0);
+    const traces = tracesHeld(ranch, run);
     const reading = readDeckFloor(run);
 
     const status: Readonly<Record<(typeof TOWN_BUILDINGS)[number], string>> = {

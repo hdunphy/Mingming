@@ -78,7 +78,7 @@ import { withEffectiveOS } from '../../engine/run/effectiveOS';
 import { fightNodeFor, isEventFight } from '../../engine/run/eventFight';
 import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan, surveyedEncounters } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
-import { isWorkshopNode } from '../../engine/run/workshop';
+import { isWorkshopNode, tracesHeld } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { PARTY_SIZE } from '../../engine/party';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
@@ -396,7 +396,7 @@ export default function RunScreen(): ReactNode {
             <div className="ranch-screen">
                 <header className="ranch-header">
                     <h1><Icon name="gym" size={20} /> {gym?.name ?? run.gymId}</h1>
-                    <RunMeta run={run} biomeName={biome?.name} />
+                    <RunMeta run={run} biomeName={biome?.name} traces={tracesHeld(ranch, run)} />
                     <SettingsButton />
                 </header>
 
@@ -420,7 +420,7 @@ export default function RunScreen(): ReactNode {
         <div className="ranch-screen">
             <header className="ranch-header">
                 <h1>{gym?.name ?? run.gymId}</h1>
-                <RunMeta run={run} biomeName={biome?.name} />
+                <RunMeta run={run} biomeName={biome?.name} traces={tracesHeld(ranch, run)} />
                 <PartyFaces members={partyMembers} />
                 <SettingsButton />
             </header>

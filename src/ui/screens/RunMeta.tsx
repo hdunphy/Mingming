@@ -16,15 +16,19 @@ import RunTierLabel from './RunTierLabel';
 export default function RunMeta({
     run,
     biomeName,
+    traces,
 }: {
     readonly run: Pick<IRunState, 'tier' | 'modifiers' | 'scrap'>;
     readonly biomeName: string | undefined;
+    /** Ticket 195c: how many Traces are held (`tracesHeld`). Left out where the caller has no ranch. */
+    readonly traces?: number;
 }): ReactNode {
     const showTier = run.tier > 0 || activeModifierNames(run).length > 0;
     return (
         <div className="ranch-run-meta">
             <span className="run-biome">{biomeName}</span>
             <span className="run-scrap" title="Amber"><Icon name="scrap" size={14} /> {run.scrap}</span>
+            {traces !== undefined && <span className="run-traces" title="Traces held. Summon them in the Den.">Traces {traces}</span>}
             {showTier && <span className="run-tier"><RunTierLabel run={run} /></span>}
         </div>
     );

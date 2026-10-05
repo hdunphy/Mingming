@@ -7,6 +7,7 @@
  * (`render.test.ts` measures it as characters divided by four).
  */
 import { GYM_REGISTRY } from '../../engine/run/gyms';
+import { tracesHeld } from '../../engine/run/workshop';
 import { countedDeckSize } from '../../engine/run/junk';
 import { forecastFor } from './forecastBlock';
 import { hpNote } from './hpNote';
@@ -34,6 +35,7 @@ export function statusLine(world: World): string {
         `${biome ? `${biome.name} (${biome.elements.join(' + ')})` : 'no biome'}`,
         `gym: ${gym?.name ?? run.gymId}`,
         `scrap ${run.scrap}`,
+        `traces ${tracesHeld(world.store.getState().game, run)}`,
         `party: ${party.join('; ')}${benched > 0 ? `; ${benched} on the bench` : ''}${party.some((p) => p.endsWith('HP full')) && hpNote(run) ? ` ${hpNote(run)}` : ''}`,
         `deck ${countedDeckSize(run.deck)}${stored > 0 ? ` (+${stored} in the collection)` : ''}`,
         `macros: ${run.macros.map((m) => macroName(m)).join(', ')}`,
