@@ -16,6 +16,7 @@ import { HOOK_BEAT_DELAY_MS, hookBeatLabel, hookFloatText, isHookStatus } from '
 import { nextOverflowRemaining, overflowText } from '../utils/statusOverflow';
 import { driverText } from '../labels/driverText';
 import { RESISTED_AT, SUPER_EFFECTIVE_AT, damageSeverity } from '../vfx/impact/impactMath';
+import { activeProfile } from '../vfx/tiers/activeTier';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
 import { type StageMoment, onStageMoment } from '../vfx/impact/stageMoments';
 import { type CardSignal, onCardSignal } from '../vfx/presenter/cardSignals';
@@ -47,6 +48,8 @@ export interface CombatFloat {
     color: string;
     /** 0..5 vertical slot (ticket 167h) so rapid hits stack instead of overlapping dead-center. */
     slot: number;
+    /** TICKET 194k-4: a damage number's font size in px, `TierProfile.damageNumberPx(s)` for this hit. */
+    px?: number;
 }
 
 export interface UnitFx {
@@ -266,12 +269,12 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     }, []);
 
     React.useEffect(() => {
-        const pushFloat = (entityId: string, kind: FloatKind, text: string, color: string) => {
+        const pushFloat = (entityId: string, kind: FloatKind, text: string, color: string, px?: number) => {
             const id = floatIdRef.current++;
             const slot = (slotRef.current[entityId] = ((slotRef.current[entityId] ?? -1) + 1) % FLOAT_SLOTS);
             setVfx(prev => {
                 const unit = prev.unitFx[entityId] ?? EMPTY_UNIT_FX;
-                let floats = [...unit.floats, { id, kind, text, color, slot }];
+                let floats = [...unit.floats, { id, kind, text, color, slot, ...(px === undefined ? {} : { px }) }];
                 if (floats.length > MAX_FLOATS_PER_UNIT) {
                     floats = floats.slice(floats.length - MAX_FLOATS_PER_UNIT);
                 }
@@ -464,7 +467,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             }
             const color =
                 element && element !== 'None' ? getElementAccent(element) : NEUTRAL_DAMAGE_COLOR;
-            pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${applied}`, color);
+            pushFloat(targetId, isCrit ? 'crit' : 'damage', `-${applied}`, color, activeProfile().damageNumberPx(damageSeverity(applied, moment.maxHp)));
             /*
              * TICKET 190e: the matchup, named on the body. It is a gameplay tell (the type chart landing),
              * so it reads as words and not only as a bigger burst. Hits only: a tick or a toll has no matchup.

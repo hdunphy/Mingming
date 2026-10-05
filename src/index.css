@@ -2022,20 +2022,27 @@ body {
 .hud-float {
   position: absolute;
   top: 4%;
-  font-weight: 900;
+  /* Ticket 194k-4: the lab's number - italic 800 display font, a dark outline UNDER the fill
+     (paint-order), the width set inline from the font size (`floatSizing`: 18%, at least 4 px). */
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  -webkit-text-stroke: 4px var(--float-outline, var(--ink));
+  paint-order: stroke fill;
   pointer-events: none;
   white-space: nowrap;
   z-index: 120;
-  text-shadow: 0 0 8px currentColor, 0 1px 2px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 2px 0 rgba(12, 15, 26, 0.45);
 }
 
+/* The sizes below are the fallback only: a damage number gets `damageNumberPx(s)` inline and a
+   label gets 20 px inline (`floatSizing`). */
 .hud-float-damage {
-  font-size: 1.35rem;
+  font-size: 30px;
 }
 
 .hud-float-crit {
-  font-size: 1.9rem;
-  text-shadow: 0 0 16px currentColor, 0 0 4px var(--text), 0 2px 3px rgba(0, 0, 0, 0.9);
+  font-size: 38px;
 }
 
 .hud-float-heal {
@@ -2043,33 +2050,33 @@ body {
 }
 
 .hud-float-proc {
-  /* Ticket 16: a Driver's name off the member it fired on. Smaller than a heal, tracked like a
+  /* Ticket 16: a Driver's name off the member it fired on. Tracked like a
      label rather than a number, and in the chip's violet so the two read as one event. */
-  font-size: 0.72rem;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .hud-float-status {
-  /* Ticket 166b: "Sharp ×7" - a label, smaller than a heal, in the status's own colour. */
-  font-size: 0.8rem;
+  /* Ticket 166b: "Sharp ×7" - a label in the status's own colour. */
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
 }
 
 .hud-float-tag {
   /* Ticket 190e: SUPER EFFECTIVE / RESISTED - a label under the number, in its own colour. */
-  font-size: 0.72rem;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
 }
 
 .hud-float-absorbed {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
 /* Hit flash — ticket 190e: a plain white flash of about 90 ms over the body that took the hit. It is

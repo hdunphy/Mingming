@@ -159,10 +159,7 @@
     100% { transform: translateX(0); filter: none; }
 }
 
-.stage-sprite-frame .hud-float-damage { font-size: 1.6rem; }
-.stage-sprite-frame .hud-float-crit { font-size: 2rem; }
 .stage-sprite-frame .hud-float-heal { font-size: 1.5rem; }
-.stage-sprite-frame .hud-float { text-shadow: 0 2px 0 var(--page); }
 .stage-sprite-frame .hud-hit-flash,
 .stage-sprite-frame .hud-heal-pulse { border-radius: 50%; }
 .stage-sprite-frame .hud-status-ring { border-radius: 50%; }
