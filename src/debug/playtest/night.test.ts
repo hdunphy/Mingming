@@ -166,7 +166,9 @@ describe('180f — the night script: arguments and the driver command', () => {
         expect(spec.args[spec.args.indexOf('--max-budget-usd') + 1]).toBe('2.5');
         expect(spec.args).toContain('-p');
         // where the night lives is told to the agent (it adds `--results` to each command), not left to the environment
-        expect(spec.stdin).toContain(`--results ${join('results', 'playtest', DATE)}`);
+        // 195j: always forward slashes, even on Windows, where a backslash would be eaten by Git Bash
+        expect(spec.stdin).toContain(`--results results/playtest/${DATE}`);
+        expect(spec.stdin).not.toContain('\\');
         // the prompt goes in on stdin, not in the arguments
         expect(spec.stdin).toContain('BRIEF');
         expect(spec.args.join(' ')).not.toContain('BRIEF');
