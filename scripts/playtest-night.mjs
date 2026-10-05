@@ -116,7 +116,9 @@ export function driverCommand(entry, options) {
 }
 
 /** The brief, then the one thing that is different about this session. */
-export function promptFor(entry, brief, resultsDir) {
+export function promptFor(entry, brief, resultsDirectory) {
+    // 195j: the agent's Bash is Git Bash, which drops an unquoted backslash, so the folder is named with forward slashes.
+    const resultsDir = resultsDirectory.replace(/\\/g, '/');
     return [
         brief.trimEnd(),
         '',

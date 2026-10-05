@@ -20,13 +20,17 @@ export function sessionPath(root: string, name: string): string {
     return join(root, name, 'session.json');
 }
 
+/** 195j: where it looked and what to check, so an agent with a wrong --results path does not start a new session. */
+export const missingSessionMessage = (root: string, name: string): string =>
+    `No session ${name} in ${root}. Check the --results path.`;
+
 export function sessionExists(root: string, name: string): boolean {
     return existsSync(sessionPath(root, name));
 }
 
 export function readSession(root: string, name: string): SessionFile {
     const path = sessionPath(root, name);
-    if (!existsSync(path)) throw new Error(`no session "${name}" (looked in ${path})`);
+    if (!existsSync(path)) throw new Error(missingSessionMessage(root, name));
     return JSON.parse(readFileSync(path, 'utf8')) as SessionFile;
 }
 

@@ -15,7 +15,7 @@ import { planNight } from './night/plan';
 import { cardLine } from './gameText';
 import { currentScreen } from './screen';
 import { renderScreen, screenJson } from './render';
-import { readSession, sessionExists, writeSession } from './sessionFile';
+import { missingSessionMessage, readSession, sessionExists, writeSession } from './sessionFile';
 import { IllegalMoveError, applyMove, createWorld, enforceBudget, replayWorld } from './world';
 import type { ParsedArgs } from './args';
 import type { LoggedMove, PlaytestMode, SessionFile, SessionHeader, World } from './types';
@@ -177,7 +177,7 @@ export function cmdMoves(root: string, args: ParsedArgs): CommandResult {
 export function cmdCard(root: string, args: ParsedArgs): CommandResult {
     const name = sessionName(args);
     if (isRefusal(name)) return name;
-    if (!sessionExists(root, name)) return refuse(`no session "${name}"`);
+    if (!sessionExists(root, name)) return refuse(missingSessionMessage(root, name));
     const query = args.positional.join(' ').trim().toLowerCase();
     if (query === '') return refuse('Usage: card --session <name> <card name>');
     const matches = Object.values(ProgramRegistry).filter((card) =>
