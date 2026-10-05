@@ -135,8 +135,13 @@ interface Particle {
     shape: ParticleShape;
 }
 
-/** §2's number. Big enough for four simultaneous status loops, small enough to stay in cache. */
-export const PARTICLE_POOL = 600;
+/**
+ * §2's number was 600, big enough for four simultaneous status loops. TICKET 194k-6 raises it to the
+ * Battle Juice Lab's `MAX_PARTS`, 1,600: a three-hit card that kills throws three bursts, three rings,
+ * the beam's own flames and the status landings together, and with the pool full the NEXT spawn
+ * overwrites the oldest particle, so an earlier burst was being cut short mid-air.
+ */
+export const PARTICLE_POOL = 1600;
 
 /** The life fraction below which a particle starts fading. Above it, full opacity. */
 const FADE_FROM = 0.4;

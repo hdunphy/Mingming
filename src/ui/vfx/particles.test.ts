@@ -27,7 +27,7 @@ const seed = (over: Partial<Parameters<ParticleField['spawn']>[0][number]> = {})
 });
 
 describe('146a — the pool', () => {
-    it('holds 600 and never grows', () => {
+    it('holds PARTICLE_POOL (1,600 since 194k-6) and never grows', () => {
         // §2's number. The cap is the budget: a pool that grows under load is how a juice layer
         // becomes the reason a fight stutters, and a dropped particle is invisible.
         const field = new ParticleField();
