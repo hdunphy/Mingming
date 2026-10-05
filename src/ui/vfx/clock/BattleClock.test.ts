@@ -319,4 +319,24 @@ describe('189d — a freeze requested from inside a frame', () => {
         expect(clock.now).toBe(100);
         expect(seen[seen.length - 1]).toBeCloseTo(0.1, 5);
     });
+
+    it('194k-7: what is due at the SAME instant as the freezing callback still runs; only later steps wait', () => {
+        const { clock } = makeClock();
+        const ran: Array<[string, number]> = [];
+        clock.after(400, () => { ran.push(['hit 1', clock.now]); clock.freeze(60); });
+        clock.after(400, () => { ran.push(['hit 2', clock.now]); clock.freeze(60); });
+        clock.after(400, () => { ran.push(['hit 3', clock.now]); clock.freeze(170); });
+        clock.after(410, () => { ran.push(['later', clock.now]); });
+
+        const frame = clock.advance(500);
+        expect(ran).toEqual([['hit 1', 400], ['hit 2', 400], ['hit 3', 400]]);
+        expect(clock.now).toBe(400);
+        expect(frame.gameDt).toBe(400);
+
+        // One merged freeze (the longest, 170), then time moves and the later step lands.
+        clock.advance(170);
+        expect(ran).toHaveLength(3);
+        clock.advance(10);
+        expect(ran[3]).toEqual(['later', 410]);
+    });
 });

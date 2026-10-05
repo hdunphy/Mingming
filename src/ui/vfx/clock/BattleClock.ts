@@ -187,6 +187,13 @@ export class BattleClock {
      * TICKET 189d: a callback may request a freeze (the impact does: that is the hit-stop). The rest
      * of that frame is then NOT game time, so the step stops where the callback ran and returns how
      * far game time really moved.
+     *
+     * TICKET 194k-7: but only game time stops, not the instant. Whatever else is due at that SAME
+     * game instant still runs before the frame ends. The first version broke out at the freeze, so a
+     * card that hits one body three times (three ops due together, each asking for a freeze) ran its
+     * second hit after the first hit's freeze and its third after the second's: three stops in a row
+     * instead of the one merged stop `HitStop.request` is written to give. Henry: *"VFX sometimes lag
+     * like on a multihit with a kill."* Entries due LATER than the freezing callback still wait.
      */
     private moveTo(target: number): number {
         const startedAt = this.nowMs;
@@ -197,14 +204,18 @@ export class BattleClock {
             let nextDue = Infinity;
             for (const entry of this.entries) {
                 const due = entry.start + entry.ms;
-                if (due <= target && due < nextDue) { next = entry; nextDue = due; }
+                if (due > target || due >= nextDue) continue;
+                // After a freeze, only what is due at the instant it began.
+                if (stoppedAt !== null && due > stoppedAt) continue;
+                next = entry;
+                nextDue = due;
             }
             if (!next) break;
             this.entries = this.entries.filter((e) => e !== next);
             this.nowMs = Math.max(this.nowMs, nextDue);
             const wasFrozen = this.deps.hitStop.active;
             try { this.finish(next); } catch (error) { errors.push(error); }
-            if (!wasFrozen && this.deps.hitStop.active) { stoppedAt = this.nowMs; break; }
+            if (stoppedAt === null && !wasFrozen && this.deps.hitStop.active) stoppedAt = this.nowMs;
         }
         const reached = stoppedAt ?? target;
         this.nowMs = reached;
