@@ -87,7 +87,7 @@ describe('142c — a rival and a scout say what they are', () => {
     it('explains the rival on its own hover (182a: the legend line is gone)', () => {
         const markup = render(beside(rival.id), graph.nodes, RIVAL_ELEMENTS);
         expect(markup).not.toContain('rm-legend-rival');
-        expect(markup).toMatch(/<title>[^<]*rival[^<]*fields the elements this road needs/i);
+        expect(markup).toMatch(/aria-label="[^"]*rival[^"]*fields the elements this road needs/i);
     });
 });
 describe('17 — the stakes are said before the player commits', () => {
@@ -108,7 +108,7 @@ describe('17 — the stakes are said before the player commits', () => {
         const markup = render(beside(elite.id), staked, RIVAL_ELEMENTS);
         expect(markup).toContain('stakes: FIRST BLOOD');
         expect(markup).toContain('rm-node-stake-ring');
-        expect(markup).toContain('Totem at stake: FIRST BLOOD');
+        // 194m: the "Totem at stake" line moved to the styled hover tooltip (RegionMap.tooltip.test.tsx).
         expect(markup).toContain('rm-legend-stakes');
     });
 
@@ -149,13 +149,13 @@ describe('176d — who waits in a fight, after a survey', () => {
                 onTravel={() => {}}
             />,
         );
-        expect(markup).toContain('<title>Wild: Skoll, Huldra, ');
+        expect(markup).toContain('aria-label="Wild: Skoll, Huldra, ');
         expect(markup).toMatch(/Wild: Skoll, Huldra, [^<]*<\/button>/);
     });
 
     it('prints no species when it is given none', () => {
         const markup = render(graph.entryNodeId);
-        expect(markup).not.toMatch(/<title>(Wild|Rival|Elite|Alpha|Ambush): /);
+        expect(markup).not.toMatch(/aria-label="(Wild|Rival|Elite|Alpha|Ambush): /);
     });
 });
 
@@ -221,7 +221,7 @@ describe('RegionMap', () => {
         const markup = render();
         // The gym is in the last column and its hover is on the page on turn one, as is every other
         // node's: routing is a decision about the whole road.
-        expect(markup).toMatch(/<title>Gym/);
+        expect(markup).toMatch(/aria-label="Gym/);
         expect(markup).not.toContain('fogged');
         expect(markup).not.toContain('Unknown');
         expect(markup).not.toContain('rm-node-icon">·');
@@ -241,7 +241,7 @@ describe('RegionMap', () => {
     it('has no "You are here" sentence (182a); the where-you-are words live on the node hover', () => {
         const markup = render();
         expect(markup).not.toContain('You are here');
-        expect(markup).toMatch(/<title>Start, /);
+        expect(markup).toMatch(/aria-label="Start, /);
     });
 
     it('offers nothing to travel to from a node with no edges, without crashing', () => {
@@ -256,7 +256,7 @@ describe('2026-09-25 playtest — the start node, and a key for the icons', () =
         // Henry: "I start on node one, but never encounter a fight." It wore the wild's blade.
         // 176e: travel is one-way, so nothing walks back into it, and the hover no longer says so.
         const markup = render(graph.entryNodeId);
-        expect(markup).toContain('<title>Start, Fire, ');
+        expect(markup).toContain('aria-label="Start, Fire, ');
         expect(markup).not.toContain('walking back in');
     });
 
@@ -265,8 +265,8 @@ describe('2026-09-25 playtest — the start node, and a key for the icons', () =
         expect(markup).not.toContain('rm-legend-key');
         expect(markup).not.toContain('Map key');
         // Biome 0's first route row is always a fight (ticket 24), so a Wild hover is on the map.
-        expect(markup).toMatch(/<title>Wild, /);
+        expect(markup).toMatch(/aria-label="Wild, /);
         // And so is the gym, several biomes away: with no fog (176d) its hover says Gym from turn one.
-        expect(markup).toMatch(/<title>Gym/);
+        expect(markup).toMatch(/aria-label="Gym/);
     });
 });
