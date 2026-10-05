@@ -9,11 +9,22 @@
  *   gained and left almost every purchase out, so a per-biome "spent" column was nearly empty.
  * - **A two-slot bench is used twice.** The market and the workshop allow `UPGRADES_PER_VISIT` (a town,
  *   since 176c, allows 2 / 3 / 4 by biome); the gate allows one. The walker takes up to the allowance, never more.
+ *
+ * The second claim is checked two ways. Over the pinned walks below it is only an upper bound (never more
+ * than the allowance). That a visit really FILLS the bench is checked on the pieces the walker's bench
+ * loop is made of (`chooseUpgrade` and the real `upgradeDeckCard` reducer) with a purse that cannot run
+ * out, because no pinned walk can promise it: since 176 the purse is tight enough that none of the
+ * walks tried (about fifteen, ghost walks included) bought a full bench, and the answer moves with
+ * every rewards or economy change.
  */
 import { describe, expect, it } from 'vitest';
 
-import { walkRun, type WalkResult } from './runWalker';
-import { STARTING_SCRAP } from '../../engine/run/createRun';
+import { chooseUpgrade, walkRun, type WalkResult } from './runWalker';
+import { STARTING_SCRAP, createRun } from '../../engine/run/createRun';
+import { offerGyms } from '../../engine/run/gyms';
+import { hasUpgrade } from '../../engine/data/plusRegistry';
+import runReducer, { startRun, upgradeDeckCard } from '../../ui/store/runSlice';
+import type { IMingmingState } from '../../engine/types';
 import { UPGRADES_PER_VISIT, upgradeAllowanceFor } from '../../engine/run/marketplace';
 import type { IRunEvent } from '../../engine/run/runLog';
 
@@ -89,9 +100,32 @@ describe('174d — the walker at a two-slot bench', () => {
         }
     });
 
-    it('uses both slots at a market or workshop when the purse and the deck allow it', () => {
-        const full = WITH_UPGRADES.flatMap((result) => upgradesPerVisit(result.log.events))
-            .filter(([kind, count, cap]) => (kind === 'town' || kind === 'marketplace' || kind === 'workshop') && count === cap && cap >= UPGRADES_PER_VISIT);
-        expect(full.length).toBeGreaterThan(0);
+    it('uses every slot at a market, workshop or town when the purse and the deck allow it', () => {
+        /*
+         * The walker's bench loop is: pick with `chooseUpgrade`, buy through `upgradeDeckCard` with the
+         * venue's allowance, and read the run again before the next slot. This is that loop on the real
+         * pick and the real reducer, with scrap to spare, so the only thing that can stop a slot is the
+         * allowance or the deck. A bought card becomes its `+` form, which has no `+` of its own, so the
+         * next pick has to move on to another card.
+         */
+        const kraken: IMingmingState = {
+            id: 'mm1', definitionId: 'kraken', activeOS: 'kraken_v1',
+            blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10,
+        };
+        const run = createRun({ seed: 't174d:bench', offer: offerGyms('offer-seed')[0], party: [kraken], startedAt: 1 });
+        const available = run.deck.filter((card) => hasUpgrade(card.dataId)).length;
+        expect(available).toBeGreaterThanOrEqual(UPGRADES_PER_VISIT);
+
+        for (const allowance of [UPGRADES_PER_VISIT, 3, 4]) {
+            let state = runReducer(undefined, startRun({ ...run, scrap: 9999 }));
+            for (let slot = 0; slot < allowance; slot += 1) {
+                const current = state.run!;
+                const choice = chooseUpgrade(current.deck, current.scrap, false);
+                if (!choice) break;
+                state = runReducer(state, upgradeDeckCard({ instanceId: choice.instanceId, benchKey: 'town:1', free: false, allowance }));
+            }
+            const bought = state.run!.deck.filter((card) => card.upgraded === true).length;
+            expect(bought, `allowance ${allowance}`).toBe(Math.min(allowance, available));
+        }
     });
 });

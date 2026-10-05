@@ -271,8 +271,12 @@ describe('180f — the player brief', () => {
 describe('180f — the results folder, as the real command line reads it', () => {
     // vite-node runs the CLI, and the repo's vite config empties `process.env` there, so the folder is a
     // flag. Checked through a real process, because that is where the difference shows.
+    //
+    // vite-node is started as `node <its .mjs entry>`, not through `node_modules/.bin/vite-node`: on
+    // Windows that path is a shell script, which `spawnSync` cannot run (it needs the `.cmd` beside it),
+    // and the test saw "no exit code" instead of the CLI's answer.
     const cli = (args: string[]) =>
-        spawnSync(resolve(__dirname, '../../../node_modules/.bin/vite-node'), [resolve(__dirname, 'cli.ts'), ...args], { encoding: 'utf8', cwd: resolve(__dirname, '../../..') });
+        spawnSync(process.execPath, [resolve(__dirname, '../../../node_modules/vite-node/vite-node.mjs'), resolve(__dirname, 'cli.ts'), ...args], { encoding: 'utf8', cwd: resolve(__dirname, '../../..') });
 
     it('--results says where a session is kept', () => {
         const root = tempRoot();
