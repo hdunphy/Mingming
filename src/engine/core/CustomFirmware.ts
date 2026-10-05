@@ -362,6 +362,15 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
             priority: 40,
             onTurnEnd: (context: HookContext, owner: IBattleEntity): HookResult => {
                 let state = context.state;
+                // TICKET 194a (Henry, 2026-10-04, option A): the wall goes up at the end of the
+                // OWNER'S OWN side's turn. `onTurnEnd` dispatches every hook on both sides once per
+                // ending unit, and a battle opens in the player's action phase, so an ENEMY
+                // Huldra's first dispatch was the PLAYER's turn ending: she shielded before she
+                // had acted and Bark Smash cashed 50+ stacks (900-1,400 damage) on enemy turn 1.
+                // Filtering on the ending unit being the owner leaves a player Huldra exactly as
+                // she was (her first turn end is her own) and moves an enemy Huldra's wall to the
+                // end of the enemy turn, where the player can see it and hit into it.
+                if (context.source?.id !== owner.id) return { state };
                 const guardKey = resolveCounterKey('huldra_shield_init', 'OWNER', owner);
                 if (!state.counters[guardKey]) {
                     // BarkShield stacks are a percent of maxHp (see StatusBehaviors), so this is a

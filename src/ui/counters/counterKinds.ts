@@ -85,11 +85,16 @@ export function perTurnCounter(spec: {
 /** ONE SHOT — a once-a-battle effect: `ARMED` until it goes off, then nothing at all. */
 export function oneShotCounter(spec: {
     readonly fired: CounterRef;
-    readonly armedText: string;
+    /** The hover sentence; a function when the words depend on the battle (which side owns it). */
+    readonly armedText: string | ((context: CounterContext) => string);
 }): CounterReader {
     return (context) => (counterValue(context.state, context.owner, spec.fired) > 0
         ? null
-        : { text: 'ARMED', state: 'armed', tooltip: spec.armedText });
+        : {
+            text: 'ARMED',
+            state: 'armed',
+            tooltip: typeof spec.armedText === 'function' ? spec.armedText(context) : spec.armedText,
+        });
 }
 
 /** LIVE — a value that is true right now. The reader decides when there is nothing to show. */

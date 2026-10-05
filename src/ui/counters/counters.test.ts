@@ -115,6 +115,16 @@ describe('184c - the other launch firmware', () => {
         expect(firmwarePip(fired)).toBeNull();
     });
 
+    it('194a - the huldra_v2 pip names the turn her wall goes up, for each side', () => {
+        const player = firmwarePip(arena({ os: 'huldra_v2' }))!;
+        expect(player.tooltip).toContain('when your first turn ends');
+        const base = arena({ os: 'huldra_v2' });
+        // The same body on the enemy side: the words must not promise the player's end-turn.
+        const enemySide = { ...base, playerParty: [], enemyParty: base.playerParty } as IBattleState;
+        const enemyPip = readFirmwareCounter(enemySide.enemyParty[0], enemySide)!;
+        expect(enemyPip.tooltip).toContain('end of the enemy');
+    });
+
     it('fenrir_v1 shows his live Fire bonus, and nothing at full HP', () => {
         const state = arena({ os: 'fenrir_v1' });
         expect(firmwarePip(state)).toBeNull();

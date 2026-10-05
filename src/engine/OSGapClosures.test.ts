@@ -624,14 +624,21 @@ describe('Ticket 07 - HULDRA v2 BARK_SHIELD_OS fires for both sides, linear shie
         expect(grants).toHaveLength(1);
     });
 
-    it('enemy-side Huldra gets the shield at her turn-1 pre-turn', () => {
+    it('194a - enemy-side Huldra has NO shield when the enemy turn starts, and gets it at the end of that turn', () => {
         const huldra = makeUnit('eh1', 'Enemy Huldra', { activeOS: 'huldra_v2' });
         let state = makeState([makeUnit('p1', 'Player')], [huldra]);
 
-        state = battleReducer(state, { type: 'END_TURN' }); // -> enemy onTurnStart
+        // The player's turn 1 ends. Before 194a this was the dispatch that raised HER wall, so
+        // she opened her own turn already shielded and Bark Smash cashed it.
+        state = battleReducer(state, { type: 'END_TURN' });
+        expect(state.enemyParty[0].statusEffects.find(s => s.type === 'BarkShield')).toBeUndefined();
+        expect(state.logs.filter(l => l.includes('BARK_SHIELD_OS activates'))).toHaveLength(0);
+
+        state = battleReducer(state, { type: 'END_TURN' }); // the enemy turn ends
         const shield = state.enemyParty[0].statusEffects.find(s => s.type === 'BarkShield');
         expect(shield).toBeDefined();
         expect(shield!.stacks).toBe(50);
+        expect(state.logs.filter(l => l.includes('BARK_SHIELD_OS activates'))).toHaveLength(1);
     });
 });
 
