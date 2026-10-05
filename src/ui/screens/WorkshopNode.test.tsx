@@ -812,3 +812,45 @@ describe('No Recruits (169h)', () => {
         expect(markup).toContain('Traces ×1');
     });
 });
+
+/*
+ * TICKET 195d: THE SUMMON OPTION SAYS HOW MANY CARDS IT ADDS.
+ * Three of five summoning runs were caught off guard when the deck jumped (14 to 24). The stage now says
+ * "+5 cards to your deck" beside the price, the card names on hover, and the bench button says its cards
+ * go to the collection instead.
+ */
+describe('WorkshopNode — the summon says how many cards it adds (195d)', () => {
+    it('says "+5 cards to your deck", the number the engine list shows and the summon mints', () => {
+        const ids = engineIdsForSpecies('skoll', 'skoll_v1');
+        expect(ids.length).toBe(5);
+        const markup = render(makeRun(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        expect(markup).toContain('+5 cards to your deck');
+    });
+
+    it('names the cards on hover, each once per copy', () => {
+        const ids = engineIdsForSpecies('skoll', 'skoll_v1');
+        const names = ids.map((id) => escapeHtml(cardFace(id).name)).join(', ');
+        const markup = render(makeRun(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        expect(markup).toContain(`title="${names}"`);
+    });
+
+    it('follows the instinct chosen: it reads the same list the engine column does', () => {
+        for (const osId of GetMingmingData('kraken').availableOS) {
+            expect(escapeHtml(String(engineIdsForSpecies('kraken', osId).length))).toBe('5');
+        }
+    });
+
+    it('says the bench summon sends them to the collection, not the deck', () => {
+        const markup = render(makeRun(400), makeRanch({ skoll: 1 }), { initialSpeciesId: 'skoll' });
+
+        expect(markup).toContain('+5 cards to your collection');
+    });
+
+    it('says nothing about cards before a species is picked', () => {
+        const markup = render(makeRun(400), makeRanch({ skoll: 1 }));
+
+        expect(markup).not.toContain('cards to your');
+    });
+});

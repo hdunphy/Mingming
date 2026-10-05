@@ -101,6 +101,7 @@ import './runShell.css';
 import './WorkshopNode.css';
 import { Icon } from '../theme/Icon';
 import { WORKSHOP_DUPLICATE_CLAUSE } from './partyRuleText';
+import { summonCardCount, summonCardsText } from '../../engine/run/summonCards';
 import { instinctName, plain } from '../labels/labels';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
@@ -237,6 +238,10 @@ export default function WorkshopNode({
      * build of this species free"), which is the right thing to print on a rack that lists species;
      * the buttons need this one, because they spend the blueprint on one specific firmware.
      */
+    // TICKET 195d: the engine this summon brings (the list under "ITS 5-CARD ENGINE"), and its names for the hover.
+    const summonedIds = speciesId ? engineIdsForSpecies(speciesId, chosenOS ?? undefined) : [];
+    const summonedCount = speciesId ? summonCardCount(speciesId, chosenOS ?? undefined) : 0;
+    const summonedNames = summonedIds.map((id) => cardFace(id).name).join(', ');
     const assemblyBlock: WorkshopBlock | null = speciesId
         ? workshopBlockFor(speciesId, ranch, run, chosenOS ?? undefined)
         : null;
@@ -610,6 +615,11 @@ export default function WorkshopNode({
                         <div className="ws-cost">
                             <span className="rs-chip">1 × TRACE</span>
                             <span className="rs-chip">{assemblyPrice} <Icon name="scrap" size={11} /></span>
+                            {/* TICKET 195d: the deck jumped by the engine's five cards and nothing said so. The count is the
+                                length of the engine list printed above, which is what the summon mints. */}
+                            <span className="rs-chip ws-addcards" title={summonedNames}>
+                                {summonCardsText(summonedCount)}
+                            </span>
                             <button
                                 type="button"
                                 className="rs-btn primary"
@@ -640,6 +650,7 @@ export default function WorkshopNode({
                                     || assemblyBlock === 'duplicate-build'
                                     || shortBy(assemblyPrice) > 0
                                 }
+                                title={summonCardsText(summonedCount, 'collection')}
                                 onClick={() => { playSfx('uiClick'); assemble('bench'); }}
                             >
                                 SUMMON → BENCH

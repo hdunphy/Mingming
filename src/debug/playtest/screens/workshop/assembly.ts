@@ -17,6 +17,7 @@ import { shopPrice } from '../../../../engine/run/modifiers/shopPrice';
 import {
     WORKSHOP_ASSEMBLY_SCRAP, engineIdsForSpecies, planRecruit, workshopBlockFor, workshopSpecies,
 } from '../../../../engine/run/workshop';
+import { summonCardCount, summonCardsText } from '../../../../engine/run/summonCards';
 import { assembleMingming } from '../../../../ui/store/gameSlice';
 import { benchPartyMember, recruitIntoParty, recruitToBench } from '../../../../ui/store/runSlice';
 import { cardName, firmwareName, firmwareText, memberName, speciesName } from '../../gameText';
@@ -70,6 +71,9 @@ export function assemblySection(world: World): Section {
             const base = `${speciesName(entry.speciesId)} on ${firmwareName(osId)}`;
             lines.push(`    ${firmwareName(osId)}: ${firmwareText(osId)}`);
             lines.push(`      engine: ${engineLine(entry.speciesId, osId)}${block === 'duplicate-build' ? ' [this build is already on the team]' : ''}`);
+            // TICKET 195d: the deck grows by the engine's cards when a body joins the party; the line the game prints.
+            const cards = summonCardCount(entry.speciesId, osId);
+            if (block !== 'duplicate-build') lines.push(`      ${summonCardsText(cards)} (${summonCardsText(cards, 'collection')} if benched)`);
             if (block === 'duplicate-build') continue;
             if (shortBy(world, price) > 0) { lines.push(`      [${priceNote(world, price)}]`); continue; }
 
@@ -83,12 +87,14 @@ export function assemblySection(world: World): Section {
                 if (!plan) return;
                 moves.push({ key: `${key}:${suffix}`, label, apply: (w) => assemble(w, entry.speciesId, osId, destination) });
             };
-            if (!partyFull) add('party', `Assemble ${base} into the party`, 'party');
-            add('bench', `Assemble ${base} onto the bench`, 'bench');
+            const toDeck = summonCardsText(summonCardCount(entry.speciesId, osId));
+            const toCollection = summonCardsText(summonCardCount(entry.speciesId, osId), 'collection');
+            if (!partyFull) add('party', `Assemble ${base} into the party (${toDeck})`, 'party');
+            add('bench', `Assemble ${base} onto the bench (${toCollection})`, 'bench');
             if (partyFull) {
                 for (const id of run.partyIds) {
                     const out = ranch.roster.find((m) => m.id === id);
-                    if (out) add(`swap-${id}`, `Assemble ${base} and bench ${memberName(out)}`, { swapOut: id });
+                    if (out) add(`swap-${id}`, `Assemble ${base} and bench ${memberName(out)} (${toDeck})`, { swapOut: id });
                 }
             }
         }
