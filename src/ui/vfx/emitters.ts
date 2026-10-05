@@ -36,77 +36,35 @@ export interface EmitterAnchor {
 /** `() => number` in [0, 1). Injected so a test and a screenshot can both be deterministic. */
 export type Rng = () => number;
 
-/**
- * BURN — §3: *"flame tongues rising off the sprite's lower half, orange to yellow, flicker."*
- *
- * **Intensity is stacks, and 4 is where it stops mattering.** §3's own note: *"1 -> 4 tongues (the
- * cap makes this legible)"*. Burn's damage is uncapped, but a fifth tongue on a 190px sprite is not
- * a fifth of anything a player can see — past four the tongues overlap and the reading is the same
- * "a lot". The number that matters at 7 stacks is on the plaque, where it is a number.
- *
- * Fires from the sprite's LOWER HALF, which is the part of the anchor a sprite actually occupies:
- * the slot rect is the unit's whole cell and the art sits on its floor line, so seeding from the
- * middle would put flames in the air above the body.
- */
 export function burnEmitter(anchor: EmitterAnchor, intensity: number, rng: Rng): ParticleSeed[] {
+    /*
+     * TICKET 198b-1: the lab's Burn particle (`statusLand` / `Burn`): a glow born pale yellow, 7-11 px,
+     * thinning to 2 as it cools to the Burn orange, rising fast off the lower body with a little
+     * fade-in so the flames do not all appear on one frame. The lab throws 24 on a landing; a tick
+     * throws `PARTICLES_PER_TONGUE` per stack here, up to four stacks.
+     */
     const tongues = Math.max(1, Math.min(4, Math.round(intensity)));
+    const rand = (a: number, b: number): number => a + rng() * (b - a);
     const seeds: ParticleSeed[] = [];
-
-    for (let t = 0; t < tongues; t += 1) {
-        for (let n = 0; n < PARTICLES_PER_TONGUE; n += 1) {
-            /*
-             * DISPERSED, not a column. Each tongue gets its own place on the body every burst
-             * rather than a fixed lane — Henry's note is *"dispersed, a quick burn that fades away
-             * going up"*, and a lane that refills in the same spot builds a steady jet, which is
-             * what a torch does and not what a burning creature does.
-             *
-             * The band is the BODY (40%-92% of the slot), not the floor line. Flames at the feet
-             * read as standing in a fire; flames over the body read as being on fire, which is the
-             * status being drawn.
-             */
-            const x = anchor.x + anchor.w * (0.16 + rng() * 0.68);
-            const y = anchor.y + anchor.h * (0.40 + rng() * 0.52);
-
-            seeds.push({
-                x,
-                y,
-                vx: (rng() - 0.5) * 26,
-                // Quick. A tongue covers 25-45px in its short life and is gone; the NEXT burst
-                // lights somewhere else. That flicker — appear, climb, vanish — is the read, and it
-                // is why the life below is roughly a third of what the first tuning used.
-                vy: -96 - rng() * 58,
-                life: 300 + rng() * 190,
-                // Wide. A flame is barely taller than it is broad (see `drawFlame`); at 3-7px these
-                // were embers, and at 3:1 they were drips.
-                size: 5.2 + rng() * 4.6,
-                // Hot amber cooling to a deep red, and saturated, because every Mingming's art sits
-                // on a near-white card and a pale translucent orange over white is a smudge.
-                r: 255, g: 186, b: 58,
-                r2: 214, g2: 40, b2: 8,
-                a: 0.95,
-                // Each tongue leans its own way. Four tongues all standing straight up is one
-                // flame drawn four times.
-                lean: (rng() - 0.5) * 0.30,
-                drag: 0.55,
-                gravity: -34,
-                shape: 'flame',
-            });
-        }
+    for (let i = 0; i < tongues * PARTICLES_PER_TONGUE; i += 1) {
+        seeds.push({
+            x: anchor.x + anchor.w * rand(0.2, 0.8),
+            y: anchor.y + anchor.h * (0.92 - rand(0, 0.26)),
+            vx: rand(-15, 15),
+            vy: -rand(140, 320),
+            drag: Math.pow(1 - 0.03, 60),
+            life: rand(380, 680),
+            size: rand(7, 11),
+            size2: 2,
+            r: 255, g: 230, b: 150,
+            r2: 255, g2: 122, b2: 47,
+            fadeIn: rand(0, 200),
+            shape: 'glow',
+        });
     }
     return seeds;
 }
 
-/**
- * Particles emitted per tongue per burst.
- *
- * One was the first guess and it was wrong in a way only a screenshot shows: a single small
- * particle every burst is a tick of orange, not a fire. Two gives each tongue a companion close
- * enough to overlap, which is what makes a stack of them read as a body of flame.
- *
- * It is also the number the budget is most sensitive to — see the arithmetic in
- * `particles.test.ts` — so it is a named constant rather than a loop bound someone can quietly
- * raise to three.
- */
 export const PARTICLES_PER_TONGUE = 2;
 
 /*
@@ -206,7 +164,7 @@ export function burstFor(kind: ParticleKind, at: EmitAt, opts: EmitOpts = {}): P
                 seeds.push({
                     x: at.w ? at.x + at.w / 2 : at.x,
                     y: at.h ? at.y + at.h / 2 : at.y,
-                    vx: 0, vy: 0, life: 340, size: 6,
+                    vx: 0, vy: 0, life: 340, size: 6, size2: 60,
                     r: c.r, g: c.g, b: c.b, a: 0.95, shape: 'ring',
                 });
                 return seeds;
