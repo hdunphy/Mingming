@@ -17,12 +17,18 @@ import type { BattleSpeedTier } from '../clock/battleSpeedTiers';
 export const PROFILE_KEYS = ['slow', 'showy', 'snappy'] as const;
 export type ProfileKey = (typeof PROFILE_KEYS)[number];
 
-/** Share of max HP that reads as a full-strength hit. The same 0.45 as ticket 189d's severity. */
-const FULL_HIT_FRACTION = 0.45;
+/**
+ * Share of max HP that reads as a full-strength hit. TICKET 194k-1: this was 0.45, set against the
+ * Battle Juice Lab's 100-HP units (where a "Solid 22" is s = 0.70). The game's units have
+ * 1,100-1,350 HP and Henry's 10-04 logs have a median hit of 50 (4%), so at 0.45 the median hit was
+ * s = 0.31 and every effect sat at the bottom of its range. At 0.15 the median hit is s = 0.54, the
+ * 75th percentile (103) is 0.77 and the 90th (214) is 1.0: where the lab's Chip and Solid sit.
+ */
+export const FULL_HIT_FRACTION = 0.15;
 
 const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
 
-/** `s = clamp(sqrt((damage / maxHp) / 0.45), 0, 1)` — the square root keeps a chip felt. */
+/** `s = clamp(sqrt((damage / maxHp) / 0.15), 0, 1)` — the square root keeps a chip felt. */
 export function damageScale(damage: number, maxHp: number): number {
     if (!(maxHp > 0) || !(damage > 0)) return 0;
     return clamp01(Math.sqrt(damage / maxHp / FULL_HIT_FRACTION));

@@ -6,14 +6,21 @@
  *
  * Everything runs off one number, `severity` (0..1): the share of the target's max HP the hit took,
  * on a square-root curve so a chip is still felt and a heavy hit does not need half the bar:
- * `s = clamp(sqrt((damage / maxHp) / 0.45), 0, 1)`. The curve replaces 146e's linear one (30 + 80 *
+ * `s = clamp(sqrt((damage / maxHp) / FULL_HIT_FRACTION), 0, 1)` (0.15 since 194k-1). The curve replaces 146e's linear one (30 + 80 *
  * clamp((frac - 0.05) / 0.30)), whose floor sat at 30 ms and whose ceiling was met at 35%.
  */
 
 import { activeProfile } from '../tiers/activeTier';
+import { FULL_HIT_FRACTION } from '../tiers/tierProfiles';
 
-/** Damage share that reads as a full-strength hit (severity 1). */
-export const SEVERITY_FULL_FRACTION = 0.45;
+/**
+ * Damage share that reads as a full-strength hit (severity 1). TICKET 194k-1: the same number as
+ * the damage scale `s` (`FULL_HIT_FRACTION`), imported rather than repeated, so the freeze, the
+ * vibration and the shake grow with the same curve as the pour and the particle counts. It was a
+ * second 0.45 beside the first, and re-tuning one for 1,100-HP bodies would have left the other
+ * pinned to the lab's 100-HP ones.
+ */
+export const SEVERITY_FULL_FRACTION = FULL_HIT_FRACTION;
 /** Below this share of the target's max HP a hit is small: it shakes the target and nothing else. */
 export const SMALL_HIT_FRACTION = 0.12;
 

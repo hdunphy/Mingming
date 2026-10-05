@@ -3,6 +3,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { damageScale } from '../tiers/tierProfiles';
+
 import {
     addsCameraTrauma, cameraTraumaFor, damageSeverity, hitStopLengthMs, SMALL_HIT_FRACTION, targetShakePx, vibratePx,
 } from './impactMath';
@@ -10,11 +12,12 @@ import {
 const plain = { superEffective: false, resisted: false, targets: 1 };
 
 describe('189d — severity', () => {
-    it('is clamp(sqrt((damage / maxHp) / 0.45), 0, 1)', () => {
+    it('is clamp(sqrt((damage / maxHp) / 0.15), 0, 1), the same curve as the damage scale (194k-1)', () => {
         expect(damageSeverity(0, 100)).toBe(0);
-        expect(damageSeverity(45, 100)).toBe(1);
+        expect(damageSeverity(15, 100)).toBe(1);
         expect(damageSeverity(90, 100)).toBe(1);
-        expect(damageSeverity(11.25, 100)).toBeCloseTo(0.5, 6);   // sqrt(0.25)
+        expect(damageSeverity(3.75, 100)).toBeCloseTo(0.5, 6);    // sqrt(0.25)
+        expect(damageSeverity(50, 1150)).toBeCloseTo(damageScale(50, 1150), 12);
     });
 
     it('survives a zero max and a negative hit', () => {
