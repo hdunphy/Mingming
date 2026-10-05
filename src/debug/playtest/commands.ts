@@ -17,8 +17,9 @@ import { planNight } from './night/plan';
 import { cardLine } from './gameText';
 import { currentScreen } from './screen';
 import { renderScreen, screenJson } from './render';
+import { loadWorld, saveSnapshot } from './sessionCache';
 import { missingSessionMessage, readSession, sessionExists, writeSession } from './sessionFile';
-import { createWorld, replayWorld } from './world';
+import { createWorld } from './world';
 import type { ParsedArgs } from './args';
 import type { PlaytestMode, SessionFile, SessionHeader, World } from './types';
 
@@ -52,9 +53,9 @@ function show(world: World, args: ParsedArgs): string {
         : renderScreen(world, currentScreen(world));
 }
 
-function load(root: string, name: string): { session: SessionFile; world: World } {
+function load(root: string, name: string): { session: SessionFile; world: World; replayed: number } {
     const session = readSession(root, name);
-    return { session, world: replayWorld(session, session.moves) };
+    return { session, ...loadWorld(root, name, session) };
 }
 
 export function cmdNew(root: string, args: ParsedArgs): CommandResult {
@@ -93,7 +94,10 @@ export function cmdState(root: string, args: ParsedArgs): CommandResult {
     const name = sessionName(args);
     if (isRefusal(name)) return name;
     try {
-        return ok(show(load(root, name).world, args));
+        const { session, world, replayed } = load(root, name);
+        // 195m: a call that had to play moves leaves a snapshot, so the next one does not.
+        if (replayed > 0) saveSnapshot(root, name, session, world);
+        return ok(show(world, args));
     } catch (error) {
         return refuse(error instanceof Error ? error.message : String(error));
     }
@@ -141,7 +145,9 @@ function applyNumbered(root: string, args: ParsedArgs, numbers: ReadonlyArray<nu
     }
     const { applied, stop, failed } = applyKeys(world, screen, numbers, why, expect, viaMoves);
     if (failed && applied.length === 0) return refuse(stop!);
-    writeSession(root, name, { ...session, moves: [...session.moves, ...applied] });
+    const next = { ...session, moves: [...session.moves, ...applied] };
+    writeSession(root, name, next);
+    saveSnapshot(root, name, next, world);
     if (failed) return refuse(`${stop}\n\n${renderScreen(world)}`);
     return ok(stop === null ? show(world, args) : `${stop}\n\n${show(world, args)}`);
 }
@@ -216,7 +222,7 @@ export function cmdReplay(root: string, args: ParsedArgs): CommandResult {
         const session = readSession(root, name);
         const to = text(args, 'to') === undefined ? session.moves.length : Number(text(args, 'to'));
         if (!Number.isInteger(to) || to < 0 || to > session.moves.length) return refuse(`--to must be a whole number from 0 to ${session.moves.length}.`);
-        return ok(show(replayWorld(session, session.moves.slice(0, to)), args));
+        return ok(show(loadWorld(root, name, session, to).world, args));
     } catch (error) {
         return refuse(error instanceof Error ? error.message : String(error));
     }

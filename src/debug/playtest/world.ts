@@ -19,12 +19,12 @@ import { createRun } from '../../engine/run/createRun';
 import { withOpeningFight } from '../../engine/run/openingFight';
 import { offerGyms, speciesOwningFirmware } from '../../engine/run/gyms';
 import { toMingmingState } from '../../engine/run/battleSetup';
-import type { IRanchMember } from '../../engine/runTypes';
+import type { IRanchMember, IRanchState, IRunState } from '../../engine/runTypes';
 import { BALANCE_IV } from '../balance/balanceScenarios';
 import { beforeMove, checkMove } from './afterMove';
 import { gymOfferSeed } from './gymOfferSeed';
 import { currentScreen } from './screen';
-import type { LoggedMove, SessionHeader, View, World } from './types';
+import type { LoggedMove, PlaytestStore, SessionHeader, View, World } from './types';
 
 /** Any fixed number: the run's start time is never read by a rule, but it must not vary between replays. */
 const STARTED_AT = 1_700_000_000_000;
@@ -33,6 +33,15 @@ const STARTED_AT = 1_700_000_000_000;
 const UNSUPPORTED_MODIFIERS: ReadonlyArray<string> = ['draft_start'];
 
 export const emptyView = (): View => ({ news: [], fight: null, reward: null, closedStall: null, townPart: null, leftEvent: null, event: null, editor: null, battle: null, cutShort: null, engineError: null });
+
+/** The two-slice store every world uses; `run` is null until a run is started. */
+export function buildStore(game: IRanchState, run: IRunState | null): PlaytestStore {
+    return configureStore({
+        reducer: { game: gameReducer, run: runReducer },
+        preloadedState: { game, run: { run } },
+        middleware: (getDefault) => getDefault({ serializableCheck: false, immutableCheck: false }),
+    });
+}
 
 export function createWorld(header: SessionHeader): World {
     for (const id of header.modifiers) {
@@ -47,11 +56,7 @@ export function createWorld(header: SessionHeader): World {
         id: 'mm1', definitionId: species, activeOS: header.starter,
         attackIV: BALANCE_IV, defenseIV: BALANCE_IV, hpIV: BALANCE_IV,
     };
-    const store = configureStore({
-        reducer: { game: gameReducer, run: runReducer },
-        preloadedState: { game: { ...createEmptyRanch(), roster: [member] }, run: { run: null } },
-        middleware: (getDefault) => getDefault({ serializableCheck: false, immutableCheck: false }),
-    });
+    const store = buildStore({ ...createEmptyRanch(), roster: [member] }, null);
 
     const offers = offerGyms(gymOfferSeed(header.seed));
     const offer = offers[header.gymIndex % offers.length];
@@ -108,6 +113,11 @@ export function enforceBudget(world: World): void {
     world.view.battle = null;
     world.view.cutShort = 'budget';
     world.store.dispatch(endRun('abandoned'));
+}
+
+/** A world rebuilt from a saved copy of its parts (195m's snapshot), which stands in for replaying the moves that made it. */
+export function restoreWorld(header: SessionHeader, parts: { game: IRanchState; run: IRunState; view: View; log: LoggedMove[]; findings: World['findings']; lastPlay: World['lastPlay'] }): World {
+    return { header, store: buildStore(parts.game, parts.run), view: parts.view, log: parts.log, findings: parts.findings, lastPlay: parts.lastPlay };
 }
 
 export function replayWorld(header: SessionHeader, moves: ReadonlyArray<LoggedMove>): World {
