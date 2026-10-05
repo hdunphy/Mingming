@@ -4,7 +4,7 @@
  * Ported from the lab's `fxVine`.
  */
 
-import { type AttackBuild, type AttackInput, centerOf, feetOf, framesOf } from './AttackEffect';
+import { type AttackBuild, type AttackInput, centerOf, feetOf, labTicks } from './AttackEffect';
 import { bez3, inQuad, lerp, outCubic, randomIn } from './curves';
 import { particle } from './seeds';
 
@@ -23,23 +23,20 @@ export function vine(input: AttackInput): AttackBuild {
     const p3 = { x: to.x - d * 18, y: to.y + 6 };
     const pourEnd = headMs + sustainMs;
     const baseWidth = 10 + 5 * s;
-    let leafChance = 0;
+    const chance = input.rng ?? Math.random;
 
     return {
         hits: [{ targetId: target.id, atMs: pourEnd }],
         effect: {
             durationMs: pourEnd + RETRACT_MS,
             step(age, dt, spawn) {
-                if (age < headMs) {
-                    leafChance += framesOf(dt) * 0.15 * pm;
-                    while (leafChance >= 1) {
-                        leafChance -= 1;
-                        const p = bez3(p0, p1, p2, p3, outCubic(age / headMs));
-                        spawn([particle({
-                            x: p.x, y: p.y, vx: rand(-60, 60), vy: rand(-90, -30), ay: 140,
-                            life: rand(500, 800), size: rand(4, 6), rgb: [90, 200, 100], kind: 'leaf',
-                        })]);
-                    }
+                // The lab: at most one leaf a frame, with probability `g * 0.05 * pm` (g in ms).
+                if (age < headMs && chance() < labTicks(dt) * 0.05 * pm) {
+                    const p = bez3(p0, p1, p2, p3, outCubic(age / headMs));
+                    spawn([particle({
+                        x: p.x, y: p.y, vx: rand(-60, 60), vy: rand(-90, -30), ay: 140, vr: rand(-8, 8),
+                        life: rand(500, 800), size: rand(4, 6), rgb: [90, 200, 100], kind: 'leaf', add: false,
+                    })]);
                 }
                 if (age > headMs && age < pourEnd) input.tremble?.(target.id, 1 + 1.5 * s);
             },

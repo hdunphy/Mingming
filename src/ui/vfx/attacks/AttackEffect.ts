@@ -74,5 +74,11 @@ export const muzzleOf = (body: Body, direction: 1 | -1): Point => ({
 /** Where the caster stands. */
 export const feetOf = (body: Body): Point => ({ x: body.x + body.w / 2, y: body.y + body.h * 0.92 });
 
-/** A frame is 1 at 60 fps: the lab tuned its spawn rates per frame. */
-export const framesOf = (dtMs: number): number => dtMs / (1000 / 60);
+/**
+ * TICKET 198b-2 — the lab's spawn accumulators count GAME MILLISECONDS: its `tick(age, g)` gets
+ * `g = dt * speed` with `dt` in ms, so `acc += g * 0.16` is 160 particles a second. 190 read it as
+ * "per frame" and divided by 16.7, which starved every attack of about 94% of its particles — the
+ * thin, pale column in the 194k captures is that one division. The unit is spelled out here so it
+ * cannot be misread again.
+ */
+export const labTicks = (dtMs: number): number => dtMs;

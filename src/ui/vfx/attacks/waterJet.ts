@@ -4,16 +4,14 @@
  * from the lab's `fxJet`.
  */
 
-import { type AttackBuild, type AttackInput, centerOf, framesOf, muzzleOf } from './AttackEffect';
+import { type AttackBuild, type AttackInput, centerOf, labTicks, muzzleOf } from './AttackEffect';
 import { bez2, inQuad, lerp, outQuad, randomIn } from './curves';
 import { drawGlowAt, LIGHT_BLEND } from './glow';
-import { rgbaOf, rimOf } from './layers';
 import { particle } from './seeds';
 
 /** The tail pulls in over this long once the pour ends. */
 const TAIL_MS = 140;
 const SEGMENTS = 30;
-const WATER = [40, 120, 210] as const;
 
 export function waterJet(input: AttackInput): AttackBuild {
     const rand = randomIn(input.rng ?? Math.random);
@@ -42,7 +40,7 @@ export function waterJet(input: AttackInput): AttackBuild {
         effect: {
             durationMs: pourEnd + TAIL_MS,
             step(age, dt, spawn) {
-                const frames = framesOf(dt);
+                const frames = labTicks(dt);
                 if (age < pourEnd) {
                     drops += frames * (0.25 + 0.35 * s) * pm;
                     const head = bez2(from, control, to, outQuad(Math.min(1, age / headMs)));
@@ -50,7 +48,7 @@ export function waterJet(input: AttackInput): AttackBuild {
                         drops -= 1;
                         spawn([particle({
                             x: head.x, y: head.y, vx: d * rand(40, 160), vy: rand(-220, -40), ay: 950,
-                            life: rand(350, 600), size: rand(2, 4), rgb: [195, 232, 255], kind: 'drop',
+                            life: rand(350, 600), size: rand(2, 4), rgb: [195, 232, 255], kind: 'drop', add: false,
                         })]);
                     }
                 }
@@ -60,12 +58,12 @@ export function waterJet(input: AttackInput): AttackBuild {
                         spray -= 1;
                         spawn([particle({
                             x: to.x - d * 20, y: to.y, vx: -d * rand(60, 220), vy: rand(-260, -60), ay: 900,
-                            life: rand(400, 650), size: rand(2.5, 4), rgb: [205, 238, 255], kind: 'drop',
+                            life: rand(400, 650), size: rand(2.5, 4), rgb: [205, 238, 255], kind: 'drop', add: false,
                         })]);
                         if ((input.rng ?? Math.random)() < 0.3) {
                             spawn([particle({
                                 x: to.x, y: to.y, vx: rand(-40, 40), vy: rand(-30, 10), life: 600, size: 12, size2: 36,
-                                rgb: [170, 215, 255], a: 0.3,
+                                rgb: [170, 215, 255], kind: 'soft', a: 0.3,
                             })]);
                         }
                     }
@@ -88,9 +86,7 @@ export function waterJet(input: AttackInput): AttackBuild {
                     points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
                     ctx.stroke();
                 };
-                // 194k-3: dark rim, then the body, then the hot core.
-                stroke(17 + 15 * s, rimOf(WATER, 0.75), false);
-                stroke(12 + 12 * s, rgbaOf(WATER, 0.8), false);
+                stroke(12 + 12 * s, 'rgba(40,120,210,0.55)', false);
                 stroke(6 + 6 * s, 'rgba(110,190,255,0.85)', false);
                 stroke(2 + 2.5 * s, 'rgba(235,250,255,0.95)', true);
                 ctx.globalCompositeOperation = 'source-over';
