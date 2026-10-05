@@ -3,7 +3,7 @@
  * `npm run playtest:night` — ticket 180f: one night of agent playtests, run one after another.
  *
  * WHAT IT DOES. Asks the playtester for the night's plan (`playtest -- plan`: seeds `pt<date>:<i>`,
- * the twelve starters in rotation, the gyms in rotation, `run` mode for most sessions and one `card`
+ * the twelve starters in rotation, each starter against the gym its element beats (195k), `run` mode for most sessions and one `card`
  * session for surprises), starts each session (`playtest -- new`), and hands it to a driver: a
  * headless Claude Code session (A1) whose only allowed command is the playtest tool, given the brief
  * in docs/playtest/agent-player.md. Each session has a wall-clock limit. Whatever the driver reports

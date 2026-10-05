@@ -11,7 +11,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { parseArgs } from './args';
+import { offerGyms } from '../../engine/run/gyms';
 import { cmdPlan, COMMANDS } from './commands';
+import { gymOfferSeed } from './gymOfferSeed';
 import { PREDICTION_KEYS } from './expect/prediction';
 import { DEFAULT_NIGHT_RUNS, planNight, type NightEntry } from './night/plan';
 import { tempRoot } from './testKit';
@@ -71,7 +73,8 @@ describe('180f — the plan command', () => {
     it('--starter plays every session with that one starter, and refuses one that is not a starter', () => {
         const plan = JSON.parse(run(`plan --date ${DATE} --runs 4 --starter kraken_v1`).out) as NightEntry[];
         expect(plan.map((e) => e.starter)).toEqual(Array(4).fill('kraken_v1'));
-        expect(plan.map((e) => e.gym)).toEqual([0, 1, 2, 0]);
+        // 195k: not a rotation any more; each session plays the gym its starter's element beats (kraken is Water, so Emberfall).
+        expect(plan.map((e) => offerGyms(gymOfferSeed(e.seed))[e.gym].gym.id)).toEqual(Array(4).fill('gym_emberfall'));
         const bad = run(`plan --date ${DATE} --starter nobody`);
         expect(bad.code).toBe(1);
         expect(bad.out).toContain('kraken_v1');

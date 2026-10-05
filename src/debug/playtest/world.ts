@@ -22,6 +22,7 @@ import { toMingmingState } from '../../engine/run/battleSetup';
 import type { IRanchMember } from '../../engine/runTypes';
 import { BALANCE_IV } from '../balance/balanceScenarios';
 import { beforeMove, checkMove } from './afterMove';
+import { gymOfferSeed } from './gymOfferSeed';
 import { currentScreen } from './screen';
 import type { LoggedMove, SessionHeader, View, World } from './types';
 
@@ -52,7 +53,7 @@ export function createWorld(header: SessionHeader): World {
         middleware: (getDefault) => getDefault({ serializableCheck: false, immutableCheck: false }),
     });
 
-    const offers = offerGyms(`${header.seed}:gyms`);
+    const offers = offerGyms(gymOfferSeed(header.seed));
     const offer = offers[header.gymIndex % offers.length];
     store.dispatch(startRun(withOpeningFight(createRun({
         seed: header.seed, offer, party: [toMingmingState(member)], startedAt: STARTED_AT,

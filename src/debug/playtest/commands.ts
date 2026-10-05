@@ -11,6 +11,7 @@
 import { MingmingRegistry, LAUNCH_SPECIES } from '../../engine/data/mingmingRegistry';
 import { ProgramRegistry } from '../../engine/data/programRegistry';
 import { parsePrediction } from './expect/prediction';
+import { gymFor } from './night/gymFor';
 import { planNight } from './night/plan';
 import { cardLine } from './gameText';
 import { currentScreen } from './screen';
@@ -216,7 +217,7 @@ export function cmdPlan(_root: string, args: ParsedArgs): CommandResult {
     const only = text(args, 'starter');
     if (only !== undefined && !starterFirmwares().includes(only)) return refuse(`"${only}" is not a starter. One of: ${starterFirmwares().join(', ')}`);
     try {
-        return ok(JSON.stringify(planNight(date, only === undefined ? starterFirmwares() : [only], { ...options, ...(seedDate === undefined ? {} : { seedDate }) }), null, 2));
+        return ok(JSON.stringify(planNight(date, only === undefined ? starterFirmwares() : [only], { ...options, gymFor, ...(seedDate === undefined ? {} : { seedDate }) }), null, 2));
     } catch (error) {
         return refuse(error instanceof Error ? error.message : String(error));
     }

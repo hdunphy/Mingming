@@ -2,8 +2,9 @@
  * TICKET 180f — WHICH SESSIONS A NIGHT PLAYS.
  *
  * A night is N sessions, one after another (A5: ten by default). Seeds are `pt<seed date>:<i>` (the seed date is the date unless 193k's `--seed-date` says otherwise), the
- * starters rotate through the twelve Early Access starters and the gyms through the three on offer,
- * so a night covers as much of the game as N allows. Modes follow A2: `run` for most, plus one
+ * starters rotate through the twelve Early Access starters and the gyms through the three on offer
+ * (or, with 195k's `gymFor`, each starter plays the gym its element beats), so a night covers as much
+ * of the game as N allows. Modes follow A2: `run` for most, plus one
  * `card` run a night aimed at surprises (and `turn` runs when asked for). Pure, so the nightly
  * script can ask for the plan and a test can read it.
  */
@@ -33,6 +34,11 @@ export interface NightOptions {
      * date with an old seed date plays the same worlds again, in a results folder of its own.
      */
     readonly seedDate?: string;
+    /**
+     * TICKET 195k: which gym a session plays, as an index into that seed's own offer. The plan knows nothing
+     * about elements, so the caller passes the real one (`night/gymFor.ts`); without it the gyms just rotate.
+     */
+    readonly gymFor?: (seed: string, starter: string) => number;
 }
 
 export const DEFAULT_NIGHT_RUNS = 10;
@@ -47,12 +53,14 @@ export function planNight(date: string, starters: ReadonlyArray<string>, options
     return Array.from({ length: runs }, (_, i) => {
         const index = i + 1;
         const mode: PlaytestMode = i >= runs - card ? 'card' : i >= runs - card - turn ? 'turn' : 'run';
+        const seed = `pt${options.seedDate ?? date}:${index}`;
+        const starter = starters[i % starters.length];
         return {
             index,
             session: `r${String(index).padStart(2, '0')}`,
-            seed: `pt${options.seedDate ?? date}:${index}`,
-            starter: starters[i % starters.length],
-            gym: i % GYMS_ON_OFFER,
+            seed,
+            starter,
+            gym: options.gymFor ? options.gymFor(seed, starter) : i % GYMS_ON_OFFER,
             mode,
             tier: options.tier ?? 0,
         };
