@@ -152,6 +152,20 @@ describe('176c — the town square and its buildings', () => {
         expect(host.querySelectorAll('[aria-label="Amber held"], .town-dock-scrap')).toHaveLength(1);
     });
 
+    it('194p: the Den\'s party rows and the Shop\'s rune strip show the rune a body holds', async () => {
+        const { store, host } = await openTown();
+        const id = store.getState().run.run!.partyIds[0];
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="workshop"]')!);
+        expect(host.querySelector('.ws-bpc .rune-tag'), 'no rune, no tag').toBeNull();
+
+        await act(async () => { store.dispatch(setRun({ ...store.getState().run.run!, patches: { [id]: ['amplifier'] } })); });
+        expect(host.querySelector('.ws-bpc .rune-tag')?.getAttribute('data-rune')).toBe('amplifier');
+
+        await clickText(host, '← Town square');
+        await click(host.querySelector<HTMLElement>('.town-building[data-tab="shop"]')!);
+        expect(host.querySelector('.mk-patch-held .rune-tag')?.getAttribute('data-rune')).toBe('amplifier');
+    });
+
     it('LEAVE TOWN calls onLeave', async () => {
         const store = makeStore();
         store.dispatch(startRun(runAtTown(0)));

@@ -53,7 +53,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GetMingmingData, MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { createRanchMember } from '../../engine/gameTypes';
-import type { IRanchMember } from '../../engine/runTypes';
+import type { IRanchMember, IRunState } from '../../engine/runTypes';
 import { assembleMingming } from '../store/gameSlice';
 import type { RootState } from '../store/store';
 import FirmwareTerminal from '../components/FirmwareTerminal';
@@ -66,6 +66,8 @@ import { playSfx } from '../audio/AudioEngine';
 import '../theme/kit/kit.css';
 import './RanchScreen.css';
 import { Icon } from '../theme/Icon';
+import { RuneTag } from '../components/RuneTag';
+import { runeIdsOf } from '../components/runeIds';
 import type { IconName } from '../theme/icons';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
 import { instinctName, plain } from '../labels/labels';
@@ -105,6 +107,9 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
     const drivers = useSelector((s: RootState) => s.run.run?.drivers ?? EMPTY_DRIVERS);
     // Ticket 168b: the ones that last for the next fight only, listed after the permanent ones.
     const tempDrivers = useSelector((s: RootState) => s.run.run?.tempDrivers ?? EMPTY_TEMP_DRIVERS);
+
+    // 194p: the runes the active run's bodies hold, shown on their roster cards (a ranch with no run has none).
+    const run = useSelector((s: RootState) => s.run.run);
 
     const [section, setSection] = useState<Section>(initialSection);
     const [showFirmware, setShowFirmware] = useState(false);
@@ -149,6 +154,7 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
             {section === 'roster' && (
                 <RosterSection
                     roster={roster}
+                    run={run}
                     onOpenFirmware={() => setShowFirmware(true)}
                 />
             )}
@@ -169,9 +175,11 @@ export default function RanchScreen({ initialSection = 'expedition' }: RanchScre
 
 function RosterSection({
     roster,
+    run,
     onOpenFirmware,
 }: {
     roster: ReadonlyArray<IRanchMember>;
+    run: IRunState | null | undefined;
     onOpenFirmware: () => void;
 }): ReactNode {
     return (
@@ -196,6 +204,7 @@ function RosterSection({
                         <div className="ranch-card-os">
                             <strong>{instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)}</strong>
                             <span>{plain(getOSBehavior(member.activeOS)?.description)}</span>
+                            <RuneTag patchIds={runeIdsOf(run, member.id)} osId={member.activeOS} />
                         </div>
                     </div>
                 ))}

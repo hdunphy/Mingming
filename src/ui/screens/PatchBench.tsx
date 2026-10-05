@@ -27,6 +27,9 @@ import { effectiveOS } from '../../engine/run/effectiveOS';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 import { plain } from '../labels/labels';
+import { GetMingmingData } from '../../engine/data/mingmingRegistry';
+import { RuneTag } from '../components/RuneTag';
+import { runeIdsOf } from '../components/runeIds';
 
 /**
  * What the shop charges for a patch. **45 — tuned by ticket 163e, 2026-09-24.**
@@ -99,6 +102,11 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                 : offerablePatchIds(effectiveOS(run, row.member)).filter((id) => id === SHOP_STOCK_PATCH),
         }));
 
+    const holders = run.partyIds
+        .map((memberId) => ({ memberId, member: byId.get(memberId) }))
+        .filter((row): row is { memberId: string; member: NonNullable<typeof row.member> } =>
+            row.member !== undefined && runeIdsOf(run, row.memberId).length > 0);
+
     // TICKET 169g: Tight Budget raises the shop's price; the gate is free and stays free.
     const patchPrice = shopPrice(run, SHOP_PATCH_PRICE);
     const affordable = free || run.scrap >= patchPrice;
@@ -114,6 +122,17 @@ export function PatchBench({ run, ranch, venue, benchKey }: PatchBenchProps): Re
                 {free ? 'Free rune: pick one' : 'INSTINCT RUNE'}
                 {!free && <span className="mk-sub">({patchPrice} amber)</span>}
             </h2>
+            {/* 194p: who already runs a rune, so a body missing from the offers below is explained. */}
+            {holders.length > 0 && (
+                <div className="mk-patch-held" aria-label="Runes held">
+                    {holders.map(({ memberId, member }) => (
+                        <span key={memberId} className="mk-patch-holder">
+                            {member.nickname ?? GetMingmingData(member.definitionId).name}
+                            <RuneTag patchIds={runeIdsOf(run, memberId)} osId={effectiveOS(run, member)} />
+                        </span>
+                    ))}
+                </div>
+            )}
             <div className="mk-rows">
                 {isGateUsed ? (
                     <span className="mk-empty">Rune fitted — the gate offers one.</span>

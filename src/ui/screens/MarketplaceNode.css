@@ -269,3 +269,7 @@
     .mk-sold-stamp { animation: mk-sold-still 900ms linear forwards; }
     @keyframes mk-sold-still { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 }
+
+/* 194p: the strip of who already runs a rune, above the rune offers (shop and gym gate). */
+.mk-patch-held { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 2px 0 6px; font-size: 11.5px; }
+.mk-patch-holder { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); }

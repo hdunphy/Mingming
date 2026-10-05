@@ -74,7 +74,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { buildBattleSetup, toMingmingState } from '../../engine/run/battleSetup';
-import { withEffectiveOS } from '../../engine/run/effectiveOS';
+import { effectiveOS, withEffectiveOS } from '../../engine/run/effectiveOS';
 import { fightNodeFor, isEventFight } from '../../engine/run/eventFight';
 import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan, surveyedEncounters } from '../../engine/run/encounter';
 import { isMarketNode } from '../../engine/run/marketplace';
@@ -421,7 +421,7 @@ export default function RunScreen(): ReactNode {
             <header className="ranch-header">
                 <h1>{gym?.name ?? run.gymId}</h1>
                 <RunMeta run={run} biomeName={biome?.name} />
-                <PartyFaces members={partyMembers} />
+                <PartyFaces members={partyMembers} patches={run?.patches} osOf={run ? (m) => effectiveOS(run, m) : undefined} />
                 <SettingsButton />
             </header>
 

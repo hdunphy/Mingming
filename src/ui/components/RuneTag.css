@@ -1,0 +1,20 @@
+/* The rune tag (194p): a small slanted amber plate, the same colour the in-battle rune letter and the
+   reward screen's holder line already use, so a rune reads as one thing everywhere. */
+.rune-tag {
+    display: inline-block;
+    flex: none;
+    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+    background: var(--amber);
+    color: var(--page);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 10px;
+    line-height: 1;
+    padding: 3px 9px;
+    white-space: nowrap;
+    cursor: help;
+}
+.rune-tag.compact { padding: 3px 7px; }
