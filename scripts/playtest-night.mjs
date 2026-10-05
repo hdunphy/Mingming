@@ -37,7 +37,7 @@ import { pathToFileURL } from 'node:url';
 export const DEFAULTS = Object.freeze({
     runs: 10,
     model: 'haiku',
-    minutes: 25,
+    minutes: 35,
     maxTurns: 600,
     /** A dollar cap for one session, so a first night cannot run away. */
     maxUsd: 3,

@@ -27,7 +27,7 @@
  *   --runs <n>        sessions per night                                                                     (9)
  *   --starter <id>    the starter every session plays, or "all" for the twelve in turn                       (kraken_v1)
  *   --card-runs <n>   how many sessions play every card themselves                                           (0)
- *   --minutes <n>     wall-clock limit per session                                                           (25)
+ *   --minutes <n>     wall-clock limit per session; 36 sessions of 35 minutes is 21 hours a model, worst case  (35)
  *   --max-usd <n>     Claude Code's own size estimate cap per session; a yardstick, not a bill               (3)
  *   --brief <path>    another brief for the driver                                                           (the default brief)
  *   --dry-run         checks and plans only
@@ -69,7 +69,7 @@ export function parseOvernightArgs(argv, today = todayLocal()) {
         runs: count('runs', 9),
         starter: text('starter', 'kraken_v1'),
         cardRuns: count('card-runs', 0),
-        minutes: count('minutes', 25),
+        minutes: count('minutes', 35),
         maxUsd: count('max-usd', 3),
         brief: text('brief', ''),
         dryRun: flags['dry-run'] === true,

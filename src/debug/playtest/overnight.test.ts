@@ -29,10 +29,10 @@ describe('overnight — the recipe', () => {
     it('is Night A (haiku) then Night B (sonnet), nine Kraken sessions each, on the 2026-10-04 seeds', async () => {
         const { parseOvernightArgs, nightArgs } = await load();
         const options = parseOvernightArgs([], '2026-10-06');
-        expect(options).toMatchObject({ date: '2026-10-06', seedDate: '2026-10-04', models: ['haiku', 'sonnet'], runs: 9, starter: 'kraken_v1', cardRuns: 0, minutes: 25, maxUsd: 3, dryRun: false });
+        expect(options).toMatchObject({ date: '2026-10-06', seedDate: '2026-10-04', models: ['haiku', 'sonnet'], runs: 9, starter: 'kraken_v1', cardRuns: 0, minutes: 35, maxUsd: 3, dryRun: false });
         expect(nightArgs(options, 'haiku')).toEqual([
             '--date', '2026-10-06-haiku', '--seed-date', '2026-10-04', '--runs', '9', '--card-runs', '0',
-            '--model', 'haiku', '--minutes', '25', '--max-usd', '3', '--starter', 'kraken_v1',
+            '--model', 'haiku', '--minutes', '35', '--max-usd', '3', '--starter', 'kraken_v1',
         ]);
         expect(nightArgs(options, 'sonnet')).toContain('2026-10-06-sonnet');
     });
@@ -65,6 +65,22 @@ describe('overnight — the recipe', () => {
         const { hasForecast } = await load();
         expect(hasForecast('x\nRUN FORECAST\ny')).toBe(true);
         expect(hasForecast('no such block')).toBe(false);
+    });
+});
+
+describe('overnight — the session limit (ticket 195l)', () => {
+    it('is 35 minutes in both scripts, so a full-party gym session is not stopped by the clock', async () => {
+        const { parseOvernightArgs } = await load();
+        expect(parseOvernightArgs([]).minutes).toBe(35);
+        const night = (await import(/* @vite-ignore */ resolve(__dirname, '../../../scripts/playtest-night.mjs'))) as { DEFAULTS: { minutes: number } };
+        expect(night.DEFAULTS.minutes).toBe(35);
+    });
+
+    it('the usage text says 35 and what it costs: 36 sessions of 35 minutes is 21 hours a model', () => {
+        const usage = readFileSync(scriptPath, 'utf8');
+        expect(usage).toContain('(35)');
+        expect(usage).not.toContain('(25)');
+        expect(usage).toContain('21 hours');
     });
 });
 
