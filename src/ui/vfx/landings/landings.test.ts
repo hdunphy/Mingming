@@ -98,7 +98,7 @@ describe('190f - what each landing is', () => {
         const chevrons = ofShape(seeds, 'chevron');
         expect(chevrons.length).toBeGreaterThan(0);
         expect(chevrons.every((c) => c.vy < 0 && c.r > c.g + 80)).toBe(true);
-        expect(ofShape(seeds, 'flame').length).toBeGreaterThan(0);
+        expect(ofShape(seeds, 'puff').length).toBeGreaterThan(0);   // the embers (194k-5: glowing puffs, not tongues)
     });
 
     it('Sharp: white glints flash across the body, plus one slash glint', () => {
@@ -135,7 +135,7 @@ describe('190f - what each landing is', () => {
 });
 
 describe('190f - the x N count', () => {
-    it('Burn throws one tongue per stack, up to four', () => {
+    it('Burn throws one standing tongue per stack, up to four', () => {
         const flames = (stacks: number) => ofShape(seedsOf('Burn', { stacks }), 'flame').length;
         expect(flames(2)).toBeGreaterThan(flames(1));
         expect(flames(4)).toBeGreaterThan(flames(3));
@@ -150,10 +150,12 @@ describe('190f - the x N count', () => {
         }
     });
 
-    it('a stack added to a status already there lands smaller', () => {
-        for (const status of TABLE.filter((s) => s !== 'Dazed' && s !== 'BarkShield')) {
-            expect(seedsOf(status, { stacksAdded: true, stacks: 3 }).length, status)
-                .toBeLessThan(seedsOf(status, { stacksAdded: false, stacks: 3 }).length);
+    it('194k-5: a stack added to a status already there lands exactly as big as a fresh one', () => {
+        for (const status of TABLE) {
+            for (const stacks of [1, 3]) {
+                expect(seedsOf(status, { stacksAdded: true, stacks }).length, `${status} x${stacks}`)
+                    .toBe(seedsOf(status, { stacksAdded: false, stacks }).length);
+            }
         }
     });
 

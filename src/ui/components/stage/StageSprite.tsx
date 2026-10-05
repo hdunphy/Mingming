@@ -7,8 +7,8 @@ import { elementVars } from '../../theme/kit/elementGlyphs';
 import { prefersReducedMotion } from '../../utils/motionPrefs';
 import { poseToFramer } from '../../vfx/choreo/attackPose';
 import { onAttackPose } from '../../vfx/choreo/poseSignals';
-import { onSpriteReaction } from '../../vfx/landings/reactionSignals';
-import { reactionKeys } from '../../vfx/landings/spriteReaction';
+import { onSpriteGlow, onSpriteReaction } from '../../vfx/landings/reactionSignals';
+import { glowKeys, reactionKeys } from '../../vfx/landings/spriteReaction';
 import { useClockedControls } from '../../vfx/clock/useClockedControls';
 import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
 import { targetShakePx } from '../../vfx/impact/impactMath';
@@ -43,6 +43,9 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
     // TICKET 190f: the status reactions (dull, wobble, slump, pump) play on the ART, not on the frame
     // that carries the lunge and the shake, so the two never fight over one transform.
     const [artScope, animateArt] = useAnimate();
+    // TICKET 194k-5: the 450 ms body glow plays on a wrapper inside the art, so it never fights a
+    // reaction (dull, slump) for the same element's filter.
+    const [glowScope, animateGlow] = useAnimate();
     // TICKET 189a: the lunge is held to the battle clock (speed, hit-stop freeze, Instant).
     const track = useClockedControls();
     const [deathGlitch, setDeathGlitch] = React.useState(false);
@@ -115,6 +118,14 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
         }));
     }), [entity.id, animateArt, artScope, track]);
 
+    useEffect(() => onSpriteGlow((signal) => {
+        if (signal.targetId !== entity.id || prefersReducedMotion() || !glowScope.current) return;
+        const keys = glowKeys(signal.color);
+        track(animateGlow(glowScope.current, { filter: [...keys.filter] }, {
+            duration: keys.durationMs / 1000, times: [...keys.times], ease: 'easeOut',
+        }));
+    }), [entity.id, animateGlow, glowScope, track]);
+
     // A nudge toward the reveal lane for an action that has no cast behind it (an enemy's intent):
     // an ally moves right, an enemy left.
     const lungeKey = fx?.lungeKey ?? 0;
@@ -137,20 +148,22 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
             style={{ width, height }}
         >
             <div className="stage-art-reaction" ref={artScope}>
-                {showArt ? (
-                    <img
-                        src={new URL(`../../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
-                        alt={entity.name}
-                        className="stage-art"
-                        draggable={false}
-                        style={{ transform: isEnemy ? 'scaleX(-1)' : 'none' }}
-                        onError={() => setArtBroken(true)}
-                    />
-                ) : (
-                    // The art-less fallback earns the same dead state, or a species without a sprite yet
-                    // would be the one unit on the board that never looks terminated.
-                    <MonsterArtPlaceholder className="stage-art-wip" style={elementVars(entity.primaryElement)} />
-                )}
+                <div className="stage-art-glow" ref={glowScope}>
+                    {showArt ? (
+                        <img
+                            src={new URL(`../../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
+                            alt={entity.name}
+                            className="stage-art"
+                            draggable={false}
+                            style={{ transform: isEnemy ? 'scaleX(-1)' : 'none' }}
+                            onError={() => setArtBroken(true)}
+                        />
+                    ) : (
+                        // The art-less fallback earns the same dead state, or a species without a sprite yet
+                        // would be the one unit on the board that never looks terminated.
+                        <MonsterArtPlaceholder className="stage-art-wip" style={elementVars(entity.primaryElement)} />
+                    )}
+                </div>
             </div>
 
             <FxTransientOverlays fx={fx} />

@@ -14,7 +14,7 @@ import { buildCastBeat, emptyCast } from '../presenter/castBeat';
 import { activeProfile, resetActiveTier } from '../tiers/activeTier';
 import * as statusTellsModule from '../statusTells';
 import { BARK_SETTLE_MS } from './barkLanding';
-import { onSpriteReaction, type SpriteReactionSignal } from './reactionSignals';
+import { onSpriteGlow, onSpriteReaction, type SpriteGlowSignal, type SpriteReactionSignal } from './reactionSignals';
 
 const rect = (x: number) => ({ x, y: 100, w: 190, h: 190 });
 const ANCHORS = {
@@ -165,5 +165,27 @@ describe('190f - the sprite reaction reaches the body that got the status', () =
         const shapes = new Set(spawned.flat().map((seed) => seed.shape));
         expect(shapes.has('ring')).toBe(true);
         expect(shapes.has('puff')).toBe(true);
+    });
+});
+
+describe('194k-5 - every landing makes the body glow in the status colour', () => {
+    it('all eight statuses in the table send a glow to the body that got them', () => {
+        for (const status of ['Burn', 'Poison', 'Dazed', 'Weakened', 'Strengthened', 'Sharp', 'Regen', 'BarkShield'] as const) {
+            const seen: SpriteGlowSignal[] = [];
+            const off = onSpriteGlow((signal) => seen.push(signal));
+            statusTellsModule.emitStatusApplied(status, 'e1', true, 1);
+            off();
+            expect(seen, status).toHaveLength(1);
+            expect(seen[0].targetId).toBe('e1');
+            expect(seen[0].color).toEqual(statusTellsModule.statusColor(status));
+        }
+    });
+
+    it('a status outside the table keeps its ring and puff and sends no glow', () => {
+        const seen: SpriteGlowSignal[] = [];
+        const off = onSpriteGlow((signal) => seen.push(signal));
+        statusTellsModule.emitStatusApplied('Stunned', 'e1');
+        off();
+        expect(seen).toEqual([]);
     });
 });

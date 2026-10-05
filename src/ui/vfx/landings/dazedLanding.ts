@@ -1,15 +1,17 @@
 /**
  * TICKET 190f - DAZED LANDS: three stars circle the head, and the sprite wobbles. Always three: the
  * stars are the status, and a fourth would be a different drawing.
+ * TICKET 194k-5: the lab's stars are 8 px and circle for 1.2 s (the game's were 5.5 px and 1 s).
  */
 
 import type { ParticleSeed } from '../particles';
 import { boxOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 
+export const STAR_PX = 8;
 const STARS = 3;
 const TURNS = 1.5;
-const LIFE_MS = 1000;
+const LIFE_MS = 1200;
 
 export const dazedLanding: LandingMaker = ({ at }) => {
     const box = boxOf(at);
@@ -23,7 +25,7 @@ export const dazedLanding: LandingMaker = ({ at }) => {
         const phase = (i / STARS) * Math.PI * 2;
         seeds.push({
             x: cx + rx * Math.cos(phase), y: headY + ry * Math.sin(phase), vx: 0, vy: 0,
-            life: LIFE_MS, size: 5.5,
+            life: LIFE_MS, size: STAR_PX,
             r: 255, g: 232, b: 110, r2: 255, g2: 200, b2: 60, a: 1, shape: 'star',
             path: (t) => ({
                 x: cx + rx * Math.cos(phase + t * Math.PI * 2 * TURNS),

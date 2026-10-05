@@ -1,7 +1,8 @@
 /**
  * TICKET 190f - BARK SHIELD LANDS: planks fly in from round the body and lock into a ring, then settle
  * toward the plaque, where the brown band over the HP bar grows (the cast moves the band as they
- * settle, `BARK_SETTLE_MS` after the landing starts). Always six planks.
+ * settle, `BARK_SETTLE_MS` after the landing starts). Always nine planks of the lab's 26 x 10 px
+ * (194k-5; there were six of about 11 x 4).
  */
 
 import type { ParticleSeed } from '../particles';
@@ -9,7 +10,9 @@ import { outCubic, inQuad, lerp } from '../attacks/curves';
 import { boxOf, centreOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 
-const PLANKS = 6;
+export const PLANKS = 9;
+/** The lab's plank is 26 x 10 px; the particle field draws a plank 2.2 x 0.8 of its size. */
+export const PLANK_PX = 12;
 export const BARK_LIFE_MS = 760;
 /** When the planks have settled and the band takes over, from the start of the landing. */
 export const BARK_SETTLE_MS = 640;
@@ -31,7 +34,7 @@ export const barkLanding: LandingMaker = ({ at, plaque }) => {
         const lock = { x: centre.x + Math.cos(angle) * box.w * RING_RADIUS, y: centre.y + Math.sin(angle) * box.w * RING_RADIUS * 0.8 };
         seeds.push({
             x: start.x, y: start.y, vx: 0, vy: 0,
-            life: BARK_LIFE_MS, size: 5,
+            life: BARK_LIFE_MS, size: PLANK_PX,
             r: 168, g: 112, b: 60, r2: 110, g2: 70, b2: 36, a: 1, shape: 'plank',
             path: (t) => {
                 if (t <= FLY_IN_UNTIL) {

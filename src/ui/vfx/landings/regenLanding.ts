@@ -1,5 +1,6 @@
 /**
  * TICKET 190f - REGEN LANDS: green plus signs and soft motes rise gently off the body.
+ * TICKET 194k-5: the lab's 9 plus signs and 14 motes of 5 px thinning to 2 (the game had 5 and 5).
  */
 
 import { randomIn } from '../attacks/curves';
@@ -9,8 +10,8 @@ import { boxOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 import { countFor } from './stackFactor';
 
-const PLUSES = 5;
-const MOTES = 5;
+export const PLUSES = 9;
+export const MOTES = 14;
 
 export const regenLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math.random }) => {
     const rand = randomIn(rng);
@@ -29,8 +30,8 @@ export const regenLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math
         seeds.push(particle({
             x: box.x + box.w * rand(0.2, 0.8), y: box.y + box.h * rand(0.5, 0.95),
             vx: rand(-6, 6), vy: -rand(20, 50), ay: -4, drag: 0.01,
-            life: rand(700, 1000), size: rand(3, 4.5), size2: 2,
-            rgb: [190, 255, 200], rgb2: [110, 220, 140], a: 0.5, kind: 'puff',
+            life: rand(800, 1200), size: 5, size2: 2,
+            rgb: [190, 255, 200], rgb2: [95, 224, 122], a: 0.8, kind: 'puff',
         }));
     }
     return { seeds };

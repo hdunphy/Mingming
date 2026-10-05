@@ -23,7 +23,7 @@ import type { StatusType } from '../../engine/types';
 import { JS_COLOR } from '../theme/jsColors';
 import { anchorFor, emit, emitSeeds, plaqueFor, type EmitAt } from './emit';
 import { landingFor } from './landings/landingFor';
-import { emitSpriteReaction } from './landings/reactionSignals';
+import { emitSpriteGlow, emitSpriteReaction } from './landings/reactionSignals';
 
 interface Rgb { r: number; g: number; b: number }
 
@@ -61,6 +61,8 @@ export function emitStatusApplied(status: StatusType, targetId: string, stacksAd
         const built = landing({ at, plaque: plaqueFor(targetId), stacks, stacksAdded });
         emitSeeds(built.seeds);
         if (built.reaction) emitSpriteReaction({ targetId, reaction: built.reaction });
+        // 194k-5: and every landing makes the body glow in the status colour for 450 ms.
+        emitSpriteGlow({ targetId, color: statusColor(status) });
         return;
     }
     const color = statusColor(status);

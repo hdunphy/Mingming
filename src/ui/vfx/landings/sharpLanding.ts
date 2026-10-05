@@ -1,5 +1,6 @@
 /**
  * TICKET 190f - SHARP LANDS: white glints flash across the body, and one slash glint cuts through it.
+ * TICKET 194k-5: the lab's glints are 9-15 px (the game's were 3.5-6).
  */
 
 import { randomIn } from '../attacks/curves';
@@ -9,7 +10,7 @@ import { boxOf } from './bodyBox';
 import type { LandingMaker } from './LandingInput';
 import { countFor } from './stackFactor';
 
-const GLINTS = 5;
+export const GLINTS = 5;
 
 export const sharpLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math.random }) => {
     const rand = randomIn(rng);
@@ -19,7 +20,7 @@ export const sharpLanding: LandingMaker = ({ at, stacks, stacksAdded, rng = Math
     for (let i = 0; i < countFor(GLINTS, stacks, stacksAdded); i += 1) {
         seeds.push(particle({
             x: box.x + box.w * rand(0.15, 0.85), y: box.y + box.h * rand(0.2, 0.85),
-            life: rand(300, 450), size: rand(3.5, 6), size2: 1,
+            life: rand(380, 520), size: rand(9, 15), size2: 1,
             rgb: [255, 255, 255], rgb2: [225, 238, 255], a: 1, kind: 'star',
         }));
     }
