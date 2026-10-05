@@ -25,10 +25,17 @@ import {
     serializeRunLogs,
 } from '../../engine/run/runLog';
 import { BUILD_INFO } from '../buildInfo';
+import { flushRunLogNow } from '../store/runLogMiddleware';
+
+/** The stored logs, after anything still owed to storage has been written (the write is deferred). */
+function readStoredRunLogs() {
+    flushRunLogNow();
+    return readRunLogs();
+}
 
 /** How many runs are on file. Drives the button's label and its disabled state. */
 export function storedRunLogCount(): number {
-    return readRunLogs().length;
+    return readStoredRunLogs().length;
 }
 
 export { RUN_LOG_RUNS };
@@ -95,7 +102,7 @@ function writeRunLogFile(fileName: string, contents: string): { fileName: string
  * `endedAt` injected — a module that reads `Date.now()` cannot be tested deterministically.
  */
 export function exportRunLogs(): string | null {
-    const logs = readRunLogs();
+    const logs = readStoredRunLogs();
     if (logs.length === 0) return null;
 
     const now = new Date();

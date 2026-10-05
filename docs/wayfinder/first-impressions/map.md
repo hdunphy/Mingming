@@ -16,6 +16,7 @@ Henry's frame (2026-10-01): *"The game currently looks like a generic Claude web
 
 | # | Ticket | State (2026-10-02) | Blocked by |
 |---|---|---|---|
+| 200 | [Swap every code-drawn icon for Tabler Icons](tickets/200-tabler-icon-swap.md): statuses ruled (Poison skull, Weakened/Strengthened arrows, Stunned ban, Energized recharging, energy = bolt), the rest proposed on a picture sheet (200a) before the swap; MIT licence ships | Opened 2026-10-05, ruled, not started | — |
 | 199 | [The Instinct glyphs, made by Henry](tickets/199-instinct-glyphs-by-henry.md): 33 single-colour glyphs (AI-generated art does not ship), then a small wiring pass: chip, tooltip, drop v1.0/v2.0 | Opened 2026-10-05 (split from 194j), not started | Henry (the art) |
 | 198 | [Battle VFX, second pass](tickets/198-battle-vfx-follow-on.md): follow-on to 194k, which Henry did not accept; find what is wrong, a matched lab-vs-game capture rig, then tune or redo | Opened 2026-10-05, not started | Henry (what he dislikes) |
 | 197 | [The shop sells upgrades, not cards](tickets/197-shop-buys-vs-upgrades.md): 22 card buys against 180 upgrades over four nights; measure it on a post-195 night and on the walker, then Henry rules what the shop is for and the prices | **WRITTEN 2026-10-05** | 195b–d (for the measurement night) |
