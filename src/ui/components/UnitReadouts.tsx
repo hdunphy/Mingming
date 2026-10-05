@@ -101,7 +101,8 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
               * of that answer. The tooltip below carries its rule, exactly as the OS's own text is
               * carried there and for the same reason — a chip has room for a word, not a sentence.
               */}
-            {patch && <span className="hud-os-patch" title={plain(describePatchOn(entity.activeOS, patch.id))}>{patch.name.charAt(0)}</span>}
+            {/* 194f: no native `title` here - the portalled tooltip below already carries the rune's line, and a title on the letter showed a second tooltip. */}
+            {patch && <span className="hud-os-patch">{patch.name.charAt(0)}</span>}
             <CounterPip reading={counter} />
 
             {showOSTooltip && rect !== null && createPortal(
@@ -134,7 +135,6 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
                         )}
                         {counter && <span className="tooltip-os-counter">{counter.tooltip}</span>}
                     </div>
-                    <div className="tooltip-footer">TECHNICAL READOUT // SECTOR 0</div>
                 </div>,
                 document.body
             )}
