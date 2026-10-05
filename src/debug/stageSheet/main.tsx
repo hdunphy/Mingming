@@ -4,6 +4,9 @@
  *
  * A real `BattleArena` over a real 3v3 state, with the things the stage has to draw dressed on: one
  * body hurt with a Bark Shield, a status of every kind on another, one dead, a cursor-worthy caster.
+ * Ticket 194k-8, so the captures can play real cards: `?hand=ember_jab,cinder_lance` sets the hand,
+ * `?biomeName=Cinderreach` names the room. `?foeDefs=nidhoggr,nidhoggr,nidhoggr` the three foes' species, and `?foe1=0.9` / `foe2` / `foe3` each foe's
+ * HP as a share of its max (and wakes it, and raises the third from the dead).
  * `?biome=Fire|Water|Nature|None` picks the room; `?party=N` / `?foes=N` size the sides (183e); `?run=1` puts the player in a run (macro rack, tip toast); `?enemyHand=1` opens nothing — the tab is drawn
  * closed, which is the state a player sees first.
  */
@@ -42,11 +45,12 @@ function build(): IBattleState {
             party: [member('p1', 'fenrir'), member('p2', 'skoll'), member('p3', 'ratatoskr')],
             deck: [], drivers: [], persistedHp: {}, encounter: null,
         },
-        ['kraken', 'huldra', 'nidhoggr'],
+        (params.get('foeDefs') ?? 'kraken,huldra,nidhoggr').split(','),
         undefined,
         { seed: 'stage-sheet', enemyMode: 'CARDS' },
     );
-    const hand: ProgramEntity[] = ['ignite', 'growth', 'ember_jab', 'cinder_lance'].map((dataId, i) => (
+    const handIds = (params.get('hand') ?? 'ignite,growth,ember_jab,cinder_lance').split(',').filter(Boolean);
+    const hand: ProgramEntity[] = handIds.map((dataId, i) => (
         { id: `card_${i}`, dataId, currentCost: 1, isPlayable: true }
     ));
     const hurt = (e: IBattleEntity, frac: number, extra: Partial<IBattleEntity> = {}): IBattleEntity =>
@@ -57,7 +61,7 @@ function build(): IBattleState {
     const foes = sideSize('foes');
     return {
         ...base,
-        biomeName: biome === 'None' ? 'The Wilds' : `${biome}fall`,
+        biomeName: params.get('biomeName') ?? (biome === 'None' ? 'The Wilds' : `${biome}fall`),
         biomeElement: biome,
         playerDeck: { ...base.playerDeck, hand },
         playerParty: [
@@ -66,10 +70,11 @@ function build(): IBattleState {
             hurt(a3, 1),
         ].slice(0, party),
         enemyParty: [
-            hurt(e1, 0.8, { statusEffects: [status('Asleep', 1, 1)] }),
-            hurt(e2, 0.12),
+            hurt(e1, Number(params.get('foe1') ?? 0.8), { statusEffects: params.get('foe1') ? [] : [status('Asleep', 1, 1)] }),
+            hurt(e2, Number(params.get('foe2') ?? 0.12), { statusEffects: [] }),
             // The dead third body only belongs to a full 3v3; a smaller side keeps everyone alive.
-            foes === 3 ? hurt(e3, 0, { statusEffects: [] }) : e3,
+            params.get('foe3') ? hurt(e3, Number(params.get('foe3')), { statusEffects: [] })
+                : foes === 3 ? hurt(e3, 0, { statusEffects: [] }) : e3,
         ].slice(0, foes),
     };
 }
