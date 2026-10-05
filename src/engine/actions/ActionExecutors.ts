@@ -568,7 +568,13 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             if (!target) return state;
 
             const existingStatus = target.statusEffects.find(s => s.type === status);
-            const consumedStacks = existingStatus ? existingStatus.stacks : 0;
+            // TICKET 194c: Bark Shield stacks are a fractional %maxHp (decay x0.8, absorbed
+            // damage subtracts), so a consume read 47.863... stacks and `bark_smash` paid out
+            // on a number `BARKSHIELD_STACKS` would have floored. Count whole stacks, with an
+            // epsilon so a 3.9999999999 left by the decay still counts 4. The shield is removed
+            // whenever ANY of it exists: that is `heldStacks`, not the floored count.
+            const heldStacks = existingStatus ? existingStatus.stacks : 0;
+            const consumedStacks = Math.floor(heldStacks + 1e-6);
 
             /*
              * TICKET 163c — OVERCLOCK counts for a CONSUME too, and only when the caster is eating
@@ -589,7 +595,7 @@ export class StatusExecutor extends ActionExecutor<StatusActionData> {
             const counted = targetId === sourceId ? overclocked(source, consumedStacks) : consumedStacks;
 
             let newState: IBattleState = { ...state, lastStatusConsumed: counted };
-            if (consumedStacks > 0) {
+            if (heldStacks > 0) {
                 const updateParty = (party: ReadonlyArray<IBattleEntity>) =>
                     party.map(e => {
                         if (e.id !== targetId) return e;

@@ -7,6 +7,7 @@ import { battleReducer } from '../../engine/battleReducer';
 import { globalBattleEventBus } from '../../engine/events';
 import { powerBonusLabel } from '../components/scalingLabels';
 import { withOverflows, type StatusChange } from './statusOverflow';
+import { displayStacks } from '../components/displayStacks';
 
 /** Result of the on-hover damage preview, with the breakdown chips that explain the number. */
 export interface DamagePreview {
@@ -92,10 +93,15 @@ function statusMap(state: IBattleState, id: string): Record<string, number> {
 }
 
 /** What the simulated play changed about the target's statuses, biggest movement first. */
-function statusDiff(before: Record<string, number>, after: Record<string, number>) {
+/**
+ * TICKET 194c: a status chip is a number the player reads, so it goes through `displayStacks`
+ * like the badges and tooltips do (183a). Bark Shield is a fractional %maxHp, and a shield that
+ * lost "4" read `-4.00000001`. A delta that rounds to nothing (0.04 of a stack) is no chip.
+ */
+export function statusDiff(before: Record<string, number>, after: Record<string, number>) {
     const changes: Array<{ status: string; delta: number }> = [];
     for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
-        const delta = (after[key] ?? 0) - (before[key] ?? 0);
+        const delta = displayStacks((after[key] ?? 0) - (before[key] ?? 0));
         if (delta !== 0) changes.push({ status: key, delta });
     }
     return changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
