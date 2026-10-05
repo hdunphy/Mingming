@@ -34,7 +34,7 @@ import runReducer, {
     takeRewardMacro,
 } from './runSlice';
 import uiReducer from './uiSlice';
-import { createRunLogMiddleware, currentRunLog, logRunEvent, resetRunLogRecorder } from './runLogMiddleware';
+import { createRunLogMiddleware, currentRunLog, flushRunLogNow, logRunEvent, resetRunLogRecorder } from './runLogMiddleware';
 import { battleReducer as battleReducerFn } from '../../engine/battleReducer';
 import { globalBattleEventBus } from '../../engine/events';
 import { createRun } from '../../engine/run/createRun';
@@ -468,7 +468,7 @@ describe('the run log middleware, over a whole run', () => {
         const run = makeRun();
         first.dispatch(startRun(run));
         first.dispatch(addRunScrap(10));
-        await Promise.resolve();          // let the coalesced write land
+        flushRunLogNow();                 // the write is deferred; a reload would run the page-leave flush
         const before = currentRunLog()!.events.length;
         expect(before).toBeGreaterThan(0);
 

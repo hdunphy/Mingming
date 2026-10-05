@@ -29,8 +29,8 @@
  *
  * Every branch is wrapped: instrumentation must not be able to break a dispatch. A run log that
  * throws while recording a card purchase would cost the purchase, which is a strictly worse outcome
- * than losing the row. The write itself is coalesced onto a microtask — a scrap change and the
- * three rows around it are one write, not four.
+ * than losing the row. The write itself is deferred to a quiet window (`TrailingFlush`) — a scrap change and
+ * the three rows around it are one write, not four, and a click is none.
  */
 
 import { createAction } from '@reduxjs/toolkit';
@@ -55,6 +55,8 @@ import { globalBattleEventBus, type BattleEvent } from '../../engine/events';
 import type { IBattleState } from '../../engine/types';
 import type { IRunState } from '../../engine/runTypes';
 import { activeModifiers } from '../../engine/run/modifiers/modifierRegistry';
+import { idleFlushScheduler, TrailingFlush, type FlushScheduler } from './TrailingFlush';
+import { flushOnPageLeave } from './pageLeaveFlush';
 
 /**
  * Report something the store does not hold. Handled by no reducer — see the header.
@@ -74,7 +76,27 @@ interface LoggedState {
 
 let current: IRunLog | null = null;
 let seq = 0;
-let flushQueued = false;
+
+/**
+ * THE WRITE IS DEFERRED, NOT PER-DISPATCH.
+ *
+ * It used to be queued on a microtask after every dispatch (and every row), re-serialising the
+ * whole run log each time. In the desktop build that is a synchronous IPC write that blocks the
+ * renderer, and it grows with the run: the game slowed down the longer it was played. Now rows
+ * and active time are kept in memory and written once per quiet window, and immediately at the
+ * moments that matter (fight close, run end, page leave, anyone reading the log back).
+ */
+let unbindPageLeave: (() => void) | null = null;
+let flusher: TrailingFlush = new TrailingFlush(persistCurrent, idleFlushScheduler());
+
+function persistCurrent(): void {
+    if (current) writeRunLog(current);
+}
+
+/** Write the transcript now if a write is owed. Readers of the stored log call this first. */
+export function flushRunLogNow(): void {
+    flusher.flushNow();
+}
 
 /**
  * IS A FIGHT STILL OPEN — ticket 156 §2.
@@ -96,15 +118,6 @@ let flushQueued = false;
  */
 let fightOpen = false;
 
-function flushSoon(): void {
-    if (flushQueued) return;
-    flushQueued = true;
-    queueMicrotask(() => {
-        flushQueued = false;
-        if (current) writeRunLog(current);
-    });
-}
-
 function stampFor(run: IRunState | null): { seq: number; fightIndex: number; deckSize: number; scrap: number } {
     seq += 1;
     return {
@@ -118,7 +131,7 @@ function stampFor(run: IRunState | null): { seq: number; fightIndex: number; dec
 function record(run: IRunState | null, input: RunEventInput): void {
     if (!current) return;
     current = appendRunEvent(current, input, stampFor(run));
-    flushSoon();
+    flusher.request();
 }
 
 /*
@@ -352,6 +365,8 @@ function closeFight(run: IRunState | null, board: IBattleState): void {
         won: isPlayerVictory(board),
         partyHp,
     });
+    // A fight is the unit worth keeping: persist it now rather than trust the quiet window.
+    flusher.flushNow();
 }
 
 /**
@@ -371,6 +386,7 @@ function beginOrResume(run: IRunState, existing: ReadonlyArray<IRunLog>): void {
 
 /** Test seam: forget the in-memory transcript. Nothing in the app calls this. */
 export function resetRunLogRecorder(): void {
+    flusher.cancel();
     current = null;
     seq = 0;
     fightOpen = false;
@@ -406,7 +422,16 @@ function nodeOf(run: IRunState | null, nodeId: string | undefined) {
 export function createRunLogMiddleware(
     readLogs: () => IRunLog[],
     now: () => number = () => Date.now(),
+    scheduler: FlushScheduler = idleFlushScheduler(),
 ): Middleware {
+    // Rebuilt per store so a test's scheduler is the one that is turned; one store in production.
+    flusher.cancel();
+    flusher = new TrailingFlush(persistCurrent, scheduler);
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+        unbindPageLeave?.();
+        unbindPageLeave = flushOnPageLeave(flushRunLogNow, window, document);
+    }
+
     // Once for the life of the store. `subscribe` returns an unsubscribe nobody calls, because the
     // middleware outlives every fight and a resubscribe per fight would be a hole to fall through.
     globalBattleEventBus.subscribe(onBattleEvent);
@@ -431,8 +456,9 @@ export function createRunLogMiddleware(
             if (current && lastDispatchAt !== null) {
                 const gap = at - lastDispatchAt;
                 if (gap > 0) {
+                    // Memory only: a click is not worth a disk write. The next row, fight close,
+                    // run end or page leave persists it.
                     current = { ...current, activeMs: current.activeMs + Math.min(gap, ACTIVE_GAP_CAP_MS) };
-                    flushSoon();
                 }
             }
             lastDispatchAt = at;
@@ -476,7 +502,7 @@ export function createRunLogMiddleware(
                 });
                 // The one write that is not coalesced: the run is over and the next thing that
                 // happens may be teardown, a reload, or the player closing the game.
-                writeRunLog(current);
+                flusher.flushNow();
                 return result;
             }
 

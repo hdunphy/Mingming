@@ -26,6 +26,7 @@ import {
     type IRunLog,
 } from '../../engine/run/runLog';
 import { scrapCurve } from '../../engine/run/scrapCurve';
+import { flushRunLogNow } from '../../ui/store/runLogMiddleware';
 import { formatScrapCurve } from '../balance/scrapCurveTable';
 
 const RAW_ROW_LIMIT = 60;
@@ -109,7 +110,7 @@ function rawLine(event: IRunEvent): string {
 export default function RunLogPanel() {
     // Read once per mount. A live subscription would be lying anyway: the file on disk only changes
     // on a microtask after a dispatch, and the run that matters is usually already over.
-    const logs = useMemo(() => readRunLogs(), []);
+    const logs = useMemo(() => { flushRunLogNow(); return readRunLogs(); }, []);
     const [index, setIndex] = useState(() => Math.max(0, logs.length - 1));
     const log: IRunLog | undefined = logs[index];
 
