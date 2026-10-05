@@ -18,6 +18,9 @@
  * TICKET 185e re-pinned all four on purpose, once: a card offer is one weighted draw now (and leaves
  * out the last two picks' cards), so every walk is offered different cards from the same seed.
  * Rows 185a-d moved none of them; the four were taken on the commit before 185e and again on it.
+ *
+ * TICKET 194 re-pinned the two kraken_v1 walks on purpose (194a: an enemy Huldra v2 no longer shields before
+ * she acts; 194b: Ragnarok Edge lost its cap). The two fenrir_v2 walks did not move.
  */
 import { createHash } from 'node:crypto';
 
@@ -32,8 +35,8 @@ const hashOf = (value: unknown): string =>
 describe('170a — the default walk is unchanged', () => {
     // [seed, starter, gymIndex, tier] -> hash of JSON.stringify(walkRun(...)) on the parent of 170a.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, number, string]> = [
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, 'acc09b5fe3339bde'],
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '88eaccfcdc8cf265'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, 'bdba9c99839aba86'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '12b709b4581e0545'],
         ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'cbae1ed75c400704'],
         ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '9ec0bff685eb34aa'],
     ];

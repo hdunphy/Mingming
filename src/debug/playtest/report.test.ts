@@ -45,7 +45,9 @@ function cardNightSession(): { world: World; notes: Array<{ atMove: number; text
 
 /** r02: a run-mode walk to a market, one purchase, then on to the first reward. */
 function runNightSession(): World {
-    const world = freshWorld({ mode: 'run', seed: 'ps22' });
+    // 194b: seed 'ps22' no longer reaches a market on the scripted walk (Ragnarok Edge lost its cap, so the
+    // starter's first fights play out differently), so the fixture uses 'ps21', which does.
+    const world = freshWorld({ mode: 'run', seed: 'ps21' });
     expect(walkTo(world, 'marketplace')).toBe(true);
     const buy = currentScreen(world).moves.find((m) => m.about?.verb === 'buy');
     if (buy) applyMove(world, { key: buy.key, why: 'looked like it fit the deck' });

@@ -112,9 +112,10 @@ describe('170e — the walker', () => {
     // down is unchanged: leaving the option out must reproduce the same walk the modifier alone makes.
     // TICKET 185e moved all three once, on purpose: card offers are one weighted draw now and leave out
     // the last two picks' cards, so every walk is offered different cards from the same seed.
+    // TICKET 194 moved the kraken one on purpose (194a, 194b: see ghostWalk.test.ts).
     const GOLDEN: ReadonlyArray<readonly [string, string, number, string]> = [
         ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '9e1cbbc29cfeec7d'],
-        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, 'f95299a3bf1d182c'],
+        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '8981a5c39483d37c'],
     ];
 
     it.each(GOLDEN)('%s: leaving draftPolicy out reproduces the 169j Draft Start walk exactly', (seed, starter, gymIndex, hash) => {
