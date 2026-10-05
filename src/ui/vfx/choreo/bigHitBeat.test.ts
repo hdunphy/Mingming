@@ -44,6 +44,7 @@ afterEach(() => {
     localStorage.clear();
 });
 
+/** A hit of `percent` percent of a 100-HP body's max HP (194k-2: big is the damage scale s now, so the percents are small). */
 const hitFor = (percent: number, over: { attack?: boolean } = {}) => {
     const cast = emptyCast({ element: 'Fire', sourceId: 'a1', targetIds: ['e1'], doubled: false, resisted: false, ...over });
     cast.hits.push({ targetId: 'e1', applied: percent, maxHp: 100, isKill: false });
@@ -52,19 +53,19 @@ const hitFor = (percent: number, over: { attack?: boolean } = {}) => {
 const labels = (cast: ReturnType<typeof hitFor>) => buildCastBeat(cast).actions.map((action) => action.label);
 
 describe('190g - which hits charge and dim', () => {
-    it('Showy: a 50% hit charges, a 60% hit also dims, a 30% hit does neither', () => {
-        expect(labels(hitFor(30))).not.toContain('charge');
-        expect(labels(hitFor(30))).not.toContain('dim');
-        expect(labels(hitFor(55))).toContain('charge');
-        expect(labels(hitFor(55))).not.toContain('dim');
-        expect(labels(hitFor(70))).toContain('charge');
-        expect(labels(hitFor(70))).toContain('dim');
+    it('Showy: s 0.5 charges, s 0.6 also dims, a 2% hit (s 0.37) does neither', () => {
+        expect(labels(hitFor(2))).not.toContain('charge');
+        expect(labels(hitFor(2))).not.toContain('dim');
+        expect(labels(hitFor(4))).toContain('charge');     // 4% of max HP is s 0.52
+        expect(labels(hitFor(4))).not.toContain('dim');
+        expect(labels(hitFor(6))).toContain('charge');     // 6% is s 0.63
+        expect(labels(hitFor(6))).toContain('dim');
     });
 
-    it('Slow starts earlier: a 40% hit charges and dims', () => {
+    it('Slow starts earlier: a 2% hit (s 0.37) charges and dims', () => {
         setActiveTier('slow');
-        expect(labels(hitFor(40))).toContain('charge');
-        expect(labels(hitFor(40))).toContain('dim');
+        expect(labels(hitFor(2))).toContain('charge');
+        expect(labels(hitFor(2))).toContain('dim');
     });
 
     it('no charge and no dim on Snappy or Fast, however big the hit', () => {

@@ -84,7 +84,7 @@ describe('190b — the Snappy column', () => {
         expect(SNAPPY.statusOnly).toEqual({ wiggleMs: 200, orbMs: 220, landingMs: 340 });
         expect([SNAPPY.cardInMs, SNAPPY.cardOutMs]).toEqual([150, 140]);
         expect(SNAPPY.enemyHoverMs).toBe(1000);
-        expect(SNAPPY.cameraShakeFrom).toBe(0.2);
+        expect(SNAPPY.cameraShakeFrom).toBe(0.67);
         expect(SNAPPY.trauma(0)).toBeCloseTo(0.25);
         expect(SNAPPY.trauma(1)).toBeCloseTo(0.7);
         expect(SNAPPY.targetShakePx(0)).toBe(3);
@@ -114,7 +114,7 @@ describe('190b — the Showy column', () => {
         expect(SHOWY.statusOnly).toEqual({ wiggleMs: 300, orbMs: 320, landingMs: 520 });
         expect([SHOWY.cardInMs, SHOWY.cardOutMs]).toEqual([180, 160]);
         expect(SHOWY.enemyHoverMs).toBe(1000);
-        expect(SHOWY.cameraShakeFrom).toBe(0.12);
+        expect(SHOWY.cameraShakeFrom).toBe(0.52);
         expect(SHOWY.trauma(0)).toBeCloseTo(0.3);
         expect(SHOWY.trauma(1)).toBeCloseTo(0.85);
         expect(SHOWY.targetShakePx(0)).toBe(4);
@@ -147,7 +147,7 @@ describe('190b — the Slow column is a heavier Showy', () => {
         expect([SLOW.knockbackMs, SLOW.returnMs]).toEqual([220, 250]);
         expect(SLOW.statusOnly).toEqual({ wiggleMs: 380, orbMs: 400, landingMs: 650 });
         expect([SLOW.cardInMs, SLOW.cardOutMs]).toEqual([220, 200]);
-        expect(SLOW.cameraShakeFrom).toBe(0.08);
+        expect(SLOW.cameraShakeFrom).toBe(0.42);
         expect(SLOW.trauma(0.5)).toBeCloseTo(SHOWY.trauma(0.5) + 0.1);
         expect(SLOW.targetShakePx(0)).toBe(5);
         expect(SLOW.targetShakePx(1)).toBe(13);

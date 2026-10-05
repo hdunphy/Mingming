@@ -2,15 +2,18 @@
  * TICKET 190g - THE BIG-HIT EXTRAS, as pure pieces: which hits are big, how the stage dims across a
  * cast, and the sparks that charge into the caster's mouth during the wind-up.
  *
- * "Big" is a share of the target's max HP against the tier's thresholds (`dimFrom`, `chargeFrom`):
- * Showy dims from 60% and charges from 50%, Slow from 35% and 30%, Snappy (and Fast, which reads it)
- * never does.
+ * "Big" is the hit's damage scale `s` against the tier's thresholds (`dimFrom`, `chargeFrom`), as the
+ * Battle Juice Lab has it (TICKET 194k-2): Showy dims from s 0.6 and charges from 0.5, Slow from 0.35
+ * and 0.3, Snappy (and Fast, which reads it) never does. 190 had turned these into shares of max HP,
+ * which on 1,100-HP bodies reached about 1% of hits; on `s` a median hit (s 0.54) charges up and a
+ * 4% hit dims on Slow.
  */
 
 import { randomIn, inQuad, lerp } from '../attacks/curves';
 import type { ParticleSeed } from '../particles';
 import type { TrackKey } from '../impact/Track';
 import type { AttackPlan } from '../tiers/attackPlan';
+import { damageScale } from '../tiers/tierProfiles';
 
 /** The dark layer never goes past this opacity (at s = 1). */
 export const DIM_PEAK = 0.4;
@@ -18,9 +21,10 @@ export const DIM_PEAK = 0.4;
 const SPARK_START_MIN_PX = 60;
 const SPARK_START_MAX_PX = 110;
 
-export const hitShare = (damage: number, maxHp: number): number => (maxHp > 0 && damage > 0 ? damage / maxHp : 0);
+/** `s` for a hit: the same number the pour, the shake and the freeze grow on. */
+export const hitScale = (damage: number, maxHp: number): number => damageScale(damage, maxHp);
 
-export const isBigHit = (share: number, threshold: number | null): boolean => threshold !== null && share >= threshold;
+export const isBigHit = (s: number, threshold: number | null): boolean => threshold !== null && s >= threshold;
 
 /** The dim across a cast: up across the wind-up, held to the impact, released on the knock-back. */
 export function dimKeys(game: Pick<AttackPlan['game'], 'windupEndMs' | 'impactMs' | 'knockbackEndMs'>, s: number): TrackKey[] {

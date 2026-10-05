@@ -21,8 +21,6 @@ import { FULL_HIT_FRACTION } from '../tiers/tierProfiles';
  * pinned to the lab's 100-HP ones.
  */
 export const SEVERITY_FULL_FRACTION = FULL_HIT_FRACTION;
-/** Below this share of the target's max HP a hit is small: it shakes the target and nothing else. */
-export const SMALL_HIT_FRACTION = 0.12;
 
 export const HIT_STOP_BASE_MS = 60;
 export const HIT_STOP_SPAN_MS = 80;
@@ -81,7 +79,8 @@ export interface CameraHit {
 export function addsCameraTrauma(hit: CameraHit): boolean {
     if (hit.resisted) return false;
     if (hit.isKill) return true;
-    return hit.maxHp > 0 && hit.applied / hit.maxHp >= activeProfile().cameraShakeFrom;
+    // 194k-2: on the damage scale `s` (the lab's 12% of a 100-HP body is s 0.52), not a share of max HP.
+    return damageSeverity(hit.applied, hit.maxHp) >= activeProfile().cameraShakeFrom;
 }
 
 /** Trauma a hit adds: the tier's curve (Showy `0.3 + 0.55 s`), and 0.25 more on a kill. */

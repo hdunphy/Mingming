@@ -34,7 +34,7 @@ import { buildCastAttack } from '../attacks/buildAttack';
 import { spriteShakes, stageDim, wakeImpactFx } from '../impact/impactRuntime';
 import { loadSettings, resolveVfxGates } from '../../settings/settings';
 import { muzzleOf } from '../attacks/AttackEffect';
-import { chargeSparks, dimKeys, hitShare, isBigHit } from '../choreo/bigHit';
+import { chargeSparks, dimKeys, hitScale, isBigHit } from '../choreo/bigHit';
 import { DASH_STOPS_SHORT_PX, attackPose, statusPose } from '../choreo/attackPose';
 import { type CastKind, castTimes } from '../choreo/castTimes';
 import { emitAttackPose } from '../choreo/poseSignals';
@@ -194,12 +194,12 @@ export function buildCastBeat(
     });
 
     /*
-     * TICKET 190g - THE BIG-HIT EXTRAS. A hit that takes a big share of the target's max HP (the tier's
-     * `chargeFrom` / `dimFrom`; Snappy and Fast have none) charges up: sparks converge on the caster's
+     * TICKET 190g - THE BIG-HIT EXTRAS. A hit whose damage scale `s` is big (the tier's
+     * `chargeFrom` / `dimFrom`, on `s` since 194k-2; Snappy and Fast have none) charges up: sparks converge on the caster's
      * mouth through the wind-up. A bigger one also dims the stage across the wind-up (up to 0.4 x s,
      * gone with the Flashes setting). Both start with the pose; the camera punch is the impact's.
      */
-    const share = hitShare(biggest?.applied ?? 0, biggest?.maxHp ?? 0);
+    const share = hitScale(biggest?.applied ?? 0, biggest?.maxHp ?? 0);
     const plan = times.attackPlan;
     if (plan && isBigHit(share, profile.chargeFrom)) {
         actions.push({
