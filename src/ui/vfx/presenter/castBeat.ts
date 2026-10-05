@@ -22,19 +22,19 @@
  */
 
 import type { IBattleEntity, StatusType } from '../../../engine/types';
-import { type EmitAt, anchorFor, emitEffect, emitImpact, emitOrb, emitSeeds, emitSpeedLines, emitTrail, stageScale } from '../emit';
+import { type EmitAt, anchorFor, emitCharge, emitEffect, emitImpact, emitOrb, emitSpeedLines, emitTrail, stageScale } from '../emit';
 import { emitHookTell } from '../osTells';
 import { HOOK_BEAT_GAP_MS } from '../hookStatusBeat';
-import { scheduleStatusTells } from '../statusBurst';
+import { groupStatusTells, scheduleStatusTells } from '../statusBurst';
 import {
     emitDeath, emitSelfCost, emitShieldAbsorb, emitStatusApplied, emitStatusRemoved, emitStatusTick, statusColor,
 } from '../statusTells';
-import { TRAIL_STAGGER_MS, elementColor, type TrailElement } from '../trails';
+import { TRAIL_STAGGER_MS, elementColor, elementHot, type TrailElement } from '../trails';
 import { buildCastAttack } from '../attacks/buildAttack';
 import { spriteShakes, stageDim, wakeImpactFx } from '../impact/impactRuntime';
 import { loadSettings, resolveVfxGates } from '../../settings/settings';
 import { muzzleOf } from '../attacks/AttackEffect';
-import { chargeSparks, dimKeys, hitScale, isBigHit } from '../choreo/bigHit';
+import { chargeEffect, dimKeys, hitScale, isBigHit } from '../choreo/bigHit';
 import { DASH_STOPS_SHORT_PX, attackPose, statusPose } from '../choreo/attackPose';
 import { type CastKind, castTimes } from '../choreo/castTimes';
 import { emitAttackPose } from '../choreo/poseSignals';
@@ -81,7 +81,7 @@ export interface PendingCast {
     readonly targetIds: string[];
     readonly doubled: boolean;
     readonly resisted: boolean;
-    readonly statuses: Array<{ targetId: string; status: StatusType; stacks?: number }>;
+    readonly statuses: Array<{ targetId: string; status: StatusType; stacks?: number; overflow?: number }>;
     /** TICKET 171f: statuses a hook applied during this cast — played as their own beat after it. */
     readonly hookStatuses: Array<{ hookId: string; targetId: string; status: StatusType; stacks?: number }>;
     /** TICKET 171f: the tell of each hook that applied one of those, held to play with them. */
@@ -126,9 +126,17 @@ export function emptyCast(base: CastBase): PendingCast {
     };
 }
 
-/** Which of the three timelines this cast plays: a hit of any size makes it an attack. */
+/**
+ * Which of the three timelines this cast plays: a hit of any size makes it an attack.
+ *
+ * TICKET 198b-3: a card that hit nobody and put a status on someone is a STATUS cast whatever its
+ * category. Poison Injection is an Attack-category card that deals no damage, and 190c's rule sent
+ * it down the attack timeline: a lunge and a thin element trail, no wiggle, no orb — which is why
+ * Henry saw a blue line where the lab shows the status popping up over the caster and landing on
+ * the target. The lab has one timeline for a status card and it is this one.
+ */
 export function castKindOf(cast: PendingCast): CastKind {
-    if (!cast.attack && cast.hits.length === 0) return 'status';
+    if (cast.hits.length === 0 && (!cast.attack || cast.statuses.length > 0)) return 'status';
     return cast.contact ? 'contact' : 'attack';
 }
 
@@ -210,9 +218,9 @@ export function buildCastBeat(
                 if (!from) return;
                 const heading = headingOf(cast, from, to);
                 const body = { id: cast.sourceId, x: from.x, y: from.y, w: from.w ?? 0, h: from.h ?? 0 };
-                emitSeeds(chargeSparks({
-                    muzzle: muzzleOf(body, heading), durationMs: plan.game.windupEndMs, s: plan.scale,
-                    particleScale: profile.particleScale, color: elementColor(cast.element),
+                emitCharge(chargeEffect({
+                    muzzle: muzzleOf(body, heading), durationMs: plan.game.windupEndMs,
+                    color: elementColor(cast.element), hot: elementHot(cast.element),
                 }));
             },
         });
@@ -312,7 +320,7 @@ export function buildCastBeat(
             actions.push({ at: impactAt, label: 'shield', run: () => emitShieldAbsorb(targetId) });
         }
         if (cast.deaths.includes(targetId)) {
-            actions.push({ at: impactAt, label: 'death', run: () => emitDeath(targetId) });
+            actions.push({ at: impactAt, label: 'death', run: () => emitDeath(targetId, headingOf(cast, anchorFor(cast.sourceId), anchorFor(targetId))) });
         }
         last = Math.max(last, impactAt);
     });
@@ -324,7 +332,7 @@ export function buildCastBeat(
         if (!targeted.has(id)) actions.push({ at: last, label: 'shield', run: () => emitShieldAbsorb(id) });
     }
     for (const id of cast.deaths) {
-        if (!targeted.has(id)) actions.push({ at: last, label: 'death', run: () => emitDeath(id) });
+        if (!targeted.has(id)) actions.push({ at: last, label: 'death', run: () => emitDeath(id, headingOf(cast, anchorFor(cast.sourceId), anchorFor(id))) });
     }
 
     // Recoil and toll: the price lands when the card does.
@@ -370,10 +378,17 @@ export function buildCastBeat(
     for (const tick of cast.ticks) {
         actions.push({ at: afterImpact, label: 'tick', run: () => emitStatusTick(tick.status, tick.targetId) });
     }
+    // TICKET 198b-3: the landing is also when the status is SAID (float, sound, plaque bump) — see
+    // `StatusMoment`. The engine applied it at the start of the cast; the player sees it land here.
     for (const tell of scheduleStatusTells(landingBase, cast.statuses, STATUS_TELL_STAGGER_MS, 0)) {
         actions.push({
             at: tell.at, label: 'status-tell',
-            run: () => { for (const targetId of tell.targetIds) emitStatusApplied(tell.status, targetId, false, tell.stacks[targetId]); },
+            run: () => {
+                for (const targetId of tell.targetIds) {
+                    emitStatusApplied(tell.status, targetId, false, tell.stacks[targetId]);
+                    say({ kind: 'status', targetId, status: tell.status, stacks: tell.stacks[targetId], overflow: tell.overflow[targetId] });
+                }
+            },
         });
         last = Math.max(last, tell.at);
     }
@@ -469,7 +484,7 @@ export function buildCardBeat(card: PlayedCardAnnouncement): Beat {
  */
 export interface LooseBurst {
     readonly ticks: Array<{ status: StatusType; targetId: string }>;
-    readonly applied: Array<{ status: StatusType; targetId: string; stacks?: number }>;
+    readonly applied: Array<{ status: StatusType; targetId: string; stacks?: number; overflow?: number }>;
     readonly removals: string[];
     readonly selfCosts: string[];
     readonly shields: string[];
@@ -511,8 +526,16 @@ export function buildLooseBeat(
     for (const tick of burst.ticks) {
         actions.push({ at: 0, label: 'tick', run: () => emitStatusTick(tick.status, tick.targetId) });
     }
-    for (const entry of burst.applied) {
-        actions.push({ at: 0, label: 'status-tell', run: () => emitStatusApplied(entry.status, entry.targetId, false, entry.stacks ?? 1) });
+    for (const tell of groupStatusTells(burst.applied)) {
+        actions.push({
+            at: 0, label: 'status-tell',
+            run: () => {
+                for (const targetId of tell.targetIds) {
+                    emitStatusApplied(tell.status, targetId, false, tell.stacks[targetId]);
+                    say({ kind: 'status', targetId, status: tell.status, stacks: tell.stacks[targetId], overflow: tell.overflow[targetId] });
+                }
+            },
+        });
     }
     for (const id of burst.removals) {
         actions.push({ at: 0, label: 'status-removed', run: () => emitStatusRemoved(id) });

@@ -10,6 +10,7 @@ import { createSparseBattleState, createSparseEntity } from '../../debug/scenari
 import type { IBattleState } from '../../engine/types';
 import * as audioEngine from '../audio/AudioEngine';
 import { emitStageMoment } from '../vfx/impact/stageMoments';
+import { groupStatusTells } from '../vfx/statusBurst';
 
 declare global {
     var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -58,45 +59,35 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
-describe('166b — useBattleVfx status burst handling', () => {
-    it('merges 6 STATUS_APPLIED into one float per body with combined stacks, and plays sound once', () => {
+describe('166b / 198b-3 — a status lands as the presenter\'s moment', () => {
+    it('one `status` moment per body floats once, with its stacks, and plays sound once', () => {
         const sfxSpy = vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
 
-        // 6 STATUS_APPLIED: 2 stacks of Sharp to p1, p2, p3 twice each in one tick
+        // 198b-3: the presenter has already merged the cast's six STATUS_APPLIED into one tell per
+        // body (`groupStatusTells`), and says each as it lands.
         act(() => {
-            const bodies = ['p1', 'p2', 'p3'];
-            for (let round = 0; round < 2; round++) {
-                for (const id of bodies) {
-                    globalBattleEventBus.emit({
-                        type: 'STATUS_APPLIED',
-                        targetId: id,
-                        status: 'Sharp',
-                        stacks: 2,
-                        timestamp: Date.now(),
-                    });
-                }
-            }
+            for (const id of ['p1', 'p2', 'p3']) emitStageMoment({ kind: 'status', targetId: id, status: 'Sharp', stacks: 4 });
         });
-
-        // Run the 0ms burst flush timer
-        act(() => {
-            vi.advanceTimersByTime(10);
-        });
+        act(() => { vi.advanceTimersByTime(10); });
 
         const vfx = seen.vfx;
         expect(vfx).not.toBeNull();
-
         for (const id of ['p1', 'p2', 'p3']) {
-            const floats = vfx!.unitFx[id]?.floats ?? [];
-            const statusFloats = floats.filter(f => f.kind === 'status');
+            const statusFloats = (vfx!.unitFx[id]?.floats ?? []).filter(f => f.kind === 'status');
             expect(statusFloats).toHaveLength(1);
             expect(statusFloats[0].text).toBe('Sharp ×4');
         }
-
-        // Only one sound was played for the Sharp burst
-        expect(sfxSpy).toHaveBeenCalledTimes(1);
-
+        expect(sfxSpy).toHaveBeenCalledTimes(3);
         sfxSpy.mockRestore();
+    });
+
+    it('a STATUS_APPLIED event by itself floats nothing: the engine says it at play, the presenter at the landing', () => {
+        vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        act(() => {
+            globalBattleEventBus.emit({ type: 'STATUS_APPLIED', targetId: 'p1', status: 'Sharp', stacks: 2, timestamp: Date.now() });
+        });
+        act(() => { vi.advanceTimersByTime(10); });
+        expect(seen.vfx!.unitFx['p1']?.floats ?? []).toHaveLength(0);
     });
 });
 
@@ -104,7 +95,7 @@ describe('167h — a float lives long enough to read', () => {
     it('is still on the unit at 1.5 s and gone by 2.1 s (it was 1.15 s)', () => {
         vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
         act(() => {
-            globalBattleEventBus.emit({ type: 'STATUS_APPLIED', targetId: 'p1', status: 'Sharp', stacks: 2, timestamp: Date.now() });
+            emitStageMoment({ kind: 'status', targetId: 'p1', status: 'Sharp', stacks: 2 });
         });
         act(() => { vi.advanceTimersByTime(10); });
         expect(seen.vfx!.unitFx['p1']?.floats ?? []).toHaveLength(1);
@@ -148,10 +139,8 @@ describe('171f — a hook\'s status floats on its own, after the card, with its 
                 type: 'HOOK_FIRED', osId: 'skoll_v2', hookId: 'skoll_v2_ember_fuse', ownerId: 'p1',
                 trigger: 'onPostDamage', timestamp: Date.now(),
             });
-            globalBattleEventBus.emit({
-                type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 1, timestamp: Date.now(),
-                source: { kind: 'card', id: 'ember_jab', ownerId: 'p1' },
-            });
+            // 198b-3: the card's own Burn is said by the presenter as it lands.
+            emitStageMoment({ kind: 'status', targetId: 'e1', status: 'Burn', stacks: 1 });
         });
         act(() => { vi.advanceTimersByTime(10); });
         const first = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
@@ -171,20 +160,23 @@ describe('184b — a Burn overflow floats as an overflow', () => {
     it('4 Burn + 2 floats "OVERFLOW · 2 BURN", not "Burn ×2" on a badge that just dropped', () => {
         vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
         act(() => {
-            globalBattleEventBus.emit({
-                type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 2, overflowRemaining: 2, timestamp: Date.now(),
-            });
+            emitStageMoment({ kind: 'status', targetId: 'e1', status: 'Burn', stacks: 2, overflow: 2 });
         });
         act(() => { vi.advanceTimersByTime(10); });
         const texts = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
         expect(texts).toEqual(['OVERFLOW · 2 BURN']);
     });
 
-    it('a burst that detonates and then adds more reports the pile it ends on', () => {
+    it('a burst that detonates and then adds more reports the pile it ends on (the presenter folds it)', () => {
         vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
+        const [tell] = groupStatusTells([
+            { targetId: 'e1', status: 'Burn', stacks: 2, overflow: 1 },
+            { targetId: 'e1', status: 'Burn', stacks: 1 },
+        ]);
+        expect(tell.stacks.e1).toBe(3);
+        expect(tell.overflow.e1).toBe(2);
         act(() => {
-            globalBattleEventBus.emit({ type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 2, overflowRemaining: 1, timestamp: Date.now() });
-            globalBattleEventBus.emit({ type: 'STATUS_APPLIED', targetId: 'e1', status: 'Burn', stacks: 1, timestamp: Date.now() });
+            emitStageMoment({ kind: 'status', targetId: 'e1', status: 'Burn', stacks: tell.stacks.e1, overflow: tell.overflow.e1 });
         });
         act(() => { vi.advanceTimersByTime(10); });
         const texts = (seen.vfx!.unitFx['e1']?.floats ?? []).filter(f => f.kind === 'status').map(f => f.text);
