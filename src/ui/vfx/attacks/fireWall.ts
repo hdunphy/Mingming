@@ -6,9 +6,11 @@
 import { type AttackBuild, type AttackInput, type HitTime, centerOf, framesOf } from './AttackEffect';
 import { clamp, inOut, invInOut, lerp, randomIn } from './curves';
 import { LIGHT_BLEND } from './glow';
+import { rimOf } from './layers';
 import { particle } from './seeds';
 
 const FADE_MS = 260;
+const WALL = [255, 100, 40] as const;
 
 export function fireWall(input: AttackInput): AttackBuild {
     const rand = randomIn(input.rng ?? Math.random);
@@ -57,13 +59,19 @@ export function fireWall(input: AttackInput): AttackBuild {
             },
             draw(ctx, age) {
                 const x = wallX(Math.min(age, total));
-                const gradient = ctx.createLinearGradient(x - 50, 0, x + 50, 0);
-                gradient.addColorStop(0, 'rgba(255,100,40,0)');
-                gradient.addColorStop(0.5, `rgba(255,140,60,${0.28 * intensity(age)})`);
-                gradient.addColorStop(1, 'rgba(255,100,40,0)');
-                ctx.globalCompositeOperation = LIGHT_BLEND;
-                ctx.fillStyle = gradient;
-                ctx.fillRect(x - 50, top - 30, 100, bottom - top + 60);
+                const k = intensity(age);
+                // 194k-3: three columns, widest first. A dark base in ordinary blending, an opaque
+                // body (the lab's 28% is 60% here), then a narrow hot core.
+                const column = (half: number, stops: ReadonlyArray<readonly [number, string]>, blend: GlobalCompositeOperation): void => {
+                    const gradient = ctx.createLinearGradient(x - half, 0, x + half, 0);
+                    for (const [at, colour] of stops) gradient.addColorStop(at, colour);
+                    ctx.globalCompositeOperation = blend;
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x - half, top - 30, half * 2, bottom - top + 60);
+                };
+                column(70, [[0, rimOf(WALL, 0)], [0.5, rimOf(WALL, 0.55 * k)], [1, rimOf(WALL, 0)]], 'source-over');
+                column(50, [[0, 'rgba(255,100,40,0)'], [0.5, `rgba(255,140,60,${0.6 * k})`], [1, 'rgba(255,100,40,0)']], LIGHT_BLEND);
+                column(18, [[0, 'rgba(255,230,170,0)'], [0.5, `rgba(255,235,180,${0.85 * k})`], [1, 'rgba(255,230,170,0)']], LIGHT_BLEND);
                 ctx.globalCompositeOperation = 'source-over';
             },
         },

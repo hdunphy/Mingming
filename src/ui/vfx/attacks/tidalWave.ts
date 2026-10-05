@@ -5,10 +5,12 @@
 
 import { type AttackBuild, type AttackInput, type HitTime, centerOf, framesOf } from './AttackEffect';
 import { inOut, invInOut, lerp, randomIn } from './curves';
+import { rimOf } from './layers';
 import { particle } from './seeds';
 
 const FADE_MS = 240;
 const EDGE_STEP_PX = 10;
+const WATER = [40, 110, 200] as const;
 
 export function tidalWave(input: AttackInput): AttackBuild {
     const rand = randomIn(input.rng ?? Math.random);
@@ -71,8 +73,8 @@ export function tidalWave(input: AttackInput): AttackBuild {
                 const back = x - d * 260;
                 const gradient = ctx.createLinearGradient(back, 0, x, 0);
                 gradient.addColorStop(0, 'rgba(40,110,200,0)');
-                gradient.addColorStop(0.75, `rgba(55,140,220,${0.42 * alpha})`);
-                gradient.addColorStop(1, `rgba(150,215,255,${0.7 * alpha})`);
+                gradient.addColorStop(0.75, `rgba(55,140,220,${0.6 * alpha})`);
+                gradient.addColorStop(1, `rgba(150,215,255,${0.85 * alpha})`);
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
                 ctx.moveTo(back, top + 40);
@@ -80,11 +82,14 @@ export function tidalWave(input: AttackInput): AttackBuild {
                 ctx.lineTo(back, bottom);
                 ctx.closePath();
                 ctx.fill();
-                ctx.strokeStyle = `rgba(240,250,255,${0.85 * alpha})`;
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                front.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-                ctx.stroke();
+                // 194k-3: a dark rim along the crest under the white foam line.
+                for (const [width, colour] of [[10, rimOf(WATER, 0.8 * alpha)], [4, `rgba(240,250,255,${0.95 * alpha})`]] as const) {
+                    ctx.strokeStyle = colour;
+                    ctx.lineWidth = width;
+                    ctx.beginPath();
+                    front.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+                    ctx.stroke();
+                }
             },
         },
     };

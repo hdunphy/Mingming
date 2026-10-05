@@ -6,11 +6,14 @@
  * The lab blended light additively ('lighter'). The particle layer measured that additive blending
  * disappears over the near-white cards (see `ParticleField.draw`), so light is drawn with ordinary
  * blending here. `LIGHT_BLEND` is the one place to change that.
+ *
+ * TICKET 194k-3: the sprite is white at the centre, the element colour as a body, and a dark rim
+ * that fades out (`glowStops`), so a glow stays visible over a light stage.
  */
 
-export const LIGHT_BLEND: GlobalCompositeOperation = 'source-over';
+import { glowStops, type Rgb } from './layers';
 
-type Rgb = readonly [number, number, number];
+export const LIGHT_BLEND: GlobalCompositeOperation = 'source-over';
 
 const cache = new Map<string, HTMLCanvasElement>();
 
@@ -24,12 +27,9 @@ function glowSprite(rgb: Rgb): HTMLCanvasElement | null {
     canvas.height = 64;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    const [r, g, b] = [(rgb[0] >> 4) * 17, (rgb[1] >> 4) * 17, (rgb[2] >> 4) * 17];
+    const quant: Rgb = [(rgb[0] >> 4) * 17, (rgb[1] >> 4) * 17, (rgb[2] >> 4) * 17];
     const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.22, `rgba(${r},${g},${b},1)`);
-    gradient.addColorStop(0.55, `rgba(${r},${g},${b},0.35)`);
-    gradient.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    for (const [at, colour] of glowStops(quant)) gradient.addColorStop(at, colour);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 64, 64);
     cache.set(key, canvas);

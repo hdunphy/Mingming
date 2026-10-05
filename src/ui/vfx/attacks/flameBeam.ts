@@ -7,10 +7,13 @@
 import { type AttackBuild, type AttackInput, centerOf, framesOf, muzzleOf } from './AttackEffect';
 import { drawGlowAt, LIGHT_BLEND } from './glow';
 import { randomIn } from './curves';
+import { rgbaOf, rimOf } from './layers';
 import { particle } from './seeds';
 
 const HOT = [255, 238, 170] as const;
 const BODY = [224, 93, 67] as const;
+/** The beam's own colour, for the rim and the outer body (194k-3). */
+const FLAME = [230, 70, 25] as const;
 /** The tail pulls in over this long once the pour ends. */
 const TAIL_MS = 170;
 
@@ -69,9 +72,9 @@ export function flameBeam(input: AttackInput): AttackBuild {
                 const x2 = from.x + dx * head;
                 const y2 = from.y + dy * head;
                 const flicker = 0.85 + 0.1 * Math.sin(age * 0.09) + 0.05 * Math.sin(age * 0.23);
-                ctx.globalCompositeOperation = LIGHT_BLEND;
                 ctx.lineCap = 'round';
-                const line = (width: number, colour: string): void => {
+                const line = (width: number, colour: string, blend: GlobalCompositeOperation): void => {
+                    ctx.globalCompositeOperation = blend;
                     ctx.strokeStyle = colour;
                     ctx.lineWidth = width;
                     ctx.beginPath();
@@ -79,9 +82,12 @@ export function flameBeam(input: AttackInput): AttackBuild {
                     ctx.lineTo(x2, y2);
                     ctx.stroke();
                 };
-                line((18 + 22 * s) * flicker, 'rgba(230,70,25,0.20)');
-                line((7 + 9 * s) * flicker, 'rgba(255,150,60,0.42)');
-                line(2 + 3 * s, 'rgba(255,240,200,0.8)');
+                // 194k-3: a dark rim in ordinary blending so the column reads on sand, then the body
+                // (the lab's 20% outer stroke is 60% here), then the lab's mid and hot core.
+                line((26 + 28 * s) * flicker, rimOf(FLAME, 0.7), 'source-over');
+                line((18 + 22 * s) * flicker, rgbaOf(FLAME, 0.6), LIGHT_BLEND);
+                line((7 + 9 * s) * flicker, 'rgba(255,150,60,0.85)', LIGHT_BLEND);
+                line(2 + 3 * s, 'rgba(255,245,215,0.95)', LIGHT_BLEND);
                 ctx.globalCompositeOperation = 'source-over';
                 if (tail < 1) drawGlowAt(ctx, from.x, from.y, (22 + 22 * s) * flicker, BODY, 0.9 * (1 - tail));
             },

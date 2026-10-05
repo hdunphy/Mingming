@@ -7,11 +7,13 @@
 import { type AttackBuild, type AttackInput, centerOf, framesOf, muzzleOf } from './AttackEffect';
 import { bez2, inQuad, lerp, outQuad, randomIn } from './curves';
 import { drawGlowAt, LIGHT_BLEND } from './glow';
+import { rgbaOf, rimOf } from './layers';
 import { particle } from './seeds';
 
 /** The tail pulls in over this long once the pour ends. */
 const TAIL_MS = 140;
 const SEGMENTS = 30;
+const WATER = [40, 120, 210] as const;
 
 export function waterJet(input: AttackInput): AttackBuild {
     const rand = randomIn(input.rng ?? Math.random);
@@ -86,7 +88,9 @@ export function waterJet(input: AttackInput): AttackBuild {
                     points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
                     ctx.stroke();
                 };
-                stroke(12 + 12 * s, 'rgba(40,120,210,0.55)', false);
+                // 194k-3: dark rim, then the body, then the hot core.
+                stroke(17 + 15 * s, rimOf(WATER, 0.75), false);
+                stroke(12 + 12 * s, rgbaOf(WATER, 0.8), false);
                 stroke(6 + 6 * s, 'rgba(110,190,255,0.85)', false);
                 stroke(2 + 2.5 * s, 'rgba(235,250,255,0.95)', true);
                 ctx.globalCompositeOperation = 'source-over';

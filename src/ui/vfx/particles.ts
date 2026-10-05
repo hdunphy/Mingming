@@ -28,6 +28,8 @@
  * cost of being idle has to be actually zero, not "one cheap pass per frame forever".
  */
 
+import { rampStops } from './attacks/layers';
+
 /** What an emitter asks for. Everything omitted takes the default in `spawn`. */
 export interface ParticleSeed {
     readonly x: number;
@@ -189,11 +191,10 @@ function rampAtlas(r: number, g: number, b: number, r2: number, g2: number, b2: 
         const mid = SPRITE_PX / 2;
         const grad = ctx.createRadialGradient(mid, mid, 0, mid, mid, mid);
         // Solid to about a third of the radius, then out to nothing. A gradient that starts falling
-        // at the centre has no core, and a flame with no core is smoke.
-        grad.addColorStop(0, `rgba(${cr},${cg},${cb},1)`);
-        grad.addColorStop(0.34, `rgba(${cr},${cg},${cb},0.92)`);
-        grad.addColorStop(0.68, `rgba(${cr},${cg},${cb},0.34)`);
-        grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        // at the centre has no core, and a flame with no core is smoke. 194k-3: the very centre is
+        // white-hot, as the lab's glow sprite is, and the outer ring is the colour at 30% brightness
+        // in ordinary blending, so a burst has an edge on a light stage.
+        for (const [at, colour] of rampStops([cr, cg, cb])) grad.addColorStop(at, colour);
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, SPRITE_PX, SPRITE_PX);
         steps.push(canvas);
