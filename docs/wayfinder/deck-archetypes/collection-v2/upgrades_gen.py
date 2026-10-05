@@ -62,7 +62,7 @@ for c in CARDS:
     if c['id'] == 'heat_wave': new = f"Double the enemy side's Burn stacks, then apply {k} more to each."; rule = f'consume: +{k} stacks after (1 + cost) — past the cap of 4 it detonates, which is the point (Henry: upgrades are supposed to be broken)'
     if c['id'] == 'contagion': new = f"Double the target's Poison stacks, then apply {k} more."; rule = f'enabler: +{k} stacks after (1 + cost)'
     if c['id'] == 'bark_lash': new = '2 power per point of Bark Shield you hold.'; rule = 'scalar: per-point +1 (0e; +40% of 1 rounds to nothing)'
-    if c['id'] == 'ragnarok_edge': new = '30 power. +1 power per 1% of your max HP missing (max 50%).'; rule = 'scalar: base +40% (the per-1% is capped)'
+    if c['id'] == 'ragnarok_edge': new = '30 power. +1.5 power per 1% of your max HP missing.'; rule = 'scalar: base +40%, per-1% 1 -> 1.5, no cap on either (Henry 2026-10-04, ticket 194b)'
     if c['id'] == 'heartwood': new = f'Gain {6+k} Bark Shield. Apply 1 Poison to the target.'; rule = f'status: +{k} Bark (its currency; 1 + cost)'
     if c['id'] == 'war_pact': new = f'Above half HP: gain {2+k} Strength and 2 Dazed. Below half: heal with 15 power.'; rule = f'status: +{k} Strength (1 + cost), the Dazed does not grow'
     if c['id'] == 'corrosive_leak': new = 'Poison yourself 2 stacks. Gain 2 Energized.'; rule = 'Energized: +1'

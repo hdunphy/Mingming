@@ -267,9 +267,9 @@
   "id": "ragnarok_edge",
   "name": "Ragnarok Edge",
   "cost": 1,
-  "text": "20 power. +1 power per 1% of your max HP missing (max 50%).",
-  "plus": "30 power. +1 power per 1% of your max HP missing (max 50%).",
-  "rule": "scalar: base +40% (the per-1% is capped)"
+  "text": "20 power. +1 power per 1% of your max HP missing.",
+  "plus": "30 power. +1.5 power per 1% of your max HP missing.",
+  "rule": "scalar: base +40%, per-1% 1 -> 1.5, no cap on either (Henry 2026-10-04, ticket 194b)"
  },
  {
   "id": "blood_rite",
