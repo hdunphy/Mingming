@@ -4,7 +4,7 @@ Label: `wayfinder:map` · Branch: `first-impressions` · Charted 2026-10-02 (spl
 
 **Tracker conventions (local-markdown, same as deck-archetypes):** tickets are files in [`tickets/`](tickets/). Each carries `Type`, `Status`, and what it is blocked by. **Ticket numbers are kept from deck-archetypes** (commit messages, reports and the Claude project docs all cite them); **new tickets here start at 185.** Resolutions go in the ticket's `## Resolution` section on close and are gisted under "Decisions so far".
 
-**Gate status (2026-10-04):** `npm run gate` passed at `2caa83e` (= `origin/first-impressions`). Everything through that commit is pushed and gated; see [HANDOFF](HANDOFF.md) for what came after.
+**Gate status (2026-10-06):** `npm run gate` passed at `ef0c144` (Henry ran it after the merge fix). That covers 194, 195, 198 and the merge of both branches. Not yet pushed at the time of writing; see [HANDOFF](HANDOFF.md).
 
 ## Destination
 
