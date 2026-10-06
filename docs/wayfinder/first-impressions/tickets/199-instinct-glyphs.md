@@ -1,6 +1,6 @@
 # Ticket 199: The Instinct glyphs (12 for 1.0)
 
-**Type:** 12 glyphs, then a small wiring pass. **Status:** opened 2026-10-05; **re-ruled 2026-10-06 (below)**. Split out of [194j](194-henry-playtest-2026-10-04.md) step 2. Glyphs drawn; wiring not started.
+**Type:** 12 glyphs, then a small wiring pass. **Status:** opened 2026-10-05; **re-ruled 2026-10-06 (below)**. Split out of [194j](194-henry-playtest-2026-10-04.md) step 2. Glyphs drawn; **wiring built 2026-10-06 (see Resolution); waiting on Henry to look at the chips in game.**
 
 **Henry (2026-10-05, first ruling, superseded):** *"Add a new ticket 198 for me to generate these myself. They count as AI Generated art I think."* (Numbered 199 at his next instruction: *"increment those tickets by one."*)
 
@@ -82,3 +82,33 @@ Small single-purpose pieces, as Henry prefers: one map, one loader, one componen
 ## Done when
 
 The 12 glyphs are in the repo, the chip and tooltip show them, no `v1.0` / `v2.0` text is left, Henry has looked at the chips in game, and the Steam AI disclosure is on his list.
+
+---
+
+## Resolution (2026-10-06)
+
+Built on `first-impressions`, UI only (nothing under `src/engine` changed), not pushed.
+
+**What a player sees now.**
+
+- The 12 glyphs are in the repo, in `src/ui/assets/instinct-glyphs/`, one SVG per Instinct, named by its registry id (`UNBOUND_KERNEL.svg` and so on).
+- The firmware chip on a unit's plaque draws its Instinct's glyph instead of the generic gear. It takes the chip's colour, so it tints like the rest of the chip.
+- The chip's tooltip header is now glyph, then the Norse name. The `v1.0` / `v2.0` text is gone.
+- The same glyph shows beside the Instinct's name on the Codex rows, the summon and retrain screens (Den and the firmware terminal), the town's Instinct rows, the ranch cards and the recruit event.
+- The other 21 Instincts have no file yet and keep the generic gear. To give one a glyph, drop `<REGISTRY_ID>.svg` in the folder; nothing else changes.
+
+**The pieces** (small and single-purpose, as Henry prefers): `src/ui/labels/instinctGlyphs.ts` (the map, beside `instinctNames.ts`; reads the folder at build time and inlines the shapes), `src/ui/components/InstinctGlyph.tsx` (draws one glyph, or the gear when there is no file), and the small edits to the chip, the tooltip and the screens above.
+
+**Tests** (written first, red before the code): the folder holds exactly the 12 for 1.0 and each is a real Instinct; no two share a picture; every glyph is single-colour; an Instinct with no file falls back to the gear; the chip draws the owner's glyph for all 12; the tooltip has the glyph and no `v1.0` / `v2.0`.
+
+**Checked:** `tsc -b`, `eslint src/ui`, `vite build` (the glyph files bundle) and the `src/ui` and `src/App` suites are green on a Linux copy (the two suites that read `steam/` and `public/`, `steamInputTemplate` and `sfxSamples`, need those folders and were not run there). Run `npm run gate` once locally.
+
+**Not verified:** I saw no screenshots. The glyph size and spacing on each screen (16 px on the chip, 14 to 20 px beside names) are my picks; look at them in game. The Unbound glyph's two end links are drawn slightly past the 24 grid edge, so the chip leaves its overflow visible.
+
+**Left alone on purpose:** places that print an Instinct's name inside a sentence or a plain string and have no room for a picture: the card hand's source label, the "already on the field" partner line, and the reflash and rune event option lines. Say if you want them done too.
+
+**For Henry:**
+
+1. Look at the chips in a fight and at the summon screen, and say if any size or gap is off.
+2. Answer Steam's AI-content survey when you set up the page, and name the Instinct glyphs in it.
+3. Rule on the open question: for 1.0, is a glyph on 12 Instincts and the gear on the other 21 acceptable, or should the other 21 be drawn too (or the glyph shown only where a whole species has one)?
