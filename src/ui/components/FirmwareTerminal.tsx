@@ -5,6 +5,7 @@ import { swapOS } from '../store/gameSlice';
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { instinctName, plain } from '../labels/labels';
+import { InstinctGlyph } from './InstinctGlyph';
 import './FirmwareTerminal.css';
 
 interface FirmwareTerminalProps {
@@ -110,7 +111,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                 onClick={() => !isFlashing && setSelectedMmId(mm.id)}
                             >
                                 <span className="it-unit-name k-display">{mm.nickname ?? GetMingmingData(mm.definitionId).name}</span>
-                                <span className="it-unit-os">{instinctName(getOSBehavior(mm.activeOS)?.name ?? mm.activeOS)}</span>
+                                <span className="it-unit-os"><InstinctGlyph instinct={mm.activeOS} size={14} className="instinct-glyph-lead" />{instinctName(getOSBehavior(mm.activeOS)?.name ?? mm.activeOS)}</span>
                             </button>
                         ))}
                     </div>
@@ -122,7 +123,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                             <>
                                 <h3 className="it-label k-display">
                                     {selectedMm.nickname ?? GetMingmingData(selectedMm.definitionId).name} — now{' '}
-                                    {instinctName(getOSBehavior(selectedMm.activeOS)?.name ?? 'Generic Core')}
+                                    <InstinctGlyph instinct={selectedMm.activeOS} size={20} className="instinct-glyph-lead" />{instinctName(getOSBehavior(selectedMm.activeOS)?.name ?? 'Generic Core')}
                                 </h3>
                                 <div className="it-options">
                                     {availableOSVersions.map((opt) => {
@@ -139,7 +140,7 @@ export default function FirmwareTerminal({ onClose }: FirmwareTerminalProps) {
                                                 onClick={() => choose(opt.id, isCurrent)}
                                             >
                                                 <span className="it-option-head">
-                                                    <span className="it-option-name k-display">{behavior ? instinctName(behavior.name) : ''}</span>
+                                                    <span className="it-option-name k-display">{behavior && <InstinctGlyph instinct={opt.id} size={20} className="instinct-glyph-lead" />}{behavior ? instinctName(behavior.name) : ''}</span>
                                                     {isCurrent && <span className="it-tag k-display">Current</span>}
                                                 </span>
                                                 <span className="it-option-desc">{plain(behavior?.description)}</span>

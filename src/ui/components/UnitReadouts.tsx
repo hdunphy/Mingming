@@ -35,6 +35,7 @@ import { describePatchOn } from '../../engine/data/patchText';
 import { statusChipText } from '../utils/statusOverflow';
 import { getElementAccent } from '../utils/contrastText';
 import { Icon } from '../theme/Icon';
+import { InstinctGlyph } from './InstinctGlyph';
 import { useAnchoredRect } from '../hooks/useAnchoredRect';
 import type { DamagePreview } from '../utils/damagePreview';
 import { formatMultiplier } from './elementMatchups';
@@ -90,9 +91,9 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
             onMouseEnter={() => setShowOSTooltip(true)}
             onMouseLeave={() => setShowOSTooltip(false)}
         >
-            {/* Ticket 34's closed glyph set already had `firmware` — an emoji here ignores `color`,
-                            so the chip could not take its element tint. */}
-                        <Icon name="firmware" className="hud-os-icon" />
+            {/* TICKET 199: the owner's Instinct glyph (one colour, so the chip still takes its element
+                tint). An Instinct with no glyph drawn yet falls back to ticket 34's generic `firmware` icon. */}
+            <InstinctGlyph instinct={entity.activeOS} className="hud-os-icon" />
             {/* TICKET 182a: the "V1" / "V2" label is gone - it is a balance label, not a player's. */}
             {/*
               * TICKET 163c — THE PATCH CHIP, beside the OS name (§3). A patch is a rider on the
@@ -120,8 +121,9 @@ export const FirmwareChip: React.FC<{ entity: IBattleEntity; battleState?: IBatt
                     })() : {}}
                 >
                     <div className="tooltip-header">
+                        {/* TICKET 199: the glyph beside the Norse name; the "v1.0" / "v2.0" text is gone (194f). */}
+                        <InstinctGlyph instinct={entity.activeOS} size={20} className="tooltip-os-glyph" />
                         <span className="tooltip-os-name">{behavior ? instinctName(behavior.name) : ''}</span>
-                        <span className="tooltip-os-version">{entity.activeOS.includes('_v2') ? 'v2.0' : 'v1.0'}</span>
                     </div>
                     <div className="tooltip-divider" />
                     <div className="tooltip-body">

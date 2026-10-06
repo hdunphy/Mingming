@@ -22,6 +22,7 @@ import { getElementIcon } from '../components/cardIcons';
 import './CodexScreen.css';
 import { Icon } from '../theme/Icon';
 import { instinctName, plain } from '../labels/labels';
+import { InstinctGlyph } from '../components/InstinctGlyph';
 import { StatusIcon } from '../theme/kit/StatusIcon';
 
 /**
@@ -282,7 +283,7 @@ function Firmware({ codex }: { codex: ICodex }): ReactNode {
                     const os = has ? getOSBehavior(id) : null;
                     return (
                         <li key={id} className={`codex-row k-plate ${has ? 'found is-on' : 'unknown'}`}>
-                            <span className="codex-row-name k-display">{has && os ? instinctName(os.name) : '— — —'}</span>
+                            <span className="codex-row-name k-display">{has && os && <InstinctGlyph instinct={os.name} size={18} className="instinct-glyph-lead" />}{has && os ? instinctName(os.name) : '— — —'}</span>
                             <span className="codex-row-desc">
                                 {has && os ? plain(os.description) : 'Not yet equipped.'}
                             </span>

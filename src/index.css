@@ -314,6 +314,19 @@ body {
   filter: drop-shadow(0 0 2px var(--panel-edge));
 }
 
+/* TICKET 199 - the Instinct glyph beside a name in running text and headings (the chip's own glyph is `.hud-os-icon`). */
+.instinct-glyph-lead {
+  margin-right: 6px;
+  vertical-align: -0.2em;
+}
+
+/* The chip tooltip's header: the glyph, then the Norse name (the "v1.0" text is gone). */
+.os-tooltip-portal .tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 
 /* TICKET 163c — THE PATCH CHIP, one letter beside the firmware version.
    A patch is a rider ON the firmware, so it sits on the firmware chip rather than taking a badge

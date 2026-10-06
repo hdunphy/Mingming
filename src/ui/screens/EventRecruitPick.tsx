@@ -12,6 +12,7 @@ import { useSelector } from 'react-redux';
 
 import { getOSBehavior } from '../../engine/data/firmwareRegistry';
 import { instinctName } from '../labels/labels';
+import { InstinctGlyph } from '../components/InstinctGlyph';
 import { MingmingRegistry } from '../../engine/data/mingmingRegistry';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 import { playSfx } from '../audio/AudioEngine';
@@ -43,7 +44,7 @@ export default function EventRecruitPick({ run, onTake, onBack }: EventRecruitPi
                             onClick={() => { playSfx('uiClick'); setSelected(option); }}
                         >
                             <span className="ev-label">{MingmingRegistry[option.speciesId]?.name ?? option.speciesId}</span>
-                            <span className="ev-detail">{instinctName(getOSBehavior(option.osId)?.name ?? option.osId)}</span>
+                            <span className="ev-detail"><InstinctGlyph instinct={option.osId} size={12} className="instinct-glyph-lead" />{instinctName(getOSBehavior(option.osId)?.name ?? option.osId)}</span>
                         </button>
                     );
                 })}

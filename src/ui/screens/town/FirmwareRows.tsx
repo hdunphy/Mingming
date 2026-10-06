@@ -10,6 +10,7 @@ import { GetMingmingData } from '../../../engine/data/mingmingRegistry';
 import { START_KIT_SIZE, startKitIdsFor } from '../../../engine/run/createRun';
 import { useCardPeek } from '../../hooks/useCardPeek';
 import { instinctName, plain } from '../../labels/labels';
+import { InstinctGlyph } from '../../components/InstinctGlyph';
 import { CardPeek } from '../CardPeek';
 import { ElementMark } from '../CardChassis';
 import { cardFace, colorFor } from '../runShell';
@@ -25,7 +26,7 @@ export function FirmwareRows({ speciesId }: { readonly speciesId: string }): Rea
                 const kit = startKitIdsFor({ definitionId: speciesId, activeOS: osId }, START_KIT_SIZE);
                 return (
                     <div key={osId} className="mk-fw" style={{ ['--el' as string]: colorFor(definition.primaryElement) }}>
-                        <span className="mk-fw-nm">{instinctName(os?.name ?? osId)}</span>
+                        <span className="mk-fw-nm"><InstinctGlyph instinct={osId} size={14} className="instinct-glyph-lead" />{instinctName(os?.name ?? osId)}</span>
                         <span className="mk-fw-desc">{plain(os?.description ?? 'No instinct description.')}</span>
                         <div className="rs-cards">
                             {kit.map((dataId, index) => {
