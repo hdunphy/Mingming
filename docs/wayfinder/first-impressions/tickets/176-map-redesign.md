@@ -1,6 +1,6 @@
 # Ticket 176: Map redesign: towns joined by branching routes
 
-**Type:** map, engine and UI. **Status:** **BUILT 2026-10-03** (176a-f built and committed, not pushed; Henry still has to look at the map in the desktop app, see `## Resolution`). Henry ruled M1–M6 on 2026-10-01. M7 (the town screen) was ruled the same day from the prototypes. M8 is a default. (Blocked on ticket 183 until it shipped; 183 closed 2026-10-03.)
+**Type:** map, engine and UI. **Status:** **CLOSED 2026-10-06** (Henry looked at the map: "the map is great"; `npm run gate` passed at `ef0c144`, pushed). Was **BUILT 2026-10-03** (176a-f built and committed, not pushed; Henry still has to look at the map in the desktop app, see `## Resolution`). Henry ruled M1–M6 on 2026-10-01. M7 (the town screen) was ruled the same day from the prototypes. M8 is a default. (Blocked on ticket 183 until it shipped; 183 closed 2026-10-03.)
 
 **Henry (2026-09-30, ruling D4 on ticket 174):**
 
@@ -320,3 +320,5 @@ The old map could show two reachable nodes with exactly the same words ("Wild, N
 - **Walk fingerprints** (the pinned walks in the walker tests) moved because the map changed; they were re-pinned with a comment each.
 - **The run opens on its first fight (Henry, 2026-10-03).** The start node is a wild underneath; the walker always fought it and the game did not (Henry had tried to report that as a bug). A new run now opens in that fight, the scripted easy opening (`src/engine/run/openingFight.ts`, called by the run-start screen and the text playtester). Hand-built test runs and the intro run are untouched.
 - **Follow-up ticket to write:** the "Long Road" modifier (one more row of fights per biome, opt-in), once round 2 says whether runs feel short.
+
+**Closed 2026-10-06 (Henry).** He looked at the map in the desktop app: *"the map is great."* `npm run gate` passed at `ef0c144` and the branch is pushed. The run length stays at 11.6 fights (Henry, 2026-10-03: keep for now). The "Long Road" modifier is still unwritten, waiting on round 2 saying whether runs feel short.

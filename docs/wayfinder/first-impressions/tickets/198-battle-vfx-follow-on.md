@@ -1,6 +1,6 @@
 # Ticket 198: Battle VFX, second pass (follow-on to 194k)
 
-**Type:** battle feel (VFX), presentation only, no `src/engine` change. **Status:** opened 2026-10-05; **198b built 2026-10-05** (five commits, 198b-1 to 198b-4 and 198c, on `ticket-194`). Waits for Henry to sign off the `results/198/` sheets (198c).
+**Type:** battle feel (VFX), presentation only, no `src/engine` change. **Status:** **CLOSED 2026-10-06** (Henry: "VFX is good now"). Opened 2026-10-05; **198b built 2026-10-05** (five commits, 198b-1 to 198b-4 and 198c, on `ticket-194`). Waits for Henry to sign off the `results/198/` sheets (198c).
 
 **Henry (2026-10-05):** *"I don't like the vfx fixes. Please make a follow on card, but make it ticket 197."* (Numbered 198 at his next instruction: *"increment those tickets by one."*) On the open stage-dim question: *"Leave it for now."* On the multi-hit freeze: *"Keep it as is."*
 
@@ -92,3 +92,7 @@ Gate: `tsc -b`, `eslint .`, `vitest run src/ui` (2,355 green; `src/debug/playtes
 ## Done when
 
 Henry signs off the matched captures (198c) or rules the 194k look as it stands.
+
+## Resolution
+
+**Closed 2026-10-06 (Henry):** *"VFX is good now."* The 198b rebuild from the lab (198b-1 to 198b-4) and the 198c sheets stand as built; `npm run gate` passed at `ef0c144` and the branch is pushed. Decision 9 (darken the stage during attacks) stays as it was left: not done, and not asked for again.

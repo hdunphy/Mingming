@@ -1,6 +1,6 @@
 # Ticket 200: Swap every code-drawn icon for Tabler Icons
 
-**Type:** UI, art sourcing. **Status:** opened 2026-10-05, ruled by Henry, not started. **Blocked by:** nothing (do it after 194 lands so the files are settled).
+**Type:** UI, art sourcing. **Status:** opened 2026-10-05, ruled by Henry. **200a built 2026-10-06** (the picture sheet, `research/200-icons/sheet.html` and `sheet-1.png` to `sheet-7.png`); **stopped there for Henry to rule the proposed rows** before 200b. Nothing is installed and `package.json` is untouched. **Blocked by:** nothing (do it after 194 lands so the files are settled).
 
 **Henry (2026-10-05), in his words:**
 
@@ -104,3 +104,13 @@ Every name below exists in `@tabler/icons` 3.49.0 (checked). Where two things wo
 - The Instinct glyphs (ticket 199, Henry draws them).
 - The battle VFX (ticket 198). They are procedural code too; whether they fall under the same rule is Henry's call, not this ticket's.
 - The Steam AI disclosure answer itself. After this ticket, list what else players see that an agent wrote (card text, names, VFX) before filling in the form.
+
+## Henry's notes on the 200a sheet (2026-10-06, handwritten) and what was done
+
+Alternatives for each note are on a second sheet, `research/200-icons/alternatives.html` (`alt-1.png` to `alt-4.png`). **Henry rules from it before 200b.**
+
+- **Alert.** StableOS already reads "Alert" in the game (`labels.ts`); only its icon (`diamond`) is open. Options on the sheet.
+- **Light Stance vs Sun Eater.** A name, not an icon, so outside this ticket. Henry thinks Sun Eater changes (Sun Devourer? Sköll's Instinct?). Which thing is meant (the Sun Devourer card, Sun-Eater's Plunge, or Sköll v2's Instinct Sunscorch) is a question for Henry; it goes in its own ticket once answered. Light Stance keeps `sun`.
+- **Roster** (reads as people), **Summon** (ranch section, wants a magic feel), **Den** (the town square's `workshop` button; Tabler has no cave), **Shop** (tent), **Ranch** (same as Town; change Ranch), **Wild vs attack** (both `sword`; they never share a screen), **Elite** (helmet looks out of place; chess knight or star?), **chrome skull** (same as Poison; tombstone?), **Trace** (more runic; Tabler has no runes), **Burn vs Fire** (both `flame`): alternatives for each on the sheet. **Amber** options added by me because a hexagon Trace would sit next to the `hexagons` Amber.
+- **Map and Town sets (page 5 of the first sheet).** Henry: should they be the same? Yes. The live map (`RegionMap`) draws from `icons.ts`; `nodeGlyphs.ts` and `NodeIcon` are used only by the design screen sheet (`debug/screenSheet/MapPieces.tsx`) and a test. **Plan for 200d:** delete `nodeGlyphs.ts`'s separate set and point the screen sheet at `icons.ts`, so one kind of node has one icon. The `townBuildings.ts` glyphs (Shop, Upgrades, Den, Loadout) are live and are swapped.
+- **Ruled: use element marks, not emoji** (Codex and type chart move to `ElementMark` in 200d).
