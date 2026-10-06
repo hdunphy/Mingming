@@ -39,6 +39,15 @@ describe('183f the starter cards', () => {
         }
     });
 
+    it('show the commissioned Fenrir art in the art slot, and no art on the other two', async () => {
+        const host = await mount(makeStore(), <MainMenuView />);
+        const art = (id: string) => host.querySelector<HTMLImageElement>(`[data-testid="starter-${id}"] .rs-art img`);
+        expect(art('fenrir')?.getAttribute('src')).toContain('Fenrir');
+        expect(art('fenrir')?.getAttribute('alt')).toBe('Fenrir');
+        expect(art('kraken')).toBeNull();
+        expect(art('ratatoskr')).toBeNull();
+    });
+
     it('draw every bar inside its track', () => {
         for (const id of IDS) {
             for (const stat of starterStats(id)) {

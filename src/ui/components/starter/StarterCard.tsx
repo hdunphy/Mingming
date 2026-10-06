@@ -6,8 +6,10 @@
  */
 import type { CSSProperties, ReactElement } from 'react';
 
+import { GetMingmingData } from '../../../engine/data/mingmingRegistry';
 import { CardFace } from '../../screens/CardChassis';
 import { colorFor } from '../../screens/runShell';
+import { StarterArt } from '../StarterArt';
 import { STARTER_FLAVOUR } from '../starterFlavour';
 import { StarterStats } from './StarterStats';
 import './starter.css';
@@ -35,6 +37,7 @@ export function StarterCard({ id, name, element, onSelect }: {
                 face={{ name, description: '', element }}
                 tags={STARTER_FLAVOUR[id]}
                 rules={<StarterStats speciesId={id} />}
+                art={<StarterArt artReference={GetMingmingData(id).artReference} name={name} />}
             />
         </button>
     );

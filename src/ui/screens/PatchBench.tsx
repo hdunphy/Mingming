@@ -28,7 +28,6 @@ import { effectiveOS } from '../../engine/run/effectiveOS';
 import { shopPrice } from '../../engine/run/modifiers/shopPrice';
 import type { IRanchState, IRunState } from '../../engine/runTypes';
 import { plain } from '../labels/labels';
-import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import { RuneTag } from '../components/RuneTag';
 import { runeIdsOf } from '../components/runeIds';
 

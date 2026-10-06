@@ -106,3 +106,13 @@
 .starter-card .rs-hd { height: 44px; gap: 8px; padding: 0 10px; }
 .starter-card .rs-cnm { font-size: 24px; }
 .starter-card .rs-tags { margin: 2px 12px 7px; font-size: 11px; }
+
+/* The commissioned sprite fills the art slot, on top of the hatch. */
+.starter-card .starter-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
