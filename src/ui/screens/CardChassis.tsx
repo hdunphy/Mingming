@@ -117,7 +117,7 @@ export function ElementMark({ element, compact = false }: {
  * `.rs-body`, the clipped inner card. Anything that hangs OFF the card — the ×N badge, a price
  * plate — is a sibling of the body, not inside it, so the slant never clips it.
  */
-export function CardFace({ face, count, tags, target, readout, keywords, extras, lit, rules }: {
+export function CardFace({ face, count, tags, target, readout, keywords, extras, lit, rules, art }: {
     readonly face: {
         readonly name: string;
         readonly description: string;
@@ -148,12 +148,14 @@ export function CardFace({ face, count, tags, target, readout, keywords, extras,
      * shows the monster's three stats there (172's ruling). Absent, the description is printed.
      */
     readonly rules?: ReactNode;
+    /** A picture for the art slot (a starter's sprite). Absent, the slot is the hatch. */
+    readonly art?: ReactNode;
 }): ReactElement {
     return (
         <>
             <span className="rs-body">
                 <CardHeader name={face.name} element={face.element} cost={face.cost} />
-                <span className="rs-art"><TargetTag target={target} /></span>
+                <span className="rs-art">{art}<TargetTag target={target} /></span>
                 {rules ?? <CardRules description={face.description} dataId={face.dataId} lit={lit} />}
                 {keywords}
                 {tags && (
