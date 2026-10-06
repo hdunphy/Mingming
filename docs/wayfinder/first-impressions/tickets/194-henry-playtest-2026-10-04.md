@@ -221,7 +221,7 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 
 - **Step 1, a glyph sheet for Henry.** One simple glyph per Instinct (33, one per entry in `instinctNames.ts`), drawn in the same closed icon set as `Icon` (ticket 34), single-colour so the chip can tint it by element. The shape should hint at what the Instinct does (a shield for Elderwood Ward, a coil for Jörmungandr's draw, and so on), and the two Instincts of one species must look clearly different at chip size. Henry approves the sheet before it is wired.
   - **Step 1 done 2026-10-05; step 2 waits for Henry.** The sheet is [`results/194j/glyph-sheet.html`](../../../../results/194j/glyph-sheet.html) (33 glyphs, each at 84 px and at chip size, the two Instincts of a species side by side, tinted by element). The geometry is in `results/194j/glyphs.json` (24 px grid, stroke only, 1.7, round caps), ready to become `IconName` entries and `instinctGlyphs.ts` once approved. Nothing is wired and no `v1.0`/`v2.0` text has moved.
-- **Update 2026-10-05 (Henry): the glyphs count as AI-generated art, so Henry draws them himself. Step 1's sheet is not used and nothing from it ships; step 2 moved to [ticket 199](199-instinct-glyphs-by-henry.md).** The text below is kept as the spec 199 carries over.
+- **Update 2026-10-05 (Henry): the glyphs count as AI-generated art. Henry first meant to draw them himself, then (2026-10-06) ruled to use AI-drawn glyphs for the 12 Instincts of the 1.0 release and disclose it on Steam. Step 1's sheet is not used; step 2 moved to [ticket 199](199-instinct-glyphs.md).** The text below is kept as the spec 199 carries over.
 - **Step 2, wire it (now ticket 199).** `FirmwareChip` draws the owner's Instinct glyph instead of the generic `firmware` icon. The tooltip header shows the glyph beside the Norse name and drops the `v1.0`/`v2.0` text (194f left it for this row). Anywhere else an Instinct is named (retrain, summon, codex) shows the same glyph, so players learn it.
 - One `instinctGlyphs.ts` map from Instinct id to glyph name, beside `instinctNames.ts`.
 
@@ -436,7 +436,7 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 - **194k (VFX):** not accepted. A follow-on ticket, [198](198-battle-vfx-follow-on.md). The 194k commits stay in place until 198 rules on them.
 - **Decision 9 (stage dim):** leave it for now.
 - **194k-7 (multi-hit kill):** keep the single merged freeze as is.
-- **194j (glyphs):** Henry makes them himself (AI-generated art does not ship). Wiring moved to [199](199-instinct-glyphs-by-henry.md).
+- **194j (glyphs):** first ruled Henry-drawn; **re-ruled 2026-10-06: use the AI-drawn glyphs for the 12 Instincts of 1.0 and disclose on Steam.** Wiring moved to [199](199-instinct-glyphs.md).
 - **194b:** remove the cap from **both** Ragnarok Edge and Ragnarok Edge+ (as built).
 - **194g, 194h, 194d judgment calls:** fine. **194l, 194m, 194o, 194p design choices:** fine.
 - **Re-pinned goldens** (aiDeterminism, ghostWalk, draftPolicy, one report fixture seed): Henry unsure; no decision needed, they are the files' own re-pin policy.
@@ -447,4 +447,4 @@ The armed-pip text in `src/ui/counters/counterDisplays.ts` says "Raises its Bark
 
 ## Done when
 
-Every row is built, ruled out, or moved to another ticket with a note here (194k's second pass is [198](198-battle-vfx-follow-on.md); 194j's glyphs are [199](199-instinct-glyphs-by-henry.md); 194r is [201](201-gym-prep-mock.md)), and a Rootfall run against huldra_v2 shows the 194a change working.
+Every row is built, ruled out, or moved to another ticket with a note here (194k's second pass is [198](198-battle-vfx-follow-on.md); 194j's glyphs are [199](199-instinct-glyphs.md); 194r is [201](201-gym-prep-mock.md)), and a Rootfall run against huldra_v2 shows the 194a change working.
