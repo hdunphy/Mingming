@@ -14,7 +14,7 @@ import { useDisplayedUnit } from '../../vfx/displayed/useDisplayedBoard';
 import { targetShakePx } from '../../vfx/impact/impactMath';
 import { spriteShakes, wakeImpactFx } from '../../vfx/impact/impactRuntime';
 import MonsterArtPlaceholder from '../MonsterArtPlaceholder';
-import { MONSTER_ART_ENABLED } from '../monsterArtPolicy';
+import { monsterArtShown } from '../monsterArtShown';
 import { SPRITE_H, SPRITE_W } from '../stageGeometry';
 import { FxFloats, FxTransientOverlays, TerminatedStamp } from '../UnitFxLayer';
 
@@ -138,7 +138,7 @@ export const StageSprite: React.FC<StageSpriteProps> = ({ entity, isEnemy, fx, w
         ));
     }, [lungeKey, isEnemy, animate, scope, track]);
 
-    const showArt = MONSTER_ART_ENABLED && !!entity.artReference && !artBroken;
+    const showArt = monsterArtShown(entity.artReference) && !artBroken;
     const height = width * (SPRITE_H / SPRITE_W);
 
     return (

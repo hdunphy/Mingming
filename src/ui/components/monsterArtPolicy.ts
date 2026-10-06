@@ -5,5 +5,8 @@
  * captured from it, so this is `false` and every place that would draw a sprite draws a
  * `MonsterArtPlaceholder` instead. The art files and every species' `artReference` are untouched,
  * so the day real art lands the whole change is flipping this one constant.
+ *
+ * Art Henry commissioned is the exception: `monsterArtShown.ts` lists the files that may be drawn with
+ * this switch off (today, Fenrir.png).
  */
 export const MONSTER_ART_ENABLED = false;

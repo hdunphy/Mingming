@@ -338,6 +338,14 @@ describe('monster art policy — no artwork while it is switched off', () => {
         expect(markup.match(/data-testid="monster-art-wip"/g)).toHaveLength(6);
     });
 
+    it('draws the commissioned Fenrir art, and a WIP block for everyone else, with the switch off', () => {
+        const fenrir = { ...ALLIES[0], artReference: 'Fenrir.png' } as unknown as IBattleEntity;
+        const markup = render({}, state([fenrir, ALLIES[1], ALLIES[2]], withArt(ENEMIES)));
+        expect(markup.match(/<img/g)).toHaveLength(1);
+        expect(markup).toContain('Fenrir');
+        expect(markup.match(/data-testid="monster-art-wip"/g)).toHaveLength(5);
+    });
+
     it('still marks the acting unit on the placeholder', () => {
         const markup = render({ selectedSourceId: 'p2' }, state(withArt(ALLIES), ENEMIES));
         const p2 = markup.slice(markup.indexOf('stage-plaque-p1'), markup.indexOf('stage-plaque-p2'));

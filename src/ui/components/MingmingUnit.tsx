@@ -14,7 +14,7 @@ import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
 import MonsterArtPlaceholder from './MonsterArtPlaceholder';
-import { MONSTER_ART_ENABLED } from './monsterArtPolicy';
+import { monsterArtShown } from './monsterArtShown';
 
 
 /** Maps element names to neon accent colors */
@@ -275,7 +275,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             )}
             {/* ── Sidebar: Art + Level ── */}
             <div className="hud-sidebar" style={{ background: `linear-gradient(180deg, ${accent}55 0%, ${accent}22 100%)` }}>
-                {MONSTER_ART_ENABLED && entity.artReference ? (
+                {monsterArtShown(entity.artReference) ? (
                     <motion.img
                         src={new URL(`../../assets/battleArt/mingming/${entity.artReference}`, import.meta.url).href}
                         alt={entity.name}
