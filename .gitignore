@@ -54,6 +54,7 @@ _to_delete/
 _*.tar
 _*.tgz
 _sfx/
+playtest-results/
 
 # 162d made docs/wayfinder/deck-archetypes/collection-v2/registry_source.py an importable
 # module, so build.py now leaves a __pycache__ beside it.
