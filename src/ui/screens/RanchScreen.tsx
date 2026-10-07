@@ -71,6 +71,7 @@ import { runeIdsOf } from '../components/runeIds';
 import type { IconName } from '../theme/icons';
 import { useAdvancedContent } from '../settings/useAdvancedContent';
 import { instinctName, plain } from '../labels/labels';
+import { InstinctGlyph } from '../components/InstinctGlyph';
 import { driverText } from '../labels/driverText';
 
 
@@ -202,7 +203,7 @@ function RosterSection({
                         <div className="ranch-card-species">{GetMingmingData(member.definitionId).name}</div>
                         <StatRoll member={member} />
                         <div className="ranch-card-os">
-                            <strong>{instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)}</strong>
+                            <strong><InstinctGlyph instinct={member.activeOS} size={16} className="instinct-glyph-lead" />{instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS)}</strong>
                             <span>{plain(getOSBehavior(member.activeOS)?.description)}</span>
                             <RuneTag patchIds={runeIdsOf(run, member.id)} osId={member.activeOS} />
                         </div>
@@ -388,7 +389,7 @@ function OsPicker({
                             onClick={() => onPick(id)}
                             aria-pressed={osId === id}
                         >
-                            <strong>{instinctName(getOSBehavior(id)?.name ?? id)}</strong>
+                            <strong><InstinctGlyph instinct={id} size={16} className="instinct-glyph-lead" />{instinctName(getOSBehavior(id)?.name ?? id)}</strong>
                             <span>{plain(getOSBehavior(id)?.description ?? 'No instinct description.')}</span>
                         </button>
                     ))}

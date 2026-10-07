@@ -105,6 +105,7 @@ import { Icon } from '../theme/Icon';
 import { WORKSHOP_DUPLICATE_CLAUSE } from './partyRuleText';
 import { summonCardCount, summonCardsText } from '../../engine/run/summonCards';
 import { instinctName, plain } from '../labels/labels';
+import { InstinctGlyph } from '../components/InstinctGlyph';
 
 /** Which member the reflash view is open for, and which firmware it is offering. */
 export interface ReflashTarget {
@@ -391,7 +392,7 @@ export default function WorkshopNode({
                                 title={plain((member && getOSBehavior(member.activeOS)?.description) ?? undefined)}
                             >
                                 <h3>
-                                    {member ? instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS) : '—'}
+                                    {member && <InstinctGlyph instinct={member.activeOS} size={16} className="instinct-glyph-lead" />}{member ? instinctName(getOSBehavior(member.activeOS)?.name ?? member.activeOS) : '—'}
                                     <span className="ws-tagcur"> · CURRENT</span>
                                 </h3>
                                 {member && <OSGrammarRow osId={member.activeOS} partyOS={partyOS} />}
@@ -403,7 +404,7 @@ export default function WorkshopNode({
 
                             <div className="ws-oscard offer">
                                 <h3>
-                                    {targetOS ? instinctName(getOSBehavior(targetOS)?.name ?? targetOS) : '—'}
+                                    {targetOS && <InstinctGlyph instinct={targetOS} size={16} className="instinct-glyph-lead" />}{targetOS ? instinctName(getOSBehavior(targetOS)?.name ?? targetOS) : '—'}
                                     <span className="ws-tagnew"> · AFTER RETRAIN</span>
                                 </h3>
                                 <p className="ws-osdesc">
@@ -430,7 +431,7 @@ export default function WorkshopNode({
                                         className={`rs-f ${id === targetOS ? 'on' : ''}`}
                                         onClick={() => setReflash({ ...reflash, targetOS: id })}
                                     >
-                                        {instinctName(getOSBehavior(id)?.name ?? id)}
+                                        <InstinctGlyph instinct={id} size={14} className="instinct-glyph-lead" />{instinctName(getOSBehavior(id)?.name ?? id)}
                                     </button>
                                 ))}
                             </div>
@@ -585,7 +586,7 @@ export default function WorkshopNode({
                                                 onClick={() => { setOsId(id); playSfx('uiClick'); }}
                                             >
                                                 <span className="ws-oshead">
-                                                    <span className="rs-rnm">{instinctName(os?.name ?? id)}</span>
+                                                    <InstinctGlyph instinct={id} size={16} className="instinct-glyph-lead" /><span className="rs-rnm">{instinctName(os?.name ?? id)}</span>
                                                     {id === chosenOS && <span className="rs-t">chosen</span>}
                                                 </span>
                                                 <span className="ws-osdesc">
