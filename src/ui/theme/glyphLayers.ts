@@ -11,7 +11,7 @@
  * an error in this repo.
  */
 
-import { TABLER_OUTLINE, type TablerOutlineName } from './tabler.generated';
+import { TABLER_FILLED, TABLER_OUTLINE, type TablerFilledName, type TablerOutlineName } from './tabler.generated';
 import type { TablerNodes } from './tablerNodes';
 
 /** Today's stroke weight at 24: lands on the pixel grid at the sizes actually used (16 and 20). */
@@ -32,4 +32,9 @@ export interface GlyphLayer {
 /** One Tabler outline icon as a layer list. */
 export function outlineLayers(name: TablerOutlineName): readonly GlyphLayer[] {
     return [{ nodes: TABLER_OUTLINE[name] }];
+}
+
+/** One Tabler FILLED icon as a layer list: solid in the text colour, no outline (ticket 205: the Codex's reached star). */
+export function filledLayers(name: TablerFilledName): readonly GlyphLayer[] {
+    return [{ nodes: TABLER_FILLED[name], fill: 'currentColor', stroke: 'none' }];
 }

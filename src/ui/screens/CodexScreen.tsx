@@ -24,6 +24,8 @@ import { Icon } from '../theme/Icon';
 import { instinctName, plain } from '../labels/labels';
 import { InstinctGlyph } from '../components/InstinctGlyph';
 import { StatusIcon } from '../theme/kit/StatusIcon';
+import { InlineIcon } from '../theme/InlineIcon';
+import { MARK_ICON } from '../theme/markIcons';
 
 /**
  * THE CODEX SCREEN — ticket 31.
@@ -154,7 +156,7 @@ function Overview({
                     return (
                         <li key={milestone.id} className={`codex-milestone ${done ? 'done' : ''}`}>
                             <span className="codex-milestone-mark" aria-hidden="true">
-                                {done ? '★' : '☆'}
+                                <InlineIcon {...(done ? MARK_ICON.milestoneDone : MARK_ICON.milestoneOpen)} />
                             </span>
                             <span className="codex-milestone-label">{plain(milestone.label)}</span>
                         </li>

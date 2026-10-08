@@ -13,6 +13,8 @@
 import { useSyncExternalStore } from 'react';
 
 import { getSaveHealth, subscribeSaveHealth } from '../store/saveHealth';
+import { InlineIcon } from '../theme/InlineIcon';
+import { MARK_ICON } from '../theme/markIcons';
 
 const WORDING: Record<string, { headline: string; detail: string }> = {
     quota: {
@@ -63,7 +65,7 @@ export default function SaveHealthBanner() {
                 textAlign: 'center',
             }}
         >
-            <strong style={{ letterSpacing: '2px' }}>⚠ {words.headline}</strong>
+            <strong style={{ letterSpacing: '2px' }}><InlineIcon {...MARK_ICON.warning} /> {words.headline}</strong>
             <div style={{ marginTop: '4px', color: 'var(--text-dim)' }}>{words.detail}</div>
             {health.failureCount > 1 && (
                 <div style={{ marginTop: '4px', color: 'var(--text-mute)', fontSize: '0.75rem' }}>
