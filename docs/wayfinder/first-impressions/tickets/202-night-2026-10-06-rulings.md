@@ -22,7 +22,7 @@
 | Row | What | Kind | State |
 |---|---|---|---|
 | 202a | The town's Den line says **"N Traces held · summon here"** while Traces are unspent | New text, game and tool | Ruled |
-| 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | Ruled; the floor is D1 |
+| 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | **Built**; the floor is D1 (Henry rules after the measurement) |
 | 202c | **Two runs a session:** the agent plays a second run on the same save after the first ends | Night script + tool | Ruled; carry-over is D2 |
 | 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | Ruled ("add a ticket to investigate") |
 | 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | Ruled |
@@ -113,4 +113,6 @@
 
 ## Resolution
 
-Not started.
+- **202b (built, 2026-10-08).** Between gauntlet fights every member repairs 30% as before and every downed member is revived at `GAUNTLET_REVIVE_PERCENT` = 30% of max HP (`src/engine/run/gauntletRevive.ts`, `settleBetweenFights`, composing with `gauntletHeal.ts`; one constant, D1). `advanceGauntlet` records who was revived (`revivedMemberIds`, add-only). The pit stop prints "revived at 30%" or "repaired 30% (+N)" in the game and the tool, and the forecast line reads "Every member repairs 30% between fights; a downed one comes back at 30%", built from the constants. The Revive Draught and every non-gauntlet path are unchanged; the gauntlet stays three fights. Measurement (`docs/balance/gauntlet-202b.md`, n=60 paired seeds per gym, the walker's gauntlet from the same gates): Rootfall **31.7% before, 43.3% after**; Emberfall **6.7% before, 18.3% after**; both **19.2% to 30.8%**. All 14 gauntlets that changed were wins gained, none lost. **D1 is Henry's:** the build is at the proposed 30%; 50% (which is also the Revive Draught's HP) is the alternative and was not measured.
+
+Rows other than 202b: not started.
