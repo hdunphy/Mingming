@@ -1037,7 +1037,7 @@ export function rollEncounter(input: EncounterInput): IRunEncounter {
  *
  * Entering a node adds one to its visit count and then rolls from (run seed, node id, visit count),
  * so the preview is the same call with that one added. Travel is one-way, so a node a player can
- * still reach has `visited` 0 and the preview is its first and only fight. A Ping Sweep or a Relay
+ * still reach has `visited` 0 and the preview is its first and only fight. A Heimdall's Gaze or a Relay
  * Tower Survey shows the species of this encounter on the map; it is the real fight, not a guess,
  * so it is only as current as the party it was rolled for (a fight's SIZE follows the party's).
  */
@@ -1066,7 +1066,7 @@ export const SURVEYABLE_KINDS: ReadonlyArray<NodeKind> = ['wild', 'rival', 'elit
 
 /**
  * TICKET 176d: who waits in every fight of the surveyed biomes, by node id ("Sköll, Huldra").
- * A Ping Sweep or a Relay Tower Survey adds a biome to `reveal:biome:N`; this turns those biomes
+ * A Heimdall's Gaze or a Heimdall's Watch Survey adds a biome to `reveal:biome:N`; this turns those biomes
  * into the species lines the map prints. Only fights still ahead are listed (`visited` 0), and a
  * biome that was not surveyed contributes nothing, so with no survey the answer is empty.
  */

@@ -6,7 +6,7 @@
  * 1. the FIRST choice that is free (no scrap price) and has no penalty (a temporary Driver, a junk
  *    card, a gamble) and takes no card or blueprint from the player (168e);
  * 2. Leave;
- * 3. a priced choice the walker can afford (Corrupted Stream's reroute, The Toll's payment), or one
+ * 3. a priced choice the walker can afford (Gjöll Ford's reroute, The Toll's payment), or one
  *    that costs no scrap (The Toll's card), first one listed;
  * 4. whatever is left, first listed (Push through, with under 25 scrap).
  *
@@ -16,7 +16,7 @@
  * a copy or a recompile NEVER: each of them costs a card, a blueprint or scrap and Leave comes first.
  * The one exception is The Toll, which has no Leave.
  *
- * Firmware Reflash (168f) is free and has no penalty, but the walker has no way to value an OS
+ * Well of Urd (168f) is free and has no penalty, but the walker has no way to value an OS
  * switch: it plays the deck the run built, and that deck is the old firmware's engine. It is not
  * taken while Leave is open, so it measures nothing it cannot judge.
  *

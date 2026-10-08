@@ -633,7 +633,7 @@ export interface ProgramData {
   readonly isToken?: boolean; // If true, this is a generated token card
   readonly exhaust?: boolean; // If true, card is removed from battle after use
   /**
-   * TICKET 168c — a JUNK card (Corrupted Data): does nothing, costs an Energy to clear. Never
+   * TICKET 168c — a JUNK card (Forge Slag): does nothing, costs an Energy to clear. Never
    * offered, never scored, never counted toward the deck floor, never given to an enemy.
    */
   readonly junk?: boolean;
@@ -664,7 +664,7 @@ export interface ProgramData {
    *
    * - `target: 'Single'` + `allyTarget` — one ally, the caster included. Tend, Bolster, Mend,
    *   Shell Share, Soothe.
-   * - `target: 'Side'` + `allyTarget` — your whole side. Howl, Verdant Ward, Tidal Battery.
+   * - `target: 'Side'` + `allyTarget` — your whole side. Howl, Verdant Ward, Ægir's Feast.
    * - `target: 'Self'` + `allyTarget` is a contradiction — a Self card has no target to pick —
    *   and `allyTargeting.test.ts` fails the build for one.
    *

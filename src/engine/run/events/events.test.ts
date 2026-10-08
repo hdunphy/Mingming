@@ -71,7 +71,7 @@ describe('events.json', () => {
         expect([...ELIGIBILITY_IDS].sort()).toEqual(EVENTS.map((e) => e.id).sort());
     });
 
-    it('leaves every event leavable except Corrupted Stream and The Toll', () => {
+    it('leaves every event leavable except Gjöll Ford and The Toll', () => {
         const noLeave = EVENTS.filter((e) => !e.choices.some((c) => c.id === 'leave')).map((e) => e.id).sort();
         expect(noLeave).toEqual(['corrupted_stream', 'the_toll']);
     });

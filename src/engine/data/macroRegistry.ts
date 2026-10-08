@@ -109,7 +109,7 @@ const BURST_POWER = 30;
  *
  * **Known limit, inherited not introduced:** an X-cost card (ticket 22) ignores discounts by
  * design — it costs the caster's whole pool, and there is nothing to discount when the price *is*
- * the pool. So Free Exec does not make `thermal_lance` free. That is `getEffectiveCardCost`'s
+ * the pool. So Swift Hand does not make `thermal_lance` free. That is `getEffectiveCardCost`'s
  * ruling, not this macro's.
  */
 export const FREE_EXEC_COST_REDUCTION = 99;
@@ -159,7 +159,7 @@ const RECHARGE_ENERGY = 1;
  *
  * **Twelve battle macros plus one map-reveal — thirteen entries.** `macros-and-drivers.md` heads its
  * list "The 11" and then names twelve (Surge, Mend, Venom Shot, Kindle, Rally, Cripple, Salve;
- * RARES: Free Exec, Echo, Cache Pull, Recharge, Revive). The count in the prose is one short of the
+ * RARES: Swift Hand, Echo, Raven's Draw, Second Wind, Revive). The count in the prose is one short of the
  * list under it; the list is what was actually designed, so every name in it ships. Ticket 07's
  * amendment adds the map-reveal on top. Nothing is dropped to make an arithmetic sentence true.
  */
@@ -239,7 +239,7 @@ export const MacroRegistry: Readonly<Record<string, IMacroDefinition>> = {
 
     free_exec: {
         id: 'free_exec',
-        name: 'Free Exec',
+        name: 'Swift Hand',
         description: 'The next card this unit plays this turn costs nothing.',
         rarity: 'Rare',
         targeting: 'SELF',
@@ -265,7 +265,7 @@ export const MacroRegistry: Readonly<Record<string, IMacroDefinition>> = {
 
     cache_pull: {
         id: 'cache_pull',
-        name: 'Cache Pull',
+        name: "Raven's Draw",
         description: 'Draw 2 cards.',
         rarity: 'Rare',
         targeting: 'SELF',
@@ -274,14 +274,14 @@ export const MacroRegistry: Readonly<Record<string, IMacroDefinition>> = {
 
     recharge: {
         id: 'recharge',
-        name: 'Recharge',
+        name: 'Second Wind',
         description: 'Gives one unit +1 Energy right now.',
         rarity: 'Rare',
         targeting: 'SELF',
         /**
          * **THE ENGINE NOTE THE TICKET SHOUTS ABOUT, OBEYED.**
          *
-         * `macros-and-drivers.md`: *"`Recharge` must ADD energy mid-turn — `processPreTurn` SETS
+         * `macros-and-drivers.md`: *"`Second Wind` must ADD energy mid-turn — `processPreTurn` SETS
          * `currentEnergy`, and that is the trap that bit three OSes. Do not grant via the pre-turn
          * path."*
          *
@@ -307,12 +307,12 @@ export const MacroRegistry: Readonly<Record<string, IMacroDefinition>> = {
 
     ping_sweep: {
         id: 'ping_sweep',
-        name: 'Ping Sweep',
+        name: "Heimdall's Gaze",
         /**
          * Named here and nowhere else: `exploration-map.md` asks Henry's question as *"items and
          * events that reveal more of the map"* and ticket 07's amendment specifies the effect
-         * ("reveals the current biome's node types") without naming the thing. "Ping Sweep" is
-         * chosen to sit in the same command-line register as Cache Pull and Free Exec. **Flagged as
+         * ("reveals the current biome's node types") without naming the thing. "Heimdall's Gaze" is
+         * chosen to sit in the same command-line register as Raven's Draw and Swift Hand. **Flagged as
          * an unruled naming call, not a decision.**
          *
          * TICKET 176d: every node's type is visible from the start now, so what a sweep reveals is

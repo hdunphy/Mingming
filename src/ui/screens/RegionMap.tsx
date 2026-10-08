@@ -12,7 +12,7 @@
  *
  * 1. **Every node's type is visible from the start** (ticket 176d). There is no fog: routing is a
  *    decision about the whole road, so the whole road is on the page. What stays hidden is the
- *    SPECIES: which Mingmings wait in a fight shows only after a Ping Sweep or a Relay Tower Survey,
+ *    SPECIES: which Mingmings wait in a fight shows only after a Heimdall's Gaze or a Heimdall's Watch Survey,
  *    for the fights of the biome it was fired in (`encounters`).
  * 2. **The path you walked is lit and the branches you left are dimmed.** There is no visit count any
  *    more: a node is entered once, so "×2" can not happen. What the map can usefully say is where you

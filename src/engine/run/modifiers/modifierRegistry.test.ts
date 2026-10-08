@@ -40,9 +40,9 @@ describe('modifiers.json', () => {
     it('lists the five ruled modifiers, with the descriptions printed as written', () => {
         expect(MODIFIER_IDS).toEqual(['junk_start', 'tight_budget', 'elite_hunt', 'no_recruits', 'draft_start']);
         const byId = Object.fromEntries(MODIFIERS.map((m) => [m.id, m]));
-        expect(byId.junk_start.description).toBe('Start with 2 Corrupted Data in your deck.');
+        expect(byId.junk_start.description).toBe('Start with two Forge Slag in your deck.');
         expect(byId.elite_hunt.description).toBe('Every rival is an elite.');
-        expect(byId.tight_budget.description).toBe('Marketplace and workshop prices +25%.');
+        expect(byId.tight_budget.description).toBe('Shop and den prices +25%.');
         expect(byId.no_recruits.description).toBe(
             "You can't recruit. The party you start with is the party you finish with.",
         );

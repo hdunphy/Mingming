@@ -200,7 +200,7 @@ describe('RunScreen — a node that fired says so', () => {
     });
 
     describe('176d — what a survey shows', () => {
-        // Every node's type is on the map from the start; a Ping Sweep or a Relay Tower Survey adds
+        // Every node's type is on the map from the start; a Heimdall's Gaze or a Heimdall's Watch Survey adds
         // WHO waits in each fight of the biome it was fired in, to the node's hover.
         // 194m: the node's words are its aria-label now (the SVG <title> became a styled tooltip).
         const titles = (markup: string): string[] => [...markup.matchAll(/data-node-id="[^"]*" aria-label="([^"]*)"/g)].map((m) => m[1]);

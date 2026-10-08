@@ -63,7 +63,7 @@ export interface DeathDigest {
     readonly killer: KillerFight | null;
     readonly deckSize: number;
     readonly deckPower: number | null;
-    /** Corrupted Data (junk) cards in the final deck. */
+    /** Forge Slag (junk) cards in the final deck. */
     readonly junkCards: number;
     readonly scrapAtEnd: number;
     /** Party size at the end: the starter plus every recruit. */
@@ -298,7 +298,7 @@ export function formatDeathReport(digests: ReadonlyArray<DeathDigest>): string {
         table(['The walk at death', 'Value'], [
             ['Mean deck size', num(all.atDeath.meanDeckSize)],
             ['Mean deck power (the walker\'s own score)', num(all.atDeath.meanDeckPower)],
-            ['Mean junk (Corrupted Data) cards', num(all.atDeath.meanJunkCards, 2)],
+            ['Mean junk (Forge Slag) cards', num(all.atDeath.meanJunkCards, 2)],
             ['Scrap unspent, mean / median', `${num(all.atDeath.meanScrap)} / ${num(all.atDeath.medianScrap)}`],
             ...all.atDeath.pctScrapAtLeast.map((row) => [`Died holding at least ${row.floor} scrap`, pct(row.pct)] as const),
             ['Mean party size', num(all.atDeath.meanPartySize, 2)],

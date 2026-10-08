@@ -1,8 +1,8 @@
 /**
- * TICKET 168e — what a card becomes at the Trader and the Recompiler.
+ * TICKET 168e — what a card becomes at the Trader and the Seiðr Cauldron.
  *
  * The Trader gives a random card ONE RARITY HIGHER from the party's reward pool (Common to
- * Uncommon, Uncommon to Rare; a Rare gets a different Rare). The Recompiler gives a random card of
+ * Uncommon, Uncommon to Rare; a Rare gets a different Rare). The Seiðr Cauldron gives a random card of
  * the SAME element and rarity from the whole rewardable set, never the card itself. Both are seeded
  * from the node and the card given, so the same trade on the same node gives the same card.
  *
@@ -46,7 +46,7 @@ export function tradeUpTarget(ctx: EventContext, given: IRunCard): string | null
     return pick(candidates, ctx, 'event-trade', given);
 }
 
-/** The card the Recompiler makes of `given`, or `null` when nothing else shares its element and rarity. */
+/** The card the Seiðr Cauldron makes of `given`, or `null` when nothing else shares its element and rarity. */
 export function recompileTarget(ctx: EventContext, given: IRunCard): string | null {
     const baseId = baseIdOf(given);
     const base = ProgramRegistry[baseId];

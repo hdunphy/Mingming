@@ -89,7 +89,7 @@ describe('ticket 185e — the weights are the old odds at multiplier 1', () => {
         expectSameOdds(normalise(weighted), oldEventOdds(pool, ['Common', 'Uncommon', 'Rare', 'Epic']));
     });
 
-    it('event picks restricted to Common/Uncommon, as Data Fragments is', () => {
+    it('event picks restricted to Common/Uncommon, as Scattered Verses is', () => {
         const allowed = byRarity(mixedPool, 'Common', 'Uncommon');
         const weighted = weighCandidates(allowed, rarityOf, RARITY_WEIGHTS, () => 1, 'liveOnly');
         expectSameOdds(normalise(weighted), oldEventOdds(allowed, ['Common', 'Uncommon']));

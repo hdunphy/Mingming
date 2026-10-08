@@ -444,7 +444,7 @@ const runSlice = createSlice({
             // Optional rather than required so a test, a scenario or a future venue can exercise
             // the verb without inventing a bench — not because any shipped venue omits it.
             // TICKET 168c: `allowance` (default 1) is how many upgrades one bench key may spend; the
-            // Overclock Rig's event bench allows two. Each spend adds the key again.
+            // Brokk's Forge's event bench allows two. Each spend adds the key again.
             const spent = run.upgradesTaken ?? [];
             if (benchKey !== undefined && spent.filter((key) => key === benchKey).length >= (allowance ?? 1)) return { run };
 
@@ -551,7 +551,7 @@ const runSlice = createSlice({
         },
 
         /**
-         * TICKET 168f — Firmware Reflash: put a body on another OS **for this run**.
+         * TICKET 168f — Well of Urd: put a body on another OS **for this run**.
          *
          * Writes `run.osOverrides` and nothing else; the ranch member keeps its own `activeOS`, so the
          * switch ends with the run. The cards do not change.
@@ -775,7 +775,7 @@ const runSlice = createSlice({
         },
 
         /**
-         * TICKET 168c — **pay to remove a junk card** (Corrupted Data), from the deck or the
+         * TICKET 168c — **pay to remove a junk card** (Forge Slag), from the deck or the
          * collection. The price rides the action and the scrap and the card move in one step (the
          * `buyMarketCard` rule), so a crash cannot take the scrap and leave the card.
          *
@@ -1240,7 +1240,7 @@ const runSlice = createSlice({
          * `regionLayout` reads it back. See that module for the argument in full.
          *
          * Refused when the slot does not hold the map-reveal (so a mis-click cannot burn a Revive on
-         * the map screen) and when the biome is **already surveyed** — a second Ping Sweep on the
+         * the map screen) and when the biome is **already surveyed** — a second Heimdall's Gaze on the
          * same biome would spend a consumable for no change at all, and the screen greys it out for
          * the same reason.
          */
@@ -1269,7 +1269,7 @@ const runSlice = createSlice({
         /**
          * TICKET 168a — **reveal the biome the run is standing in, with no macro involved.**
          *
-         * The Relay Tower's Survey. `fireMapReveal` above is the Ping Sweep macro's verb: it takes a
+         * The Heimdall's Watch's Survey. `fireMapReveal` above is the Heimdall's Gaze macro's verb: it takes a
          * macro SLOT and burns the consumable in it, so an event cannot call it (there is no slot to
          * name, and passing one would spend a macro the player did not choose to spend). This is its
          * sibling: the same record, the same helpers (`biomeRevealModifier`, `isBiomeRevealed`), no

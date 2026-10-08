@@ -363,7 +363,7 @@ export function sellPrice(dataId: string): number {
  * WHAT IT COSTS TO REMOVE A JUNK CARD — **25 scrap** (ticket 168c).
  *
  * Henry, on the events ticket: *"Yes junk cards. Also you have to pay to remove them instead of
- * selling them for scrap at the shop."* So Corrupted Data is the one card the market does not buy:
+ * selling them for scrap at the shop."* So Forge Slag is the one card the market does not buy:
  * its row in the sell list reads "Remove — 25 scrap" and the scrap goes the other way. It is not a
  * revival of the deleted paid removal below (which charged to shrink a deck the player could shrink
  * for free); junk is a card the player did not choose, and clearing it is the price of the event
@@ -478,7 +478,7 @@ export function upgradePrice(dataId: string): number {
  *
  * Henry, 2026-09-30, ticket 174: two per visit at the market and the workshop (was one, 163 §2).
  * Late runs had scrap and upgradeable cards but nowhere to spend it. The gym gate's free upgrade
- * (once) and the Overclock Rig event bench (two, free) keep their own allowances and do not read
+ * (once) and the Brokk's Forge event bench (two, free) keep their own allowances and do not read
  * this.
  */
 export const UPGRADES_PER_VISIT = 2;

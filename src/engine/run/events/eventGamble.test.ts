@@ -77,7 +77,7 @@ describe('resolveGambles', () => {
 });
 
 describe('a gamble is built when both of its branches are', () => {
-    it('offers Corrupted Cache’s gamble now that junk exists', () => {
+    it('offers Cursed Hoard’s gamble now that junk exists', () => {
         expect(playableChoices(CACHE).map((c) => c.id)).toEqual(['open', 'leave']);
         expect(isChoiceBuilt(OPEN)).toBe(true);
     });

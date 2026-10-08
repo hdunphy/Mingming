@@ -2,7 +2,7 @@
  * TICKET 180c — THE EVENT SCREEN.
  *
  * `EventNode`'s states, in its order: the dark relay of a spent node (leave), the Empty Relay when
- * nothing was eligible (salvage), the Overclock Rig's free upgrade bench, a pick step of the choice
+ * nothing was eligible (salvage), the Brokk's Forge's free upgrade bench, a pick step of the choice
  * being answered, and otherwise the event's text with its playable choices. A choice the party
  * cannot take (`choiceBlockedReason`) is listed with the game's reason and has no move. An
  * unresolved event has no leave: the choices include their own way out, as in the game.

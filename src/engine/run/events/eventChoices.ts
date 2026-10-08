@@ -3,7 +3,7 @@
  *
  * The catalogue holds all 20 events with every choice, but a row builds outcome types a few at a
  * time. A choice whose outcomes are not all built is left off the screen, so a player is never
- * handed a button that does nothing: Scrap Cache offered only Take and Leave until 168b built its
+ * handed a button that does nothing: Barrow Gold offered only Take and Leave until 168b built its
  * temporary Drivers, and "Dig deeper" appeared with that row.
  *
  * Each later row adds its outcome types to `BUILT_OUTCOME_TYPES` and nothing else here changes. A

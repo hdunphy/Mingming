@@ -48,13 +48,13 @@
  * | Driver | proc moment | v1 |
  * |---|---|---|
  * | TENTH STRIKE | every 10th ATTACK card this side plays | that card 1.5x |
- * | STATIC FIELD | every card this side plays | 6 power to a random enemy (Henry 2026-09-12: 2 -> 6, "it should be felt") |
+ * | STORMSPARK | every card this side plays | 6 power to a random enemy (Henry 2026-09-12: 2 -> 6, "it should be felt") |
  * | ANTIVENOM | end of this side's turn, each poisoned member | -1 extra Poison |
- * | OVERKILL RECOVERY | an enemy faints | each living member heals 8% max HP |
+ * | EINHERJAR FEAST | an enemy faints | each living member heals 8% max HP |
  * | FIRST BLOOD | the first ATTACK card this side plays each turn | 1.2x |
  * | <ELEMENT> DRIVER (x8) | an attack card of that element | 1.1x |
- * | BULWARK REFLEX | a member drops below 50%, once per fight per member | +15 Bark Shield |
- * | DEEP CACHE | this side's first bonus draw each turn | the drawer gains 1 Strengthened |
+ * | SHIELDWALL | a member drops below 50%, once per fight per member | +15 Bark Shield |
+ * | RAVEN'S BOON | this side's first bonus draw each turn | the drawer gains 1 Strengthened |
  *
  * TENTH STRIKE was ruled as "Third Strike" and re-cadenced the same day — *"third strike is too
  * often, it should be like every 10 attacks"* — then renamed by Henry on 2026-09-12 so the name says
@@ -105,7 +105,7 @@ export const DRIVER_FRAYED_SIGNAL = 'driver_frayed_signal';
 export const DRIVER_STATIC_HAZE = 'driver_static_haze';
 
 /**
- * Drivers that exist only as an event's penalty (ticket 168b): FRAYED SIGNAL and STATIC HAZE.
+ * Drivers that exist only as an event's penalty (ticket 168b): GJÖLL CHILL and BARROW MIST.
  *
  * Deliberately in NONE of `PLAYER_DRIVER_IDS`, `DRIVER_IDS`, the elite stake pool or
  * `playerDriverOptions()` — nothing may offer them as a reward. This list is how `describeDriver`

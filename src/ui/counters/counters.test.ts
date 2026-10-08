@@ -169,14 +169,14 @@ describe('184c - Drivers', () => {
         expect(readDriverCounter('driver_first_blood', state)).toMatchObject({ text: 'USED', state: 'spent' });
     });
 
-    it('DEEP CACHE is READY until the first bonus draw of the turn', () => {
+    it('RAVEN\'S BOON is READY until the first bonus draw of the turn', () => {
         let state = arena({ os: 'kraken_v2', drivers: ['driver_deep_cache'] });
         expect(readDriverCounter('driver_deep_cache', state)!.text).toBe('READY');
         state = play(state, 'undertow');
         expect(readDriverCounter('driver_deep_cache', state)!.text).toBe('USED');
     });
 
-    it('BULWARK REFLEX counts the members still armed', () => {
+    it('SHIELDWALL counts the members still armed', () => {
         const state = arena({ os: 'kraken_v2', drivers: ['driver_bulwark_reflex'] });
         expect(readDriverCounter('driver_bulwark_reflex', state)!.text).toBe('1 ARMED');
         const spent = { ...state, counters: { ...state.counters, [`bulwark_reflex:${state.playerParty[0].id}`]: 1 } };

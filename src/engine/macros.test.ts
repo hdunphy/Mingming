@@ -9,10 +9,10 @@
  * The four laws with a ruling behind them get their own cases, because each has a plausible-looking
  * wrong version that a "does it do something" test would wave through:
  *
- * - **Recharge ADDS, it does not SET.** The ruling shouts about this: *"`processPreTurn` SETS
+ * - **Second Wind ADDS, it does not SET.** The ruling shouts about this: *"`processPreTurn` SETS
  *   `currentEnergy`, and that is the trap that bit three OSes."* Proven from a state whose energy is
  *   deliberately not its maximum, and again by firing twice.
- * - **Firing is free.** No macro may move the firer's Energy, Recharge excepted (upward).
+ * - **Firing is free.** No macro may move the firer's Energy, Second Wind excepted (upward).
  * - **A macro is not a card play.** `cardsPlayedThisTurn`, `playsThisTurn` and `lastProgramPlayed`
  *   are untouched — see `handleFireMacro`'s note for the reasoning, which is a reading and not a
  *   ruling.
@@ -321,7 +321,7 @@ describe('cache pull', () => {
 
 describe('recharge', () => {
     /**
-     * THE TRAP THE RULING NAMES: *"`Recharge` must ADD energy mid-turn — `processPreTurn` SETS
+     * THE TRAP THE RULING NAMES: *"`Second Wind` must ADD energy mid-turn — `processPreTurn` SETS
      * `currentEnergy`, and that is the trap that bit three OSes."*
      *
      * Every case below starts from an energy value that is NOT the unit's maximum, which is the only
@@ -340,7 +340,7 @@ describe('recharge', () => {
         expect(find(fire(empty, 'recharge'), 'p1').currentEnergy).toBe(1);
     });
 
-    it('stacks: two Recharges are +2, which no SET can produce', () => {
+    it('stacks: two Second Winds are +2, which no SET can produce', () => {
         const spent = board({ playerParty: [unit('p1', { currentEnergy: 1, maxEnergy: 3 }), unit('p2')] });
         expect(find(fire(fire(spent, 'recharge'), 'recharge'), 'p1').currentEnergy).toBe(3);
     });
@@ -424,7 +424,7 @@ describe('every battle macro', () => {
         }
     });
 
-    it('costs the firer NO Energy — Recharge excepted, upward', () => {
+    it('costs the firer NO Energy — Second Wind excepted, upward', () => {
         // `macros-and-drivers.md`: "fired free on your turn." The exception is the macro whose whole
         // job is Energy, and it may only ever go up.
         for (const id of BATTLE_MACRO_IDS) {
@@ -467,7 +467,7 @@ describe('every battle macro', () => {
             const after = fire(before, id);
             expect(after.playerDeck.discard).toHaveLength(0);
             expect(after.playerDeck.exhaust).toHaveLength(0);
-            // Cache Pull is the one macro that legitimately moves cards, and only into the hand.
+            // Raven's Draw is the one macro that legitimately moves cards, and only into the hand.
             const handDelta = after.playerDeck.hand.length - before.playerDeck.hand.length;
             expect(handDelta).toBe(id === 'cache_pull' ? 2 : 0);
         }

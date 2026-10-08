@@ -2204,7 +2204,7 @@
     },
     "driver_static_field": {
         "id": "driver_static_field",
-        "name": "STATIC FIELD",
+        "name": "STORMSPARK",
         "description": "Every card this side plays deals 6 power to a random enemy.",
         "hooks": [
             {
@@ -2224,7 +2224,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "⚡ STATIC FIELD arcs off {owner}'s card."
+                        "text": "⚡ STORMSPARK leaps from {owner}'s card."
                     }
                 ]
             }
@@ -2264,7 +2264,7 @@
     },
     "driver_overkill_recovery": {
         "id": "driver_overkill_recovery",
-        "name": "OVERKILL RECOVERY",
+        "name": "EINHERJAR FEAST",
         "description": "Whenever an enemy faints, every living member of this side heals 8% of max HP.",
         "hooks": [
             {
@@ -2283,7 +2283,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "💚 OVERKILL RECOVERY: {owner} recovers."
+                        "text": "💚 EINHERJAR FEAST: {owner} recovers."
                     }
                 ]
             }
@@ -2528,7 +2528,7 @@
     },
     "driver_frayed_signal": {
         "id": "driver_frayed_signal",
-        "name": "FRAYED SIGNAL",
+        "name": "GJÖLL CHILL",
         "description": "At the start of your first turn, each member loses 25% of its max HP.",
         "hooks": [
             {
@@ -2561,7 +2561,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "FRAYED SIGNAL: {owner} loses a quarter of its HP to the torn stream."
+                        "text": "GJÖLL CHILL: {owner} loses a quarter of its HP to the icy ford."
                     }
                 ]
             }
@@ -2569,7 +2569,7 @@
     },
     "driver_static_haze": {
         "id": "driver_static_haze",
-        "name": "STATIC HAZE",
+        "name": "BARROW MIST",
         "description": "At the start of your first turn, each member gains 2 Weakened.",
         "hooks": [
             {
@@ -2603,7 +2603,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "STATIC HAZE: {owner} is clouded by static."
+                        "text": "BARROW MIST: the mist saps {owner}'s strength."
                     }
                 ]
             }
@@ -2611,7 +2611,7 @@
     },
     "driver_bulwark_reflex": {
         "id": "driver_bulwark_reflex",
-        "name": "BULWARK REFLEX",
+        "name": "SHIELDWALL",
         "description": "The first time each member drops below 50% HP in a fight, it gains 15 Bark Shield.",
         "hooks": [
             {
@@ -2645,7 +2645,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "🪵 BULWARK REFLEX: {owner} braces behind bark."
+                        "text": "🪵 SHIELDWALL: {owner} braces behind bark."
                     }
                 ]
             }
@@ -2653,7 +2653,7 @@
     },
     "driver_deep_cache": {
         "id": "driver_deep_cache",
-        "name": "DEEP CACHE",
+        "name": "RAVEN'S BOON",
         "description": "The first bonus (non-natural) draw this side makes each turn grants the drawer 1 Strengthened.",
         "hooks": [
             {
@@ -2688,7 +2688,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "💾 DEEP CACHE hits: {target} is Strengthened."
+                        "text": "🪶 RAVEN'S BOON: {target} is Strengthened."
                     }
                 ]
             },

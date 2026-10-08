@@ -81,7 +81,7 @@ describe('what can be given up (rule 7)', () => {
         expect(heldCards(run).some((row) => row.card.dataId === JUNK_CARD_ID)).toBe(false);
     });
 
-    it('filters by rarity for the Black-Market give-up', () => {
+    it('filters by rarity for the Runecarver give-up', () => {
         const rare = held('r1', cardOf('Rare'));
         const run = makeRun({ collection: [rare] });
         expect(canGive(run, 1, 'Rare')).toBe(true);
@@ -89,7 +89,7 @@ describe('what can be given up (rule 7)', () => {
     });
 });
 
-describe('the Trader and the Recompiler', () => {
+describe('the Trader and the Seiðr Cauldron', () => {
     it('deals one rarity higher, and a Rare gets a different Rare', () => {
         expect(tradeUpRarity('Common')).toBe('Uncommon');
         expect(tradeUpRarity('Uncommon')).toBe('Rare');
@@ -132,7 +132,7 @@ describe('the Trader and the Recompiler', () => {
     });
 });
 
-describe('the Driver Shrine and the Black-Market Patch offers', () => {
+describe('the Driver Shrine and the The Runecarver offers', () => {
     it('never offers a Driver the run holds, or a temporary one', () => {
         const ctx = ctxFor(makeRun({ drivers: [PLAYER_DRIVER_IDS[0]] }));
         for (let i = 0; i < 20; i += 1) {
@@ -160,7 +160,7 @@ describe('the Driver Shrine and the Black-Market Patch offers', () => {
 });
 
 describe('who may draw each event', () => {
-    it('Trader and Recompiler need a card that can be given up', () => {
+    it('Trader and Seiðr Cauldron need a card that can be given up', () => {
         const floor = minimumActiveDeck(1);
         const stuck = ctxFor(makeRun({ deck: makeRun().deck.slice(0, floor), collection: [] }));
         const spare = ctxFor(runWithSpare(1));
@@ -170,7 +170,7 @@ describe('who may draw each event', () => {
         }
     });
 
-    it('Mirror Protocol needs a non-junk card', () => {
+    it('Loki\'s Mirror needs a non-junk card', () => {
         expect(isEventEligible('mirror_protocol', ctxFor(makeRun()))).toBe(true);
         expect(isEventEligible('mirror_protocol', ctxFor(makeRun({ deck: [held('j1', JUNK_CARD_ID)], collection: [] })))).toBe(false);
     });
@@ -192,7 +192,7 @@ describe('who may draw each event', () => {
         expect(isEventEligible('driver_shrine', ctxFor(makeRun({ drivers: [...PLAYER_DRIVER_IDS] })))).toBe(false);
     });
 
-    it('Black-Market Patch needs an unpatched body', () => {
+    it('The Runecarver needs an unpatched body', () => {
         expect(isEventEligible('black_market_patch', ctxFor(makeRun()))).toBe(true);
         expect(isEventEligible('black_market_patch', ctxFor(makeRun({ patches: { mm1: ['amplifier'] } })))).toBe(false);
     });
@@ -213,7 +213,7 @@ describe('the power cap, end to end', () => {
         expect(drawEvent(fresh.run, fresh.node, fresh.ranch, { built: only })?.id).toBe('driver_shrine');
     });
 
-    it('after the Black-Market Patch fits a patch, it is never drawn again', () => {
+    it('after the The Runecarver fits a patch, it is never drawn again', () => {
         const ctx = ctxFor(granted('black_market_patch', 'patch'));
         const only = new Set(['black_market_patch']);
         expect(drawEvent(ctx.run, ctx.node, ctx.ranch, { built: only })).toBeNull();

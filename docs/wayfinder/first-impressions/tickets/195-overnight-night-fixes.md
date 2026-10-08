@@ -25,7 +25,7 @@
 | 195b | The first Trace on a save says "Summon it in the Den." | New text, game and tool | **Built** |
 | 195c | The run's status line says how many Traces are held | New text, game and tool | **Built** |
 | 195d | The Summon option says how many cards it adds to the shared deck | Game wording bug | **Built** ("fix all the bugs") |
-| 195e | **Amber everywhere**, and the last robot/sci-fi words become Norse | Word sweep, game and tool | **195e-1 built; 195e-2 written, waits for D1** |
+| 195e | **Amber everywhere**, and the last robot/sci-fi words become Norse | Word sweep, game and tool | **195e-1 built; 195e-2 BUILT 2026-10-08** (Henry approved the list 2026-10-07) |
 | 195f | The event debuffs (Frayed Signal, Static Haze) never say what they do | Game wording bug | **Built** |
 | 195g | A Rune offer names the unit by its id (`mm_0jbxbmp_1`) | Game/tool bug | **Built** |
 | 195h | In the gym gauntlet, a downed member reads "HP full" | Tool bug, maybe engine | **Built** |
@@ -148,7 +148,7 @@
 
 ## Decisions for Henry
 
-1. **D1, the Norse flavour names (195e-2).** Approve the list in `research/195-norse-flavour-names.md` once it is written. Nothing is renamed before that.
+1. **D1, the Norse flavour names (195e-2). RULED 2026-10-07 and BUILT 2026-10-08.** Henry approved the list in `research/195-norse-flavour-names.md` with three changes (Einherjar Feast, Forge Slag, Urðarbrunnr); see the last paragraph of *Resolution*.
 
 ## Resolution
 
@@ -174,3 +174,5 @@
 **For Henry:** D1 below; run `npm run gate` and push (`git push origin first-impressions`); delete the stray `resultsplaytest2026-10-04-haiku/` and `resultsplaytest2026-10-05-haiku/` folders at the repo root; regenerate `registry.json`, `collection.json` and `browser.html` (`npm run decks`) so the Bark Smash text is current.
 
 **Closed 2026-10-06 (Henry).** `npm run gate` passed at `ef0c144` and the branch is pushed. D1 (the Norse flavour names, 195e-2) was not approved at close: nothing is renamed, and the list stays in `research/195-norse-flavour-names.md` for whenever Henry rules on it.
+
+**195e-2 built 2026-10-08, one commit on `first-impressions`, not pushed (Henry approved the list on 2026-10-07 with three changes: Overkill Recovery is EINHERJAR FEAST, Corrupted Data is Forge Slag, Surge Protection is Urðarbrunnr).** The shown names changed in `events.json` (20 events, their lines, the Relay Tower's "Plunder it", and the option lines that name a card or a debuff), `macroRegistry.ts` (4 Draughts), `hooks.json` (4 Totems, the 2 event debuffs and their 6 battle-log lines), `programs.json` (7 cards and their "+" versions) and `modifiers.json` (Junk Start now reads "Start with two Forge Slag in your deck.", Tight Budget "Shop and den prices +25%."). Ids, saves and the walker's output keys did not change, and no card number or text changed. `src/ui/labels/norseFlavourNames.test.ts` pins the whole list; the 195e-1 old-words sweep now also fails on the old flavour names; the `WAITING_FOR_195` exception in `battleLogWords.test.ts` is gone. One bug found on the way: the event-debuff line capitalised the letter after "ö" ("GjöLl Chill"); `eventDetail.ts` now capitalises on spaces only. **For Henry:** regenerate the design record (`npm run decks`, then `python build.py`); `registry.json`, `collection.json`, `upgrades.json` and `browser.html` still show the old card names until you do.

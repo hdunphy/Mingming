@@ -116,7 +116,7 @@ export interface EventFlow {
     readonly picks: Readonly<Record<number, OutcomePick>>;
     /** Cards ticked so far in a multi-card step. */
     readonly selected: ReadonlyArray<string>;
-    /** The Overclock Rig's free upgrade bench is open. */
+    /** The Brokk's Forge's free upgrade bench is open. */
     readonly upgrading: boolean;
 }
 

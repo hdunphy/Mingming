@@ -13,7 +13,7 @@
  *
  * Every node's type is visible from the start of the run. Ticket 07 had fog one layer ahead and
  * ticket 15 a map-reveal that lifted it a biome at a time; with branching routes the choice between
- * them is the game, so the whole road is shown. What a Ping Sweep or a Relay Tower Survey reveals
+ * them is the game, so the whole road is shown. What a Heimdall's Gaze or a Heimdall's Watch Survey reveals
  * now is the SPECIES in a biome's fights, which is not a layout question: `RunScreen` rolls it
  * (`encounter.surveyedEncounters`) and hands the lines to `RegionMap`.
  */

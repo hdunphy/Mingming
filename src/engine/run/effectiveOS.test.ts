@@ -1,5 +1,5 @@
 /**
- * TICKET 168f — Firmware Reflash switches a body's OS for the RUN, never for the ranch.
+ * TICKET 168f — Well of Urd switches a body's OS for the RUN, never for the ranch.
  *
  * What would fail silently: the override being written but the next battle still built from the
  * ranch OS (the player pays for a reflash that does nothing), the ranch member being changed (the

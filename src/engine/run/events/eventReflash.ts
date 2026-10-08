@@ -1,5 +1,5 @@
 /**
- * TICKET 168f — what the Firmware Reflash station offers: every party body, the OS it would be
+ * TICKET 168f — what the Well of Urd station offers: every party body, the OS it would be
  * switched to, and — for a body that cannot be — why not.
  *
  * The switch is for the run only; `run.osOverrides` holds it and the ranch is never written. The

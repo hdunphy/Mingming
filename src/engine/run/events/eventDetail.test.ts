@@ -1,8 +1,8 @@
 /**
  * TICKET 195f — an event option that hands out a next-fight debuff says what the debuff does.
  *
- * "Frayed Signal next fight." and "Static Haze next fight." told the player a name and nothing else
- * (sonnet, twice: "'Frayed Signal' is not explained", "Static Haze did not visibly do anything"). The
+ * "Gjöll Chill next fight." and "Barrow Mist next fight." told the player a name and nothing else
+ * (sonnet, twice: "'Gjöll Chill' is not explained", "Barrow Mist did not visibly do anything"). The
  * clause is read from the debuff's own definition, never written by hand, so it cannot drift from what the
  * fight does.
  */
@@ -43,7 +43,7 @@ describe('195f — choiceDetail', () => {
         const detail = choiceDetail(dig);
         expect(detail.startsWith('+50 scrap. ')).toBe(true);
         expect(detail.match(/next fight/g)).toHaveLength(1);
-        expect(detail).toBe(`+50 scrap. Static Haze next fight: ${describeDriver('driver_static_haze').description}`);
+        expect(detail).toBe(`+50 scrap. Barrow Mist next fight: ${describeDriver('driver_static_haze').description}`);
     });
 
     it('leaves a choice with no debuff exactly as the data wrote it', () => {
@@ -56,6 +56,6 @@ describe('195f — choiceDetail', () => {
 
     it('adds the clause even when the detail forgot to name the debuff', () => {
         const bare: EventChoice = { id: 'x', label: 'X', detail: '+5 scrap.', outcomes: [{ type: 'TEMP_DRIVER', driverId: 'driver_frayed_signal', fights: 1 }] };
-        expect(choiceDetail(bare)).toBe(`+5 scrap. Frayed Signal next fight: ${describeDriver('driver_frayed_signal').description}`);
+        expect(choiceDetail(bare)).toBe(`+5 scrap. Gjöll Chill next fight: ${describeDriver('driver_frayed_signal').description}`);
     });
 });

@@ -36,7 +36,7 @@ describe('RanchScreen vault — temporary Drivers (168b)', () => {
 
     it('lists a temporary Driver with "next fight" after its name, and its rule text', () => {
         const markup = vault({ ...base, tempDrivers: [{ driverId: 'driver_frayed_signal', fightsLeft: 1 }] });
-        expect(markup).toContain('FRAYED SIGNAL · next fight');
+        expect(markup).toContain('GJÖLL CHILL · next fight');
         expect(markup).toContain('loses 25% of its max HP');
         expect(markup).not.toContain('Nothing installed');
     });
@@ -48,7 +48,7 @@ describe('RanchScreen vault — temporary Drivers (168b)', () => {
             tempDrivers: [{ driverId: 'driver_static_haze', fightsLeft: 1 }],
         });
         expect(markup.indexOf('TENTH STRIKE')).toBeGreaterThan(-1);
-        expect(markup.indexOf('TENTH STRIKE')).toBeLessThan(markup.indexOf('STATIC HAZE · next fight'));
+        expect(markup.indexOf('TENTH STRIKE')).toBeLessThan(markup.indexOf('BARROW MIST · next fight'));
         expect(markup).not.toContain('TENTH STRIKE · next fight');
     });
 });

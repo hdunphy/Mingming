@@ -1,5 +1,5 @@
 /**
- * TICKET 168d — the macro pick (Macro Crate): three macros, take one.
+ * TICKET 168d — the macro pick (Brewer's Cask): three macros, take one.
  *
  * The reward screen's own `MacroRewardPick` does the choosing, including the full-rack case (pick
  * the slot to replace), so the two screens cannot drift. What is different here is that the pick is

@@ -1,7 +1,7 @@
 /**
  * TICKET 168c — junk cards: the one place that says what one is and how a deck counts around them.
  *
- * Corrupted Data is a card that does nothing and costs 1 Energy to clear. It clogs a hand, and it is
+ * Forge Slag is a card that does nothing and costs 1 Energy to clear. It clogs a hand, and it is
  * never a card a run is offered, sold, scored or counted, so every rule that asks "how many real
  * cards" asks it through here.
  *

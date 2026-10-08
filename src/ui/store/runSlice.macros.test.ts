@@ -214,7 +214,7 @@ describe('consuming a macro', () => {
 // =================================================================================================
 
 describe('firing the map-reveal', () => {
-    /** Stand the run somewhere in biome 1, holding a Ping Sweep in slot 0. */
+    /** Stand the run somewhere in biome 1, holding a Heimdall's Gaze in slot 0. */
     function readyToSurvey(over: Partial<IRunState> = {}): IRunState {
         const run = makeRun({ macros: ['ping_sweep', null, null] });
         const node = run.nodes.find((n) => n.biomeIndex === 1)!;

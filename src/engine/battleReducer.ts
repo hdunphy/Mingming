@@ -650,7 +650,7 @@ function resolveMacroTargetId(
     switch (macro.targeting) {
         case 'SELF':
             // The chosen pick is ignored outright rather than validated: a SELF macro is about the
-            // unit firing it, and letting a stray targetId through would make Recharge silently
+            // unit firing it, and letting a stray targetId through would make Second Wind silently
             // energise whoever the player last clicked.
             return sourceId;
         case 'ENEMY': {
@@ -732,7 +732,7 @@ export function canFireMacro(
  *   not Surge; firing Echo twice replays the same card twice.
  * - **`elementPlays`** and **`lastEnergySpent`** — a macro has no element and pays no Energy, so
  *   writing either would be recording a fiction for the scalers that read them.
- * - **`nextProgramModifier`** — a macro neither benefits from a primed buff nor spends it. Free Exec
+ * - **`nextProgramModifier`** — a macro neither benefits from a primed buff nor spends it. Swift Hand
  *   priming a charge that the next macro immediately ate would make the rare macro unusable next to
  *   any other macro.
  *

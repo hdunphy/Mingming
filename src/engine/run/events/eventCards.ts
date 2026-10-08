@@ -2,7 +2,7 @@
  * TICKET 168a — the cards an event offers: `count` DISTINCT cards from a pool, each one rolled the
  * way a fight reward rolls (`RewardSystem.rollCardFromPool`): a rarity by weight, then a card of
  * that rarity. The difference is that the rarities are RESTRICTED to the ones the event names
- * (Data Fragments offers Common or Uncommon; the Rare Vault only Rare), and the three are distinct.
+ * (Scattered Verses offers Common or Uncommon; the Dragon's Barrow only Rare), and the three are distinct.
  *
  * Seeded by the caller's stream, so the same node offers the same three cards on resume.
  */

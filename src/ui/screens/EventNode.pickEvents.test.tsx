@@ -5,7 +5,7 @@
  * Each case forces one event (every other built event is marked seen, as `EventNode.test.tsx` does),
  * plays it through the buttons, and reads the result off the stores: the deck, the scrap, the
  * blueprint counts, the roster. The two things a player could be robbed of are checked directly:
- * nothing is spent until a pick is made, and Data Broker charges exactly its price.
+ * nothing is spent until a pick is made, and The Skald's Price charges exactly its price.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -97,7 +97,7 @@ async function click(button: Element | null | undefined): Promise<void> {
 }
 const runOf = (store: Store): IRunState => store.getState().run.run!;
 
-describe('Abandoned Terminal', () => {
+describe('The Norns\' Loom', () => {
     it('upgrades one card free, needs it done, then goes dark', async () => {
         const store = makeStore(runWith(['abandoned_terminal']));
         await mount(store);
@@ -156,7 +156,7 @@ describe('Wild Tracks', () => {
     });
 });
 
-describe('Rare Vault', () => {
+describe('Dragon\'s Barrow', () => {
     it('offers three Rare cards and puts the picked one in the deck', async () => {
         const store = makeStore(runWith(['rare_vault']));
         await mount(store);
@@ -209,7 +209,7 @@ describe('Draught Crate', () => {
     });
 });
 
-describe('Data Broker', () => {
+describe('The Skald\'s Price', () => {
     it('charges 40 for a Rare pick and puts the card in the deck in one step', async () => {
         const store = makeStore(runWith(['data_broker'], { scrap: 100 }));
         await mount(store);

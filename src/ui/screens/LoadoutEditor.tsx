@@ -170,7 +170,7 @@ export default function LoadoutEditor({
     const deckReading = readDeckFloor(run);
     const atFloor = deckReading.atFloor;
 
-    // TICKET 168f: a body shows the OS it runs in this run (Firmware Reflash), not the ranch's.
+    // TICKET 168f: a body shows the OS it runs in this run (Well of Urd), not the ranch's.
     const memberOf = (id: string): IRanchMember | undefined => {
         const member = ranch.roster.find((m) => m.id === id);
         return member ? withEffectiveOS(run, member) : undefined;

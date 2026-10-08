@@ -32,7 +32,7 @@ export function describeNode(world: World, laid: LaidOutNode): string {
     const run = runOf(world);
     const node = laid.node;
     const label = node.scout ? `Scout ${nodeKindLabel(node.kind).toLowerCase()}` : nodeLabel(node);
-    // 176d: after a Ping Sweep or a Survey the fight names who waits in it, as the map does.
+    // 176d: after a Heimdall's Gaze or a Survey the fight names who waits in it, as the map does.
     const species = surveyedEncounterLine(run, node, partyOf(world), revealedBiomesFrom(run.modifiers));
     // 176e: a detour says what it costs next to its name, as the map's Travel list does.
     const named = node.detour ? `${label} (detour, +1 fight)` : label;

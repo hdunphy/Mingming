@@ -1,5 +1,5 @@
 /**
- * TICKET 168b — Frayed Signal and Static Haze, the two Drivers an event hands out for ONE fight.
+ * TICKET 168b — Gjöll Chill and Barrow Mist, the two Drivers an event hands out for ONE fight.
  *
  * What would fail silently: a Driver that fires every turn instead of once (a 25% loss per turn is
  * a different game), one that leaks into an offer (a penalty presented as a reward), and one that
@@ -57,7 +57,7 @@ const logged = (state: IBattleState, text: string): number =>
 const weakened = (state: IBattleState): number[] =>
     state.playerParty.map((m) => m.statusEffects.find((s) => s.type === 'Weakened')?.stacks ?? 0);
 
-describe('FRAYED SIGNAL', () => {
+describe('GJÖLL CHILL', () => {
     it('takes 25% of each member’s max HP at the start of the first turn, as the engine rounds it', () => {
         const control = threeVThree([]);
         const state = threeVThree([DRIVER_FRAYED_SIGNAL]);
@@ -72,27 +72,27 @@ describe('FRAYED SIGNAL', () => {
 
     it('fires once per member for the fight, not every turn', () => {
         let state = threeVThree([DRIVER_FRAYED_SIGNAL]);
-        expect(logged(state, 'FRAYED SIGNAL')).toBe(3);
+        expect(logged(state, 'GJÖLL CHILL')).toBe(3);
         state = round(state);
         state = round(state);
         state = round(state);
         expect(state.turn).toBeGreaterThanOrEqual(3);
-        expect(logged(state, 'FRAYED SIGNAL')).toBe(3);
+        expect(logged(state, 'GJÖLL CHILL')).toBe(3);
     });
 
     it('does nothing to a party that does not carry it', () => {
         const state = round(threeVThree([]));
-        expect(logged(state, 'FRAYED SIGNAL')).toBe(0);
+        expect(logged(state, 'GJÖLL CHILL')).toBe(0);
     });
 });
 
-describe('STATIC HAZE', () => {
+describe('BARROW MIST', () => {
     it('gives every member 2 Weakened at the start of the first turn, once', () => {
         let state = threeVThree([DRIVER_STATIC_HAZE]);
         expect(weakened(state)).toEqual([2, 2, 2]);
-        expect(logged(state, 'STATIC HAZE')).toBe(3);
+        expect(logged(state, 'BARROW MIST')).toBe(3);
         state = round(round(round(state)));
-        expect(logged(state, 'STATIC HAZE')).toBe(3);
+        expect(logged(state, 'BARROW MIST')).toBe(3);
     });
 });
 

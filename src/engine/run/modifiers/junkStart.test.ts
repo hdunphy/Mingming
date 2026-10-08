@@ -1,5 +1,5 @@
 /**
- * TICKET 169f — Junk Start: two Corrupted Data in the starting deck.
+ * TICKET 169f — Junk Start: two Forge Slag in the starting deck.
  *
  * The junk is minted AFTER the normal deck from the same stream, so every other card keeps the
  * instance id it always had, and it belongs to no member (`ownerId: null`), as an event's junk does.
@@ -43,7 +43,7 @@ const PARTIES = [
 
 describe('Junk Start', () => {
     for (const party of PARTIES) {
-        it(`adds exactly two Corrupted Data to a ${party.length}-member party's deck, and nothing else`, () => {
+        it(`adds exactly two Forge Slag to a ${party.length}-member party's deck, and nothing else`, () => {
             const plain = createRun({ seed: 'junk', offer: OFFER, party, startedAt: 0 });
             const junky = createRun({ seed: 'junk', offer: OFFER, party, startedAt: 0, modifiers: ['junk_start'] });
 

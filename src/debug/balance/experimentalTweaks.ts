@@ -107,7 +107,7 @@ const ROOTFALL_RAT_V2 = 'rootfall-rat-v2';
  *    per application, so the value scales with how many enemies the boss has touched and not with
  *    how many Poison cards it chained. A Driver's hooks sit on every member, and three members each
  *    firing "every Poisoned enemy +1" is three stacks a turn, not one — so the hook carries a
- *    SIDE-scoped once-per-turn flag, reset at the side's `onTurnStart`, exactly DEEP CACHE's shape.
+ *    SIDE-scoped once-per-turn flag, reset at the side's `onTurnStart`, exactly RAVEN'S BOON's shape.
  *    That flag is the mechanics of "the SIDE does this once", not a design cap: WAR FOOTING gets the
  *    same effect for free by targeting SELF.
  *  - **C2 SPREADING ROT** — *"another enemy gains 1 Poison"* — **NOT BUILT.** The hook targets are

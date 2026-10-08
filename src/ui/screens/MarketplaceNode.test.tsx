@@ -527,7 +527,7 @@ describe('MarketplaceNode', () => {
         expect(macros.length).toBeGreaterThan(0);
         expect(tiles).toHaveLength(macros.length);
         macros.forEach((offer, i) => {
-            expect(tiles[i].name).toBe(MacroRegistry[offer.macroId].name);
+            expect(tiles[i].name).toBe(escapeHtml(MacroRegistry[offer.macroId].name));
             expect(tiles[i].description).toBe(escapeHtml(MacroRegistry[offer.macroId].description));
             expect(tiles[i].plate).toBe(`${offer.price} amber`);
             expect(tiles[i].disabled).toBe(false);
@@ -592,7 +592,7 @@ describe('MarketplaceNode', () => {
         expect(macrosFor(withOne).map((o) => o.macroId), 'holding one must not re-roll the shelf')
             .toContain(offered);
 
-        const tile = macroTilesIn(render(withOne)).find((t) => t.name === MacroRegistry[offered].name);
+        const tile = macroTilesIn(render(withOne)).find((t) => t.name === escapeHtml(MacroRegistry[offered].name));
         expect(tile?.chips).toContain('IN RACK');
     });
 
@@ -607,7 +607,7 @@ describe('MarketplaceNode', () => {
     it('sells one of each: a draught you are carrying reads SOLD and cannot be bought again', () => {
         const offered = macrosFor(makeRun(400))[0].macroId;
         const markup = render(makeRun(400, { macros: [offered, null, null] }));
-        const tile = macroTilesIn(markup).find((t) => t.name === MacroRegistry[offered].name);
+        const tile = macroTilesIn(markup).find((t) => t.name === escapeHtml(MacroRegistry[offered].name));
 
         expect(tile, 'the sold draught stays on the shelf, greyed — a vanished row reads as a bug')
             .toBeDefined();
@@ -617,7 +617,7 @@ describe('MarketplaceNode', () => {
         expect(tile!.html).toContain('sold');
 
         // The OTHER offers on the same shelf are untouched — one slot sold out, not the shop.
-        const others = macroTilesIn(markup).filter((t) => t.name !== MacroRegistry[offered].name);
+        const others = macroTilesIn(markup).filter((t) => t.name !== escapeHtml(MacroRegistry[offered].name));
         expect(others.length).toBeGreaterThan(0);
         expect(others.every((t) => t.plate.endsWith('amber'))).toBe(true);
         expect(others.every((t) => !t.disabled)).toBe(true);

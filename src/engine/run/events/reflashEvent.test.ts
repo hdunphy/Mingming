@@ -1,5 +1,5 @@
 /**
- * TICKET 168f — the Firmware Reflash rules that sit under the screen: which bodies can be flashed and
+ * TICKET 168f — the Well of Urd rules that sit under the screen: which bodies can be flashed and
  * to what, and that everything else in a run reads a flashed body's NEW firmware.
  */
 
@@ -29,7 +29,7 @@ function ctxFor(party: IMingmingState[], over: Partial<IRunState> = {}, blueprin
     return { run, node: run.nodes[0], ranch: { roster: party, blueprints } };
 }
 
-describe('Firmware Reflash — who can be flashed, and to what', () => {
+describe('Well of Urd — who can be flashed, and to what', () => {
     it('is in BUILT_EVENTS and is eligible while a body has no patch', () => {
         expect(BUILT_EVENTS.has('firmware_reflash')).toBe(true);
         expect(isEventEligible('firmware_reflash', ctxFor([body('a', 'kraken', 'kraken_v1')]))).toBe(true);
@@ -75,7 +75,7 @@ describe('a flashed body, everywhere else a run reads its OS', () => {
         expect(ctx.ranch.roster[0].activeOS).toBe('kraken_v1');
     });
 
-    it('the Black-Market Patch fits the best patch for the NEW firmware', () => {
+    it('the The Runecarver fits the best patch for the NEW firmware', () => {
         const flashed = patchOffers(ctxFor(party, { osOverrides: { a: 'kraken_v2' } }));
         expect(flashed).toEqual(elitePatchOffer([{ id: 'a', definitionId: 'kraken', activeOS: 'kraken_v2' }], {}));
     });

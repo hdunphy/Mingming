@@ -18,7 +18,7 @@ export default function PartyFaces({ members, patches, osOf }: {
     readonly members: ReadonlyArray<IRanchMember>;
     /** The run's runes, `rosterId -> patchIds` (`IRunState.patches`). */
     readonly patches?: Readonly<Record<string, ReadonlyArray<string>>>;
-    /** The Instinct a member runs in this run (Firmware Reflash can change it), for the rune's line. */
+    /** The Instinct a member runs in this run (Well of Urd can change it), for the rune's line. */
     readonly osOf?: (member: IRanchMember) => string;
 }): ReactNode {
     return (

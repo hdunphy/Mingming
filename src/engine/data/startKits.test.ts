@@ -321,12 +321,12 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
 });
 
 describe('171e / 172 — kraken_v2 opens on its engine, not on four Tackles', () => {
-    it('the kit swaps its Tackle for a second Capacitor (a 2e card from its own deck)', () => {
+    it('the kit swaps its Tackle for a second Warhorn (a 2e card from its own deck)', () => {
         // Henry, 2026-09-29: "I'm just getting tackles and capacitor in the same hand. I think I
         // start with 4 tackles??" He did: the kit's Tackle plus the three generic hits.
         const kit = MingmingRegistry.kraken.startKits!.kraken_v2;
         expect(kit).not.toContain(GENERIC_HIT);
-        // TICKET 172: the second Capacitor became a damaging card ("Capacitor is not good").
+        // TICKET 172: the second Warhorn became a damaging card ("Warhorn is not good").
         expect(kit.filter((id) => id === 'capacitor')).toHaveLength(1);
         expect(kit).toContain('surge_protection');
         expect(GetProgramData('surge_protection').actions.some((a) => a.type === 'ATTACK')).toBe(true);

@@ -44,7 +44,7 @@ export interface UpgradeBenchProps {
     readonly free?: boolean;
     /**
      * TICKET 168c: how many upgrades this bench key may spend. Default 1, which is every venue
-     * before the Overclock Rig event (two).
+     * before the Brokk's Forge event (two).
      */
     readonly allowance?: number;
     /** What the venue calls itself in the one-per line. */

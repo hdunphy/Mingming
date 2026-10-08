@@ -1,10 +1,10 @@
 /**
  * TICKET 168d — the six pick-a-reward events: who may draw them, and what they offer.
  *
- * Abandoned Terminal, Wild Tracks, Rare Vault, Macro Crate, Data Broker and Stray Mingming. What
+ * The Norns' Loom, Wild Tracks, Dragon's Barrow, Brewer's Cask, The Skald's Price and Stray Mingming. What
  * each one DOES to a run is in `EventNode.pickEvents.test.tsx`; this file holds the checks that need
  * no screen: eligibility (a positive and a negative case per row of the ticket's table), the offers
- * (distinct, seeded, from the right pool), and Data Broker's two prices.
+ * (distinct, seeded, from the right pool), and The Skald's Price's two prices.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -55,19 +55,19 @@ describe('the six pick-a-reward events are built', () => {
 });
 
 describe('eligibility', () => {
-    it('Abandoned Terminal needs a card with a + in the deck', () => {
+    it('The Norns\' Loom needs a card with a + in the deck', () => {
         const run = makeRun();
         expect(isEventEligible('abandoned_terminal', ctxFor(run))).toBe(true);
         expect(isEventEligible('abandoned_terminal', ctxFor({ ...run, deck: [] }))).toBe(false);
     });
 
-    it('Wild Tracks and Macro Crate are always eligible', () => {
+    it('Wild Tracks and Brewer\'s Cask are always eligible', () => {
         const ctx = ctxFor(makeRun());
         expect(isEventEligible('wild_tracks', ctx)).toBe(true);
         expect(isEventEligible('macro_crate', ctx)).toBe(true);
     });
 
-    it('Rare Vault and Data Broker are eligible when the party pool holds a Rare card', () => {
+    it('Dragon\'s Barrow and The Skald\'s Price are eligible when the party pool holds a Rare card', () => {
         // There is no negative case to build: every party's pool includes the neutral cards, and the
         // neutral cards include Rares, so the pool is never without one. The check is kept because
         // the table asks for it and a future pool change should fail here, not at a player.
@@ -111,7 +111,7 @@ describe('what each event offers', () => {
         expect(offerBlueprints(ctx, 3, 'pick:0')).toEqual(offered);
     });
 
-    it('Macro Crate: three different battle macros, the same three every time', () => {
+    it('Brewer\'s Cask: three different battle macros, the same three every time', () => {
         const ctx = ctxFor(makeRun());
         const offered = offerMacros(ctx, 3, 'pick:0');
         expect(offered).toHaveLength(3);
@@ -120,7 +120,7 @@ describe('what each event offers', () => {
         expect(offerMacros(ctx, 3, 'pick:0')).toEqual(offered);
     });
 
-    it('Rare Vault: three different Rare cards', () => {
+    it('Dragon\'s Barrow: three different Rare cards', () => {
         const ctx = ctxFor(makeRun());
         const offered = offerCards(ctx, { count: 3, rarities: ['Rare'] }, 'pick:0');
         expect(offered).toHaveLength(3);
@@ -128,7 +128,7 @@ describe('what each event offers', () => {
         for (const id of offered) expect(ProgramRegistry[id]?.rarity).toBe('Rare');
     });
 
-    it('Data Broker: its two prices are 40 for Rare and 15 for Uncommon', () => {
+    it('The Skald\'s Price: its two prices are 40 for Rare and 15 for Uncommon', () => {
         const broker = getEvent('data_broker')!;
         const cost = (id: string): number => choiceScrapCost(broker.choices.find((c) => c.id === id)!);
         expect(cost('rare')).toBe(40);

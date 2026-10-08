@@ -17,7 +17,7 @@
  *   tidal_battery  — the ramp bridge: one spare Energy on every body, so the Fire hammer and the
  *                    Water hammer can fire on the same turn. Henry ruled it side-wide at 1 stack
  *                    rather than the ticket's "you and one ally at 2", because the engine has no
- *                    single-ally card target and 1 stack keeps it a strictly WORSE Capacitor at 1v1.
+ *                    single-ally card target and 1 stack keeps it a strictly WORSE Warhorn at 1v1.
  */
 import { describe, it, expect } from 'vitest';
 import { battleReducer } from './battleReducer';
