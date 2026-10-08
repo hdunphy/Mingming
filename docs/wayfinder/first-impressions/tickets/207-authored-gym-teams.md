@@ -1,6 +1,6 @@
 # Ticket 207: Authored gym teams: the leader's locked team and deck, and its cards in fights 1 and 2 (design)
 
-**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); **the three teams picked 2026-10-08**; not started. 206 picks the gym setting after this lands (206 D4). Split out of [206](206-gym-difficulty-and-biome-order.md).
+**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); **the three teams picked 2026-10-08**; **207a and 207b done 2026-10-08** (`d7a5a75`); 207c waits on 206a's bench. 206 picks the gym setting after this lands (206 D4). Split out of [206](206-gym-difficulty-and-biome-order.md).
 
 ## Why
 
@@ -94,12 +94,27 @@ Comments applied to the draft:
 
 Open before 207b: Flame Wave's cost, the new Totem's number and name, Crushing Depths swap-or-add, Boiling Surge global-or-new, and the add-not-swap default for fights 1 and 2.
 
+### Final rulings (2026-10-08) and what shipped in 207b
+
+Henry: *"1. Flame wave is good 2. 5% is good 3. Instead of ink cloud 4. New card and add 4 poison then fill with damage 5. Yes 6. Rename tidal surge and rootrot to something Norse and in the correct element"*.
+
+- **Flame Wave** as drafted (1e, 5 power to the enemy side, 1 Burn to each).
+- **SURTALOGI** (Emberfall, new): whenever this side makes an enemy's Burn detonate, the blast deals 5% more of its max HP (14% → 19%). Engine: `HookCondition.statusDetonated`, read off `HookContext.statusDetonations`, which `effectHandlers` sets at the `onStatusApplied` dispatch when the application crossed the cap; hook `ATTACK` actions may now carry `percentMaxHp` (the target's max HP). WAR FOOTING stays defined; no gym fields it.
+- **Crushing Depths** in Ink Cloud's slot (kraken_v1).
+- **Eitr Surge** (new, 2e Water: 40 power, 4 Poison; 7.0 of 7.0) in the gym Kraken's deck in place of Boiling Surge, which the player's kraken_v2 keeps unchanged.
+- Leader cards are **added** to the usual deck in fights 1 and 2.
+- Totems moved and renamed (ids keep their names, ticket 183's rule): Tidewrack fields `driver_root_rot`, shown as **ÉLIVÁGAR** (the venom rivers; Water); Rootfall fields `driver_tidal_surge`, shown as **YGGDRASIL'S WRATH**, its blast now Nature. `tiers.json`'s leader-Driver table follows.
+
+Shipped in `d7a5a75`: `bosses.ts` (members with `deck` and `leaderCard`, `leaderDeckFor`, `leaderMemberFor`), `gymLeaderPlacement.ts` (one fight gets two leader Instincts, the other one, drawn once per gym visit from the node seed), `gauntlet.ts` (the leader's authored deck; placed leaders with their card; rolled bodies never run a leader Instinct), ten new cards in `programs.json` (all outside the run pool, so no reward, shop or codex shows them), the Totems in `hooks.json`. Tests: `gymLeaderPlacement.test.ts` (12 seeds × 3 gyms: each leader Instinct once across fights 1–2 with its card, never the trio; decks of 10 with no card more than twice; leader cards outside the pool and codex; the tier table agrees), `surtalogi.test.ts` (fires only on a detonation, adds exactly 5%, never for the other side's detonations), and the gym pins updated. Re-pinned on purpose: `aiDeterminism` fights 11, 12, 14, 15, 17, 18. The harness's counter-answer tables swapped Tidewrack and Rootfall with their teams; Emberfall's (hamstring, discharge, reactive_plating) were picked against WAR FOOTING and are open for Henry. Not changed: the scout still fields the leader's bodies on their tuned decks.
+
+Run in the VM: every `src/engine` and `src/debug` test except ghostWalk's four-tier gauntlet block and `overnight.test.ts`, the label and store tests, `tsc`, eslint on the changed files. Henry's `npm run gate` is the full check.
+
 ## Rows
 
 | Row | What | State |
 |---|---|---|
-| 207a | Design session: the three teams (**picked 2026-10-08**), their deck lists (drafted against Henry's plan per gym, then he reviews), and the nine leader cards | Teams done; decks and leader-card options **drafted 2026-10-08**, waiting on Henry's picks |
-| 207b | Engine: authored decks and leader cards in the gym table; fights 1 and 2 place the three leader Instincts (each at least once, never the full trio in one fight) with their leader cards; scout and Driver preview read the table; tests pin each gym's team, deck and placement rule | After 207a |
+| 207a | Design session: the three teams (**picked 2026-10-08**), their deck lists (drafted against Henry's plan per gym, then he reviews), and the nine leader cards | **Done 2026-10-08**: teams, decks, leader cards and Totems ruled (below) |
+| 207b | Engine: authored decks and leader cards in the gym table; fights 1 and 2 place the three leader Instincts (each at least once, never the full trio in one fight) with their leader cards; scout and Driver preview read the table; tests pin each gym's team, deck and placement rule | **Shipped 2026-10-08** (`d7a5a75`) |
 | 207c | Measure on 206a's bench: the base arm, and the loss rate per fight (fight 3 should be the highest) | After 207b and 206a |
 
 ## Interplay with 206
@@ -116,4 +131,4 @@ Open before 207b: Flame Wave's cost, the new Totem's number and name, Crushing D
 
 ## Resolution
 
-Not started.
+Open for 207c only: measure the new gyms on 206a's bench (base arm, loss rate per fight; fight 3 should be the highest).
