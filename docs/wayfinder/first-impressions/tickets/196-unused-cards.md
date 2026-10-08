@@ -50,6 +50,41 @@ Mend 50, Adrenaline 47, Berserkergang 45, Wisdom's Price 44, Riptide 42, Dwarf-F
 
 31 of 36 sonnet runs, and every haiku run, ended with a party of one (ticket 195's reason). Many of the unused cards are **ally** or **width** cards that a single body can't use: Tidal Battery ("every ally"), Shell Share ("an ally gains"), Eir's Remedy and Idunn's Apples ("each ally"), Berserkergang ("when an ally takes damage"), Vent and Soothe (cleanse an ally), and the 3-cost hits to the enemy side (Tidal Wave, Wildfire) against mostly single enemies. The fights were also auto-played (run mode), so the agent never saw what an Aura did. Judging these cards on solo runs would mark the 3v3 cards as dead for the wrong reason. **The real tally comes from a night played after 195b–d,** when the agent summons a team.
 
+### 4. Henry's own run, 2026-10-07 (Rootfall, fenrir_v1, tier 0, **won**)
+
+Added 2026-10-07 from `playtest-results/2026-10-07/fenrir_v1/`. A human run with a full party (Fenrir; Skoll summoned at the first town; Huldra from the Stray Mingming event before the third), so the width cards had a real team to work with. One run, so read it as colour beside the agent tallies, not as a number.
+
+**Card rewards passed over** (10 picks, 20 cards left behind; fight numbers are the fight-log numbers):
+
+| Fight | Node | Took | Passed over |
+|---|---|---|---|
+| 1 | wild | Brute Force | Ember Jab, Frigg's Oath |
+| 2 | wild | Howl | Vent, Eir's Remedy |
+| 3 | rival | Pack Tactics | Molten Core, Ragnarok Edge |
+| 4 | wild | Fury Strike | Idunn's Apples, Blood Rite |
+| 5 | elite | Battle Rhythm | Crimson Draw, Riptide |
+| 6 | alpha | Megingjord (later sold, a duplicate) | War Pact, Snarl |
+| 7 | wild | Ragnarok Edge (later sold) | Well of Mimir, Brute Force |
+| 8 | elite | Berserkergang | Mend, Surtr's Fever |
+| 9 | elite | Pack Tactics | Vent, Idunn's Apples |
+| 10 | wild | Desperate Strike (later sold) | Ash Communion, Snarl |
+
+**Shop shelves, never bought.** The run log records purchases but not the shelf, so these shelves were re-rolled from the run's seed (`muwsgf7j_7lkdp_4`) with `rollMarketStock` / `rollMacroStock` / `rollBlueprintOffer` and the team each shop was first visited with. Check: the one card bought (Megingjord, 35) and the one Draught bought (Revive, 48) are on the rolled shelves at those prices, and no paid refresh was logged.
+
+| Town | Team | Cards on the shelf (price) | Draughts | Trace |
+|---|---|---|---|---|
+| 1 (biome 0) | Fenrir, Skoll | **Megingjord 35 (bought)**, Fury Strike 25, Idunn's Apples 35, Hoofbeat 35, Berserkergang 35, Dwarf-Forged 25 *(neutral)*, Bark Smash 35 *(stranger)*, Battle Rhythm+ 45 *(the run's `+` slot)* | Rally 32, **Revive 48 (bought)** | Ratatoskr 50 |
+| 2 (biome 1) | Fenrir, Skoll | Wisdom's Price 35, Vent 15, Brynhild's Ring 35, Howl 25, Flashover 35, Eir's Remedy 35 *(neutral)*, Tidal Battery 35 *(stranger)* | Echo 48, Kindle 32 | Jormungandr 50 |
+| 3 (biome 2) | Fenrir, Skoll, Huldra | Thornguard 25, Verdant Ward 35, Hoofbeat 35, Bark Lash 15, Soothe 15, Riptide 35 *(neutral)*, Tidal Battery 35 *(stranger)* | Free Exec 48, Venom Shot 32 | Ratatoskr 50 |
+
+**What it adds to the list:**
+
+- **The same cards the agents refuse, refused by a human with a party of three.** Vent (passed twice, shelved once), Idunn's Apples (passed twice, shelved once), Eir's Remedy, Frigg's Oath, Riptide, Mend, Wisdom's Price, Tidal Battery (shelved twice), Soothe, Hoofbeat (shelved twice), Dwarf-Forged, Bark Lash. So "the agent played alone" (section 3) does not explain these on its own.
+- **Every heal and cleanse offered was passed:** Vent ×2, Eir's Remedy, Idunn's Apples ×2, Mend, Crimson Draw, Blood Rite, Ash Communion, and Soothe and Vent on the shelves. That is rational on the road (HP is restored after every fight) and is what bites in the gym, where HP carries: in the boss fight a 10-stack Poison tick (114) killed the revived Fenrir.
+- **Auras: 2 taken of 9 offered.** Taken: Megingjord (also bought) and Berserkergang (upgraded, and it fired constantly in the gym once Huldra was in the party). Berserkergang is 0 / 10 taken across the agent nights, so it may be a "needs a team" card after all; 196b should measure it at 3v3.
+- **Rewards taken to be sold:** 3 of the 10 picks were sold back at the next town (5–15 Amber each). A pick is also an Amber source, which matters for 197.
+- **The shop as an upgrade counter, again (197):** 1 card bought for 35 against 7 paid upgrades for 210 Amber (61% of the run's spending; 4 more upgrades came free from events and the gym gate). 8 cards sold for 65 Amber. Nothing bought at towns 2 and 3; 7 Amber left at the end.
+
 ---
 
 ## How to work this ticket

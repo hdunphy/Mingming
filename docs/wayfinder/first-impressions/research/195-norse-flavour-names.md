@@ -70,6 +70,19 @@ The table has BULWARK REFLEX and then three more Totems with computer words that
 
 Keep: FIRST BLOOD, TENTH STRIKE, ANTIVENOM, ROOT ROT, the eight element Totems (FIRE TOTEM ... DARK TOTEM), and the gym boss rules WAR FOOTING and TIDAL SURGE.
 
+### 4b. The battle-log lines that go with these Totems (added 2026-10-07)
+
+Henry's 2026-10-07 playtest flagged the battle log's machine words. Every other log line was reworded that day; these six belong to the Totems above, so they wait for this list and change with the names. Ids do not change. When this lands, drop the `WAITING_FOR_195` exception in `src/ui/labels/battleLogWords.test.ts`.
+
+| Now (`hooks.json` text) | With the renames |
+|---|---|
+| 💾 DEEP CACHE hits: {target} is Strengthened. | 🪶 RAVEN'S BOON: {target} is Strengthened. (💾 is a floppy disk) |
+| ⚡ STATIC FIELD arcs off {owner}'s card. | ⚡ STORMSPARK leaps from {owner}'s card. |
+| 💚 OVERKILL RECOVERY: {owner} recovers. | 💚 VICTORY FEAST: {owner} recovers. |
+| 🪵 BULWARK REFLEX: {owner} braces behind bark. | 🪵 SHIELDWALL: {owner} braces behind bark. |
+| FRAYED SIGNAL: {owner} loses a quarter of its HP to the torn stream. | GJÖLL CHILL: {owner} loses a quarter of its HP to the icy ford. |
+| STATIC HAZE: {owner} is clouded by static. | BARROW MIST: the mist saps {owner}'s strength. |
+
 ## 5. Cards (`programs.json`)
 
 Each name keeps its `+` suffix for the upgraded card.
