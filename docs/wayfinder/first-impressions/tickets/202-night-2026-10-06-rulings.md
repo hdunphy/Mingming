@@ -21,7 +21,7 @@
 
 | Row | What | Kind | State |
 |---|---|---|---|
-| 202a | The town's Den line says **"N Traces held · summon here"** while Traces are unspent | New text, game and tool | Ruled |
+| 202a | The town's Den line says **"N Traces held · summon here"** while Traces are unspent | New text, game and tool | **Built** |
 | 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | Ruled; the floor is D1 |
 | 202c | **Two runs a session:** the agent plays a second run on the same save after the first ends | Night script + tool | Ruled; carry-over is D2 |
 | 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | Ruled ("add a ticket to investigate") |
@@ -113,4 +113,6 @@
 
 ## Resolution
 
-Not started.
+**202a built 2026-10-07, one commit on `first-impressions`, not pushed.**
+
+- **202a** The Den tile on the town square reads "N Traces held · summon here" whenever N is above 0 (with 1 it reads "1 Trace held · summon here"); with none it reads as before ("0 traces held · party X"). The playtest tool's town screen prints the same line first, ahead of the line about the shop. Both take the words from one small function, `src/ui/labels/denTagLine.ts`, and the count from `tracesHeld(ranch, run)` (195c). Tests: `TownSquare.den202a.test.tsx` (game), `denLine202a.test.ts` (tool). The 195c test that pinned "3 traces held" now says "3 Traces held".
