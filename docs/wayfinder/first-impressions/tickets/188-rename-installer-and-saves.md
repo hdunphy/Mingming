@@ -1,6 +1,6 @@
 # Ticket 188: Rename the installer, the shortcut and the window, and keep the saves where they are
 
-**Type:** desktop packaging, plus one small guard on the saves folder. **Status:** RULED (Henry, 2026-10-02: *"Yes rename everywhere"*). **BUILT 2026-10-07 (188a, 188b, 188c).** Henry still owes one launch of the renamed build to confirm his runs and ranch show (the saves folder should still be `Mingming` under `AppData\Roaming`), and the `appId` answer. Small, and independent of everything else on this map (it touches `desktop/` only, no `src/`).
+**Type:** desktop packaging, plus one small guard on the saves folder. **Status:** **CLOSED 2026-10-08** (all three rows built and merged; `appId` stays as it is, Henry: no change; the one check left is Henry's own launch of the renamed build, row E4 of [ticket 206](206-open-decisions-2026-10-08.md)). RULED (Henry, 2026-10-02: *"Yes rename everywhere"*). **BUILT 2026-10-07 (188a, 188b, 188c).** Henry still owes one launch of the renamed build to confirm his runs and ranch show (the saves folder should still be `Mingming` under `AppData\Roaming`), and the `appId` answer. Small, and independent of everything else on this map (it touches `desktop/` only, no `src/`).
 
 **Where it comes from.** The game is now called **Mingming: Midgard Circuit**. Commit `2d30f54` changed only the words a player reads inside the game (the page title, the credits line, the Steam Input template, the desktop description). The installer, the Start-menu shortcut and the desktop app's own name still say "Mingming". Henry was asked whether those should follow, and said yes.
 
@@ -47,3 +47,7 @@ Electron keeps a desktop game's saves in a folder named after the app. Rename th
 3. **Commits** authored as Henry (`git -c user.name='Henry Dunphy' -c user.email='hdunphy15@gmail.com' commit ...`), no `Co-Authored-By`, last line `HANDOFF: <one sentence>`. **Do not push.** One commit per row, stage explicit paths only.
 4. **Line endings:** CRLF in `docs/wayfinder`, LF in `src` and `desktop` files you create.
 5. **Report** in plain English, ending with what Henry owes.
+
+## Resolution
+
+Built 2026-10-07 as three commits (188a `b6645df7` pins the saves folder to `Mingming` with a test, 188b `fd1e2093` renames the app, shortcut and Linux executable, 188c `e813335d` sweeps the docs), merged 2026-10-08. `savesFolder.cjs` also had to be added to the packaged file list, or the packaged app would crash on start. Installer, shortcut and executable names come from electron-builder defaults and were not seen, because no packaging build was run. **Closed 2026-10-08** with that launch check handed to Henry (ticket 206, E4).

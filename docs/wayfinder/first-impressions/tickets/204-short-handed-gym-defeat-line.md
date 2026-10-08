@@ -1,6 +1,6 @@
 # Ticket 204: The defeat screen says why when the team was short at the gym
 
-**Type:** one line of on-screen text, game and tool. **Status:** **BUILT 2026-10-07** (`204a`). Written from the review of the 2026-10-07 agent night (`claude/overnight-2026-10-07-review.md` and `-followup.md` in the project). Kept out of [202](202-night-2026-10-06-rulings.md) because another agent is updating 202.
+**Type:** one line of on-screen text, game and tool. **Status:** **CLOSED 2026-10-08** (built 2026-10-07 as `204a` and merged; the full suite and `eslint .` pass on the merged branch; the companion "Party 1 of 3" header, row 202i, was deferred by Henry on 2026-10-08 and the defeat line works without it). **BUILT 2026-10-07** (`204a`). Written from the review of the 2026-10-07 agent night (`claude/overnight-2026-10-07-review.md` and `-followup.md` in the project). Kept out of [202](202-night-2026-10-06-rulings.md) because another agent is updating 202.
 
 **Why.** Henry asked whether the full-party goal should be "yellow painted" or left for players to discover. The answer given: mostly discovered, through "Party 1 of 3" in the header (202i) and the gym's three element icons on the map (202j), plus one line at the moment of defeat. Across four agent nights, every solo run that reached the gym died in fight 1 within two turns (98 solo runs won 0; 16 party runs won 7). That is a wipe, not the narrow first loss Henry wants, and a wipe with no reason given reads as "the gym is unfair" rather than "I needed a team". Henry: *"Sure add it to the defeat-screen line."*
 
@@ -23,3 +23,5 @@
 ## Resolution
 
 204a built 2026-10-07: the engine, the summary and the tool tests pass, eslint and `tsc -p tsconfig.app.json` are clean. Run `npm run gate` on Windows before pushing.
+
+**Closed 2026-10-08.** Merged into `first-impressions`; the suite passed (522 files, 6038 tests) on the merged tree.
