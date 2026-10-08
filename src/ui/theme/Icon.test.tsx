@@ -80,16 +80,12 @@ describe('no emoji in the production UI', () => {
     const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]|\u{FE0F}/u;
 
     /*
-     * Monochrome typographic marks, which are NOT emoji and stay.
-     *
-     * The distinction that matters is font coverage and colour, not the codepoint block. `\u2713`
-     * and `\u2605` are plain glyphs in every UI font, render in `currentColor` like any other
-     * character, and are typography — a tick in a button, a filled star in a progress row. `\u26C1`
-     * (the old scrap coin) sat two blocks away and rendered as a tofu box on half the Linux stacks
-     * this game will ship to, which is why it became an icon and these did not.
+     * Ticket 205: no exemption any more. The tick, the stars and the four-point star used to be waved
+     * through here as "typography", and the in-battle files (card effect lines, intents, the type
+     * chart, TERMINATED, the banners, the absorbed float) were skipped as "phase two". All of them are
+     * Tabler icons now, so this scan covers the whole UI. The arrows and shapes that stay as plain text
+     * are outside these ranges; `noEmoji.test.ts` is the wider guard, with its own allow-list.
      */
-    const TYPOGRAPHIC = new Set(['\u2713', '\u2714', '\u2605', '\u2606', '\u2726', '\u25B6', '\u25C0', '\u25B2', '\u25BC', '\u25BE', '\u2192', '\u2190']);
-
     function walk(dir: string, out: string[] = []): string[] {
         for (const entry of readdirSync(dir)) {
             const path = join(dir, entry);
@@ -105,11 +101,7 @@ describe('no emoji in the production UI', () => {
             readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
                 const trimmed = line.trim();
                 if (trimmed.startsWith('*') || trimmed.startsWith('//') || trimmed.startsWith('/*')) return;
-                // The in-battle glyph vocabulary is phase two — see the ticket's resolution.
-                if (/components[\\/](CardHand|MingmingUnit|BattleStage|BattleReport|ProgramCard|UnitFxLayer|TypeChart|SaveHealthBanner)/.test(file)) return;
-                if (/hooks[\\/]useBattleVfx/.test(file)) return;
-                const stripped = [...line].filter((ch) => !TYPOGRAPHIC.has(ch)).join('');
-                if (EMOJI.test(stripped)) offenders.push(`${file.replace(resolve('.') + '/', '')}:${index + 1}  ${trimmed.slice(0, 80)}`);
+                if (EMOJI.test(line)) offenders.push(`${file.replace(resolve('.') + '/', '')}:${index + 1}  ${trimmed.slice(0, 80)}`);
             });
         }
         expect(offenders, `emoji found:\n${offenders.join('\n')}`).toEqual([]);
