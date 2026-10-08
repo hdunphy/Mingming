@@ -27,7 +27,7 @@ describe('healBetweenFights (ticket 173a)', () => {
         expect(healBetweenFights(1000, 1000)).toEqual({ hp: 1000, healed: 0 });
     });
 
-    it('does not bring a downed member back: that is what Revive is for', () => {
+    it('does not touch a downed member: the revive is gauntletRevive.ts\'s (ticket 202b), the repair of nothing is nothing', () => {
         expect(healBetweenFights(0, 1000)).toEqual({ hp: 0, healed: 0 });
     });
 });

@@ -7,7 +7,7 @@
  * - **The chain.** `beginGauntlet` → `advanceGauntlet` ×2 → `finishGauntlet`. A chain that loses its
  *   place replays fight one forever, which is exactly what ticket 11 declined to ship rather than
  *   half-build.
- * - **HP carries, and a downed member stays down.** The whole point of the gym
+ * - **HP carries, and a downed member stays down (until 202b: between fights it is revived; the reducer without a max HP still leaves it at 0).** The whole point of the gym
  *   (`exploration-map.md`: "three fights, NO healing between them"), and the two fields
  *   `IGauntletProgress` exists for.
  * - **A revive un-downs.** Ticket 15's resolution names this as ticket 18's to wire: a revived
@@ -159,10 +159,32 @@ describe('advanceGauntlet', () => {
             { memberId: 'mm3', hp: 950, maxHp: 1000 },
         ])));
 
-        expect(state.run?.gauntlet?.persistedHp).toEqual({ mm1: 400, mm2: 0, mm3: 1000 });
+        // TICKET 202b: the downed member (mm2) is revived at 30% of max HP, not left at 0.
+        expect(state.run?.gauntlet?.persistedHp).toEqual({ mm1: 400, mm2: 300, mm3: 1000 });
         expect(state.run?.gauntlet?.healedHp).toEqual({ mm1: 300, mm2: 0, mm3: 50 });
-        // The downed stay down: the repair is not a Revive.
-        expect(state.run?.gauntlet?.downedMemberIds).toEqual(['mm2']);
+        expect(state.run?.gauntlet?.downedMemberIds).toEqual([]);
+        expect(state.run?.gauntlet?.revivedMemberIds).toEqual(['mm2']);
+    });
+
+    it('revives a member who ended the fight at 0 at 30% of max HP, ready for the next fight (ticket 202b)', () => {
+        const state = savable(runReducer(atGym(), advanceGauntlet([
+            { memberId: 'mm1', hp: 0, maxHp: 1155 },
+            { memberId: 'mm2', hp: 700, maxHp: 1170 },
+        ])));
+
+        expect(state.run?.gauntlet?.fightIndex).toBe(1);
+        expect(state.run?.gauntlet?.persistedHp.mm1).toBe(346);
+        expect(state.run?.gauntlet?.persistedHp.mm2).toBe(1051);
+        expect(state.run?.gauntlet?.downedMemberIds).toEqual([]);
+        expect(state.run?.gauntlet?.revivedMemberIds).toEqual(['mm1']);
+    });
+
+    it('writes who was revived afresh each fight, and nothing when no one fell (ticket 202b)', () => {
+        let state = runReducer(atGym(), advanceGauntlet([{ memberId: 'mm1', hp: 0, maxHp: 1000 }]));
+        expect(state.run?.gauntlet?.revivedMemberIds).toEqual(['mm1']);
+        state = savable(runReducer(state, advanceGauntlet([{ memberId: 'mm1', hp: 500, maxHp: 1000 }])));
+
+        expect(state.run?.gauntlet?.revivedMemberIds).toBeUndefined();
     });
 
     it('rewrites the repair each fight rather than adding to the last one (ticket 173a)', () => {

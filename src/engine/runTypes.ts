@@ -239,6 +239,12 @@ export interface IGauntletProgress {
      * from before the field.
      */
     readonly healedHp?: Readonly<Record<string, number>>;
+    /**
+     * TICKET 202b — who the last between-fights settle revived (a member who ended the fight at 0 and
+     * came back at `GAUNTLET_REVIVE_PERCENT` of max HP, `gauntletRevive.ts`), so the pit stop can say
+     * "revived at 30%". Absent when no one fell, and on saves from before the field.
+     */
+    readonly revivedMemberIds?: ReadonlyArray<string>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -722,6 +728,8 @@ export const GauntletProgressSchema = z.object({
     downedMemberIds: z.array(z.string()),
     // Ticket 173a, add-only: what the last between-fights repair gave each member, for the pit stop.
     healedHp: z.record(z.string(), z.number().int().min(0)).optional(),
+    // Ticket 202b, add-only: who the last between-fights settle revived, for the pit stop.
+    revivedMemberIds: z.array(z.string()).optional(),
 });
 
 export const RunStateSchema = z.object({

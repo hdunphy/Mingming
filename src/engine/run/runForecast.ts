@@ -8,7 +8,7 @@
  *
  * **Nothing here is typed in.** The elite count is the number of biomes minus the last (a biome's exit
  * is an elite, the last biome's is the gym, `REGION_PARAMS.biomeExitKind`), the gauntlet's length is
- * `GAUNTLET_FIGHTS`, the repair is `GAUNTLET_HEAL_PERCENT`, and the boss rule is read from the same
+ * `GAUNTLET_FIGHTS`, the repair is `GAUNTLET_HEAL_PERCENT`, the revive is `GAUNTLET_REVIVE_PERCENT` (202b), and the boss rule is read from the same
  * table the gauntlet fields (`gymSignatures` over `authoredBossFor`). Ticket 176 is redrawing the map
  * and ticket 28a is the warning about a preview with a table of its own, so a layer number or a node
  * name must never be written into this text.
@@ -17,15 +17,22 @@
  */
 import { GAUNTLET_FIGHTS, gymSignatures } from './gauntlet';
 import { GAUNTLET_HEAL_PERCENT } from './gauntletHeal';
+import { GAUNTLET_REVIVE_PERCENT } from './gauntletRevive';
 import { authoredBossFor } from './bosses';
 
 /** The numbers the forecast is built from. Held as a value so a test can change one and see the text move. */
 export interface ForecastShape {
     readonly fights: number;
     readonly repairPercent: number;
+    /** Ticket 202b: the percent of max HP a downed member comes back at. 0 means a downed one stays down. */
+    readonly revivePercent: number;
 }
 
-export const DEFAULT_SHAPE: ForecastShape = { fights: GAUNTLET_FIGHTS, repairPercent: GAUNTLET_HEAL_PERCENT };
+export const DEFAULT_SHAPE: ForecastShape = {
+    fights: GAUNTLET_FIGHTS,
+    repairPercent: GAUNTLET_HEAL_PERCENT,
+    revivePercent: GAUNTLET_REVIVE_PERCENT,
+};
 
 export interface RunForecast {
     /** One sentence, at most the copy budget's 140 characters. */
@@ -53,10 +60,22 @@ function sentenceFor(biomeCount: number, shape: ForecastShape): string {
     return `${guardClause(gates)}, where ${word(shape.fights)} fights come back to back ${repairClause(shape.repairPercent)}. Bring a full team.`;
 }
 
+/**
+ * The between-fights rule, in the numbers the shape carries (ticket 202b: a downed member comes back at
+ * `revivePercent`, so the sentence reads "Every member repairs 30% between fights; a downed one comes
+ * back at 30%"). With no revive it says a downed one stays down, as it did before 202b.
+ */
+function repairRule(shape: ForecastShape): string {
+    const { repairPercent, revivePercent } = shape;
+    if (repairPercent > 0 && revivePercent > 0) return `Every member repairs ${repairPercent}% between fights; a downed one comes back at ${revivePercent}%.`;
+    if (repairPercent > 0) return `Every member still standing repairs ${repairPercent}% between fights; a downed one stays down.`;
+    if (revivePercent > 0) return `Nothing is repaired between fights; a downed one comes back at ${revivePercent}%.`;
+    return 'Nothing is repaired between fights.';
+}
+
 function detailsFor(biomes: ReadonlyArray<{ readonly elements: ReadonlyArray<string> }>, gymId: string, shape: ForecastShape): string[] {
     const lines = [`The gym is ${word(shape.fights)} fights in a row, the boss last.`];
-    if (shape.repairPercent > 0) lines.push(`Every member still standing repairs ${shape.repairPercent}% between fights; a downed one stays down.`);
-    else lines.push('Nothing is repaired between fights.');
+    lines.push(repairRule(shape));
     if (authoredBossFor(gymId)) {
         // The boss's team is not named here: the offer screen telegraphs the RULE (ticket 68 ruling 4),
         // and the scout shows the team mid-run (ticket 142b).

@@ -12,6 +12,7 @@ import { toMingmingState } from '../../../engine/run/battleSetup';
 import { withEffectiveOS } from '../../../engine/run/effectiveOS';
 import { GAUNTLET_ENEMY_COUNT, gauntletOpponentElements, isBossFight } from '../../../engine/run/gauntlet';
 import { GAUNTLET_HEAL_PERCENT } from '../../../engine/run/gauntletHeal';
+import { GAUNTLET_REVIVE_PERCENT } from '../../../engine/run/gauntletRevive';
 import { GYM_REGISTRY } from '../../../engine/run/gyms';
 import { initializeBattleEntity } from '../../../engine/types';
 import { playGauntletFight } from '../gauntletFlow';
@@ -32,7 +33,7 @@ export function gauntletScreen(world: World): Screen {
     const first = gauntlet.fightIndex === 0;
     const boss = isBossFight(gauntlet.fightIndex, gauntlet.totalFights);
 
-    const lines = [`${GYM_REGISTRY[run.gymId]?.name ?? run.gymId} gauntlet, fight ${gauntlet.fightIndex + 1} of ${gauntlet.totalFights}. Between fights every member still standing repairs ${GAUNTLET_HEAL_PERCENT}% of its max HP; the rest of the damage carries.`];
+    const lines = [`${GYM_REGISTRY[run.gymId]?.name ?? run.gymId} gauntlet, fight ${gauntlet.fightIndex + 1} of ${gauntlet.totalFights}. Between fights every member repairs ${GAUNTLET_HEAL_PERCENT}% of its max HP; a downed one comes back at ${GAUNTLET_REVIVE_PERCENT}%; the rest of the damage carries.`];
     lines.push('PARTY:');
     let standing = 0;
     for (const id of run.partyIds) {
@@ -43,7 +44,12 @@ export function gauntletScreen(world: World): Screen {
         const down = gauntlet.downedMemberIds.includes(id);
         if (!down) standing += 1;
         const healed = gauntlet.healedHp?.[id] ?? 0;
-        lines.push(`  ${memberName(member)} ${hp}/${entity.maxHp}${down ? ' (down)' : ''}${!down && healed > 0 ? ` (+${healed} repaired)` : ''}`);
+        const revived = gauntlet.revivedMemberIds?.includes(id) ?? false;
+        // Ticket 202b: the amount is printed, never hidden. A revived member says so; a repaired one gives the percent and the HP.
+        const note = down ? ' (down)'
+            : revived ? ` (revived at ${GAUNTLET_REVIVE_PERCENT}%)`
+            : healed > 0 ? ` (repaired ${GAUNTLET_HEAL_PERCENT}%, +${healed})` : '';
+        lines.push(`  ${memberName(member)} ${hp}/${entity.maxHp}${note}`);
     }
     lines.push(`DRAUGHTS: ${run.macros.map((id) => (id === null ? 'empty' : macroLine(id))).join(' | ')}`);
     const elements = gauntletOpponentElements({ run, node, fightIndex: gauntlet.fightIndex });
