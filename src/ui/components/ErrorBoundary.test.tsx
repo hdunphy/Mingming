@@ -152,6 +152,9 @@ describe('ErrorBoundary', () => {
         expect(payload.state.game.scrapCount).toBe(42);
         expect(payload.componentStack).toBeTruthy();
         expect(host.textContent).toContain('COPIED');
+        // Ticket 205: the tick after the word is a Tabler check, not a character.
+        const copied = [...host.querySelectorAll('button')].find((b) => b.textContent?.includes('COPIED'));
+        expect(copied?.querySelector('svg[data-icon="check"]')).toBeTruthy();
     });
 
     it('reports a failed copy instead of pretending it worked', async () => {

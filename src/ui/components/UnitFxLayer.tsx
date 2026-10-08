@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { prefersReducedMotion } from '../utils/motionPrefs';
 import type { UnitFx } from '../hooks/useBattleVfx';
 import { floatFontPx, floatSizing, slotStepPx } from '../vfx/floatStyle';
+import { InlineIcon } from '../theme/InlineIcon';
+import { MARK_ICON } from '../theme/markIcons';
 
 /**
  * Shared combat-FX renderers, extracted from MingmingUnit so both the sidebar
@@ -96,7 +98,7 @@ export const FxFloats: React.FC<FxFloatsProps> = ({ fx, rise = 70 }) => (
                         opacity: { duration: 1.8, times: [0, 0.06, 0.8, 1] },
                     }}
                 >
-                    {f.text}
+                    {f.text}{f.icon && <> <InlineIcon {...MARK_ICON[f.icon]} /></>}
                 </motion.div>
             );
         })}
@@ -127,7 +129,7 @@ export const TerminatedStamp: React.FC<TerminatedStampProps> = ({ visible, glitc
                     animate={{ scale: 1, rotate: -8 }}
                     transition={{ duration: 0.25, ease: 'easeOut', delay: glitching ? 0.35 : 0 }}
                 >
-                    ☠ TERMINATED
+                    <InlineIcon {...MARK_ICON.terminated} /> TERMINATED
                 </motion.span>
             </motion.div>
         )}

@@ -20,6 +20,7 @@ import { activeProfile } from '../vfx/tiers/activeTier';
 import { loadSettings, resolveVfxGates } from '../settings/settings';
 import { type StageMoment, onStageMoment } from '../vfx/impact/stageMoments';
 import { type CardSignal, onCardSignal } from '../vfx/presenter/cardSignals';
+import type { MarkKey } from '../theme/markIcons';
 
 /**
  * useBattleVfx — UI-only combat-juice driver.
@@ -45,6 +46,8 @@ export interface CombatFloat {
     id: number;
     kind: FloatKind;
     text: string;
+    /** TICKET 205: a Tabler mark drawn after the text (the absorbed float's shield), named in `markIcons.ts`. */
+    icon?: MarkKey;
     color: string;
     /** 0..5 vertical slot (ticket 167h) so rapid hits stack instead of overlapping dead-center. */
     slot: number;
@@ -266,12 +269,12 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
     }, []);
 
     React.useEffect(() => {
-        const pushFloat = (entityId: string, kind: FloatKind, text: string, color: string, px?: number) => {
+        const pushFloat = (entityId: string, kind: FloatKind, text: string, color: string, px?: number, icon?: MarkKey) => {
             const id = floatIdRef.current++;
             const slot = (slotRef.current[entityId] = ((slotRef.current[entityId] ?? -1) + 1) % FLOAT_SLOTS);
             setVfx(prev => {
                 const unit = prev.unitFx[entityId] ?? EMPTY_UNIT_FX;
-                let floats = [...unit.floats, { id, kind, text, color, slot, ...(px === undefined ? {} : { px }) }];
+                let floats = [...unit.floats, { id, kind, text, color, slot, ...(px === undefined ? {} : { px }), ...(icon === undefined ? {} : { icon }) }];
                 if (floats.length > MAX_FLOATS_PER_UNIT) {
                     floats = floats.slice(floats.length - MAX_FLOATS_PER_UNIT);
                 }
@@ -407,7 +410,7 @@ export function useBattleVfx(battleState: IBattleState | null): BattleVfx {
             }
 
             if (absorbed > 0) {
-                pushFloat(targetId, 'absorbed', `-${absorbedAmount(absorbed)} 🛡`, ABSORB_COLOR);
+                pushFloat(targetId, 'absorbed', `-${absorbedAmount(absorbed)}`, ABSORB_COLOR, undefined, 'absorbed');
             }
             /*
              * Three shield moments, not one (147 §8): the bark held (`blockedByBark`), the bark broke

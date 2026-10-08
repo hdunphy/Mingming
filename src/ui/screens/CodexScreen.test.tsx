@@ -16,6 +16,7 @@ import { GetProgramData } from '../../engine/data/programRegistry';
 import { GetMingmingData } from '../../engine/data/mingmingRegistry';
 import type { ICodex } from '../../engine/runTypes';
 import { plain } from '../labels/labels';
+import { iconsIn } from '../theme/iconMarkup';
 
 const empty: ICodex = { seen: [], played: [], species: [], assembled: [], os: [] };
 
@@ -80,6 +81,14 @@ describe('CodexScreen', () => {
         const markup = render({}, 'overview', fired);
         for (const milestone of CODEX_MILESTONES) expect(markup).toContain(plain(milestone.label));
         expect(markup.match(/codex-milestone done/g) ?? []).toHaveLength(1);
+    });
+
+    it('draws a FILLED star for a reached milestone and an OUTLINE star for the rest (205)', () => {
+        const fired = [CODEX_MILESTONES[0].id];
+        const marks = render({}, 'overview', fired).split('codex-milestone-mark').slice(1).map((chunk) => iconsIn(chunk.slice(0, chunk.indexOf('</span>')))[0]);
+        expect(marks).toHaveLength(CODEX_MILESTONES.length);
+        expect(marks[0]).toEqual({ name: 'star', variant: 'filled' });
+        for (const mark of marks.slice(1)) expect(mark).toEqual({ name: 'star', variant: 'outline' });
     });
 
     it('says the milestones pay nothing yet', () => {

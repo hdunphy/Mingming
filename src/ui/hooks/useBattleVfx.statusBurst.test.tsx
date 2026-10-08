@@ -109,7 +109,7 @@ describe('167h — a float lives long enough to read', () => {
 });
 
 describe('167i — the absorbed float shows a whole number', () => {
-    it('a hit that a Bark Shield eats 13.7 of floats "-14 🛡", not the raw figure', () => {
+    it('a hit that a Bark Shield eats 13.7 of floats "-14" with the shield icon, not the raw figure', () => {
         vi.spyOn(audioEngine, 'playSfx').mockImplementation(() => undefined);
         act(() => {
             // 189d: a hit is said by the presenter's stage moment at the impact, not by the event.
@@ -120,8 +120,11 @@ describe('167i — the absorbed float shows a whole number', () => {
             });
         });
         act(() => { vi.advanceTimersByTime(10); });
-        const texts = (seen.vfx!.unitFx['p1']?.floats ?? []).map(f => f.text);
-        expect(texts).toContain('-14 🛡');
+        const floats = seen.vfx!.unitFx['p1']?.floats ?? [];
+        const texts = floats.map(f => f.text);
+        // Ticket 205: the shield is a Tabler icon the float carries by name, no longer a character in its text.
+        expect(floats.find(f => f.text === '-14')?.icon).toBe('absorbed');
+        expect(texts).toContain('-14');
         expect(texts.some(t => t.includes('13.7'))).toBe(false);
     });
 });

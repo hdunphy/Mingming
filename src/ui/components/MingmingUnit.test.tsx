@@ -27,7 +27,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import MingmingUnit, { ENERGY_PIP_BUDGET } from './MingmingUnit';
 // Ticket 145b: the badges are shared with the stage plaque now, so the budget lives with them.
 import { HUD_STATUS_BUDGET as STATUS_BADGE_BUDGET } from './StatusBadges';
-import type { Element, IBattleEntity, IBattleState } from '../../engine/types';
+import type { Element, IBattleEntity, IBattleState, IntentType } from '../../engine/types';
+import { iconNamesIn } from '../theme/iconMarkup';
 
 /** Enemy-only: one ATTACK action, `target: 'Single'`, no HEAL or STATUS to open the ally carve-out. */
 const ENEMY_ONLY_CARD = 'fire_punch_v2';
@@ -247,7 +248,12 @@ describe('the status row cannot grow past its own card', () => {
 });
 describe('target validity is obvious, and the invalid case says why', () => {
     it('marks a legal target', () => {
-        expect(render(ENEMIES[0], true, { card: 'atk' })).toContain('✓ TARGET');
+        // Ticket 205: the tick is a Tabler check now, not a character; the word stays.
+        const markup = render(ENEMIES[0], true, { card: 'atk' });
+        const from = markup.indexOf('<div class="hud-target-flag legal"');
+        const flag = markup.slice(from, markup.indexOf('</div>', from));
+        expect(flag).toContain('TARGET');
+        expect(iconNamesIn(flag)).toEqual(['check']);
         expect(render(ENEMIES[0], true, { card: 'atk' })).toContain('hud-target-legal');
     });
 
@@ -255,7 +261,7 @@ describe('target validity is obvious, and the invalid case says why', () => {
         const markup = render(PLAYERS[1], false, { card: 'atk' });
         expect(markup).toContain('hud-target-illegal');
         expect(markup).toContain('only hits enemies');
-        expect(markup).not.toContain('✓ TARGET');
+        expect(markup).not.toContain('hud-target-flag legal');
     });
 
     it('refuses a self-only card on an enemy IN WORDS', () => {
@@ -283,5 +289,27 @@ describe('target validity is obvious, and the invalid case says why', () => {
         expect(markup).not.toContain('hud-target-flag');
         expect(markup).not.toContain('hud-target-legal');
         expect(markup).not.toContain('hud-target-illegal');
+    });
+});
+
+/** TICKET 205: the intent icon is a Tabler glyph, not an emoji. */
+describe('the enemy intent icon (205)', () => {
+    const intentOf = (intentType: IntentType): string =>
+        render(unit('e1', { currentIntent: { id: 'm', name: 'Move', intentType, priority: 0, actions: [] } as never }), true);
+
+    it.each([
+        ['Attack', 'sword'],
+        ['Defend', 'shield'],
+        ['Debuff', 'flask'],
+        ['Buff', 'star'],
+        ['Special', 'star'],
+        ['Unknown', 'star'],
+    ] as const)('%s draws %s', (type, name) => {
+        expect(iconNamesIn(intentOf(type))).toContain(name);
+    });
+
+    it('draws no intent icon for an ally', () => {
+        const ally = render(unit('p9', { currentIntent: { id: 'm', name: 'Move', intentType: 'Attack', priority: 0, actions: [] } as never }), false);
+        expect(iconNamesIn(ally)).not.toContain('sword');
     });
 });
