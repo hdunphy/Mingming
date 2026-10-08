@@ -27,6 +27,7 @@ Commands:
 - `card --session <name> <card name>` shows one card's full text.
 - `note --session <name> "<text>"` writes a note for the people who read your run.
 - `replay --session <name> --to <n>` shows the screen as it was after your first n moves. It only reads.
+- `again --session <name>` starts your second run on the same save, once the first run has ended. A session plays two runs.
 
 Always use the session name you were given, and end every command with the `--results` folder you were
 given (it is how the tool finds your session). Always read the screen before you move: the numbers change

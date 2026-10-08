@@ -19,7 +19,8 @@ import { fileURLToPath } from 'node:url';
 
 import { sessionPath } from './sessionFile';
 import type { LoggedMove, SessionFile, SessionHeader, World } from './types';
-import { applyMove, replayWorld, restoreWorld } from './world';
+import { playMoves, replaySession } from './playMoves';
+import { restoreWorld } from './world';
 
 const VERSION = 1;
 
@@ -71,6 +72,8 @@ interface Saved { stamp: string; count: number; key: string; game: never; run: n
 
 function fromSnapshot(root: string, name: string, session: SessionFile, upTo: number): { world: World; from: number } | null {
     try {
+        // 202c: a session with a second run is rebuilt in full until its snapshot learns about run 2.
+        if (session.run2 !== undefined) return null;
         const path = snapshotPath(root, name);
         if (!existsSync(path)) return null;
         const saved = JSON.parse(readFileSync(path, 'utf8')) as Saved;
@@ -93,8 +96,7 @@ export interface Loaded {
 /** The world after the session's first `upTo` moves (all of them by default), from a snapshot when one can be trusted. */
 export function loadWorld(root: string, name: string, session: SessionFile, upTo: number = session.moves.length): Loaded {
     const start = fromSnapshot(root, name, session, upTo);
-    if (start === null) return { world: replayWorld(session, session.moves.slice(0, upTo)), replayed: upTo };
+    if (start === null) return { world: replaySession(session, upTo), replayed: upTo };
     const { world, from } = start;
-    for (let i = from; i < upTo; i += 1) applyMove(world, session.moves[i], session.moves[i + 1]?.chained === true);
-    return { world, replayed: upTo - from };
+    return { world: playMoves(world, session.run2, session.moves, from, upTo, session.moves.length), replayed: upTo - from };
 }
