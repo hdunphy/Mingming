@@ -14,7 +14,10 @@ export default defineConfig([
   // TICKET 42: `desktop/app` is a COPY of `dist` and `desktop/release` is the packaged Electron
   // build. Both are generated, both contain minified bundles, and `dist` is ignored above for
   // exactly the same reason — they are only listed separately because the pattern is a path.
-  globalIgnores(['dist', 'scratch', 'desktop/app', 'desktop/release']),
+  // `.claude/` holds the agents' git worktrees: each is a full copy of the repo, so linting the
+  // repo also lints every copy (489 errors from six finished worktrees on 2026-10-08).
+  // `_scratch_balance/` is Henry's gitignored scratch folder, never part of the build.
+  globalIgnores(['dist', 'scratch', 'desktop/app', 'desktop/release', '.claude', '_scratch_balance']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
