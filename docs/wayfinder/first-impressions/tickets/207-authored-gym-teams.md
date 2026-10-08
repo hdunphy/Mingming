@@ -1,6 +1,6 @@
 # Ticket 207: Authored gym teams: the leader's locked team and deck, and its cards in fights 1 and 2 (design)
 
-**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); not started. 206 picks the gym setting after this lands (206 D4). Split out of [206](206-gym-difficulty-and-biome-order.md).
+**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); **the three teams picked 2026-10-08**; not started. 206 picks the gym setting after this lands (206 D4). Split out of [206](206-gym-difficulty-and-biome-order.md).
 
 ## Why
 
@@ -20,21 +20,41 @@ Henry (2026-10-08): *"Add some of the leader cards so you get to see them before
 5. **Fight 3 is the hardest.** Checked on 206a's bench: per gym, the loss rate in fight 3 should be the highest of the three fights. If fight 1 or 2 out-kills the leader, that is a finding to report.
 6. **Keep the scout and the telegraph honest.** The gym scout and the elites' Driver preview read the same table (ticket 28a: one gym comp table), so they show the locked team.
 
+### The three teams (Henry, 2026-10-08)
+
+Henry: *"Not sure yet let's pick the Mingmings first."* Each gym keeps its shape: two members of the gym's element plus one guest from the element the gym beats (ticket 28b), and its Totem.
+
+| Gym | Plan | Members (Instinct) | What the decks build toward |
+|---|---|---|---|
+| **Emberfall** (Fire) | control | fenrir_v2, skoll_v2, **huldra_v2** (guest) | Huldra: Burn for damage and scaling, while building Sharp and Bark Shield. Fenrir and Sköll: control |
+| **Tidewrack** (Water) | ramp | kraken_v2, **jormungandr_v2**, **fenrir_v1** (guest) | Early turns get Energized and stack Poison; Jörmungandr scales on the Poison; the late payoff is multi-hit cards for Fenrir and Jörmungandr |
+| **Rootfall** (Nature) | zoo | **ratatoskr_v1**, **huldra_v1**, **kraken_v1** (guest) | Apply Dazed; the payoff is cards that scale on cards played |
+
+Bold is a change from today's table (`AUTHORED_BOSSES` in `src/engine/run/bosses.ts`). Today: Emberfall fenrir_v2, skoll_v2, huldra_v1; Tidewrack jormungandr_v1, kraken_v2, skoll_v2; Rootfall huldra_v2, ratatoskr_v2, jormungandr_v2.
+
+What the change does to the tables and tests (for 207b):
+- No Instinct is fielded at two gyms any more. skoll_v2 was the one named duplicate (`pathAndScout.test.ts` pins it), so that pin goes.
+- jormungandr_v1 leaves the gyms. Its redesign (203) no longer moves the gym.
+- The gym biomes' elements do not change: each gym's members keep the same elements (`gymCompElementPlan`), so the approach biomes stay as they are.
+- The Rootfall trio is the "Gossip Tide" zoo comp from 140 (ratatoskr_v1, huldra_v1, kraken_v1), which measured strongest of the three proposed comps in the 2026-09-03 round robin (81, on an older build). 207c's per-fight read is where to check that Rootfall is not now much harder than the other two.
+
+**The leader cards:** which card per Instinct is chosen after the deck lists, in the same session. Henry (2026-10-08): *"Not sure yet."*
+
 ### How the slots are placed (proposal, for the engine row)
 
 Six slots, three required Instincts. Draw which of fights 1 and 2 gets two of the required Instincts and which gets one (seeded), place them, then roll the remaining three slots from the pool as today. A fight never holds all three required Instincts (a rolled slot in the fight that already has two may not roll the third), so neither can match the leader's trio. A required species need not be in the run's biome pools; it is placed, not drawn. `drawSpecies`'s no-repeat-in-a-fight rule still holds.
 
 ## Open questions for the session
 
-1. **Swap or add:** does the leader card replace a card in that enemy's tuned deck (which one?) or get added to it?
-2. **Which card per Instinct:** one of the cards already in that Instinct's deck, or a new card authored for the gym?
+1. ~~**Swap or add**~~ Answered 2026-10-08: **case by case**, decided per leader card in the session.
+2. **Which card per Instinct:** after the deck lists (*"Not sure yet let's pick the Mingmings first"*).
 3. Do the leader's decks follow the same card-count rules as a player deck?
 
 ## Rows
 
 | Row | What | State |
 |---|---|---|
-| 207a | Design session: the three leaders' deck lists, and the leader cards for fights 1 and 2 | Not started; Henry |
+| 207a | Design session: the three teams (**picked 2026-10-08**), their deck lists (drafted against Henry's plan per gym, then he reviews), and the nine leader cards | Teams done; deck lists next |
 | 207b | Engine: authored decks and leader cards in the gym table; fights 1 and 2 place the three leader Instincts (each at least once, never the full trio in one fight) with their leader cards; scout and Driver preview read the table; tests pin each gym's team, deck and placement rule | After 207a |
 | 207c | Measure on 206a's bench: the base arm, and the loss rate per fight (fight 3 should be the highest) | After 207b and 206a |
 
@@ -45,7 +65,10 @@ Six slots, three required Instincts. Draw which of fights 1 and 2 gets two of th
 ## Decisions for Henry
 
 1. ~~**D1, fights 1 and 2:**~~ Answered 2026-10-08: a leader card for each Instinct; all three Instincts appear at least once in fights 1 and 2; neither fight is the leader's exact trio; the rest stays rolled.
-2. **D2, swap or add,** and **which card per Instinct** (in the session).
+2. ~~**D2, swap or add:**~~ Answered 2026-10-08: case by case.
+3. ~~**D3, the teams:**~~ Answered 2026-10-08: the table above.
+4. **D4, the deck lists:** Henry reviews each drafted list.
+5. **D5, the leader cards:** one per Instinct, picked after the deck lists.
 
 ## Resolution
 

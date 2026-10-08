@@ -1,6 +1,6 @@
 # Ticket 206: The gym's difficulty and the biome order (design)
 
-**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; not started. Split out of the 10-08 night review ([205](205-night-2026-10-08-findings.md)).
+**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; **206b shipped 2026-10-08** (`24a56ec`, the new biome order is the default); the rest not started. **This ticket does not close until Henry has played the new order** (*"gate closing the ticket on a play test so I don't forget"*). Split out of the 10-08 night review ([205](205-night-2026-10-08-findings.md)).
 
 ## Why
 
@@ -42,7 +42,7 @@ So the compromise clears the 85% wild rule (2026-09-25) for every starter, and l
 | Row | What | State |
 |---|---|---|
 | 206a | **The gym replay bench:** replay the gauntlet with the exact teams and decks the agents brought to the gym, under different settings | Not started |
-| 206b | **Ship the compromise order, gated on playtesting** (Henry, D1): build it as a run option, measure both orders, then it becomes the default once the playtests pass | Not started; can start now |
+| 206b | **The compromise order is the default** (Henry, D1) | **Shipped 2026-10-08** (`24a56ec`); the measurements below still to run; Henry's playtest closes the ticket |
 | 206c | **Run the bench's arms** (Henry's list) and report each against the soft 60% target | After 206a, 206e and 207 (D4) |
 | 206d | **One agent night** on the configuration Henry picks | After the rulings |
 | 206e | **Tie the revive to the heal:** once 202b's revive merges, its HP reads the gym heal's percentage (one number, `GAUNTLET_HEAL_PERCENT`), so every heal arm moves both | After 202b merges |
@@ -63,21 +63,24 @@ Henry (2026-10-08): *"It would be great to measure those with an AI … if we ca
 5. **Cost.** A 3v3 gym fight costs 30–70 s on one core (ticket 61's measurement). 32 teams × 5 seeds × 8 arms × up to 3 fights is about 3,800 fights, which is 30 to 70 hours on one core. So the bench runs teams in parallel across worker threads and is a night job on Henry's machine. Start at 3 seeds and add seeds only to the arms that land near 60%.
 6. **A small module per job:** the snapshot reader (session → `GymSnapshot`), the arm table, the runner, the report. The arms are named run options read by the gauntlet, never edits to the constants, so the game default is untouched until Henry rules.
 
-### 206b: The compromise order, gated on playtesting
+### 206b: The compromise order, the default
 
-Henry (2026-10-08): *"I think the biome order makes the most sense. Ship it but gate on play testing."*
+Henry (2026-10-08): *"I think the biome order makes the most sense. Ship it but gate on play testing."* Then: *"Just make this the default but gate closing the ticket on a play test so I don't forget."*
 
-1. A run option (a flag on `createRun`, a modifier the walker can set, and a playtest-tool flag the night can pass) that swaps `walkOrderFor` for the compromise. Today's order stays the default while the gate is open.
-2. Measure both orders:
+**Shipped 2026-10-08 (`24a56ec`).** `walkOrderFor` in `src/engine/run/gyms.ts` now returns `[gym], [counter + gym]`, and the approach is unchanged. Biome 2 is named from the starter's element (its first). Every road now shows all three launch elements. Tests:
+- `gyms.test.ts` pins the new road, three different openings, and one mono biome then two pairs.
+- Pins moved on purpose: ghostWalk's four default walks, draftPolicy's two Draft Start walks, the 195b first-Trace fixture (seed ps1 → ps3) and the 180f report fixture's market walk (ps21 → ps1). ghostWalk's early-death seed still dies before the gym, now in its eighth fight.
+- Run in the VM: every `src/engine/run` test, every `debug/balance` and `debug/playtest` test except ghostWalk's four-tier gauntlet block and `overnight.test.ts` (too slow there), the run-facing UI tests, `tsc` and eslint on the changed files. Henry's `npm run gate` is the full check.
+
+Still to do, for the record and for the playtest:
+1. Measure the new order against the old one (kept reachable by reverting `walkOrderFor` locally, not as a game option):
    - each starter's wild and elite reads in biome 1 and in biome 2;
-   - the full-run win rate on the walker (157's 30×12 shape if it is cheap enough, else 12×12);
+   - the full-run win rate on the walker;
    - where runs end (biome and node kind);
-   - which species the rivals and Trace drops offer in biomes 1 and 2.
-3. **Henry's worry, measured.** Under the compromise a Fire starter recruits from the Nature biome first and then meets Fire in half of biome 2. Report how often a recruit made in biome 1 is downed in biome 2, under each order.
+   - how often a recruit made in biome 1 is downed in biome 2 (Henry's worry from 2026-09-11).
+2. **Henry plays the new order.** The ticket closes on his sign-off.
 
 The bench (206a) cannot measure this row: the biome order changes the teams that reach the gym, so it needs whole runs.
-
-4. **The gate.** The compromise becomes the default when (a) the measurements above show no starter under 85% wild in biome 1 and biome 2 recruits are not routinely downed, (b) one agent night plays it (206d, or its own night), and (c) Henry plays it himself and signs off. Then flip the default, update the pins, and keep today's order as the option for comparison.
 
 ### 206c: The arms (Henry, 2026-10-08)
 
@@ -104,7 +107,7 @@ A primed night (205b's default) on the 10-04 seeds with the picked configuration
 
 - Target a full-team gym win rate near 60% for the agent; *"that's not a hard rule"*. Henry reaches the gym every time at tier 0 and wins most, and the agent plays below him, so the agent's 60% is the yardstick.
 - 202b's revive ships before this ticket's tuning (another agent's branch), and **the revive's HP equals the heal's percentage** (*"For simplicity keep this the same % as the heal"*). Henry: *"Add this to the new settings ticket"*, so this ticket owns it (206e) rather than 202b; 202 is not edited from here.
-- **Biome order: the compromise ships, gated on playtesting** (*"Ship it but gate on play testing"*); 206b.
+- **Biome order: the compromise is the default now; the ticket closes on Henry's playtest** (*"Just make this the default but gate closing the ticket on a play test so I don't forget"*); 206b.
 - **The gym setting is picked after 207** (*"after"*).
 - Measure the settings by replaying the agents' real gym teams (206a), with the arms above (206c).
 - The Totems' own numbers: parked.
@@ -112,12 +115,12 @@ A primed night (205b's default) on the 10-04 seeds with the picked configuration
 
 ## Decisions for Henry
 
-1. ~~**D1, the biome order:**~~ Answered 2026-10-08: **the compromise**, *"Ship it but gate on play testing"*; 206b.
+1. ~~**D1, the biome order:**~~ Answered 2026-10-08: **the compromise, as the default now**; the ticket closes on Henry's playtest. Shipped in 206b.
 2. **D2, the gym setting(s)** from 206c's table.
 3. ~~**D3, 202b's revive:**~~ Answered 2026-10-08: it ships **before** this ticket's tuning, from another agent's branch; 206a's baseline includes it, at the heal's percentage.
 4. ~~**D4, order against 207:**~~ Answered 2026-10-08: **after** 207's locked gym teams land.
-5. **D5, the gate's sign-off:** are 206b's three conditions (the numbers, a night, your own run) the right gate for making the compromise the default?
+5. **D5, the playtest:** Henry plays a run on the new order and says whether it stays. This closes the ticket.
 
 ## Resolution
 
-Not started.
+Open. 206b shipped 2026-10-08 (`24a56ec`); waiting on Henry's playtest of the new order (D5), 202b's revive (206e), and 207 (206c).
