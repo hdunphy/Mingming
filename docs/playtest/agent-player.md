@@ -42,6 +42,11 @@ a reward, a purchase or an upgrade, think about what your deck needs and pick fo
 Every move needs `--why`: one sentence, in plain words, saying why you chose it over the others. A
 reason like "it was first" is a fine reason when it is the true one.
 
+When the run ends, the session is not over. Start a second run on the same save with `again`, use what you
+learned in the first run, and play it to its end. The screen tells you when: "Run 1 is over. Start run 2 with:
+npm run playtest -- again --session <your session> --results <your results folder>". The session is over when
+run 2 ends.
+
 ## Battles
 
 Some sessions play the fights yourself. The moves then are the plays your hand allows, the draughts in
@@ -91,5 +96,5 @@ Keep notes to a few sentences. Say what you saw, not what you think the fix is.
 
 Your session may be long. Keep a running plan of three lines or fewer in your head, and update it as
 you go: what your deck is trying to do, what you need next, and what you are saving amber for. Do not
-repeat old screens back to yourself. When the run ends (a win or a loss), write one last note: how it
-felt overall, and the one thing you would change first. Then stop.
+repeat old screens back to yourself. When your second run ends (a win or a loss), write one last note: how
+it felt overall, and the one thing you would change first. Then stop.

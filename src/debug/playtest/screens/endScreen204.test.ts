@@ -19,6 +19,7 @@ const GYM = BASE.nodes.find((n) => n.kind === 'gym')!;
 /** Only what `endScreen` reads: the run, and an empty view. */
 const worldFor = (run: IRunState): World => ({
     store: { getState: () => ({ run: { run } }) },
+    header: {}, runNumber: 1,
     view: { news: [], fight: null, reward: null },
 } as unknown as World);
 
