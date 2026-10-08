@@ -13,6 +13,8 @@
  *
  * RESUMABLE. A session with a `driver.json` is finished and skipped; a session folder without one
  * was interrupted, and is picked up where it stopped (the session file holds every move so far).
+ * 202e: but only if it was started for the same seed, starter and gym as tonight's plan says; otherwise
+ * the night stops, before any driver starts, and says which folder to delete or which flags to repeat.
  *
  * Node rather than shell, like the other scripts here, because Henry is on Windows.
  *
@@ -42,6 +44,7 @@ import { readOutcome } from './night/driverOutcome.mjs';
 import { findResult } from './night/resultRecord.mjs';
 import { shouldRetry } from './night/retryPolicy.mjs';
 import { createStallWatch } from './night/stallWatch.mjs';
+import { ResumeMismatchError, resumeMatchesPlan, resumeRefusal } from './resumeGuard.mjs';
 
 export const DEFAULTS = Object.freeze({
     runs: 10,
@@ -232,6 +235,23 @@ export const realDeps = (options) => ({
 });
 
 /**
+ * 202e: every interrupted session in the plan must have been started for the entry it sits in. Checked for the
+ * whole night up front, so a mismatch at r05 stops the night before r01 spends anything.
+ */
+function assertResumable(entries, options, nightDir) {
+    for (const entry of entries) {
+        const folder = path.join(nightDir, entry.session);
+        const sessionPath = path.join(folder, 'session.json');
+        if (fs.existsSync(path.join(folder, 'driver.json')) || !fs.existsSync(sessionPath)) continue;
+        let session;
+        try { session = JSON.parse(fs.readFileSync(sessionPath, 'utf8')); } catch { session = {}; }
+        if (!resumeMatchesPlan(session, entry)) {
+            throw new ResumeMismatchError(resumeRefusal(session, entry, path.posix.join('results', 'playtest', options.date, entry.session)));
+        }
+    }
+}
+
+/**
  * One night. `deps` is the seam the tests use: `plan()`, `newSession(entry)`, `runDriver(spec)` and
  * the folder the night lives in. Returns what it did, session by session.
  */
@@ -239,6 +259,7 @@ export async function runNight(options, deps, root = DEFAULTS.resultsRoot) {
     const nightDir = path.join(root, options.date);
     const brief = fs.readFileSync(options.briefPath ?? DEFAULTS.briefPath, 'utf8');
     const entries = deps.plan();
+    assertResumable(entries, options, nightDir);
     const done = [];
     const driven = [];
     for (const entry of entries) {
@@ -313,6 +334,6 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-    main().catch((error) => { process.stderr.write(`${error.stack ?? error}\n`); process.exit(1); });
+    main().catch((error) => { process.stderr.write(`${error instanceof ResumeMismatchError ? error.message : error.stack ?? error}\n`); process.exit(1); });
 }
 

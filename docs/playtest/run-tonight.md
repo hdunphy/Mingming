@@ -67,7 +67,9 @@ report before the full night, so the night starts clean.
 
 ## Step 3: the night
 
-**Shortcut:** `npm run overnight` (any terminal, at the repo root) does the checks and then plays Night A (haiku) and Night B (sonnet) on the 2026-10-04 seeds. `npm run overnight -- --dry-run` shows the plan; the header of `scripts/overnight.mjs` lists the flags. The rest of this step is what it runs.
+**The command for the full night is `npm run overnight`** (any terminal, at the repo root, no flags). It does the checks and then plays Night A (haiku) and Night B (sonnet) on the 2026-10-04 seeds: all twelve starters twice (24 sessions a model) and one card-by-card session each, 35 minutes and an estimated $3 at most per session. Both models take about 4 to 6 hours and about $25 in Claude Code's own estimate (measured from the 2026-10-06 haiku night: 24 sessions, 2 h 31 min, $8.31). `npm run overnight -- --dry-run` shows the plan; the header of `scripts/overnight.mjs` lists the flags. The rest of this step is what it runs.
+
+Note: the long form, which spells out the same defaults, is `npm run overnight -- --starter all --runs 24 --card-runs 1`.
 
 When the trial looks like a real playthrough, run the night. Ten sessions is the default (nine in `run`
 mode and one in `card` mode, where the agent predicts every card and so finds wording bugs).
@@ -80,7 +82,7 @@ sessions can take about four hours. If the trial used more of your plan than you
 against 50 to 80), so give it room or leave it out with `--card-runs 0`.
 
 To stop, press Ctrl+C. To pick up again, run **the same command with the same `--date`**. A session that
-has a `driver.json` is finished and skipped, and one that was cut off carries on from its saved moves.
+has a `driver.json` is finished and skipped, and one that was cut off carries on from its saved moves. If you run it again with different flags and a cut-off session was started for another seed, starter or gym, the night stops before anything runs and names that session: delete its folder to replay it, or run with the same flags to resume it.
 
 ## Step 4: the morning
 

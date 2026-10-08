@@ -25,9 +25,9 @@
 | 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | **Built**; the floor stays 30% (Henry ruled D1 on 2026-10-08) |
 | 202c | **Two runs a session:** the agent plays a second run on the same save after the first ends | Night script + tool | Ruled; carry-over is D2 |
 | 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | **Answered 2026-10-07** (measured below); skoll_v1 → 202k, jormungandr_v1 → [203](203-jormungandr-v1-redesign.md), fenrir_v1 left as is Report: [research/202d-v1-starters.md](../research/202d-v1-starters.md) (investigated 2026-10-08; fixes await Henry) |
-| 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | Ruled |
+| 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | **Built** (T3, `9ec49d7c`) |
 | 202f | **The brief:** one night, same seeds, naive brief vs primed brief, haiku and sonnet | Measurement night, then Henry rules | **Brief written 2026-10-07** (`fa121e2`); the night is still the row |
-| 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | Ruled ("make that the default") |
+| 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | **Built** (T3) |
 | 202h | **The night keeps a transcript and retries a stalled session:** `driver.log` with a time on every line, how each driver ended, a stall limit (8 min), one retry at the end | Night script | **Built 2026-10-07** (`bed16ef`) |
 | 202i | **"Party 1 of 3"** beside the Traces count in the run header, game and tool | New text, game and tool | Ruled 2026-10-07 |
 | 202j | **The gym shows its team's elements on the map:** the leader's three element icons under the gym node (e.g. Nature Nature Water) | Map UI, game and tool | Ruled 2026-10-07 |

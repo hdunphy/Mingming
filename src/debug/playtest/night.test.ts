@@ -106,6 +106,12 @@ interface Deps {
 const scriptPath = resolve(__dirname, '../../../scripts/playtest-night.mjs');
 const loadScript = async (): Promise<NightScript> => (await import(/* @vite-ignore */ scriptPath)) as NightScript;
 
+interface ResumeGuard {
+    resumeMatchesPlan(session: Record<string, unknown>, entry: NightEntry): boolean;
+}
+const guardPath = resolve(__dirname, '../../../scripts/resumeGuard.mjs');
+const loadGuard = async (): Promise<ResumeGuard> => (await import(/* @vite-ignore */ guardPath)) as ResumeGuard;
+
 const entries = (): NightEntry[] => planNight(DATE, STARTERS, { runs: 3 });
 
 /** Fakes: starting a session writes its `session.json`, the driver answers with a canned result. */
@@ -116,7 +122,7 @@ function fakeDeps(root: string, calls: { started: string[]; driven: string[] }):
             calls.started.push(entry.session);
             const folder = join(root, DATE, entry.session);
             mkdirSync(folder, { recursive: true });
-            writeFileSync(join(folder, 'session.json'), '{}');
+            writeFileSync(join(folder, 'session.json'), JSON.stringify({ seed: entry.seed, starter: entry.starter, gymIndex: entry.gym }));
         },
         runDriver: async (spec) => {
             calls.driven.push(spec.stdin);
@@ -230,6 +236,50 @@ describe('180f — the night script: running a night', () => {
         expect(done.filter((d) => d.skipped)).toHaveLength(2);
     });
 
+    it('202e: an interrupted session started with another starter or gym stops the night before any driver starts, and names both plans', async () => {
+        const root = tempRoot();
+        const { runNight } = await loadScript();
+        const [first] = entries();
+        // r01 was left behind by an earlier launch that planned a different starter and gym
+        const folder = join(root, DATE, first.session);
+        mkdirSync(folder, { recursive: true });
+        writeFileSync(join(folder, 'session.json'), JSON.stringify({ seed: first.seed, starter: 'old_starter', gymIndex: (first.gym + 1) % 3 }));
+        const calls = { started: [] as string[], driven: [] as string[] };
+        const failure = await runNight(options({ briefPath: withBrief(root) }), fakeDeps(root, calls), root).then(() => null, (error: Error) => error);
+        expect(failure).not.toBeNull();
+        expect(failure?.message).toContain(`${first.session} was started with old_starter / gym ${(first.gym + 1) % 3}`);
+        expect(failure?.message).toContain(`tonight's plan says ${first.starter} / gym ${first.gym}`);
+        expect(failure?.message).toContain(`results/playtest/${DATE}/${first.session}`);
+        expect(calls.driven).toEqual([]);
+        expect(calls.started).toEqual([]);
+    });
+
+    it('202e: a mismatch in a later session is found before the first driver starts', async () => {
+        const root = tempRoot();
+        const { runNight } = await loadScript();
+        const third = entries()[2];
+        const folder = join(root, DATE, third.session);
+        mkdirSync(folder, { recursive: true });
+        writeFileSync(join(folder, 'session.json'), JSON.stringify({ seed: 'someone-elses', starter: third.starter, gymIndex: third.gym }));
+        const calls = { started: [] as string[], driven: [] as string[] };
+        await expect(runNight(options({ briefPath: withBrief(root) }), fakeDeps(root, calls), root)).rejects.toThrow(third.session);
+        expect(calls.driven).toEqual([]);
+        expect(calls.started).toEqual([]);
+    });
+
+    it('202e: an interrupted session that matches the plan is resumed, as before', async () => {
+        const root = tempRoot();
+        const { runNight } = await loadScript();
+        const [first] = entries();
+        const folder = join(root, DATE, first.session);
+        mkdirSync(folder, { recursive: true });
+        writeFileSync(join(folder, 'session.json'), JSON.stringify({ seed: first.seed, starter: first.starter, gymIndex: first.gym }));
+        const calls = { started: [] as string[], driven: [] as string[] };
+        await runNight(options({ briefPath: withBrief(root) }), fakeDeps(root, calls), root);
+        expect(calls.started).toEqual(['r02', 'r03']);
+        expect(calls.driven).toHaveLength(3);
+    });
+
     it('a dry run starts nothing, drives nothing and writes nothing', async () => {
         const root = tempRoot();
         const calls = { started: [] as string[], driven: [] as string[] };
@@ -248,6 +298,23 @@ describe('180f — the night script: running a night', () => {
         const done = await runNight(options({ briefPath: withBrief(root) }), deps, root);
         expect(done[0]).toMatchObject({ exitCode: -1, timedOut: true, error: 'boom' });
         expect(existsSync(join(root, DATE, 'r01', 'driver.json'))).toBe(true);
+    });
+});
+
+describe('202e — resumeMatchesPlan', () => {
+    const entry: NightEntry = { index: 1, session: 'r01', seed: 'pt2026-10-04:1', starter: 'fenrir_v1', gym: 1, mode: 'run', tier: 0 };
+    const session = { seed: 'pt2026-10-04:1', starter: 'fenrir_v1', gymIndex: 1, moves: [] };
+
+    it('is true when the seed, starter and gym all match', async () => {
+        expect((await loadGuard()).resumeMatchesPlan(session, entry)).toBe(true);
+    });
+
+    it('is false when any one of them differs, or the session file does not say', async () => {
+        const { resumeMatchesPlan } = await loadGuard();
+        expect(resumeMatchesPlan({ ...session, seed: 'pt2026-10-04:2' }, entry)).toBe(false);
+        expect(resumeMatchesPlan({ ...session, starter: 'kraken_v1' }, entry)).toBe(false);
+        expect(resumeMatchesPlan({ ...session, gymIndex: 0 }, entry)).toBe(false);
+        expect(resumeMatchesPlan({}, entry)).toBe(false);
     });
 });
 
