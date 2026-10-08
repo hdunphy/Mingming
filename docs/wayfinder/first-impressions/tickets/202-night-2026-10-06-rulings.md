@@ -31,7 +31,7 @@
 | 202h | **The night keeps a transcript and retries a stalled session:** `driver.log` with a time on every line, how each driver ended, a stall limit (8 min), one retry at the end | Night script | **Built 2026-10-07** (`bed16ef`) |
 | 202i | **"Party 1 of 3"** beside the Traces count in the run header, game and tool | New text, game and tool | Ruled 2026-10-07 |
 | 202j | **The gym shows its team's elements on the map:** the leader's three element icons under the gym node (e.g. Nature Nature Water) | Map UI, game and tool | Ruled 2026-10-07 |
-| 202k | **skoll_v1's start kit: Howl out, Brute Force in** | Card data (kit) | Ruled 2026-10-07; confirm the direction (D4) |
+| 202k | **skoll_v1's start kit: Howl out, Brute Force in** | Card data (kit) | **Built** (`cc8523fa`); D4 confirmed by Henry 2026-10-08 |
 
 ---
 
@@ -130,7 +130,7 @@
 
 1. **Measured (202d):** wild at home 71.1% → 81.6%, elite at home 7.5% → 12.5%. Both cards are already in skoll_v1's deck, and the kit keeps one payoff (`flare_burst`, `START_KIT_PAYOFF`).
 2. **The change.** `startKits.skoll_v1` becomes `fury_strike, fury_strike, flare_burst, brute_force, forage`. Golden hashes move on purpose; say so in the commit. Report the walker's opening-fight read for skoll_v1 before and after, as 195a did for Huldra.
-3. **D4.** Henry wrote *"Skoll → swap in howl"* and answered *"Yes"* to *"Swap Howl for Brute Force"*. This row takes the second (Howl leaves the kit). Confirm before building.
+3. **D4.** Henry wrote *"Skoll → swap in howl"* and answered *"Yes"* to *"Swap Howl for Brute Force"*. This row takes the second (Howl leaves the kit). **Confirmed by Henry 2026-10-08** ("yes keep it").
 
 ---
 
@@ -158,7 +158,7 @@
 1. **D1, the revive floor (202b).** 30% of max HP proposed. Alternatives: 50% (a real second chance), or the same HP the member was revived with by a Draught.
 2. ~~**D2, what carries into run 2 (202c).**~~ **Confirmed by Henry 2026-10-08** (*"Confirm D2 second run carries game save"*): exactly what the game's save carries (roster, banked Traces, codex, `traceHintShown`), including a won run's party. Built by running the ended run through the game's own `teardownRun` and starting run 2 on the ranch that leaves.
 3. ~~**D3, the primed brief's paragraph (202f §2).**~~ Answered 2026-10-07: *"If the 'what you already know' isn't in the brief make sure to add it."* Written as a section in `docs/playtest/agent-player-primed.md` (`fa121e2`).
-4. **D4, skoll_v1's kit direction (202k).** Howl out and Brute Force in (measured), or the other way round?
+4. ~~**D4, skoll_v1's kit direction (202k).**~~ Confirmed 2026-10-08: Howl out and Brute Force in.
 
 ## Resolution
 
