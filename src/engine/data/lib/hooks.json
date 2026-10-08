@@ -91,7 +91,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner} pushes its core to the limit!"
+                        "text": "{owner} strains against its chains!"
                     }
                 ]
             },
@@ -393,7 +393,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s FEEDBACK_LOOP discharges into {target}!"
+                        "text": "{owner}'s FEEDBACK_LOOP dives at {target}!"
                     }
                 ]
             }
@@ -493,7 +493,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s THERMAL_OVERLOAD causes 5 overheat damage!"
+                        "text": "{owner}'s THERMAL_OVERLOAD scorches its host for 5 damage!"
                     }
                 ]
             }
@@ -782,7 +782,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s KINETIC_RAM blunts its own edge."
+                        "text": "{owner}'s KINETIC_RAM_OS blunts its own edge."
                     }
                 ]
             }
@@ -946,7 +946,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s GLACIER_HEART thickens. +4 Bark Shield."
+                        "text": "{owner}'s GLACIER_HEART_SYS thickens. +4 Bark Shield."
                     }
                 ]
             }
@@ -1484,7 +1484,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s SHORT_CIRCUIT arcs into {target}!"
+                        "text": "{owner}'s SHORT_CIRCUIT exacts its price from {target}!"
                     }
                 ]
             }
@@ -1570,7 +1570,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "  🧹 {owner}'s SCRUBBER vents 1 Poison from the team."
+                        "text": "  🧹 {owner}'s SCRUBBER clears 1 Poison from the team."
                     }
                 ]
             }
@@ -1635,7 +1635,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s SHORT_FUSE burns {target}'s hoarded charge!"
+                        "text": "{owner}'s SHORT_FUSE takes its toll on {target}'s hoarded Energy!"
                     }
                 ]
             }
@@ -1663,7 +1663,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s STATIC_WARD earths {target}'s interference!"
+                        "text": "{owner}'s STATIC_WARD punishes {target}'s meddling!"
                     }
                 ]
             }
@@ -1724,7 +1724,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s SHORT_FUSE burns {target}'s hoarded charge!"
+                        "text": "{owner}'s SHORT_FUSE takes its toll on {target}'s hoarded Energy!"
                     }
                 ]
             }
@@ -1779,7 +1779,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s SHORT_CIRCUIT arcs into {target}!"
+                        "text": "{owner}'s SHORT_CIRCUIT exacts its price from {target}!"
                     }
                 ]
             }
@@ -1807,7 +1807,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s STATIC_WARD earths {target}'s interference!"
+                        "text": "{owner}'s STATIC_WARD punishes {target}'s meddling!"
                     }
                 ]
             }
@@ -1835,7 +1835,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s FEEDBACK_LOOP discharges into {target}!"
+                        "text": "{owner}'s FEEDBACK_LOOP dives at {target}!"
                     }
                 ]
             }
@@ -1983,7 +1983,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "{owner}'s THERMAL_OVERLOAD causes 5 overheat damage!"
+                        "text": "{owner}'s THERMAL_OVERLOAD scorches its host for 5 damage!"
                     }
                 ]
             }

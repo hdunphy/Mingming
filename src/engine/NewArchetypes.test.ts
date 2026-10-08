@@ -106,7 +106,7 @@ describe('Advanced Archetypes Logic', () => {
 
         // Test Strike deals damage. Check if enemy HP dropped.
         expect(nextState.enemyParty[0].currentHp).toBeLessThan(initialState.enemyParty[0].currentHp);
-        expect(nextState.logs.some(l => l.includes('🔁 Reprogramming: Test Strike'))).toBe(true);
+        expect(nextState.logs.some(l => l.includes('🔁 Test Strike plays again'))).toBe(true);
     });
 
     it('CARDS_DRAWN scaling should increase damage, without a ceiling', () => {

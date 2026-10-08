@@ -1132,7 +1132,7 @@ function tickStatuses(
                     const stableBehavior = getStatusBehavior('StableOS');
                     const stableApply = stableBehavior.onApply(newEffects, 1, entity);
                     newEffects.push(...stableApply.updatedEffects.filter(s => s.type === 'StableOS'));
-                    logs.push(`  \ud83d\udee1\ufe0f ${entity.name} gained CC Immunity (StableOS)`);
+                    logs.push(`  \ud83d\udee1\ufe0f ${entity.name} is Alert: immune to Stunned and Asleep`);
                 }
             }
 

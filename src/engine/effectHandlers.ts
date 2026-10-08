@@ -525,7 +525,7 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
 
     // CC Immunity Check (StableOS)
     if ((status === 'Stunned' || status === 'Asleep') && initialTarget.statusEffects.some(s => s.type === 'StableOS')) {
-        return addLog(state, `  🛡️ ${initialTarget.name} resisted ${status} (StableOS Active)`);
+        return addLog(state, `  🛡️ ${initialTarget.name} resisted ${status} (Alert)`);
     }
 
     // 1. Scaling

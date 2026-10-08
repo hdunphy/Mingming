@@ -86,6 +86,9 @@ const FORMS: ReadonlyArray<readonly [RegExp, string]> = [
 /** `TIDAL_CRUSH_OS`, `ECHO_CHAMBER_DAEMON+`: two or more capital words joined by underscores. Lower-case ids (`harden_daemon`) are not names. */
 const OLD_STYLE_NAME = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\+?/g;
 
+/** `SCRUBBER`, `RIPTIDE+`: an Aura whose hooks.json name is one word. Only a word in the Norse tables is a name; `FIRST BLOOD` is not. */
+const ONE_WORD_NAME = /\b[A-Z][A-Z0-9]{2,}\+?(?![\w+])/g;
+
 /** Carry the old word's capitals over to the new one: `Daemon` -> `Aura`, `DAEMON` -> `AURA`, `daemon` -> `aura`. */
 function carryCase(from: string, to: string): string {
     // Two capitals (`OS`) is an abbreviation, not shouting: it takes the sentence's case.
@@ -108,6 +111,7 @@ export function plain(text: string | undefined): string | undefined {
     if (text === undefined) return undefined;
     // An Instinct (or Rune) still named in capitals and underscores, as the hook text and the log say it.
     let result = text.replace(OLD_STYLE_NAME, (match) => instinctName(match));
+    result = result.replace(ONE_WORD_NAME, (match) => norseInstinctName(match) ?? match);
     for (const [pattern, replacement] of FORMS) {
         result = result.replace(pattern, (match, offset: number, whole: string) => {
             const word = carryCase(match, replacement);

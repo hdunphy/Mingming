@@ -773,7 +773,7 @@ export class MaxEnergyExecutor extends ActionExecutor<MaxEnergyActionData> {
             enemyParty: state.enemyParty.map(raise),
         };
         return target
-            ? addLog(next, `  ⚡ ${target.name}'s core is overclocked — max Energy +${amount}.`)
+            ? addLog(next, `  ⚡ ${target.name} surges with power — max Energy +${amount}.`)
             : next;
     }
 }
@@ -1053,7 +1053,7 @@ export class PlayLastCardExecutor extends ActionExecutor<PlayLastCardActionData>
         let finalState = state;
 
         if (lastProgramData.actions) {
-            finalState = addLog(finalState, `  🔁 Reprogramming: ${lastProgramData.name}`);
+            finalState = addLog(finalState, `  🔁 ${lastProgramData.name} plays again`);
             const casterPartyKey = finalState.playerParty.some(e => e.id === sourceId) ? 'playerParty' : 'enemyParty';
             const preCastCaster = finalState[casterPartyKey].find(e => e.id === sourceId);
             if (!preCastCaster) return finalState;

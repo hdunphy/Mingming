@@ -7944,7 +7944,7 @@
     "brand+": {
         "id": "brand+",
         "name": "Brand+",
-        "description": "35 power. If the target is Burning, apply 1 more Burn.",
+        "description": "35 power. If the target is Burning, apply 2 more Burn.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -7965,7 +7965,7 @@
             {
                 "type": "STATUS",
                 "status": "Burn",
-                "stacks": 1,
+                "stacks": 2,
                 "target": "TARGET",
                 "conditionals": [
                     "target_burned"
@@ -8125,7 +8125,7 @@
     "snap+": {
         "id": "snap+",
         "name": "Snap+",
-        "description": "30 power. +12 power if the target is Weakened.",
+        "description": "30 power. +20 power if the target is Weakened.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -8145,7 +8145,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 12,
+                "power": 20,
                 "target": "TARGET",
                 "conditionals": [
                     {
@@ -8160,7 +8160,7 @@
     "brute_force+": {
         "id": "brute_force+",
         "name": "Brute Force+",
-        "description": "35 power. +8 power if you have Strength.",
+        "description": "35 power. +15 power if you have Strength.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -8180,7 +8180,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 8,
+                "power": 15,
                 "target": "TARGET",
                 "conditionals": [
                     {
@@ -8195,7 +8195,7 @@
     "battle_rhythm+": {
         "id": "battle_rhythm+",
         "name": "Battle Rhythm+",
-        "description": "25 power. Above half HP: gain 4 Strength. Otherwise gain 2 Sharp.",
+        "description": "25 power. Above half HP: gain 4 Strength. Otherwise gain 4 Sharp.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -8229,7 +8229,7 @@
             {
                 "type": "STATUS",
                 "status": "Sharp",
-                "stacks": 2,
+                "stacks": 4,
                 "target": "SELF",
                 "conditionals": [
                     {
@@ -8272,7 +8272,7 @@
     "war_pact+": {
         "id": "war_pact+",
         "name": "War Pact+",
-        "description": "Above half HP: gain 3 Strength and 2 Dazed. Below half: heal with 15 power.",
+        "description": "Above half HP: gain 3 Strength and 2 Dazed. Below half: heal with 20 power.",
         "element": "Fire",
         "target": "Self",
         "category": "Skill",
@@ -8313,7 +8313,7 @@
             },
             {
                 "type": "HEAL",
-                "power": 15,
+                "power": 20,
                 "target": "SELF",
                 "conditionals": [
                     {
@@ -8421,7 +8421,7 @@
     "blood_rite+": {
         "id": "blood_rite+",
         "name": "Blood Rite+",
-        "description": "20 power. +15 power above half HP; otherwise heal with 40 power.",
+        "description": "20 power. +15 power above half HP; otherwise heal with 50 power.",
         "element": "Fire",
         "target": "Single",
         "category": "Attack",
@@ -8453,7 +8453,7 @@
             },
             {
                 "type": "HEAL",
-                "power": 40,
+                "power": 50,
                 "target": "SELF",
                 "conditionals": [
                     {
@@ -9908,7 +9908,7 @@
     "nagging_bite+": {
         "id": "nagging_bite+",
         "name": "Nagging Bite+",
-        "description": "20 power. +20 power if the target is Dazed.",
+        "description": "20 power. +30 power if the target is Dazed.",
         "element": "Nature",
         "target": "Single",
         "category": "Attack",
@@ -9928,7 +9928,7 @@
             },
             {
                 "type": "ATTACK",
-                "power": 20,
+                "power": 30,
                 "target": "TARGET",
                 "conditionals": [
                     {

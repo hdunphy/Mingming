@@ -50,6 +50,10 @@ describe('183h plain()', () => {
         expect(plain('UNBOUND_KERNEL and TIDAL_CRUSH_OS and harden_daemon')).toBe('Unbound and Tidal Crush and harden_daemon');
         expect(plain("Ember's GALE_FORCE_OS creates a retaliatory updraft!")).toBe("Ember's Eagle's Gust creates a retaliatory updraft!");
         expect(plain('Mingming')).toBe('Mingming');
+        // An Aura whose hooks.json name is one word (no underscore) is still a name, not shouting.
+        expect(plain("Kraken's SCRUBBER clears 1 Poison from the team.")).toBe("Kraken's Eir's Remedy clears 1 Poison from the team.");
+        expect(plain("Kraken's RIPTIDE+ drags Fenrir back!")).toBe("Kraken's Riptide+ drags Fenrir back!");
+        expect(plain('FIRST BLOOD! TENTH STRIKE')).toBe('FIRST BLOOD! TENTH STRIKE');
     });
 
     it('says the verb another way, and mends the article', () => {

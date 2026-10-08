@@ -244,7 +244,7 @@ export const CustomFirmware: Record<string, HookDefinition[]> = {
                     state = applyMutations(state, [
                         { type: 'HP', targetId: owner.id, payload: { amount: recoilDamage } },
                         { type: 'COUNTER', targetId: '', payload: { key: hoardKey, operator: 'RESET' } },
-                        { type: 'LOG', targetId: '', payload: `${owner.name}'s hoarded Energy burns its core for ${recoilDamage} damage!` }
+                        { type: 'LOG', targetId: '', payload: `${owner.name}'s hoarded Energy sears it for ${recoilDamage} damage!` }
                     ]);
                 }
                 return { state };

@@ -164,8 +164,8 @@
   "name": "Brand",
   "cost": 1,
   "text": "25 power. If the target is Burning, apply 1 more Burn.",
-  "plus": "35 power. If the target is Burning, apply 1 more Burn.",
-  "rule": "flat: +40%"
+  "plus": "35 power. If the target is Burning, apply 2 more Burn.",
+  "rule": "flat: +40%; rider +1 Burn (2026-10-07: the rider grows too)"
  },
  {
   "id": "fury_strike",
@@ -212,24 +212,24 @@
   "name": "Snap",
   "cost": 1,
   "text": "20 power. +12 power if the target is Weakened.",
-  "plus": "30 power. +12 power if the target is Weakened.",
-  "rule": "flat: +40%"
+  "plus": "30 power. +20 power if the target is Weakened.",
+  "rule": "flat: +40%; rider +40%, rounded (2026-10-07: the rider grows too)"
  },
  {
   "id": "brute_force",
   "name": "Brute Force",
   "cost": 1,
   "text": "25 power. +8 power if you have Strength.",
-  "plus": "35 power. +8 power if you have Strength.",
-  "rule": "flat: +40%"
+  "plus": "35 power. +15 power if you have Strength.",
+  "rule": "flat: +40%; rider +7 (2026-10-07: the rider grows too)"
  },
  {
   "id": "battle_rhythm",
   "name": "Battle Rhythm",
   "cost": 1,
   "text": "25 power. Above half HP: gain 2 Strength. Otherwise gain 2 Sharp.",
-  "plus": "25 power. Above half HP: gain 4 Strength. Otherwise gain 2 Sharp.",
-  "rule": "status: +2 stacks (1 + cost)"
+  "plus": "25 power. Above half HP: gain 4 Strength. Otherwise gain 4 Sharp.",
+  "rule": "status: +2 stacks (1 + cost) on both branches (2026-10-07: the Sharp branch grows too)"
  },
  {
   "id": "crimson_draw",
@@ -244,8 +244,8 @@
   "name": "War Pact",
   "cost": 0,
   "text": "Above half HP: gain 2 Strength and 2 Dazed. Below half: heal with 15 power.",
-  "plus": "Above half HP: gain 3 Strength and 2 Dazed. Below half: heal with 15 power.",
-  "rule": "status: +1 Strength (1 + cost), the Dazed does not grow"
+  "plus": "Above half HP: gain 3 Strength and 2 Dazed. Below half: heal with 20 power.",
+  "rule": "status: +1 Strength (1 + cost), the Dazed does not grow; heal +5 (2026-10-07: the heal branch grows too)"
  },
  {
   "id": "unbound_fang",
@@ -276,8 +276,8 @@
   "name": "Blood Rite",
   "cost": 1,
   "text": "15 power. +15 power above half HP; otherwise heal with 40 power.",
-  "plus": "20 power. +15 power above half HP; otherwise heal with 40 power.",
-  "rule": "flat: +40%"
+  "plus": "20 power. +15 power above half HP; otherwise heal with 50 power.",
+  "rule": "flat: +40%; heal +10 (2026-10-07: the heal branch grows too)"
  },
  {
   "id": "desperate_strike",
@@ -684,8 +684,8 @@
   "name": "Nagging Bite",
   "cost": 1,
   "text": "15 power. +20 power if the target is Dazed.",
-  "plus": "20 power. +20 power if the target is Dazed.",
-  "rule": "flat: +40%"
+  "plus": "20 power. +30 power if the target is Dazed.",
+  "rule": "flat: +40%; rider +50% (2026-10-07: the rider grows too)"
  },
  {
   "id": "pile_on",

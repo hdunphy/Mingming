@@ -199,7 +199,7 @@ describe('Daemon System', () => {
         const p1 = stateAfterTurn.playerParty.find(p => p.id === 'p1');
         // 100 - 5 = 95
         expect(p1?.currentHp).toBe(95);
-        expect(stateAfterTurn.logs).toContain("Hero's THERMAL_OVERLOAD causes 5 overheat damage!");
+        expect(stateAfterTurn.logs).toContain("Hero's THERMAL_OVERLOAD scorches its host for 5 damage!");
     });
 
     it('should clear Daemons when a MingMing faints', () => {

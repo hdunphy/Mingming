@@ -154,8 +154,8 @@ describe('163b — describeUpgrade, the "what did that buy me" highlight', () =>
     });
 
     it('marks only the half that grew on a card that prints a number twice', () => {
-        // Blood Rite: the base swing grows 15 -> 20; the conditional rider stays 15.
-        expect(marked('blood_rite+')).toEqual(['20']);
+        // Blood Rite: the base swing grows 15 -> 20 and the heal 40 -> 50; the conditional rider stays 15.
+        expect(marked('blood_rite+')).toEqual(['20', '50']);
     });
 
     it('returns a base card unchanged, as one plain segment', () => {
