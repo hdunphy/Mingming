@@ -24,7 +24,7 @@
 | 202a | The town's Den line says **"N Traces held · summon here"** while Traces are unspent | New text, game and tool | **Built** |
 | 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | Ruled; the floor is D1 |
 | 202c | **Two runs a session:** the agent plays a second run on the same save after the first ends | Night script + tool | Ruled; carry-over is D2 |
-| 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | **Answered 2026-10-07** (measured below); skoll_v1 → 202k, jormungandr_v1 → [203](203-jormungandr-v1-redesign.md), fenrir_v1 left as is |
+| 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | **Answered 2026-10-07** (measured below); skoll_v1 → 202k, jormungandr_v1 → [203](203-jormungandr-v1-redesign.md), fenrir_v1 left as is Report: [research/202d-v1-starters.md](../research/202d-v1-starters.md) (investigated 2026-10-08; fixes await Henry) |
 | 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | Ruled |
 | 202f | **The brief:** one night, same seeds, naive brief vs primed brief, haiku and sonnet | Measurement night, then Henry rules | **Brief written 2026-10-07** (`fa121e2`); the night is still the row |
 | 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | Ruled ("make that the default") |
@@ -169,3 +169,4 @@
 **202a built 2026-10-07, one commit on `first-impressions`, not pushed.**
 
 - **202a** The Den tile on the town square reads "N Traces held · summon here" whenever N is above 0 (with 1 it reads "1 Trace held · summon here"); with none it reads as before ("0 traces held · party X"). The playtest tool's town screen prints the same line first, ahead of the line about the shop. Both take the words from one small function, `src/ui/labels/denTagLine.ts`, and the count from `tracesHeld(ranch, run)` (195c). Tests: `TownSquare.den202a.test.tsx` (game), `denLine202a.test.ts` (tool). The 195c test that pinned "3 traces held" now says "3 Traces held".
+- **202d investigated 2026-10-08** (report: [research/202d-v1-starters.md](../research/202d-v1-starters.md)). Verdict: the opening-fight read is run but covers fight one only, and the v1 starters fail at fight two (jormungandr_v1 59%, skoll_v1 61%, ratatoskr_v1 80% on the walker's route) because an ordinary biome-0 wild keeps its payoff and half of them hold a v2 start kit; jormungandr_v1 also fails fight one (73%). Proposals P1 to P4 in the report, none applied.
