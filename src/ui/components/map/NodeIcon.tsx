@@ -12,12 +12,12 @@ import type { CSSProperties, ReactElement } from 'react';
 
 import '../../theme/kit/kit.css';
 import './map.css';
-import type { GlyphLayer, WithGlyphLayers } from '../../theme/glyphLayers';
+import { iconLayers } from '../../theme/iconLayers';
 import { elementVars } from '../../theme/kit/elementGlyphs';
 import { TablerGlyph } from '../../theme/TablerGlyph';
-import { NODE_GLYPHS, NODE_SIZE, NODE_WORD, type NodeIconKind } from './nodeGlyphs';
+import { NODE_ICON_NAME, NODE_SIZE, NODE_WORD, type NodeIconKind } from './nodeKinds';
 
-export interface NodeIconProps extends WithGlyphLayers {
+export interface NodeIconProps {
     readonly kind: NodeIconKind;
     /** The fight's element, when the map knows it. Absent, a neutral light ring. */
     readonly element?: string;
@@ -27,16 +27,12 @@ export interface NodeIconProps extends WithGlyphLayers {
     readonly sub?: string;
 }
 
-function Glyph({ kind, size, layers }: { readonly kind: NodeIconKind; readonly size: number; readonly layers?: readonly GlyphLayer[] }): ReactElement {
-    if (layers) return <TablerGlyph layers={layers} size={size} className="k-node-glyph" />;
-    return (
-        <svg className="k-node-glyph" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-            <path d={NODE_GLYPHS[kind]} />
-        </svg>
-    );
+/** The `icons.ts` icon for this kind: the one the live region map draws. */
+function Glyph({ kind, size }: { readonly kind: NodeIconKind; readonly size: number }): ReactElement {
+    return <TablerGlyph layers={iconLayers(NODE_ICON_NAME[kind])} size={size} className="k-node-glyph" />;
 }
 
-export function NodeIcon({ kind, element, selected, faded, sub, layers }: NodeIconProps): ReactElement {
+export function NodeIcon({ kind, element, selected, faded, sub }: NodeIconProps): ReactElement {
     const flags = {
         'data-kind': kind,
         'data-selected': selected ? 'true' : undefined,
@@ -46,7 +42,7 @@ export function NodeIcon({ kind, element, selected, faded, sub, layers }: NodeIc
         return (
             <div className="k-slant k-town-node" {...flags} style={{ ['--k-cut' as string]: '10px' } as CSSProperties}>
                 <div className="k-slant k-town-body" style={{ ['--k-cut' as string]: '8px' } as CSSProperties}>
-                    <span className="k-town-title k-display"><Glyph kind="town" size={18} layers={layers} />{NODE_WORD.town}</span>
+                    <span className="k-town-title k-display"><Glyph kind="town" size={18} />{NODE_WORD.town}</span>
                     {sub && <span className="k-town-sub">{sub}</span>}
                 </div>
             </div>
@@ -63,7 +59,7 @@ export function NodeIcon({ kind, element, selected, faded, sub, layers }: NodeIc
             style={{ ...(element !== undefined ? elementVars(element) : {}), width: size, height: size }}
         >
             <div className="k-node-disc">
-                <Glyph kind={kind} size={kind === 'elite' || kind === 'gym' ? 26 : 22} layers={layers} />
+                <Glyph kind={kind} size={kind === 'elite' || kind === 'gym' ? 26 : 22} />
             </div>
         </div>
     );

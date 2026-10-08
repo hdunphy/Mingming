@@ -6,6 +6,10 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { NodeIcon } from '../components/map/NodeIcon';
+import { NODE_ICON_NAME } from '../components/map/nodeKinds';
+import { TownButton } from '../components/map/TownButton';
+import { TOWN_ICON } from '../components/map/townIcons';
 import { BiomeSign } from '../components/topbar/BiomeSign';
 import { Icon } from './Icon';
 import { ELEMENT_TABLER } from './kit/elementGlyphs';
@@ -14,9 +18,11 @@ import { ElementMark } from './kit/ElementMark';
 import { StatusIcon } from './kit/StatusIcon';
 import { STATUS_ICON_NAMES } from './kit/statusIconPaths';
 import { ICON_TABLER } from './icons';
+import { iconLayers } from './iconLayers';
 import { TABLER_FILLED, TABLER_OUTLINE } from './tabler.generated';
 
 const firstD = (nodes: ReadonlyArray<readonly [string, Readonly<Record<string, string>>]>): string => nodes[0][1].d;
+const count = (html: string, needle: string): number => html.split(needle).length - 1;
 
 describe('a component draws Tabler from its name map (200d)', () => {
     it('Icon draws the mapped outline at the kit weight', () => {
@@ -70,5 +76,21 @@ describe('a component draws Tabler from its name map (200d)', () => {
             expect(html).toContain('class="k-badge-glyph"');
         }
         expect(sign).toContain('Ember Hollow');
+    });
+
+    it('NodeIcon draws the icons.ts icon for its kind, on a disc and on a town plate', () => {
+        for (const kind of ['start', 'fight', 'rival', 'event', 'elite', 'gym', 'detour', 'town'] as const) {
+            const html = renderToStaticMarkup(<NodeIcon kind={kind} />);
+            expect(html, kind).toContain(`d="${firstD(iconLayers(NODE_ICON_NAME[kind])[0].nodes)}"`);
+            expect(html, kind).toContain('class="k-node-glyph"');
+        }
+    });
+
+    it('TownButton draws its building in the icon block and the ghost corner', () => {
+        for (const building of ['shop', 'upgrades', 'den', 'loadout'] as const) {
+            const html = renderToStaticMarkup(<TownButton building={building} status="x" />);
+            expect(count(html, `d="${firstD(TABLER_OUTLINE[TOWN_ICON[building]])}"`), building).toBe(2);
+            expect(html).toContain('class="k-town-ghost"');
+        }
     });
 });

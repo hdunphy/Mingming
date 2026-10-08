@@ -7,6 +7,8 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { NODE_ICON_NAME } from '../components/map/nodeKinds';
+import { TOWN_ICON } from '../components/map/townIcons';
 import { ICON_NAMES, ICON_TABLER } from './icons';
 import { iconLayers } from './iconLayers';
 import { ELEMENT_TABLER } from './kit/elementGlyphs';
@@ -25,6 +27,9 @@ describe('every mapped Tabler name exists in tabler.generated.ts (200d)', () => 
         for (const [key, name] of Object.entries(ICON_TABLER)) expect(outline[name], key).toBeDefined();
         for (const name of TRACE_NAMES) expect(outline[name], name).toBeDefined();
     });
+    it('the town square buttons', () => {
+        for (const [key, name] of Object.entries(TOWN_ICON)) expect(outline[name], key).toBeDefined();
+    });
     it('element marks, both the filled and the outline variant', () => {
         for (const [key, name] of Object.entries(ELEMENT_TABLER)) {
             expect(outline[name], `${key} outline`).toBeDefined();
@@ -34,6 +39,15 @@ describe('every mapped Tabler name exists in tabler.generated.ts (200d)', () => 
 });
 
 describe('the rulings (200d)', () => {
+    it('maps the town buttons as ruled', () => {
+        expect(TOWN_ICON).toEqual({ shop: 'building-store', upgrades: 'arrow-bar-to-up', den: 'campfire', loadout: 'paw' });
+    });
+    it('draws each map node kind from its icons.ts icon', () => {
+        expect(NODE_ICON_NAME).toEqual({
+            start: 'start', fight: 'wild', rival: 'rival', event: 'event',
+            elite: 'elite', gym: 'gym', detour: 'alpha', town: 'town',
+        });
+    });
     it('maps the statuses as ruled', () => {
         expect(STATUS_ICON_NAMES).toEqual({
             Burn: 'flame', Poison: 'skull', Asleep: 'zzz', Weakened: 'arrow-big-down', Strengthened: 'arrow-big-up',
@@ -86,11 +100,28 @@ describe('nothing hand-typed is left (200d)', () => {
         'src/ui/theme/kit/ElementMark.tsx',
         'src/ui/theme/kit/ElementBadge.tsx',
         'src/ui/components/topbar/BiomeSign.tsx',
+        'src/ui/components/map/NodeIcon.tsx',
+        'src/ui/components/map/nodeKinds.ts',
+        'src/ui/components/map/TownButton.tsx',
+        'src/ui/components/map/townBuildings.ts',
+        'src/ui/components/map/townIcons.ts',
+        'src/ui/screens/town/TownSquare.tsx',
+        'src/debug/screenSheet/MapPieces.tsx',
     ];
     it.each(FILES)('%s has no path data and no <path d=', (file) => {
         const source = readFileSync(resolve(file), 'utf8');
         expect(source).not.toMatch(PATH_DATA);
         expect(source).not.toMatch(/<path\s+d=/);
+    });
+    it('the town square has one icon path: the live screen and the button both read townIcons.ts', () => {
+        const square = readFileSync(resolve('src/ui/screens/town/TownSquare.tsx'), 'utf8');
+        const button = readFileSync(resolve('src/ui/components/map/TownButton.tsx'), 'utf8');
+        expect(square).toContain('TOWN_ICON');
+        expect(square).not.toContain('BUILDING_ICON');
+        expect(button).toContain('TOWN_ICON');
+    });
+    it('the second node glyph set is gone', () => {
+        expect(() => readFileSync(resolve('src/ui/components/map/nodeGlyphs.ts'), 'utf8')).toThrow();
     });
 });
 

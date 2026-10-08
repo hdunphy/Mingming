@@ -29,11 +29,6 @@ export interface GlyphLayer {
     readonly transform?: string;
 }
 
-/** What NodeIcon and TownButton still take until the map swap (next commit). */
-export interface WithGlyphLayers {
-    readonly layers?: readonly GlyphLayer[];
-}
-
 /** One Tabler outline icon as a layer list. */
 export function outlineLayers(name: TablerOutlineName): readonly GlyphLayer[] {
     return [{ nodes: TABLER_OUTLINE[name] }];
