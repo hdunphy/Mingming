@@ -10,8 +10,8 @@
       "wildFirmware": true, "wildAi": "lite", "extraElitesPerBiome": 1, "leaderDriverEveryFight": true }
   ],
   "leaderDrivers": {
-    "gym_emberfall": "driver_war_footing",
-    "gym_tidewrack": "driver_tidal_surge",
-    "gym_rootfall": "driver_root_rot"
+    "gym_emberfall": "driver_surtalogi",
+    "gym_tidewrack": "driver_root_rot",
+    "gym_rootfall": "driver_tidal_surge"
   }
 }

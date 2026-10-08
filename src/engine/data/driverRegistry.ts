@@ -77,20 +77,38 @@ import { getOSBehavior, type OSDefinition } from './firmwareRegistry';
 /** Every Driver's id carries this prefix. Ruling 1: never `boss_relic_*`. */
 export const DRIVER_ID_PREFIX = 'driver_';
 
-/** WAR FOOTING — Emberfall's leader Driver (ticket 68 ruling 5). */
+/**
+ * WAR FOOTING — Emberfall's leader Driver from ticket 68 ruling 5 until ticket 207, which gave
+ * Emberfall SURTALOGI (Henry, 2026-10-08: *"Change this totem to give more damage on overflow for
+ * burn"*). Kept defined: the experiment harness and the Driver tests still name it. No gym fields it.
+ */
 export const DRIVER_WAR_FOOTING = 'driver_war_footing';
 
-/** TIDAL SURGE — Tidewrack's leader Driver (ticket 71). The first user of the SIDE counter scope. */
+/**
+ * TICKET 207 — **SURTALOGI**, Emberfall's leader Driver: each Burn detonation this side causes on an
+ * enemy deals 5% more of that enemy's max HP (14% → 19%). Henry ruled the 5% on 2026-10-08.
+ */
+export const DRIVER_SURTALOGI = 'driver_surtalogi';
+
+/**
+ * Shown as **YGGDRASIL'S WRATH** since ticket 207 (the id keeps its old name, ticket 183's rule).
+ * Tidewrack's Driver from ticket 71; **Rootfall's** since ticket 207 (Henry: *"Switch the
+ * totems"*), with its blast made Nature. The first user of the SIDE counter scope.
+ */
 export const DRIVER_TIDAL_SURGE = 'driver_tidal_surge';
 
-/** ROOT ROT — Rootfall's leader Driver (ticket 72). The last gym to be authored. */
+/**
+ * Shown as **ÉLIVÁGAR** since ticket 207 (the id keeps its old name). Rootfall's Driver from ticket
+ * 72; **Tidewrack's** since ticket 207, where the Poison team is.
+ */
 export const DRIVER_ROOT_ROT = 'driver_root_rot';
 
 /**
  * The three gym leaders' signature Drivers. Ticket 68 ruling 4 puts these explicitly out of the
  * player's reach (*"enemy signature Drivers never enter the pool"*); `codex.ts` relies on that.
+ * WAR FOOTING stays listed so it stays out of the player's pool too.
  */
-export const GYM_DRIVER_IDS: ReadonlyArray<string> = [DRIVER_WAR_FOOTING, DRIVER_TIDAL_SURGE, DRIVER_ROOT_ROT];
+export const GYM_DRIVER_IDS: ReadonlyArray<string> = [DRIVER_SURTALOGI, DRIVER_TIDAL_SURGE, DRIVER_ROOT_ROT, DRIVER_WAR_FOOTING];
 
 export const DRIVER_TENTH_STRIKE = 'driver_tenth_strike';
 export const DRIVER_STATIC_FIELD = 'driver_static_field';

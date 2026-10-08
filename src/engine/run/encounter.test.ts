@@ -41,7 +41,7 @@ import { STARTER_GENERICS, START_KIT_SIZE, createRun, startKitIdsFor } from './c
 import { authoredBossFor } from './bosses';
 import { getInflatedProgramRegistry } from '../data/programRegistry';
 import { GYM_REGISTRY, gymCompElementPlan, type IGymOffer } from './gyms';
-import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
+import { DRIVER_SURTALOGI } from '../data/driverRegistry';
 import { createBattleState } from '../data/battleFactories';
 import { GENERIC_HIT, GetMingmingData, START_KIT_PAYOFF, getDeckForOS } from '../data/mingmingRegistry';
 import { GetProgramData } from '../data/programRegistry';
@@ -908,7 +908,7 @@ describe('gymDriverForNode — the telegraph’s second half', () => {
         const run = makeRun(['Water', 'Nature', 'Fire']);
         const last = run.biomes.length - 1;
 
-        expect(gymDriverForNode(run, node({ kind: 'elite', biomeIndex: last }))).toBe(DRIVER_WAR_FOOTING);
+        expect(gymDriverForNode(run, node({ kind: 'elite', biomeIndex: last }))).toBe(DRIVER_SURTALOGI);
 
         // Not the elites two biomes back — the clause is about the approach to the gauntlet, and an
         // aura met at biome 0 would be a spoiler for a fight the player may never reach.
@@ -948,7 +948,7 @@ describe('gymDriverForNode — the telegraph’s second half', () => {
         const at = node({ id: 'b2l2n0', kind: 'elite', biomeIndex: 2, layer: 2, visited: 1 });
 
         const withDriver = rollEncounter({ run, node: at, party });
-        expect(withDriver.enemyDrivers).toEqual([DRIVER_WAR_FOOTING]);
+        expect(withDriver.enemyDrivers).toEqual([DRIVER_SURTALOGI]);
 
         // The same elite two biomes back: same rung, same grade, no Driver.
         const plain = rollEncounter({ run, node: node({ ...at, id: 'b0l2n0', biomeIndex: 0 }), party });

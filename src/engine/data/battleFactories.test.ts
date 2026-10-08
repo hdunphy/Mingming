@@ -112,7 +112,8 @@ describe('createBattleState — the gym-tier branch is gone (ticket 18)', () => 
         for (const boss of state.enemyParty) {
             // Ruling 2: the Driver is additive. The member keeps its real OS and gains the hooks.
             expect(boss.activeOS?.startsWith('boss_relic_')).toBe(false);
-            expect(boss.hooks).toContain('driver_war_footing_rally');
+            // TICKET 207: Emberfall's Driver is SURTALOGI now.
+            expect(boss.hooks).toContain('driver_surtalogi_blast');
             // And still no multiplied health bars — ticket 21 holds either side of the redesign.
             expect(boss.currentHp).toBe(boss.maxHp);
         }

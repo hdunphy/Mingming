@@ -67,7 +67,8 @@ const applyPoison = (s: IBattleState, stacks: number): IBattleState =>
 describe('ROOT ROT', () => {
     it('is registered and attaches without touching the member’s own firmware', () => {
         const driver = getDriver(DRIVER_ROOT_ROT);
-        expect(driver?.name).toBe('ROOT ROT');
+        // TICKET 207: shown as ÉLIVÁGAR, and Tidewrack's now (the id keeps its old name).
+        expect(driver?.name).toBe('ÉLIVÁGAR');
         expect(driver?.description).toMatch(/Poison/);
 
         const member = { id: 'm1', hooks: [], activeOS: 'jormungandr_v2' } as never;
@@ -117,7 +118,7 @@ describe('ROOT ROT', () => {
     it('is PROC-VISIBLE, once per application', () => {
         const before = arena(true);
         const after = applyPoison(before, 2);
-        const lines = after.logs.slice(before.logs.length).filter(l => /ROOT ROT/.test(l));
+        const lines = after.logs.slice(before.logs.length).filter(l => /ÉLIVÁGAR/.test(l));
         expect(lines).toHaveLength(1);
     });
 

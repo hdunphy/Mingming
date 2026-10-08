@@ -50,13 +50,26 @@
  * `Date.now()`.
  */
 
-import { DRIVER_ROOT_ROT, DRIVER_TIDAL_SURGE, DRIVER_WAR_FOOTING } from '../data/driverRegistry';
+import { DRIVER_ROOT_ROT, DRIVER_SURTALOGI, DRIVER_TIDAL_SURGE } from '../data/driverRegistry';
 
 export interface IAuthoredBossMember {
     /** A `MingmingRegistry` species id. */
     readonly species: string;
     /** The OS it actually runs — one of that species' own `availableOS`, never a `boss_relic_*`. */
     readonly os: string;
+    /**
+     * TICKET 207 — **the leader's own deck list**, authored rather than read from `getDeckForOS`, so
+     * a change to a species' tuned deck no longer moves the gym. Henry reviewed every list
+     * (2026-10-08). The leader card below is NOT in this list; `leaderDeckFor` adds it.
+     */
+    readonly deck: ReadonlyArray<string>;
+    /**
+     * TICKET 207 — **this Instinct's leader card**, one per member, picked by Henry 2026-10-08. The
+     * leader holds one; an enemy running this Instinct in gym fights 1 and 2 holds one too, added to
+     * its usual deck (Henry: *"Add some of the leader cards so you get to see them before the fight"*).
+     * Leader cards are outside the run pool, so no reward, shop or codex can offer them.
+     */
+    readonly leaderCard: string;
 }
 
 export interface IAuthoredBoss {
@@ -68,6 +81,9 @@ export interface IAuthoredBoss {
 
 /**
  * The authored gym bosses, by gym id. A gym absent from this table fields ticket 18's formula boss.
+ *
+ * **TICKET 207 replaced every team, deck and Driver below** (see its block above the table). The
+ * 28a/28b notes are kept as the record of what was tried; the teams they describe no longer ship.
  *
  * ══ TICKET 28a (Henry, 2026-09-24) — **THIS IS THE ONE GYM COMP TABLE NOW.** ══
  *
@@ -100,161 +116,93 @@ export interface IAuthoredBoss {
  * back on the dominant zoo comp."* Burn on every body punishes width the same way, without the v1
  * kit. The intended counter for the gate's record is unchanged: control-leaning 2 Water + 1 Fire.
  */
+/*
+ * ══ TICKET 207 (Henry, 2026-10-08) — **THE AUTHORED GYM TEAMS: members, decks, leader cards.** ══
+ *
+ * Henry picked the three teams, each a plan with two bodies of the gym's element and one guest from
+ * the element the gym beats (28b's rule, kept), and reviewed every deck list:
+ *
+ * - **Emberfall, control (SURTALOGI):** fenrir_v2 + skoll_v2 + huldra_v2. Burn is the whole team's
+ *   damage; Muspel Wall turns it into Sharp for Fenrir, Sunscorch's multi-hits push piles past the
+ *   cap, and Huldra walls with Bark Shield.
+ * - **Tidewrack, ramp (ÉLIVÁGAR):** kraken_v2 + jormungandr_v2 + fenrir_v1. Energized and Poison
+ *   early; Venomfang scales on the Poison; multi-hit payoffs late.
+ * - **Rootfall, zoo (YGGDRASIL'S WRATH):** ratatoskr_v1 + huldra_v1 + kraken_v1. Dazed from every
+ *   direction, payoffs that read Dazed and cards played.
+ *
+ * Every deck card is from the run pool except the leader cards and `eitr_surge` (Henry: *"New card
+ * and add 4 poison then fill with damage"*, in place of Boiling Surge for the gym's Kraken, so the
+ * player's kraken_v2 kit keeps its Burn payoff). The teams the earlier tickets fielded (68, 71, 72,
+ * 74, 28a, 28b) and their reasons are in git history and ticket 207.
+ */
 export const AUTHORED_BOSSES: Readonly<Record<string, IAuthoredBoss>> = {
-    /*
-     * ══ TICKET 28b (Henry, 2026-09-25) — **THE GUEST IS THE ELEMENT THE GYM BEATS.** ══
-     *
-     * 28a picked each third slot for synergy, and at Emberfall that chose `kraken_v2` — WATER, the
-     * element that beats Fire. The heuristic it was reaching for was "counter the player's expected
-     * counter", and the ruling replaces it with a simpler one that reads the same way from the
-     * player's chair: **a gym's guest is a body from the element the gym's own element defeats.**
-     *
-     * Fire beats Nature, so Emberfall's guest is Nature: `huldra_v1`. What that changes for the
-     * player is the shape of the exam — the trio no longer carries the answer to itself, and the
-     * Water counter the gate expects has nothing on the field already resisting it.
-     *
-     * Intended counter, for the gate's record: **Water**.
-     */
     gym_emberfall: {
         members: [
-            { species: 'fenrir', os: 'fenrir_v2' },
-            { species: 'skoll', os: 'skoll_v2' },
-            { species: 'huldra', os: 'huldra_v1' },
+            {
+                species: 'fenrir', os: 'fenrir_v2', leaderCard: 'flame_wave',
+                deck: ['ignite', 'ignite', 'ember_jab', 'snarl', 'slag_strike', 'molten_core', 'ember_ward', 'cinder_lance', 'cinder_lance', 'flashover'],
+            },
+            {
+                species: 'skoll', os: 'skoll_v2', leaderCard: 'chase_the_sun',
+                deck: ['ember_jab', 'ember_jab', 'scald', 'brand', 'brand', 'flare_burst', 'pack_tactics', 'inferno', 'heat_wave', 'thermal_overload'],
+            },
+            {
+                species: 'huldra', os: 'huldra_v2', leaderCard: 'smoldering_bark',
+                deck: ['heartwood', 'heartwood', 'shell_share', 'shell_share', 'iron_bark', 'molten_core', 'inferno', 'cinder_armor', 'bark_lash', 'bark_smash'],
+            },
         ],
-        driver: DRIVER_WAR_FOOTING,
+        driver: DRIVER_SURTALOGI,
     },
-    /*
-     * TIDEWRACK (ticket 71, recomposed by ticket 74): jormungandr_v1 (OUROBOROS_LOOP) +
-     * **kraken_v2 (TIDAL_CRUSH)** + skoll_v2 (SOLAR_OVERDRIVE), under TIDAL SURGE.
-     *
-     * # WHY THE THIRD SLOT CHANGED (ticket 74, Henry 2026-08-31)
-     *
-     * The original trio was TWO card-count-and-draw engines plus a closer, and research/73 measured
-     * what that actually cost. Against Henry's own playtest party the fight sat at **30.0%** against
-     * a ~84.3% per-fight guide, and the arms found the reason was not the payoff card's printed
-     * power — a 64% cut to `ink_stream` bought 13 points and did not clear (p = 0.22). It was the
-     * FLOW: `CARDS_DRAWN_TRIGGERED` is per-Mingming, so the cantrips feeding each engine were the
-     * multiplier, and pulling them moved the fight 30 to 93 points depending on dose.
-     *
-     * Ticket 74's ruling takes the composition route rather than the card route, and it is the
-     * cleaner one: `kraken_v1` (ABYSSAL_INK_SYS) IS the second engine. Swapping it for `kraken_v2`
-     * removes `ink_stream` x2, `whirlpool_v2` x2, `pressure_point` x2 and the third `undertow` from
-     * the pile in a single authored change — no `hooks.json` edit and no boss-only card printing,
-     * both of which the ticket rules out. What replaces them is TIDAL_CRUSH's ramp-into-3e shape
-     * (`maelstrom`, `hydro_blast`, `capacitor` x2), which is a different kind of pressure rather
-     * than less of it.
-     *
-     * The consequence worth stating: the fight keeps ONE engine (jormungandr_v1) instead of two, so
-     * TIDAL SURGE's 10-card threshold now charges off a narrower base. Whether the Driver still
-     * earns its slot is a question for the measurement, not an assumption here.
-     *
-     * **skoll_v2 rather than a Nature third, deliberately** (Henry, 2026-08-29): a Nature member
-     * would give the Nature counter-team nothing to fear, and the heuristic's third slot exists to
-     * counter the player's expected counter. Skoll fields v1 at Emberfall and v2 here on purpose —
-     * leaders build differently, and the same OS at two gyms would make the roster read as a pool.
-     *
-     * Intended counter, for the gate's record: **Nature** — the only launch element with Weakened,
-     * which is maximally efficient against many small hits — plus ticket 69's toolbox (riptide,
-     * Short Circuit).
-     */
-    /*
-     * TICKET 28a supersedes the composition above, and does it by going BACK to the shape ticket 74
-     * moved away from — so the reason is stated rather than buried.
-     *
-     * 74 swapped `kraken_v1` out because the trio was "two card-count engines plus a closer" and the
-     * FLOW was the multiplier. That was measured against the V1 COLLECTION. Collection v2 re-cut
-     * every card the argument was about: `ink_stream`, `whirlpool_v2` and `pressure_point` are not
-     * in kraken_v1's kit any more, and `undertow` now costs the caster a Weakened (152). The engine
-     * 74 pulled apart is not the engine that ships.
-     *
-     * What ships instead is the WATER ENGINE as `osGrammar` authors it: jormungandr_v1 and kraken_v1
-     * are listed partners in both directions (*"Both engines eat Undertow; ABYSSAL_INK turns Jorm's
-     * draws into Dazed"*), and ratatoskr_v1's GOSSIP heals through it. Two Water bodies, one Nature
-     * guest, under TIDAL SURGE — whose 10-card threshold charges off two engines again rather than
-     * one.
-     *
-     * 74's intended counter stands: **Nature**, the only launch element with Weakened, plus ticket
-     * 69's toolbox.
-     */
-    /*
-     * ══ TICKET 28b (Henry, 2026-09-25) — **BACK TO THE AUTHORED TIDAL SURGE TRIO.** ══
-     *
-     * `jormungandr_v1 + kraken_v2 + skoll_v2`, which is the composition the long docblock at the
-     * head of this entry describes and ticket 74 ruled. 28a's `kraken_v1 + ratatoskr_v1` is
-     * withdrawn on the same ruling that moved Emberfall: Water beats Fire, so the guest is Fire —
-     * `skoll_v2` — and `ratatoskr_v1` was Nature, the element that beats Water.
-     *
-     * **This drops the two-engine pair for the second time, and this time deliberately rather than
-     * as a side effect.** 74 removed `kraken_v1` because the trio was two card-count-and-draw
-     * engines plus a closer and research/73 measured that at 30.0% against a ~84.3% guide; 28a put
-     * it back on a synergy argument and the canary immediately read the boss at 33% → 100% against
-     * its own named counter party. The test that asserted the RETURN of that shape goes with it.
-     *
-     * **`skoll_v2` IS FIELDED AT TWO GYMS, AND HENRY RULED THAT ALLOWED (2026-09-25):** *"Skoll can
-     * be at two gyms."* Ticket 74's docblock above says the opposite in as many words — *"Skoll
-     * fields v1 at Emberfall and v2 here on purpose; leaders build differently, and the same OS at
-     * two gyms would make the roster read as a pool"* — and 28a settled Rootfall's third slot
-     * partly on that principle. **74's line is superseded for this case.** There is no second Fire
-     * firmware the element rule allows at Tidewrack, and the element rule is the one that decides
-     * the guest. `pathAndScout.test.ts` pins it as exactly one duplicate, named, so the ruling
-     * cannot quietly widen into a roster that repeats itself.
-     *
-     * Intended counter, for the gate's record: **Nature**.
-     */
     gym_tidewrack: {
         members: [
-            { species: 'jormungandr', os: 'jormungandr_v1' },
-            { species: 'kraken', os: 'kraken_v2' },
-            { species: 'skoll', os: 'skoll_v2' },
-        ],
-        driver: DRIVER_TIDAL_SURGE,
-    },
-    /*
-     * ROOTFALL (ticket 72): huldra_v2 (BARK_SHIELD_OS) + ratatoskr_v1 (GOSSIP_NODE) +
-     * jormungandr_v2 (TOXIN_FANG_OS), under ROOT ROT — the strangler.
-     *
-     * Shield-poison, party-wide 0-cost sustain with nettle chip, and a poison execute. Three
-     * distinct species, 2 Nature + 1 Water on ruling 3's heuristic. Rejected and recorded (Henry,
-     * 2026-08-29): twin-huldra builds (they read as a species-clause violation even where legal),
-     * reusing ratatoskr_v2 (the same OS at two gyms makes the roster read as a pool), and a
-     * kraken_v2 control-burst sketch (it drops the poison identity the fight is about).
-     *
-     * Intended counter, for the gate's record: **Fire** by type — fenrir_v1's missing-HP scaling
-     * converts poison pressure into damage — plus ticket 69's cleanse toolbox. The landscape fact
-     * that motivated the toolbox: `soothe` (0e, 1 stack) loses the race, and `purify` is Light and
-     * so off-EA.
-     */
-    /*
-     * TICKET 28a changes ONE body — `ratatoskr_v1` (GOSSIP_NODE) becomes `ratatoskr_v2`
-     * (INSTIGATOR_OS) — which tightens the fight around the poison rather than re-composing it.
-     *
-     * The old third slot was party-wide 0-cost sustain: a different plan bolted to the poison one.
-     * `ratatoskr_v2` banks Dazed off the same 0-cost casts, and Dazed is +power on every one of
-     * jormungandr_v2's three flurry hits — `osGrammar`'s own line (*"Dazed on the target adds to
-     * every one of the flurry's hits"*) — while huldra_v2's Bark→Poison feeds TOXIN_FANG from the
-     * other side. One plan, three bodies. It also settles the note 72 left: GOSSIP_NODE now appears
-     * at no gym, so no OS is fielded twice across the three.
-     *
-     * 72's intended counter stands: **Fire** by type, plus ticket 69's cleanse toolbox.
-     */
-    /*
-     * TICKET 28b leaves Rootfall exactly as 28a composed it, and that is the ruling agreeing with
-     * the table rather than the table escaping the ruling: Nature beats Water, and the guest is
-     * `jormungandr_v2` — Water. It was already the shape the new heuristic asks for.
-     *
-     * 72's intended counter stands: **Fire**.
-     */
-    gym_rootfall: {
-        members: [
-            { species: 'huldra', os: 'huldra_v2' },
-            { species: 'ratatoskr', os: 'ratatoskr_v2' },
-            { species: 'jormungandr', os: 'jormungandr_v2' },
+            {
+                species: 'kraken', os: 'kraken_v2', leaderCard: 'pressure_front',
+                deck: ['tide_pool', 'tide_pool', 'surge_protection', 'spreading_rot', 'capacitor', 'tidal_battery', 'contagion', 'eitr_surge', 'hydro_blast', 'tidal_wave'],
+            },
+            {
+                species: 'jormungandr', os: 'jormungandr_v2', leaderCard: 'coil_and_strike',
+                deck: ['poison_injection', 'poison_injection', 'corrosive_leak', 'corrosive_bolt', 'corrosive_bolt', 'tide_pool', 'serpent_flurry', 'serpent_flurry', 'venom_fang', 'contagion'],
+            },
+            {
+                species: 'fenrir', os: 'fenrir_v1', leaderCard: 'gleipnir_breaks',
+                deck: ['war_pact', 'desperate_strike', 'fury_strike', 'flare_burst', 'flare_burst', 'glass_cannon', 'ragnarok_edge', 'unbound_fang', 'pack_tactics', 'pack_tactics'],
+            },
         ],
         driver: DRIVER_ROOT_ROT,
+    },
+    gym_rootfall: {
+        members: [
+            {
+                species: 'ratatoskr', os: 'ratatoskr_v1', leaderCard: 'rumor',
+                deck: ['acorn_toss', 'acorn_toss', 'heckle', 'heckle', 'forage', 'forage', 'nagging_bite', 'hoofbeat', 'seed_bomb', 'seed_bomb'],
+            },
+            {
+                species: 'huldra', os: 'huldra_v1', leaderCard: 'bewitch',
+                deck: ['tend', 'tend', 'pollen_cloud', 'bolster', 'thorn_whip', 'nagging_bite', 'verdant_ward', 'pile_on', 'slander', 'slander'],
+            },
+            {
+                species: 'kraken', os: 'kraken_v1', leaderCard: 'deep_current',
+                deck: ['undertow', 'undertow', 'blind_spot', 'blind_spot', 'whirlpool', 'whirlpool', 'pressure_point', 'deep_scan', 'serpents_coil', 'crushing_depths'],
+            },
+        ],
+        driver: DRIVER_TIDAL_SURGE,
     },
 };
 
 /** The authored boss for a gym, or undefined where ticket 18's formula still stands (ruling 6). */
 export function authoredBossFor(gymId: string): IAuthoredBoss | undefined {
     return AUTHORED_BOSSES[gymId];
+}
+
+/** TICKET 207: the deck a leader member fights with — its authored list plus its leader card. */
+export function leaderDeckFor(member: IAuthoredBossMember): string[] {
+    return [...member.deck, member.leaderCard];
+}
+
+/**
+ * TICKET 207: the leader member running this Instinct at this gym, if any. Fights 1 and 2 ask it to
+ * hand an enemy of that Instinct its leader card.
+ */
+export function leaderMemberFor(gymId: string, os: string): IAuthoredBossMember | undefined {
+    return authoredBossFor(gymId)?.members.find((member) => member.os === os);
 }

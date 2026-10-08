@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import HOOKS_DATA from './lib/hooks.json';
 import { initDaemonHooks } from './daemonHooks';
 import { getOSBehavior } from './firmwareRegistry';
-import { DRIVER_WAR_FOOTING, getDriver } from './driverRegistry';
+import { DRIVER_SURTALOGI, DRIVER_WAR_FOOTING, getDriver } from './driverRegistry';
 import { getHook } from '../core/HookRegistry';
 import { HookFactory } from '../core/HookFactory';
 import { createBattleState } from './battleFactories';
@@ -76,7 +76,8 @@ describe('enemy Drivers (ticket 68)', () => {
         const gymNode = run.nodes.find(n => n.kind === 'gym')!;
         const fight = rollGauntletFight({ run, node: gymNode, fightIndex: GAUNTLET_FIGHTS - 1 });
 
-        expect(fight.enemyDrivers).toEqual([DRIVER_WAR_FOOTING]);
+        // TICKET 207: Emberfall's Driver is SURTALOGI now.
+        expect(fight.enemyDrivers).toEqual([DRIVER_SURTALOGI]);
 
         const setup: IBattleSetup = {
             party: [PARTY_MEMBER],
@@ -95,15 +96,14 @@ describe('enemy Drivers (ticket 68)', () => {
 
         expect(state.enemyParty).toHaveLength(3);
         for (const boss of state.enemyParty) {
-            expect(boss.hooks).toContain('driver_war_footing_rally');
-            expect(boss.hooks).toContain('driver_war_footing_escalate');
+            expect(boss.hooks).toContain('driver_surtalogi_blast');
             // Additive: the member still runs its own firmware, and it is not a relic (ruling 1/2).
             expect(getOSBehavior(boss.activeOS!)!.hooks.length).toBeGreaterThan(0);
             expect(boss.activeOS?.startsWith('boss_relic_')).toBe(false);
         }
         // The PLAYER side gets nothing from it — the list is side-scoped.
         for (const member of state.playerParty) {
-            expect(member.hooks ?? []).not.toContain('driver_war_footing_rally');
+            expect(member.hooks ?? []).not.toContain('driver_surtalogi_blast');
         }
     });
 

@@ -86,7 +86,8 @@ describe('the SIDE counter scope', () => {
 describe('TIDAL SURGE', () => {
     it('is registered, named, and attaches to a member without touching its OS', () => {
         const driver = getDriver(DRIVER);
-        expect(driver?.name).toBe('TIDAL SURGE');
+        // TICKET 207: shown as YGGDRASIL'S WRATH, and Rootfall's now (the id keeps its old name).
+        expect(driver?.name).toBe("YGGDRASIL'S WRATH");
         expect(driver?.description).toMatch(/10 cards/);
 
         const member = { id: 'm1', hooks: [], activeOS: 'kraken_v1' } as unknown as IBattleEntity;
@@ -150,10 +151,10 @@ const PARTY_MEMBER: IMingmingState = {
     blueprintsCollected: 0, hpIV: 10, attackIV: 10, defenseIV: 10,
 };
 
-describe('Tidewrack, authored', () => {
+describe('Rootfall, authored (the Driver moved here in ticket 207)', () => {
     /** A built Tidewrack boss battle, plus the side counter key its Driver writes to. */
     const arena = () => {
-        const { fight } = fightFor('gym_tidewrack');
+        const { fight } = fightFor('gym_rootfall');
         const setup: IBattleSetup = {
             party: [PARTY_MEMBER], deck: [], drivers: [], persistedHp: {},
             encounter: { enemyParty: fight.enemyParty, enemyDeckIds: fight.enemyDeckIds, enemyDrivers: fight.enemyDrivers },
@@ -175,8 +176,8 @@ describe('Tidewrack, authored', () => {
         return { run, fight: rollGauntletFight({ run, node: gymNode, fightIndex: GAUNTLET_FIGHTS - 1 }) };
     };
 
-    it('fields the authored trio under TIDAL SURGE, additively', () => {
-        const { fight } = fightFor('gym_tidewrack');
+    it('fields the authored trio under the Driver, additively', () => {
+        const { fight } = fightFor('gym_rootfall');
         expect(fight.enemyDrivers).toEqual([DRIVER_TIDAL_SURGE]);
 
         const setup: IBattleSetup = {
@@ -199,7 +200,7 @@ describe('Tidewrack, authored', () => {
     });
 
     it('is the authored trio and not a rolled one', () => {
-        const { fight } = fightFor('gym_tidewrack');
+        const { fight } = fightFor('gym_rootfall');
         const running = fight.enemyParty.map((e: IBattleEntity) => e.activeOS).sort();
         /*
          * TICKET 28b (Henry, 2026-09-25) is the third composition this line has held, and it goes
@@ -214,7 +215,8 @@ describe('Tidewrack, authored', () => {
          * thing a pin must not do. So this line moving is the signal that the gym was re-composed,
          * and it has now done that job twice.
          */
-        expect(running).toEqual(['jormungandr_v1', 'kraken_v2', 'skoll_v2']);
+        // TICKET 207 (Henry, 2026-10-08): this Driver now rides Rootfall's zoo, transcribed.
+        expect(running).toEqual(['huldra_v1', 'kraken_v1', 'ratatoskr_v1']);
     });
 
     /*
@@ -238,7 +240,7 @@ describe('Tidewrack, authored', () => {
      */
 
     it('telegraphs on the offer screen and carries to the region final elite', () => {
-        const { run, fight } = fightFor('gym_tidewrack');
+        const { run, fight } = fightFor('gym_rootfall');
         // The offer telegraph is data-driven off the authored table, so authoring the gym is what
         // wires it — but "should follow automatically" is exactly the claim worth checking.
         expect(fight.enemyDrivers).toContain(DRIVER_TIDAL_SURGE);
@@ -274,7 +276,7 @@ describe('Tidewrack, authored', () => {
         // only that player HP fell, and it PASSED against a Driver whose counter actions were being
         // silently skipped — the damage was coming from an unrelated hook on the same trigger.
         expect(after.counters[key]).toBe(0);
-        expect(after.logs.slice(logsBefore).some(l => /TIDAL SURGE/.test(l))).toBe(true);
+        expect(after.logs.slice(logsBefore).some(l => /YGGDRASIL'S WRATH/.test(l))).toBe(true);
         expect(after.playerParty.reduce((a, e) => a + e.currentHp, 0))
             .toBeLessThan(nine.playerParty.reduce((a, e) => a + e.currentHp, 0));
     });

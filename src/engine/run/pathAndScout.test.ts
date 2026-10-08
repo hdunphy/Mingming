@@ -337,7 +337,7 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
         }
     });
 
-    it('fields exactly ONE firmware twice, and it is skoll_v2 — RULED, not a drift', () => {
+    it('fields no firmware at two gyms — TICKET 207 retired the one ruled duplicate', () => {
         /*
          * ══ THE ONE DUPLICATE IS ALLOWED, AND IT IS RULED RATHER THAN TOLERATED. ══
          *
@@ -356,9 +356,13 @@ describe('142b — the scout is a cut of the leader, at the last exit', () => {
          * the ruling is about `skoll_v2` specifically and not a licence for the roster to collapse:
          * a SECOND firmware appearing twice is drift and still fails here.
          */
+        /*
+         * TICKET 207 (Henry, 2026-10-08) picked new teams, and `skoll_v2` is at Emberfall only. Two
+         * species still appear at two gyms (fenrir, huldra, kraken), each on a DIFFERENT Instinct,
+         * which is "leaders build differently" and not a pool.
+         */
         const all = Object.keys(GYM_REGISTRY).flatMap((id) => [...gymLeaderFirmware(id)]);
         const duplicated = [...new Set(all.filter((os, i) => all.indexOf(os) !== i))];
-        expect(duplicated, `${all.join(', ')}`).toEqual(['skoll_v2']);
-        expect(new Set(all).size, 'one duplicate and no more').toBe(all.length - 1);
+        expect(duplicated, `${all.join(', ')}`).toEqual([]);
     });
 });

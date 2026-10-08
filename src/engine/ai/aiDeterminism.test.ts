@@ -29,6 +29,11 @@
  * AFTER MERGING 195a AND 194 the list below is measured with both applied. It is 194's list with three fights moved
  * again by 195a (Bark Smash 5 a point, Bark Smash+ 8): 4 (06aceb8d -> 5bcf5e37), 12 (28926034 -> 71b31120) and
  * 15 (3a4b479b -> 7a0b1c1b). Fights 13 and 18 moved at 195a on its own, but with 194a in they match 194's values.
+ *
+ * RE-PINNED ON PURPOSE, TICKET 207 (Henry's authored gym teams, decks and Totems): every 2v2 against the Tidewrack
+ * or Rootfall boss fields a new team under a moved Totem, so fights 11 (a257050a -> cc9585c9), 12 (71b31120 ->
+ * 86fff187), 14 (aeb81c7b -> 4c7ac0cb), 15 (7a0b1c1b -> 509142eb), 17 (4ad363e0 -> b8f2bea2) and 18 (6c709cc6 ->
+ * 7f0d8a8b) moved. The Emberfall fights (10, 13, 16, 19) did not: their first two members are unchanged.
  */
 import { describe, it, expect } from 'vitest';
 import { determinismFights, hashOfFight } from './aiDeterminismFights';
@@ -36,8 +41,8 @@ import { determinismFights, hashOfFight } from './aiDeterminismFights';
 const EXPECTED: ReadonlyArray<string> = [
     '379cb0f9', '55457196', '112193f2', '899c7f5b', '5bcf5e37',
     '5781866a', 'c9c7121e', '8e7423ec', '94dea59d', '725bee70',
-    '0362db14', 'a257050a', '71b31120', '734ec7a5', 'aeb81c7b',
-    '7a0b1c1b', 'f4a902bf', '4ad363e0', '6c709cc6', '2135677b',
+    '0362db14', 'cc9585c9', '86fff187', '734ec7a5', '4c7ac0cb',
+    '509142eb', 'f4a902bf', 'b8f2bea2', '7f0d8a8b', '2135677b',
 ];
 
 describe('177a — the AI is byte-identical on twenty fixed fights', () => {

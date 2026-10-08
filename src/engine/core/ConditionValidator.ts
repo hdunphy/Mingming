@@ -73,6 +73,12 @@ export const ConditionValidator = {
             if (((context.hpLost ?? 0) > 0) !== condition.hpLost) return false;
         }
 
+        // 1d. DETONATION Check — ticket 207. Did THIS status application detonate its pile?
+        // `statusDetonations` is set only at `applyStatus`'s onStatusApplied dispatch.
+        if (condition.statusDetonated !== undefined) {
+            if (((context.statusDetonations ?? 0) > 0) !== condition.statusDetonated) return false;
+        }
+
         // 2. Program Checks
         if (condition.actionType && context.program) {
             // A program satisfies the actionType check if ANY of its actions match

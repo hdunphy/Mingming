@@ -10320,5 +10320,340 @@
             "energy_base"
         ],
         "actions": []
+    },
+    "flame_wave": {
+        "id": "flame_wave",
+        "name": "Flame Wave",
+        "description": "5 power to the enemy side. Apply 1 Burn to each.",
+        "element": "Fire",
+        "target": "Side",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Burn",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 5,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "chase_the_sun": {
+        "id": "chase_the_sun",
+        "name": "Chase the Sun",
+        "description": "15 power, four times.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Burn",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "smoldering_bark": {
+        "id": "smoldering_bark",
+        "name": "Smoldering Bark",
+        "description": "Gain 6 Bark Shield. Apply 1 Burn to the target.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Bark",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "BarkShield",
+                "stacks": 6,
+                "target": "SELF"
+            },
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "pressure_front": {
+        "id": "pressure_front",
+        "name": "Pressure Front",
+        "description": "40 power. Gain 1 Energized.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Energy",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Energized",
+                "stacks": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "coil_and_strike": {
+        "id": "coil_and_strike",
+        "name": "Coil and Strike",
+        "description": "Apply 2 Poison, then 15 power, three times.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Poison",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 2,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "gleipnir_breaks": {
+        "id": "gleipnir_breaks",
+        "name": "Gleipnir Breaks",
+        "description": "15 power, three times. Lose 5% of your max HP.",
+        "element": "Fire",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "HP",
+        "baseCost": 1,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 15,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "percentMaxHp": 5,
+                "target": "SELF"
+            }
+        ]
+    },
+    "rumor": {
+        "id": "rumor",
+        "name": "Rumor",
+        "description": "3 power, twice. Apply 1 Dazed.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Dazed",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 3,
+                "target": "TARGET"
+            },
+            {
+                "type": "ATTACK",
+                "power": 3,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "bewitch": {
+        "id": "bewitch",
+        "name": "Bewitch",
+        "description": "Apply 1 Dazed. Gain 2 Sharp.",
+        "element": "Nature",
+        "target": "Single",
+        "category": "Status",
+        "rarity": "Rare",
+        "shape": "enabler",
+        "cur": "Dazed",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Dazed",
+                "stacks": 1,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Sharp",
+                "stacks": 2,
+                "target": "SELF"
+            }
+        ]
+    },
+    "deep_current": {
+        "id": "deep_current",
+        "name": "Deep Current",
+        "description": "20 power per card you played this turn. Draw 1.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "cards",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 20,
+                "target": "TARGET",
+                "scaling": "CARDS_PLAYED"
+            },
+            {
+                "type": "DRAW",
+                "amount": 1,
+                "target": "SELF"
+            }
+        ]
+    },
+    "eitr_surge": {
+        "id": "eitr_surge",
+        "name": "Eitr Surge",
+        "description": "40 power. Apply 4 Poison.",
+        "element": "Water",
+        "target": "Single",
+        "category": "Attack",
+        "rarity": "Rare",
+        "shape": "scalar",
+        "cur": "Poison",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "ATTACK",
+                "power": 40,
+                "target": "TARGET"
+            },
+            {
+                "type": "STATUS",
+                "status": "Poison",
+                "stacks": 4,
+                "target": "TARGET"
+            }
+        ]
     }
 }

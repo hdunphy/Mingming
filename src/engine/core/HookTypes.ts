@@ -107,6 +107,12 @@ export type HookContext = {
      */
     hpLost?: number;
     /**
+     * TICKET 207 — **how many times THIS status application detonated a pile** (Burn's cap
+     * crossing, `StatusBehaviors.BurnBehavior.onApply`). Set at the `onStatusApplied` dispatch in
+     * `effectHandlers.applyStatus` only; absent everywhere else, so `statusDetonated` is false there.
+     */
+    statusDetonations?: number;
+    /**
      * TICKET 171f — set by `HookFactory` while a data hook's `do` list runs, so a STATUS it applies
      * is reported as the hook's (`StatusSource.hookId`) rather than as the card that triggered it.
      * Event payload only: nothing in the battle state reads it.
@@ -145,6 +151,12 @@ export type HookCondition = {
      * form; `false` is not a case anything needs.
      */
     hpLost?: boolean;
+    /**
+     * TICKET 207 — **passes when the status application in context detonated its pile.** Reads
+     * `context.statusDetonations`. SURTALOGI (Emberfall's Totem) is the first user: Henry,
+     * 2026-10-08, *"give more damage on overflow for burn"*. `true` is the only supported form.
+     */
+    statusDetonated?: boolean;
     programElement?: string;
     baseCost?: number | { operator: 'LT' | 'GT' | 'LTE' | 'GTE' | 'EQ'; value: number };
     statusApplied?: StatusType;
@@ -215,6 +227,8 @@ export type HookAction = {
     power?: number;
     element?: Element;
     percentMaxHP?: number;
+    /** TICKET 207: ATTACK only — a share of the TARGET's max HP, read by the ATTACK executor (see `HookSchema`). */
+    percentMaxHp?: number;
     /**
      * Ticket 36: multiply this action by `1 + escalatePerPlay x (plays already made by the
      * owner this turn)`. Composes with `scaling` rather than replacing it, and resets every

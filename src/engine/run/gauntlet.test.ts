@@ -35,9 +35,9 @@ import {
     isBossFight,
     rollGauntletFight,
 } from './gauntlet';
-import { authoredBossFor } from './bosses';
+import { authoredBossFor, leaderDeckFor, leaderMemberFor } from './bosses';
 import { MingmingRegistry } from '../data/mingmingRegistry';
-import { DRIVER_WAR_FOOTING } from '../data/driverRegistry';
+import { DRIVER_SURTALOGI } from '../data/driverRegistry';
 import { getOSBehavior } from '../data/firmwareRegistry';
 import { ENEMY_LADDER, gradeFor } from './encounter';
 import { buildBattleSetup } from './battleSetup';
@@ -312,7 +312,10 @@ describe('rollGauntletFight — the boss team (fight 3)', () => {
             // `getDeckForOS` resolves a `boss_relic_*` id to the species' first tuned list by its
             // documented fallback — which is also what makes a shipped boss reproducible in the
             // balance harness as `[species, boss_relic_x]` (`debug/balance/teamComps.ts`).
-            for (const dataId of getDeckForOS(enemy.definitionId, enemy.activeOS)) {
+            // TICKET 207: a leader fights with its AUTHORED list plus its leader card.
+            const member = leaderMemberFor(run.gymId, enemy.activeOS ?? '');
+            const deck = member ? leaderDeckFor(member) : getDeckForOS(enemy.definitionId, enemy.activeOS);
+            for (const dataId of deck) {
                 expect(fight.enemyDeckIds).toContain(dataId);
             }
         }
@@ -386,8 +389,12 @@ describe('the gym is the enemy ladder’s top rung', () => {
             expect(enemy.activeOS).toBeDefined();
             expect(getDeckForOS(enemy.definitionId, enemy.activeOS).length).toBeGreaterThan(0);
         }
-        const expected = fight.enemyParty
-            .flatMap((enemy) => getDeckForOS(enemy.definitionId, enemy.activeOS));
+        // TICKET 207: an enemy running a leader Instinct in fights 1 and 2 holds its tuned list PLUS
+        // that Instinct's leader card (Henry: added, not swapped).
+        const expected = fight.enemyParty.flatMap((enemy) => [
+            ...getDeckForOS(enemy.definitionId, enemy.activeOS),
+            ...(leaderMemberFor(run.gymId, enemy.activeOS ?? '') ? [leaderMemberFor(run.gymId, enemy.activeOS ?? '')!.leaderCard] : []),
+        ]);
         expect([...fight.enemyDeckIds].sort()).toEqual([...expected].sort());
     });
 });
@@ -514,16 +521,16 @@ describe('rollGauntletFight — Emberfall, the authored boss (ticket 68)', () =>
         }
     });
 
-    it('holds the species’ REAL tuned deck, with no fallback in the path', () => {
-        // The quieter half of ruling 2: because `activeOS` is one of the species' own, the deck
-        // lookup returns that OS's tuned list directly — a deck the player could build.
-        const expected = authored.members.flatMap((m) => getDeckForOS(m.species, m.os));
+    it('holds its AUTHORED deck and its leader card — ticket 207, not the tuned list', () => {
+        // Ticket 207 (Henry, 2026-10-08): each leader's deck is authored in the table, so a change
+        // to a species' tuned deck no longer moves the gym; the leader card rides on top.
+        const expected = authored.members.flatMap((m) => leaderDeckFor(m));
         expect([...fight.enemyDeckIds]).toEqual(expected);
     });
 
     it('runs exactly ONE side-level Driver, and it is not a relic (ruling 1)', () => {
-        expect(fight.enemyDrivers).toEqual([DRIVER_WAR_FOOTING]);
-        expect(DRIVER_WAR_FOOTING.startsWith('boss_relic_')).toBe(false);
+        expect(fight.enemyDrivers).toEqual([DRIVER_SURTALOGI]);
+        expect(DRIVER_SURTALOGI.startsWith('boss_relic_')).toBe(false);
     });
 
     it('still takes the authored IVs — BOSS_IVS is untouched by this ticket (ruling 7)', () => {
@@ -566,11 +573,12 @@ describe('gymSignatures — the offer screen telegraph (ticket 68 ruling 4)', ()
     it('gives an authored gym its ONE Driver, by name and rule text', () => {
         const signatures = gymSignatures('gym_emberfall', emberfallBiomes);
         expect(signatures).toHaveLength(1);
-        expect(signatures[0].id).toBe(DRIVER_WAR_FOOTING);
-        expect(signatures[0].name).toBe('WAR FOOTING');
+        // TICKET 207: Emberfall's Driver is SURTALOGI now.
+        expect(signatures[0].id).toBe(DRIVER_SURTALOGI);
+        expect(signatures[0].name).toBe('SURTALOGI');
         // The rule has to be READABLE, not just present — this string is the whole telegraph.
-        expect(signatures[0].description).toContain('Strengthened');
-        expect(signatures[0].description).toContain('turn 4');
+        expect(signatures[0].description).toContain('Burn');
+        expect(signatures[0].description).toContain('5%');
     });
 
 });

@@ -11,6 +11,9 @@ const HookConditionSchema = z.object({
     // Ticket 185b. zod strips undeclared keys, so without this line `hpLost` would be dropped from
     // the hook data and skoll_v1 would fire on every enemy action again, silently.
     hpLost: z.boolean().optional(),
+    // TICKET 207: SURTALOGI's condition. Declared for the reason every line here gives: zod strips
+    // undeclared keys, and a stripped `statusDetonated` would fire the Totem on EVERY Burn.
+    statusDetonated: z.boolean().optional(),
     isToken: z.boolean().optional(),
     statusApplied: z.string().optional(),
     statusAppliedIn: z.array(z.string()).optional(),
@@ -54,6 +57,10 @@ const HookActionSchema = z.object({
     element: z.string().optional(),
     amount: z.number().optional(),
     percentMaxHP: z.number().optional(),
+    // TICKET 207: a hook ATTACK that deals a share of the TARGET's max HP (the card-side recoil
+    // field, read by the ATTACK executor). Not `percentMaxHP` above, which is the HP action's and
+    // reads the OWNER's max HP.
+    percentMaxHp: z.number().optional(),
     // Ticket 36. NOTE: zod strips unknown keys, so a field added to HookAction but not
     // listed here is silently dropped between hooks.json and the engine - which is exactly
     // how this one spent three sim runs looking like a no-op.

@@ -58,7 +58,8 @@ import type { IBattleEntity, IMingmingState } from '../types';
 import type { IRegionNode, IRunState } from '../runTypes';
 import { ENEMY_LADDER, encounterSpeciesPool } from './encounter';
 import type { IRunEncounter } from './encounter';
-import { authoredBossFor } from './bosses';
+import { authoredBossFor, leaderDeckFor } from './bosses';
+import { leadersInFight } from './gymLeaderPlacement';
 import { GYM_REGISTRY, gymCompElementPlan } from './gyms';
 import { nodeSeed } from './nodeSeed';
 import { gauntletDriversFor } from './tiers/gauntletDrivers';
@@ -274,6 +275,12 @@ function buildEnemy(
     slot: number,
     /** True on the last fight only. A boss does not roll; see `BOSS_IVS`. */
     boss: boolean,
+    /** TICKET 207: the deck this body holds instead of its tuned list (a leader's authored deck). */
+    deckOverride?: ReadonlyArray<string>,
+    /** TICKET 207: a card added to the tuned list (a leader card in fights 1 and 2). */
+    extraCard?: string,
+    /** TICKET 207: Instincts a ROLLED body may not run (the leader's); it takes its other one. */
+    forbiddenOS: ReadonlyArray<string> = [],
 ): { entity: IBattleEntity; deck: string[] } {
     const definition = GetMingmingData(definitionId);
 
@@ -303,7 +310,12 @@ function buildEnemy(
     // which species the *next* member of the team is — the same stream-position discipline
     // `rollEncounter` keeps between depths.
     const nativeOS = definition.availableOS[stream.nextInt(0, definition.availableOS.length - 1)];
-    const activeOS = firmware ?? nativeOS;
+    // TICKET 207: a rolled body never runs a leader Instinct, so fights 1 and 2 cannot field the
+    // leader's whole trio. Swapped AFTER the draw, so the stream stays where it was.
+    const allowedOS = forbiddenOS.includes(nativeOS)
+        ? (definition.availableOS.find((os) => !forbiddenOS.includes(os)) ?? nativeOS)
+        : nativeOS;
+    const activeOS = firmware ?? allowedOS;
 
     const state: IMingmingState = {
         id: stream.nextId(`gym_${definitionId}`),
@@ -334,7 +346,9 @@ function buildEnemy(
      * redesign: the member's `activeOS` IS one of its own `availableOS`, so this lookup returns the
      * species' real tuned list directly and the boss's deck is a deck the player could build.
      */
-    const deck = getDeckForOS(definitionId, activeOS);
+    // TICKET 207: a leader fights with its authored list; a fights-1-and-2 leader Instinct adds its card.
+    const tuned = deckOverride ? [...deckOverride] : getDeckForOS(definitionId, activeOS);
+    const deck = extraCard ? [...tuned, extraCard] : tuned;
 
     return { entity: initializeBattleEntity(state, definition), deck };
 }
@@ -377,10 +391,17 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
     // TICKET 68: an authored gym's boss fight is a table lookup, not a roll. Undefined for fights 1
     // and 2 at every gym, and for all three fights at a gym ruling 6 has not migrated yet.
     const authored = boss ? authoredBossFor(run.gymId) : undefined;
+    // TICKET 207: fights 1 and 2 place the leader's Instincts (`gymLeaderPlacement`), each in the
+    // slot of its own line-up position, which is also the slot the element plan gives its element.
+    const leaderTeam = authoredBossFor(run.gymId);
+    const placed = boss || !leaderTeam ? [] : leadersInFight(run, node, fightIndex);
+    const forbiddenOS = boss || !leaderTeam ? [] : leaderTeam.members.map((member) => member.os);
 
     const enemyParty: IBattleEntity[] = [];
     const enemyDeckIds: string[] = [];
     const species: string[] = [];
+    // Placed leader species count as taken from the start, so a rolled slot does not double them.
+    const placedSpecies = leaderTeam ? placed.map((index) => leaderTeam.members[index].species) : [];
 
     for (let slot = 0; slot < GAUNTLET_ENEMY_COUNT; slot += 1) {
         // The boss team is one species per biome, IN BIOME ORDER, so the member fought last in the
@@ -397,15 +418,16 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
          * authoring a gym must not silently re-roll what the OTHER gyms field, and un-authoring one
          * must not either. Reading `run.gymId` is the only thing that decides this branch.
          */
-        const rolled = drawSpecies(pool, species, roster);
-        const definitionId = authored?.members[slot]?.species ?? rolled;
+        const rolled = drawSpecies(pool, [...species, ...placedSpecies], roster);
+        const leaderHere = leaderTeam && placed.includes(slot) ? leaderTeam.members[slot] : undefined;
+        const definitionId = authored?.members[slot]?.species ?? leaderHere?.species ?? rolled;
         species.push(definitionId);
 
         // TICKET 72: the rolled `boss_relic_*` branch is gone with the relics. Every gym is
         // authored now, so a boss member's firmware IS its own tuned OS — ruling 2: *"members keep
         // their OSes; the Driver is additive, not an OS replacement"*. A non-boss slot has no
         // firmware override at all, exactly as before.
-        const firmware = authored ? (authored.members[slot]?.os ?? null) : null;
+        const firmware = authored ? (authored.members[slot]?.os ?? null) : (leaderHere?.os ?? null);
 
         // Ticket 28 authors the real names. Until it does, the nickname says which gym's team this
         // is and whether it is the leader's own — a player who cannot tell fight 3 from fight 2 by
@@ -414,7 +436,13 @@ export function rollGauntletFight(input: GauntletFightInput): IRunEncounter {
             ? `${gymName} Champion ${GetMingmingData(definitionId).name}`
             : `${gymName} ${GetMingmingData(definitionId).name}`;
 
-        const built = buildEnemy(definitionId, nickname, firmware, roster, slot, boss);
+        const bossMember = authored?.members[slot];
+        const built = buildEnemy(
+            definitionId, nickname, firmware, roster, slot, boss,
+            bossMember ? leaderDeckFor(bossMember) : undefined,
+            leaderHere?.leaderCard,
+            leaderHere || bossMember ? [] : forbiddenOS,
+        );
         enemyParty.push(built.entity);
         enemyDeckIds.push(...built.deck);
     }

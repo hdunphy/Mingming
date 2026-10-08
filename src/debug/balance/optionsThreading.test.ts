@@ -252,8 +252,10 @@ describe('the tweak mechanism rejects every retired knob by name', () => {
          * header): it is retired, and the refusal names the ruling. Asserted rather than deleted,
          * because the name is printed in committed research docs and shell history.
          */
-        expect(AUTHORED_BOSSES['gym_rootfall'].members.map((m) => m.os)).toContain('ratatoskr_v2');
-        expect(AUTHORED_BOSSES['gym_rootfall'].members.map((m) => m.os)).not.toContain('ratatoskr_v1');
+        // TICKET 207 re-composed Rootfall again (ratatoskr_v1 is back, as part of Henry's zoo team),
+        // so the table no longer says what 28a shipped. The knob stays retired: its experiment is
+        // history either way.
+        expect(AUTHORED_BOSSES['gym_rootfall'].members.length).toBe(3);
         for (const fn of [validateTweaks, describeTweaks, applyRegistryTweaks]) {
             expect(() => fn([ROOT_KNOB])).toThrow(/28a/);
         }
@@ -356,13 +358,14 @@ describe('ticket 77: the player-side flags reach the fight through measureCell\'
         expect(options.playerPolicy!.held).toHaveLength(3);
     });
 
-    it('`--tweak root-rot-c1` reshapes the Driver the Rootfall boss actually fields', () => {
+    it('`--tweak root-rot-c1` reshapes the Driver the boss that fields it actually runs', () => {
         const before = FIRMWARE_REGISTRY[DRIVER_ROOT_ROT];
         try {
             expect(applyRegistryTweaks(['root-rot-c1'])).toEqual(['root-rot-c1']);
 
-            const fight = sampleFightFor(CELL, 0, base);
-            expect(fight.enemyDrivers, 'Rootfall\'s boss still runs ROOT ROT by id').toEqual([DRIVER_ROOT_ROT]);
+            // TICKET 207: the ROOT ROT Driver (shown as ÉLIVÁGAR) rides Tidewrack now.
+            const fight = sampleFightFor(CELL, 0, { ...base, gymId: 'gym_tidewrack' });
+            expect(fight.enemyDrivers, 'Tidewrack\'s boss runs ROOT ROT by id').toEqual([DRIVER_ROOT_ROT]);
 
             const driver = getDriver(DRIVER_ROOT_ROT)!;
             expect(driver.hooks.map((h) => h.id)).toEqual(['driver_root_rot_c1_creep', 'driver_root_rot_c1_reset']);

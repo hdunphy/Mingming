@@ -673,7 +673,9 @@ function handleApplyStatus(state: IBattleState, payload: EffectPayloads['APPLY_S
                 target: postTarget,
                 state: newState,
                 triggerDepth: 0,
-                statusApplied: status
+                statusApplied: status,
+                // TICKET 207: SURTALOGI reads this (`HookCondition.statusDetonated`).
+                ...(overflow ? { statusDetonations: overflow.detonations } : {}),
             };
             const { state: afterHook } = executeResolutionStack('onStatusApplied', context);
             newState = afterHook;

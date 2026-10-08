@@ -1328,9 +1328,39 @@
             }
         ]
     },
+    "driver_surtalogi": {
+        "id": "driver_surtalogi",
+        "name": "SURTALOGI",
+        "description": "Whenever this side makes an enemy's Burn detonate, the blast deals 5% more of its max HP.",
+        "hooks": [
+            {
+                "id": "driver_surtalogi_blast",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "source": "SELF",
+                    "target": "OPPONENT",
+                    "statusApplied": "Burn",
+                    "statusDetonated": true
+                },
+                "do": [
+                    {
+                        "type": "ATTACK",
+                        "target": "TARGET",
+                        "percentMaxHp": 5,
+                        "element": "Fire"
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "SURTALOGI feeds the blast on {target}!"
+                    }
+                ]
+            }
+        ]
+    },
     "driver_tidal_surge": {
         "id": "driver_tidal_surge",
-        "name": "TIDAL SURGE",
+        "name": "YGGDRASIL'S WRATH",
         "description": "Every 10 cards this side plays, it deals 10 power to the enemy side.",
         "hooks": [
             {
@@ -1369,7 +1399,7 @@
                         "type": "ATTACK",
                         "target": "ENEMIES",
                         "power": 10,
-                        "element": "Water"
+                        "element": "Nature"
                     },
                     {
                         "type": "COUNTER",
@@ -1380,7 +1410,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "TIDAL SURGE breaks over the enemy side!"
+                        "text": "YGGDRASIL'S WRATH lashes the enemy side!"
                     }
                 ]
             }
@@ -1388,7 +1418,7 @@
     },
     "driver_root_rot": {
         "id": "driver_root_rot",
-        "name": "ROOT ROT",
+        "name": "ÉLIVÁGAR",
         "description": "Whenever this side's card applies Poison, it applies 1 more.",
         "hooks": [
             {
@@ -1429,7 +1459,7 @@
                     },
                     {
                         "type": "LOG",
-                        "text": "ROOT ROT deepens the poison."
+                        "text": "ÉLIVÁGAR's venom deepens the poison."
                     }
                 ]
             }
