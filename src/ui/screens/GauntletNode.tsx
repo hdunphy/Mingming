@@ -56,6 +56,7 @@ import {
     rollGauntletFight,
 } from '../../engine/run/gauntlet';
 import { GAUNTLET_HEAL_PERCENT } from '../../engine/run/gauntletHeal';
+import { GAUNTLET_REVIVE_PERCENT } from '../../engine/run/gauntletRevive';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
 import { initializeBattleEntity } from '../../engine/types';
 import type { IRanchMember, IRanchState, IRegionNode, IRunState } from '../../engine/runTypes';
@@ -95,6 +96,8 @@ interface MemberLine {
     readonly down: boolean;
     /** HP the 30% repair gave back after the last fight (ticket 173). */
     readonly healed: number;
+    /** Ticket 202b: this member was down after the last fight and came back at the revive floor. */
+    readonly revived: boolean;
     /** 194p: the rune it holds, and the Instinct it runs (for the rune's tooltip). */
     readonly runes: ReadonlyArray<string>;
     readonly osId: string;
@@ -130,6 +133,7 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                 currentHp: carried === undefined ? entity.maxHp : carried,
                 down: gauntlet.downedMemberIds.includes(id),
                 healed: gauntlet.healedHp?.[id] ?? 0,
+                revived: gauntlet.revivedMemberIds?.includes(id) ?? false,
                 runes: runeIdsOf(run, id),
                 osId: withEffectiveOS(run, member).activeOS,
             });
@@ -201,14 +205,14 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                 </div>
                 {/* TICKET 182a: the one sentence on this screen. The rest is the hover on the party heading. */}
                 <p className="gn-note">
-                    <strong>Between fights, survivors repair {GAUNTLET_HEAL_PERCENT}% of their max HP.</strong>
+                    <strong>Between fights, every member repairs {GAUNTLET_HEAL_PERCENT}% of their max HP; a downed one comes back at {GAUNTLET_REVIVE_PERCENT}%.</strong>
                 </p>
             </header>
 
             {/* --- The party: the resource being managed --- */}
 
             <div className="gn-section-head">
-                <h3 title={`The rest of the damage carries, and a member who falls stays down until a Revive brings them back.${party.length < opposing ? ` The gauntlet is always ${opposing} strong, whatever you bring: you are fielding ${party.length}.` : ''}`}>Party</h3>
+                <h3 title={`The rest of the damage carries. A member who falls comes back for the next fight at ${GAUNTLET_REVIVE_PERCENT}% of their max HP; a Revive Draught still brings one back mid-fight.${party.length < opposing ? ` The gauntlet is always ${opposing} strong, whatever you bring: you are fielding ${party.length}.` : ''}`}>Party</h3>
                 <span className="gn-tag-note">HP carries between fights · +{GAUNTLET_HEAL_PERCENT}% repair</span>
             </div>
 
@@ -222,8 +226,11 @@ export default function GauntletNode({ run, node, ranch, onEditLoadout }: Gauntl
                                 <span className="gn-row-meta">{member.element}</span>
                                 <RuneTag patchIds={member.runes} osId={member.osId} />
                                 {member.down && <span className="gn-tag danger">Down — revivable</span>}
-                                {!member.down && member.healed > 0 && (
-                                    <span className="gn-tag">+{member.healed} repaired</span>
+                                {!member.down && member.revived && (
+                                    <span className="gn-tag">revived at {GAUNTLET_REVIVE_PERCENT}%</span>
+                                )}
+                                {!member.down && !member.revived && member.healed > 0 && (
+                                    <span className="gn-tag">repaired {GAUNTLET_HEAL_PERCENT}% (+{member.healed})</span>
                                 )}
                             </div>
                             <div className="gn-hp">

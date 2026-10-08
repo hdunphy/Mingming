@@ -84,7 +84,7 @@ import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { introRules } from '../../engine/run/intro/introRules';
 import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
 import { snapshotMarketParty } from '../../engine/run/marketParty';
-import { healBetweenFights } from '../../engine/run/gauntletHeal';
+import { settleBetweenFights } from '../../engine/run/gauntletRevive';
 import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import { rememberOffer } from '../../engine/rewards/recentOffers';
 import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
@@ -1444,6 +1444,7 @@ const runSlice = createSlice({
             const persistedHp: Record<string, number> = { ...gauntlet.persistedHp };
             const downed = new Set(gauntlet.downedMemberIds);
             const healedHp: Record<string, number> = {};
+            const revivedIds: string[] = [];
 
             for (const entry of action.payload) {
                 // Only the party. A battle can contain entities the run does not own (nothing does
@@ -1451,10 +1452,12 @@ const runSlice = createSlice({
                 // matches — harmless until the day something iterates it.
                 if (!run.partyIds.includes(entry.memberId)) continue;
                 const left = Number.isFinite(entry.hp) ? Math.max(0, Math.floor(entry.hp)) : 0;
-                // TICKET 173a: standing members repair 30% of max HP between fights; the downed stay at 0.
-                const repair = entry.maxHp !== undefined ? healBetweenFights(left, entry.maxHp) : { hp: left, healed: 0 };
+                // TICKET 173a: standing members repair 30% of max HP between fights. TICKET 202b: a downed
+                // member is revived at the floor instead of staying at 0 (`gauntletRevive.ts`).
+                const repair = entry.maxHp !== undefined ? settleBetweenFights(left, entry.maxHp) : { hp: left, healed: 0, revived: false };
                 const hp = repair.hp;
                 if (entry.maxHp !== undefined) healedHp[entry.memberId] = repair.healed;
+                if (repair.revived) revivedIds.push(entry.memberId);
                 persistedHp[entry.memberId] = hp;
                 if (hp <= 0) downed.add(entry.memberId);
                 else downed.delete(entry.memberId);
@@ -1472,6 +1475,8 @@ const runSlice = createSlice({
                         downedMemberIds: [...downed],
                         // The last fight's repair is not this one's: rewritten each fight, never merged.
                         ...(Object.keys(healedHp).length > 0 ? { healedHp } : {}),
+                        // Likewise who was revived (202b), so the pit stop says "revived at 30%".
+                        ...(revivedIds.length > 0 ? { revivedMemberIds: revivedIds } : {}),
                     },
                 },
             };
