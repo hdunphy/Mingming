@@ -9,6 +9,7 @@ import { upgradeAllowanceFor } from '../../../engine/run/marketplace';
 import { tracesHeld } from '../../../engine/run/workshop';
 import type { IRanchState, IRegionNode, IRunState, TownTab } from '../../../engine/runTypes';
 import { Icon } from '../../theme/Icon';
+import { denTagLine } from '../../labels/denTagLine';
 import { junkNote, readDeckFloor } from '../deckFloor';
 import { TOWN_BUILDINGS, TOWN_TAB_LABEL } from './townText';
 import { upgradesLeftAt } from './townStatus';
@@ -31,7 +32,7 @@ export function TownSquare({ run, node, ranch, onOpen }: TownSquareProps): React
     const status: Readonly<Record<(typeof TOWN_BUILDINGS)[number], string>> = {
         shop: 'Cards, a trace, draughts and runes. Sells your spares.',
         upgrades: left > 0 ? `${left} of ${allowance} upgrades left this visit` : `All ${allowance} upgrades used this visit`,
-        workshop: `${traces} trace${traces === 1 ? '' : 's'} held · party ${run.partyIds.length}`,
+        workshop: denTagLine(traces) ?? `${traces} traces held · party ${run.partyIds.length}`,
         loadout: `Deck ${reading.counted} / floor ${minimumActiveDeck(run.partyIds.length)}${junkNote(reading)}`,
     };
 

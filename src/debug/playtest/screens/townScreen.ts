@@ -8,6 +8,8 @@
  * back to the square, so a player can go from one to the other like the game's side rail does.
  */
 import { upgradeAllowanceFor, upgradeBenchKeyFor } from '../../../engine/run/marketplace';
+import { tracesHeld } from '../../../engine/run/workshop';
+import { denTagLine } from '../../../ui/labels/denTagLine';
 import { hereNode, leaveStall } from '../stalls';
 import type { Move, Screen, World } from '../types';
 import { runOf } from '../types';
@@ -37,9 +39,12 @@ export function townScreen(world: World): Screen {
     const used = (run.upgradesTaken ?? []).filter((key) => key === upgradeBenchKeyFor(node)).length;
     const left = Math.max(0, upgradeAllowanceFor(node) - used);
     const leave: Move = { key: 'leave', label: 'Leave the town', apply: leaveStall };
+    // 202a: the Den's tag line comes first, so an agent reads it before the line about the shop.
+    const denLine = denTagLine(tracesHeld(world.store.getState().game, run));
     return {
         id: 'town',
         body: [
+            ...(denLine ? [denLine] : []),
             `${nodeLabel(node)}. Amber: ${run.scrap}. A town has a shop (cards, draughts, a trace, runes, upgrades) and a den (summon, retrain, the team).`,
             `Upgrades left on this visit: ${left}.`,
         ],
