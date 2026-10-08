@@ -36,3 +36,9 @@
 
 # Shell scripts must stay LF or they break under bash/CI even on Windows checkouts.
 *.sh   text eol=lf
+
+# Node scripts and the playtest briefs are loaded by tests that need LF (a CR after the
+# "#!/usr/bin/env node" line breaks the import under vitest). Same reason as *.sh.
+*.mjs  text eol=lf
+docs/playtest/agent-player.md text eol=lf
+docs/playtest/agent-player-primed.md text eol=lf
