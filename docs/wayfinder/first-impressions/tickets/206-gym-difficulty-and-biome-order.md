@@ -41,14 +41,26 @@ So the compromise clears the 85% wild rule (2026-09-25) for every starter, and l
 
 | Row | What | State |
 |---|---|---|
-| 206a | **Measure the gym today:** the full-party gauntlet win rate at tier 0 on the walker, per gym, against the soft 60% target | Not started |
+| 206a | **The gym replay bench:** replay the gauntlet with the exact teams and decks the agents brought to the gym, under different settings | Not started |
 | 206b | **Build the compromise order behind a flag and measure both orders:** per-starter biome reads, full-run walker win rate, where runs end, and the recruits each order hands out | Not started |
-| 206c | **The gym knobs, measured one at a time,** for Henry to pick from | Not started |
+| 206c | **Run the bench's arms** (Henry's list) and report each against the soft 60% target | After 206a |
 | 206d | **One agent night** on the configuration Henry picks | After the rulings |
 
-### 206a: The gym today
+Parked: tuning the Totems' own numbers (Henry, 2026-10-08: *"Ignore this for now, but we could tune the totems themselves try increasing the numbers"*). Moved to its own ticket: locking in each gym leader's team and deck and giving some of its cards to fights 1 and 2 ([207](207-authored-gym-teams.md)).
 
-The walker's gauntlet cells (ticket 77's shape) with a full party of three at tier 0, per gym, against the soft 60% target. Report beside it what the agent did: 55% (plain) and 71% (primed) with three at the gym on 10-08. **Measure with 202b's revive between gym fights in** (Henry, 2026-10-08: it ships before this ticket's tuning; another agent is building it on its own branch). If it has not merged yet, measure on that branch, or wait for the merge, and say which build the numbers come from.
+### 206a: The gym replay bench
+
+Henry (2026-10-08): *"It would be great to measure those with an AI … if we can take the final decks that each AI made it to the gym with and then replay those battles with the different settings."*
+
+1. **The input is real gym arrivals.** These are the agent sessions that reached the gym: 32 on the two 2026-10-08 nights (15 plain, 17 primed), with more from every night after. For each one, rebuild the run at the gym gate with the playtest tool's replay, to the move before `gauntlet:begin`. That gives the party, each member's Instinct, Rune and stats, the deck, the Draughts and the Totems, as the agent built them and after its free gate picks. Convert it to the walker's `GymSnapshot` (`src/debug/balance/gymSnapshot.ts`).
+2. **Play the gauntlet from that snapshot** with `playGauntlet` (`src/debug/balance/ghostWalk.ts`), K seeds per team per arm. Use the same seeds in every arm, so the arms are paired. The game AI plays both sides, which is how run mode played these fights on the nights, so the bench measures the same thing the nights did.
+3. **Check the bench before trusting it.** The base arm's win rate over the 32 teams should land near what the nights saw: 6 of 11 full teams won on the plain night and 12 of 17 on the primed night. If it does not, find out why before reading any other arm.
+4. **Report** per arm:
+   - the full-team win rate with a 95% interval, and the same for 2-member teams;
+   - per gym;
+   - which gym fight each loss came in.
+5. **Cost.** A 3v3 gym fight costs 30–70 s on one core (ticket 61's measurement). 32 teams × 5 seeds × 8 arms × up to 3 fights is about 3,800 fights, which is 30 to 70 hours on one core. So the bench runs teams in parallel across worker threads and is a night job on Henry's machine. Start at 3 seeds and add seeds only to the arms that land near 60%.
+6. **A small module per job:** the snapshot reader (session → `GymSnapshot`), the arm table, the runner, the report. The arms are named run options read by the gauntlet, never edits to the constants, so the game default is untouched until Henry rules.
 
 ### 206b: The two orders
 
@@ -60,27 +72,43 @@ The walker's gauntlet cells (ticket 77's shape) with a full party of three at ti
    - which species the rivals and Trace drops offer in biomes 1 and 2.
 3. **Henry's worry, measured.** Under the compromise a Fire starter recruits from the Nature biome first and then meets Fire in half of biome 2. Report how often a recruit made in biome 1 is downed in biome 2, under each order.
 
-### 206c: The gym knobs
+The bench (206a) cannot measure this row: the biome order changes the teams that reach the gym, so it needs whole runs.
 
-Each knob is measured as a single change on 206a's baseline, with the walker's full-party gym win rate. Numbers move in 5s, and no caps (standing rules).
+### 206c: The arms (Henry, 2026-10-08)
 
-- `BOSS_IVS` (today 20/20/20 for the leader's team).
-- `GAUNTLET_HEAL_PERCENT` (today 30).
-- The leader's Totem on fights 1 and 2 (today a tier 3 rule only).
-- The gauntlet fights' enemy kit size or AI grade (today the full lookahead, beamless).
-- 202b's revive floor (it ships first; its floor can still be a knob).
+One change from the base arm each. The base arm is today's game plus 202b's revive, with the revive at the heal's percentage (Henry: *"For simplicity keep this the same % as the heal"*).
 
-The table goes to Henry. He picks one knob or a pair.
+| Arm | What changes |
+|---|---|
+| base | today: leader IVs 20/20/20, fights 1–2 roll their IVs, heal 30%, revive at 30% |
+| leader +5 | the leader's team only: `BOSS_IVS` 25/25/25 |
+| all +5 | the leader's team 25/25/25, and the enemies in fights 1 and 2 roll their IVs from 5–36 instead of 0–31 (`ENEMY_LADDER.gauntlet.iv`; the gauntlet rung only, since it shares `ELITE_IV` with the elite rung, which stays 0–31). Above 31 is a stat line no player Mingming can roll; if that reads wrong, run 5–31 as well and report both |
+| heal 25 | heal 25%, revive 25% |
+| heal 20 | heal 20%, revive 20% |
+| heal 15 | heal 15%, revive 15% |
+| heal 10 | heal 10%, revive 10% |
+| revive off | heal 30%, a downed member stays down (today's rule before 202b) |
+
+If one arm lands near 60% for full teams, that is the proposal. If none does, the next step is a pair: the IV arm closest to 60% plus one heal step.
 
 ### 206d: The night
 
 A primed night (205b's default) on the 10-04 seeds with the picked configuration. The target is a full-team gym win rate near 60% for the agent.
 
+## Rulings (2026-10-08)
+
+- Target a full-team gym win rate near 60% for the agent; *"that's not a hard rule"*. Henry reaches the gym every time at tier 0 and wins most, and the agent plays below him, so the agent's 60% is the yardstick.
+- 202b's revive ships before this ticket's tuning (another agent's branch), and **the revive's HP equals the heal's percentage** (*"For simplicity keep this the same % as the heal"*). That is a ruling for 202b's D1 too; 202b's owner should take it from here.
+- Measure the settings by replaying the agents' real gym teams (206a), with the arms above (206c).
+- The Totems' own numbers: parked.
+- The leader's locked team and deck, and its cards in fights 1 and 2: ticket 207.
+
 ## Decisions for Henry
 
 1. **D1, the biome order:** today's or the compromise, after 206b's numbers. **Pending Henry's review** (2026-10-08: *"I'll take a look later"*).
-2. **D2, the gym knob(s)** from 206c's table.
-3. ~~**D3, 202b's revive:**~~ Answered 2026-10-08: it ships **before** this ticket's tuning, from another agent's branch; 206a's baseline includes it.
+2. **D2, the gym setting(s)** from 206c's table.
+3. ~~**D3, 202b's revive:**~~ Answered 2026-10-08: it ships **before** this ticket's tuning, from another agent's branch; 206a's baseline includes it, at the heal's percentage.
+4. **D4, order against 207:** pick the setting before or after 207's locked leader decks land? 207 will change how hard the gym is, so a setting picked first may need picking again.
 
 ## Resolution
 
