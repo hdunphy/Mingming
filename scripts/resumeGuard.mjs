@@ -6,6 +6,9 @@
  * earlier launch with other flags, so the night played Kraken at Emberfall in the slot planned for Fenrir at
  * Rootfall. Before anything is resumed, the session file is checked against tonight's plan entry.
  *
+ * 202c: a session may have a second run. Its own `seed`, `starter` and `gymIndex` stay the plan's (run 2's seed and gym
+ * live in its `run2` field), so this check reads the same three fields for a session with or without a second run.
+ *
  * Plain Node like the rest of scripts/, so the vitest tests load it by path.
  */
 

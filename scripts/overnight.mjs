@@ -3,7 +3,8 @@
  * `npm run overnight` — one command for the nightly agent playtest (tickets 180 and 193).
  *
  *   npm run overnight                       the full night: Night A (haiku) then Night B (sonnet), on the 2026-10-04 seeds,
- *                                           all twelve starters twice and one card-by-card session each (4 to 6 hours, about $25)
+ *                                           all twelve starters twice and one card-by-card session each; a session plays two runs (202c),
+ *                                           so expect about double or more of the one-run night (4 to 6 hours, about $25): measure the first night
  *   npm run overnight -- --dry-run          run the checks and print each night's plan; play nothing
  *   npm run overnight -- --models haiku     one model only
  *   npm run overnight -- --seed-date fresh  new worlds tonight (seeds named after tonight's date)
@@ -28,8 +29,9 @@
  *   --runs <n>        sessions per night; 24 is the twelve starters, twice each                              (24)
  *   --starter <id>    the starter every session plays, or "all" for the twelve in turn                       (all)
  *   --card-runs <n>   how many sessions play every card themselves                                           (1)
- *   --minutes <n>     wall-clock limit per session; 24 sessions of 35 minutes is 14 hours a model, worst case  (35)
- *   --max-usd <n>     Claude Code's own size estimate cap per session; a yardstick, not a bill               (3)
+ *   --minutes <n>     wall-clock limit per session (two runs); worst case 24 sessions x 80 minutes is 32 hours a
+ *                     model, and 64 hours for both models                                                    (80)
+ *   --max-usd <n>     Claude Code's own size estimate cap per session; a yardstick, not a bill               (10)
  *   --brief <path>    another brief for the driver                                                           (the default brief)
  *   --dry-run         checks and plans only
  *   --allow-api-key   go ahead even though ANTHROPIC_API_KEY is set
@@ -70,8 +72,8 @@ export function parseOvernightArgs(argv, today = todayLocal()) {
         runs: count('runs', 24),
         starter: text('starter', 'all'),
         cardRuns: count('card-runs', 1),
-        minutes: count('minutes', 35),
-        maxUsd: count('max-usd', 3),
+        minutes: count('minutes', 80),
+        maxUsd: count('max-usd', 10),
         brief: text('brief', ''),
         dryRun: flags['dry-run'] === true,
         allowApiKey: flags['allow-api-key'] === true,

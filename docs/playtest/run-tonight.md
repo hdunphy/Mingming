@@ -67,7 +67,7 @@ report before the full night, so the night starts clean.
 
 ## Step 3: the night
 
-**The command for the full night is `npm run overnight`** (any terminal, at the repo root, no flags). It does the checks and then plays Night A (haiku) and Night B (sonnet) on the 2026-10-04 seeds: all twelve starters twice (24 sessions a model) and one card-by-card session each, 35 minutes and an estimated $3 at most per session. Both models take about 4 to 6 hours and about $25 in Claude Code's own estimate (measured from the 2026-10-06 haiku night: 24 sessions, 2 h 31 min, $8.31). `npm run overnight -- --dry-run` shows the plan; the header of `scripts/overnight.mjs` lists the flags. The rest of this step is what it runs.
+**The command for the full night is `npm run overnight`** (any terminal, at the repo root, no flags). It does the checks and then plays Night A (haiku) and Night B (sonnet) on the 2026-10-04 seeds: all twelve starters twice (24 sessions a model) and one card-by-card session each. **A session now plays two runs** (ticket 202c: when the first run ends the agent starts a second on the same save with `again`), so each session has 80 minutes and an estimated $10 at most. The 2026-10-06 haiku night (24 sessions, 2 h 31 min, $8.31) was one run per session; with two runs expect about double or more, and measure it on the first night. The worst case is 24 sessions x 80 minutes = 32 hours a model, and 64 hours for both models; the spend ceiling is $10 a session. `npm run overnight -- --dry-run` shows the plan; the header of `scripts/overnight.mjs` lists the flags. The rest of this step is what it runs.
 
 Note: the long form, which spells out the same defaults, is `npm run overnight -- --starter all --runs 24 --card-runs 1`.
 
@@ -76,9 +76,9 @@ mode and one in `card` mode, where the agent predicts every card and so finds wo
 
     npm run playtest:night -- --date 2026-10-02
 
-Sizing, from the trial: sessions are capped at 25 minutes each and an estimated `--max-usd 3` each, so ten
-sessions can take about four hours. If the trial used more of your plan than you like, start smaller:
-`--runs 5 --max-usd 2`. The night plays all twelve starters in turn; add `--starter kraken_v1` to play one. The `card` session is much longer than the others (500 to 700 calls
+Sizing, from the trial: sessions are capped at 80 minutes each (two runs) and an estimated `--max-usd 10` each, so ten
+sessions can take up to about 13 hours in the worst case. If the trial used more of your plan than you like, start smaller:
+`--runs 5 --max-usd 4`. `--runs` counts sessions, not runs. The night plays all twelve starters in turn; add `--starter kraken_v1` to play one. The `card` session is much longer than the others (500 to 700 calls
 against 50 to 80), so give it room or leave it out with `--card-runs 0`.
 
 To stop, press Ctrl+C. To pick up again, run **the same command with the same `--date`**. A session that
@@ -96,7 +96,7 @@ Open `docs/playtest/agent-runs/2026-10-02.md`. From the top:
 1. **Invariant failures** are likely bugs. Each has a replay command that shows the screen at that move.
 2. **Surprises** are cards or screens where the agent's prediction was wrong. Each is either a bug,
    wording that misled, or the agent being wrong; the list shows the card text next to what happened.
-3. **Runs**: one line each, with tokens and minutes. Add up the cost from the `driver.json` files.
+3. **Runs**: one line a session, split into run 1 and run 2, with tokens and minutes. The party table at the top counts runs, and its last column, "run 2 of a session", shows whether second runs summon more and get further. Add up the cost from the `driver.json` files. **Look first at how long a two-run session took and cost against the 80-minute and $10 limits.**
 4. **Notes** and **decision patterns** are for balance and wording.
 
 Nothing here is committed for you. `results/playtest/` is ignored by git; the report file under

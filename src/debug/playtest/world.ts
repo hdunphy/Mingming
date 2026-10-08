@@ -43,7 +43,17 @@ export function buildStore(game: IRanchState, run: IRunState | null): PlaytestSt
     });
 }
 
-export function createWorld(header: SessionHeader): World {
+/** The session's starter, in the ranch's first slot. Run 2 finds it there again, as the game's run start finds a roster member. */
+export const STARTER_ID = 'mm1';
+
+/** TICKET 202c: what a second run starts from: the ranch the game's run end leaves, and the session's log so far. */
+export interface CarriedSave {
+    readonly ranch: IRanchState;
+    /** The log run 1 left; run 2's moves are added to it, so a move's index is the same in both runs. */
+    readonly log: LoggedMove[];
+}
+
+export function createWorld(header: SessionHeader, carried?: CarriedSave): World {
     for (const id of header.modifiers) {
         if (UNSUPPORTED_MODIFIERS.includes(id)) {
             throw new Error(`the playtester cannot play the "${id}" modifier yet (it needs its own screen)`);
@@ -52,11 +62,14 @@ export function createWorld(header: SessionHeader): World {
     const species = speciesOwningFirmware(header.starter);
     if (!species) throw new Error(`no species owns the instinct "${header.starter}"`);
 
-    const member: IRanchMember = {
-        id: 'mm1', definitionId: species, activeOS: header.starter,
+    const starter: IRanchMember = {
+        id: STARTER_ID, definitionId: species, activeOS: header.starter,
         attackIV: BALANCE_IV, defenseIV: BALANCE_IV, hpIV: BALANCE_IV,
     };
-    const store = buildStore({ ...createEmptyRanch(), roster: [member] }, null);
+    const ranch = carried?.ranch ?? { ...createEmptyRanch(), roster: [starter] };
+    const member = ranch.roster.find((m) => m.id === STARTER_ID);
+    if (!member) throw new Error(`the save has no member ${STARTER_ID} to start the run with`);
+    const store = buildStore(ranch, null);
 
     const offers = offerGyms(gymOfferSeed(header.seed));
     const offer = offers[header.gymIndex % offers.length];
@@ -65,7 +78,9 @@ export function createWorld(header: SessionHeader): World {
         tier: header.tier, modifiers: [...header.modifiers],
     }))));
 
-    return { header, store, view: emptyView(), log: [], findings: [], lastPlay: null };
+    return carried === undefined
+        ? { header, store, view: emptyView(), log: [], findings: [], lastPlay: null, runNumber: 1, runStart: 0 }
+        : { header, store, view: emptyView(), log: carried.log, findings: [], lastPlay: null, runNumber: 2, runStart: carried.log.length };
 }
 
 /** How many decisions a run may take before the session is stopped with outcome `budget` (ticket 180d). */
@@ -109,17 +124,25 @@ export function applyMove(world: World, move: LoggedMove, more = false): void {
 export function enforceBudget(world: World): void {
     const run = world.store.getState().run.run!;
     if (run.phase === 'ended') return;
-    if (decisionsIn(world.log) < (world.header.budget ?? DEFAULT_BUDGET)) return;
+    // 202c: the budget is per run, so a second run gets decisions of its own.
+    if (decisionsIn(world.log.slice(world.runStart)) < (world.header.budget ?? DEFAULT_BUDGET)) return;
     world.view.battle = null;
     world.view.cutShort = 'budget';
     world.store.dispatch(endRun('abandoned'));
 }
 
 /** A world rebuilt from a saved copy of its parts (195m's snapshot), which stands in for replaying the moves that made it. */
-export function restoreWorld(header: SessionHeader, parts: { game: IRanchState; run: IRunState; view: View; log: LoggedMove[]; findings: World['findings']; lastPlay: World['lastPlay'] }): World {
-    return { header, store: buildStore(parts.game, parts.run), view: parts.view, log: parts.log, findings: parts.findings, lastPlay: parts.lastPlay };
+export function restoreWorld(header: SessionHeader, parts: { game: IRanchState; run: IRunState; view: View; log: LoggedMove[]; findings: World['findings']; lastPlay: World['lastPlay']; runNumber?: 1 | 2; runStart?: number }): World {
+    return {
+        header, store: buildStore(parts.game, parts.run), view: parts.view, log: parts.log, findings: parts.findings, lastPlay: parts.lastPlay,
+        runNumber: parts.runNumber ?? 1, runStart: parts.runStart ?? 0,
+    };
 }
 
+/**
+ * A run 1 rebuilt from its moves. A session that has a second run (202c) is rebuilt by `replaySession`
+ * (playMoves.ts), which opens run 2 where run 1 ended; this one plays every move into a single run.
+ */
 export function replayWorld(header: SessionHeader, moves: ReadonlyArray<LoggedMove>): World {
     const world = createWorld(header);
     moves.forEach((move, i) => applyMove(world, move, moves[i + 1]?.chained === true));

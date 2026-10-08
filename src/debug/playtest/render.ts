@@ -11,6 +11,7 @@ import { tracesHeld } from '../../engine/run/workshop';
 import { countedDeckSize } from '../../engine/run/junk';
 import { forecastFor } from './forecastBlock';
 import { hpNote } from './hpNote';
+import { runLabel } from './runLabel';
 import { currentScreen } from './screen';
 import { firmwareName, macroName, memberName } from './gameText';
 import type { Screen, World } from './types';
@@ -29,6 +30,7 @@ export function statusLine(world: World): string {
         const carried = run.gauntlet?.persistedHp?.[id];
         return `${memberName(member)} [${firmwareName(member.activeOS)}] HP ${carried === undefined ? 'full' : carried}`;
     });
+    const label = runLabel(world);
     const stored = run.collection?.length ?? 0;
     const benched = run.bench?.length ?? 0;
     return [
@@ -40,6 +42,7 @@ export function statusLine(world: World): string {
         `deck ${countedDeckSize(run.deck)}${stored > 0 ? ` (+${stored} in the collection)` : ''}`,
         `draughts: ${run.macros.map((m) => macroName(m)).join(', ')}`,
         `tier ${run.tier}`,
+        ...(label === null ? [] : [label]),
     ].join(' | ');
 }
 

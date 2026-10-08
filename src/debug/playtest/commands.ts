@@ -17,11 +17,13 @@ import { planNight } from './night/plan';
 import { cardLine } from './gameText';
 import { currentScreen } from './screen';
 import { renderScreen, screenJson } from './render';
+import { beginSecondRun, secondRunFor } from './secondRun';
 import { loadWorld, saveSnapshot } from './sessionCache';
 import { missingSessionMessage, readSession, sessionExists, writeSession } from './sessionFile';
 import { createWorld } from './world';
 import type { ParsedArgs } from './args';
 import type { PlaytestMode, SessionFile, SessionHeader, World } from './types';
+import { runOf } from './types';
 
 export interface CommandResult {
     readonly out: string;
@@ -79,7 +81,8 @@ export function cmdNew(root: string, args: ParsedArgs): CommandResult {
     const budget = text(args, 'budget') === undefined ? undefined : Number(text(args, 'budget'));
     if (budget !== undefined && (!Number.isInteger(budget) || budget < 1)) return refuse('--budget must be a whole number of decisions, 1 or more.');
 
-    const header: SessionHeader = { seed, starter, gymIndex, mode, tier, modifiers, ...(budget === undefined ? {} : { budget }) };
+    // 202c: a session started here is allowed a second run (`again`).
+    const header: SessionHeader = { seed, starter, gymIndex, mode, tier, modifiers, ...(budget === undefined ? {} : { budget }), twoRuns: true };
     let world: World;
     try {
         world = createWorld(header);
@@ -98,6 +101,30 @@ export function cmdState(root: string, args: ParsedArgs): CommandResult {
         // 195m: a call that had to play moves leaves a snapshot, so the next one does not.
         if (replayed > 0) saveSnapshot(root, name, session, world);
         return ok(show(world, args));
+    } catch (error) {
+        return refuse(error instanceof Error ? error.message : String(error));
+    }
+}
+
+/**
+ * 202c — `again --session s`: start the session's second run, on the same save, once the first has ended.
+ * Run 2 is a fresh map on the seed family `pt<date>:<i>:2`, the same starter and gym, on the ranch the game's
+ * own run end leaves (`secondRun.ts`). A session plays two runs and no more.
+ */
+export function cmdAgain(root: string, args: ParsedArgs): CommandResult {
+    const name = sessionName(args);
+    if (isRefusal(name)) return name;
+    try {
+        const session = readSession(root, name);
+        if (session.run2 !== undefined) return refuse(`A session plays two runs, and ${name} has started its second. Nothing was changed.`);
+        const { world: first } = loadWorld(root, name, session);
+        if (runOf(first).phase !== 'ended') return refuse('Run 1 is still going: play it to its end first, then start run 2. Nothing was changed.');
+        const run2 = secondRunFor(first);
+        const second = beginSecondRun(first, run2);
+        const next = { ...session, run2 };
+        writeSession(root, name, next);
+        saveSnapshot(root, name, next, second);
+        return ok(show(second, args));
     } catch (error) {
         return refuse(error instanceof Error ? error.message : String(error));
     }
@@ -229,5 +256,5 @@ export function cmdReplay(root: string, args: ParsedArgs): CommandResult {
 }
 
 export const COMMANDS: Readonly<Record<string, (root: string, args: ParsedArgs) => CommandResult>> = {
-    new: cmdNew, state: cmdState, move: cmdMove, moves: cmdMoves, card: cmdCard, note: cmdNote, replay: cmdReplay, plan: cmdPlan,
+    new: cmdNew, again: cmdAgain, state: cmdState, move: cmdMove, moves: cmdMoves, card: cmdCard, note: cmdNote, replay: cmdReplay, plan: cmdPlan,
 };
