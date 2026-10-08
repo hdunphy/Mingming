@@ -36,7 +36,9 @@ function sessionOf(mode: 'run' | 'turn', count: number): { root: string; world: 
     return { root, world };
 }
 
-describe.each([['run', 60], ['turn', 45]] as const)('195m — %s mode, %i moves', (mode, count) => {
+// 206: the biome order changed, and seed ps1's turn session has left its battle by move 45; 35 is
+// still mid-battle, which is what the turn case is for.
+describe.each([['run', 60], ['turn', 35]] as const)('195m — %s mode, %i moves', (mode, count) => {
     it('state prints the same text from a snapshot as from a full replay, and the second call replays nothing', () => {
         const { root } = sessionOf(mode, count);
         const first = cmd(root, 'state --session s1');
@@ -141,7 +143,7 @@ describe('195m — a snapshot is used only when it can be trusted', () => {
 
 describe('195m — the sessions above are not trivial', () => {
     it('the turn session is in the middle of a battle and the run session has fought a few fights', () => {
-        const turn = sessionOf('turn', 45).world;
+        const turn = sessionOf('turn', 35).world;
         expect(turn.view.battle).not.toBeNull();
         const run = sessionOf('run', 60).world;
         expect(run.log.length).toBe(60);
