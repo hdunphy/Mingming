@@ -1,6 +1,6 @@
 # Ticket 202: What the 2026-10-06 overnight night found: the Den tag line, a revive between gym fights, two runs an agent, the v1 starters, and the night's defaults
 
-**Type:** new on-screen text, one gauntlet rule change, two night-script changes, one investigation, one measurement night. **Status:** **RULED 2026-10-07** (Henry, on the review doc "Overnight Playtest Review 2026-10-06"); not started. Written 2026-10-07 from the night of 2026-10-06 (24 haiku sessions, every starter twice, the first night after [195](195-overnight-night-fixes.md)). Sibling of 195, which it follows the same way 195 followed [193](193-playtest-nights-findings.md).
+**Type:** new on-screen text, one gauntlet rule change, two night-script changes, one investigation, one measurement night. **Status:** **RULED 2026-10-07** (Henry, on the review doc "Overnight Playtest Review 2026-10-06"). **Extended 2026-10-07 (evening)** with rows 202h–202k from the review of the 2026-10-07 night (36 haiku sessions; `claude/overnight-2026-10-07-review.md` and `-followup.md` in the project); 202d is answered and 202f's brief is written (see those rows). Written 2026-10-07 from the night of 2026-10-06 (24 haiku sessions, every starter twice, the first night after [195](195-overnight-night-fixes.md)). Sibling of 195, which it follows the same way 195 followed [193](193-playtest-nights-findings.md).
 
 **Where it comes from.** The review's headline: **the night is working (24 of 24 finished, every 195 row that can be checked from the results checks out), and the wall is the same one.** Every solo run that reached the gym died in fight 1 within two turns (r08, r17, r18, r23); all six party runs cleared fight 1, three won and three lost the boss by attrition. Across the four reported nights, 98 solo runs have won 0 and 16 party runs have won 7. The brief says nothing about the party, the Den or the gauntlet; the screens alone got 8 of 24 runs to summon (10-05 haiku: 0 of 36), and the four solo gym runs died holding 18 Traces and 185 amber between them. Henry's rulings, numbered as the review's decisions:
 
@@ -24,10 +24,14 @@
 | 202a | The town's Den line says **"N Traces held · summon here"** while Traces are unspent | New text, game and tool | Ruled |
 | 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | Ruled; the floor is D1 |
 | 202c | **Two runs a session:** the agent plays a second run on the same save after the first ends | Night script + tool | Ruled; carry-over is D2 |
-| 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | Ruled ("add a ticket to investigate") |
+| 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | **Answered 2026-10-07** (measured below); skoll_v1 → 202k, jormungandr_v1 → [203](203-jormungandr-v1-redesign.md), fenrir_v1 left as is |
 | 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | Ruled |
-| 202f | **The brief:** one night, same seeds, naive brief vs primed brief, haiku and sonnet | Measurement night, then Henry rules | Open question answered below; the night is the row |
+| 202f | **The brief:** one night, same seeds, naive brief vs primed brief, haiku and sonnet | Measurement night, then Henry rules | **Brief written 2026-10-07** (`fa121e2`); the night is still the row |
 | 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | Ruled ("make that the default") |
+| 202h | **The night keeps a transcript and retries a stalled session:** `driver.log` with a time on every line, how each driver ended, a stall limit (8 min), one retry at the end | Night script | **Built 2026-10-07** (`bed16ef`) |
+| 202i | **"Party 1 of 3"** beside the Traces count in the run header, game and tool | New text, game and tool | Ruled 2026-10-07 |
+| 202j | **The gym shows its team's elements on the map:** the leader's three element icons under the gym node (e.g. Nature Nature Water) | Map UI, game and tool | Ruled 2026-10-07 |
+| 202k | **skoll_v1's start kit: Howl out, Brute Force in** | Card data (kit) | Ruled 2026-10-07; confirm the direction (D4) |
 
 ---
 
@@ -65,6 +69,17 @@
 2. **Henry's ruling (2026-09-25):** wild fights in biome 0 at least 85% for every starter. **Henry's 2026-10-02 ruling:** *"We don't care about 1v1 numbers except at the start."* These are the start.
 3. **Investigate.** Run the opening-fight read (the walker's biome-0 wild cells) for the six v1 starters on the 2026-10-04 seeds 1–24, and the specific fights above by replay (`npm run playtest -- replay --results results/playtest/2026-10-06-haiku --session r07 --to 1`, and r03/r15 `--to 3`). Say which it is: the read is not being run on these seeds; the read passes but these enemies (Kraken in biome 0 water, Fenrir in biome 0 fire) are outside what it samples; or the decks are under the rule. Then propose, no change without Henry.
 4. **Report.** A table: starter, seed, fight, enemy, turns, the killing card and total, the walker's read for that cell.
+5. **Answered 2026-10-07** (run gate, `wild:biome0` and `elite:biome0`, 1,440 samples, 120 per starter per cell; the bare 8-card start deck, 1v1, before any pick). "Home" is an enemy of the starter's own element, which is what the first biome always is. It is the decks, not the seeds: three starters are under the 85% rule at home.
+
+   | Starter | Wild, home | Elite, home |
+   |---|---|---|
+   | jormungandr_v1 | 29.7% | 0.0% |
+   | skoll_v1 | 71.1% | 7.5% |
+   | ratatoskr_v1 | 78.0% | 53.7% |
+   | fenrir_v1 | 87.8% | 54.1% |
+   | the other eight | 97–100% | 40–84% |
+
+   Kit candidates (each a sub-multiset of the deck): skoll_v1 Howl → Brute Force 71 → 82% wild / 7.5 → 12.5% elite (the best legal swap); fenrir_v1 only improves with a second payoff (Forage → Unbound Fang 88 → 100% / 54 → 65%); no jormungandr_v1 kit reaches 50% (Blind Spot → 2nd Serpent's Coil 49%; Serpent's Coil 15 a card 54%; Blind Spot 10 / Riptide Run 25 / Surge Protection 30 together 40.5%; Forage in for Blind Spot 19%). **Henry (2026-10-07):** *"Skoll → swap in howl. Fenrir leave him. Jorm add a ticket to redesign. Leave the elites they are usually a breeze for me."* → 202k, [203](203-jormungandr-v1-redesign.md).
 
 ## 202e: Resume guard, and the report's words
 
@@ -93,6 +108,30 @@
 3. **The defaults (ruled).** In `scripts/overnight.mjs`: `starter` **all** (was kraken_v1), `runs` **24** (was 9; twelve starters twice), `cardRuns` **1** (was 0). `npm run overnight` with no flags then is the command above. The usage header, `docs/playtest/run-tonight.md` and `src/debug/playtest/overnight.test.ts` (which pins the defaults) change with it. After 202c, `minutes` 60 and `maxUsd` 5 (202c §5).
 4. **Test.** `parseOvernightArgs([])` returns starter all, runs 24, cardRuns 1.
 
+## 202h: The night keeps a transcript, says how each driver ended, and retries a stalled session
+
+1. **What was seen (2026-10-07 night).** r26, r27, r28 and r29 ran back to back from about 9:30 to 11:55 local and each took 33–35 minutes. r26 made no move for its last 27 minutes (after a shop sale), r28 made 29 model turns in 34 minutes and ended with exit code 1 before its limit. Their saved screens replay in about 11 s each, no repo file changed during the run, and Henry's PC was not in use, so the time was in the driver's model calls (API errors and retries, most likely). The night kept nothing that could say so: `--output-format json` prints only at the end, and a killed driver prints nothing.
+2. **Built (`bed16ef`).** The driver streams JSON lines (`stream-json --verbose`); every line, and stderr, goes to `driver.log` beside the session with the time it arrived. `driver.json` adds `subtype`, `isError` and the error's first 300 characters. A session whose `session.json` has not changed for `--stall-minutes` (default **8**, 0 = off) is ended and marked `stalled`. At the end of the night, a stalled session, or one whose driver failed before its time was up, is driven once more (it resumes from its session file); `driver.json` keeps the first try under `firstAttempt`. A session that hit the wall-clock limit is not retried. Small modules in `scripts/night/`: `driverLog`, `driverOutcome`, `resultRecord`, `retryPolicy`, `stallWatch`.
+3. **Not yet checked against a live driver.** The tests fake the driver; the first real night is the check that `stream-json` and the transcript look right. If a session's `driver.log` is empty in the morning, that is the first thing to look at.
+
+## 202i: "Party 1 of 3" in the run header
+
+1. **Henry (2026-10-07):** *"The party 1 of 3 is a good subtle reminder to fill out your team."* And: *"Maybe not at every town, for now the party 1 of 3 is good."*
+2. **The line.** `RunMeta.tsx` (the run header: biome, Amber, "Traces N" from 195c) gains **"Party 1 of 3"** (`run.partyIds.length` of `PARTY_SIZE`). The tool's status line prints the same words. This supersedes the 2026-10-05 ruling that the status line only counts Traces.
+3. **Tests.** A run with one member reads "Party 1 of 3" in the header and in the tool's status line; with three, "Party 3 of 3".
+
+## 202j: The gym's team elements on the map
+
+1. **Henry (2026-10-07):** *"We do need somewhere visible what to expect at the gym. Maybe the gym has the element icons visible below it on the map so you can see its going to be WWN for example."* The off-type body stays (*"that is a design decision otherwise they are too easy"*). **Vetoed the same evening:** showing the off-type at every party size in the last biome. The 2026-09-11 rule stands (a solo or 2-member party meets only the gym's element on the approach).
+2. **The row.** Under the gym node on the map, one element icon per body of the leader's team, in `gymCompElementPlan` order (Rootfall: Nature, Nature, Water). Use the element badges the game already draws, with their symbols (colour-blind rule). Hover text: "The leader fields three: two Nature, one Water." The tool's map screen prints the same on the gym's line. Types only, never species (the "types visible, contents hidden" rule).
+3. **Tests.** For each of the three gyms, the map's gym node carries three icons in plan order, and the tool's gym line names the same three elements.
+
+## 202k: skoll_v1's start kit, Howl out, Brute Force in
+
+1. **Measured (202d):** wild at home 71.1% → 81.6%, elite at home 7.5% → 12.5%. Both cards are already in skoll_v1's deck, and the kit keeps one payoff (`flare_burst`, `START_KIT_PAYOFF`).
+2. **The change.** `startKits.skoll_v1` becomes `fury_strike, fury_strike, flare_burst, brute_force, forage`. Golden hashes move on purpose; say so in the commit. Report the walker's opening-fight read for skoll_v1 before and after, as 195a did for Huldra.
+3. **D4.** Henry wrote *"Skoll → swap in howl"* and answered *"Yes"* to *"Swap Howl for Brute Force"*. This row takes the second (Howl leaves the kit). Confirm before building.
+
 ---
 
 ## Rulings (2026-10-07, Henry, on the review doc)
@@ -105,12 +144,25 @@
 - The per-stack scaling cards: *"Leave it for now but make a note."* (the note is at the top of this ticket)
 - The night's defaults become the full night (202g). *"Can we just make that the default?"*
 
+**Added 2026-10-07 (evening), on the 10-07 night review:**
+
+- The gym's off-type body stays: *"that is a design decision otherwise they are too easy."* A hard first run is fine; ideally a player loses the first run narrowly and plays again.
+- Showing the off-type at every party size in the last biome: proposed, then **vetoed** (*"I veto showing the off-type body at every party size"*). The 2026-09-11 rule stands.
+- The gym shows its team's elements on the map (202j). "Party 1 of 3" in the header (202i), not a line in every town.
+- The night's stall fix (202h). *"Lets add in that fix."*
+- The primed brief goes in through `--brief`, tested on and off (202f, answers D3).
+- skoll_v1: kit swap (202k). fenrir_v1: leave as is. jormungandr_v1: its own redesign ticket (203). Elites: leave them (*"they are usually a breeze for me"*).
+
 ## Decisions for Henry
 
 1. **D1, the revive floor (202b).** 30% of max HP proposed. Alternatives: 50% (a real second chance), or the same HP the member was revived with by a Draught.
 2. **D2, what carries into run 2 (202c).** Proposed: exactly what the game's save carries (roster, banked Traces, codex), including a won run's party. If a lost run should wipe the roster in the game too, say so and the tool follows.
-3. **D3, the primed brief's paragraph (202f §2).** Approve or reword before the night runs.
+3. ~~**D3, the primed brief's paragraph (202f §2).**~~ Answered 2026-10-07: *"If the 'what you already know' isn't in the brief make sure to add it."* Written as a section in `docs/playtest/agent-player-primed.md` (`fa121e2`).
+4. **D4, skoll_v1's kit direction (202k).** Howl out and Brute Force in (measured), or the other way round?
 
 ## Resolution
 
-Not started.
+- **202h built 2026-10-07** (`bed16ef`): transcript, outcome fields, stall limit, one retry. The eslint and tsc checks are clean; the night, brief and stall tests pass. `overnight.test.ts`'s dry run is too slow to finish in the Cowork VM (about 70 s per tool check) and was not run there: run `npm run gate` on Windows.
+- **202f's brief written 2026-10-07** (`fa121e2`); the night itself is not run.
+- **202d answered 2026-10-07** (above).
+- 202a, 202b, 202c, 202e, 202g, 202i, 202j, 202k: not started.

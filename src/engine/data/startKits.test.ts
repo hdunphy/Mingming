@@ -217,8 +217,13 @@ describe('start kits', () => {
  * FOUR cards; the fifth has nowhere to come from but another payoff.
  *
  * Fixing it means adding an enabler to the DECK, which is a design change and Henry's to make — so
- * it is named here with the arithmetic rather than papered over with a widened rule. Every other
- * kit passes.
+ * it is named here with the arithmetic rather than papered over with a widened rule.
+ *
+ * # THE SECOND EXCEPTION IS A RULING (TICKET 202k, 2026-10-07)
+ *
+ * `skoll_v1` holds two payoffs because Henry ruled it: its kit already held every non-payoff card in
+ * its deck, it measured 71.1% at home in the first biome against the 85% wild rule, and
+ * `brute_force` for `howl` measured 81.6%. *"Swap anyway, as an exception."* Every other kit passes.
  */
 describe('157-r1 — the opening five carries exactly one payoff', () => {
     const design = JSON.parse(
@@ -232,6 +237,9 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
 
     /** The one kit whose DECK cannot supply a legal five. See the block above for the arithmetic. */
     const DECK_TOO_THIN = 'jormungandr_v2';
+    /** 202k: a second payoff Henry ruled in, 2026-10-07. See the block above. */
+    const RULED_SECOND_PAYOFF = 'skoll_v1';
+    const TWO_PAYOFFS: ReadonlyArray<string> = [DECK_TOO_THIN, RULED_SECOND_PAYOFF];
 
     it('reads a shape for every card the twelve kits hold — the rule is only as good as the tags', () => {
         // Guards the guard. An untagged card counts as not-a-payoff, so a design file that stopped
@@ -243,7 +251,7 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
         expect(tagged.filter((shape) => shape === '')).toEqual([]);
     });
 
-    it('holds exactly one payoff in every kit but the one whose deck cannot', () => {
+    it('holds exactly one payoff in every kit but the two named exceptions, which hold exactly two', () => {
         const counted: Record<string, number> = {};
         for (const species of LAUNCH_SPECIES) {
             for (const os of MingmingRegistry[species].availableOS ?? []) {
@@ -251,7 +259,7 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
             }
         }
         const offenders = Object.entries(counted)
-            .filter(([os, n]) => n !== 1 && os !== DECK_TOO_THIN)
+            .filter(([os, n]) => n !== (TWO_PAYOFFS.includes(os) ? 2 : 1))
             .map(([os, n]) => `${os}: ${n} payoffs`);
         expect(offenders, 'a kit is an engine that starts WEAK, not one that starts assembled').toEqual([]);
         expect(Object.keys(counted)).toHaveLength(12);
@@ -286,7 +294,7 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
         }
     });
 
-    it('157-r2: names the ONLY payoff in every kit but the recorded exception', () => {
+    it('157-r2: names the ONLY payoff in every kit but the two named exceptions', () => {
         // Stronger than "is a payoff": for eleven of the twelve, the named card is the kit's one
         // payoff, so removing it leaves a five with none. `jormungandr_v2` holds two by 157-r1(b)'s
         // recorded deck problem, so the opener drops one and keeps the other — the exception
@@ -295,7 +303,7 @@ describe('157-r1 — the opening five carries exactly one payoff', () => {
             const species = LAUNCH_SPECIES.find((s) => MingmingRegistry[s].availableOS?.includes(osId))!;
             const kit = MingmingRegistry[species].startKits?.[osId] ?? [];
             const remaining = kit.filter((_, i) => i !== kit.indexOf(payoff)).filter(isPayoff);
-            expect(remaining, `${osId}`).toEqual(osId === DECK_TOO_THIN ? [expect.any(String)] : []);
+            expect(remaining, `${osId}`).toEqual(TWO_PAYOFFS.includes(osId) ? [expect.any(String)] : []);
         }
     });
 

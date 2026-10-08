@@ -65,6 +65,7 @@ import { teardownRun } from '../store/runTeardown';
 import { introRules } from '../../engine/run/intro/introRules';
 import { unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
 import { clearLine } from '../../engine/run/tiers/tierUnlockLine';
+import { shortHandedGymLine } from '../../engine/run/shortHandedGymLine';
 import type { RootState } from '../store/store';
 import './RunSummary.css';
 import { Icon } from '../theme/Icon';
@@ -191,6 +192,8 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
     const bankedEntries = Object.entries(banked);
     // TICKET 195b: the gym's payout can be a save's first Trace; say where to use it.
     const firstTraceLine = useFirstTraceLine(bankedEntries.length > 0);
+    // TICKET 204: a defeat at the gym with fewer than three says so.
+    const shortHanded = shortHandedGymLine(run);
 
     /**
      * Leave. **The single teardown path** — see `store/runTeardown.ts`: the codex merge, the
@@ -245,6 +248,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
                     </li>
                     {firstTraceLine && <li className="rs-big-line k-plate" data-testid="first-trace-line">{firstTraceLine}</li>}
                     <li className="rs-big-line k-plate">{reached}</li>
+                    {shortHanded && <li className="rs-big-line k-plate" data-testid="short-handed-line">{shortHanded}</li>}
                     <li className="rs-big-line k-plate">{unlocked}</li>
                 </ul>
 

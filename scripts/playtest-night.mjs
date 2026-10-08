@@ -28,11 +28,20 @@
  *   npm run playtest:night -- --dry-run            print the plan and each driver command, run nothing
  *   npm run playtest:night -- --no-report          skip the morning report at the end
  *   npm run playtest:night -- --card-runs 1 --turn-runs 0   how many sessions are card / turn mode
+ *   npm run playtest:night -- --stall-minutes 8    end a session with no move for this long, retry it at the end (202h; 0 = off)
+ *
+ * 202h: every session leaves `driver.log` beside it, the driver's stream with the time on every line,
+ * and `driver.json` says how the driver ended (`subtype`, `isError`) and whether it `stalled`.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createDriverLog } from './night/driverLog.mjs';
+import { readOutcome } from './night/driverOutcome.mjs';
+import { findResult } from './night/resultRecord.mjs';
+import { shouldRetry } from './night/retryPolicy.mjs';
+import { createStallWatch } from './night/stallWatch.mjs';
 
 export const DEFAULTS = Object.freeze({
     runs: 10,
@@ -41,6 +50,8 @@ export const DEFAULTS = Object.freeze({
     maxTurns: 600,
     /** A dollar cap for one session, so a first night cannot run away. */
     maxUsd: 3,
+    /** 202h: a session with no move for this many minutes is ended as stalled and retried once at the end. */
+    stallMinutes: 8,
     cardRuns: 1,
     turnRuns: 0,
     briefPath: path.join('docs', 'playtest', 'agent-player.md'),
@@ -77,6 +88,7 @@ export function parseNightArgs(argv, today = todayLocal()) {
         minutes: number('minutes', DEFAULTS.minutes),
         maxTurns: number('max-turns', DEFAULTS.maxTurns),
         maxUsd: number('max-usd', DEFAULTS.maxUsd),
+        stallMinutes: number('stall-minutes', DEFAULTS.stallMinutes),
         starter: typeof flags.starter === 'string' ? flags.starter : undefined,
         // 193i: another brief for the driver (the default is docs/playtest/agent-player.md)
         briefPath: typeof flags.brief === 'string' ? flags.brief : undefined,
@@ -101,7 +113,10 @@ export function driverCommand(entry, options) {
         command: 'claude',
         args: [
             '-p',
-            '--output-format', 'json',
+            // 202h: one JSON object per line, so the session leaves a transcript (`driver.log`); the
+            // result record is still the last line. stream-json needs --verbose in a headless run.
+            '--output-format', 'stream-json',
+            '--verbose',
             '--model', options.model,
             '--max-turns', String(options.maxTurns),
             '--max-budget-usd', String(options.maxUsd),
@@ -132,10 +147,8 @@ export function promptFor(entry, brief, resultsDirectory) {
 
 /** What a driver's JSON result says about tokens, cost and turns. Anything missing is left out. */
 export function readUsage(stdout) {
-    let parsed;
-    try { parsed = JSON.parse(stdout); } catch { return {}; }
-    const record = Array.isArray(parsed) ? parsed.find((r) => r && r.type === 'result') ?? parsed[parsed.length - 1] : parsed;
-    if (!record || typeof record !== 'object') return {};
+    const record = findResult(stdout);
+    if (!record) return {};
     const usage = record.usage ?? {};
     const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
     const tokens = n(usage.input_tokens) + n(usage.output_tokens) + n(usage.cache_creation_input_tokens) + n(usage.cache_read_input_tokens);
@@ -155,23 +168,34 @@ function killTree(child) {
     else child.kill('SIGKILL');
 }
 
-/** Run the driver with a wall-clock limit. Resolves with what happened; never rejects. */
-function runDriverProcess(spec, minutes) {
+/**
+ * Run the driver with a wall-clock limit. Resolves with what happened; never rejects.
+ * 202h: `spec.logPath` gets the timestamped transcript, and `spec.sessionFile` is watched: no move
+ * for `stallMinutes` ends the driver and the result says `stalled`.
+ */
+function runDriverProcess(spec, minutes, stallMinutes = 0) {
     return new Promise((resolve) => {
         const started = Date.now();
         let timedOut = false;
+        let stalled = false;
         let stdout = '';
         let child;
+        const log = spec.logPath ? createDriverLog(spec.logPath) : undefined;
         try {
-            child = spawn(spec.command, spec.args.map(shellQuote), { shell: onWindows, stdio: ['pipe', 'pipe', 'inherit'] });
+            child = spawn(spec.command, spec.args.map(shellQuote), { shell: onWindows, stdio: ['pipe', 'pipe', 'pipe'] });
         } catch (error) {
             resolve({ exitCode: -1, timedOut: false, minutes: 0, stdout: '', error: String(error) });
             return;
         }
-        const timer = setTimeout(() => { timedOut = true; killTree(child); }, minutes * 60_000);
-        child.stdout.on('data', (chunk) => { stdout += chunk; });
-        child.on('error', (error) => { clearTimeout(timer); resolve({ exitCode: -1, timedOut, minutes: (Date.now() - started) / 60_000, stdout, error: String(error) }); });
-        child.on('close', (code) => { clearTimeout(timer); resolve({ exitCode: code ?? -1, timedOut, minutes: (Date.now() - started) / 60_000, stdout }); });
+        const timer = setTimeout(() => { timedOut = true; log?.note(`hit the ${minutes}-minute limit`); killTree(child); }, minutes * 60_000);
+        const watch = spec.sessionFile
+            ? createStallWatch({ sessionFile: spec.sessionFile, stallMinutes, onStall: () => { stalled = true; log?.note(`no move for ${stallMinutes} minutes: ending the session as stalled`); killTree(child); } })
+            : { close: () => {} };
+        const finish = (result) => { clearTimeout(timer); watch.close(); log?.flush(); resolve({ ...result, ...(stalled ? { stalled: true } : {}) }); };
+        child.stdout.on('data', (chunk) => { stdout += chunk; log?.out(chunk); });
+        child.stderr.on('data', (chunk) => { process.stderr.write(chunk); log?.err(chunk); });
+        child.on('error', (error) => finish({ exitCode: -1, timedOut, minutes: (Date.now() - started) / 60_000, stdout, error: String(error) }));
+        child.on('close', (code) => finish({ exitCode: code ?? -1, timedOut, minutes: (Date.now() - started) / 60_000, stdout }));
         child.stdin.on('error', () => {});
         child.stdin.end(spec.stdin);
     });
@@ -204,7 +228,7 @@ export const realDeps = (options) => ({
         );
         if (result.code !== 0) throw new Error(`could not start ${entry.session}: ${result.out}`);
     },
-    runDriver: (spec) => runDriverProcess(spec, options.minutes),
+    runDriver: (spec) => runDriverProcess(spec, options.minutes, options.stallMinutes),
 });
 
 /**
@@ -216,6 +240,7 @@ export async function runNight(options, deps, root = DEFAULTS.resultsRoot) {
     const brief = fs.readFileSync(options.briefPath ?? DEFAULTS.briefPath, 'utf8');
     const entries = deps.plan();
     const done = [];
+    const driven = [];
     for (const entry of entries) {
         const folder = path.join(nightDir, entry.session);
         const recordPath = path.join(folder, 'driver.json');
@@ -226,18 +251,37 @@ export async function runNight(options, deps, root = DEFAULTS.resultsRoot) {
             done.push({ session: entry.session, dryRun: true, command: [spec.command, ...spec.args].join(' ') });
             continue;
         }
-        const result = await deps.runDriver(spec);
-        const record = {
-            session: entry.session, index: entry.index, mode: entry.mode, model: options.model,
-            minutes: Math.round(result.minutes * 100) / 100, exitCode: result.exitCode, timedOut: result.timedOut,
-            ...readUsage(result.stdout ?? ''),
-            ...(result.error ? { error: result.error } : {}),
-        };
-        fs.mkdirSync(folder, { recursive: true });
-        fs.writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`);
+        const record = await driveSession(entry, spec, folder, options, deps);
         done.push(record);
+        driven.push({ entry, spec, folder, index: done.length - 1 });
+    }
+    // 202h: a session that stalled, or whose driver failed before its time was up, is played once
+    // more at the end. The session file holds every move, so this resumes rather than restarts.
+    for (const { entry, spec, folder, index } of driven) {
+        const first = done[index];
+        if (!shouldRetry(first)) continue;
+        const { session: _s, index: _i, mode: _m, model: _model, ...firstAttempt } = first;
+        done[index] = await driveSession(entry, spec, folder, options, deps, firstAttempt);
     }
     return done;
+}
+
+/** Drive one session once and write its `driver.json`. `firstAttempt` marks a retry. */
+async function driveSession(entry, spec, folder, options, deps, firstAttempt) {
+    fs.mkdirSync(folder, { recursive: true });
+    const watched = { ...spec, sessionFile: path.join(folder, 'session.json'), logPath: path.join(folder, 'driver.log') };
+    const result = await deps.runDriver(watched);
+    const record = {
+        session: entry.session, index: entry.index, mode: entry.mode, model: options.model,
+        minutes: Math.round(result.minutes * 100) / 100, exitCode: result.exitCode, timedOut: result.timedOut,
+        ...(result.stalled ? { stalled: true } : {}),
+        ...readUsage(result.stdout ?? ''),
+        ...readOutcome(result.stdout ?? ''),
+        ...(result.error ? { error: result.error } : {}),
+        ...(firstAttempt ? { firstAttempt } : {}),
+    };
+    fs.writeFileSync(path.join(folder, 'driver.json'), `${JSON.stringify(record, null, 2)}\n`);
+    return record;
 }
 
 /**
@@ -245,7 +289,7 @@ export async function runNight(options, deps, root = DEFAULTS.resultsRoot) {
  * first line says so and how to get a fresh night, because a column of "already done" lines does not.
  */
 export function summaryLines(done, options) {
-    const lines = done.map((d) => `${d.session}: ${d.skipped ? 'already done' : d.dryRun ? d.command : `${d.minutes} min${d.timedOut ? ' (hit the time limit)' : ''}${d.tokens ? `, ${d.tokens} tokens` : ''}`}`);
+    const lines = done.map((d) => `${d.session}: ${d.skipped ? 'already done' : d.dryRun ? d.command : `${d.minutes} min${d.timedOut ? ' (hit the time limit)' : ''}${d.stalled ? ' (stalled)' : ''}${d.firstAttempt ? ` (retried; first try ${d.firstAttempt.minutes} min${d.firstAttempt.stalled ? ', stalled' : ''})` : ''}${d.tokens ? `, ${d.tokens} tokens` : ''}`}`);
     if (done.length > 0 && done.every((d) => d.skipped)) {
         const folder = path.posix.join('results', 'playtest', options.date);
         lines.unshift(`Every session for ${options.date} is already finished; use --date <new date> for a fresh night, or delete ${folder}.`);
