@@ -24,7 +24,7 @@
 | 202a | The town's Den line says **"N Traces held · summon here"** while Traces are unspent | New text, game and tool | Ruled |
 | 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | Ruled; the floor is D1 |
 | 202c | **Two runs a session:** the agent plays a second run on the same save after the first ends | Night script + tool | Ruled; carry-over is D2 |
-| 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | Ruled ("add a ticket to investigate") |
+| 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | **Investigated** 2026-10-08, report [research/202d-v1-starters.md](../research/202d-v1-starters.md); fixes await Henry |
 | 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | Ruled |
 | 202f | **The brief:** one night, same seeds, naive brief vs primed brief, haiku and sonnet | Measurement night, then Henry rules | Open question answered below; the night is the row |
 | 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | Ruled ("make that the default") |
@@ -113,4 +113,4 @@
 
 ## Resolution
 
-Not started.
+Not started, except **202d: investigated 2026-10-08** (report: [research/202d-v1-starters.md](../research/202d-v1-starters.md)). Verdict: the opening-fight read is run but covers fight one only, and the v1 starters fail at fight two (jormungandr_v1 59%, skoll_v1 61%, ratatoskr_v1 80% on the walker's route) because an ordinary biome-0 wild keeps its payoff and half of them hold a v2 start kit; jormungandr_v1 also fails fight one (73%). Proposals P1 to P4 in the report, none applied.
