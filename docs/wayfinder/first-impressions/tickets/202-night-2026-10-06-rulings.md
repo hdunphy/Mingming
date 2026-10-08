@@ -25,9 +25,9 @@
 | 202b | **A revive between gym fights:** a downed member comes back for the next fight | Gauntlet rule change | Ruled; the floor is D1 |
 | 202c | **Two runs a session:** the agent plays a second run on the same save after the first ends | Night script + tool | Ruled; carry-over is D2 |
 | 202d | **The v1 starters:** skoll_v1 and jormungandr_v1 lose their first or second fight on every seed and model so far | Investigation | Ruled ("add a ticket to investigate") |
-| 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | Ruled |
+| 202e | **Resume guard** in `runNight`; the morning report says "amber" and carries the 195k note | Night script + report | **Built** (T3, `9ec49d7c`) |
 | 202f | **The brief:** one night, same seeds, naive brief vs primed brief, haiku and sonnet | Measurement night, then Henry rules | Open question answered below; the night is the row |
-| 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | Ruled ("make that the default") |
+| 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | **Built** (T3) |
 
 ---
 
