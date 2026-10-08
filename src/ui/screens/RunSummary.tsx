@@ -192,7 +192,7 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
     const bankedEntries = Object.entries(banked);
     // TICKET 195b: the gym's payout can be a save's first Trace; say where to use it.
     const firstTraceLine = useFirstTraceLine(bankedEntries.length > 0);
-    // TICKET 204: a defeat at the gym with fewer than three says so.
+    // TICKET 202l: a defeat at the gym with fewer than three says so.
     const shortHanded = shortHandedGymLine(run);
 
     /**

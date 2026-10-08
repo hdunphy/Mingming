@@ -1,5 +1,5 @@
 /**
- * TICKET 204 — the tool's end screen carries the game's short-handed line word for word, so an agent
+ * TICKET 202l — the tool's end screen carries the game's short-handed line word for word, so an agent
  * that lost at the gym with one Mingming reads why, as a player does.
  */
 import { describe, expect, it } from 'vitest';
@@ -22,7 +22,7 @@ const worldFor = (run: IRunState): World => ({
     view: { news: [], fight: null, reward: null },
 } as unknown as World);
 
-describe('204 — the tool’s end screen', () => {
+describe('202l — the tool’s end screen', () => {
     it('prints the short-handed line after a solo gym defeat, and not with a full team', () => {
         const solo: IRunState = { ...BASE, phase: 'ended', outcome: 'defeat', currentNodeId: GYM.id, partyIds: ['mm1'] };
         expect(endScreen(worldFor(solo)).body).toContain(shortHandedGymLine(solo));

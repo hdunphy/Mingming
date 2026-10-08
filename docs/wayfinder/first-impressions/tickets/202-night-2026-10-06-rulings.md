@@ -31,7 +31,8 @@
 | 202h | **The night keeps a transcript and retries a stalled session:** `driver.log` with a time on every line, how each driver ended, a stall limit (8 min), one retry at the end | Night script | **Built 2026-10-07** (`bed16ef`) |
 | 202i | **"Party 1 of 3"** beside the Traces count in the run header, game and tool | New text, game and tool | Ruled 2026-10-07 |
 | 202j | **The gym shows its team's elements on the map:** the leader's three element icons under the gym node (e.g. Nature Nature Water) | Map UI, game and tool | Ruled 2026-10-07 |
-| 202k | **skoll_v1's start kit: Howl out, Brute Force in** | Card data (kit) | Ruled 2026-10-07; confirm the direction (D4) |
+| 202k | **skoll_v1's start kit: Howl out, Brute Force in** | Card data (kit) | **Built 2026-10-07** (`cc8523f`); a ruled second payoff |
+| 202l | **The defeat screen says why** when the team was short at the gym: "You fought the gym's three with one." | New text, game and tool | **Built 2026-10-07** (`10dd278`) |
 
 ---
 
@@ -130,7 +131,13 @@
 
 1. **Measured (202d):** wild at home 71.1% → 81.6%, elite at home 7.5% → 12.5%. Both cards are already in skoll_v1's deck, and the kit keeps one payoff (`flare_burst`, `START_KIT_PAYOFF`).
 2. **The change.** `startKits.skoll_v1` becomes `fury_strike, fury_strike, flare_burst, brute_force, forage`. Golden hashes move on purpose; say so in the commit. Report the walker's opening-fight read for skoll_v1 before and after, as 195a did for Huldra.
-3. **D4.** Henry wrote *"Skoll → swap in howl"* and answered *"Yes"* to *"Swap Howl for Brute Force"*. This row takes the second (Howl leaves the kit). Confirm before building.
+3. **D4, answered.** Henry: *"Oh sure whatever you proposed here"* (Howl leaves the kit). Then, told that `brute_force` is itself a payoff, so the kit holds two against 157-r1(b) (the kit already held every non-payoff card in the deck, so no swap inside the rule existed): *"Swap anyway, as an exception."*
+4. **Built (`cc8523f`).** `startKits.test.ts` names skoll_v1 beside jormungandr_v2 as the two kits that hold exactly two payoffs; `START_KIT_PAYOFF` still names `flare_burst`, so the opening-fight enemy drops it and keeps `brute_force`. The fenrir_v2 #1 walks in `ghostWalk`/`draftPolicy` moved on purpose (wild Skolls hold this kit), measured on the parent first; the kraken_v1 walks did not move.
+
+## 202l: The defeat screen says why when the team was short at the gym
+
+1. **Henry (2026-10-07):** asked whether the full-party goal should be "yellow painted" or discovered. The answer given: discovered through 202i and 202j, plus one line at the moment of defeat, because every solo run that reached the gym on the agent nights died in fight 1 within two turns. That is a wipe, not the narrow first loss he wants. *"Sure add it to the defeat-screen line."*
+2. **Built (`10dd278`).** `src/engine/run/shortHandedGymLine.ts`: after a defeat on the gym node, outside the intro, with fewer than `PARTY_SIZE` members, the run summary prints **"You fought the gym's three with one."** (or "two") after "Reached biome ...". The tool's end screen prints the same words. Tests: `shortHandedGymLine.test.ts`, `RunSummary.shortHanded202l.test.tsx`, `screens/endScreen202l.test.ts`. (Briefly filed as ticket 204, then folded in here at Henry's word.)
 
 ---
 
@@ -158,11 +165,12 @@
 1. **D1, the revive floor (202b).** 30% of max HP proposed. Alternatives: 50% (a real second chance), or the same HP the member was revived with by a Draught.
 2. **D2, what carries into run 2 (202c).** Proposed: exactly what the game's save carries (roster, banked Traces, codex), including a won run's party. If a lost run should wipe the roster in the game too, say so and the tool follows.
 3. ~~**D3, the primed brief's paragraph (202f §2).**~~ Answered 2026-10-07: *"If the 'what you already know' isn't in the brief make sure to add it."* Written as a section in `docs/playtest/agent-player-primed.md` (`fa121e2`).
-4. **D4, skoll_v1's kit direction (202k).** Howl out and Brute Force in (measured), or the other way round?
+4. ~~**D4, skoll_v1's kit direction (202k).**~~ Answered 2026-10-07: Howl out, Brute Force in, as a ruled exception to the one-payoff rule. Built (`cc8523f`).
 
 ## Resolution
 
 - **202h built 2026-10-07** (`bed16ef`): transcript, outcome fields, stall limit, one retry. The eslint and tsc checks are clean; the night, brief and stall tests pass. `overnight.test.ts`'s dry run is too slow to finish in the Cowork VM (about 70 s per tool check) and was not run there: run `npm run gate` on Windows.
 - **202f's brief written 2026-10-07** (`fa121e2`); the night itself is not run.
 - **202d answered 2026-10-07** (above).
-- 202a, 202b, 202c, 202e, 202g, 202i, 202j, 202k: not started.
+- **202k built 2026-10-07** (`cc8523f`) and **202l built 2026-10-07** (`10dd278`); see those rows.
+- 202a, 202b, 202c, 202e, 202g, 202i, 202j: not started.

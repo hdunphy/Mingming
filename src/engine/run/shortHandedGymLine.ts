@@ -1,5 +1,5 @@
 /**
- * TICKET 204 — the defeat screen says why, when the team was short at the gym.
+ * TICKET 202l — the defeat screen says why, when the team was short at the gym.
  *
  * Henry (2026-10-07), on whether the full-party goal should be "yellow painted" or discovered: the
  * map shows the gym's three elements (202j) and the header says "Party 1 of 3" (202i), and one line

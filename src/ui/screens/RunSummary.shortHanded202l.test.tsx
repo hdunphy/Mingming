@@ -1,5 +1,5 @@
 /**
- * TICKET 204 — the run summary prints the short-handed line after "Reached biome ...", and only then.
+ * TICKET 202l — the run summary prints the short-handed line after "Reached biome ...", and only then.
  * Same static-markup shape as `RunSummary.test.tsx`.
  */
 import { configureStore } from '@reduxjs/toolkit';
@@ -29,7 +29,7 @@ function render(outcome: RunOutcome, partyIds: string[]): string {
     return renderToStaticMarkup(<Provider store={store}><RunSummary run={run} endedAt={1_700_000_600_000} /></Provider>);
 }
 
-describe('204 — RunSummary, short-handed at the gym', () => {
+describe('202l — RunSummary, short-handed at the gym', () => {
     it('a solo defeat at the gym says so, after how far the run got', () => {
         const markup = render('defeat', ['mm1']);
         expect(markup).toContain('data-testid="short-handed-line"');

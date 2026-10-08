@@ -1,5 +1,5 @@
 /**
- * TICKET 204 — the defeat screen's short-handed line: only a defeat, only at the gym, only short.
+ * TICKET 202l — the defeat screen's short-handed line: only a defeat, only at the gym, only short.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -20,7 +20,7 @@ const WILD = BASE.nodes.find((n) => n.kind === 'wild')!;
 const ended = (outcome: RunOutcome, over: Partial<IRunState> = {}): IRunState =>
     ({ ...BASE, phase: 'ended', outcome, currentNodeId: GYM.id, ...over });
 
-describe('204 — the short-handed gym line', () => {
+describe('202l — the short-handed gym line', () => {
     it('says how many the player brought against the gym’s three', () => {
         expect(shortHandedGymLine(ended('defeat', { partyIds: ['mm1'] }))).toBe("You fought the gym's three with one.");
         expect(shortHandedGymLine(ended('defeat', { partyIds: ['mm1', 'mm2'] }))).toBe("You fought the gym's three with two.");

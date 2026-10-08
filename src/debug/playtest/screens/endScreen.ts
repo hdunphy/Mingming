@@ -13,7 +13,7 @@ export function endScreen(world: World): Screen {
     if (world.view.fight) body.push(...fightReportLines(world.view.fight));
     const outcome = world.view.cutShort ?? run.outcome ?? 'ended';
     body.push(`RUN OVER: ${outcome}${world.view.cutShort ? ' (the session\'s decision budget ran out)' : ''}. ${run.fightsResolved} fights won, ${countedDeckSize(run.deck)} cards in the deck, ${run.scrap} amber left${here ? `, ended at ${nodeLabel(here)}` : ''}.`);
-    // TICKET 204: the game's defeat screen line, word for word.
+    // TICKET 202l: the game's defeat screen line, word for word.
     const shortHanded = shortHandedGymLine(run);
     if (shortHanded) body.push(shortHanded);
     if (world.view.engineError) body.push(`ENGINE ERROR: the game's own code threw during the last fight (${world.view.engineError}). The run was cut short; this is a game bug to report.`);
