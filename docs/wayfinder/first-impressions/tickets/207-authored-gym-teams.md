@@ -50,11 +50,42 @@ Six slots, three required Instincts. Draw which of fights 1 and 2 gets two of th
 2. **Which card per Instinct:** after the deck lists (*"Not sure yet let's pick the Mingmings first"*).
 3. Do the leader's decks follow the same card-count rules as a player deck?
 
+## 207a draft: deck lists and leader-card options (2026-10-08)
+
+Henry: *"Can you generate the deck lists now. Also for the fire gym huldra isn't the only one attacking using burns. The zoo deck also will want something to scale on dazed. Generate the decks using in game cards and propose two special leader cards for each instinct so I can choose one."* Review page: https://claude.ai/artifact/SYvty7NsjXim27PxUMnmGF (Henry picks A or B per Instinct there).
+
+Every deck card is from the v2 run pool (`v2RunPool`). Leader cards were scored with `calculatePowerscale` (run directly, not a port) against the ±15% band. No battles were simulated.
+
+| Gym | Member | Deck (10) |
+|---|---|---|
+| Emberfall | fenrir_v2 | ignite ×2, ember_jab, snarl, slag_strike, molten_core, ember_ward, cinder_lance ×2, flashover |
+| Emberfall | skoll_v2 | ember_jab ×2, scald, brand ×2, flare_burst, pack_tactics, inferno, heat_wave, thermal_overload |
+| Emberfall | huldra_v2 | heartwood ×2, shell_share, iron_bark, molten_core ×2, inferno, cinder_armor, bark_lash, bark_smash |
+| Tidewrack | kraken_v2 | tide_pool ×2, surge_protection, spreading_rot, capacitor, tidal_battery, contagion, boiling_surge, hydro_blast, tidal_wave |
+| Tidewrack | jormungandr_v2 | poison_injection ×2, corrosive_leak, corrosive_bolt ×2, tide_pool, serpent_flurry ×2, venom_fang, contagion |
+| Tidewrack | fenrir_v1 | war_pact, desperate_strike, fury_strike, flare_burst ×2, glass_cannon, ragnarok_edge, unbound_fang, pack_tactics ×2 |
+| Rootfall | ratatoskr_v1 | acorn_toss ×2, heckle ×2, forage ×2, nagging_bite, hoofbeat, seed_bomb ×2 |
+| Rootfall | huldra_v1 | tend ×2, pollen_cloud, bolster, thorn_whip, nagging_bite, verdant_ward, pile_on, slander ×2 |
+| Rootfall | kraken_v1 | undertow ×2, blind_spot ×2, whirlpool ×2, pressure_point, deep_scan, serpents_coil, ink_cloud |
+
+Leader-card options (A / B), score against band:
+- fenrir_v2: **Muspel Brand** 1e (15 power, 1 Burn, +1 Burn if you hold Sharp; on curve) / **Smoke and Cinders** 1e (1 Burn and 1 Weakened to each enemy; −7% at 3v3)
+- skoll_v2: **Ember Fangs** 1e (1 Burn, then 10 power twice; −3%) / **Chase the Sun** 2e (15 power ×4; −14%, scorer blind to Sunscorch)
+- huldra_v2: **Smoldering Bark** 1e (6 Bark Shield, 1 Burn; +3%) / **Kindling Grove** 2e (20 power + 1 Burn to each enemy; −9% at 3v3)
+- kraken_v2: **Floodgate** 2e (1 Poison to each enemy, gain 2 Energized; on curve at 3v3) / **Pressure Front** 2e (40 power, gain 1 Energized; +3%)
+- jormungandr_v2: **Midgard Venom** 1e (1 Poison, gain 1 Energized; +17%) / **Coil and Strike** 2e (2 Poison, then 15 power ×3; −23%, scorer blind to Venomfang)
+- fenrir_v1: **Unchained** 2e (15 power ×4; −14%) / **Gleipnir Breaks** 1e (15 power ×3, lose 5% max HP; +7%)
+- ratatoskr_v1: **Rumor** 0e (3 power ×2, 1 Dazed; −8%) / **Up the Trunk** 1e (10 power per card you played, 1 Dazed; on curve)
+- huldra_v1: **Bewitch** 0e (1 Dazed, gain 2 Sharp; −8%; the self-buff triggers Glamour) / **Hulder's Gaze** 1e (10 power +10 per Dazed; manual price)
+- kraken_v1: **Ink Flood** 1e (draw 1, 2 Dazed; −7%) / **Deep Current** 2e (20 power per card you played, draw 1; −3%)
+
+Findings raised with the draft: ROOT ROT (Poison) does nothing for the new Rootfall team and TIDAL SURGE (cards played) suits it better than Tidewrack's ramp; Burn skips type advantage, so Emberfall's Water counter gets no edge against most of its damage; the Rootfall trio was the strongest comp in the 2026-09-03 round robin.
+
 ## Rows
 
 | Row | What | State |
 |---|---|---|
-| 207a | Design session: the three teams (**picked 2026-10-08**), their deck lists (drafted against Henry's plan per gym, then he reviews), and the nine leader cards | Teams done; deck lists next |
+| 207a | Design session: the three teams (**picked 2026-10-08**), their deck lists (drafted against Henry's plan per gym, then he reviews), and the nine leader cards | Teams done; decks and leader-card options **drafted 2026-10-08**, waiting on Henry's picks |
 | 207b | Engine: authored decks and leader cards in the gym table; fights 1 and 2 place the three leader Instincts (each at least once, never the full trio in one fight) with their leader cards; scout and Driver preview read the table; tests pin each gym's team, deck and placement rule | After 207a |
 | 207c | Measure on 206a's bench: the base arm, and the loss rate per fight (fight 3 should be the highest) | After 207b and 206a |
 
