@@ -2,7 +2,7 @@
 
 **Type:** decisions only, no code. **Status:** **OPENED 2026-10-08** (Henry: "write the rest of the decisions in a new ticket"). One row per decision, each with the options and what it costs. Answer by number; each answer is then built or closed in the ticket named in the "Where" column. Nothing here blocks the code that is already merged.
 
-**Where the session left the branch.** `first-impressions` holds everything built on 2026-10-07 and 2026-10-08: 202a, 202b, 202c, 202e, 202g, 202h, 202k, 188, 195e-2, 200b to 200e, 204. Not pushed. Full vitest run: 522 files, 6038 tests, green; `eslint .` is clean (the lint ignore landed in `9856707e`).
+**Where the session left the branch.** `first-impressions` holds everything built on 2026-10-07 and 2026-10-08: 202a, 202b, 202c, 202e, 202g, 202h, 202j, 202k, 188, 195e-2, 200b to 200e, 204 and 205. Not pushed. On the merged tree `tsc -b`, `eslint .` and `npm run icons -- --check` are clean and vitest passes (532 files, 6138 tests). `vite build` ran green on each agent branch but not on the merge.
 
 ## A. Deferred or rejected by Henry on 2026-10-08
 
@@ -20,10 +20,14 @@
 |---|---|---|---|
 | B1 | **Screenshots of the finished icon swap** (battle with statuses at 12 px, map, town square, ranch, Codex, run summary, at 1280×800 and 1920×1080), so you can judge the status stroke weight (`STATUS_STROKE` in `src/ui/theme/kit/statusIconPaths.ts`, now 2). | After the emoji ticket is merged (lean) · now · skip and look in the game | 200f |
 | B2 | **Invisible byte-order mark** at the start of the Norse-names commit subject (`f04a6062`). Harmless; fixing it rewrites that commit and every commit after it. | Leave it (lean) · rewrite before pushing | 195e-2 |
-| B3 | **Emoji prefixes inside battle-log lines** held in `src/engine/data/lib/hooks.json` (shield, bolt, heart and others). The engine writes them as plain text, so a Tabler icon cannot go inline. Ticket 205 does not touch them. | Leave for now (lean) · drop the prefixes · draw icons in the log's display code | 205 follow-up |
+| B3 | **Emoji still in engine data**, about 74 lines in `src/engine` (StatusBehaviors 19, statusGlossary 14, ActionExecutors 13, hooks.json 11, effectHandlers 10, battleReducer 7): mostly combat-log prefixes (shield, bolt, heart), plus the stance moon and sun. `statusGlossary.ts` also holds an emoji per status that nothing in the UI reads (dead data). The engine writes these as plain text, so a Tabler icon cannot go inline. | Leave for now (lean) · drop the prefixes and the dead data · draw icons in the log's display code | 205 follow-up |
 | B4 | **Type chart: five of eight elements share the neutral dot** (Earth, Air, Ice, Light, Dark). They lost their emoji in the icon swap; the three-letter label stays beside each. | Accept (lean) · pick a Tabler mark per element | 200 follow-up |
 | B5 | **Light Stance vs Sun Eater.** Henry thinks Sun Eater has to change. Not decided which thing is renamed: the Sun Devourer card, the Sun-Eater's Plunge card, or Sköll v2's Instinct Sunscorch. Light Stance keeps its sun icon. | Name the one to rename | new ticket once answered |
 | B6 | **Which Instinct glyphs ship at 1.0.** 12 of 33 are drawn (ticket 199, AI-drawn, disclosed on Steam); the other 21 keep the gear icon. Henry also owes the Steam AI-content answer naming the glyphs. | 12 is fine (lean) · draw more first | 199 |
+| B7 | **Type chart button icon.** `dna` reads as a crosshair at 16 to 20 px; Tabler's `dna-2` (vertical helix) reads clearly as DNA. | `dna-2` (lean; one word in `typeChartIcons.ts`, plus the name in `names.json` and `npm run icons`) · keep `dna` | 205 |
+| B8 | **Type chart footer (the same-element bonus).** The bolt means energy only, so the footer uses `circle-plus`. | Keep (lean) · sparkles · chevrons-up · rosette | 205 |
+| B9 | **Five effect-line picks that were not on the default list:** `multiplier-2x` (multiply status), `arrow-back-up` (return), `stopwatch` (trigger status), `repeat` (replay last card), `arrow-ramp-right` (redirect target). The plain "replays: none yet" arrow on the hand card face (`HandCardFace.tsx`) was left as text. | Accept (lean) · rule per pick on the 205 sheet · also change the card-face arrow | 205 |
+| B10 | **Look at the new screens once in the running game:** the gym badges under the gym node on the map at 1280 wide (T12, 202j), and the card tooltip icons, which draw at only 9 to 11 px (T13, 205). `InlineIcon` takes a size if the tooltip icons read too small. | Your look | 202j, 205 |
 
 ## C. Open, design (each needs a session with Henry, not an agent)
 
