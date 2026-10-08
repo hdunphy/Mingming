@@ -325,7 +325,7 @@ Write a line of your own at the top for each person; that's what gets the reply.
 
 ### 4.2 `#welcome` (pinned)
 
-> **Welcome to the Mingming playtest!** Thanks for helping.
+> **Welcome to the Mingming: Midgard Circuit playtest!** Thanks for helping.
 >
 > **Play:** [game link] (desktop browser, Chrome/Edge/Firefox, window at least 1280×800)
 > **When a run ends:** press **"Tell Henry how it went"** on the summary screen (about 3 minutes). Or use this link: [form link]

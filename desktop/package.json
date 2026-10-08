@@ -1,6 +1,6 @@
 {
   "name": "mingming-desktop",
-  "productName": "Mingming",
+  "productName": "Mingming Midgard Circuit",
   "version": "0.1.0",
   "private": true,
   "description": "Mingming: Midgard Circuit — desktop wrapper (ticket 42).",
@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "com.hdunphy.mingming",
-    "productName": "Mingming",
+    "productName": "Mingming Midgard Circuit",
     "copyright": "Copyright © 2026 Henry Dunphy",
     "directories": {
       "output": "release",
@@ -28,6 +28,7 @@
     },
     "files": [
       "main.cjs",
+      "savesFolder.cjs",
       "preload.cjs",
       "app/**/*"
     ],
@@ -42,7 +43,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Mingming"
+      "shortcutName": "Mingming Midgard Circuit"
     },
     "linux": {
       "target": [
@@ -51,7 +52,7 @@
       ],
       "icon": "build/icon.png",
       "category": "Game",
-      "executableName": "mingming"
+      "executableName": "mingming-midgard-circuit"
     }
   }
 }

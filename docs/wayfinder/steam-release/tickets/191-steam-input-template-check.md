@@ -18,7 +18,7 @@ Henry's rulings (2026-10-02): hold-to-fast-forward is the **Right** Shift; for t
 
 Steam's menus move around between versions, so the names below may differ a little. The idea is the same. You need the Steam desktop app signed in, and a controller (any Xbox, PlayStation or Switch pad; a Steam Deck works too).
 
-**Step 1: add something to Steam to hang the layout on.** In Steam, open the **Games** menu, choose **Add a Non-Steam Game to My Library**, press **Browse**, and pick the Mingming desktop build if you have one. For this check any program works (for example Notepad, `C:\Windows\notepad.exe`), because the check is about the key name, not the game. Press **Add Selected Programs**.
+**Step 1: add something to Steam to hang the layout on.** In Steam, open the **Games** menu, choose **Add a Non-Steam Game to My Library**, press **Browse**, and pick the Mingming: Midgard Circuit desktop build if you have one. For this check any program works (for example Notepad, `C:\Windows\notepad.exe`), because the check is about the key name, not the game. Press **Add Selected Programs**.
 
 **Step 2: open its controller layout.** Plug the controller in. In your Library, right-click the program, choose **Properties**, then **Controller**. If it asks, turn Steam Input **on** for it. Press **Edit Layout** (older versions call it "Controller Layout" or "Configure").
 
@@ -28,7 +28,7 @@ Steam's menus move around between versions, so the names below may differ a litt
 
 **Step 5 (optional, but it is the whole point of the README note): load our template.** Copy `steam/controller_config/mingming_keyboard_mouse.vdf` into the same folder as your export, then open the layout list (**Browse Configs**, then your local layouts) and select it. Note whether Steam loads it with no warning, and whether the buttons show the names in the README table (A is Enter, X is Space, and so on). If it warns, copy the warning text.
 
-**Step 6: the real test, in a fight.** Launch the game from Steam with Steam Input on (the Mingming desktop build, or the web build in a browser launched from Steam) and start a fight. Hold the right stick click. The fight should run at about three times speed while you hold it and go back to normal when you let go. Also press Left Shift on the keyboard with a card selected: aiming at your own mingmings should still work.
+**Step 6: the real test, in a fight.** Launch the game from Steam with Steam Input on (the Mingming: Midgard Circuit desktop build, or the web build in a browser launched from Steam) and start a fight. Hold the right stick click. The fight should run at about three times speed while you hold it and go back to normal when you let go. Also press Left Shift on the keyboard with a card selected: aiming at your own mingmings should still work.
 
 ## What to do with the result
 

@@ -33,6 +33,18 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const { userDataFolder } = require('./savesFolder.cjs');
+
+/*
+ * TICKET 188a: PIN THE SAVES FOLDER BEFORE ANYTHING READS IT.
+ *
+ * `userData` defaults to `<appData>/<app name>`, and the app name follows `productName`. The
+ * product was renamed to "Mingming Midgard Circuit" (ticket 188b), which on its own would point the
+ * game at a new empty folder and make existing runs and the ranch look gone. This keeps it on the
+ * `Mingming` folder it has always used. It must run before `app.whenReady`, `savesDir`,
+ * `runLogsDir` and the `mingming:paths` reply, all of which read `userData`.
+ */
+app.setPath('userData', userDataFolder(app.getPath('appData')));
 
 /*
  * WINDOW DEFAULTS.
