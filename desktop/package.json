@@ -28,6 +28,7 @@
     },
     "files": [
       "main.cjs",
+      "savesFolder.cjs",
       "preload.cjs",
       "app/**/*"
     ],
