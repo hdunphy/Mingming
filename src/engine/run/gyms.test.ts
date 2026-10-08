@@ -61,69 +61,60 @@ describe('offerGyms', () => {
     });
 
     /*
-     * RULE 3 IS RETIRED — ticket 142 §7, Henry 2026-09-11, off the 09-10 playtest (*"the current
-     * road is not fun"*). A region no longer walks the triangle: it is [counter, gym, approach],
-     * and the approach is built from the leader's comp rather than from an element.
+     * THE ROAD — ticket 206 (Henry, 2026-10-08): *"I think the biome order makes the most sense.
+     * Just make this the default but gate closing the ticket on a play test."* It replaces 142 §7's
+     * [counter, gym, approach], which opened on the starter's own element (mirror fights).
      *
-     * The cost is the thing to keep visible, so it is asserted rather than described. Rootfall
-     * never stands in a Water biome, so kraken and jormungandr cannot be recruited on that route -
-     * Henry accepted that in the same breath: *"It's fine if there are no Water mingmings in
-     * there."* If that is ever revisited, this test is the one that has to be argued with.
+     * [gym], [counter + gym], approach. The starter the offer invites (the counter) wins biome 1,
+     * meets its own element alongside the gym's in biome 2, and the approach is the leader's comp.
      */
-    it('walks [counter, gym, approach] — not the triangle', () => {
-        const expected: Readonly<Record<string, string[]>> = {
-            Water: ['Nature', 'Water'],
-            Fire: ['Water', 'Fire'],
-            Nature: ['Fire', 'Nature'],
+    it('walks [gym], [counter + gym], approach', () => {
+        const expected: Readonly<Record<string, string[][]>> = {
+            Water: [['Water'], ['Nature', 'Water']],
+            Fire: [['Fire'], ['Water', 'Fire']],
+            Nature: [['Nature'], ['Fire', 'Nature']],
         };
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
                 expect(offer.biomes).toHaveLength(3);
-                const walked = offer.biomes.slice(0, 2).map((b) => b.elements[0]);
+                const walked = offer.biomes.slice(0, 2).map((b) => [...b.elements]);
                 expect(walked).toEqual(expected[offer.gym.element]);
             }
         }
     });
 
-    it('leaves one launch element off every route — the accepted cost', () => {
+    it('shows all three launch elements on every road', () => {
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
-                const walked = new Set(offer.biomes.slice(0, 2).map((b) => b.elements[0]));
-                const missing = LAUNCH_ELEMENTS.filter((e) => !walked.has(e));
-                // Exactly one, and it is the element the GYM beats — the leg that used to be
-                // biome 3 before the approach replaced it.
-                expect(missing).toHaveLength(1);
-                expect(missing[0]).not.toBe(offer.gym.element);
+                const seen = new Set(offer.biomes.flatMap((b) => [...b.elements]));
+                expect([...seen].sort()).toEqual([...LAUNCH_ELEMENTS].sort());
             }
         }
     });
 
     /*
-     * THE LEADER NOW STANDS ON ITS OWN GROUND. This inverts the old rule-4 pin, which existed to
-     * stop a "fix" quietly reverting Henry's 2026-08-30 ordering. That ordering is what 09-11
-     * replaced, and the thematic complaint it knowingly accepted (Tidewrack's Water leader fought
-     * at the end of a Fire biome) is the complaint the new road exists to answer.
+     * The starter the offer invites wins its first biome: the opening is the GYM's element, which
+     * the counter beats. The 2026-10-07 run gate measured what this buys (wild 89.3% → 99.5%).
      */
-    it('ends on the gym\'s own ground, and opens on what beats it', () => {
+    it('opens on the gym\'s own element, and ends on the gym\'s ground', () => {
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
-                expect(openingElement(offer)).toBe(COUNTERED_BY[offer.gym.element]);
-                expect(offer.biomes[1].elements[0]).toBe(offer.gym.element);
+                expect(openingElement(offer)).toBe(offer.gym.element);
+                expect(offer.biomes[1].elements[0]).toBe(COUNTERED_BY[offer.gym.element]);
                 expect(lastElement(offer)).toBe(offer.gym.element);
             }
         }
     });
 
     /*
-     * The approach is the FIRST two-element biome the generator has ever emitted - `IBiome.elements`
-     * admitted two so friendly pairs could ship without a save migration (ticket 05), and §7 is the
-     * first caller to spend that headroom. The first two legs stay mono-element.
+     * Biome 1 is mono-element; biome 2 (ticket 206) and the approach (142 §7) are the two-element
+     * biomes `IBiome.elements` was left open for (ticket 05).
      */
-    it('emits legal biomes: two mono-element, then the comp\'s elements', () => {
+    it('emits legal biomes: one mono-element, then two pairs', () => {
         for (const seed of SWEEP) {
             for (const offer of offerGyms(seed)) {
                 for (const [i, biome] of offer.biomes.entries()) {
-                    expect(biome.elements.length).toBe(i === 2 ? 2 : 1);
+                    expect(biome.elements.length).toBe(i === 0 ? 1 : 2);
                     for (const element of biome.elements) expect(LAUNCH_ELEMENTS).toContain(element);
                     expect(biome.id).not.toBe('');
                     expect(biome.name).not.toBe('');
@@ -172,11 +163,11 @@ describe('offerGyms', () => {
          * which of three NAMED biomes stands in for each element; that is covered by
          * `produces different screens for different seeds`.
          *
-         * Ticket 142 §7 (2026-09-11) changed WHICH single ordering, not that there is one: the
-         * road is [counter, gym, approach], and the approach leads with the gym's element, so
-         * Emberfall reads Water > Fire > Fire. The doubled Fire is the approach standing on the
-         * leader's own ground - the whole point of the new road - and not a repeated biome:
-         * `never repeats a biome within one offer` pins the ids apart.
+         * Ticket 206 (2026-10-08) changed WHICH single ordering, not that there is one: the road
+         * is [gym], [counter + gym], approach, read here by each biome's first element, so
+         * Emberfall reads Fire > Water > Fire. The doubled Fire is biome 1 and the approach both
+         * standing on the leader's element, not a repeated biome: `never repeats a biome within
+         * one offer` pins the ids apart.
          */
         const orderings = new Set(
             SWEEP.map((seed) => {
@@ -184,6 +175,6 @@ describe('offerGyms', () => {
                 return emberfall.biomes.map((b) => b.elements[0]).join('>');
             }),
         );
-        expect(orderings).toEqual(new Set(['Water>Fire>Fire']));
+        expect(orderings).toEqual(new Set(['Fire>Water>Fire']));
     });
 });

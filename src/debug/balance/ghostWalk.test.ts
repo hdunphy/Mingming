@@ -39,12 +39,15 @@ const hashOf = (value: unknown): string =>
 describe('170a — the default walk is unchanged', () => {
     // [seed, starter, gymIndex, tier] -> hash of JSON.stringify(walkRun(...)) on the parent of 170a.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, number, string]> = [
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, 'bdba9c99839aba86'],
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '12b709b4581e0545'],
+        // 206 moved all four on purpose: the biome order is now [gym], [counter + gym], approach, so every walk
+        // meets different biomes from the same seed (bdba9c99839aba86 -> 64d1fd0800261959, 12b709b4581e0545 ->
+        // 8d4de1d25b21adc6, 6fe38a89bb245a0e -> a2037756128706ae, 2ab092b942210e28 -> 4c95d4a67e7d2fb4).
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '64d1fd0800261959'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '8d4de1d25b21adc6'],
         // 202k moved both fenrir_v2 walks on purpose (skoll_v1's kit changed, and wild Skolls hold that kit):
         // cbae1ed75c400704 -> 6fe38a89bb245a0e and 9ec0bff685eb34aa -> 2ab092b942210e28. The kraken_v1 walks did not move.
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, '6fe38a89bb245a0e'],
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '2ab092b942210e28'],
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'a2037756128706ae'],
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '4c95d4a67e7d2fb4'],
     ];
 
     it.each(GOLDEN)('%s at tier %#: whole result object matches the pre-170 walk', (seed, starter, gymIndex, tier, hash) => {
@@ -59,7 +62,7 @@ describe('170a — the default walk is unchanged', () => {
     });
 });
 
-/** A seed from the sample that dies before the gym on a real walk (`fenrir_v2 #1` loses its fifth fight since 202k; its sixth before). */
+/** A seed from the sample that dies before the gym on a real walk (`fenrir_v2 #1` loses its eighth fight since 206's biome order; its fifth from 202k, its sixth before). */
 const EARLY_DEATH = { seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1 };
 
 /*

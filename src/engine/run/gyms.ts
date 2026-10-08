@@ -98,8 +98,9 @@ export const COUNTERED_BY: Readonly<Record<string, string>> = {
  * `exploration-map.md`'s "each biome mixes two elements". Inside a pure counter cycle every
  * possible pairing is a *counter* pair, so a Fire/Water biome is a biome your Fire starter is
  * simultaneously strong and weak in — noise rather than a routing decision. `IBiome.elements`
- * stays a 1-or-2 list because ticket 05 defers friendly pairs rather than cancelling them; this
- * module only ever emits length 1.
+ * stays a 1-or-2 list because ticket 05 defers friendly pairs rather than cancelling them. Two
+ * callers now spend that headroom: the approach biome (142 §7) and, since ticket 206 (Henry,
+ * 2026-10-08), the middle biome of every road — see `walkOrderFor`.
  *
  * **Why named places rather than "Fire Biome".** The elements are already carried in
  * `IBiome.elements` and ticket 10's map screen reads them from there, so the `name` field is free
@@ -176,51 +177,46 @@ export function pathElementsFor(gymElement: string): ReadonlyArray<string> {
 }
 
 /**
- * THE WALK ORDER — Henry's ruling, 2026-08-30, and it inverts what rule 4 used to say.
+ * THE WALK ORDER — ticket 206 (Henry, 2026-10-08): **the beaten element first, then the starter's
+ * own element with it, then the gym's ground.**
  *
- * The order is **[the gym's own element, the element that beats it, the element that beats THAT]**
- * — three steps along `COUNTERED_BY` starting from the leader. It is fully determined by the gym,
- * so there is nothing to roll.
+ * Each entry is one biome's elements; the third leg (the approach) is built from the leader's comp
+ * by `gymBiomeElements` and is not part of this list. With `G` the gym's element and `C` the element
+ * that beats it (`COUNTERED_BY[G]`, the starter the offer invites):
+ *
+ * | | biome 1 | biome 2 | biome 3 (approach) |
+ * | --- | --- | --- | --- |
+ * | **Rootfall** (Nature), a Fire starter | Nature — *you win* | Fire + Nature | Nature + Water |
+ * | **Emberfall** (Fire), a Water starter | Fire — *you win* | Water + Fire | Fire + Nature |
+ * | **Tidewrack** (Water), a Nature starter | Water — *you win* | Nature + Water | Water + Fire |
  *
  * # WHY, IN HENRY'S WORDS
  *
- * > *"you ideally come with the advantage starter type and want an easy start… it felt bad to go
- * > after the water boss with a nature mingming and get wiped in biome 1 by fire, or have to build
- * > up your blueprints in one boss just to lose them come to the boss you want to battle."*
+ * > *"if you choose fire, you start going against grass, which should also help those other v1
+ * > decks losing in biome 1. Then biome 2 would be your element plus where you're starting
+ * > against, so fire and nature. Then the last matches the gym, so nature and water. That might
+ * > smooth out the difficulty curve."* … *"I think the biome order makes the most sense. Just make
+ * > this the default but gate closing the ticket on a play test."*
  *
- * The party is chosen AFTER the gym, so a player picking Tidewrack picks Nature — the counter to
- * Water. That choice then has to survive three biomes, and under the old ordering it could meet its
- * own predator immediately. Walking the counter-chain makes the run a clean ramp for the team the
- * offer invites you to bring:
+ * Measured before the ruling (the 2026-10-07 run gate, bare start kits, 1v1): wild fights in the
+ * first biome went from 89.3% to 99.5% across the twelve starters, and the first elite from 51.9%
+ * to 77.5%. Every starter clears the 85% wild rule; jormungandr_v1 went from 29.7% to 97.2%.
  *
- * | | biome 1 | biome 2 | biome 3 | the gym |
- * | --- | --- | --- | --- | --- |
- * | **Tidewrack** (Water) | Water — *you win* | Nature — neutral | Fire — *you lose* | Water — you win |
- * | **Emberfall** (Fire) | Fire — *you win* | Water — neutral | Nature — *you lose* | Fire — you win |
- * | **Rootfall** (Nature) | Nature — *you win* | Fire — neutral | Water — *you lose* | Nature — you win |
+ * # WHAT IT REPLACES, AND THE COST KEPT IN VIEW
  *
- * Easy opening, neutral middle, hardest biome last — and the boss on the far side of it is the one
- * you built for. The difficulty curve now runs the right way round for the whole run instead of
- * being decided by which direction the offer screen happened to roll.
+ * The 2026-09-11 road (142 §7) was `[C, G, approach]`: the starter's own element first (mirror
+ * fights), then the gym's. Henry chose that so a recruit made in biome 1 was not wiped by a biome 2
+ * of the starter's own element (*"you're a fire starter and you go against grass first. [You]
+ * recruit a rat going to biome 2. You face all fire and that wipes out your rat"*). The compromise
+ * halves that risk rather than removing it: biome 2 is now half the starter's element, not all of
+ * it. Ticket 206b measures how often a biome 1 recruit is downed in biome 2, and 206 stays open
+ * until a playtest signs the road off.
  *
- * # WHAT THIS COSTS, STATED PLAINLY
- *
- * **The gym no longer stands in a biome of its own element** — Tidewrack's Water leader is fought
- * at the end of a *Fire* biome. That was rule 4's entire argument, and rule 4 was explicitly *"a
- * reading, not a ruling — it should be confirmed"*. It has now been confirmed the other way. Henry:
- * *"it doesn't work thematically."* Ruled anyway, because the thing it fixes is a player losing a
- * run to the map's ordering rather than to a fight.
- *
- * # AND WHAT IT SIMPLIFIES
- *
- * The old `OfferDirection` roll is **gone**. It existed to satisfy rule 2 — the three offers must
- * open on three different elements — which needed a derangement, of which there are exactly two,
- * so one direction was rolled per screen and shared by all three offers. Opening each offer on its
- * own gym element satisfies rule 2 *by identity*: three gyms, three elements, three openings. One
- * less rolled quantity, and one less way for the screen to be subtly wrong.
+ * Still fully determined by the gym, so nothing is rolled, and rule 2 (three different openings)
+ * still holds by identity: each offer opens on its own gym's element.
  */
-function walkOrderFor(gymElement: string): ReadonlyArray<string> {
-    return [COUNTERED_BY[gymElement], gymElement];
+function walkOrderFor(gymElement: string): ReadonlyArray<ReadonlyArray<string>> {
+    return [[gymElement], [COUNTERED_BY[gymElement], gymElement]];
 }
 
 /**
@@ -336,11 +332,9 @@ function gymBiomeElements(gym: IGym): ReadonlyArray<string> {
  *    (`exploration-map.md`) and Early Access has three elements, so a region is a permutation of
  *    the launch set rather than a sample from it — every run sees the whole triangle, which is what
  *    makes a two- or three-member party a real construction problem instead of a mono-element pick.
- * 4. **The gym's own element is the FIRST biome, and the walk follows the counter-chain.**
- *    Henry's ruling, 2026-08-30 — see `walkOrderFor` for the reasoning and for what it costs. This
- *    REPLACES the previous rule 4 (*"the gym's own element is the LAST biome"*), which that
- *    comment flagged as *"a reading, not a ruling — it should be confirmed"*. It was confirmed the
- *    other way.
+ * 4. **The road is the gym's element, then the starter's element with it, then the approach.**
+ *    Ticket 206 (Henry, 2026-10-08) — see `walkOrderFor` for the reasoning and for what it costs.
+ *    It replaces 142 §7's `[counter, gym, approach]`, which opened on the starter's own element.
  * 5. **Deterministic in `seed`** — same seed, same screen, which is what lets an offer be shown,
  *    saved, and shown again after an app close.
  */
@@ -361,12 +355,13 @@ export function offerGyms(seed: string): ReadonlyArray<IGymOffer> {
         return {
             gym,
             biomes: [
-                ...walkOrder.map((element): IBiome => {
-                    const candidates = BIOME_POOL[element];
+                ...walkOrder.map((elements): IBiome => {
+                    // Named from the biome's FIRST element: biome 1 is the gym's ground, and biome 2
+                    // leads with the starter's element, the one the road has not shown yet. One draw
+                    // per biome either way, as before.
+                    const candidates = BIOME_POOL[elements[0]];
                     const template = candidates[stream.nextInt(0, candidates.length - 1)];
-                    // Mono-element by ticket 05; the list shape is what lets friendly pairs return
-                    // later without a save migration (`runTypes.ts`, `IBiome`).
-                    return { id: template.id, name: template.name, elements: [element] };
+                    return { id: template.id, name: template.name, elements: [...elements] };
                 }),
                 // 142 §7: the third leg is the leader's own ground - see `gymBiomeElements`. It
                 // draws its NAME from the gym's element pool like any other biome, so the place
