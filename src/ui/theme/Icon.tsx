@@ -33,9 +33,11 @@
 
 import type { CSSProperties, ReactElement } from 'react';
 
+import type { WithGlyphLayers } from './glyphLayers';
 import { PATHS, type IconName } from './icons';
+import { TablerGlyph } from './TablerGlyph';
 
-export interface IconProps {
+export interface IconProps extends WithGlyphLayers {
     readonly name: IconName;
     /** Rendered square. 16 in dense chrome, 20 in nav, 28 on the map. */
     readonly size?: number;
@@ -48,7 +50,8 @@ export interface IconProps {
     readonly title?: string;
 }
 
-export function Icon({ name, size = 16, className, style, title }: IconProps): ReactElement {
+export function Icon({ name, size = 16, className, style, title, layers }: IconProps): ReactElement {
+    if (layers) return <TablerGlyph layers={layers} size={size} className={className} style={style} title={title} />;
     return (
         <svg
             className={className}

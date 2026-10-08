@@ -5,21 +5,25 @@
  */
 import React from 'react';
 
+import type { WithGlyphLayers } from '../../theme/glyphLayers';
 import { ELEMENT_GLYPHS, elementKey } from '../../theme/kit/elementGlyphs';
 import { SlantPanel } from '../../theme/kit/SlantPanel';
+import { TablerGlyph } from '../../theme/TablerGlyph';
 
-export interface BiomeSignProps {
+export interface BiomeSignProps extends WithGlyphLayers {
     readonly name: string;
     readonly element: string;
 }
 
-export function BiomeSign({ name, element }: BiomeSignProps): React.ReactElement {
+export function BiomeSign({ name, element, layers }: BiomeSignProps): React.ReactElement {
     return (
         <SlantPanel cut={8} className="battle-topbar-biome" data-testid="battle-biome" title={element}>
             <div className="battle-topbar-biome-body k-display">
-                <svg className="k-badge-glyph" width={14} height={14} viewBox="0 0 24 24" aria-hidden="true">
-                    <path d={ELEMENT_GLYPHS[elementKey(element)]} />
-                </svg>
+                {layers ? <TablerGlyph layers={layers} size={14} className="k-badge-glyph" /> : (
+                    <svg className="k-badge-glyph" width={14} height={14} viewBox="0 0 24 24" aria-hidden="true">
+                        <path d={ELEMENT_GLYPHS[elementKey(element)]} />
+                    </svg>
+                )}
                 <span>{name}</span>
             </div>
         </SlantPanel>

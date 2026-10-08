@@ -5,15 +5,17 @@
  */
 import type { ReactElement } from 'react';
 
+import type { WithGlyphLayers } from '../glyphLayers';
+import { TablerGlyph } from '../TablerGlyph';
 import './kit.css';
 import { ELEMENT_GLYPHS, elementKey, elementVars } from './elementGlyphs';
 
-export interface ElementMarkProps {
+export interface ElementMarkProps extends WithGlyphLayers {
     readonly element: string;
     readonly size?: number;
 }
 
-export function ElementMark({ element, size = 18 }: ElementMarkProps): ReactElement {
+export function ElementMark({ element, size = 18, layers }: ElementMarkProps): ReactElement {
     const glyph = Math.round(size * 0.67);
     return (
         <div
@@ -23,9 +25,11 @@ export function ElementMark({ element, size = 18 }: ElementMarkProps): ReactElem
             title={element}
             style={{ ...elementVars(element), width: size, height: size }}
         >
-            <svg className="k-mark-glyph" width={glyph} height={glyph} viewBox="0 0 24 24" aria-hidden="true">
-                <path d={ELEMENT_GLYPHS[elementKey(element)]} />
-            </svg>
+            {layers ? <TablerGlyph layers={layers} size={glyph} className="k-mark-glyph" /> : (
+                <svg className="k-mark-glyph" width={glyph} height={glyph} viewBox="0 0 24 24" aria-hidden="true">
+                    <path d={ELEMENT_GLYPHS[elementKey(element)]} />
+                </svg>
+            )}
         </div>
     );
 }

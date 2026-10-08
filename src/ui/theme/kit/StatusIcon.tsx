@@ -5,17 +5,20 @@
 import React from 'react';
 
 import type { StatusType } from '../../../engine/types';
+import type { WithGlyphLayers } from '../glyphLayers';
+import { TablerGlyph } from '../TablerGlyph';
 import './kit.css';
 import { STATUS_ICON_PATHS } from './statusIconPaths';
 
-export interface StatusIconProps {
+export interface StatusIconProps extends WithGlyphLayers {
     readonly status: StatusType;
     /** Side in px. */
     readonly size?: number;
 }
 
-export function StatusIcon({ status, size = 12 }: StatusIconProps): React.ReactElement {
+export function StatusIcon({ status, size = 12, layers }: StatusIconProps): React.ReactElement {
     const path = STATUS_ICON_PATHS[status];
+    if (layers) return <TablerGlyph layers={layers} size={size} className="k-status-icon" data-status-icon={status} />;
     return (
         <svg
             className="k-status-icon"
