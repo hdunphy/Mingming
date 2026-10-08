@@ -81,6 +81,19 @@ Leader-card options (A / B), score against band:
 
 Findings raised with the draft: ROOT ROT (Poison) does nothing for the new Rootfall team and TIDAL SURGE (cards played) suits it better than Tidewrack's ramp; Burn skips type advantage, so Emberfall's Water counter gets no edge against most of its damage; the Rootfall trio was the strongest comp in the 2026-09-03 round robin.
 
+### Henry's picks and comments (2026-10-08, review page v2)
+
+Leader cards picked: fenrir_v2 **Flame Wave** (his own card, replacing both options: "1 burn plus damage to whole side"; drafted as 1e, 5 power to each enemy + 1 Burn to each, 3.1 of 3.0 at 3v3; a 2e/25-power version scores 7.5 of 7.0), skoll_v2 **Chase the Sun**, huldra_v2 **Smoldering Bark**, kraken_v2 **Pressure Front**, jormungandr_v2 **Coil and Strike**, fenrir_v1 **Gleipnir Breaks**, ratatoskr_v1 **Rumor**, huldra_v1 **Bewitch**, kraken_v1 **Deep Current**.
+
+Comments applied to the draft:
+- huldra_v2: *"Too many molten cores not enough bark shield"* → molten_core ×2 becomes ×1, shell_share ×1 becomes ×2.
+- kraken_v1: *"Missing crushing depth here"* → crushing_depths in ink_cloud's slot (open: or on top, to 11).
+- Totems: *"Switch the totems"* / *"Change to rootrot"* → Tidewrack takes ROOT ROT, Rootfall takes TIDAL SURGE.
+- Emberfall: *"Change this totem to give more damage on overflow for burn"* → WAR FOOTING is replaced by a Totem that makes this side's Burn detonations deal more (proposed +5% of max HP, 14% → 19%). Engine: `onStatusApplied`'s context does not carry the detonation (`overflow` is on the ledger record and the event bus only), so the hook needs a `burnDetonated`-style condition or a new trigger.
+- kraken_v2: *"We should change this to add poison instead of burn"* (Boiling Surge) → 55 power + 3 Poison scores 7.3 of 7.0, the same as today. Open: boiling_surge is the payoff of the player's kraken_v2 start kit (loaded by Scald's Burn), so change it for everyone or give the gym a new Poison card.
+
+Open before 207b: Flame Wave's cost, the new Totem's number and name, Crushing Depths swap-or-add, Boiling Surge global-or-new, and the add-not-swap default for fights 1 and 2.
+
 ## Rows
 
 | Row | What | State |
