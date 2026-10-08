@@ -18,7 +18,7 @@ import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary'
 import type { ICodex } from '../../engine/runTypes';
 import type { StatusType } from '../../engine/types';
 import { TypeChartPanel } from '../components/TypeChart';
-import { getElementIcon } from '../components/cardIcons';
+import { ElementMark } from '../theme/kit/ElementMark';
 import './CodexScreen.css';
 import { Icon } from '../theme/Icon';
 import { instinctName, plain } from '../labels/labels';
@@ -192,8 +192,8 @@ function Cards({ codex }: { codex: ICodex }): ReactNode {
                             <span className="codex-cell-index">{index + 1}</span>
                             {data ? (
                                 <>
-                                    <span className="codex-cell-icon" aria-hidden="true">
-                                        {getElementIcon(data.element)}
+                                    <span className="codex-cell-icon">
+                                        <ElementMark element={data.element} size={20} />
                                     </span>
                                     <span className="codex-cell-name">{data.name}</span>
                                     {played.has(id) && <span className="codex-cell-flag">cast</span>}
@@ -246,8 +246,8 @@ function Species({ codex }: { codex: ICodex }): ReactNode {
                         >
                             {definition ? (
                                 <>
-                                    <span className="codex-cell-icon" aria-hidden="true">
-                                        {getElementIcon(definition.primaryElement)}
+                                    <span className="codex-cell-icon">
+                                        <ElementMark element={definition.primaryElement} size={20} />
                                     </span>
                                     <span className="codex-cell-name">{definition.name}</span>
                                     {built.has(id) && <span className="codex-cell-flag">built</span>}

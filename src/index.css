@@ -2561,7 +2561,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-.tc-el-icon { font-size: 12px; }
+.tc-el-icon { display: inline-flex; }
 
 .tc-cell {
   font-size: 12px;

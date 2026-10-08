@@ -3,7 +3,7 @@ import { STAB_BONUS } from '../../engine/combatUtils';
 import { ELEMENTS } from '../../engine/types';
 import type { Element } from '../../engine/types';
 import { getElementAccent } from '../utils/contrastText';
-import { getElementIcon } from './cardIcons';
+import { ElementMark } from '../theme/kit/ElementMark';
 import { formatMultiplier, getMatchupMultiplier } from './elementMatchups';
 
 /**
@@ -25,7 +25,7 @@ const cellClass = (mult: number): string =>
 /** Icon + 3-letter code, tinted with the element's dark-readable accent. */
 const ElementTag: React.FC<{ el: Element }> = ({ el }) => (
     <span className="tc-el-tag" style={{ color: getElementAccent(el) }} title={el}>
-        <span className="tc-el-icon" aria-hidden="true">{getElementIcon(el)}</span>
+        <span className="tc-el-icon"><ElementMark element={el} size={16} /></span>
         <span className="tc-el-abbr">{el.slice(0, 3).toUpperCase()}</span>
     </span>
 );

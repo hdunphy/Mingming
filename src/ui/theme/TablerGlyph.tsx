@@ -6,8 +6,8 @@
  * round caps and joins. A layer may override fill, stroke, weight or transform (an element mark's
  * filled shape, Trace's scaled lambda); the fill is always a token, never a hex.
  *
- * `Icon`, `StatusIcon`, `ElementMark`, `NodeIcon`, `TownButton` and `BiomeSign` compose this when
- * given layers; with none they draw their path strings exactly as before.
+ * `Icon`, `StatusIcon`, `ElementMark`, `ElementBadge`, `NodeIcon`, `TownButton` and `BiomeSign`
+ * compose this, each from its own name map (ticket 200d).
  */
 
 import { createElement, type ReactElement, type SVGProps } from 'react';
@@ -32,6 +32,22 @@ function drawNode([tag, attributes]: TablerNode, index: number): ReactElement {
     return createElement(tag, { key: index, ...props });
 }
 
+/**
+ * Just the layers, as `<g>` elements, for a caller that already owns the `<svg>` (the region map
+ * draws every node inside one document, as a nested `<svg viewBox="0 0 24 24">`).
+ */
+export function GlyphLayerGroups({ layers }: { readonly layers: readonly GlyphLayer[] }): ReactElement {
+    return (
+        <>
+            {layers.map((layer, i) => (
+                <g key={i} fill={layer.fill} stroke={layer.stroke} strokeWidth={layer.strokeWidth} transform={layer.transform}>
+                    {layer.nodes.map(drawNode)}
+                </g>
+            ))}
+        </>
+    );
+}
+
 export function TablerGlyph({ layers, size = 16, title, ...rest }: TablerGlyphProps): ReactElement {
     return (
         <svg
@@ -49,11 +65,7 @@ export function TablerGlyph({ layers, size = 16, title, ...rest }: TablerGlyphPr
             {...rest}
         >
             {title ? <title>{title}</title> : null}
-            {layers.map((layer, i) => (
-                <g key={i} fill={layer.fill} stroke={layer.stroke} strokeWidth={layer.strokeWidth} transform={layer.transform}>
-                    {layer.nodes.map(drawNode)}
-                </g>
-            ))}
+            <GlyphLayerGroups layers={layers} />
         </svg>
     );
 }

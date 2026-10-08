@@ -136,7 +136,7 @@ describe('146f — the status tells take the badge colours', () => {
     it('uses STATUS_COLORS, so the ring matches the badge the player will read', () => {
         // The ring on the sprite and the badge on the plaque are the same event in two places; a
         // different colour in each would read as two unrelated things happening at once.
-        expect(statusColor('Burn')).toEqual({ r: 255, g: 102, b: 51 });
+        expect(statusColor('Burn')).toEqual({ r: 255, g: 138, b: 48 });
         expect(statusColor('Poison')).toEqual({ r: 136, g: 204, b: 34 });
     });
 

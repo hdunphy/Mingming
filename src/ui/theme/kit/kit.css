@@ -57,13 +57,8 @@
     background: var(--text);
 }
 
-.k-mark-glyph {
-    fill: var(--k-el);
-    stroke: var(--ink);
-    stroke-width: 1.2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
+/* `.k-mark-glyph` and `.k-badge-glyph` are hooks only: the two layers (a filled shape, an ink outline)
+   carry their own fill, stroke and weight (`kit/elementLayers.ts`), so no rule sets them here. */
 
 .k-badge {
     --k-cut: 5px;
@@ -75,14 +70,6 @@
     background: var(--k-el);
     color: var(--text);
     font-size: 12px;
-}
-
-.k-badge-glyph {
-    fill: var(--text);
-    stroke: var(--ink);
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
 
 .k-badge-word {
@@ -176,12 +163,12 @@
     font-size: 12px;
 }
 
-/* The status glyphs (`StatusIcon`): strokes in the chip's own colour. */
+/* The status glyphs (`StatusIcon`): strokes in the chip's own colour. The weight (2, for 12px) is
+   `STATUS_STROKE` in `statusIconPaths.ts`, one constant for the surface, not a rule here. */
 .k-status-icon {
     flex: none;
     fill: none;
     stroke: currentColor;
-    stroke-width: 2.5;
     stroke-linecap: round;
     stroke-linejoin: round;
 }

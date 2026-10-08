@@ -1,21 +1,22 @@
 /**
- * THE ELEMENT MARK — ticket 183a. An 18px white disc with the element's symbol drawn in the
- * element's colour. It is ticket 182's "element icon" too (182 R4), so the two tickets ship one
- * component. Its `aria-label` is the element, which is the third way an element is said.
+ * THE ELEMENT MARK - ticket 183a. An 18px white disc with the element's symbol drawn in the
+ * element's colour (a filled Tabler icon with its outline over it in ink, ticket 200d). It is
+ * ticket 182's "element icon" too (182 R4), so the two tickets ship one component. Its
+ * `aria-label` is the element, which is the third way an element is said.
  */
 import type { ReactElement } from 'react';
 
-import type { WithGlyphLayers } from '../glyphLayers';
 import { TablerGlyph } from '../TablerGlyph';
 import './kit.css';
-import { ELEMENT_GLYPHS, elementKey, elementVars } from './elementGlyphs';
+import { elementVars } from './elementGlyphs';
+import { markLayers } from './elementLayers';
 
-export interface ElementMarkProps extends WithGlyphLayers {
+export interface ElementMarkProps {
     readonly element: string;
     readonly size?: number;
 }
 
-export function ElementMark({ element, size = 18, layers }: ElementMarkProps): ReactElement {
+export function ElementMark({ element, size = 18 }: ElementMarkProps): ReactElement {
     const glyph = Math.round(size * 0.67);
     return (
         <div
@@ -25,11 +26,7 @@ export function ElementMark({ element, size = 18, layers }: ElementMarkProps): R
             title={element}
             style={{ ...elementVars(element), width: size, height: size }}
         >
-            {layers ? <TablerGlyph layers={layers} size={glyph} className="k-mark-glyph" /> : (
-                <svg className="k-mark-glyph" width={glyph} height={glyph} viewBox="0 0 24 24" aria-hidden="true">
-                    <path d={ELEMENT_GLYPHS[elementKey(element)]} />
-                </svg>
-            )}
+            <TablerGlyph layers={markLayers(element)} size={glyph} className="k-mark-glyph" />
         </div>
     );
 }

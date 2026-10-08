@@ -1,13 +1,15 @@
 /**
- * THE ELEMENT BADGE — ticket 183a. An element-colour plate with the symbol and, when asked, the
+ * THE ELEMENT BADGE - ticket 183a. An element-colour plate with the symbol and, when asked, the
  * word, in white. It sits on plaques; the word is what settles the colour for a player who cannot
  * tell the blues apart, and it is the badge's own word even for an element with no colour of its
  * own (which draws grey).
  */
 import type { ReactElement } from 'react';
 
+import { TablerGlyph } from '../TablerGlyph';
 import './kit.css';
-import { ELEMENT_GLYPHS, elementKey, elementVars } from './elementGlyphs';
+import { elementVars } from './elementGlyphs';
+import { badgeLayers } from './elementLayers';
 
 export interface ElementBadgeProps {
     readonly element: string;
@@ -24,9 +26,7 @@ export function ElementBadge({ element, label }: ElementBadgeProps): ReactElemen
             title={element}
             style={elementVars(element)}
         >
-            <svg className="k-badge-glyph" width={12} height={12} viewBox="0 0 24 24" aria-hidden="true">
-                <path d={ELEMENT_GLYPHS[elementKey(element)]} />
-            </svg>
+            <TablerGlyph layers={badgeLayers(element)} size={12} className="k-badge-glyph" />
             {label !== undefined && <span className="k-badge-word">{label}</span>}
         </div>
     );
