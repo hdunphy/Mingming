@@ -26,13 +26,13 @@ const scriptPath = resolve(__dirname, '../../../scripts/overnight.mjs');
 const load = async (): Promise<Script> => (await import(/* @vite-ignore */ scriptPath)) as Script;
 
 describe('overnight — the recipe', () => {
-    it('is Night A (haiku) then Night B (sonnet), nine Kraken sessions each, on the 2026-10-04 seeds', async () => {
+    it('is Night A (haiku) then Night B (sonnet), every starter twice and one card session each, on the 2026-10-04 seeds (202g)', async () => {
         const { parseOvernightArgs, nightArgs } = await load();
         const options = parseOvernightArgs([], '2026-10-06');
-        expect(options).toMatchObject({ date: '2026-10-06', seedDate: '2026-10-04', models: ['haiku', 'sonnet'], runs: 9, starter: 'kraken_v1', cardRuns: 0, minutes: 35, maxUsd: 3, dryRun: false });
+        expect(options).toMatchObject({ date: '2026-10-06', seedDate: '2026-10-04', models: ['haiku', 'sonnet'], runs: 24, starter: 'all', cardRuns: 1, minutes: 35, maxUsd: 3, dryRun: false });
         expect(nightArgs(options, 'haiku')).toEqual([
-            '--date', '2026-10-06-haiku', '--seed-date', '2026-10-04', '--runs', '9', '--card-runs', '0',
-            '--model', 'haiku', '--minutes', '35', '--max-usd', '3', '--starter', 'kraken_v1',
+            '--date', '2026-10-06-haiku', '--seed-date', '2026-10-04', '--runs', '24', '--card-runs', '1',
+            '--model', 'haiku', '--minutes', '35', '--max-usd', '3',
         ]);
         expect(nightArgs(options, 'sonnet')).toContain('2026-10-06-sonnet');
     });
@@ -61,6 +61,11 @@ describe('overnight — the recipe', () => {
         expect(args).not.toContain('--max-usd');
     });
 
+    it('202g: no flags is the full night: all twelve starters, 24 sessions a model, one card session, the old 35 minutes and $3', async () => {
+        const { parseOvernightArgs } = await load();
+        expect(parseOvernightArgs([])).toMatchObject({ starter: 'all', runs: 24, cardRuns: 1, minutes: 35, maxUsd: 3 });
+    });
+
     it('recognises the run forecast on a first screen', async () => {
         const { hasForecast } = await load();
         expect(hasForecast('x\nRUN FORECAST\ny')).toBe(true);
@@ -76,16 +81,17 @@ describe('overnight — the session limit (ticket 195l)', () => {
         expect(night.DEFAULTS.minutes).toBe(35);
     });
 
-    it('the usage text says 35 and what it costs: 36 sessions of 35 minutes is 21 hours a model', () => {
+    it('the usage text says 35 and what it costs: 24 sessions of 35 minutes is 14 hours a model', () => {
         const usage = readFileSync(scriptPath, 'utf8');
         expect(usage).toContain('(35)');
         expect(usage).not.toContain('(25)');
-        expect(usage).toContain('21 hours');
+        expect(usage).toContain('14 hours');
+        expect(usage).not.toContain('21 hours');
     });
 });
 
 describe('overnight — the whole script, as a dry run', () => {
-    it('passes its checks in every mode, plans the nine sessions of each night, and spends nothing', () => {
+    it('passes its checks in every mode, plans the 24 sessions of each night, and spends nothing', () => {
         const date = '2099-01-01';
         const log = resolve(__dirname, '../../../results/playtest', `overnight-${date}.log`);
         rmSync(log, { force: true });
@@ -93,7 +99,7 @@ describe('overnight — the whole script, as a dry run', () => {
         const out = `${result.stdout}${result.stderr}`;
         expect(result.status, out).toBe(0);
         for (const mode of ['run', 'turn', 'card']) expect(out).toContain(`${mode}: ok`);
-        expect(out).toContain('9 sessions planned');
+        expect(out).toContain('24 sessions planned');
         expect(out).toContain(`${date}-haiku`);
         expect(out).toContain(`${date}-sonnet`);
         expect(existsSync(log)).toBe(true);
