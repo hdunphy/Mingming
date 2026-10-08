@@ -30,7 +30,7 @@
 | 202g | **`npm run overnight` defaults:** every starter twice, one card session, both models | Night script | **Built** (T3) |
 | 202h | **The night keeps a transcript and retries a stalled session:** `driver.log` with a time on every line, how each driver ended, a stall limit (8 min), one retry at the end | Night script | **Built 2026-10-07** (`bed16ef`) |
 | 202i | **"Party 1 of 3"** beside the Traces count in the run header, game and tool | New text, game and tool | Ruled 2026-10-07 |
-| 202j | **The gym shows its team's elements on the map:** the leader's three element icons under the gym node (e.g. Nature Nature Water) | Map UI, game and tool | Ruled 2026-10-07 |
+| 202j | **The gym shows its team's elements on the map:** the leader's three element icons under the gym node (e.g. Nature Nature Water) | Map UI, game and tool | **Built** (T12) |
 | 202k | **skoll_v1's start kit: Howl out, Brute Force in** | Card data (kit) | **Built** (`cc8523fa`); D4 confirmed by Henry 2026-10-08 |
 
 ---
@@ -165,7 +165,8 @@
 - **202h built 2026-10-07** (`bed16ef`): transcript, outcome fields, stall limit, one retry. The eslint and tsc checks are clean; the night, brief and stall tests pass. `overnight.test.ts`'s dry run is too slow to finish in the Cowork VM (about 70 s per tool check) and was not run there: run `npm run gate` on Windows.
 - **202f's brief written 2026-10-07** (`fa121e2`); the night itself is not run.
 - **202d answered 2026-10-07** (above).
-- 202e, 202g, 202i, 202j, 202k: not started.
+- 202e, 202g, 202i, 202k: not started in this list (see the table for their state).
+- **202j built 2026-10-08** (T12, one commit on `first-impressions`, not pushed). Under the gym node on the map, one element badge per body of the leader's team, in `gymCompElementPlan` order (Rootfall: Nature, Nature, Water; Emberfall: Fire, Fire, Nature; Tidewrack: Water, Water, Fire), with the symbols. It shows from the first step, in any biome. Hovering the gym adds the line "The leader fields three: two Nature, one Water." The tool's map screen prints "leader fields Nature, Nature, Water" on the gym's line, both under "Ahead" and in the node's own description. The words come from one small module, `src/engine/run/gymTeamElements.ts`; types only, never species. Encounter generation and the approach are untouched (the 2026-09-11 rule stands). Tests: `gymTeamElements.test.ts`, `RegionMap.gymTeam202j.test.tsx`, `gymTeam202j.test.ts`.
 **202a built 2026-10-07, one commit on `first-impressions`, not pushed.**
 
 - **202a** The Den tile on the town square reads "N Traces held · summon here" whenever N is above 0 (with 1 it reads "1 Trace held · summon here"); with none it reads as before ("0 traces held · party X"). The playtest tool's town screen prints the same line first, ahead of the line about the shop. Both take the words from one small function, `src/ui/labels/denTagLine.ts`, and the count from `tracesHeld(ranch, run)` (195c). Tests: `TownSquare.den202a.test.tsx` (game), `denLine202a.test.ts` (tool). The 195c test that pinned "3 traces held" now says "3 Traces held".

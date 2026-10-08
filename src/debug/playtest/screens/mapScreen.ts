@@ -17,7 +17,8 @@ import { PARTY_SIZE } from '../../../engine/party';
 import { AMBUSH_RISK } from '../../../engine/run/ambushRisk';
 import { isMarketNode } from '../../../engine/run/marketplace';
 import { isWorkshopNode } from '../../../engine/run/workshop';
-import type { IRegionNode } from '../../../engine/runTypes';
+import { gymTeamElements, gymTeamWords } from '../../../engine/run/gymTeamElements';
+import type { IRegionNode, IRunState } from '../../../engine/runTypes';
 import { fireMapReveal } from '../../../ui/store/runSlice';
 import { routeNumberOf } from '../../../engine/run/regionGraph';
 import { layoutRegion, positionWord, type LaidOutNode } from '../../../ui/screens/regionLayout';
@@ -50,10 +51,19 @@ export function describeNode(world: World, laid: LaidOutNode): string {
         const party = partyOf(world).map((m) => GetMingmingData(m.definitionId));
         parts.push(`${node.kind === 'ambush' ? 'bonus' : 'stakes'}: ${driverName(resolveDriverStake(node.driverStake, partyElementsOf(party)))}`);
     }
+    // 202j: the gym is the one node that says what its team is made of (types only, never species).
+    const team = node.kind === 'gym' ? gymTeamPart(run) : null;
+    if (team) parts.push(team);
     parts.push(`biome ${node.biomeIndex + 1}`);
     const route = routeNumberOf(node);
     if (route !== null) parts.push(`route ${route}`);
     return parts.join(', ');
+}
+
+/** 202j: what the gym's line adds: its leader's team as elements in plan order, as the map's badges do. */
+function gymTeamPart(run: IRunState): string | null {
+    const words = gymTeamWords(gymTeamElements(run.gymId));
+    return words ? `leader fields ${words}` : null;
 }
 
 /**
@@ -83,7 +93,12 @@ export function mapScreen(world: World): Screen {
     const ahead = layout.nodes.filter((n) => !n.reachable && n.column > here_column + 1);
     if (ahead.length > 0) {
         const byColumn = new Map<number, string[]>();
-        for (const laid of ahead) byColumn.set(laid.column, [...(byColumn.get(laid.column) ?? []), nodeLabel(laid.node)]);
+        for (const laid of ahead) {
+            // 202j: the gym is on the map from the first step, so its team is said here too.
+            const team = laid.node.kind === 'gym' ? gymTeamPart(run) : null;
+            const label = team ? `${nodeLabel(laid.node)} (${team})` : nodeLabel(laid.node);
+            byColumn.set(laid.column, [...(byColumn.get(laid.column) ?? []), label]);
+        }
         body.push('Ahead:');
         for (const [column, kinds] of [...byColumn.entries()].sort((a, b) => a[0] - b[0])) {
             body.push(`  column ${column}: ${kinds.join(', ')}`);
