@@ -15,15 +15,17 @@ export interface ElementBadgeProps {
     readonly element: string;
     /** The word to print beside the symbol. Left out, the badge is the symbol alone. */
     readonly label?: string;
+    /** Draw no native tooltip: a surface that speaks for the badge (the map's hover plate) does so. */
+    readonly decorative?: boolean;
 }
 
-export function ElementBadge({ element, label }: ElementBadgeProps): ReactElement {
+export function ElementBadge({ element, label, decorative = false }: ElementBadgeProps): ReactElement {
     return (
         <div
             className="k-slant k-badge k-display"
             role="img"
             aria-label={element}
-            title={element}
+            title={decorative ? undefined : element}
             style={elementVars(element)}
         >
             <TablerGlyph layers={badgeLayers(element)} size={12} className="k-badge-glyph" />

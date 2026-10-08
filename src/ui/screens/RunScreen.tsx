@@ -80,6 +80,7 @@ import { RUN_ENEMY_MODE, isFightNode, rollEncounter, rivalElementPlan, surveyedE
 import { isMarketNode } from '../../engine/run/marketplace';
 import { isWorkshopNode, tracesHeld } from '../../engine/run/workshop';
 import { GYM_REGISTRY } from '../../engine/run/gyms';
+import { gymTeamElements } from '../../engine/run/gymTeamElements';
 import { PARTY_SIZE } from '../../engine/party';
 import type { IRegionNode, IRunState } from '../../engine/runTypes';
 import type { IMingmingState } from '../../engine/types';
@@ -486,6 +487,8 @@ export default function RunScreen(): ReactNode {
                     ))}
                     // Ticket 176d: the species of every fight in a surveyed biome, rolled above.
                     encounters={surveyedFights}
+                    // Ticket 202j: the gym leader's team as elements, in plan order, for the badges under the gym.
+                    gymTeamElements={gymTeamElements(run.gymId)}
                     onTravel={travel}
                 />
 
