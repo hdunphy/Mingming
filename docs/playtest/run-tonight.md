@@ -80,7 +80,7 @@ sessions can take about four hours. If the trial used more of your plan than you
 against 50 to 80), so give it room or leave it out with `--card-runs 0`.
 
 To stop, press Ctrl+C. To pick up again, run **the same command with the same `--date`**. A session that
-has a `driver.json` is finished and skipped, and one that was cut off carries on from its saved moves.
+has a `driver.json` is finished and skipped, and one that was cut off carries on from its saved moves. If you run it again with different flags and a cut-off session was started for another seed, starter or gym, the night stops before anything runs and names that session: delete its folder to replay it, or run with the same flags to resume it.
 
 ## Step 4: the morning
 
