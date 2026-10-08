@@ -9,7 +9,7 @@ import { BiomePanel } from '../../ui/components/map/BiomePanel';
 import { NodeIcon } from '../../ui/components/map/NodeIcon';
 import { RouteLine } from '../../ui/components/map/RouteLine';
 import { TownButton } from '../../ui/components/map/TownButton';
-import { NODE_WORD, type NodeIconKind } from '../../ui/components/map/nodeGlyphs';
+import { NODE_WORD, type NodeIconKind } from '../../ui/components/map/nodeKinds';
 
 interface Spot { readonly id: string; readonly x: number; readonly y: number; readonly kind: NodeIconKind; readonly element?: string; readonly faded?: boolean; readonly selected?: boolean }
 

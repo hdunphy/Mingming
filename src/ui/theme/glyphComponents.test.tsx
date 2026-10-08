@@ -1,85 +1,96 @@
 /**
- * TICKET 200c - the six components that draw an icon each learn to draw a Tabler layer list too.
- * Nothing passes one yet (200d flips the maps), so every existing screen draws as before; these
- * tests give each component a layer list and look for Tabler's own path data in what comes out.
+ * TICKET 200d - the six components that draw an icon each draw Tabler's own nodes, from their name
+ * maps. (200c gave them an optional `layers` prop; 200d flipped the maps and the prop went.)
  */
 
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { BiomeSign } from '../components/topbar/BiomeSign';
 import { NodeIcon } from '../components/map/NodeIcon';
+import { NODE_ICON_NAME } from '../components/map/nodeKinds';
 import { TownButton } from '../components/map/TownButton';
+import { TOWN_ICON } from '../components/map/townIcons';
+import { BiomeSign } from '../components/topbar/BiomeSign';
 import { Icon } from './Icon';
-import { ELEMENT_GLYPHS } from './kit/elementGlyphs';
+import { ELEMENT_TABLER } from './kit/elementGlyphs';
+import { ElementBadge } from './kit/ElementBadge';
 import { ElementMark } from './kit/ElementMark';
 import { StatusIcon } from './kit/StatusIcon';
-import { STATUS_ICON_PATHS } from './kit/statusIconPaths';
-import { outlineLayers } from './glyphLayers';
-import { PATHS } from './icons';
-import { TABLER_OUTLINE } from './tabler.generated';
-import { TOWN_BUILDINGS } from '../components/map/townBuildings';
-import { NODE_GLYPHS } from '../components/map/nodeGlyphs';
+import { STATUS_ICON_NAMES } from './kit/statusIconPaths';
+import { ICON_TABLER } from './icons';
+import { iconLayers } from './iconLayers';
+import { TABLER_FILLED, TABLER_OUTLINE } from './tabler.generated';
 
-const layers = outlineLayers('flame');
-const tabler = (TABLER_OUTLINE.flame[0][1] as { d: string }).d;
+const firstD = (nodes: ReadonlyArray<readonly [string, Readonly<Record<string, string>>]>): string => nodes[0][1].d;
+const count = (html: string, needle: string): number => html.split(needle).length - 1;
 
-describe('a component given Tabler layers (200c)', () => {
-    it('Icon draws them in place of its path strings, at the same weight', () => {
-        const html = renderToStaticMarkup(<Icon name="ranch" size={20} layers={layers} />);
-        expect(html).toContain(`d="${tabler}"`);
-        expect(html).not.toContain(PATHS.ranch[0]);
+describe('a component draws Tabler from its name map (200d)', () => {
+    it('Icon draws the mapped outline at the kit weight', () => {
+        const html = renderToStaticMarkup(<Icon name="ranch" size={20} />);
+        expect(html).toContain(`d="${firstD(TABLER_OUTLINE[ICON_TABLER.ranch])}"`);
         expect(html).toContain('width="20"');
         expect(html).toContain('stroke-width="1.7"');
     });
 
-    it('StatusIcon draws them, keeping its class and data attribute', () => {
-        const html = renderToStaticMarkup(<StatusIcon status="Burn" layers={layers} />);
-        expect(html).toContain(`d="${tabler}"`);
-        expect(html).not.toContain(STATUS_ICON_PATHS.Burn);
+    it('Icon draws Trace as a hexagon and a scaled lambda', () => {
+        const html = renderToStaticMarkup(<Icon name="blueprint" />);
+        expect(html).toContain(`d="${firstD(TABLER_OUTLINE.hexagon)}"`);
+        expect(html).toContain(`d="${firstD(TABLER_OUTLINE.lambda)}"`);
+        expect(html).toContain('transform="translate(5.28 5.28) scale(0.56)"');
+        expect(html).toContain('stroke-width="3"');
+    });
+
+    it('StatusIcon draws its mapped outline at stroke 2 and keeps its class and data attribute', () => {
+        const html = renderToStaticMarkup(<StatusIcon status="Burn" />);
+        expect(html).toContain(`d="${firstD(TABLER_OUTLINE[STATUS_ICON_NAMES.Burn])}"`);
         expect(html).toContain('class="k-status-icon"');
         expect(html).toContain('data-status-icon="Burn"');
         expect(html).toContain('width="12"');
+        expect(html).toContain('stroke-width="2"');
+        expect(html).not.toContain('stroke-width="1.7"');
     });
 
-    it('ElementMark draws them inside its disc', () => {
-        const html = renderToStaticMarkup(<ElementMark element="Fire" layers={layers} />);
-        expect(html).toContain(`d="${tabler}"`);
-        expect(html).not.toContain(ELEMENT_GLYPHS.fire);
-        expect(html).toContain('class="k-mark-glyph"');
-        expect(html).toContain('aria-label="Fire"');
+    it('ElementMark is a filled shape in the element colour with the outline over it in ink', () => {
+        for (const [element, key] of [['Fire', 'fire'], ['Water', 'water'], ['Nature', 'nature'], ['None', 'none']] as const) {
+            const name = ELEMENT_TABLER[key];
+            const html = renderToStaticMarkup(<ElementMark element={element} />);
+            const filled = html.indexOf(`d="${firstD(TABLER_FILLED[name])}"`);
+            const outline = html.indexOf(`d="${firstD(TABLER_OUTLINE[name])}"`);
+            expect(filled, `${element} filled`).toBeGreaterThan(-1);
+            expect(outline, `${element} outline`).toBeGreaterThan(filled);
+            expect(html).toContain('fill="var(--k-el)"');
+            expect(html).toContain('stroke="var(--ink)"');
+            expect(html).toContain('class="k-mark-glyph"');
+            expect(html).toContain(`aria-label="${element}"`);
+        }
     });
 
-    it('NodeIcon draws them as its glyph, on a disc and on a town plate', () => {
-        for (const kind of ['fight', 'town'] as const) {
-            const html = renderToStaticMarkup(<NodeIcon kind={kind} layers={layers} />);
-            expect(html, kind).toContain(`d="${tabler}"`);
-            expect(html, kind).not.toContain(NODE_GLYPHS[kind]);
+    it('ElementBadge and BiomeSign draw the same two layers, filled white', () => {
+        const badge = renderToStaticMarkup(<ElementBadge element="Fire" />);
+        const sign = renderToStaticMarkup(<BiomeSign name="Ember Hollow" element="Fire" />);
+        for (const html of [badge, sign]) {
+            expect(html).toContain(`d="${firstD(TABLER_FILLED.flame)}"`);
+            expect(html).toContain(`d="${firstD(TABLER_OUTLINE.flame)}"`);
+            expect(html).toContain('fill="var(--text)"');
+            expect(html).toContain('stroke="var(--ink)"');
+            expect(html).toContain('class="k-badge-glyph"');
+        }
+        expect(sign).toContain('Ember Hollow');
+    });
+
+    it('NodeIcon draws the icons.ts icon for its kind, on a disc and on a town plate', () => {
+        for (const kind of ['start', 'fight', 'rival', 'event', 'elite', 'gym', 'detour', 'town'] as const) {
+            const html = renderToStaticMarkup(<NodeIcon kind={kind} />);
+            expect(html, kind).toContain(`d="${firstD(iconLayers(NODE_ICON_NAME[kind])[0].nodes)}"`);
             expect(html, kind).toContain('class="k-node-glyph"');
         }
     });
 
-    it('TownButton draws them in the icon block and the ghost corner', () => {
-        const html = renderToStaticMarkup(<TownButton building="shop" status="open" layers={layers} />);
-        expect(html.split(`d="${tabler}"`)).toHaveLength(3);
-        expect(html).not.toContain(TOWN_BUILDINGS.shop.glyph);
-        expect(html).toContain('class="k-town-ghost"');
-    });
-
-    it('BiomeSign draws them beside the biome name', () => {
-        const html = renderToStaticMarkup(<BiomeSign name="Ember Hollow" element="Fire" layers={layers} />);
-        expect(html).toContain(`d="${tabler}"`);
-        expect(html).not.toContain(ELEMENT_GLYPHS.fire);
-        expect(html).toContain('class="k-badge-glyph"');
-        expect(html).toContain('Ember Hollow');
-    });
-
-    it('with no layers, every one still draws its own path string', () => {
-        expect(renderToStaticMarkup(<Icon name="ranch" />)).toContain(PATHS.ranch[0]);
-        expect(renderToStaticMarkup(<StatusIcon status="Burn" />)).toContain(STATUS_ICON_PATHS.Burn);
-        expect(renderToStaticMarkup(<ElementMark element="Fire" />)).toContain(ELEMENT_GLYPHS.fire);
-        expect(renderToStaticMarkup(<NodeIcon kind="fight" />)).toContain(NODE_GLYPHS.fight);
-        expect(renderToStaticMarkup(<TownButton building="shop" status="open" />)).toContain(TOWN_BUILDINGS.shop.glyph);
-        expect(renderToStaticMarkup(<BiomeSign name="x" element="Fire" />)).toContain(ELEMENT_GLYPHS.fire);
+    it('TownButton draws its building in the icon block and the ghost corner', () => {
+        for (const building of ['shop', 'upgrades', 'den', 'loadout'] as const) {
+            const html = renderToStaticMarkup(<TownButton building={building} status="x" />);
+            expect(count(html, `d="${firstD(TABLER_OUTLINE[TOWN_ICON[building]])}"`), building).toBe(2);
+            expect(html).toContain('class="k-town-ghost"');
+        }
     });
 });

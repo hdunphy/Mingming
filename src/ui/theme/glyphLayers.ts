@@ -1,5 +1,5 @@
 /**
- * TICKET 200c - the data half of `TablerGlyph`, and the glue the six icon components share.
+ * TICKET 200c - the data half of `TablerGlyph`, and the glue the icon components share.
  *
  * A glyph is a list of LAYERS. Most are one layer (a Tabler outline icon). An element mark is two (a
  * filled shape in the element colour with the matching outline over it) and Trace is two (a hexagon
@@ -27,11 +27,6 @@ export interface GlyphLayer {
     readonly strokeWidth?: number;
     /** An SVG transform, e.g. `translate(5.28 5.28) scale(0.56)`. */
     readonly transform?: string;
-}
-
-/** What each icon component takes, besides what it draws today. Absent: it draws its path strings. */
-export interface WithGlyphLayers {
-    readonly layers?: readonly GlyphLayer[];
 }
 
 /** One Tabler outline icon as a layer list. */

@@ -12,17 +12,18 @@ import { NodeIcon } from './NodeIcon';
 import { RouteLine } from './RouteLine';
 import { ROUTE_WIDTH } from './routeStyle';
 import { TownButton } from './TownButton';
-import { NODE_GLYPHS, NODE_SIZE, NODE_WORD, iconKindFor, type NodeIconKind } from './nodeGlyphs';
+import { NODE_ICON_NAME, NODE_SIZE, NODE_WORD, iconKindFor, type NodeIconKind } from './nodeKinds';
+import { ICON_NAMES } from '../../theme/icons';
 import { TOWN_BUILDINGS, type TownBuilding } from './townBuildings';
 import { mount, click, makeStore } from '../../../testing/interaction';
 
-const KINDS = Object.keys(NODE_GLYPHS) as NodeIconKind[];
+const KINDS = Object.keys(NODE_ICON_NAME) as NodeIconKind[];
 
 describe('183g NodeIcon', () => {
     it('has a symbol and a word for each of the eight kinds the map draws', () => {
         expect(KINDS.sort()).toEqual(['detour', 'elite', 'event', 'fight', 'gym', 'rival', 'start', 'town'].sort());
         for (const kind of KINDS) {
-            expect(NODE_GLYPHS[kind].length).toBeGreaterThan(5);
+            expect(ICON_NAMES, kind).toContain(NODE_ICON_NAME[kind]);
             expect(NODE_WORD[kind].length).toBeGreaterThan(0);
         }
     });

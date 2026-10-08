@@ -18,7 +18,8 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { Icon } from './Icon';
-import { ICON_NAMES, iconPaths } from './icons';
+import { ICON_NAMES } from './icons';
+import { iconLayers } from './iconLayers';
 import { NODE_ICON } from '../screens/regionLayout';
 import { FIGHT_KINDS } from '../../engine/run/encounter';
 import type { NodeKind } from '../../engine/runTypes';
@@ -27,11 +28,10 @@ describe('the icon set', () => {
     it('draws every name it offers', () => {
         for (const name of ICON_NAMES) {
             const markup = renderToStaticMarkup(<Icon name={name} />);
-            expect(markup, `${name} rendered no <path>`).toContain('<path');
-            expect(iconPaths(name).length, `${name} has no geometry`).toBeGreaterThan(0);
-            // Every command starts with an absolute move. A path that does not is either relative
-            // to whatever came before (there is nothing before) or malformed.
-            for (const d of iconPaths(name)) expect(d.startsWith('M'), `${name}: "${d}"`).toBe(true);
+            expect(markup, `${name} rendered no geometry`).toMatch(/<(path|circle|rect|line|ellipse)\b/);
+            expect(iconLayers(name).length, `${name} has no layers`).toBeGreaterThan(0);
+            // Tabler's own nodes, every layer non-empty.
+            for (const layer of iconLayers(name)) expect(layer.nodes.length, `${name} has an empty layer`).toBeGreaterThan(0);
         }
     });
 
@@ -106,7 +106,7 @@ describe('no emoji in the production UI', () => {
                 const trimmed = line.trim();
                 if (trimmed.startsWith('*') || trimmed.startsWith('//') || trimmed.startsWith('/*')) return;
                 // The in-battle glyph vocabulary is phase two — see the ticket's resolution.
-                if (/components[\\/](CardHand|MingmingUnit|BattleStage|BattleReport|ProgramCard|UnitFxLayer|TypeChart|SaveHealthBanner|cardIcons)/.test(file)) return;
+                if (/components[\\/](CardHand|MingmingUnit|BattleStage|BattleReport|ProgramCard|UnitFxLayer|TypeChart|SaveHealthBanner)/.test(file)) return;
                 if (/hooks[\\/]useBattleVfx/.test(file)) return;
                 const stripped = [...line].filter((ch) => !TYPOGRAPHIC.has(ch)).join('');
                 if (EMOJI.test(stripped)) offenders.push(`${file.replace(resolve('.') + '/', '')}:${index + 1}  ${trimmed.slice(0, 80)}`);

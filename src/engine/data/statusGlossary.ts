@@ -120,7 +120,7 @@ export const statusGlossary: Record<StatusType, StatusGlossaryEntry> = {
 
 /** Neon accent color per status, shared by unit badges and card chips. */
 export const STATUS_COLORS: Record<StatusType, string> = {
-    Burn: '#ff6633',
+    Burn: '#ff8a30',
     Poison: '#88cc22',
     Asleep: '#8888ff',
     Weakened: '#ff8888',

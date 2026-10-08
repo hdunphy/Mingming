@@ -58,7 +58,8 @@ import './RegionMap.css';
 import { Icon } from '../theme/Icon';
 import { MapNodeTooltip } from '../components/MapNodeTooltip';
 import type { AnchoredRect } from '../hooks/useAnchoredRect';
-import { iconPaths } from '../theme/icons';
+import { iconLayers } from '../theme/iconLayers';
+import { GlyphLayerGroups } from '../theme/TablerGlyph';
 import { resolveDriverStake } from '../../engine/run/driverStakes';
 import { AMBUSH_RISK } from '../../engine/run/ambushRisk';
 import { driverText } from '../labels/driverText';
@@ -464,7 +465,7 @@ export default function RegionMap({
                                             strokeLinecap="round" strokeLinejoin="round"
                                             style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
                                         >
-                                            {iconPaths(nodeIconFor(laid.node)).map((d) => <path key={d} d={d} />)}
+                                            <GlyphLayerGroups layers={iconLayers(nodeIconFor(laid.node))} />
                                         </svg>
                                     </>
                                 )}
