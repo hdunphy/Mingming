@@ -295,8 +295,20 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
              * left in it: `fury_strike` x2 (the 1e attack that FEEDS the OS — the note below has
              * said so since ticket 09), `howl`, `forage`. Still a sub-multiset of the deck, still
              * carrying the kit's glue, still holding no consume.
+             *
+             * ── TICKET 202k, RULED BY HENRY 2026-10-07 — **`howl` OUT, `brute_force` IN: A SECOND
+             * PAYOFF, ON PURPOSE.** ──
+             *
+             * The 2026-10-07 run gate (`wild:biome0`, bare kit, 1v1) put skoll_v1 at 71.1% against an
+             * enemy of its own element, which is what its first biome always fields, under the 85%
+             * wild rule (2026-09-25). This kit already held every non-payoff card in the deck, so no
+             * swap inside 157-r1(b) existed. `brute_force` for `howl` measured 81.6% (elite 7.5% →
+             * 12.5%). Henry took it knowing it makes a second payoff: *"Swap anyway, as an exception."*
+             * `START_KIT_PAYOFF` still names `flare_burst`, so the opening-fight enemy drops that one
+             * and keeps `brute_force`, the way `jormungandr_v2`'s exception travels.
+             * `startKits.test.ts` names this exception beside that one.
              */
-            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "howl", "forage"],
+            "skoll_v1": ["fury_strike", "fury_strike", "flare_burst", "brute_force", "forage"],
             "skoll_v2": ["ember_jab", "ember_jab", "brand", "ignite", "flashover"]
         },
         moves: [

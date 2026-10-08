@@ -126,8 +126,9 @@ describe('170e — the walker', () => {
     });
 
     it('draftPolicy does nothing without the draft_start modifier', () => {
-        // 170a's pinned default walk for this seed (no modifier, no option).
-        expect(hashOf(walkRun({ seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1, draftPolicy: 'best' }))).toBe('cbae1ed75c400704');
+        // 170a's pinned default walk for this seed (no modifier, no option). 202k moved it on purpose
+        // (cbae1ed75c400704 -> 6fe38a89bb245a0e): skoll_v1's kit changed, and wild Skolls hold that kit.
+        expect(hashOf(walkRun({ seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1, draftPolicy: 'best' }))).toBe('6fe38a89bb245a0e');
     });
 
     it("'best' reaches the walk: the same seed and modifier, a different run", () => {

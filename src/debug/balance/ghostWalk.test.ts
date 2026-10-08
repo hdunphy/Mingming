@@ -41,8 +41,10 @@ describe('170a — the default walk is unchanged', () => {
     const GOLDEN: ReadonlyArray<readonly [string, string, number, number, string]> = [
         ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, 'bdba9c99839aba86'],
         ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '12b709b4581e0545'],
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'cbae1ed75c400704'],
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '9ec0bff685eb34aa'],
+        // 202k moved both fenrir_v2 walks on purpose (skoll_v1's kit changed, and wild Skolls hold that kit):
+        // cbae1ed75c400704 -> 6fe38a89bb245a0e and 9ec0bff685eb34aa -> 2ab092b942210e28. The kraken_v1 walks did not move.
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, '6fe38a89bb245a0e'],
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '2ab092b942210e28'],
     ];
 
     it.each(GOLDEN)('%s at tier %#: whole result object matches the pre-170 walk', (seed, starter, gymIndex, tier, hash) => {
@@ -57,7 +59,7 @@ describe('170a — the default walk is unchanged', () => {
     });
 });
 
-/** A seed from the sample that dies before the gym on a real walk (`fenrir_v2 #1` loses its sixth fight). */
+/** A seed from the sample that dies before the gym on a real walk (`fenrir_v2 #1` loses its fifth fight since 202k; its sixth before). */
 const EARLY_DEATH = { seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1 };
 
 /*
