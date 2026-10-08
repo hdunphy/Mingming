@@ -48,7 +48,7 @@ So the compromise clears the 85% wild rule (2026-09-25) for every starter, and l
 
 ### 206a: The gym today
 
-The walker's gauntlet cells (ticket 77's shape) with a full party of three at tier 0, per gym, against the soft 60% target. Report beside it what the agent did: 55% (plain) and 71% (primed) with three at the gym on 10-08. Say whether 202b's revive between gym fights (ruled, not built) is in or out of the measurement. It makes the gym easier, so it belongs in the baseline if it will ship.
+The walker's gauntlet cells (ticket 77's shape) with a full party of three at tier 0, per gym, against the soft 60% target. Report beside it what the agent did: 55% (plain) and 71% (primed) with three at the gym on 10-08. **Measure with 202b's revive between gym fights in** (Henry, 2026-10-08: it ships before this ticket's tuning; another agent is building it on its own branch). If it has not merged yet, measure on that branch, or wait for the merge, and say which build the numbers come from.
 
 ### 206b: The two orders
 
@@ -68,7 +68,7 @@ Each knob is measured as a single change on 206a's baseline, with the walker's f
 - `GAUNTLET_HEAL_PERCENT` (today 30).
 - The leader's Totem on fights 1 and 2 (today a tier 3 rule only).
 - The gauntlet fights' enemy kit size or AI grade (today the full lookahead, beamless).
-- 202b's revive floor, if it ships.
+- 202b's revive floor (it ships first; its floor can still be a knob).
 
 The table goes to Henry. He picks one knob or a pair.
 
@@ -78,9 +78,9 @@ A primed night (205b's default) on the 10-04 seeds with the picked configuration
 
 ## Decisions for Henry
 
-1. **D1, the biome order:** today's or the compromise, after 206b's numbers.
+1. **D1, the biome order:** today's or the compromise, after 206b's numbers. **Pending Henry's review** (2026-10-08: *"I'll take a look later"*).
 2. **D2, the gym knob(s)** from 206c's table.
-3. **D3, 202b's revive:** does it ship before or after this ticket's tuning? It moves the gym's win rate up.
+3. ~~**D3, 202b's revive:**~~ Answered 2026-10-08: it ships **before** this ticket's tuning, from another agent's branch; 206a's baseline includes it.
 
 ## Resolution
 

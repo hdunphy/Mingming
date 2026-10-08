@@ -84,7 +84,7 @@
 
 ## 205e: Five wording fixes
 
-1. **A spent event says "The relay is dark. Nothing here now." for every event,** not only the Relay Tower. Seen after Toll, Overclock Rig and Trader (10-08 plain r11, r23; primed r23, r28). It is hard-coded in `src/ui/screens/EventNode.tsx` and `src/debug/playtest/screens/eventScreen.ts`, and "relay" is also left over from the old robot vocabulary. Replace it with a neutral line that names no event. Proposed: "Nothing more here." Henry may want his own words.
+1. **A spent event says "The relay is dark. Nothing here now." for every event,** not only the Relay Tower. Seen after Toll, Overclock Rig and Trader (10-08 plain r11, r23; primed r23, r28). It is hard-coded in `src/ui/screens/EventNode.tsx` and `src/debug/playtest/screens/eventScreen.ts`, and "relay" is also left over from the old robot vocabulary. Replace it with **"Nothing more here."** (Henry, 2026-10-08: *"Sure"*).
 2. **"HP full" in the header next to a fight result showing a member at 0** (22 notes, both nights). The header is right: HP is restored after every fight outside the gym. The fight result's "HP left: …" line should say so: "HP left at the end of the fight (restored before the next one): …". This applies in the tool, and on the game's result screen if it has the same line.
 3. **Mirror fights: both sides share a name** (13 notes). For example: *"'Fenrir on Fenrir' in the biggest-hits list is hard to read when both sides share a name"* (10-08 plain r13). Every enemy name in the tool's fight report carries "(foe)" in every line, including the biggest-hits list. The game's combat log already colours sides; check that it marks the enemy in mirror fights the same way.
 4. **Elite "stakes" are never explained** (15 notes). FIRST BLOOD, ANTIVENOM, TENTH STRIKE and the rest show as names on the map. The map line shows the Totem's one-line rule beside its name: the game's node hover and the tool's map screen, read from `describeDriver`.
@@ -132,7 +132,9 @@ After 205a–205e: `npm run overnight -- --models haiku --starter all --runs 36 
 
 ## Decisions for Henry
 
-1. **D1, the spent-event line (205e §1).** "Nothing more here." or your own words?
+1. ~~**D1, the spent-event line (205e §1).**~~ Answered 2026-10-08: "Nothing more here."
+
+None open.
 
 ## Resolution
 
