@@ -22,7 +22,7 @@ should not pay for it on every run.
 Artefacts land in `desktop/release/`.
 
 **Build the Windows installer on Windows.** `--win` produces two things: a `zip` (which works
-anywhere) and an **NSIS installer** (`Mingming Setup <version>.exe`), and NSIS needs Wine when it is
+anywhere) and an **NSIS installer** (`Mingming Midgard Circuit Setup <version>.exe`), and NSIS needs Wine when it is
 cross-built from Linux. Without Wine `electron-builder` still writes `win-unpacked/` and the zip —
 those are complete and the `.exe` inside them is a real, icon-stamped Windows binary — and then
 fails on the installer step with `wine process failed ENOENT`, leaving a truncated `Setup .exe`

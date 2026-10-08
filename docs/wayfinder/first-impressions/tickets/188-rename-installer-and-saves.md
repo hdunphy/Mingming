@@ -1,6 +1,6 @@
 # Ticket 188: Rename the installer, the shortcut and the window, and keep the saves where they are
 
-**Type:** desktop packaging, plus one small guard on the saves folder. **Status:** RULED (Henry, 2026-10-02: *"Yes rename everywhere"*), not started. Small, and independent of everything else on this map (it touches `desktop/` only, no `src/`).
+**Type:** desktop packaging, plus one small guard on the saves folder. **Status:** RULED (Henry, 2026-10-02: *"Yes rename everywhere"*). **BUILT 2026-10-07 (188a, 188b, 188c).** Henry still owes one launch of the renamed build to confirm his runs and ranch show (the saves folder should still be `Mingming` under `AppData\Roaming`), and the `appId` answer. Small, and independent of everything else on this map (it touches `desktop/` only, no `src/`).
 
 **Where it comes from.** The game is now called **Mingming: Midgard Circuit**. Commit `2d30f54` changed only the words a player reads inside the game (the page title, the credits line, the Steam Input template, the desktop description). The installer, the Start-menu shortcut and the desktop app's own name still say "Mingming". Henry was asked whether those should follow, and said yes.
 

@@ -1,4 +1,4 @@
-# **Game Design Document: Mingming**
+# **Game Design Document: Mingming: Midgard Circuit**
 
 ## **Executive Overview**
 A synthesis of Monster Catcher RPG and Roguelike Deck-builder (Pokémon + Slay the Spire). The core pivot is replacing menu-based combat with a dynamic, card-driven resource management system.
