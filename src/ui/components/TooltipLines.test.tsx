@@ -12,8 +12,9 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { ProgramAction } from '../../engine/types';
+import type { ProgramAction, StatusType } from '../../engine/types';
 import { iconsIn } from '../theme/iconMarkup';
+import { STATUS_ICON_NAMES } from '../theme/kit/statusIconPaths';
 import { hasPictograph } from '../theme/pictographs';
 import { EFFECT_ICON } from './cardEffectIcons';
 import { EffectLine, GlossaryStatusIcon, MetMark, RequirementsLabel } from './TooltipLines';
@@ -89,9 +90,9 @@ describe('the Requirements heading and the met tick (205)', () => {
 /**
  * 206 item B10 (Henry, 2026-10-09): the tooltip's icons were too small. They draw at 1.25em, which is
  * 14 px on a 0.7rem effect line at the default text size and still follows the Text size setting.
- * The glossary's status icons are fixed px, so they go from 11 to 14.
+ * (The glossary's status icon was 14 px here; it is em now, below.)
  */
-describe('the tooltip icons are bigger: 1.25em, and 14 px for the status glossary (206 B10)', () => {
+describe('the tooltip icons are bigger: 1.25em (206 B10)', () => {
     const sized = (markup: string): boolean => /style="[^"]*width:1\.25em;height:1\.25em/.test(markup);
 
     it('every effect line draws its icon at 1.25em', () => {
@@ -103,10 +104,25 @@ describe('the tooltip icons are bigger: 1.25em, and 14 px for the status glossar
         expect(sized(renderToStaticMarkup(<MetMark />))).toBe(true);
     });
 
-    it('a glossary status icon is 14 px', () => {
+});
+
+/**
+ * Follow-up to 206 B10 (Henry, 2026-10-09): the glossary's status icon was a fixed-px `StatusIcon`
+ * with no vertical-align, so it sat on the baseline above its words and ignored the Text size
+ * setting. It draws through `InlineIcon` now, like every other tooltip icon: the status's own Tabler
+ * name, an em size, and InlineIcon's -0.15em drop onto the line.
+ */
+describe('a glossary status icon sits on its line and follows the text size', () => {
+    const statuses = Object.keys(STATUS_ICON_NAMES) as StatusType[];
+
+    it.each(statuses)('%s draws its status icon through InlineIcon', (status) => {
+        expect(iconsIn(renderToStaticMarkup(<GlossaryStatusIcon status={status} />))).toEqual([{ name: STATUS_ICON_NAMES[status], variant: 'outline' }]);
+    });
+
+    it('is sized in em, not px, and drops onto the line', () => {
         const markup = renderToStaticMarkup(<GlossaryStatusIcon status="Burn" />);
-        expect(markup).toContain('data-status-icon="Burn"');
-        expect(markup).toMatch(/<svg[^>]* width="14" height="14"/);
+        expect(markup).toMatch(/style="[^"]*width:[\d.]+em;height:[\d.]+em/);
+        expect(markup).toMatch(/style="[^"]*vertical-align:-0\.15em/);
     });
 });
 

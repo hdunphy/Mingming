@@ -7,16 +7,16 @@
  * The words live in `cardEffectText.ts`, the icon choices in `cardEffectIcons.ts` and `markIcons.ts`.
  *
  * 206 item B10 (Henry, 2026-10-09): the icons were too small at 1em. They draw at 1.25em, 14 px on a
- * 0.7rem effect line at the default text size, and still follow the Text size setting. The status
- * glossary's icon is fixed px (`StatusIcon`), so it goes from 11 to 14 to match. Then thicker lines,
- * not filled: the icons draw at stroke 2, the weight the status glossary's icons already had.
+ * 0.7rem effect line at the default text size, and still follow the Text size setting. Then thicker
+ * lines, not filled: the icons draw at stroke 2, the weight the status glossary's icons already had.
+ * The glossary's status icon was a fixed-px `StatusIcon`; it draws through `InlineIcon` too now.
  */
 
 import type { ReactElement } from 'react';
 
 import type { ProgramAction, StatusType } from '../../engine/types';
 import { InlineIcon } from '../theme/InlineIcon';
-import { StatusIcon } from '../theme/kit/StatusIcon';
+import { STATUS_ICON_NAMES } from '../theme/kit/statusIconPaths';
 import { MARK_ICON } from '../theme/markIcons';
 import { EFFECT_ICON } from './cardEffectIcons';
 import { describeAction } from './cardEffectText';
@@ -26,9 +26,6 @@ const ICON_SIZE = '1.25em';
 
 /** And a heavier line than the kit's 1.7, so the small outlines read. */
 const ICON_WEIGHT = 2;
-
-/** The status glossary's icon, px: 14, what `ICON_SIZE` gives an effect line at the default text size. */
-const STATUS_ICON_PX = 14;
 
 /** One effect line: the action's icon, then its words. */
 export function EffectLine({ action, allyTarget = false }: { readonly action: ProgramAction; readonly allyTarget?: boolean }): ReactElement {
@@ -53,7 +50,11 @@ export function MetMark(): ReactElement {
     return <InlineIcon {...MARK_ICON.tick} size={ICON_SIZE} weight={ICON_WEIGHT} />;
 }
 
-/** The icon in front of a status's name in the "Statuses & keywords" glossary. */
+/**
+ * The icon in front of a status's name in the "Statuses & keywords" glossary: the status's own Tabler
+ * icon (the one its chip draws), through `InlineIcon` so it sits on the line and follows the Text
+ * size setting, where the fixed-px `StatusIcon` sat on the baseline above its words.
+ */
 export function GlossaryStatusIcon({ status }: { readonly status: StatusType }): ReactElement {
-    return <StatusIcon status={status} size={STATUS_ICON_PX} />;
+    return <InlineIcon name={STATUS_ICON_NAMES[status]} size={ICON_SIZE} weight={ICON_WEIGHT} />;
 }
