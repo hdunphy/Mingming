@@ -62,3 +62,6 @@ __pycache__/
 
 # Ticket 180: the agent playtester writes its sessions and raw logs here. Other folders under results/ are committed.
 results/playtest/
+
+# Vite leaves a temp copy of its config here when it is interrupted.
+vite.config.ts.timestamp-*.mjs
