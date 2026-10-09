@@ -129,3 +129,10 @@
     font-size: 1.7rem;
     line-height: 1.2;
 }
+
+/* TICKET 181c: the feedback button and the way out, side by side. */
+.rs-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}

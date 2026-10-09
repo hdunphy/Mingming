@@ -7,11 +7,18 @@
  */
 import { describe, expect, it } from 'vitest';
 import { BUILD_INFO, buildText } from './buildInfo';
+import packageJson from '../../package.json';
 
 describe('the real build info', () => {
     it('always has a label and a commit, whatever the build was given', () => {
         expect(BUILD_INFO.label.length).toBeGreaterThan(0);
         expect(BUILD_INFO.commit.length).toBeGreaterThan(0);
-        expect(buildText(BUILD_INFO)).toBe(`${BUILD_INFO.label} · ${BUILD_INFO.commit}`);
+        expect(buildText(BUILD_INFO)).toBe(`${BUILD_INFO.label} · v${BUILD_INFO.version} · ${BUILD_INFO.commit}`);
+    });
+
+    // TICKET 181e: `package.json` is the only place the version is written; the build reads it there.
+    it('carries the version package.json holds', () => {
+        expect(BUILD_INFO.version).toBe(packageJson.version);
+        expect(BUILD_INFO.version).toMatch(/^\d+\.\d+\.\d+$/);
     });
 });

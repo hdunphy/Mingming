@@ -82,3 +82,7 @@ ode_modules` (that removes the link only); never delete through it. Then `git wo
 - **190 status (2026-10-03): DONE** (190a-g; 190h parked). See the line above and the ticket's Resolution.
 - **185 status (2026-10-04): DONE** (185a–f). See the line above and the ticket's Resolution.
 - **193 status (2026-10-04): BUILT** (193a–f, h–k; 193g is rulings only). The two follow-up nights are Henry's. See the line above and the ticket's Resolution.
+
+## Releasing
+
+- **Ticket 181e:** a release bumps the version in `package.json` in the release commit: `npm version minor --no-git-tag-version` (a hotfix: `npm version patch --no-git-tag-version`). The deploy publishes only when the tag `v<version>` does not exist yet, then creates that tag.
