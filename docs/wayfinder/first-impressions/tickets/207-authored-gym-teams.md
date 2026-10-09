@@ -109,6 +109,16 @@ Shipped in `d7a5a75`: `bosses.ts` (members with `deck` and `leaderCard`, `leader
 
 Run in the VM: every `src/engine` and `src/debug` test except ghostWalk's four-tier gauntlet block and `overnight.test.ts`, the label and store tests, `tsc`, eslint on the changed files. Henry's `npm run gate` is the full check.
 
+### Follow-up rulings (2026-10-08, later) — `2f03045`
+
+Henry: *"These leader cards can appear and are all rare cards. 1. Keep the names 2. Yes pick new ones and if we don't add something to remove burn and a new aura to get energized if a burn overflows 3. No keep the decks"*.
+
+- **Leader cards are Rare pool cards.** Each joins its own Instinct's species pool (a seventh card), so a party running that Instinct can be offered it; they count in the codex. Eitr Surge is not a leader card and stays enemy-only.
+- **Totem names kept:** SURTALOGI, ÉLIVÁGAR, YGGDRASIL'S WRATH.
+- **Emberfall's answers:** nothing in the pool removed Burn, so two neutral cards were printed for the shop's guaranteed slot: **Quench** (0e Skill, aimed at an ally: remove 2 Burn) and **Sindri's Forge** (2e Aura: whenever a Burn detonates on one of your Mingmings, it gains 2 Energized). The harness answer list is Quench, Sindri's Forge, Hamstring; the two-card selective list is Quench and Sindri's Forge. Tests in `emberfallAnswers.test.ts` count the stacks.
+- **The scout keeps the species' usual decks.**
+- Re-pinned on purpose: ghostWalk's four default walks and draftPolicy's two (the pools changed the offers). runWalker's determinism walk moved to seed `t40:determinism:b` because the old seed now reached the gauntlet (2 min 17 s a walk on the VM). Note: ghostWalk's default-walk block now takes ~115 s on the VM (was ~15 s) because its kraken_v1 walks reach the gauntlet; the gate still passes.
+
 ## Rows
 
 | Row | What | State |
