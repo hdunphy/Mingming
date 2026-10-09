@@ -29,6 +29,21 @@
 | B9 | **Five effect-line picks that were not on the default list:** `multiplier-2x` (multiply status), `arrow-back-up` (return), `stopwatch` (trigger status), `repeat` (replay last card), `arrow-ramp-right` (redirect target). The plain "replays: none yet" arrow on the hand card face (`HandCardFace.tsx`) was left as text. | Accept (lean) · rule per pick on the 205 sheet · also change the card-face arrow | 205 |
 | B10 | **Look at the new screens once in the running game:** the gym badges under the gym node on the map at 1280 wide (T12, 202j), and the card tooltip icons, which draw at only 9 to 11 px (T13, 205). `InlineIcon` takes a size if the tooltip icons read too small. | Your look | 202j, 205 |
 
+**Henry's answers to B1 to B10 (2026-10-09).** Source: the Wayfinder Open Items page (<https://claude.ai/artifact/2jFR2MYhDy8Mz5otXrnmfz>, the 206 card, snapshot at `d861b76`), which held them before this file did. Where Henry ruled again in chat later the same day, the newer ruling is given too and marked *Henry in chat, 2026-10-09*.
+
+| # | Answer | State | Where |
+|---|---|---|---|
+| B1 | The status icons looked fine; the 2026-10-08 battle screenshots at 1280×800 and 1920×1080 agree. | **Settled** | 200f (can close on Henry's say) |
+| B2 | Leave the byte-order mark. | **Settled** | 195e-2 |
+| B3 | The engine-data emoji go on a card of their own. | **Settled**: that card is [ticket 213](213-engine-data-emoji.md), opened 2026-10-09 | 213 |
+| B4 | Leave the neutral dot (those elements are not shipping yet). | **Settled** | 200 |
+| B5 | Rename nothing; the icons stay as they are, so Light Stance keeps its sun icon. | **Not settled.** Overtaken by [ticket 210](210-surtr-replaces-skoll.md), which renames the Sun Devourer card to Lævateinn, against the recorded "rename nothing". 210 is on hold (Henry, 2026-10-09: "wait"), so this stays open until he confirms that 210 is what he wants | 210 |
+| B6 | Stay at the 12 Instinct glyphs. | **Settled** | 199 |
+| B7 | The page: **not settled**; he does not want DNA for the type chart button, so the icon is looked at again in 205 (the picture sheet is `research/205-icon-alternatives/`). **Henry in chat, 2026-10-09:** Tabler `table`. | **Settled** (Henry in chat, 2026-10-09); being built on branch `fi/t6-icons-table-size` | 205 |
+| B8 | `circle-plus` stays for the same-element footer. | **Settled** | 205 |
+| B9 | The five effect-line picks are good. | **Settled** | 205 |
+| B10 | The page: the gym badges look good; the card tooltip icons (9 to 11 px) were not mentioned. **Henry in chat, 2026-10-09:** the tooltip icons go to 14 px (`size="1.25em"`, so they still follow the Text size setting) with thicker lines (stroke 2), and no filled variants (dropped because 8 of the 19 effect icons and 8 of the 14 status icons have no filled Tabler version). | **Settled** (Henry in chat, 2026-10-09); being built on branch `fi/t6-icons-table-size` | 202j, 205 |
+
 ## C. Open, design (each needs a session with Henry, not an agent)
 
 | # | Decision | What exists | Where |
@@ -55,4 +70,8 @@
 
 ## Resolution
 
-Not started.
+**2026-10-09:** section B is answered (see *Henry's answers to B1 to B10* under B); only B5 is not settled, because ticket 210 overtook it and 210 is on hold. C and D are still open, and Henry has said to leave them until he has played the new biome order (ticket 211).
+
+## Note, 2026-10-09: the creature pictures in the build
+
+*Henry in chat, 2026-10-09.* No B row covers art, so it is recorded here. Of the four creature pictures in the build (`src/assets/battleArt/mingming/`), **`Fenrir.png` is Henry's own, not AI-made, and stays.** `Fenrir_old.png` (the first sketch), `Kraken.png` and `Ratatoskr.png` are removed from the game on branch `fi/t7-drop-fenrir-old`, under the standing ruling that no AI-generated picture ships.
