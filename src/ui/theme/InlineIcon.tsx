@@ -18,7 +18,7 @@
 
 import type { ReactElement } from 'react';
 
-import { filledLayers, outlineLayers } from './glyphLayers';
+import { filledLayers, GLYPH_STROKE, outlineLayers } from './glyphLayers';
 import type { TablerFilledName, TablerOutlineName } from './tabler.generated';
 import { TablerGlyph } from './TablerGlyph';
 
@@ -30,16 +30,19 @@ export type InlineIconRef =
 export type InlineIconProps = InlineIconRef & {
     /** A CSS length. Default `1em`, the size of the text. A button label in small type asks for more. */
     readonly size?: string;
+    /** Stroke width on the 24 grid. Default the kit's `GLYPH_STROKE`; the card tooltip asks for 2 (206 B10). */
+    readonly weight?: number;
     /** An accessible name. Absent, the icon is decorative: the words beside it say the same thing. */
     readonly title?: string;
 };
 
-export function InlineIcon({ name, filled, size = '1em', title }: InlineIconProps): ReactElement {
+export function InlineIcon({ name, filled, size = '1em', weight = GLYPH_STROKE, title }: InlineIconProps): ReactElement {
     const layers = filled === true ? filledLayers(name as TablerFilledName) : outlineLayers(name);
     return (
         <TablerGlyph
             layers={layers}
             title={title}
+            strokeWidth={weight}
             style={{ width: size, height: size, verticalAlign: '-0.15em', flexShrink: 0 }}
             data-icon={name}
             data-variant={filled === true ? 'filled' : 'outline'}

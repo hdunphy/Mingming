@@ -109,3 +109,28 @@ describe('the tooltip icons are bigger: 1.25em, and 14 px for the status glossar
         expect(markup).toMatch(/<svg[^>]* width="14" height="14"/);
     });
 });
+
+/**
+ * 206 item B10, second half (Henry, 2026-10-09): thicker lines, not filled. Every tooltip icon draws at
+ * stroke 2 instead of the kit's 1.7. The status glossary's icons were already 2 (`STATUS_STROKE`).
+ */
+describe('the tooltip icons draw at stroke 2, still outline (206 B10)', () => {
+    const svgTag = (markup: string): string => /<svg[^>]*>/.exec(markup)?.[0] ?? '';
+    const heavyOutline = (markup: string): void => {
+        expect(svgTag(markup)).toContain('stroke-width="2"');
+        expect(markup).not.toContain('data-variant="filled"');
+    };
+
+    it('every effect line', () => {
+        for (const [action] of LINES) heavyOutline(renderToStaticMarkup(<EffectLine action={action} />));
+    });
+
+    it('the Requirements triangle and the met tick', () => {
+        heavyOutline(renderToStaticMarkup(<RequirementsLabel />));
+        heavyOutline(renderToStaticMarkup(<MetMark />));
+    });
+
+    it('a glossary status icon (already 2 before this)', () => {
+        expect(svgTag(renderToStaticMarkup(<GlossaryStatusIcon status="Burn" />))).toContain('stroke-width="2"');
+    });
+});

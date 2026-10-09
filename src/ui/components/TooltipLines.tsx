@@ -8,7 +8,8 @@
  *
  * 206 item B10 (Henry, 2026-10-09): the icons were too small at 1em. They draw at 1.25em, 14 px on a
  * 0.7rem effect line at the default text size, and still follow the Text size setting. The status
- * glossary's icon is fixed px (`StatusIcon`), so it goes from 11 to 14 to match.
+ * glossary's icon is fixed px (`StatusIcon`), so it goes from 11 to 14 to match. Then thicker lines,
+ * not filled: the icons draw at stroke 2, the weight the status glossary's icons already had.
  */
 
 import type { ReactElement } from 'react';
@@ -23,6 +24,9 @@ import { describeAction } from './cardEffectText';
 /** Every tooltip line's icon: a quarter bigger than its text. */
 const ICON_SIZE = '1.25em';
 
+/** And a heavier line than the kit's 1.7, so the small outlines read. */
+const ICON_WEIGHT = 2;
+
 /** The status glossary's icon, px: 14, what `ICON_SIZE` gives an effect line at the default text size. */
 const STATUS_ICON_PX = 14;
 
@@ -30,7 +34,7 @@ const STATUS_ICON_PX = 14;
 export function EffectLine({ action, allyTarget = false }: { readonly action: ProgramAction; readonly allyTarget?: boolean }): ReactElement {
     return (
         <>
-            <InlineIcon name={EFFECT_ICON[action.type]} size={ICON_SIZE} />{' '}{describeAction(action, allyTarget)}
+            <InlineIcon name={EFFECT_ICON[action.type]} size={ICON_SIZE} weight={ICON_WEIGHT} />{' '}{describeAction(action, allyTarget)}
         </>
     );
 }
@@ -39,14 +43,14 @@ export function EffectLine({ action, allyTarget = false }: { readonly action: Pr
 export function RequirementsLabel(): ReactElement {
     return (
         <>
-            <InlineIcon {...MARK_ICON.warning} size={ICON_SIZE} />{' '}Requirements
+            <InlineIcon {...MARK_ICON.warning} size={ICON_SIZE} weight={ICON_WEIGHT} />{' '}Requirements
         </>
     );
 }
 
 /** The tick on a conditional effect that holds right now. */
 export function MetMark(): ReactElement {
-    return <InlineIcon {...MARK_ICON.tick} size={ICON_SIZE} />;
+    return <InlineIcon {...MARK_ICON.tick} size={ICON_SIZE} weight={ICON_WEIGHT} />;
 }
 
 /** The icon in front of a status's name in the "Statuses & keywords" glossary. */
