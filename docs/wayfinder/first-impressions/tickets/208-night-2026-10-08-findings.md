@@ -4,7 +4,7 @@
 
 **Type:** one game bug, three night-script changes, screen text in the game and the tool, a list of reported problems to check, one measurement night. **Status:** **RULED 2026-10-08** (Henry, on the review page "Primed Brief Night 10-08"); not started.
 
-**Where it comes from.** Two Haiku nights on 2026-10-08, 36 sessions each, on the 2026-10-04 seeds at `89e10fd`: the plain brief (`docs/playtest/agent-player.md`) and the primed brief (`docs/playtest/agent-player-primed.md`, 202f). Review: the project doc `claude/overnight-2026-10-08-review.md` and the page https://claude.ai/artifact/7wBjgWjnJDCf28r6r9cc4i. The headline: wins went 0 (10-07) → 6 (plain) → 12 (primed). Every win had a full team of three. The primed agent made 36 of its 54 summons in the first biome, against 2 of 32 on the plain night. The gym difficulty question that came out of the same review is its own design ticket, [209](209-gym-difficulty-and-biome-order.md).
+**Where it comes from.** Two Haiku nights on 2026-10-08, 36 sessions each, on the 2026-10-04 seeds at `89e10fd`: the plain brief (`docs/playtest/agent-player.md`) and the primed brief (`docs/playtest/agent-player-primed.md`, 202f). Review: the project doc `claude/overnight-2026-10-08-review.md` and the page https://claude.ai/artifact/7wBjgWjnJDCf28r6r9cc4i. The headline: wins went 0 (10-07) → 6 (plain) → 12 (primed). Every win had a full team of three. The primed agent made 36 of its 54 summons in the first biome, against 2 of 32 on the plain night. The gym difficulty question that came out of the same review is its own design ticket, [211](211-gym-difficulty-and-biome-order.md).
 
 **Henry's rulings (2026-10-08):**
 
@@ -130,7 +130,7 @@ After 208a–208e: `npm run overnight -- --models haiku --starter all --runs 36 
 - Isolate the driver "if it will improve it" (208c).
 - Show the summon fee where Traces are sold (208d).
 - The 20–25 deck target is "arbitrary … as long as the agent knows how to use the load out and drops cards it doesn't want" (208b §3).
-- The gym's difficulty and the biome order are a separate design ticket (209).
+- The gym's difficulty and the biome order are a separate design ticket (211).
 
 ## Decisions for Henry
 

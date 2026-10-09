@@ -99,7 +99,7 @@ export const COUNTERED_BY: Readonly<Record<string, string>> = {
  * possible pairing is a *counter* pair, so a Fire/Water biome is a biome your Fire starter is
  * simultaneously strong and weak in — noise rather than a routing decision. `IBiome.elements`
  * stays a 1-or-2 list because ticket 05 defers friendly pairs rather than cancelling them. Two
- * callers now spend that headroom: the approach biome (142 §7) and, since ticket 209 (Henry,
+ * callers now spend that headroom: the approach biome (142 §7) and, since ticket 211 (Henry,
  * 2026-10-08), the middle biome of every road — see `walkOrderFor`.
  *
  * **Why named places rather than "Fire Biome".** The elements are already carried in
@@ -177,7 +177,7 @@ export function pathElementsFor(gymElement: string): ReadonlyArray<string> {
 }
 
 /**
- * THE WALK ORDER — ticket 209 (Henry, 2026-10-08): **the beaten element first, then the starter's
+ * THE WALK ORDER — ticket 211 (Henry, 2026-10-08): **the beaten element first, then the starter's
  * own element with it, then the gym's ground.**
  *
  * Each entry is one biome's elements; the third leg (the approach) is built from the leader's comp
@@ -209,7 +209,7 @@ export function pathElementsFor(gymElement: string): ReadonlyArray<string> {
  * of the starter's own element (*"you're a fire starter and you go against grass first. [You]
  * recruit a rat going to biome 2. You face all fire and that wipes out your rat"*). The compromise
  * halves that risk rather than removing it: biome 2 is now half the starter's element, not all of
- * it. Ticket 209b measures how often a biome 1 recruit is downed in biome 2, and 209 stays open
+ * it. Ticket 211b measures how often a biome 1 recruit is downed in biome 2, and 211 stays open
  * until a playtest signs the road off.
  *
  * Still fully determined by the gym, so nothing is rolled, and rule 2 (three different openings)
@@ -333,7 +333,7 @@ function gymBiomeElements(gym: IGym): ReadonlyArray<string> {
  *    the launch set rather than a sample from it — every run sees the whole triangle, which is what
  *    makes a two- or three-member party a real construction problem instead of a mono-element pick.
  * 4. **The road is the gym's element, then the starter's element with it, then the approach.**
- *    Ticket 209 (Henry, 2026-10-08) — see `walkOrderFor` for the reasoning and for what it costs.
+ *    Ticket 211 (Henry, 2026-10-08) — see `walkOrderFor` for the reasoning and for what it costs.
  *    It replaces 142 §7's `[counter, gym, approach]`, which opened on the starter's own element.
  * 5. **Deterministic in `seed`** — same seed, same screen, which is what lets an offer be shown,
  *    saved, and shown again after an app close.
