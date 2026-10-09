@@ -2,8 +2,8 @@
  * TICKET 207 — EMBERFALL'S ANSWERS. Henry, 2026-10-08: *"pick new ones and if we don't [have them]
  * add something to remove burn and a new aura to get energized if a burn overflows."*
  *
- * `quench` (0e, remove 2 Burn from an ally) and `sindris_forge` (2e Aura: whenever a Burn detonates
- * on one of your Mingmings, it gains 2 Energized). Like the ticket 69 toolbox, every test counts
+ * `quench` (0e, remove 2 Burn and 2 Poison from an ally) and `sindris_forge` (2e Aura: whenever a Burn
+ * detonates on one of your Mingmings, it gains 1 Energized). Both neutral (Henry, 2026-10-08). Like the ticket 69 toolbox, every test counts
  * stacks: a counter that silently does nothing reads as "the counter is too weak" in a win rate.
  */
 import { describe, expect, it } from 'vitest';
@@ -67,29 +67,35 @@ describe('207 — Emberfall\'s answers are stocked and listed', () => {
         }
     });
 
-    it('Quench is aimed at an ally (Self), so the AI does not cleanse the enemy', () => {
+    it('both are neutral; Quench is a 0e card aimed at an ally (Self), so the AI does not cleanse the enemy', () => {
         expect(GetProgramData('quench').target).toBe('Self');
         expect(GetProgramData('quench').baseCost).toBe(0);
+        expect(GetProgramData('quench').element).toBe('None');
+        expect(GetProgramData('sindris_forge').element).toBe('None');
     });
 });
 
 describe('QUENCH', () => {
-    it('removes 2 Burn from the chosen ally', () => {
-        const s = burn(arena(), 'p2', BURN_CONFIG.maxStacks, arena().enemyParty[0].id);
+    it('removes 2 Burn and 2 Poison from the chosen ally', () => {
+        const enemy = arena().enemyParty[0].id;
+        let s = burn(arena(), 'p2', BURN_CONFIG.maxStacks, enemy);
+        s = effectHandlers.APPLY_STATUS(s, { targetId: 'p2', status: 'Poison', stacks: 5, sourceId: enemy } as never) as IBattleState;
+        const poisonBefore = stacks(s.playerParty[2], 'Poison');
         expect(stacks(s.playerParty[2], 'Burn')).toBe(BURN_CONFIG.maxStacks);
         const after = play(s, 'quench', 'p2');
         expect(stacks(after.playerParty[2], 'Burn')).toBe(BURN_CONFIG.maxStacks - 2);
+        expect(stacks(after.playerParty[2], 'Poison')).toBe(poisonBefore - 2);
     });
 });
 
 describe('SINDRI\'S FORGE', () => {
-    it('gives the burned ally 2 Energized when its Burn detonates', () => {
+    it('gives the burned ally 1 Energized when its Burn detonates', () => {
         const base = install(arena(), 'sindris_forge');
         const enemy = base.enemyParty[0].id;
         const loaded = burn(base, 'p1', BURN_CONFIG.maxStacks, enemy);
         expect(stacks(loaded.playerParty[1], 'Energized'), 'no detonation yet').toBe(0);
         const blown = burn(loaded, 'p1', 1, enemy);
-        expect(stacks(blown.playerParty[1], 'Energized')).toBe(2);
+        expect(stacks(blown.playerParty[1], 'Energized')).toBe(1);
     });
 
     it('pays nothing for a detonation on the enemy side', () => {
