@@ -1,6 +1,6 @@
 # Ticket 206: The gym's difficulty and the biome order (design)
 
-**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; **206b shipped 2026-10-08** (`24a56ec`, the new biome order is the default); the rest not started. **This ticket does not close until Henry has played the new order** (*"gate closing the ticket on a play test so I don't forget"*). Split out of the 10-08 night review ([205](205-night-2026-10-08-findings.md)).
+**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; **206b shipped 2026-10-08** (`24a56ec`, the new biome order is the default); **207 shipped 2026-10-08/09** (`d7a5a75` .. `9e96f78`), so the bench can run on the teams that ship; **202b's revive merged 2026-10-09** (merge `7778dec`), so 206e is unblocked; 206a, 206c, 206d and 206e not started. **This ticket does not close until Henry has played the new order** (*"gate closing the ticket on a play test so I don't forget"*). Split out of the 10-08 night review ([205](205-night-2026-10-08-findings.md)).
 
 ## Why
 
@@ -43,9 +43,9 @@ So the compromise clears the 85% wild rule (2026-09-25) for every starter, and l
 |---|---|---|
 | 206a | **The gym replay bench:** replay the gauntlet with the exact teams and decks the agents brought to the gym, under different settings | Not started |
 | 206b | **The compromise order is the default** (Henry, D1) | **Shipped 2026-10-08** (`24a56ec`); the measurements below still to run; Henry's playtest closes the ticket |
-| 206c | **Run the bench's arms** (Henry's list) and report each against the soft 60% target | After 206a, 206e and 207 (D4) |
+| 206c | **Run the bench's arms** (Henry's list) and report each against the soft 60% target | After 206a and 206e (207 has landed) |
 | 206d | **One agent night** on the configuration Henry picks | After the rulings |
-| 206e | **Tie the revive to the heal:** once 202b's revive merges, its HP reads the gym heal's percentage (one number, `GAUNTLET_HEAL_PERCENT`), so every heal arm moves both | After 202b merges |
+| 206e | **Tie the revive to the heal:** 202b's revive reads the gym heal's percentage (one number, `GAUNTLET_HEAL_PERCENT`), so every heal arm moves both | **Unblocked 2026-10-09**: 202b merged (`7778dec`). Today the two are separate constants that happen to agree: `GAUNTLET_HEAL_PERCENT = 30` in `gauntletHeal.ts` and `GAUNTLET_REVIVE_PERCENT = 30` in `gauntletRevive.ts`. The row makes the second read the first |
 
 Parked: tuning the Totems' own numbers (Henry, 2026-10-08: *"Ignore this for now, but we could tune the totems themselves try increasing the numbers"*). Moved to its own ticket: locking in each gym leader's team and deck and giving some of its cards to fights 1 and 2 ([207](207-authored-gym-teams.md)).
 
@@ -123,4 +123,6 @@ A primed night (205b's default) on the 10-04 seeds with the picked configuration
 
 ## Resolution
 
-Open. 206b shipped 2026-10-08 (`24a56ec`); waiting on Henry's playtest of the new order (D5), 202b's revive (206e), and 207 (206c).
+Open. 206b shipped 2026-10-08 (`24a56ec`); 207 has landed and 202b's revive is merged (2026-10-09, `7778dec`), so 206e and then 206a/206c can start. Still waiting on Henry's playtest of the new order (D5) and his pick of the setting (D2).
+
+**Ticket number:** another ticket also carries 206 ([206-open-decisions-2026-10-08](206-open-decisions-2026-10-08.md)), written in parallel on the other branch and kept by the 2026-10-09 merge. Henry to say whether this one is renumbered (suggested 208).
