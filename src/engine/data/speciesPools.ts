@@ -27,18 +27,20 @@
 
 /** The six pool cards for each Early-Access OS — the cards a run can offer for that deck. */
 export const SPECIES_CARD_POOLS: Readonly<Record<string, ReadonlyArray<string>>> = Object.freeze({
-    fenrir_v1: ['sun_devourer', 'fury_strike', 'blood_rite', 'flare_burst', 'core_overclock', 'howl'],
-    fenrir_v2: ['inferno', 'molten_core', 'ember_ward', 'cinder_armor', 'ash_communion', 'heat_wave'],
+    // TICKET 207 (Henry, 2026-10-08: "These leader cards can appear and are all rare cards"): each of
+    // the nine gym-leader Instincts adds its leader card (Rare) as a seventh pool card.
+    fenrir_v1: ['sun_devourer', 'fury_strike', 'blood_rite', 'flare_burst', 'core_overclock', 'howl', 'gleipnir_breaks'],
+    fenrir_v2: ['inferno', 'molten_core', 'ember_ward', 'cinder_armor', 'ash_communion', 'heat_wave', 'flame_wave'],
     skoll_v1: ['pack_tactics', 'snarl', 'battle_rhythm', 'reactive_plating', 'core_overclock', 'crimson_draw'],
-    skoll_v2: ['wildfire', 'inferno', 'thermal_overload', 'scald', 'ash_communion', 'cinder_armor'],
-    ratatoskr_v1: ['echo_chamber', 'hoofbeat', 'rejuvenation', 'mend', 'verdant_ward', 'deep_scan'],
+    skoll_v2: ['wildfire', 'inferno', 'thermal_overload', 'scald', 'ash_communion', 'cinder_armor', 'chase_the_sun'],
+    ratatoskr_v1: ['echo_chamber', 'hoofbeat', 'rejuvenation', 'mend', 'verdant_ward', 'deep_scan', 'rumor'],
     ratatoskr_v2: ['pile_on', 'hexbloom', 'thorn_tithe', 'echo_chamber', 'crippling_vine', 'snarl'],
     jormungandr_v1: ['corrosive_leak', 'scavenge_data', 'feedback_loop', 'hydro_blast', 'tide_pool', 'tidal_battery'],
-    jormungandr_v2: ['venom_glut', 'contagion', 'spreading_rot', 'blightbloom', 'nettle_sting', 'riptide'],
-    kraken_v1: ['ink_cloud', 'scavenge_data', 'short_circuit', 'feedback_loop', 'deep_scan', 'static_ward'],
-    kraken_v2: ['maelstrom', 'tidal_wave', 'overclock_core', 'tidal_battery', 'ink_cloud', 'heat_wave'],
-    huldra_v1: ['verdant_ward', 'iron_bark', 'crippling_vine', 'mend', 'static_ward', 'pollen_cloud'],
-    huldra_v2: ['blightbloom', 'nettle_sting', 'reactive_plating', 'verdant_ward', 'mend', 'iron_bark'],
+    jormungandr_v2: ['venom_glut', 'contagion', 'spreading_rot', 'blightbloom', 'nettle_sting', 'riptide', 'coil_and_strike'],
+    kraken_v1: ['ink_cloud', 'scavenge_data', 'short_circuit', 'feedback_loop', 'deep_scan', 'static_ward', 'deep_current'],
+    kraken_v2: ['maelstrom', 'tidal_wave', 'overclock_core', 'tidal_battery', 'ink_cloud', 'heat_wave', 'pressure_front'],
+    huldra_v1: ['verdant_ward', 'iron_bark', 'crippling_vine', 'mend', 'static_ward', 'pollen_cloud', 'bewitch'],
+    huldra_v2: ['blightbloom', 'nettle_sting', 'reactive_plating', 'verdant_ward', 'mend', 'iron_bark', 'smoldering_bark'],
 });
 
 /**
@@ -86,6 +88,8 @@ export const NEUTRAL_UTILITY_IDS: ReadonlyArray<string> = Object.freeze([
     'hamstring', 'adrenaline', 'deep_scan', 'harden_daemon',
     'riptide', 'short_circuit',
     'reactive_plating', 'discharge', 'scrubber', 'vent', 'drip_feed',
+    // TICKET 207 (Henry, 2026-10-08): Emberfall's Burn answers, printed for the gym's new team.
+    'quench', 'sindris_forge',
 ]);
 
 /**

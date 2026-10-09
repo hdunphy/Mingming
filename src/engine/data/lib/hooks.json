@@ -1699,6 +1699,35 @@
             }
         ]
     },
+    "sindris_forge": {
+        "id": "sindris_forge",
+        "name": "SINDRIS_FORGE",
+        "description": "Daemon (exhaust): whenever a Burn detonates on one of your Mingmings, it gains 2 Energized.",
+        "hooks": [
+            {
+                "id": "sindris_forge_bellows",
+                "trigger": "onStatusApplied",
+                "priority": 40,
+                "when": {
+                    "target": "ALLY",
+                    "statusApplied": "Burn",
+                    "statusDetonated": true
+                },
+                "do": [
+                    {
+                        "type": "STATUS",
+                        "target": "TARGET",
+                        "status": "Energized",
+                        "stacks": 2
+                    },
+                    {
+                        "type": "LOG",
+                        "text": "{owner}'s SINDRIS_FORGE turns the blast on {target} into Energy!"
+                    }
+                ]
+            }
+        ]
+    },
     "ember_ward": {
         "id": "ember_ward",
         "name": "EMBER_WARD",

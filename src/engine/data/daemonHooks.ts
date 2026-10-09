@@ -61,7 +61,10 @@ export function initDaemonHooks() {
          */
         'short_fuse',
         'static_ward',
-        'ember_ward'
+        'ember_ward',
+        // TICKET 207 (Henry, 2026-10-08): Emberfall's answer, "a new aura to get energized if a
+        // burn overflows". Listed here first, for the allowlist reason above.
+        'sindris_forge'
     ];
 
     // Validate JSON on boot

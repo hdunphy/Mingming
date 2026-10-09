@@ -254,9 +254,10 @@ export const MARKET_NEUTRAL_UTILITY: ReadonlyArray<string> = NEUTRAL_UTILITY_IDS
  * reachable, which is the same outcome as never printing it. `marketplace.test.ts` asserts that.
  */
 export const GYM_COUNTER_ANSWERS: Readonly<Record<string, ReadonlyArray<string>>> = {
-    // TICKET 207 moved the teams: Emberfall is a Burn wall under SURTALOGI now, and these three were
-    // picked against WAR FOOTING's Strengthened aura. Kept until Henry rules Emberfall's answers.
-    gym_emberfall: ['hamstring', 'discharge', 'reactive_plating'],
+    // TICKET 207 (Henry, 2026-10-08): Emberfall is a Burn wall under SURTALOGI. `quench` strips
+    // Burn, `sindris_forge` pays Energy for every detonation, and `hamstring`'s Weakened blunts
+    // Sköll's and Fenrir's hits. Both new cards were printed for this list.
+    gym_emberfall: ['quench', 'sindris_forge', 'hamstring'],
     // TICKET 207: Tidewrack is the Poison team now (ÉLIVÁGAR), so it takes the poison-clock answers.
     gym_tidewrack: ['scrubber', 'vent', 'drip_feed'],
     // TICKET 207: Rootfall is the card-flow zoo now (YGGDRASIL'S WRATH), so it takes the draw-zoo answers.
@@ -295,7 +296,7 @@ export const GYM_COUNTER_ANSWERS: Readonly<Record<string, ReadonlyArray<string>>
  * asserted before the per-card arms land, and this table is one of the arms, not its conclusion.
  */
 export const GYM_SELECTIVE_ANSWERS: Readonly<Record<string, ReadonlyArray<string>>> = {
-    gym_emberfall: ['hamstring', 'discharge'],
+    gym_emberfall: ['quench', 'sindris_forge'],
     // TICKET 207: swapped with the teams (see `GYM_COUNTER_ANSWERS`).
     gym_tidewrack: ['vent', 'scrubber'],
     gym_rootfall: ['riptide', 'short_circuit'],

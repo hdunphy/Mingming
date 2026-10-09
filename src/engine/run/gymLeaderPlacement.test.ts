@@ -13,6 +13,8 @@ import type { IBiome } from '../runTypes';
 import type { IMingmingState } from '../types';
 import { codexCardIds } from '../codex';
 import { inV2RunPool } from '../RewardSystem';
+import { ProgramRegistry } from '../data/programRegistry';
+import { SPECIES_CARD_POOLS } from '../data/speciesPools';
 import { AUTHORED_BOSSES, authoredBossFor, leaderDeckFor } from './bosses';
 import { createRun } from './createRun';
 import { GAUNTLET_FIGHTS, rollGauntletFight } from './gauntlet';
@@ -59,14 +61,18 @@ describe('207 — the leader fights with its authored deck and its leader card',
         }
     });
 
-    it('leader cards are enemy-only: outside the run pool and the codex', () => {
+    it('leader cards are Rare and can be found: each is in its own Instinct\'s pool and the codex', () => {
+        // Henry, 2026-10-08: "These leader cards can appear and are all rare cards."
         const codex = new Set(codexCardIds());
         for (const boss of Object.values(AUTHORED_BOSSES)) {
             for (const member of boss.members) {
-                expect(inV2RunPool(member.leaderCard), member.leaderCard).toBe(false);
-                expect(codex.has(member.leaderCard), member.leaderCard).toBe(false);
+                expect(ProgramRegistry[member.leaderCard].rarity, member.leaderCard).toBe('Rare');
+                expect(SPECIES_CARD_POOLS[member.os], member.os).toContain(member.leaderCard);
+                expect(inV2RunPool(member.leaderCard), member.leaderCard).toBe(true);
+                expect(codex.has(member.leaderCard), member.leaderCard).toBe(true);
             }
         }
+        // Eitr Surge is the gym Kraken's own card, not a leader card: it stays enemy-only.
         expect(inV2RunPool('eitr_surge')).toBe(false);
     });
 

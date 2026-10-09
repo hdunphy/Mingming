@@ -10655,5 +10655,48 @@
                 "target": "TARGET"
             }
         ]
+    },
+    "quench": {
+        "id": "quench",
+        "name": "Quench",
+        "description": "Remove 2 Burn from an ally.",
+        "element": "None",
+        "target": "Self",
+        "category": "Skill",
+        "rarity": "Common",
+        "baseCost": 0,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [
+            {
+                "type": "STATUS",
+                "status": "Burn",
+                "stacks": -2,
+                "target": "TARGET"
+            }
+        ]
+    },
+    "sindris_forge": {
+        "id": "sindris_forge",
+        "name": "Sindri's Forge",
+        "description": "Daemon (exhaust): whenever a Burn detonates on one of your Mingmings, it gains 2 Energized.",
+        "element": "None",
+        "target": "Self",
+        "category": "Daemon",
+        "exhaust": true,
+        "rarity": "Uncommon",
+        "baseCost": 2,
+        "constraints": [
+            "not_stunned",
+            "not_asleep",
+            "energy_base"
+        ],
+        "actions": [],
+        "hooks": [
+            "sindris_forge_bellows"
+        ]
     }
 }

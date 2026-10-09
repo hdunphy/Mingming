@@ -119,8 +119,9 @@ describe('170e — the walker', () => {
     const GOLDEN: ReadonlyArray<readonly [string, string, number, string]> = [
         // TICKET 206 moved both once, on purpose: the biome order changed, so every walk meets different biomes
         // (9e1cbbc29cfeec7d -> 4b12b55dcbc9072d, c1318fcb1bd5d8ee -> a83810a200614d91).
-        ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '4b12b55dcbc9072d'],
-        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, 'a83810a200614d91'],
+        // TICKET 207 moved both again: the leader cards joined their Instincts' pools (-> 256fb21c…, -> 42f88e61…).
+        ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '256fb21cee82df69'],
+        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '42f88e614b86cada'],
     ];
 
     it.each(GOLDEN)('%s: leaving draftPolicy out reproduces the 169j Draft Start walk exactly', (seed, starter, gymIndex, hash) => {
@@ -130,8 +131,8 @@ describe('170e — the walker', () => {
     it('draftPolicy does nothing without the draft_start modifier', () => {
         // 170a's pinned default walk for this seed (no modifier, no option). 202k moved it on purpose
         // (cbae1ed75c400704 -> 6fe38a89bb245a0e): skoll_v1's kit changed, and wild Skolls hold that kit. 206 moved it
-        // again (-> a2037756128706ae): the biome order changed.
-        expect(hashOf(walkRun({ seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1, draftPolicy: 'best' }))).toBe('a2037756128706ae');
+        // again (-> a2037756128706ae): the biome order changed; and 207 (-> f02f5d6d30d58fc7): leader cards in the pools.
+        expect(hashOf(walkRun({ seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1, draftPolicy: 'best' }))).toBe('f02f5d6d30d58fc7');
     });
 
     it("'best' reaches the walk: the same seed and modifier, a different run", () => {

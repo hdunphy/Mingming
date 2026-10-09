@@ -480,7 +480,10 @@ describe('40 — a WHOLE run is deterministic in its seed, end to end', () => {
      * end, and `outcome`, `finalDeck` and `scrapAtEnd` are all real here because the walk was never
      * truncated.
      */
-    const input = { seed: 't40:determinism', starter: 'kraken_v1', gymIndex: 2 } as const;
+    // TICKET 207: 't40:determinism' started reaching the gauntlet once the leader cards joined the
+    // reward pools (12 wins, 2 min 17 s a walk, three walks), the decay the note above warns of.
+    // 't40:determinism:b' is a complete run that ends in defeat at fight five in ~0.3 s.
+    const input = { seed: 't40:determinism:b', starter: 'kraken_v1', gymIndex: 2 } as const;
     const a = walkRun(input);
     const b = walkRun(input);
     const other = walkRun({ ...input, seed: 't40:determinism:other' });

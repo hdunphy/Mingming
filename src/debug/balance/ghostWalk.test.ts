@@ -42,12 +42,15 @@ describe('170a — the default walk is unchanged', () => {
         // 206 moved all four on purpose: the biome order is now [gym], [counter + gym], approach, so every walk
         // meets different biomes from the same seed (bdba9c99839aba86 -> 64d1fd0800261959, 12b709b4581e0545 ->
         // 8d4de1d25b21adc6, 6fe38a89bb245a0e -> a2037756128706ae, 2ab092b942210e28 -> 4c95d4a67e7d2fb4).
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '64d1fd0800261959'],
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '8d4de1d25b21adc6'],
+        // 207 moved all four again on purpose: the nine leader cards joined their Instincts' pools, so a
+        // walk is offered different cards (64d1fd08… -> 68a4337a…, 8d4de1d2… -> 2959d42f…,
+        // a2037756… -> f02f5d6d…, 4c95d4a6… -> 45e9457d…). fenrir_v2 #1 still dies in its eighth fight.
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '68a4337a2db1bb0c'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '2959d42ff6e86bfe'],
         // 202k moved both fenrir_v2 walks on purpose (skoll_v1's kit changed, and wild Skolls hold that kit):
         // cbae1ed75c400704 -> 6fe38a89bb245a0e and 9ec0bff685eb34aa -> 2ab092b942210e28. The kraken_v1 walks did not move.
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'a2037756128706ae'],
-        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '4c95d4a67e7d2fb4'],
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'f02f5d6d30d58fc7'],
+        ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 2, '45e9457d006cbf3a'],
     ];
 
     it.each(GOLDEN)('%s at tier %#: whole result object matches the pre-170 walk', (seed, starter, gymIndex, tier, hash) => {

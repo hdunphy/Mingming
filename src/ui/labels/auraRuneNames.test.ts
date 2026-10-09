@@ -30,6 +30,8 @@ const AURAS: ReadonlyArray<readonly [string, string]> = [
     ['core_overclock', 'Megingjord'],
     ['cinder_armor', 'Emberhide'],
     ['ember_ward', "Brynhild's Ring"],
+    // TICKET 207 (2026-10-08): Emberfall's answer. Named in the ticket and shown to Henry with the build.
+    ['sindris_forge', "Sindri's Forge"],
     ['feedback_loop', "Huginn's Dive"],
     ['hoofbeat', 'Hoofbeat'],
     ['echo_chamber', 'Gjallarhorn'],

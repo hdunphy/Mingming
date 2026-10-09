@@ -80,6 +80,7 @@ export const NORSE_AURA_NAMES: Readonly<Record<string, string>> = {
     "CINDER_ARMOR+": "Emberhide+",
     EMBER_WARD: "Brynhild's Ring",    // ember_ward
     "EMBER_WARD+": "Brynhild's Ring+",
+    SINDRIS_FORGE: "Sindri's Forge",  // sindris_forge (ticket 207)
     FEEDBACK_LOOP: "Huginn's Dive",   // feedback_loop
     "FEEDBACK_LOOP+": "Huginn's Dive+",
     ECHO_CHAMBER_DAEMON: "Gjallarhorn", // echo_chamber
