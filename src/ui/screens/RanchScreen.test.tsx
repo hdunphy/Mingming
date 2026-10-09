@@ -146,10 +146,12 @@ describe('RanchScreen — the gym offer telegraph (ticket 68)', () => {
 
         // All three leaders are always offered (`offerGyms` rule 3), so Emberfall's Driver is on
         // this screen for every seed — no fixture has to pin one.
+        // TICKET 207: Emberfall's Driver is SURTALOGI now (WAR FOOTING is no longer fielded by any gym).
         expect(markup).toContain('Emberfall');
-        expect(markup).toContain('WAR FOOTING');
-        expect(markup).toContain('Strengthened');
-        expect(markup).toContain('turn 4');
+        expect(markup).toContain('SURTALOGI');
+        expect(markup).toContain('Burn detonate');
+        expect(markup).toContain('5% more');
+        expect(markup).not.toContain('WAR FOOTING');
     });
 
     it('prints ALL THREE leaders’ Drivers now that every gym is authored (ticket 72)', () => {
@@ -159,9 +161,12 @@ describe('RanchScreen — the gym offer telegraph (ticket 68)', () => {
         expect(markup).toContain('Rootfall');
         // The relic texts this used to look for are deleted. Each leader telegraphs its ONE Driver,
         // which is the whole point of ruling 4 — a single rule the player can be told in advance.
-        expect(markup).toContain('WAR FOOTING');
-        expect(markup).toContain('TIDAL SURGE');
-        expect(markup).toContain('ROOT ROT');
+        // TICKET 207 re-dealt the Drivers (Henry: "Switch the totems"): Emberfall runs SURTALOGI,
+        // Tidewrack runs ÉLIVÁGAR (the old ROOT ROT), Rootfall runs YGGDRASIL'S WRATH (the old TIDAL
+        // SURGE). The rendered apostrophe is HTML-escaped, so that name is matched either way.
+        expect(markup).toContain('SURTALOGI');
+        expect(markup).toContain('ÉLIVÁGAR');
+        expect(markup).toMatch(/YGGDRASIL(&#x27;|')S WRATH/);
         expect(markup).not.toMatch(/FIRE_RELIC_OS|WATER_RELIC_OS|ICE_RELIC_OS/);
     });
 
