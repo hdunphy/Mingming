@@ -1,13 +1,17 @@
-name: Deploy to GitHub Pages
+name: Deploy to itch.io
 
+# Ticket 181d: the playtest build goes to a RESTRICTED (password) itch.io page, not GitHub Pages,
+# which cannot be made private. A push to `main` publishes only when it bumps the version (181e).
+# `workflow_dispatch` is a "Run workflow" button in GitHub -> Actions, on any branch: a hand-run
+# pushes a pre-release build (`<version>-pre.<short commit>`) and creates no tag. It is for the
+# first upload and for checking a build on the restricted page before anyone is invited.
 on:
   push:
-    branches: [ main ] # Change this to your active dev branch if needed
+    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   # Ticket 03: the full gate (typecheck, tests, lint, build + assert-no-debug) runs BEFORE
@@ -20,15 +24,18 @@ jobs:
       contents: read
 
   # Ticket 181e: a release is a merge that BUMPS the version in package.json. This job reads the
-  # version and publishes only if the tag `v<version>` does not exist yet; otherwise it says so and
-  # the jobs below are skipped. Bump with `npm version minor --no-git-tag-version` (a hotfix:
-  # `patch`) in the release commit.
+  # version and, on a push, publishes only if the tag `v<version>` does not exist yet; otherwise it
+  # says so and the jobs below are skipped. Bump with `npm version minor --no-git-tag-version` (a
+  # hotfix: `patch`) in the release commit. A hand-run (181d) always publishes, as a pre-release,
+  # and never tags.
   version:
     needs: ci
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.read.outputs.version }}
+      userversion: ${{ steps.read.outputs.userversion }}
       publish: ${{ steps.read.outputs.publish }}
+      tag: ${{ steps.read.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,23 +45,58 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            USERVERSION="$VERSION-pre.$(git rev-parse --short HEAD)"
+            echo "Hand-run: publishing pre-release $USERVERSION, no tag."
+            echo "userversion=$USERVERSION" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "tag=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           # An ls-remote that fails (network, auth) fails the job: it must never read as "no tag".
           EXISTING=$(git ls-remote --tags origin "refs/tags/v$VERSION")
           if [ -n "$EXISTING" ]; then
             echo "Tag v$VERSION already exists: no version bump, nothing published."
             echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "tag=false" >> "$GITHUB_OUTPUT"
           else
             echo "Version $VERSION has no tag yet: publishing it."
+            echo "userversion=$VERSION" >> "$GITHUB_OUTPUT"
             echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "tag=true" >> "$GITHUB_OUTPUT"
           fi
 
-  build_site:
+  publish:
     needs: [ ci, version ]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
+    env:
+      # Ticket 181d: `<itch user>/<game>`, Henry's page (ticket 181, V2). A literal, the label's
+      # pattern; a repository variable ITCH_TARGET overrides it. Until the placeholder is replaced
+      # the job fails below with a clear message; it never skips silently.
+      ITCH_TARGET: ${{ vars.ITCH_TARGET || 'CHANGE-ME/mingming' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Fails first, before any build time is spent. The key is the one GitHub setting this needs
+      # (Settings -> Secrets and variables -> Actions -> BUTLER_API_KEY); it cannot live in a public
+      # repo.
+      - name: Check the itch target and key
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          case "$ITCH_TARGET" in
+            CHANGE-ME|CHANGE-ME/*)
+              echo "::error::The itch target is still the placeholder '$ITCH_TARGET'. Put '<your itch name>/mingming' into ITCH_TARGET in .github/workflows/deploy.yml (or set the repository variable ITCH_TARGET)."
+              exit 1
+              ;;
+          esac
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "::error::The repository secret BUTLER_API_KEY is missing. Make an itch API key (itch: Settings -> API keys) and add it under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          echo "Pushing to $ITCH_TARGET:html5."
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -83,27 +125,27 @@ jobs:
           VITE_BUILD_LABEL: ${{ vars.PLAYTEST_LABEL || 'PLAYTEST 2' }}
           VITE_FEEDBACK_FORM_URL: ${{ vars.FEEDBACK_FORM_URL || 'https://docs.google.com/forms/d/e/1FAIpQLSfvGC1R9ZI6xhuUW1E2gCW9f_3moH2Iys9wnVlB9lzPWpB-1A/viewform?usp=pp_url&entry.266049503={build}&entry.1050293904={starter}&entry.563433886={reached}&entry.1982475832={run}&entry.219225348={minutes}' }}
 
-      - name: Upload Artifacts
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # this should match the output directory of your build command (usually 'dist' for Vite)
-          path: 'dist/'
+      # itch's own command-line uploader, from itch's official download URL.
+      - name: Download butler
+        run: |
+          curl -fsSL -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          ./butler/butler -V
 
-  deploy:
-    needs: build_site
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      # The `html5` channel. butler reads the key from BUTLER_API_KEY. The user version is the
+      # package.json version on a release, and `<version>-pre.<short commit>` on a hand-run.
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          USERVERSION: ${{ needs.version.outputs.userversion }}
+        run: ./butler/butler push dist "$ITCH_TARGET:html5" --userversion "$USERVERSION"
 
-  # Ticket 181e: after a successful publish, tag the commit `v<version>`, so what testers played
-  # can always be found, and so the same version never publishes twice.
+  # Ticket 181e: after a successful itch push, tag the commit `v<version>`, so what testers played
+  # can always be found, and so the same version never publishes twice. Not on a hand-run.
   tag:
-    needs: [ version, deploy ]
+    needs: [ version, publish ]
+    if: needs.version.outputs.tag == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
