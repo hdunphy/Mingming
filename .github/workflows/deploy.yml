@@ -41,10 +41,16 @@ jobs:
       # commit (`vite.config.ts` reads both). It is set HERE, so no GitHub setting is needed: bump
       # the literal below (e.g. to `PLAYTEST 2.1` for a hotfix) in the commit that ships the build.
       # A repository variable named PLAYTEST_LABEL, if one exists, overrides it without a commit.
+      #
+      # Ticket 181c: the pre-filled feedback form behind "Tell Henry how it went", same pattern as
+      # the label. The literal is the form's link template with its five placeholders; a repository
+      # variable FEEDBACK_FORM_URL overrides it. It ends up in the public bundle either way, so a
+      # variable would not keep it private. Unset (a local build), the buttons do not render.
       - name: Build
         run: npm run build
         env:
           VITE_BUILD_LABEL: ${{ vars.PLAYTEST_LABEL || 'PLAYTEST 2' }}
+          VITE_FEEDBACK_FORM_URL: ${{ vars.FEEDBACK_FORM_URL || 'https://docs.google.com/forms/d/e/1FAIpQLSfvGC1R9ZI6xhuUW1E2gCW9f_3moH2Iys9wnVlB9lzPWpB-1A/viewform?usp=pp_url&entry.266049503={build}&entry.1050293904={starter}&entry.563433886={reached}&entry.1982475832={run}&entry.219225348={minutes}' }}
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3

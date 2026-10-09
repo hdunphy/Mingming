@@ -32,6 +32,7 @@ import { FIGHT_LOG_CAP } from '../../engine/run/fightLog';
 import { playSfx } from '../audio/AudioEngine';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { BUILD_INFO, buildText } from '../buildInfo';
+import FeedbackButton from '../feedback/FeedbackButton';
 import AbandonRunSetting from './AbandonRunSetting';
 import GameSwitches from './GameSwitches';
 import '../theme/kit/kit.css';
@@ -560,6 +561,8 @@ export default function SettingsScreen(): ReactNode {
                     <p className="settings-note" data-testid="settings-build">
                         Build: {buildText(BUILD_INFO)}
                     </p>
+                    {/* TICKET 181c: the feedback form, with only the build filled in (no run here). */}
+                    <FeedbackButton run={null} className="settings-button k-button" />
                 </section>
 
                 {/* TICKET 182a (R5): Abandon run lives here, only while a run is in progress. */}
