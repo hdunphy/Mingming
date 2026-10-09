@@ -267,7 +267,7 @@ export interface IWorkshopSpecies {
  * mask the duplicate clause.
  */
 function partyMembersOf(ranch: IRanchState, run: IRunState): PartyMember[] {
-    // TICKET 168f: the duplicate clause reads the OS a body runs in THIS run (Firmware Reflash).
+    // TICKET 168f: the duplicate clause reads the OS a body runs in THIS run (Well of Urd).
     return run.partyIds.map((id) => {
         const member = ranch.roster.find((m) => m.id === id);
         return member ? withEffectiveOS(run, member) : { id, definitionId: `unresolved:${id}` };

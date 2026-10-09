@@ -126,6 +126,9 @@
 .rm-node-caption { fill: var(--text); font-size: 13px; opacity: 0.9; pointer-events: none; }
 .rm-node-species { fill: var(--amber); font-size: 12px; pointer-events: none; }
 
+/* 202j: the gym leader's team, one element badge per body, in a centred row under the gym. */
+.rm-gym-team { display: flex; justify-content: center; gap: 4px; }
+
 /* "Route 1" ... "Route 5" along the bottom. */
 .rm-route-label {
     fill: var(--text);

@@ -135,6 +135,13 @@
     color: var(--text-faint);
 }
 
+/* The element mark (200d): a disc, so it centres on the row rather than sitting on the text baseline. */
+.codex-cell-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-self: center;
+}
+
 .codex-cell-name {
     flex: 1 1 auto;
     overflow: hidden;

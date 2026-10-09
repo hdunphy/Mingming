@@ -1,5 +1,5 @@
 /**
- * TICKET 168e — the patch the Black-Market Patch fits: each unpatched body's BEST patch
+ * TICKET 168e — the patch the The Runecarver fits: each unpatched body's BEST patch
  * (`bestPatchFor`, exactly as the elite offers), so the player's decision is which body to improve.
  */
 

@@ -136,7 +136,7 @@ const TIDEWRACK_COUNTER_V1: HandbuiltParty = {
  * # WHY IT IS WORTH A MEASURED ARM
  *
  * It won the way the data said this fight has to be won — by REMOVING BODIES, not by surviving.
- * From his log: `Surge Protection -> Skoll -> 32 damage DEFEATED` on turn 2, and Maelstrom kills
+ * From his log: `Urðarbrunnr -> Skoll -> 32 damage DEFEATED` on turn 2, and Maelstrom kills
  * their kraken on turn 4. Two of three boss bodies gone before turn 5, which cuts the boss's rate
  * without touching the player's. The hand-built mitigation deck (13.3%) never removed one.
  *

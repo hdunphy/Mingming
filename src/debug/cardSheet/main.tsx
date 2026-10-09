@@ -110,7 +110,7 @@ function Loadout() {
     return <LoadoutEditor run={run} ranch={{ ...createEmptyRanch(), roster: ROSTER }} context="WORKSHOP · WATER BIOME · 143 SCRAP" onClose={() => undefined} />;
 }
 
-/** The event node with only Data Fragments left to draw: its `pick` choice opens the three-card offer. */
+/** The event node with only Scattered Verses left to draw: its `pick` choice opens the three-card offer. */
 function EventView() {
     const base = createRun({ seed: 'card-sheet-event', offer: offerGyms('offer-seed')[0], party: PARTY, startedAt: 1 });
     const target = base.nodes.find((n) => n.kind === 'event' && n.id !== base.currentNodeId)

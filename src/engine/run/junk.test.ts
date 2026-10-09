@@ -1,5 +1,5 @@
 /**
- * TICKET 168c — junk cards (Corrupted Data): what one is, and every place that must ignore it.
+ * TICKET 168c — junk cards (Forge Slag): what one is, and every place that must ignore it.
  *
  * A junk card that is offered, scored, counted or given to an enemy is a bug that hides: the
  * reward screen looks normal, the codex reads 0 of 1 short, the floor quietly moves. So each
@@ -24,12 +24,12 @@ const KRAKEN: IMingmingState = {
     blueprintsCollected: 0, attackIV: 10, defenseIV: 10, hpIV: 10,
 };
 
-describe('Corrupted Data', () => {
+describe('Forge Slag', () => {
     const card = ProgramRegistry[JUNK_CARD_ID];
 
     it('is the card the ticket describes: a 1-cost exhausting Skill that does nothing', () => {
         expect(card).toBeDefined();
-        expect(card.name).toBe('Corrupted Data');
+        expect(card.name).toBe('Forge Slag');
         expect(card.description).toBe('Does nothing. Exhaust.');
         expect(card.element).toBe('None');
         expect(card.category).toBe('Skill');

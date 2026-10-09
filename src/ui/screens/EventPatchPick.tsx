@@ -1,5 +1,5 @@
 /**
- * TICKET 168e — the body pick (Black-Market Patch): every unpatched body is listed with the patch it
+ * TICKET 168e — the body pick (The Runecarver): every unpatched body is listed with the patch it
  * would be fitted (its best one, as the elite offers). The player's decision is which body.
  */
 

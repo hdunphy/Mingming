@@ -3,8 +3,10 @@ import { STAB_BONUS } from '../../engine/combatUtils';
 import { ELEMENTS } from '../../engine/types';
 import type { Element } from '../../engine/types';
 import { getElementAccent } from '../utils/contrastText';
-import { getElementIcon } from './cardIcons';
+import { ElementMark } from '../theme/kit/ElementMark';
 import { formatMultiplier, getMatchupMultiplier } from './elementMatchups';
+import { InlineIcon } from '../theme/InlineIcon';
+import { TYPE_CHART_ICON } from './typeChartIcons';
 
 /**
  * The 8 combat elements. 'None' is deliberately excluded from the chart:
@@ -25,7 +27,7 @@ const cellClass = (mult: number): string =>
 /** Icon + 3-letter code, tinted with the element's dark-readable accent. */
 const ElementTag: React.FC<{ el: Element }> = ({ el }) => (
     <span className="tc-el-tag" style={{ color: getElementAccent(el) }} title={el}>
-        <span className="tc-el-icon" aria-hidden="true">{getElementIcon(el)}</span>
+        <span className="tc-el-icon"><ElementMark element={el} size={16} /></span>
         <span className="tc-el-abbr">{el.slice(0, 3).toUpperCase()}</span>
     </span>
 );
@@ -58,7 +60,7 @@ export const TypeChart: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
                 })}
             </div>
         ))}
-        <div className="tc-footer">⚡ Same-element unit + card = ×{formatMultiplier(STAB_BONUS)} STAB</div>
+        <div className="tc-footer"><InlineIcon name={TYPE_CHART_ICON.stab} /> Same-element unit + card = ×{formatMultiplier(STAB_BONUS)} STAB</div>
     </div>
 );
 
@@ -80,7 +82,7 @@ export const TypeChartPanel: React.FC<{ style?: React.CSSProperties }> = ({ styl
                 aria-label="Type chart"
                 title="Type chart"
             >
-                🧬
+                <InlineIcon name={TYPE_CHART_ICON.toggle} size="1.25em" />
             </button>
             {open && <TypeChart />}
         </div>

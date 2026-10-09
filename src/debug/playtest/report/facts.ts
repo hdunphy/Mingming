@@ -13,7 +13,9 @@ import { GYM_REGISTRY } from '../../../engine/run/gyms';
 import type { Finding } from '../findings';
 import { firmwareName } from '../gameText';
 import { currentScreen } from '../screen';
-import { endFactsOf, type EndFacts } from './endFacts';
+import type { EndFacts } from './endFacts';
+import { legOf, type RunLeg } from './runLeg';
+import { beginSecondRun } from '../secondRun';
 import { readSession, sessionPath } from '../sessionFile';
 import type { MoveAbout, SessionFile } from '../types';
 import { runOf } from '../types';
@@ -61,6 +63,11 @@ export interface RunFact extends EndFacts {
     /** Every buy the shelves offered an affordable move for, once per visit's screen seen. */
     readonly shelfOffers: ReadonlyArray<string>;
     readonly driver?: DriverFact;
+    /**
+     * TICKET 202c: the runs the session played, in order. The numbers above (outcome, fights, party...) are the last
+     * run's; for a session with one run they are that run's, as they always were. Read them through `legsOf`.
+     */
+    readonly legs?: ReadonlyArray<RunLeg>;
 }
 
 export function readDriverFact(root: string, name: string): DriverFact | undefined {
@@ -77,13 +84,23 @@ export function readDriverFact(root: string, name: string): DriverFact | undefin
 
 export function gatherRun(root: string, name: string): RunFact {
     const session = readSession(root, name);
-    const world = createWorld(session);
+    let world = createWorld(session);
     const choices: DecisionFact[] = [];
     const shelfOffers: string[] = [];
     const notes: NoteFact[] = [];
     const screenBefore: string[] = [];
+    // 202c: a session with a second run is read run by run. Run 1 is closed off into a leg where it ended (with
+    // what it found), and run 2 is opened from its end state, as `state` and `replay` do.
+    const legs: RunLeg[] = [];
+    const earlierFindings: Finding[] = [];
+    const closeRun1 = (): void => {
+        legs.push(legOf(world));
+        earlierFindings.push(...world.findings);
+        world = beginSecondRun(world, session.run2!);
+    };
 
     session.moves.forEach((move, i) => {
+        if (session.run2 !== undefined && i === session.run2.atMove && world.runNumber === 1) closeRun1();
         const screen = currentScreen(world);
         screenBefore.push(screen.id);
         const chosen = screen.moves.find((m) => m.key === move.key);
@@ -94,30 +111,35 @@ export function gatherRun(root: string, name: string): RunFact {
         if (screen.id === 'market') for (const m of screen.moves) if (m.about?.verb === 'buy') shelfOffers.push(m.about.items[0]);
         applyMove(world, move, session.moves[i + 1]?.chained === true);
     });
+    // Run 2 has begun but has no move yet: run 1 is closed and run 2 stands at its first screen.
+    if (session.run2 !== undefined && world.runNumber === 1) closeRun1();
     const finalScreen = currentScreen(world).id;
     for (const note of session.notes) notes.push({ text: note.text, screen: screenBefore[note.atMove] ?? finalScreen });
 
+    const last = legOf(world);
+    legs.push(last);
     const run = runOf(world);
-    const ended = endFactsOf(world);
-    const here = run.nodes.find((n) => n.id === run.currentNodeId);
-    const biomeIndex = here?.biomeIndex ?? 0;
     return {
         session: name,
         header: session,
         starter: firmwareName(session.starter),
         gym: GYM_REGISTRY[run.gymId]?.name ?? run.gymId,
-        outcome: world.view.cutShort ?? (run.phase === 'ended' ? (run.outcome ?? 'ended') : 'unfinished'),
-        fights: run.fightsResolved,
-        biome: `${biomeIndex + 1} of ${run.biomes.length}${run.biomes[biomeIndex] ? ` (${run.biomes[biomeIndex].name})` : ''}`,
-        deckSize: run.deck.length,
-        scrap: run.scrap,
-        ...ended,
+        outcome: last.outcome,
+        fights: last.fights,
+        biome: last.biome,
+        deckSize: last.deckSize,
+        scrap: last.scrap,
+        partySize: last.partySize,
+        blueprints: last.blueprints,
+        endedAt: last.endedAt,
+        reachedGym: last.reachedGym,
         decisions: session.moves.filter((m) => m.chained !== true).length,
-        findings: world.findings,
+        findings: earlierFindings.length === 0 ? world.findings : [...earlierFindings, ...world.findings],
         notes,
         choices,
         shelfOffers,
         driver: readDriverFact(root, name),
+        legs,
     };
 }
 

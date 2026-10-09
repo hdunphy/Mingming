@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * TICKET 168f — Firmware Reflash, mounted and clicked against a real run AND ranch.
+ * TICKET 168f — Well of Urd, mounted and clicked against a real run AND ranch.
  *
  * What is protected: the switch lands on the RUN and never on the roster member, the deck is left
  * exactly as it was, a patched body is greyed with its reason and cannot be chosen, and a body whose
@@ -37,7 +37,7 @@ const body = (id: string, definitionId: string, activeOS: string): IMingmingStat
 const KRAKEN = body('mm1', 'kraken', 'kraken_v1');
 const FENRIR = body('mm2', 'fenrir', 'fenrir_v1');
 
-/** A run standing on an event node in the second biome (Rare events roll there), with only Firmware Reflash left to draw. */
+/** A run standing on an event node in the second biome (Rare events roll there), with only Well of Urd left to draw. */
 function runWith(party: IMingmingState[], over: Partial<IRunState> = {}): IRunState {
     const run = createRun({ seed: 'reflash-screen', offer: offerGyms('reflash-offer')[0], party, startedAt: 1 });
     const target = run.nodes.find((node) => node.id !== run.currentNodeId)!;
@@ -105,7 +105,7 @@ describe('Instinct Retrain', () => {
     it('says on the button that the instinct changes and the cards do not', async () => {
         const store = makeStore(runWith([KRAKEN]), [KRAKEN]);
         await mount(store);
-        expect(host.textContent?.toLowerCase()).toContain('instinct retrain');
+        expect(host.textContent?.toLowerCase()).toContain('well of urd');
         expect(byText('Retrain one body')).toBeTruthy();
         expect(host.textContent).toContain('Its instinct changes; its cards don\'t.');
     });

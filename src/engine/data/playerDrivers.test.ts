@@ -196,7 +196,7 @@ describe('TENTH STRIKE — every 10th attack card this side plays, 1.5x', () => 
     });
 });
 
-describe('STATIC FIELD — every card this side plays, 6 power to a random enemy', () => {
+describe('STORMSPARK — every card this side plays, 6 power to a random enemy', () => {
     it('zaps on an attack AND on a skill, and procs each time', () => {
         const DECK = Array(6).fill('frost_jab').concat(Array(6).fill('undertow'));
         const bare = arena(DECK, []);
@@ -245,7 +245,7 @@ describe('the Element Drivers — that element\'s attack cards, 1.1x', () => {
     });
 });
 
-describe('OVERKILL RECOVERY — an enemy faints, every living member heals 8% max HP', () => {
+describe('EINHERJAR FEAST — an enemy faints, every living member heals 8% max HP', () => {
     it('heals each member on the kill and procs once per member', () => {
         const DECK = Array(12).fill('frost_jab');
         let driven = arena(DECK, [DRIVER_OVERKILL_RECOVERY]);
@@ -294,7 +294,7 @@ describe('ANTIVENOM — end of this side\'s turn, each poisoned member loses 1 e
     });
 });
 
-describe('BULWARK REFLEX — a member drops below 50%, once per fight per member, +15 Bark Shield', () => {
+describe('SHIELDWALL — a member drops below 50%, once per fight per member, +15 Bark Shield', () => {
     it('shields on the crossing, once per fight, and procs once', () => {
         const driven = arena(Array(4).fill('frost_jab'), [DRIVER_BULWARK_REFLEX]);
         const m = driven.playerParty[0];
@@ -332,7 +332,7 @@ describe('BULWARK REFLEX — a member drops below 50%, once per fight per member
     });
 });
 
-describe('DEEP CACHE — this side\'s first bonus draw each turn, the drawer gains 1 Strengthened', () => {
+describe('RAVEN\'S BOON — this side\'s first bonus draw each turn, the drawer gains 1 Strengthened', () => {
     it('fires on the first triggered draw, not the second, and never on the natural draw', () => {
         /*
          * MERGE 2026-09-24 — `undertow` → `forage`, and the reason is a real interaction rather
@@ -340,7 +340,7 @@ describe('DEEP CACHE — this side\'s first bonus draw each turn, the drawer gai
          *
          * This case was written on steam-prep-september, where `undertow` was "draw a card" and
          * nothing else. Ticket 152 (playtest-polish) gave it a self-Weakened rider, and Strengthened
-         * CANCELS Weakened stack for stack — so DEEP CACHE's grant and the card's own drawback
+         * CANCELS Weakened stack for stack — so RAVEN'S BOON's grant and the card's own drawback
          * annihilate and the drawer reads 0. The Driver fires correctly; the card it was measured
          * with now erases the measurement.
          *
@@ -380,7 +380,7 @@ describe('the whole roster at once', () => {
         /*
          * TWO, not one — a pinned FINDING rather than a design. A hook-originated ATTACK runs under
          * the triggering card's `context.program` (`AttackExecutor`: `program || { element }`), so
-         * STATIC FIELD's zap reads as "an Ice attack card" to the ICE DRIVER's modifier and the
+         * STORMSPARK's zap reads as "an Ice attack card" to the ICE DRIVER's modifier and the
          * modifier procs again on the zap. At 6 power the compounding is worth a point or two of
          * damage; the visible cost is a second ICE DRIVER float when both Drivers are held. Engine
          * semantics predate this ticket (riptide's undertow inherits the OPPONENT's card the same

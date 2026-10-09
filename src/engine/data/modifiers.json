@@ -1,8 +1,8 @@
 [
   { "id": "junk_start", "name": "Junk Start",
-    "description": "Start with 2 Corrupted Data in your deck.", "junkCount": 2 },
+    "description": "Start with two Forge Slag in your deck.", "junkCount": 2 },
   { "id": "tight_budget", "name": "Tight Budget",
-    "description": "Marketplace and workshop prices +25%.", "pricePercent": 25 },
+    "description": "Shop and den prices +25%.", "pricePercent": 25 },
   { "id": "elite_hunt", "name": "Elite Hunt",
     "description": "Every rival is an elite." },
   { "id": "no_recruits", "name": "No Recruits",

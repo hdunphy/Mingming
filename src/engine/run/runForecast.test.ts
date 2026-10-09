@@ -10,6 +10,8 @@ import { offerGyms, GYM_REGISTRY } from './gyms';
 import { runForecast, DEFAULT_SHAPE, word } from './runForecast';
 import { forecastBlock, forecastHover } from './forecastText';
 import { GAUNTLET_FIGHTS } from './gauntlet';
+import { GAUNTLET_HEAL_PERCENT } from './gauntletHeal';
+import { GAUNTLET_REVIVE_PERCENT } from './gauntletRevive';
 import { REGION_PARAMS } from './regionGraph';
 import { gymSignatures } from './gauntlet';
 import { MAX_PARAGRAPH_CHARS } from '../../ui/copyBudget/copyBudget';
@@ -50,6 +52,20 @@ describe('193j — the details', () => {
         const joined = details.join('\n');
         expect(joined).toMatch(new RegExp(`${word(GAUNTLET_FIGHTS)} fights`));
         expect(joined).toMatch(/30%/);
+    });
+
+    it('202b: state the repair and the revive from the constants, not typed text', () => {
+        const rule = `Every member repairs ${GAUNTLET_HEAL_PERCENT}% between fights; a downed one comes back at ${GAUNTLET_REVIVE_PERCENT}%`;
+        expect(runForecast(biomes, 'gym_emberfall').details.join('\n')).toContain(rule);
+        expect(rule).toBe('Every member repairs 30% between fights; a downed one comes back at 30%');
+        const moved = runForecast(biomes, 'gym_emberfall', { ...DEFAULT_SHAPE, repairPercent: 25, revivePercent: 50 }).details.join('\n');
+        expect(moved).toContain('Every member repairs 25% between fights; a downed one comes back at 50%');
+        expect(moved).not.toContain('stays down');
+    });
+
+    it('202b: with no revive the line says a downed one stays down', () => {
+        const none = runForecast(biomes, 'gym_emberfall', { ...DEFAULT_SHAPE, revivePercent: 0 }).details.join('\n');
+        expect(none).toContain('Every member still standing repairs 30% between fights; a downed one stays down.');
     });
 
     it('give an authored gym\'s boss rule from the table the gauntlet fields', () => {

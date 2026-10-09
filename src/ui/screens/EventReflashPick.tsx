@@ -1,5 +1,5 @@
 /**
- * TICKET 168f — the body pick (Firmware Reflash): every party body is listed with the OS it would be
+ * TICKET 168f — the body pick (Well of Urd): every party body is listed with the OS it would be
  * switched to. A body that cannot be reflashed is greyed with the reason (a fitted patch, a party
  * that already runs that build). The switch lasts for this run; the deck does not change.
  */

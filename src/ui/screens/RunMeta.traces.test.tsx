@@ -54,7 +54,7 @@ describe('195c — the status line', () => {
     it('agrees with the town’s Den tile, which reads the same function', () => {
         const s = store({ fenrir: 2, huldra: 1 });
         const tile = renderToStaticMarkup(<TownSquare run={RUN} node={RUN.nodes[0]} ranch={s.getState().game} onOpen={() => {}} />);
-        expect(tile).toContain('3 traces held');
+        expect(tile).toContain('3 Traces held');
         expect(traces(header(s))).toBe('Traces 3');
     });
 

@@ -6,7 +6,7 @@
  * one file rather than ten.
  *
  * Only prices the player PAYS at a marketplace or workshop go through here. Selling is income and
- * is not changed. Event costs (The Toll, Data Broker, Mirror Protocol) are not changed either
+ * is not changed. Event costs (The Toll, The Skald's Price, Loki's Mirror) are not changed either
  * (default D4). A free price stays free: the gym gate's upgrade and the events' free upgrades pass
  * 0 and get 0 back.
  */

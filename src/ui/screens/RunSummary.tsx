@@ -107,7 +107,7 @@ function headlineFor(run: IRunState): HeadlineCopy {
             };
         default:
             return {
-                icon: 'skull',
+                icon: 'grave',
                 title: 'Run over',
             };
     }

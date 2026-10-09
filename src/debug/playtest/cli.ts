@@ -2,6 +2,7 @@
  * TICKET 180a — `npm run playtest -- <command>`.
  *
  *   new   --session s1 --seed ps1 --starter <firmware> --gym 0 --mode run|turn|card
+ *   again --session s1               (202c: start the session's second run on the same save, once the first has ended)
  *   state --session s1 [--json]
  *   move  --session s1 <n> --why "<one sentence>" [--expect '<json>']
  *   moves --session s1 <n,n,n> --why "..."

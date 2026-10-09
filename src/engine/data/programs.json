@@ -614,7 +614,7 @@
     },
     "capacitor": {
         "id": "capacitor",
-        "name": "Capacitor",
+        "name": "Warhorn",
         "description": "Gain 3 Energized.",
         "element": "None",
         "target": "Self",
@@ -916,7 +916,7 @@
     },
     "scavenge_data": {
         "id": "scavenge_data",
-        "name": "Scavenge Data",
+        "name": "Fisher's Haul",
         "description": "Draw a Water card.",
         "element": "Water",
         "target": "Self",
@@ -1139,7 +1139,7 @@
     },
     "surge_protection": {
         "id": "surge_protection",
-        "name": "Surge Protection",
+        "name": "Urðarbrunnr",
         "description": "25 power. If an effect drew your team a card this turn, refund 1 Energy.",
         "element": "Water",
         "target": "Single",
@@ -6147,7 +6147,7 @@
     },
     "discharge": {
         "id": "discharge",
-        "name": "Discharge",
+        "name": "Thunderclap",
         "description": "Remove up to 4 Strengthened from the target. Apply 1 Burn per 2 removed.",
         "element": "None",
         "target": "Single",
@@ -6293,7 +6293,7 @@
     },
     "tidal_battery": {
         "id": "tidal_battery",
-        "name": "Tidal Battery",
+        "name": "Ægir's Feast",
         "description": "Every ally gains 1 Energized.",
         "element": "Water",
         "target": "Side",
@@ -6427,7 +6427,7 @@
     },
     "deep_scan": {
         "id": "deep_scan",
-        "name": "Deep Scan",
+        "name": "Völva's Sight",
         "description": "Draw 2.",
         "element": "None",
         "target": "Self",
@@ -7476,7 +7476,7 @@
     },
     "deep_scan+": {
         "id": "deep_scan+",
-        "name": "Deep Scan+",
+        "name": "Völva's Sight+",
         "description": "Draw 3.",
         "element": "None",
         "target": "Self",
@@ -7499,7 +7499,7 @@
     },
     "capacitor+": {
         "id": "capacitor+",
-        "name": "Capacitor+",
+        "name": "Warhorn+",
         "description": "Gain 4 Energized.",
         "element": "None",
         "target": "Self",
@@ -9013,7 +9013,7 @@
     },
     "scavenge_data+": {
         "id": "scavenge_data+",
-        "name": "Scavenge Data+",
+        "name": "Fisher's Haul+",
         "description": "Draw 2 Water cards.",
         "element": "Water",
         "target": "Self",
@@ -9063,7 +9063,7 @@
     },
     "surge_protection+": {
         "id": "surge_protection+",
-        "name": "Surge Protection+",
+        "name": "Urðarbrunnr+",
         "description": "35 power. If an effect drew your team a card this turn, refund 1 Energy.",
         "element": "Water",
         "target": "Single",
@@ -9161,7 +9161,7 @@
     },
     "tidal_battery+": {
         "id": "tidal_battery+",
-        "name": "Tidal Battery+",
+        "name": "Ægir's Feast+",
         "description": "Every ally gains 2 Energized.",
         "element": "Water",
         "target": "Side",
@@ -10305,7 +10305,7 @@
     },
     "corrupted_data": {
         "id": "corrupted_data",
-        "name": "Corrupted Data",
+        "name": "Forge Slag",
         "description": "Does nothing. Exhaust.",
         "element": "None",
         "target": "Self",

@@ -239,6 +239,12 @@ export interface IGauntletProgress {
      * from before the field.
      */
     readonly healedHp?: Readonly<Record<string, number>>;
+    /**
+     * TICKET 202b — who the last between-fights settle revived (a member who ended the fight at 0 and
+     * came back at `GAUNTLET_REVIVE_PERCENT` of max HP, `gauntletRevive.ts`), so the pit stop can say
+     * "revived at 30%". Absent when no one fell, and on saves from before the field.
+     */
+    readonly revivedMemberIds?: ReadonlyArray<string>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -477,7 +483,7 @@ export interface IRunState {
 
     /**
      * TICKET 168b — **Drivers that last for the next fight only**, and how many fights each has
-     * left. An event's bad outcome (Frayed Signal, Static Haze) lands here rather than in `drivers`:
+     * left. An event's bad outcome (Gjöll Chill, Barrow Mist) lands here rather than in `drivers`:
      * `drivers` is the run's permanent list and the power cap counts it, while this list empties
      * itself. `battleSetup` applies both lists; `resolveEncounter`, `advanceGauntlet` and
      * `finishGauntlet` count it down. Optional with `.default([])`.
@@ -503,7 +509,7 @@ export interface IRunState {
     /**
      * TICKET 168f — **the firmware an event switched a body to, for this run only**, by member id.
      *
-     * Firmware Reflash writes here and never to the ranch, so the roster member keeps its own OS for
+     * Well of Urd writes here and never to the ranch, so the roster member keeps its own OS for
      * the next run. Read through `effectiveOS(run, member)` everywhere a run reads a party member's
      * firmware. The deck is untouched: only the firmware changes. Optional with `.default({})`.
      */
@@ -722,6 +728,8 @@ export const GauntletProgressSchema = z.object({
     downedMemberIds: z.array(z.string()),
     // Ticket 173a, add-only: what the last between-fights repair gave each member, for the pit stop.
     healedHp: z.record(z.string(), z.number().int().min(0)).optional(),
+    // Ticket 202b, add-only: who the last between-fights settle revived, for the pit stop.
+    revivedMemberIds: z.array(z.string()).optional(),
 });
 
 export const RunStateSchema = z.object({
@@ -955,7 +963,7 @@ export function reconcileLoadedState(rawRanch: unknown, rawRun: unknown): Reconc
     // holding `kraken_v1` beside `kraken_v2` is exactly what the ruling asked for, and a loader
     // still enforcing the old clause would throw that run away on the next launch — the worst
     // possible place for the two rules to disagree, because it costs the run silently.
-    // TICKET 168f: the firmware a body runs in THIS run. A Firmware Reflash can put a body on the OS
+    // TICKET 168f: the firmware a body runs in THIS run. A Well of Urd can put a body on the OS
     // a later recruit holds on the ranch; comparing the ranch's own would discard that legal run.
     const builds = run.partyIds.map((id) => {
         const member = byId.get(id)!;

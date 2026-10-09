@@ -9,14 +9,16 @@
  * before with a different deck. You have to lose sometimes, it just can't feel unfair to lose."*
  *
  * So between gauntlet fights every member still standing repairs 30% of its max HP, capped at max.
- * A member at 0 stays at 0: Revive is how the fallen come back, and a percent of nothing is nothing.
- * The amount is printed on the pit stop, so none of it is hidden math.
+ * A percent of nothing is nothing, so this repair never touches a member at 0. (Ticket 173a left a
+ * member at 0 at 0 in the gauntlet. **Ticket 202b superseded that for the gauntlet only**: a downed
+ * member is now revived between fights by `gauntletRevive.ts`, which composes with this repair. The
+ * Revive Draught is unchanged.) The amount is printed on the pit stop, so none of it is hidden math.
  */
 
 /** Percent of max HP a standing member repairs between gauntlet fights. Numbers move in 5s. */
 export const GAUNTLET_HEAL_PERCENT = 30;
 
-/** HP after the between-fights repair, and how much was repaired. A downed member is untouched. */
+/** HP after the between-fights repair, and how much was repaired. A downed member is untouched (see `gauntletRevive.ts`). */
 export function healBetweenFights(hp: number, maxHp: number): { hp: number; healed: number } {
     if (hp <= 0 || maxHp <= 0) return { hp: Math.max(0, hp), healed: 0 };
     const healed = Math.min(maxHp - hp, Math.floor((maxHp * GAUNTLET_HEAL_PERCENT) / 100));

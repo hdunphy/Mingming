@@ -110,7 +110,7 @@ describe('194p — the Totems', () => {
         const markup = loadout({
             ...baseRun(), drivers: ['driver_tenth_strike'], tempDrivers: [{ driverId: 'driver_static_haze', fightsLeft: 1 }],
         });
-        expect(markup.indexOf('TENTH STRIKE')).toBeLessThan(markup.indexOf('STATIC HAZE · next fight'));
+        expect(markup.indexOf('TENTH STRIKE')).toBeLessThan(markup.indexOf('BARROW MIST · next fight'));
     });
 
     it('shows nothing when the run has none', () => {

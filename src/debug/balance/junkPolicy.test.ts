@@ -36,7 +36,7 @@ describe('junkToRemove', () => {
 });
 
 describe('the walker at the two junk events', () => {
-    it('leaves Overclock Rig and Corrupted Cache, because each one costs it a card or a gamble', () => {
+    it('leaves Brokk\'s Forge and Cursed Hoard, because each one costs it a card or a gamble', () => {
         for (const id of ['overclock_rig', 'corrupted_cache']) {
             const event = EVENTS.find((e) => e.id === id)!;
             expect(chooseEventChoice(event, 1000).id, id).toBe('leave');

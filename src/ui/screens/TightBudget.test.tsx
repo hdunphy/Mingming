@@ -49,7 +49,7 @@ const RANCH: IRanchState = {
     seenTips: [],
 };
 
-/** A run standing in its first marketplace, holding one Corrupted Data. */
+/** A run standing in its first marketplace, holding one Forge Slag. */
 function makeRun(scrap: number, modifiers: string[]): IRunState {
     const run = createRun({
         seed: 'tight-budget-ui',

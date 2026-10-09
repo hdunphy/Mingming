@@ -12,8 +12,10 @@ import type { CSSProperties, ReactElement } from 'react';
 
 import '../../theme/kit/kit.css';
 import './map.css';
+import { iconLayers } from '../../theme/iconLayers';
 import { elementVars } from '../../theme/kit/elementGlyphs';
-import { NODE_GLYPHS, NODE_SIZE, NODE_WORD, type NodeIconKind } from './nodeGlyphs';
+import { TablerGlyph } from '../../theme/TablerGlyph';
+import { NODE_ICON_NAME, NODE_SIZE, NODE_WORD, type NodeIconKind } from './nodeKinds';
 
 export interface NodeIconProps {
     readonly kind: NodeIconKind;
@@ -25,12 +27,9 @@ export interface NodeIconProps {
     readonly sub?: string;
 }
 
+/** The `icons.ts` icon for this kind: the one the live region map draws. */
 function Glyph({ kind, size }: { readonly kind: NodeIconKind; readonly size: number }): ReactElement {
-    return (
-        <svg className="k-node-glyph" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-            <path d={NODE_GLYPHS[kind]} />
-        </svg>
-    );
+    return <TablerGlyph layers={iconLayers(NODE_ICON_NAME[kind])} size={size} className="k-node-glyph" />;
 }
 
 export function NodeIcon({ kind, element, selected, faded, sub }: NodeIconProps): ReactElement {

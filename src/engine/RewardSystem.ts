@@ -497,7 +497,7 @@ export function isRewardable(rawId: string): boolean {
     const dataId = resolveProgramId(rawId);
     const data = ProgramRegistry[dataId];
     if (!data || data.isToken || (data.rarity as string) === 'Token') return false;
-    // TICKET 168c: junk (Corrupted Data) is never offered — not as a reward, not in the stall.
+    // TICKET 168c: junk (Forge Slag) is never offered — not as a reward, not in the stall.
     if (data.junk === true) return false;
     /*
      * TICKET 163a — a `+` card is NOT a card a run can be offered.

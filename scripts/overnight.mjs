@@ -2,7 +2,9 @@
 /**
  * `npm run overnight` — one command for the nightly agent playtest (tickets 180 and 193).
  *
- *   npm run overnight                       Night A (haiku) then Night B (sonnet), on the 2026-10-04 seeds
+ *   npm run overnight                       the full night: Night A (haiku) then Night B (sonnet), on the 2026-10-04 seeds,
+ *                                           all twelve starters twice and one card-by-card session each; a session plays two runs (202c),
+ *                                           so expect about double or more of the one-run night (4 to 6 hours, about $25): measure the first night
  *   npm run overnight -- --dry-run          run the checks and print each night's plan; play nothing
  *   npm run overnight -- --models haiku     one model only
  *   npm run overnight -- --seed-date fresh  new worlds tonight (seeds named after tonight's date)
@@ -20,15 +22,16 @@
  *
  * Keep the PC awake and plugged in. Safe to run again the same day: finished sessions are skipped.
  *
- * Flags (the defaults are the Night A / Night B recipe from ticket 193):
+ * Flags (the defaults are the Night A / Night B recipe from ticket 193, as the full night since ticket 202g):
  *   --date <d>        the night's name, fixed once at the start so a night past midnight keeps one folder   (today)
  *   --seed-date <d>   which night's worlds to play: a date, or "fresh" to use --date                        (2026-10-04)
  *   --models <list>   models in order, comma or space separated                                              (haiku,sonnet)
- *   --runs <n>        sessions per night                                                                     (9)
- *   --starter <id>    the starter every session plays, or "all" for the twelve in turn                       (kraken_v1)
- *   --card-runs <n>   how many sessions play every card themselves                                           (0)
- *   --minutes <n>     wall-clock limit per session; 36 sessions of 35 minutes is 21 hours a model, worst case  (35)
- *   --max-usd <n>     Claude Code's own size estimate cap per session; a yardstick, not a bill               (3)
+ *   --runs <n>        sessions per night; 24 is the twelve starters, twice each                              (24)
+ *   --starter <id>    the starter every session plays, or "all" for the twelve in turn                       (all)
+ *   --card-runs <n>   how many sessions play every card themselves                                           (1)
+ *   --minutes <n>     wall-clock limit per session (two runs); worst case 24 sessions x 80 minutes is 32 hours a
+ *                     model, and 64 hours for both models                                                    (80)
+ *   --max-usd <n>     Claude Code's own size estimate cap per session; a yardstick, not a bill               (10)
  *   --brief <path>    another brief for the driver                                                           (the default brief)
  *   --dry-run         checks and plans only
  *   --allow-api-key   go ahead even though ANTHROPIC_API_KEY is set
@@ -66,11 +69,11 @@ export function parseOvernightArgs(argv, today = todayLocal()) {
         date,
         seedDate: seed === 'fresh' ? date : seed,
         models: text('models', 'haiku,sonnet').split(/[\s,]+/).filter(Boolean),
-        runs: count('runs', 9),
-        starter: text('starter', 'kraken_v1'),
-        cardRuns: count('card-runs', 0),
-        minutes: count('minutes', 35),
-        maxUsd: count('max-usd', 3),
+        runs: count('runs', 24),
+        starter: text('starter', 'all'),
+        cardRuns: count('card-runs', 1),
+        minutes: count('minutes', 80),
+        maxUsd: count('max-usd', 10),
         brief: text('brief', ''),
         dryRun: flags['dry-run'] === true,
         allowApiKey: flags['allow-api-key'] === true,

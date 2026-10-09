@@ -17,7 +17,7 @@ import { choiceScrapCost } from '../../engine/run/events/eventSchema';
 import type { EventChoice, EventOutcome } from '../../engine/run/events/eventSchema';
 import { recompileTarget, tradeUpTarget } from '../../engine/run/events/eventTrade';
 
-/** Some held card could be given up AND swapped for something (the Trader and the Recompiler). */
+/** Some held card could be given up AND swapped for something (the Trader and the Seiðr Cauldron). */
 function canSwapACard(ctx: EventContext, target: typeof tradeUpTarget): boolean {
     const spare = deckSpare(ctx.run);
     return heldCards(ctx.run).some((row) => (row.pile === 'collection' || spare > 0) && target(ctx, row.card) !== null);

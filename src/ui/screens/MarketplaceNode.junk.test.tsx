@@ -68,7 +68,7 @@ describe('MarketplaceNode — junk in the sell list (168c)', () => {
         const panel = sellPanel(makeRun(200, true));
         expect(panel).toContain('mk-remove');
         expect(panel).toContain(`Remove — ${JUNK_REMOVAL_PRICE}`);
-        expect(panel).toContain('Corrupted Data');
+        expect(panel).toContain('Forge Slag');
     });
 
     it('shows no Remove row when the deck holds no junk', () => {

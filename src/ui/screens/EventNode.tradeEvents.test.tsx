@@ -2,7 +2,7 @@
 /**
  * TICKET 168e — the trade and cost events, mounted and clicked against a real run AND ranch.
  *
- * Trader, Mirror Protocol, Recompiler, The Toll, Driver Shrine and Black-Market Patch. What is
+ * Trader, Loki's Mirror, Seiðr Cauldron, The Toll, Driver Shrine and The Runecarver. What is
  * protected: a price is paid once and only for a pick that was made, the deck floor greys the rows
  * it should, the Driver is granted before the offering is taken, and the power cap is recorded.
  */
@@ -143,7 +143,7 @@ describe('Trader', () => {
     });
 });
 
-describe('Mirror Protocol', () => {
+describe('Loki\'s Mirror', () => {
     it('charges 25 and copies a deck card into the deck, upgrade and all', async () => {
         const run = runWith('mirror_protocol', { scrap: 100 });
         const target = run.deck[0];
@@ -184,7 +184,7 @@ describe('Mirror Protocol', () => {
     });
 });
 
-describe('Recompiler', () => {
+describe('Seiðr Cauldron', () => {
     it('swaps a collection card for another of the same element and rarity', async () => {
         const given = poolOf('Rare')[0];
         const store = makeStore(atFloor('recompiler', [card('col1', given)]));
@@ -280,7 +280,7 @@ describe('Totem Shrine', () => {
     });
 });
 
-describe('Black-Market Rune', () => {
+describe('The Runecarver', () => {
     it('charges 30 and fits the body\'s best rune', async () => {
         const store = makeStore(runWith('black_market_patch', { scrap: 100 }));
         await mount(store);

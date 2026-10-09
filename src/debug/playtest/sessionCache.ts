@@ -17,9 +17,11 @@ import { existsSync, readdirSync, readFileSync, renameSync, statSync, writeFileS
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { playMoves, replaySession } from './playMoves';
+import { secondRunHeader } from './secondRun';
 import { sessionPath } from './sessionFile';
-import type { LoggedMove, SessionFile, SessionHeader, World } from './types';
-import { applyMove, replayWorld, restoreWorld } from './world';
+import type { LoggedMove, SecondRun, SessionFile, SessionHeader, World } from './types';
+import { restoreWorld } from './world';
 
 const VERSION = 1;
 
@@ -46,18 +48,21 @@ export function codeStamp(): string {
 const headerOf = (session: SessionFile): SessionHeader => ({
     seed: session.seed, starter: session.starter, gymIndex: session.gymIndex, mode: session.mode, tier: session.tier,
     modifiers: session.modifiers, ...(session.budget === undefined ? {} : { budget: session.budget }),
+    ...(session.twoRuns === true ? { twoRuns: true as const } : {}),
 });
 
-const keyFor = (header: SessionHeader, moves: ReadonlyArray<LoggedMove>): string =>
-    createHash('sha1').update(JSON.stringify({ header, moves })).digest('hex');
+/** What a snapshot's key is made of. A session with a second run adds it, so a snapshot older than `again` is never trusted after it. */
+const keyFor = (header: SessionHeader, moves: ReadonlyArray<LoggedMove>, run2?: SecondRun): string =>
+    createHash('sha1').update(JSON.stringify(run2 === undefined ? { header, moves } : { header, moves, run2 })).digest('hex');
 
 export function saveSnapshot(root: string, name: string, session: SessionFile, world: World): void {
     try {
         const header = headerOf(session);
         const state = world.store.getState();
         const body = JSON.stringify({
-            stamp: codeStamp(), count: session.moves.length, key: keyFor(header, session.moves),
+            stamp: codeStamp(), count: session.moves.length, key: keyFor(header, session.moves, session.run2),
             game: state.game, run: state.run.run, view: world.view, findings: world.findings, lastPlay: world.lastPlay,
+            runNumber: world.runNumber,
         });
         const path = snapshotPath(root, name);
         writeFileSync(`${path}.tmp`, body, 'utf8');
@@ -67,7 +72,7 @@ export function saveSnapshot(root: string, name: string, session: SessionFile, w
     }
 }
 
-interface Saved { stamp: string; count: number; key: string; game: never; run: never; view: never; findings: never; lastPlay: never }
+interface Saved { stamp: string; count: number; key: string; game: never; run: never; view: never; findings: never; lastPlay: never; runNumber?: 1 | 2 }
 
 function fromSnapshot(root: string, name: string, session: SessionFile, upTo: number): { world: World; from: number } | null {
     try {
@@ -77,8 +82,22 @@ function fromSnapshot(root: string, name: string, session: SessionFile, upTo: nu
         const header = headerOf(session);
         if (saved.stamp !== codeStamp() || !Number.isInteger(saved.count) || saved.count < 1 || saved.count > upTo) return null;
         if (session.moves[saved.count]?.chained === true) return null;
-        if (saved.key !== keyFor(header, session.moves.slice(0, saved.count))) return null;
-        return { world: restoreWorld(header, { game: saved.game, run: saved.run, view: saved.view, log: session.moves.slice(0, saved.count), findings: saved.findings, lastPlay: saved.lastPlay }), from: saved.count };
+        if (saved.key !== keyFor(header, session.moves.slice(0, saved.count), session.run2)) return null;
+        const { run2 } = session;
+        const runNumber = saved.runNumber ?? 1;
+        if (runNumber === 2) {
+            // 202c: a run-2 snapshot is only the start for a look that is in run 2. `replay --to <the boundary>` of a session
+            // that has gone on past it shows run 1 as it ended, so that look starts again from move 0.
+            if (run2 === undefined || saved.count < run2.atMove || (upTo === run2.atMove && session.moves.length > upTo)) return null;
+        }
+        const worldHeader = runNumber === 2 ? secondRunHeader(header, run2!) : header;
+        return {
+            world: restoreWorld(worldHeader, {
+                game: saved.game, run: saved.run, view: saved.view, log: session.moves.slice(0, saved.count), findings: saved.findings, lastPlay: saved.lastPlay,
+                runNumber, runStart: runNumber === 2 ? run2!.atMove : 0,
+            }),
+            from: saved.count,
+        };
     } catch {
         return null;
     }
@@ -93,8 +112,7 @@ export interface Loaded {
 /** The world after the session's first `upTo` moves (all of them by default), from a snapshot when one can be trusted. */
 export function loadWorld(root: string, name: string, session: SessionFile, upTo: number = session.moves.length): Loaded {
     const start = fromSnapshot(root, name, session, upTo);
-    if (start === null) return { world: replayWorld(session, session.moves.slice(0, upTo)), replayed: upTo };
+    if (start === null) return { world: replaySession(session, upTo), replayed: upTo };
     const { world, from } = start;
-    for (let i = from; i < upTo; i += 1) applyMove(world, session.moves[i], session.moves[i + 1]?.chained === true);
-    return { world, replayed: upTo - from };
+    return { world: playMoves(world, session.run2, session.moves, from, upTo, session.moves.length), replayed: upTo - from };
 }

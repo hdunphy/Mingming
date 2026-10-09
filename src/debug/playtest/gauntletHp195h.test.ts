@@ -35,7 +35,7 @@ function threeAtTheGate(): { world: World; place: Parameters<typeof settleFight>
 }
 
 describe('195h — a gauntlet win carries each member\'s HP under the party\'s own id', () => {
-    it('a member who ended fight 1 at 0 is down; the others are at their HP plus 30% of max', () => {
+    it('a member who ended fight 1 at 0 is revived at 30% of max (202b); the others are at their HP plus 30% of max', () => {
         const { world, place, state } = threeAtTheGate();
         expect(state.playerParty).toHaveLength(3);
         const [a, b, c] = state.playerParty;
@@ -48,21 +48,24 @@ describe('195h — a gauntlet win carries each member\'s HP under the party\'s o
         const plain = plainMaxHp(partyOf(world)[0]);
         const wounded = Math.round((100 * plain) / b.maxHp) + Math.floor((plain * 30) / 100);
         expect(g.fightIndex).toBe(1);
-        expect(g.persistedHp.mm1).toBe(0);
-        expect(g.downedMemberIds).toEqual(['mm1']);
+        const revived = Math.floor((plain * 30) / 100);
+        expect(g.persistedHp.mm1).toBe(revived);
+        expect(g.downedMemberIds).toEqual([]);
         expect(g.persistedHp.mm2).toBe(wounded);
         expect(g.persistedHp.mm3).toBe(plain);
 
         const screen = renderScreen(world, currentScreen(world));
-        expect(screen).toContain(`0/${plain} (down)`);
-        expect(screen).toContain(`${wounded}/${plain}`);
-        expect(screen).toContain('(+');
+        expect(screen).toContain(`${revived}/${plain} (revived at 30%)`);
+        expect(screen).not.toContain('(down)');
+        expect(screen).toContain(`${wounded}/${plain} (repaired 30%, +`);
         // The status line shows the carried numbers too, not "full".
-        expect(statusLine(world)).toMatch(/HP 0;/);
+        expect(statusLine(world)).toContain(`HP ${revived};`);
         expect(statusLine(world)).not.toContain('HP full');
+        // The header sentence states both halves of the rule.
+        expect(screen).toContain('a downed one comes back at 30%');
     });
 
-    it('the next fight opens with the carried HP (a downed member starts at 0)', () => {
+    it('the next fight opens with the carried HP (a downed member starts at the revive floor, 202b)', () => {
         const { world, place, state } = threeAtTheGate();
         const ended = { ...state, playerParty: state.playerParty.map((p, i) => ({ ...p, currentHp: i === 0 ? 0 : 50 })) };
         settleFight(world, place, { state: ended, winner: 'PLAYER', turns: 5, truncated: false, hits: [] });
@@ -70,7 +73,9 @@ describe('195h — a gauntlet win carries each member\'s HP under the party\'s o
         const run = runOf(world);
         const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
         const next = buildFight(world, rollGauntletFight({ run, node, fightIndex: 1 }), run.gauntlet!.persistedHp);
-        expect(next.playerParty.map((p) => p.currentHp)).toEqual([0, run.gauntlet!.persistedHp.mm2, run.gauntlet!.persistedHp.mm3]);
+        expect(next.playerParty.map((p) => p.currentHp)).toEqual([run.gauntlet!.persistedHp.mm1, run.gauntlet!.persistedHp.mm2, run.gauntlet!.persistedHp.mm3]);
+        expect(next.playerParty[0].currentHp).toBe(Math.floor((plainMaxHp(partyOf(world)[0]) * 30) / 100));
+        expect(next.playerParty[0].currentHp).toBeGreaterThan(0);
         expect(next.playerParty[1].currentHp).toBeGreaterThan(50);
     });
 

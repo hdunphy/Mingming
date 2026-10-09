@@ -43,7 +43,7 @@ export function applyMutations(state: IBattleState, mutations: MutationRequest[]
                 } else {
                     // TICKET 16: `buffer_cache`'s death-prevent branch sat here, reading the relic
                     // id off `activeRelics`. The relics are deleted; a Driver that wants this shape
-                    // is a hook (`onHpThresholdCrossed` is how BULWARK REFLEX does it).
+                    // is a hook (`onHpThresholdCrossed` is how SHIELDWALL does it).
                     newState = effectHandlers['ATTACK'](newState, {
                         // Ticket 186e: the mutation's own source, like the heal above. `SYSTEM` only when
                         // nobody is named, so the ledger says who dealt the damage. (With a

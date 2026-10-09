@@ -14,7 +14,7 @@
  *
  *  1. **Rate.** Procs per battle. A Driver that never fires is a VOID arm, not a null one (the
  *     merge report's costliest lesson), and a Driver that fires far more than its design imagined
- *     is the compounding this exists to find — STATIC FIELD under a zoo comp is the flagged case.
+ *     is the compounding this exists to find — STORMSPARK under a zoo comp is the flagged case.
  *  2. **Outcome.** Win rate with the Driver against the same fights without it, PAIRED by seed and
  *     turn order, so the number reported is flips rather than two noisy rates side by side.
  *  3. **Degeneracy.** Any FTK, any stall, any comp the Driver carries past 90% — the same hard

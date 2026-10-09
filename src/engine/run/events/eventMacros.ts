@@ -1,5 +1,5 @@
 /**
- * TICKET 168d — the macros a `MACRO_PICK` outcome offers (Macro Crate).
+ * TICKET 168d — the macros a `MACRO_PICK` outcome offers (Brewer's Cask).
  *
  * `rollMacroChoices` is the roll the gauntlet's reward uses (three different battle macros); it is
  * handed the node's own seed, so the same node offers the same three on resume.

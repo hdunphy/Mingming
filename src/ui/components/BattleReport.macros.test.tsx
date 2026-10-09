@@ -102,8 +102,8 @@ describe('166d — BattleReport draught reward pick', () => {
         // Now drop row appears
         expect(host.textContent).toContain('Your rack is full — drop one to make room');
 
-        // Click slot 1 (Recharge) to drop it
-        const rechargeBtn = Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes('Recharge'));
+        // Click slot 1 (Second Wind) to drop it
+        const rechargeBtn = Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes('Second Wind'));
         expect(rechargeBtn).toBeDefined();
         act(() => {
             rechargeBtn?.click();

@@ -8,7 +8,7 @@ import { matchupScenario } from '../debug/balance/balanceScenarios';
 import type { IBattleEntity, IBattleState, ProgramAction, ProgramConstraint } from './types';
 
 /**
- * TICKET 167e — Surge Protection's refund counts the WHOLE TEAM's triggered draws.
+ * TICKET 167e — Urðarbrunnr's refund counts the WHOLE TEAM's triggered draws.
  *
  * Henry, 2026-09-28: yes to *"make its refund count the whole team's draws."*
  *

@@ -15,7 +15,7 @@
  * # NO CLOSE BUTTON
  *
  * An unresolved event has no way out except one of its choices. Nearly every event carries a
- * Leave choice; two (Corrupted Stream, The Toll) deliberately do not, and a close button would
+ * Leave choice; two (Gjöll Ford, The Toll) deliberately do not, and a close button would
  * turn them into leavable events.
  *
  * # THE DRAW IS FROZEN PER VISIT
@@ -91,7 +91,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
     const [pick, setPick] = useState<PickState | null>(null);
     const [selected, setSelected] = useState<string | null>(null);
     const [toCollection, setToCollection] = useState(false);
-    /** The choice whose upgrades the player is making now (Overclock Rig), gambles already resolved. */
+    /** The choice whose upgrades the player is making now (Brokk's Forge), gambles already resolved. */
     const [upgrading, setUpgrading] = useState<EventChoice | null>(null);
     /** What the last choice did, shown above the dark line so a bad roll is not silent. */
     const [note, setNote] = useState<string>('');
@@ -205,7 +205,7 @@ export default function EventNode({ run, node, ranch, biomeName, onLeave }: Even
         setPick({ choice: played, outcomeIndex: interactive[0], picks: {} });
     };
 
-    // The upgrade bench (Overclock Rig): free, and `count` cards, spent as the player clicks. The
+    // The upgrade bench (Brokk's Forge): free, and `count` cards, spent as the player clicks. The
     // rest of the choice (its junk) is applied on DONE, after every upgrade is made.
     if (upgrading) {
         const upgrade = upgrading.outcomes.find((outcome) => outcome.type === 'UPGRADE');

@@ -17,7 +17,7 @@
  * So this does exactly what `damagePreview.computeDamagePreview` does — **fires the macro through the
  * real reducer on a throwaway copy of the state, under a muted event bus, and reports what happened.**
  * It cannot drift, because there is no second implementation to drift from. The simulated state is
- * discarded, so the simulation's RNG draws (Cache Pull's draw, for instance) never reach the real
+ * discarded, so the simulation's RNG draws (Raven's Draw's draw, for instance) never reach the real
  * game.
  */
 
@@ -81,7 +81,7 @@ export function computeMacroPreview(
     }
 
     // A SELF macro resolves onto the firing unit whatever the player last clicked, so the pool being
-    // measured has to follow the same rule the reducer uses or a Recharge would be measured against
+    // measured has to follow the same rule the reducer uses or a Second Wind would be measured against
     // an enemy that never changed.
     const measuredId = macro.targeting === 'SELF' ? payload.sourceId : payload.targetId;
 
@@ -95,7 +95,7 @@ export function computeMacroPreview(
     /**
      * **A macro that MOVES HP always prints a number, even when that number is zero.**
      *
-     * The distinction is between "this macro does not move HP" (Venom Shot, Cache Pull — whose own
+     * The distinction is between "this macro does not move HP" (Venom Shot, Raven's Draw — whose own
      * description already carries the true count, and restating it from a simulation would be a
      * worse sentence, not a truer one) and "this macro moves HP, and right now it would move none"
      * (a Mend aimed at an ally already at full health). Falling back to prose in the second case

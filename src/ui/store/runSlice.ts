@@ -84,7 +84,7 @@ import { GAUNTLET_FIGHTS } from '../../engine/run/gauntlet';
 import { introRules } from '../../engine/run/intro/introRules';
 import { isMarketNode, upgradePrice } from '../../engine/run/marketplace';
 import { snapshotMarketParty } from '../../engine/run/marketParty';
-import { healBetweenFights } from '../../engine/run/gauntletHeal';
+import { settleBetweenFights } from '../../engine/run/gauntletRevive';
 import type { IRewardPartyMember } from '../../engine/RewardSystem';
 import { rememberOffer } from '../../engine/rewards/recentOffers';
 import { recruitingBlocked } from '../../engine/run/modifiers/noRecruits';
@@ -444,7 +444,7 @@ const runSlice = createSlice({
             // Optional rather than required so a test, a scenario or a future venue can exercise
             // the verb without inventing a bench — not because any shipped venue omits it.
             // TICKET 168c: `allowance` (default 1) is how many upgrades one bench key may spend; the
-            // Overclock Rig's event bench allows two. Each spend adds the key again.
+            // Brokk's Forge's event bench allows two. Each spend adds the key again.
             const spent = run.upgradesTaken ?? [];
             if (benchKey !== undefined && spent.filter((key) => key === benchKey).length >= (allowance ?? 1)) return { run };
 
@@ -551,7 +551,7 @@ const runSlice = createSlice({
         },
 
         /**
-         * TICKET 168f — Firmware Reflash: put a body on another OS **for this run**.
+         * TICKET 168f — Well of Urd: put a body on another OS **for this run**.
          *
          * Writes `run.osOverrides` and nothing else; the ranch member keeps its own `activeOS`, so the
          * switch ends with the run. The cards do not change.
@@ -775,7 +775,7 @@ const runSlice = createSlice({
         },
 
         /**
-         * TICKET 168c — **pay to remove a junk card** (Corrupted Data), from the deck or the
+         * TICKET 168c — **pay to remove a junk card** (Forge Slag), from the deck or the
          * collection. The price rides the action and the scrap and the card move in one step (the
          * `buyMarketCard` rule), so a crash cannot take the scrap and leave the card.
          *
@@ -1240,7 +1240,7 @@ const runSlice = createSlice({
          * `regionLayout` reads it back. See that module for the argument in full.
          *
          * Refused when the slot does not hold the map-reveal (so a mis-click cannot burn a Revive on
-         * the map screen) and when the biome is **already surveyed** — a second Ping Sweep on the
+         * the map screen) and when the biome is **already surveyed** — a second Heimdall's Gaze on the
          * same biome would spend a consumable for no change at all, and the screen greys it out for
          * the same reason.
          */
@@ -1269,7 +1269,7 @@ const runSlice = createSlice({
         /**
          * TICKET 168a — **reveal the biome the run is standing in, with no macro involved.**
          *
-         * The Relay Tower's Survey. `fireMapReveal` above is the Ping Sweep macro's verb: it takes a
+         * The Heimdall's Watch's Survey. `fireMapReveal` above is the Heimdall's Gaze macro's verb: it takes a
          * macro SLOT and burns the consumable in it, so an event cannot call it (there is no slot to
          * name, and passing one would spend a macro the player did not choose to spend). This is its
          * sibling: the same record, the same helpers (`biomeRevealModifier`, `isBiomeRevealed`), no
@@ -1444,6 +1444,7 @@ const runSlice = createSlice({
             const persistedHp: Record<string, number> = { ...gauntlet.persistedHp };
             const downed = new Set(gauntlet.downedMemberIds);
             const healedHp: Record<string, number> = {};
+            const revivedIds: string[] = [];
 
             for (const entry of action.payload) {
                 // Only the party. A battle can contain entities the run does not own (nothing does
@@ -1451,10 +1452,12 @@ const runSlice = createSlice({
                 // matches — harmless until the day something iterates it.
                 if (!run.partyIds.includes(entry.memberId)) continue;
                 const left = Number.isFinite(entry.hp) ? Math.max(0, Math.floor(entry.hp)) : 0;
-                // TICKET 173a: standing members repair 30% of max HP between fights; the downed stay at 0.
-                const repair = entry.maxHp !== undefined ? healBetweenFights(left, entry.maxHp) : { hp: left, healed: 0 };
+                // TICKET 173a: standing members repair 30% of max HP between fights. TICKET 202b: a downed
+                // member is revived at the floor instead of staying at 0 (`gauntletRevive.ts`).
+                const repair = entry.maxHp !== undefined ? settleBetweenFights(left, entry.maxHp) : { hp: left, healed: 0, revived: false };
                 const hp = repair.hp;
                 if (entry.maxHp !== undefined) healedHp[entry.memberId] = repair.healed;
+                if (repair.revived) revivedIds.push(entry.memberId);
                 persistedHp[entry.memberId] = hp;
                 if (hp <= 0) downed.add(entry.memberId);
                 else downed.delete(entry.memberId);
@@ -1472,6 +1475,8 @@ const runSlice = createSlice({
                         downedMemberIds: [...downed],
                         // The last fight's repair is not this one's: rewritten each fight, never merged.
                         ...(Object.keys(healedHp).length > 0 ? { healedHp } : {}),
+                        // Likewise who was revived (202b), so the pit stop says "revived at 30%".
+                        ...(revivedIds.length > 0 ? { revivedMemberIds: revivedIds } : {}),
                     },
                 },
             };

@@ -223,7 +223,7 @@ export default function WorkshopNode({
      * a fact about THIS party. Read from the party rather than the roster — a benched body is not
      * feeding anybody's currency.
      */
-    // TICKET 168f: the firmware each body runs in this run (Firmware Reflash).
+    // TICKET 168f: the firmware each body runs in this run (Well of Urd).
     const partyOS = partyMembers.map((m) => effectiveOS(run, m));
     const benchMembers = bench.map(memberOf).filter((m): m is IRanchMember => m !== undefined);
 

@@ -117,7 +117,7 @@ describe('EventNode', () => {
         expect(host.textContent).toContain(expected.text);
         const choices = [...host.querySelectorAll('button.ev-choice')];
         expect(choices.length).toBeGreaterThanOrEqual(2);
-        // Every event is leavable except Corrupted Stream and The Toll.
+        // Every event is leavable except Gjöll Ford and The Toll.
         expect(byText('Leave') !== undefined).toBe(expected.choices.some((c) => c.id === 'leave'));
     });
 
@@ -153,7 +153,7 @@ describe('EventNode', () => {
         expect(byText('Take it')).toBeUndefined();
     });
 
-    it('pays scrap for Scrap Cache’s Take, then goes dark', async () => {
+    it('pays scrap for Barrow Gold’s Take, then goes dark', async () => {
         const store = makeStore(seenRun(allBut('scrap_cache')));
         await mount(store);
         const before = store.getState().run.run!.scrap;
@@ -162,7 +162,7 @@ describe('EventNode', () => {
         expect(host.textContent).toContain('The relay is dark');
     });
 
-    it('offers Data Fragments’ three cards, needs one picked, and puts it in the deck', async () => {
+    it('offers Scattered Verses’ three cards, needs one picked, and puts it in the deck', async () => {
         const store = makeStore(seenRun(allBut('data_fragments')));
         await mount(store);
         const deckBefore = store.getState().run.run!.deck.length;
@@ -203,7 +203,7 @@ describe('EventNode', () => {
         expect((run1.collection ?? []).length).toBe((run0.collection ?? []).length + 1);
     });
 
-    it('surveys the biome for Relay Tower, and greys Survey when it is already surveyed', async () => {
+    it('surveys the biome for Heimdall\'s Watch, and greys Survey when it is already surveyed', async () => {
         const store = makeStore(seenRun(allBut('relay_tower')));
         await mount(store);
         const before = store.getState().run.run!.modifiers.length;
@@ -223,7 +223,7 @@ describe('EventNode', () => {
         expect(run.eventHistory!.at(-1)).toMatchObject({ eventId: 'empty_relay', choiceId: 'salvage' });
         expect(host.textContent).toContain('The relay is dark');
     });
-    it('offers Dig deeper on Scrap Cache: +50 scrap and Static Haze for the next fight', async () => {
+    it('offers Dig deeper on Barrow Gold: +50 scrap and Barrow Mist for the next fight', async () => {
         const store = makeStore(seenRun(allBut('scrap_cache')));
         await mount(store);
         const before = store.getState().run.run!.scrap;
@@ -234,10 +234,10 @@ describe('EventNode', () => {
         expect(run.drivers).not.toContain('driver_static_haze');
     });
 
-    it('plays Corrupted Stream with no way to leave: Push through gives Frayed Signal', async () => {
+    it('plays Gjöll Ford with no way to leave: Push through gives Gjöll Chill', async () => {
         const store = makeStore({ ...seenRun(allBut('corrupted_stream')), scrap: 10 });
         await mount(store);
-        expect(host.textContent).toContain('CORRUPTED STREAM');
+        expect(host.textContent).toContain('GJÖLL FORD');
         expect(byText('Leave')).toBeUndefined();
         // Under 25 scrap, the reroute is greyed and says why.
         const reroute = byText('Pay to reroute')!;
@@ -250,24 +250,24 @@ describe('EventNode', () => {
         expect(host.textContent).toContain('The relay is dark');
     });
 
-    // TICKET 195f: "Frayed Signal next fight." named a debuff and said nothing about it.
-    it('195f: Push through says what Frayed Signal does, in the debuff\'s own words', async () => {
+    // TICKET 195f: "Gjöll Chill next fight." named a debuff and said nothing about it.
+    it('195f: Push through says what Gjöll Chill does, in the debuff\'s own words', async () => {
         const store = makeStore({ ...seenRun(allBut('corrupted_stream')), scrap: 10 });
         await mount(store);
         const push = byText('Push through')!;
-        expect(push.textContent).toContain('Frayed Signal next fight:');
+        expect(push.textContent).toContain('Gjöll Chill next fight:');
         expect(push.textContent).toContain(plain(describeDriver('driver_frayed_signal').description));
     });
 
-    it('195f: Dig deeper says what Static Haze does, in the debuff\'s own words', async () => {
+    it('195f: Dig deeper says what Barrow Mist does, in the debuff\'s own words', async () => {
         const store = makeStore(seenRun(allBut('scrap_cache')));
         await mount(store);
         const dig = byText('Dig deeper')!;
-        expect(dig.textContent).toContain('Static Haze next fight:');
+        expect(dig.textContent).toContain('Barrow Mist next fight:');
         expect(dig.textContent).toContain(plain(describeDriver('driver_static_haze').description));
     });
 
-    it('lets Corrupted Stream be paid off with 25 scrap, and then gives no Driver', async () => {
+    it('lets Gjöll Ford be paid off with 25 scrap, and then gives no Driver', async () => {
         const store = makeStore({ ...seenRun(allBut('corrupted_stream')), scrap: 40 });
         await mount(store);
         await click(byText('Pay to reroute'));
@@ -277,7 +277,7 @@ describe('EventNode', () => {
 });
 
 describe('EventNode — junk and gambles (168c)', () => {
-    /** A run whose Corrupted Cache gamble lands on the wanted side, found by varying the run seed. */
+    /** A run whose Cursed Hoard gamble lands on the wanted side, found by varying the run seed. */
     function cacheRun(win: boolean): IRunState {
         for (let i = 0; i < 200; i += 1) {
             // A Rare event cannot be drawn in the first biome (rule 4), so the node stands in the second.
@@ -293,7 +293,7 @@ describe('EventNode — junk and gambles (168c)', () => {
         throw new Error('no seed found for the wanted side');
     }
 
-    it('upgrades two cards free at Overclock Rig, then adds one Corrupted Data on DONE', async () => {
+    it('upgrades two cards free at Brokk\'s Forge, then adds one Forge Slag on DONE', async () => {
         const store = makeStore(seenRun(allBut('overclock_rig')));
         await mount(store);
         const before = store.getState().run.run!;
@@ -319,7 +319,7 @@ describe('EventNode — junk and gambles (168c)', () => {
         expect(host.textContent).toContain('The relay is dark');
     });
 
-    it('lets Overclock Rig be left with nothing changed', async () => {
+    it('lets Brokk\'s Forge be left with nothing changed', async () => {
         const store = makeStore(seenRun(allBut('overclock_rig')));
         await mount(store);
         const before = store.getState().run.run!;
@@ -329,7 +329,7 @@ describe('EventNode — junk and gambles (168c)', () => {
         expect(after.eventHistory).toHaveLength(BUILT_EVENTS.size);
     });
 
-    it('Corrupted Cache, on a win, offers three Rare cards and takes nothing else', async () => {
+    it('Cursed Hoard, on a win, offers three Rare cards and takes nothing else', async () => {
         const store = makeStore(cacheRun(true));
         await mount(store);
         const before = store.getState().run.run!;
@@ -346,7 +346,7 @@ describe('EventNode — junk and gambles (168c)', () => {
         expect(after.scrap).toBe(before.scrap);
     });
 
-    it('Corrupted Cache, on a loss, adds Corrupted Data and takes 15 scrap', async () => {
+    it('Cursed Hoard, on a loss, adds Forge Slag and takes 15 scrap', async () => {
         const store = makeStore({ ...cacheRun(false), scrap: 40 });
         await mount(store);
         await click(byText('Open it'));
@@ -357,14 +357,14 @@ describe('EventNode — junk and gambles (168c)', () => {
         expect(host.textContent).toContain('The relay is dark');
     });
 
-    it('Corrupted Cache, on a loss with under 15 scrap, takes what the run holds and no more', async () => {
+    it('Cursed Hoard, on a loss with under 15 scrap, takes what the run holds and no more', async () => {
         const store = makeStore({ ...cacheRun(false), scrap: 5 });
         await mount(store);
         await click(byText('Open it'));
         expect(store.getState().run.run!.scrap).toBe(0);
     });
 
-    it('Corrupted Cache lands on the same side every time for the same node', async () => {
+    it('Cursed Hoard lands on the same side every time for the same node', async () => {
         const run = cacheRun(false);
         const node = run.nodes.find((n) => n.id === run.currentNodeId)!;
         expect([1, 2, 3].map(() => gambleWins({ run, node }, 0, 50))).toEqual([false, false, false]);

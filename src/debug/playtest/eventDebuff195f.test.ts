@@ -23,7 +23,7 @@ function eventBody(eventId: string): string {
 }
 
 describe('195f — the tool\'s event screen', () => {
-    it.each([['scrap_cache', 'driver_static_haze', 'Static Haze'], ['corrupted_stream', 'driver_frayed_signal', 'Frayed Signal']])(
+    it.each([['scrap_cache', 'driver_static_haze', 'Barrow Mist'], ['corrupted_stream', 'driver_frayed_signal', 'Gjöll Chill']])(
         '%s: the option says what %s does',
         (eventId, driverId, name) => {
             const body = eventBody(eventId);

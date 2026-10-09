@@ -27,6 +27,7 @@ Commands:
 - `card --session <name> <card name>` shows one card's full text.
 - `note --session <name> "<text>"` writes a note for the people who read your run.
 - `replay --session <name> --to <n>` shows the screen as it was after your first n moves. It only reads.
+- `again --session <name>` starts your second run on the same save, once the first run has ended. A session plays two runs.
 
 Always use the session name you were given, and end every command with the `--results` folder you were
 given (it is how the tool finds your session). Always read the screen before you move: the numbers change
@@ -40,6 +41,11 @@ a reward, a purchase or an upgrade, think about what your deck needs and pick fo
 
 Every move needs `--why`: one sentence, in plain words, saying why you chose it over the others. A
 reason like "it was first" is a fine reason when it is the true one.
+
+When the run ends, the session is not over. Start a second run on the same save with `again`, use what you
+learned in the first run, and play it to its end. The screen tells you when: "Run 1 is over. Start run 2 with:
+npm run playtest -- again --session <your session> --results <your results folder>". The session is over when
+run 2 ends.
 
 ## Battles
 
@@ -90,5 +96,5 @@ Keep notes to a few sentences. Say what you saw, not what you think the fix is.
 
 Your session may be long. Keep a running plan of three lines or fewer in your head, and update it as
 you go: what your deck is trying to do, what you need next, and what you are saving amber for. Do not
-repeat old screens back to yourself. When the run ends (a win or a loss), write one last note: how it
-felt overall, and the one thing you would change first. Then stop.
+repeat old screens back to yourself. When your second run ends (a win or a loss), write one last note: how
+it felt overall, and the one thing you would change first. Then stop.

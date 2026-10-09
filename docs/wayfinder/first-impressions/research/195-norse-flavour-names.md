@@ -1,8 +1,8 @@
 # Flavour names that still sound like computers: current, and a Norse proposal (for Henry's review)
 
-**Approved by Henry 2026-10-07 with three changes (they are applied below):** Overkill Recovery becomes EINHERJAR FEAST (was VICTORY FEAST), Corrupted Data becomes FORGE SLAG (was Dross) and the Junk Start modifier reads "Start with two Forge Slag in your deck.", Surge Protection becomes URÐARBRUNNR (was Breakwater). Everything else in this list is approved as written. The game itself has not been changed yet.
+**Approved by Henry 2026-10-07 with three changes (they are applied below):** Overkill Recovery becomes EINHERJAR FEAST (was VICTORY FEAST), Corrupted Data becomes FORGE SLAG (was Dross) and the Junk Start modifier reads "Start with two Forge Slag in your deck.", Surge Protection becomes URÐARBRUNNR (was Breakwater). Everything else in this list is approved as written. **Built 2026-10-08** (ticket 195 row 195e-2, one commit on `first-impressions`): every name and line below is now in the game.
 
-Decision D1 of ticket 195 (row 195e-2). **Nothing here is applied.** Once you have marked it up, one commit applies the lot. Ids, saves and the walker's output never change; only the shown name and line do. A line that says "keep" is already fine.
+Decision D1 of ticket 195 (row 195e-2). **All of it is applied (2026-10-08).** One commit applied the lot. Ids, saves and the walker's output never change; only the shown name and line do. A line that says "keep" is already fine.
 
 Pattern: the same as 183i (Instincts) and 192 (Auras and Runes). Each table gives what the player sees now (after the label words, so "scrap" is already "amber"), what I propose, and one line of why. Where the mechanics are fixed (the number of cards, the price, the odds), only the flavour moves; the option labels that name a game word (Retrain, Fit, Pick 1 of 3) stay as they are.
 

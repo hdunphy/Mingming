@@ -37,17 +37,17 @@ describe('chooseEventChoice', () => {
 
     it('never takes a temporary Driver unless it is the only option (168b)', () => {
         const stream = EVENTS.find((e) => e.id === 'corrupted_stream')!;
-        // Corrupted Stream has no free option and no Leave: with 25 scrap the walker pays to
+        // Gjöll Ford has no free option and no Leave: with 25 scrap the walker pays to
         // reroute, and with less it has no choice but to push through.
         expect(chooseEventChoice(stream, 25).id).toBe('reroute');
         expect(chooseEventChoice(stream, 24).id).toBe('push');
-        // Scrap Cache's Dig deeper adds a temporary Driver, so the free Take beats it.
+        // Barrow Gold's Dig deeper adds a temporary Driver, so the free Take beats it.
         expect(chooseEventChoice(EVENTS.find((e) => e.id === 'scrap_cache')!).id).toBe('take');
     });
 
     it('never picks a choice that costs scrap', () => {
         for (const event of EVENTS) {
-            // Corrupted Stream and The Toll have no Leave, so a walker that finds nothing free is
+            // Gjöll Ford and The Toll have no Leave, so a walker that finds nothing free is
             // forced to take something; every other event has an exit and the walker uses it.
             if (!event.choices.some((c) => c.id === 'leave')) continue;
             if (!BUILT_EVENTS.has(event.id)) continue;
@@ -85,7 +85,7 @@ describe('walkRun across event nodes', () => {
 describe('chooseEventChoice for the six pick-a-reward events (168d)', () => {
     const pick = (id: string, scrap?: number): string => chooseEventChoice(EVENTS.find((e) => e.id === id)!, scrap).id;
 
-    it('takes the free pick, and leaves Data Broker because both of its picks cost scrap', () => {
+    it('takes the free pick, and leaves The Skald\'s Price because both of its picks cost scrap', () => {
         expect(pick('abandoned_terminal')).toBe('upgrade');
         expect(pick('wild_tracks')).toBe('pick');
         expect(pick('rare_vault')).toBe('pick');
@@ -117,7 +117,7 @@ describe('playEventNode with a forced event (168d)', () => {
         return { run: store.getState().run.run!, log, ledger };
     };
 
-    it('Abandoned Terminal: upgrades one card', () => {
+    it('The Norns\' Loom: upgrades one card', () => {
         expect(play('abandoned_terminal').run.deck.filter((c) => c.upgraded === true)).toHaveLength(1);
     });
 
@@ -127,7 +127,7 @@ describe('playEventNode with a forced event (168d)', () => {
         expect(run.modifiers.some((m) => m.includes('blueprint'))).toBe(true);
     });
 
-    it('Macro Crate: takes a macro onto the rack', () => {
+    it('Brewer\'s Cask: takes a macro onto the rack', () => {
         expect(play('macro_crate').run.macros.filter((m) => m !== null)).toHaveLength(1);
     });
 
@@ -140,7 +140,7 @@ describe('playEventNode with a forced event (168d)', () => {
         expect(log).toContainEqual({ kind: 'EVENT_RESOLVED', eventId: 'stray_mingming', choiceId: 'recruit' });
     });
 
-    it('Data Broker: leaves without paying', () => {
+    it('The Skald\'s Price: leaves without paying', () => {
         const { run, log } = play('data_broker');
         expect(run.scrap).toBe(createRun({ seed: 'walker-pick', offer: offerGyms('walker-offer')[0], party: [memberFor('mm1', 'kraken_v1')], startedAt: 1 }).scrap);
         expect(log).toContainEqual({ kind: 'EVENT_RESOLVED', eventId: 'data_broker', choiceId: 'leave' });

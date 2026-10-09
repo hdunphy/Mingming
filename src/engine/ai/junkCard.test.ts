@@ -1,7 +1,7 @@
 /**
  * TICKET 168c — the AI and a card with no actions.
  *
- * Corrupted Data costs 1, does nothing and exhausts. The search enumerates it like any card, so this
+ * Forge Slag costs 1, does nothing and exhausts. The search enumerates it like any card, so this
  * proves the empty action list does not break it, that the action it returns is one the reducer
  * accepts, and that playing the card just spends the Energy and exhausts it.
  */
@@ -27,7 +27,7 @@ function board(hand: string[], energy = 3): IBattleState {
     });
 }
 
-describe('168c — Corrupted Data in the AI\'s hand', () => {
+describe('168c — Forge Slag in the AI\'s hand', () => {
     it('returns an action for a hand of nothing but junk, and the reducer accepts it', () => {
         const state = board([JUNK_CARD_ID, JUNK_CARD_ID]);
         const action = getBestAction(state);

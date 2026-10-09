@@ -1,5 +1,5 @@
 /**
- * TICKET 168c — an upgrade bench may allow more than one upgrade per key (the Overclock Rig: two).
+ * TICKET 168c — an upgrade bench may allow more than one upgrade per key (the Brokk's Forge: two).
  */
 
 import { describe, expect, it } from 'vitest';

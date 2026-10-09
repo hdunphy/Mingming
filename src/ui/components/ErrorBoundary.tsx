@@ -23,6 +23,8 @@ import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 
 import { buildCrashReport, copyCrashReport, serializeCrashReport } from '../utils/crashReport';
+import { InlineIcon } from '../theme/InlineIcon';
+import { MARK_ICON } from '../theme/markIcons';
 
 export interface ErrorBoundaryProps {
     children: ReactNode;
@@ -177,7 +179,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                         {this.state.copied === null
                             ? 'COPY CRASH REPORT'
                             : this.state.copied
-                              ? 'COPIED ✓'
+                              ? <>COPIED <InlineIcon {...MARK_ICON.tick} /></>
                               : 'COPY FAILED — SELECT ABOVE'}
                     </button>
                     <button

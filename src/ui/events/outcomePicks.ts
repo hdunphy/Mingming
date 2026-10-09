@@ -16,7 +16,7 @@ export interface CardPickResult {
 /** A blueprint pick (Wild Tracks): the species, banked to the ranch at once. */
 export interface BlueprintPickResult { readonly speciesId: string }
 
-/** A macro pick (Macro Crate). `replaceSlot` is the rack slot to overwrite when the rack is full. */
+/** A macro pick (Brewer's Cask). `replaceSlot` is the rack slot to overwrite when the rack is full. */
 export interface MacroPickResult { readonly macroId: string; readonly replaceSlot?: number }
 
 /** A recruit (Stray Mingming): the species and the firmware it is built on. */
@@ -34,10 +34,10 @@ export interface GiveCardsResult { readonly instanceIds: ReadonlyArray<string> }
 /** A Driver picked at the Driver Shrine. */
 export interface DriverPickResult { readonly driverId: string }
 
-/** The body picked for the Black-Market Patch. */
+/** The body picked for the The Runecarver. */
 export interface PatchPickResult { readonly memberId: string }
 
-/** The body picked for the Firmware Reflash. A different key from `PatchPickResult` so the two never read as each other. */
+/** The body picked for the Well of Urd. A different key from `PatchPickResult` so the two never read as each other. */
 export interface ReflashPickResult { readonly reflashMemberId: string }
 
 export const isGivePick = (pick: OutcomePick): pick is GiveCardsResult => 'instanceIds' in pick;

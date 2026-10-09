@@ -11,8 +11,16 @@
  * logs go to `results/playtest/<date>/` (not committed). At the end it writes the morning report,
  * `docs/playtest/agent-runs/<date>.md` (`npm run playtest:report -- <date>`).
  *
+ * TWO RUNS A SESSION (202c). The brief tells the agent to start a second run on the same save (`playtest -- again`)
+ * when the first ends, so one session is two runs, in one session file and one driver conversation. `--runs` still
+ * counts sessions. The wall-clock limit (80 minutes) is for the whole session; the stall limit (202h) is for each run,
+ * because `again` and every move write the session file. A stall in run 2 ends the driver and the retry resumes from a
+ * session file that still holds run 1.
+ *
  * RESUMABLE. A session with a `driver.json` is finished and skipped; a session folder without one
  * was interrupted, and is picked up where it stopped (the session file holds every move so far).
+ * 202e: but only if it was started for the same seed, starter and gym as tonight's plan says; otherwise
+ * the night stops, before any driver starts, and says which folder to delete or which flags to repeat.
  *
  * Node rather than shell, like the other scripts here, because Henry is on Windows.
  *
@@ -21,7 +29,7 @@
  *   npm run playtest:night -- --runs 2 --minutes 15
  *   npm run playtest:night -- --model sonnet       another model (A3's pilot compares them)
  *   npm run playtest:night -- --starter kraken_v1  every session plays this starter (default: all twelve in turn)
- *   npm run playtest:night -- --max-usd 1          a dollar cap per session (default 3)
+ *   npm run playtest:night -- --max-usd 1          a dollar cap per session (default 10)
  *   npm run playtest:night -- --date 2026-10-02    resume or redo a particular night
  *   npm run playtest:night -- --brief docs/playtest/other.md   give the driver another brief (193i)
  *   npm run playtest:night -- --date 2026-10-06 --seed-date 2026-10-04   a new night on 10-04's seeds (193k)
@@ -42,14 +50,16 @@ import { readOutcome } from './night/driverOutcome.mjs';
 import { findResult } from './night/resultRecord.mjs';
 import { shouldRetry } from './night/retryPolicy.mjs';
 import { createStallWatch } from './night/stallWatch.mjs';
+import { ResumeMismatchError, resumeMatchesPlan, resumeRefusal } from './resumeGuard.mjs';
 
 export const DEFAULTS = Object.freeze({
     runs: 10,
     model: 'haiku',
-    minutes: 35,
+    /** 202c: a session plays two runs, so the limit is 80 minutes (it was 35 for one run). */
+    minutes: 80,
     maxTurns: 600,
     /** A dollar cap for one session, so a first night cannot run away. */
-    maxUsd: 3,
+    maxUsd: 10,
     /** 202h: a session with no move for this many minutes is ended as stalled and retried once at the end. */
     stallMinutes: 8,
     cardRuns: 1,
@@ -232,6 +242,23 @@ export const realDeps = (options) => ({
 });
 
 /**
+ * 202e: every interrupted session in the plan must have been started for the entry it sits in. Checked for the
+ * whole night up front, so a mismatch at r05 stops the night before r01 spends anything.
+ */
+function assertResumable(entries, options, nightDir) {
+    for (const entry of entries) {
+        const folder = path.join(nightDir, entry.session);
+        const sessionPath = path.join(folder, 'session.json');
+        if (fs.existsSync(path.join(folder, 'driver.json')) || !fs.existsSync(sessionPath)) continue;
+        let session;
+        try { session = JSON.parse(fs.readFileSync(sessionPath, 'utf8')); } catch { session = {}; }
+        if (!resumeMatchesPlan(session, entry)) {
+            throw new ResumeMismatchError(resumeRefusal(session, entry, path.posix.join('results', 'playtest', options.date, entry.session)));
+        }
+    }
+}
+
+/**
  * One night. `deps` is the seam the tests use: `plan()`, `newSession(entry)`, `runDriver(spec)` and
  * the folder the night lives in. Returns what it did, session by session.
  */
@@ -239,6 +266,7 @@ export async function runNight(options, deps, root = DEFAULTS.resultsRoot) {
     const nightDir = path.join(root, options.date);
     const brief = fs.readFileSync(options.briefPath ?? DEFAULTS.briefPath, 'utf8');
     const entries = deps.plan();
+    assertResumable(entries, options, nightDir);
     const done = [];
     const driven = [];
     for (const entry of entries) {
@@ -313,6 +341,6 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-    main().catch((error) => { process.stderr.write(`${error.stack ?? error}\n`); process.exit(1); });
+    main().catch((error) => { process.stderr.write(`${error instanceof ResumeMismatchError ? error.message : error.stack ?? error}\n`); process.exit(1); });
 }
 

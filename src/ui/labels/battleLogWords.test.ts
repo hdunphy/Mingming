@@ -1,9 +1,9 @@
 /**
  * The battle log speaks Norse, not machine (Henry's 2026-10-07 playtest: "Fenrir pushes its core to
  * the limit!", "Reprogramming: Ragnarok Edge+"). Every line the log can print, as the CombatLog shows
- * it (through `plain()`), is checked for the machine words. The Totem lines are left for ticket 195e-2
- * (research/195-norse-flavour-names.md), which renames those Totems; they are listed here so the
- * exception is visible and goes when the names do.
+ * it (through `plain()`), is checked for the machine words. Ticket 195e-2 (research/195-norse-flavour-names.md)
+ * renamed the Totems and reworded their six log lines, so there is no exception left: the old Totem names, and
+ * the machine pictures in their lines (a floppy disk, a torn stream, static), fail here too.
  */
 import { readFileSync } from 'fs';
 import { describe, expect, it } from 'vitest';
@@ -11,10 +11,7 @@ import { describe, expect, it } from 'vitest';
 import hooks from '../../engine/data/lib/hooks.json';
 import { plain } from './labels';
 
-const MACHINE = /\b(?:core|overclock\w*|reprogram\w*|CC Immunity|discharges?|arcs into|earths|interference|vents|overheat|hoarded charge)\b/i;
-
-/** Totem log lines that wait for the 195e-2 renames (DEEP CACHE, STATIC FIELD, FRAYED SIGNAL, STATIC HAZE). */
-const WAITING_FOR_195 = /DEEP CACHE|STATIC FIELD|FRAYED SIGNAL|STATIC HAZE/;
+const MACHINE = /\b(?:core|overclock\w*|reprogram\w*|CC Immunity|discharges?|arcs (?:into|off)|earths|interference|vents|overheat|hoarded charge|DEEP CACHE|STATIC FIELD|OVERKILL RECOVERY|BULWARK REFLEX|FRAYED SIGNAL|STATIC HAZE|torn stream|clouded by static)\b|\u{1F4BE}/iu;
 
 function hookTexts(): string[] {
     const out: string[] = [];
@@ -52,7 +49,7 @@ function engineLogTemplates(): string[] {
 
 describe('the battle log has no machine words', () => {
     it('in any hook line, as the log shows it', () => {
-        const found = hookTexts().map((text) => plain(text)).filter((text) => MACHINE.test(text) && !WAITING_FOR_195.test(text));
+        const found = hookTexts().map((text) => plain(text)).filter((text) => MACHINE.test(text));
         expect(found).toEqual([]);
     });
 

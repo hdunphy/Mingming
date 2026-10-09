@@ -49,11 +49,20 @@ describe('180c — the gate', () => {
         expect(between).toContain('gauntlet:begin');
     });
 
-    it('has no begin move when every member is down', () => {
+    it('has no begin move when every member is down (a payload with no max HP: nothing to revive)', () => {
+        const world = worldAt('gym');
+        const downed = runOf(world).partyIds;
+        world.store.dispatch(advanceGauntlet(downed.map((memberId) => ({ memberId, hp: 0 }))));
+        expect(keysOf(world)).not.toContain('gauntlet:begin');
+    });
+
+    it('202b: members who ended the fight at 0 are revived, so the next fight can begin', () => {
         const world = worldAt('gym');
         const downed = runOf(world).partyIds;
         world.store.dispatch(advanceGauntlet(downed.map((memberId) => ({ memberId, hp: 0, maxHp: 100 }))));
-        expect(keysOf(world)).not.toContain('gauntlet:begin');
+        expect(keysOf(world)).toContain('gauntlet:begin');
+        expect(runOf(world).gauntlet!.downedMemberIds).toEqual([]);
+        for (const id of downed) expect(runOf(world).gauntlet!.persistedHp[id]).toBe(30);
     });
 });
 

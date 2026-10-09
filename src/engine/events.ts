@@ -207,7 +207,7 @@ export interface LevelUpEvent extends BaseEvent {
  * float on the owner (`useBattleVfx`).
  *
  * Emitted by the hook's OWNER — the party member whose copy of the Driver fired — so a party-wide
- * Driver that fires per member (OVERKILL RECOVERY heals each) announces once per member, which is
+ * Driver that fires per member (EINHERJAR FEAST heals each) announces once per member, which is
  * the truth of what happened. Muted with the rest of the bus under a preview, and never emitted
  * inside the AI's search (`isSimulating`).
  */

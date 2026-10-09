@@ -13,7 +13,7 @@ export const ModifierSchema = z.object({
     id: z.string().min(1),
     name: z.string().min(1),
     description: z.string().min(1),
-    /** Junk Start: how many Corrupted Data join the starting deck. */
+    /** Junk Start: how many Forge Slag join the starting deck. */
     junkCount: z.number().int().min(1).optional(),
     /** Tight Budget: how much dearer every marketplace and workshop price is, in percent. */
     pricePercent: z.number().int().min(1).optional(),

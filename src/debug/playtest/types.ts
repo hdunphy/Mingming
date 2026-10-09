@@ -33,6 +33,20 @@ export interface SessionHeader {
     readonly modifiers: ReadonlyArray<string>;
     /** How many decisions a run may take before the session stops with outcome `budget`. Left out, `DEFAULT_BUDGET`. */
     readonly budget?: number;
+    /** TICKET 202c: set by `new`. The session is allowed a second run, and the screens say which run this is. Left out of older sessions. */
+    readonly twoRuns?: true;
+}
+
+/**
+ * TICKET 202c — the second run of a session, once `again` has started it. The session's own `seed` and
+ * `gymIndex` stay the plan's, so the night's resume guard still matches; run 2's are here. `atMove` is
+ * how many moves had been made when run 1 ended: moves before it are run 1's, moves from it on are run 2's.
+ */
+export interface SecondRun {
+    readonly seed: string;
+    /** The index of the same gym in run 2's own offer (an offer is drawn per seed, so run 1's index would name another gym). */
+    readonly gymIndex: number;
+    readonly atMove: number;
 }
 
 /** One applied move: its stable key, the agent's one-sentence reason, and an optional prediction. */
@@ -56,6 +70,8 @@ export interface LoggedNote {
 export interface SessionFile extends SessionHeader {
     readonly moves: ReadonlyArray<LoggedMove>;
     readonly notes: ReadonlyArray<LoggedNote>;
+    /** TICKET 202c: present once the session has started its second run. */
+    readonly run2?: SecondRun;
 }
 
 export type PlaytestStore = EnhancedStore<{ game: IRanchState; run: RunSliceState }>;
@@ -116,7 +132,7 @@ export interface EventFlow {
     readonly picks: Readonly<Record<number, OutcomePick>>;
     /** Cards ticked so far in a multi-card step. */
     readonly selected: ReadonlyArray<string>;
-    /** The Overclock Rig's free upgrade bench is open. */
+    /** The Brokk's Forge's free upgrade bench is open. */
     readonly upgrading: boolean;
 }
 
@@ -185,6 +201,10 @@ export interface World {
     readonly findings: Finding[];
     /** The card or macro the agent played in the move being applied, for `--expect` to read. Cleared before each move. */
     lastPlay: PlayRecord | null;
+    /** TICKET 202c: which run of the session this world is in. */
+    readonly runNumber: 1 | 2;
+    /** TICKET 202c: how many moves of `log` were made before this run began (0 in run 1). The decision budget counts from here. */
+    readonly runStart: number;
 }
 
 export interface Move {

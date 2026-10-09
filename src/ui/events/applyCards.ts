@@ -50,7 +50,7 @@ export function applyTradeUp(dispatch: OutcomeDispatch, ctx: OutcomeContext, ins
     dispatch(sellRunCard({ instanceId, price: 0 }));
 }
 
-/** `TRANSFORM` (Recompiler): the given card is swapped for another of its element and rarity. */
+/** `TRANSFORM` (Seiðr Cauldron): the given card is swapped for another of its element and rarity. */
 export function applyTransform(dispatch: OutcomeDispatch, ctx: OutcomeContext, instanceId: string): void {
     const held = findHeld(ctx, instanceId);
     if (!held) return;
@@ -61,7 +61,7 @@ export function applyTransform(dispatch: OutcomeDispatch, ctx: OutcomeContext, i
 }
 
 /**
- * `DUPLICATE` (Mirror Protocol): an exact copy — same card, same upgrade — into the pile the
+ * `DUPLICATE` (Loki's Mirror): an exact copy — same card, same upgrade — into the pile the
  * original is in. A copy into the deck rides ONE action with its price (`buyMarketCard`); a copy
  * into the collection is added first and the price taken after.
  */

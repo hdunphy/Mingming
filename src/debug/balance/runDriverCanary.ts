@@ -80,7 +80,7 @@ function main(): void {
     say();
     /*
      * Per-battle rows, always. The table above is the summary; the rows are the evidence, and the
-     * question the canary was built for — *"STATIC FIELD, flagged for zoo compounding"* — is a
+     * question the canary was built for — *"STORMSPARK, flagged for zoo compounding"* — is a
      * per-COMP question the summary cannot answer. Cheap to print, expensive to re-run.
      */
     say('[balance:drivers] arm                       matchup                            order   winner  turns  procs');

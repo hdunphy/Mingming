@@ -94,7 +94,7 @@ function mintInstanceId(ctx: OutcomeContext, purpose: string, prefix: string): s
     return new SeedStream(nodeSeed(ctx.run, ctx.node, purpose)).nextId(prefix);
 }
 
-/** `JUNK` (168c): one Corrupted Data, into the deck. `index` keeps two junk cards in one choice apart. */
+/** `JUNK` (168c): one Forge Slag, into the deck. `index` keeps two junk cards in one choice apart. */
 function applyJunk(dispatch: OutcomeDispatch, ctx: OutcomeContext, index: number): void {
     const instanceId = new SeedStream(new SeedStream(nodeSeed(ctx.run, ctx.node, 'event-junk')).fork(String(index))).nextId('junk');
     dispatch(addRunCards([{ instanceId, dataId: JUNK_CARD_ID, ownerId: null }]));
@@ -111,7 +111,7 @@ function applyCardPick(dispatch: OutcomeDispatch, ctx: OutcomeContext, pick: Car
     // Ticket 185e: the shown cards are remembered whichever one was taken. Recorded first, so a
     // crash after it can only mean the offer is left out of the next one, never a card taken twice.
     if (pick.offered) dispatch(recordCardOffer(pick.offered));
-    // A priced pick (Data Broker) rides ONE action into the deck — the card and the scrap together,
+    // A priced pick (The Skald's Price) rides ONE action into the deck — the card and the scrap together,
     // as a stall purchase does. A card sent to the collection has no such action, so it is added
     // first and the price taken after: a crash between leaves the player with a free card, not robbed.
     if (price > 0 && !pick.toCollection) { dispatch(buyMarketCard({ card, price })); return; }
@@ -125,7 +125,7 @@ function applyBlueprintPick(dispatch: OutcomeDispatch, pick: BlueprintPickResult
     dispatch(recordBankedBlueprint(pick.speciesId));
 }
 
-/** `MACRO_PICK` (Macro Crate): the reward screen's own action, first free slot or the slot replaced. */
+/** `MACRO_PICK` (Brewer's Cask): the reward screen's own action, first free slot or the slot replaced. */
 function applyMacroPick(dispatch: OutcomeDispatch, pick: MacroPickResult): void {
     dispatch(takeRewardMacro({ macroId: pick.macroId, replaceSlot: pick.replaceSlot }));
 }

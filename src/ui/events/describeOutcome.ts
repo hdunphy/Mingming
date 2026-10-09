@@ -46,7 +46,7 @@ function describeOne(
             return outcome.amount >= 0
                 ? `+${outcome.amount} amber`
                 : `-${Math.min(-outcome.amount, scrapBefore)} amber`;
-        case 'JUNK': return 'Corrupted Data added to your deck';
+        case 'JUNK': return 'Forge Slag added to your deck';
         case 'MAP_REVEAL': return 'This biome is surveyed';
         case 'TEMP_DRIVER': return `${driverText(outcome.driverId).name} for the next fight`;
         case 'UPGRADE': return `${outcome.count} cards upgraded`;

@@ -1,9 +1,9 @@
 [
   {
     "id": "scrap_cache",
-    "name": "Scrap Cache",
+    "name": "Barrow Gold",
     "rarity": "Common",
-    "text": "A sealed maintenance locker, still humming.",
+    "text": "A barrow, half-opened. The gold inside still gleams.",
     "grants": [],
     "choices": [
       {
@@ -20,7 +20,7 @@
       {
         "id": "dig",
         "label": "Dig deeper",
-        "detail": "+50 scrap. Static Haze next fight.",
+        "detail": "+50 scrap. Barrow Mist next fight.",
         "outcomes": [
           {
             "type": "SCRAP",
@@ -43,9 +43,9 @@
   },
   {
     "id": "abandoned_terminal",
-    "name": "Abandoned Terminal",
+    "name": "The Norns' Loom",
     "rarity": "Common",
-    "text": "An old compiler, still warm. It will take one program.",
+    "text": "A loom hung with glowing thread. It will rework one card.",
     "grants": [],
     "choices": [
       {
@@ -69,9 +69,9 @@
   },
   {
     "id": "data_fragments",
-    "name": "Data Fragments",
+    "name": "Scattered Verses",
     "rarity": "Common",
-    "text": "Loose code drifts through the static.",
+    "text": "Half-remembered verses drift on the wind.",
     "grants": [],
     "choices": [
       {
@@ -112,7 +112,7 @@
     "id": "wild_tracks",
     "name": "Wild Tracks",
     "rarity": "Common",
-    "text": "Fresh signal trails lead off the path.",
+    "text": "Fresh paw-prints lead off the path.",
     "grants": [],
     "choices": [
       {
@@ -136,9 +136,9 @@
   },
   {
     "id": "relay_tower",
-    "name": "Relay Tower",
+    "name": "Heimdall's Watch",
     "rarity": "Common",
-    "text": "A survey relay, half-buried. It still has power for one sweep.",
+    "text": "A watchman's post, half-buried. Its horn can still be sounded once.",
     "grants": [],
     "choices": [
       {
@@ -153,7 +153,7 @@
       },
       {
         "id": "strip",
-        "label": "Strip it",
+        "label": "Plunder it",
         "detail": "+20 scrap",
         "outcomes": [
           {
@@ -172,15 +172,15 @@
   },
   {
     "id": "corrupted_stream",
-    "name": "Corrupted Stream",
+    "name": "Gjöll Ford",
     "rarity": "Common",
-    "text": "The path runs through a torn data stream. It will cost you to cross.",
+    "text": "The path runs through a black, churning river. It will cost you to cross.",
     "grants": [],
     "choices": [
       {
         "id": "push",
         "label": "Push through",
-        "detail": "Frayed Signal next fight.",
+        "detail": "Gjöll Chill next fight.",
         "outcomes": [
           {
             "type": "TEMP_DRIVER",
@@ -204,9 +204,9 @@
   },
   {
     "id": "rare_vault",
-    "name": "Rare Vault",
+    "name": "Dragon's Barrow",
     "rarity": "Uncommon",
-    "text": "A locked archive. The lock is already broken.",
+    "text": "A sealed barrow. The seal is already broken.",
     "grants": [],
     "choices": [
       {
@@ -233,9 +233,9 @@
   },
   {
     "id": "macro_crate",
-    "name": "Macro Crate",
+    "name": "Brewer's Cask",
     "rarity": "Uncommon",
-    "text": "A crate of single-use routines, factory-sealed.",
+    "text": "A cask of single-use draughts, sealed with wax.",
     "grants": [],
     "choices": [
       {
@@ -261,7 +261,7 @@
     "id": "trader",
     "name": "Trader",
     "rarity": "Uncommon",
-    "text": "A construct offers to swap. It only trades up.",
+    "text": "A hooded peddler offers to swap. They only trade up.",
     "grants": [],
     "choices": [
       {
@@ -284,15 +284,15 @@
   },
   {
     "id": "overclock_rig",
-    "name": "Overclock Rig",
+    "name": "Brokk's Forge",
     "rarity": "Uncommon",
-    "text": "An overclock rig. It works, mostly.",
+    "text": "A dwarf's forge. It works, mostly.",
     "grants": [],
     "choices": [
       {
         "id": "upgrade",
         "label": "Upgrade two cards",
-        "detail": "Free. Corrupted Data is added to your deck.",
+        "detail": "Free. Forge Slag is added to your deck.",
         "outcomes": [
           {
             "type": "UPGRADE",
@@ -313,9 +313,9 @@
   },
   {
     "id": "data_broker",
-    "name": "Data Broker",
+    "name": "The Skald's Price",
     "rarity": "Uncommon",
-    "text": "A broker with a price list.",
+    "text": "A skald who sells verses by the line. He has a price list.",
     "grants": [],
     "choices": [
       {
@@ -366,7 +366,7 @@
     "id": "stray_mingming",
     "name": "Stray Mingming",
     "rarity": "Uncommon",
-    "text": "A lost Mingming is following your signal.",
+    "text": "A lost Mingming is following your trail.",
     "grants": [],
     "choices": [
       {
@@ -391,7 +391,7 @@
     "id": "ambush_bait",
     "name": "Ambush Bait",
     "rarity": "Uncommon",
-    "text": "Something is nesting in the wreckage, guarding a cache.",
+    "text": "Something is nesting in the ruins, guarding a hoard.",
     "grants": [],
     "choices": [
       {
@@ -415,9 +415,9 @@
   },
   {
     "id": "mirror_protocol",
-    "name": "Mirror Protocol",
+    "name": "Loki's Mirror",
     "rarity": "Uncommon",
-    "text": "A copier. It charges by the job.",
+    "text": "A shapeshifter's pool that copies whatever it is shown. It charges by the job.",
     "grants": [],
     "choices": [
       {
@@ -446,7 +446,7 @@
     "id": "driver_shrine",
     "name": "Driver Shrine",
     "rarity": "Rare",
-    "text": "An old Driver, still humming, cradled in a data shrine. It wants an offering.",
+    "text": "An old Totem, still warm, cradled in a mossy shrine. It wants an offering.",
     "grants": [
       "driver"
     ],
@@ -490,9 +490,9 @@
   },
   {
     "id": "black_market_patch",
-    "name": "Black-Market Patch",
+    "name": "The Runecarver",
     "rarity": "Rare",
-    "text": "A patch dealer, no questions asked.",
+    "text": "A rune-carver, no questions asked.",
     "grants": [
       "patch"
     ],
@@ -536,15 +536,15 @@
   },
   {
     "id": "corrupted_cache",
-    "name": "Corrupted Cache",
+    "name": "Cursed Hoard",
     "rarity": "Rare",
-    "text": "A cache wrapped in corrupted code. Maybe it's fine.",
+    "text": "A hoard wrapped in a curse. Maybe it's fine.",
     "grants": [],
     "choices": [
       {
         "id": "open",
         "label": "Open it (50% / 50%)",
-        "detail": "50%: pick 1 of 3 Rare cards. 50%: Corrupted Data and -15 scrap.",
+        "detail": "50%: pick 1 of 3 Rare cards. 50%: Forge Slag and -15 scrap.",
         "outcomes": [
           {
             "type": "GAMBLE",
@@ -582,7 +582,7 @@
     "id": "the_toll",
     "name": "The Toll",
     "rarity": "Rare",
-    "text": "A construct blocks the path. It wants payment.",
+    "text": "A troll blocks the path. It wants payment.",
     "grants": [],
     "choices": [
       {
@@ -611,9 +611,9 @@
   },
   {
     "id": "firmware_reflash",
-    "name": "Firmware Reflash",
+    "name": "Well of Urd",
     "rarity": "Rare",
-    "text": "A reflash station. One body can be rewritten.",
+    "text": "A still pool beneath the roots. One body can be remade.",
     "grants": [],
     "choices": [
       {
@@ -636,9 +636,9 @@
   },
   {
     "id": "recompiler",
-    "name": "Recompiler",
+    "name": "Seiðr Cauldron",
     "rarity": "Rare",
-    "text": "A recompiler. What goes in is not what comes out.",
+    "text": "A cauldron on the boil. What goes in is not what comes out.",
     "grants": [],
     "choices": [
       {

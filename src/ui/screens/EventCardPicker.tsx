@@ -1,9 +1,9 @@
 /**
  * TICKET 168e — pick cards the event will take: "give up a card", the Trader's and the
- * Recompiler's card, and the card the Mirror Protocol copies.
+ * Seiðr Cauldron's card, and the card the Loki's Mirror copies.
  *
  * A row per card from the deck and the run collection (junk is never listed). Deck rows that would
- * break the deck floor are greyed with the reason; so are rows the Trader or Recompiler has nothing
+ * break the deck floor are greyed with the reason; so are rows the Trader or Seiðr Cauldron has nothing
  * to swap for. Nothing is dispatched here — `applyChoice` takes the cards once the pick is complete.
  */
 

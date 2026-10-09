@@ -1,5 +1,5 @@
 /**
- * TICKET 176d — `previewEncounter`: what the map shows after a Ping Sweep or a Relay Tower Survey
+ * TICKET 176d — `previewEncounter`: what the map shows after a Heimdall's Gaze or a Heimdall's Watch Survey
  * is the fight the node would really roll, not a guess.
  *
  * Driven through the real `enterNode` reducer, because the claim is about what entering does: it

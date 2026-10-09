@@ -92,14 +92,14 @@ const stub = (over: Partial<RunFact> = {}): RunFact => ({
 });
 
 describe('193h — the party table', () => {
-    it('counts sessions, how many reached the gym and how many won, by party size', () => {
+    it('counts runs (a session with one run is one), how many reached the gym and how many won, by party size (202c: runs, not sessions)', () => {
         const table = partyTable([
             stub({ session: 'r01' }), stub({ session: 'r02' }),
             stub({ session: 'r03', partySize: 2, reachedGym: true }),
             stub({ session: 'r04', partySize: 2, reachedGym: true, outcome: 'victory' }),
             stub({ session: 'r05', partySize: 3 }),
         ]);
-        expect(table[0]).toMatch(/Party at the end \| Sessions \| Reached the gym \| Won/);
+        expect(table[0]).toMatch(/Party at the end \| Runs \| Reached the gym \| Won/);
         const rows = table.slice(2).join('\n');
         expect(rows).toMatch(/\| 1 \(solo\) \| 2 \| 0 \| 0 \|/);
         expect(rows).toMatch(/\| 2 \| 2 \| 2 \| 1 \|/);
@@ -122,7 +122,7 @@ describe('193h — in the morning report', () => {
         expect(text.indexOf('Party at the end')).toBeLessThan(text.indexOf('## Invariant failures'));
         const lines = text.split('\n').filter((l) => /^- r0[12]:/.test(l));
         expect(lines).toHaveLength(2);
-        expect(lines[0]).toContain('party of 1, 2 blueprints unspent, ended at Elite');
-        expect(lines[1]).toContain('party of 2, 1 blueprint unspent, ended at Gym');
+        expect(lines[0]).toContain('party of 1, 2 Traces unspent, ended at Elite');
+        expect(lines[1]).toContain('party of 2, 1 Trace unspent, ended at Gym');
     });
 });

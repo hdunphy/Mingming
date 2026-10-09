@@ -2,7 +2,7 @@
  * TICKET 168f — **which firmware is this body running, in this run?**
  *
  * One answer for every run-time read of a party member's OS. The ranch member's `activeOS` is the
- * firmware it carries between runs; an event (Firmware Reflash) can switch it for THIS run only, and
+ * firmware it carries between runs; an event (Well of Urd) can switch it for THIS run only, and
  * that switch lives in `run.osOverrides` so the ranch is never written. Anything that shows or uses
  * a party member's firmware during a run reads it through here, so the fight, the shop, the patch
  * bench and the party screens cannot disagree about it.

@@ -15,6 +15,9 @@ import type { UnitFx } from '../hooks/useBattleVfx';
 import { FxTransientOverlays, FxFloats, TerminatedStamp } from './UnitFxLayer';
 import MonsterArtPlaceholder from './MonsterArtPlaceholder';
 import { monsterArtShown } from './monsterArtShown';
+import { InlineIcon } from '../theme/InlineIcon';
+import { MARK_ICON } from '../theme/markIcons';
+import { INTENT_ICON } from './intentIcons';
 
 
 /** Maps element names to neon accent colors */
@@ -264,13 +267,13 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
             }}
         >
             {/*
-              * The visible half of the verdict. A ✓ marks a unit this card can actually land on;
+              * The visible half of the verdict. A tick marks a unit this card can actually land on;
               * a refusal prints its own sentence, which is the clause ticket 22 borrows from 13/14/20
               * — "make the invalid case SAY WHY rather than being inert".
               */}
             {verdict && (
                 verdict.ok
-                    ? <div className="hud-target-flag legal" data-testid={`target-ok-${entity.id}`}>✓ TARGET</div>
+                    ? <div className="hud-target-flag legal" data-testid={`target-ok-${entity.id}`}><InlineIcon {...MARK_ICON.tick} /> TARGET</div>
                     : <div className="hud-target-flag illegal" data-testid={`target-no-${entity.id}`}>{verdict.reason}</div>
             )}
             {/* ── Sidebar: Art + Level ── */}
@@ -328,11 +331,7 @@ const MingmingUnit: React.FC<MingmingUnitProps> = ({
                                 }}
                                 style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0 0.25rem' }}
                             >
-                                <span style={{ fontSize: '1.2rem', textShadow: '0 0 5px rgba(0,0,0,0.5)' }}>{
-                                    entity.currentIntent.intentType === 'Attack' ? '⚔️' :
-                                        entity.currentIntent.intentType === 'Defend' ? '🛡️' :
-                                            entity.currentIntent.intentType === 'Debuff' ? '🧪' : '🌟'
-                                }</span>
+                                <span style={{ fontSize: '1.2rem', textShadow: '0 0 5px rgba(0,0,0,0.5)' }}><InlineIcon name={INTENT_ICON[entity.currentIntent.intentType]} /></span>
                                 {predictedDamage > 0 && <span style={{ color: 'var(--hp-low)', fontWeight: 'bold', fontSize: '1.1rem', textShadow: '-1px -1px 0 var(--page), 1px -1px 0 var(--page), -1px 1px 0 var(--page), 1px 1px 0 var(--page)' }}>{predictedDamage}</span>}
                             </motion.div>
 

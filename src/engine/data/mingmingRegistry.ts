@@ -131,7 +131,7 @@ export const MingmingRegistry: Record<string, IMingmingDefinition> = {
             "kraken_v1": ["whirlpool", "whirlpool", "undertow", "ink_stream", "pressure_point"],
             // v2: the 2e payoff (boiling_surge), the ramp that reaches it, and scald to load it.
             // TICKET 171e took the kit's `tackle` out (with the three generic hits it opened on four
-            // Tackles in eight cards) and put in a second `capacitor`. TICKET 172 (Henry: "Capacitor
+            // Tackles in eight cards) and put in a second `capacitor`. TICKET 172 (Henry: "Warhorn
             // is not good. I want another damaging card.") makes that slot `surge_protection`: 25
             // power for 1e, Water, and its refund rides on `tide_pool`'s draw. Tagged glue, so the
             // one-payoff rule (157-r1) still counts `boiling_surge` alone; `venom_fang` (30 power)

@@ -7,9 +7,11 @@
  * Every section is always present, with "None." when there is nothing to say, so a reader can tell
  * a quiet night from a missing section.
  */
+import { COMPARABILITY_NOTE } from './comparabilityNote';
 import type { RunFact } from './facts';
 import { groupNotes } from './notes';
 import { partyTable } from './partyTable';
+import { legsOf, type RunLeg } from './runLeg';
 import { TOP, cardTallies, commonReasons, explainedTally, invariantGroups, shelfTallies, surpriseGroups, upgradeTallies } from './tally';
 
 const more = (total: number): string[] => (total > TOP ? [`- ...and ${total - TOP} more (see the logs in results).`] : []);
@@ -21,9 +23,11 @@ export const replayCommand = (date: string, session: string, atMove: number): st
     `npm run playtest -- replay --results results/playtest/${date} --session ${session} --to ${atMove + 1}`;
 
 function summary(date: string, runs: ReadonlyArray<RunFact>): string[] {
-    const count = (outcome: string) => runs.filter((r) => r.outcome === outcome).length;
+    // 202c: a session plays up to two runs, and the counts are of runs.
+    const legs = runs.flatMap((r) => [...legsOf(r)]);
+    const count = (outcome: string) => legs.filter((l) => l.outcome === outcome).length;
     const parts = [
-        `${plural(runs.length, 'run')} played`,
+        `${plural(legs.length, 'run')} played${legs.length === runs.length ? '' : ` in ${plural(runs.length, 'session')}`}`,
         `${count('victory')} won`, `${count('defeat')} lost`, `${count('budget')} stopped by the decision budget`,
         `${count('abandoned') + count('unfinished')} cut short or unfinished`,
     ];
@@ -33,7 +37,7 @@ function summary(date: string, runs: ReadonlyArray<RunFact>): string[] {
     const spend = tokens > 0 || minutes > 0
         ? ` The driver reported ${tokens.toLocaleString('en-US')} tokens, ${Math.round(minutes)} minutes${cost > 0 ? ` and about $${cost.toFixed(2)}` : ''} in all.`
         : '';
-    return [`# Agent playtest night, ${date}`, '', `${parts.join(', ')}.${spend}`, '', ...partyTable(runs)];
+    return [`# Agent playtest night, ${date}`, '', `${parts.join(', ')}.${spend}`, '', ...partyTable(runs), COMPARABILITY_NOTE, ''];
 }
 
 function invariantSection(date: string, runs: ReadonlyArray<RunFact>): string[] {
@@ -68,6 +72,10 @@ function surpriseSection(date: string, runs: ReadonlyArray<RunFact>): string[] {
     ];
 }
 
+/** What a run ended with, in the game's words: fights won, where, the deck, Amber, the party and the Traces not yet summoned. */
+const legText = (l: RunLeg): string =>
+    `${plural(l.fights, 'fight')} won, biome ${l.biome}, ${plural(l.deckSize, 'card')} in the deck, ${l.scrap} amber left, party of ${l.partySize}, ${plural(l.blueprints, 'Trace')} unspent, ended at ${l.endedAt}`;
+
 function runsSection(runs: ReadonlyArray<RunFact>): string[] {
     return [
         '## Runs', '',
@@ -78,7 +86,12 @@ function runsSection(runs: ReadonlyArray<RunFact>): string[] {
                 driver?.tokens === undefined ? null : `${driver.tokens.toLocaleString('en-US')} tokens`,
                 driver?.minutes === undefined ? null : `${Math.round(driver.minutes)} minutes${driver.timedOut ? ' (hit the time limit)' : ''}`,
             ].filter(Boolean).join(', ');
-            return `- ${r.session}: ${r.starter}, gym ${r.gym}, ${r.header.mode} mode. ${r.outcome}; ${plural(r.fights, 'fight')} won, biome ${r.biome}, ${plural(r.deckSize, 'card')} in the deck, ${r.scrap} scrap left, party of ${r.partySize}, ${plural(r.blueprints, 'blueprint')} unspent, ended at ${r.endedAt}, ${plural(r.decisions, 'decision')}${spend ? `, ${spend}` : ''}.`;
+            const legs = legsOf(r);
+            // A session with one run reads as it always did; with two, each run has its own sentence (202c).
+            const body = legs.length === 1
+                ? `${r.outcome}; ${legText(legs[0])}, ${plural(r.decisions, 'decision')}`
+                : `${legs.map((l) => `Run ${l.number}: ${l.outcome}; ${legText(l)}, ${plural(l.decisions, 'decision')}.`).join(' ')} ${plural(r.decisions, 'decision')} in all`;
+            return `- ${r.session}: ${r.starter}, gym ${r.gym}, ${r.header.mode} mode. ${body}${spend ? `, ${spend}` : ''}.`;
         }), '',
     ];
 }

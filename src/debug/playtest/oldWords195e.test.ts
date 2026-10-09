@@ -6,6 +6,9 @@
  * currency. This test renders every screen a session can reach, and every event in `events.json` with every
  * choice taken, and fails on any old word. Ids, saves and the walker's output keep their old names; the move
  * KEYS (`workshop:assemble:...`) are ids and are not read.
+ *
+ * 195e-2 adds the old flavour NAMES (Amber Cache, Frayed Signal, Surge Protection, Free Exec ...): the same
+ * screens must not print any of them either.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -14,6 +17,7 @@ import { MODIFIER_IDS } from '../../engine/run/modifiers/modifierRegistry';
 import { EVENTS } from '../../engine/run/events/eventCatalogue';
 import { playableChoices } from '../../engine/run/events/eventChoices';
 import { OLD_WORDS } from '../../ui/labels/labels';
+import { OLD_FLAVOUR_NAMES } from '../oldFlavourNames';
 import { chooseChoice } from './event/flow';
 import { visitKeyOf } from './event/arrival';
 import { renderScreen, screenJson } from './render';
@@ -31,8 +35,8 @@ export function oldWordsInText(text: string): string[] {
     const found: string[] = [];
     for (const line of text.split('\n')) {
         OLD_WORDS.lastIndex = 0;
-        const hits = line.match(OLD_WORDS);
-        if (hits) found.push(`${[...new Set(hits.map((h) => h.toLowerCase()))].join(',')}: ${line.slice(0, 140)}`);
+        const hits = [...(line.match(OLD_WORDS) ?? []), ...(line.match(OLD_FLAVOUR_NAMES) ?? [])];
+        if (hits.length > 0) found.push(`${[...new Set(hits.map((h) => h.toLowerCase()))].join(',')}: ${line.slice(0, 140)}`);
     }
     return [...new Set(found)];
 }

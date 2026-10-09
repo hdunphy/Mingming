@@ -12,7 +12,7 @@
  *
  * 1. **Every node's type is visible from the start** (ticket 176d). There is no fog: routing is a
  *    decision about the whole road, so the whole road is on the page. What stays hidden is the
- *    SPECIES: which Mingmings wait in a fight shows only after a Ping Sweep or a Relay Tower Survey,
+ *    SPECIES: which Mingmings wait in a fight shows only after a Heimdall's Gaze or a Heimdall's Watch Survey,
  *    for the fights of the biome it was fired in (`encounters`).
  * 2. **The path you walked is lit and the branches you left are dimmed.** There is no visit count any
  *    more: a node is entered once, so "×2" can not happen. What the map can usefully say is where you
@@ -58,16 +58,24 @@ import './RegionMap.css';
 import { Icon } from '../theme/Icon';
 import { MapNodeTooltip } from '../components/MapNodeTooltip';
 import type { AnchoredRect } from '../hooks/useAnchoredRect';
-import { iconPaths } from '../theme/icons';
+import { iconLayers } from '../theme/iconLayers';
+import { GlyphLayerGroups } from '../theme/TablerGlyph';
 import { resolveDriverStake } from '../../engine/run/driverStakes';
 import { AMBUSH_RISK } from '../../engine/run/ambushRisk';
 import { driverText } from '../labels/driverText';
+import { gymTeamSentence } from '../../engine/run/gymTeamElements';
+import { ElementBadge } from '../theme/kit/ElementBadge';
 
 const ELEMENT_COLOR: Record<string, string> = {
     Fire: 'var(--el-fire)',
     Water: 'var(--el-water)',
     Nature: 'var(--hp)',
 };
+
+/** 202j: the gym's team badges hang under its caption and species line: room to draw them in, in viewBox units. */
+const GYM_TEAM_W = 132;
+const GYM_TEAM_H = 24;
+const GYM_TEAM_GAP = 44;
 
 /** How far the biome panels sit inside the canvas, top and bottom. */
 const BAND_INSET_Y = 10;
@@ -102,6 +110,12 @@ export interface RegionMapProps {
      * would actually pay this team (`resolveDriverStake`). Empty by default: the rolled stake.
      */
     readonly partyElements?: ReadonlyArray<string>;
+    /**
+     * TICKET 202j - the elements of the gym leader's team, one per body, in plan order (types only,
+     * never species). Drawn as badges under the gym node, and read out when the gym is hovered. Passed
+     * in because this component takes nodes and names, not a run. Empty by default: nothing is drawn.
+     */
+    readonly gymTeamElements?: ReadonlyArray<string>;
     readonly onTravel: (node: IRegionNode) => void;
 }
 
@@ -117,6 +131,7 @@ export default function RegionMap({
     rivalElements = NO_RIVAL_ELEMENTS,
     encounters = NO_ENCOUNTERS,
     partyElements = NO_ELEMENTS,
+    gymTeamElements = NO_ELEMENTS,
     onTravel,
 }: RegionMapProps): ReactNode {
     const stakeName = (stake: string): string => driverText(resolveDriverStake(stake, partyElements)).name;
@@ -274,6 +289,8 @@ export default function RegionMap({
         const lines = [describe(laid)];
         if (laid.node.kind === 'rival') lines.push('A rival fields the elements this road needs.');
         if (laid.node.driverStake) lines.push(`Totem at stake: ${stakeName(laid.node.driverStake)}`);
+        // 202j: what to expect at the gym, in words, for the badges drawn under it.
+        if (laid.node.kind === 'gym' && gymTeamElements.length > 0) lines.push(gymTeamSentence(gymTeamElements));
         return lines;
     };
 
@@ -464,7 +481,7 @@ export default function RegionMap({
                                             strokeLinecap="round" strokeLinejoin="round"
                                             style={isFight ? { color: ELEMENT_COLOR[element] ?? undefined } : undefined}
                                         >
-                                            {iconPaths(nodeIconFor(laid.node)).map((d) => <path key={d} d={d} />)}
+                                            <GlyphLayerGroups layers={iconLayers(nodeIconFor(laid.node))} />
                                         </svg>
                                     </>
                                 )}
@@ -515,6 +532,25 @@ export default function RegionMap({
                                     <text x={x} y={captionAbove ? captionY - 15 : captionY + 15} textAnchor="middle" className="rm-node-species">
                                         {species}
                                     </text>
+                                )}
+                                {/*
+                                  * TICKET 202j - THE GYM'S TEAM, as element badges under the node.
+                                  *
+                                  * One per body of the leader's team, in plan order, each with its symbol
+                                  * so it reads without colour. Below the caption and the species line, in
+                                  * the empty room under the last column. Types only, never species.
+                                  */}
+                                {laid.node.kind === 'gym' && gymTeamElements.length > 0 && (
+                                    <foreignObject
+                                        x={x - GYM_TEAM_W / 2} y={y + halfH + GYM_TEAM_GAP}
+                                        width={GYM_TEAM_W} height={GYM_TEAM_H}
+                                    >
+                                        <div className="rm-gym-team">
+                                            {gymTeamElements.map((teamElement, i) => (
+                                                <ElementBadge key={i} element={teamElement} decorative />
+                                            ))}
+                                        </div>
+                                    </foreignObject>
                                 )}
                             </g>
                         );
