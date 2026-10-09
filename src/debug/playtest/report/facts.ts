@@ -15,6 +15,8 @@ import { firmwareName } from '../gameText';
 import { currentScreen } from '../screen';
 import type { EndFacts } from './endFacts';
 import { legOf, type RunLeg } from './runLeg';
+import { mainElementOf } from './mainElement';
+import { isDraughtMove } from './shelfKind';
 import { beginSecondRun } from '../secondRun';
 import { readSession, sessionPath } from '../sessionFile';
 import type { MoveAbout, SessionFile } from '../types';
@@ -27,6 +29,10 @@ export interface DecisionFact {
     /** For a card reward: every card that was on offer in this choice. */
     readonly offered: ReadonlyArray<string>;
     readonly why: string;
+    /** TICKET 196a: for a card reward, the deck's main element when it was offered (`mainElementOf`), if it had one. */
+    readonly mainElement?: string;
+    /** TICKET 196a: a buy off the Draught shelf (one name, Mend, is both a card and a Draught). */
+    readonly draught?: true;
 }
 
 export interface NoteFact {
@@ -62,6 +68,8 @@ export interface RunFact extends EndFacts {
     readonly choices: ReadonlyArray<DecisionFact>;
     /** Every buy the shelves offered an affordable move for, once per visit's screen seen. */
     readonly shelfOffers: ReadonlyArray<string>;
+    /** TICKET 196a: the part of `shelfOffers` that was on the Draught shelf. */
+    readonly draughtOffers?: ReadonlyArray<string>;
     readonly driver?: DriverFact;
     /**
      * TICKET 202c: the runs the session played, in order. The numbers above (outcome, fights, party...) are the last
@@ -87,6 +95,7 @@ export function gatherRun(root: string, name: string): RunFact {
     let world = createWorld(session);
     const choices: DecisionFact[] = [];
     const shelfOffers: string[] = [];
+    const draughtOffers: string[] = [];
     const notes: NoteFact[] = [];
     const screenBefore: string[] = [];
     // 202c: a session with a second run is read run by run. Run 1 is closed off into a leg where it ended (with
@@ -106,9 +115,21 @@ export function gatherRun(root: string, name: string): RunFact {
         const chosen = screen.moves.find((m) => m.key === move.key);
         if (chosen?.about) {
             const offered = screen.moves.filter((m) => m.about?.verb === 'take').map((m) => m.about!.items[0]);
-            choices.push({ about: chosen.about, offered: chosen.about.verb === 'skip' ? chosen.about.items : offered, why: move.why });
+            const reward = chosen.about.verb === 'take' || chosen.about.verb === 'store' || chosen.about.verb === 'skip';
+            const mainElement = reward ? mainElementOf(runOf(world).deck) : undefined;
+            choices.push({
+                about: chosen.about, offered: chosen.about.verb === 'skip' ? chosen.about.items : offered, why: move.why,
+                ...(mainElement === undefined ? {} : { mainElement }),
+                ...(isDraughtMove(chosen.key) ? { draught: true as const } : {}),
+            });
         }
-        if (screen.id === 'market') for (const m of screen.moves) if (m.about?.verb === 'buy') shelfOffers.push(m.about.items[0]);
+        if (screen.id === 'market') {
+            for (const m of screen.moves) {
+                if (m.about?.verb !== 'buy') continue;
+                shelfOffers.push(m.about.items[0]);
+                if (isDraughtMove(m.key)) draughtOffers.push(m.about.items[0]);
+            }
+        }
         applyMove(world, move, session.moves[i + 1]?.chained === true);
     });
     // Run 2 has begun but has no move yet: run 1 is closed and run 2 stands at its first screen.
@@ -138,6 +159,7 @@ export function gatherRun(root: string, name: string): RunFact {
         notes,
         choices,
         shelfOffers,
+        draughtOffers,
         driver: readDriverFact(root, name),
         legs,
     };
