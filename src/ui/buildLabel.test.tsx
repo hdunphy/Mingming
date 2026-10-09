@@ -16,13 +16,13 @@ import { Provider } from 'react-redux';
 
 vi.mock('./buildInfo', async (importOriginal) => ({
     ...(await importOriginal<typeof import('./buildInfo')>()),
-    BUILD_INFO: { label: 'PLAYTEST 1', commit: 'abc1234' },
+    BUILD_INFO: { label: 'PLAYTEST 1', version: '0.4.0', commit: 'abc1234' },
 }));
 
 import MainMenuView from './components/MainMenuView';
 import SettingsScreen from './screens/SettingsScreen';
 import { exportRunLogs } from './settings/exportRunLog';
-import { DEFAULT_BUILD_LABEL, UNKNOWN_BUILD_COMMIT, buildText, resolveBuildInfo } from './buildInfo';
+import { DEFAULT_BUILD_LABEL, DEFAULT_GAME_VERSION, UNKNOWN_BUILD_COMMIT, buildText, resolveBuildInfo } from './buildInfo';
 import battleReducer from './store/battleSlice';
 import gameReducer from './store/gameSlice';
 import runReducer from './store/runSlice';
@@ -68,11 +68,11 @@ function makeStore() {
 }
 
 describe('the build label shows where a tester looks', () => {
-    it('the main menu renders the injected label and commit, and not the old hard-coded alpha line', async () => {
+    it('the main menu renders the injected label, version and commit (181e), and not the old hard-coded alpha line', async () => {
         await act(async () => {
             root.render(<Provider store={makeStore()}><MainMenuView /></Provider>);
         });
-        expect(host.textContent).toContain('PLAYTEST 1 · abc1234');
+        expect(host.textContent).toContain('PLAYTEST 1 · v0.4.0 · abc1234');
         expect(host.textContent).not.toContain('ALPHA v0.3.5');
     });
 
@@ -82,14 +82,14 @@ describe('the build label shows where a tester looks', () => {
         });
         const note = host.querySelector('[data-testid="settings-build"]');
         expect(note).toBeTruthy();
-        expect(note!.textContent).toContain('PLAYTEST 1 · abc1234');
+        expect(note!.textContent).toContain('PLAYTEST 1 · v0.4.0 · abc1234');
         // Same section as the export button: the label sits where the log it names is exported.
         expect(note!.closest('section')).toBe([...host.querySelectorAll('button')].find(b => /No runs recorded|Save \d+ run/.test(b.textContent ?? ''))!.closest('section'));
     });
 });
 
 describe('an exported run log names its build', () => {
-    it('writes build: { label, commit } at the top of the envelope', () => {
+    it('writes build: { label, version, commit } at the top of the envelope (181e: build.version)', () => {
         const files = new Map<string, string>();
         (window as unknown as Record<string, unknown>).mingmingDesktop = {
             isDesktop: true,
@@ -107,20 +107,20 @@ describe('an exported run log names its build', () => {
 
         expect(files.size).toBe(1);
         const envelope = JSON.parse([...files.values()][0]) as { build?: unknown; logs: unknown[] };
-        expect(envelope.build).toEqual({ label: 'PLAYTEST 1', commit: 'abc1234' });
+        expect(envelope.build).toEqual({ label: 'PLAYTEST 1', version: '0.4.0', commit: 'abc1234' });
         expect(envelope.logs).toHaveLength(1);
     });
 });
 
 describe('the defaults', () => {
     it('no env var reads dev, and no git reads unknown', () => {
-        expect(resolveBuildInfo(undefined, undefined)).toEqual({ label: DEFAULT_BUILD_LABEL, commit: UNKNOWN_BUILD_COMMIT });
-        expect(resolveBuildInfo('', '   ')).toEqual({ label: 'dev', commit: 'unknown' });
+        expect(resolveBuildInfo(undefined, undefined)).toEqual({ label: DEFAULT_BUILD_LABEL, version: DEFAULT_GAME_VERSION, commit: UNKNOWN_BUILD_COMMIT });
+        expect(resolveBuildInfo('', '   ', ' ')).toEqual({ label: 'dev', version: '0.0.0', commit: 'unknown' });
         expect(DEFAULT_BUILD_LABEL).toBe('dev');
-        expect(buildText(resolveBuildInfo(undefined, 'abc1234'))).toBe('dev · abc1234');
+        expect(buildText(resolveBuildInfo(undefined, 'abc1234', '0.4.0'))).toBe('dev · v0.4.0 · abc1234');
     });
 
     it('trims a label that came in with stray whitespace', () => {
-        expect(resolveBuildInfo('  PLAYTEST 1  ', ' 5557bbb ')).toEqual({ label: 'PLAYTEST 1', commit: '5557bbb' });
+        expect(resolveBuildInfo('  PLAYTEST 1  ', ' 5557bbb ', ' 0.4.0 ')).toEqual({ label: 'PLAYTEST 1', version: '0.4.0', commit: '5557bbb' });
     });
 });

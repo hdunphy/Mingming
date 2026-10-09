@@ -467,9 +467,11 @@ export function fightLogIdsIn(logs: ReadonlyArray<IRunLog>): string[] {
  * Injected by the caller (`ui/settings/exportRunLog.ts`) rather than read here: the engine has no
  * build step of its own, and a parameter keeps this module pure. Written at the top level of the
  * envelope as `build: { label, commit }`, so a tester's file names the build it came from.
+ * TICKET 181e adds `version`, the game's `major.minor.patch`.
  */
 export interface IRunLogBuild {
     readonly label: string;
+    readonly version: string;
     readonly commit: string;
 }
 

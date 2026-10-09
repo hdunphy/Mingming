@@ -1,6 +1,7 @@
 import { defineConfig, configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
 /*
  * TICKET 42: `base` is the ONE build difference between the web app and the desktop one, and ticket
@@ -27,6 +28,13 @@ const DESKTOP = process.env.MINGMING_DESKTOP === '1'
  * stripped CI checkout) reads `unknown`. The deploy workflow sets the label from `PLAYTEST_LABEL`.
  */
 const BUILD_LABEL = process.env.VITE_BUILD_LABEL?.trim() || 'dev'
+
+/*
+ * TICKET 181e: the game's version, `major.minor.patch`. `package.json` is the only place it is
+ * written; a release bumps it (`npm version minor --no-git-tag-version`) and the deploy publishes
+ * only when the tag `v<version>` does not exist yet.
+ */
+const GAME_VERSION: string = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version
 
 function buildCommit(): string {
   try {
@@ -56,5 +64,7 @@ export default defineConfig({
     // Ticket 181a. Read through `src/ui/buildInfo.ts`, which supplies the defaults.
     __BUILD_LABEL__: JSON.stringify(BUILD_LABEL),
     __BUILD_COMMIT__: JSON.stringify(buildCommit()),
+    // Ticket 181e. Read through `src/ui/buildInfo.ts` as well.
+    __GAME_VERSION__: JSON.stringify(GAME_VERSION),
   },
 })
