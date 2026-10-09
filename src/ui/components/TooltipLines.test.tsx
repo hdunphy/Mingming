@@ -15,6 +15,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { ProgramAction, StatusType } from '../../engine/types';
 import { iconsIn } from '../theme/iconMarkup';
 import { STATUS_ICON_NAMES } from '../theme/kit/statusIconPaths';
+import { BASE_FONT_PX } from '../settings/settings';
 import { hasPictograph } from '../theme/pictographs';
 import { EFFECT_ICON } from './cardEffectIcons';
 import { EffectLine, GlossaryStatusIcon, MetMark, RequirementsLabel } from './TooltipLines';
@@ -99,11 +100,31 @@ describe('the tooltip icons are bigger: 1.25em (206 B10)', () => {
         for (const [action] of LINES) expect(sized(renderToStaticMarkup(<EffectLine action={action} />)), action.type).toBe(true);
     });
 
-    it('the Requirements triangle and the met tick match it', () => {
-        expect(sized(renderToStaticMarkup(<RequirementsLabel />))).toBe(true);
-        expect(sized(renderToStaticMarkup(<MetMark />))).toBe(true);
+});
+
+/**
+ * Follow-up to 206 B10 (Henry, 2026-10-09): 1.25em is relative to each line's own text, so on the
+ * Requirements label (0.55rem) the triangle came out 11 px and on the conditional (0.62rem) the tick
+ * 12.4 px. They, and the glossary's status icon (also 0.62rem), are sized in rem: 14 px on the
+ * default root, and the Text size setting scales the root (`applySettings` sets `<html>` font-size).
+ */
+describe('the triangle, the tick and the glossary icon are 14 px at the default text size', () => {
+    const remPx = (markup: string): number | undefined => {
+        const m = /style="[^"]*width:([\d.]+)rem;height:([\d.]+)rem/.exec(markup);
+        return m && m[1] === m[2] ? Number(m[1]) * BASE_FONT_PX : undefined;
+    };
+
+    it('the Requirements triangle', () => {
+        expect(remPx(renderToStaticMarkup(<RequirementsLabel />))).toBe(14);
     });
 
+    it('the met tick', () => {
+        expect(remPx(renderToStaticMarkup(<MetMark />))).toBe(14);
+    });
+
+    it('the glossary status icon', () => {
+        expect(remPx(renderToStaticMarkup(<GlossaryStatusIcon status="Poison" />))).toBe(14);
+    });
 });
 
 /**
@@ -119,9 +140,9 @@ describe('a glossary status icon sits on its line and follows the text size', ()
         expect(iconsIn(renderToStaticMarkup(<GlossaryStatusIcon status={status} />))).toEqual([{ name: STATUS_ICON_NAMES[status], variant: 'outline' }]);
     });
 
-    it('is sized in em, not px, and drops onto the line', () => {
+    it('is sized in a font-relative unit, not px, and drops onto the line', () => {
         const markup = renderToStaticMarkup(<GlossaryStatusIcon status="Burn" />);
-        expect(markup).toMatch(/style="[^"]*width:[\d.]+em;height:[\d.]+em/);
+        expect(markup).toMatch(/style="[^"]*width:[\d.]+r?em;height:[\d.]+r?em/);
         expect(markup).toMatch(/style="[^"]*vertical-align:-0\.15em/);
     });
 });
