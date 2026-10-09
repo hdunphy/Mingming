@@ -1,6 +1,6 @@
 # Ticket 208: What Henry's 2026-10-08 Ratatoskr v1 playtest notes asked for: Hamstring, Rat's frame, Seed Bomb, Corrosive Leak's name, and the water stutter
 
-**Type:** one card number, one species frame, one card (a decision already open in 206), one rename, and one stutter that needs measuring in the real game before anything is fixed. **Status:** **OPENED 2026-10-09**, no rulings yet. Every row below says what was found, gives the options with the lean first, and ends with the question Henry has to answer. Nothing is built.
+**Type:** one card number, one species frame, one card (a decision already open in 206), one rename, and one stutter that needs measuring in the real game before anything is fixed. **Status:** **OPENED 2026-10-09; first rulings 2026-10-09.** Henry ruled that **Hamstring is removed** (208a), that **the frame recorder is built** (208e-1), and that **Seed Bomb is ignored for now** (208c). He also ruled the **three starters' new frames** (208b). Row 208d still needs a name from him. **Nothing is built or changed yet**; this file is the only thing edited so far.
 
 **Where it comes from.** `playtest-results/2026-10-08/rat_v1/notes.md` (gitignored folder). It is five bullets, quoted here in full, and the folder holds **only that file**: no run log and no fight logs. So which fights, which cards, which battle speed and whose turn were not available to check, and every row below is checked against the code, the balance reports and a measurement made on 2026-10-09, not against the run.
 
@@ -32,15 +32,28 @@
 
 | Row | What | Kind | State |
 |---|---|---|---|
-| 208a | **Hamstring does too little for a card with no STAB** | One card number, or a design call | Open: three options |
-| 208b | **Ratatoskr's frame (62 / 55 / 63) was priced for a third Energy he no longer has** | Species stats | Open: needs a number and a measurement |
-| 208c | **Seed Bomb** (the same decision as 202d P3 in ticket 206, C1; do not build it twice) | One card number | Open: folded into 206 C1 |
-| 208d | **Rename Corrosive Leak** | Name only | Open: needs a name |
-| 208e | **The water stutter: build the frame recorder, then fix what it names** | Instrument first, fix second | Open: needs Henry to play once |
+| 208a | **Hamstring: remove it** (it no longer counters the gym) | Card removal | **Ruled 2026-10-09: remove.** Not done yet; scope listed below |
+| 208b | **The three starters' frames** (Ratatoskr's was priced for a third Energy he no longer has) | Species stats | **Ruled 2026-10-09: Kraken 60/80/89, Ratatoskr 62/75/72, Fenrir 66/92/68.** Not applied yet; needs a measurement |
+| 208c | **Seed Bomb** (the same decision as 202d P3 in ticket 206, C1; do not build it twice) | One card number | **Parked by Henry 2026-10-09** ("ignore for now") |
+| 208d | **Rename Corrosive Leak** | Name only | Open: re-checked 2026-10-09, still not renamed; needs a name |
+| 208e | **The water stutter: build the frame recorder, then fix what it names** | Instrument first, fix second | **Recorder approved 2026-10-09**; not built yet; then needs Henry to play once |
 
 ---
 
-## 208a: Hamstring does too little for a card with no STAB
+## 208a: Hamstring (ruled 2026-10-09: remove it)
+
+**Ruling.** Henry: "Let's just remove hamstring, it doesn't counter the gym anymore." That settles the question below by dropping the card, so options A, B and C in item 6 are **superseded** and kept only as the record of why Hamstring looked the way it did. The reason in item 4 for the card existing (a neutral answer to Emberfall's WAR FOOTING Driver) is gone with the gym's new answer list from ticket 207.
+
+**Removal scope (nothing below has been done; found by searching the source on 2026-10-09).**
+1. **The card:** its entry in `src/engine/data/programs.json`. Repo policy for a removed card is "deleted is deleted" (`programAliases.ts`): no alias to a replacement, the old card stays in the `programs-v1.json` archive, saved runs skip a card that is no longer there, and an unknown id throws in a dev build and warns in a production build (`registryMiss.ts`).
+2. **Where it is offered:** `NEUTRAL_UTILITY_IDS` in `speciesPools.ts` (it is first in the list, so the neutral slot's first choice changes) and `GYM_COUNTER_ANSWERS.gym_emberfall` in `marketplace.ts`.
+3. **Where it is played:** `hel_v1`'s deck in `mingmingRegistry.ts` (needs a replacement card, and the copy cap and deck size checked) and the hand-built Tidewrack counter party in `src/debug/balance/handbuiltParties.ts` (two copies).
+4. **Tests and fixtures that name it:** `marketplace.test.ts`, `skillsThatHitAreAttacks.test.ts`, `contactCards.test.ts`, one comment in `StanceSystem.test.ts`, the `None` sample in `scripts/vfxStage.tsx`, and one saved scenario (`src/debug/scenarios/playtest/round-5/S5-stab-fire-vs-panel-ramp.scenario.json`).
+5. **Comments** in `marketplace.ts`, `speciesPools.ts` and `mingmingRegistry.ts` that explain Hamstring, and the design record (`collection-v2`), which is regenerated by `npm run decks` then `python build.py` (already Henry's chore in 206).
+6. **Measure after.** `hel_v1` and the Tidewrack counter party both change cards, so their numbers move; re-run them once with the rest of this ticket's changes.
+7. **Open question for Henry.** What `hel_v1` (and the Tidewrack counter party) get in Hamstring's slot. Lean: `tackle`, the plain neutral attack, so the deck's shape does not change.
+
+*The investigation that led here (kept as the record):*
 
 1. **The two cards (`src/engine/data/programs.json`).** Hamstring: element None, Common, 1 Energy, "20 power. Apply 2 Weakened." There is no Hamstring+. Thorn Tithe: Nature, Uncommon, 1 Energy, "30 power. Apply 3 Weakened." (Thorn Tithe+ is 30 power and 5 Weakened.)
 2. **The rule behind "missing STAB" (`src/engine/combatUtils.ts`).** `STAB_BONUS` is 1.5 and applies only when the card's element matches the attacker's. `element: 'None'` never gets it (a `None` card used to get it from everyone by accident, and that was fixed). So a neutral card needs 1.5 times the printed power to do what the same number does on a card of the attacker's own element.
@@ -54,7 +67,25 @@
 7. **Test (if A).** Hamstring's printed text and its action both read 30; a pinned damage test for a neutral 30-power card against a 20-power STAB card of the same attacker is equal; `hel_v1`, the Tidewrack counter party and the Emberfall cell are re-run once with the rest of this ticket's number changes.
 8. **Question for Henry.** A, B or C. If A, is 30 the number, or does he want it felt first?
 
-## 208b: Ratatoskr's frame was priced for a third Energy he no longer has
+## 208b: The starters' frames (ruled 2026-10-09)
+
+**Ruling.** Henry changed all three starters (HP / Attack / Defense), and Ratatoskr keeps his 5 card draw. Energy and draw otherwise stay as they are (2 Energy each; draw 4 for Kraken and Fenrir, 5 for Ratatoskr). This **supersedes options A, B and C in item 5 below**, which stay as the record. Attack 75 is the value item 3 already priced (stat 33, +22%).
+
+| Starter | Now (HP / ATK / DEF, total) | Ruled (HP / ATK / DEF, total) | Attack stat at level 15, IV 15 | Defense stat at level 15, IV 15 |
+|---|---|---|---|---|
+| Kraken (Water) | 58 / 100 / 87 (245) | **60 / 80 / 89 (229)** | 41 to **35** (about 15% less damage on every attack) | 37 to 37 (no change) |
+| Fenrir (Fire) | 66 / 91 / 69 (226) | **66 / 92 / 68 (226)** | 38 to 38 (no change) | 31 to 31 (no change) |
+| Ratatoskr (Nature) | 62 / 55 / 63 (180) | **62 / 75 / 72 (209)** | 27 to **33** (about 22% more damage on every attack) | 29 to **32** (about 9% less damage taken) |
+
+Stats use the game's formula `floor((2 * base + IV + 25) * 15 / 100) + 5`. Two things the table shows that the base numbers hide. **Fenrir's change is invisible in the damage maths** at the game's fixed level: attack 91 and 92 both give 38, and defense 69 and 68 both give 31, so his fights will not change at all unless HP (66 is unchanged) or something else moves. If Henry wanted Fenrir to feel different, 92/68 is too small a step; say so and I will find the smallest base change that moves a stat. **Kraken's attack cut is the largest effect of the three** (35 against 41), and it lands on the species that carries every Water attack, so it also changes the damage of the Water casts in 208e (the enemy's Kraken-frame Water attackers hit a bit softer too).
+
+**What applying it touches** (not done; this ticket is the only edit so far):
+1. The three frames in `src/engine/data/mingmingRegistry.ts` (Ratatoskr's draw stays 5). I have not yet searched for tests that pin Kraken's or Fenrir's stats; I only checked Ratatoskr's earlier (none). That is a first step before editing.
+2. Everyone who fields these frames: Rootfall's boss team (Ratatoskr v1), the Nature wilds (Ratatoskr), any Kraken and Fenrir members of gym teams and wilds, the hand-built parties, and the 202d starter numbers (`research/202d-v1-starters.md`: ratatoskr_v1 94.0% fight one and 80.1% fight two on the walker's route). All of those move.
+3. **Measure once, after the whole change** (together with the Hamstring removal in 208a): the field run for all three starters in v1 and v2, the first-biome opener and wild, and the Rootfall, Emberfall and Tidewrack cells (`_scratch_balance/202d-t4/cellsv.ts` has the cells script, `README.txt` the commands). Ticket 136's field band is 35 to 80; Ratatoskr was at 60.2 (v1) and 53.7 (v2) before this change, and a 22% attack raise should move him up, while Kraken's cut should move him down. Kraken is the one to watch, since he was the strongest frame.
+4. **Seed Bomb (208c)** is now read against Rat's new attack: ten cards from a 33-attack Rat is much closer to the "starter-frame" numbers in 208c item 2, so 206 C1 should be decided on the new measurement.
+
+*The investigation that led here (kept as the record):*
 
 1. **The facts (`mingmingRegistry.ts`).** Ratatoskr: HP 62, Attack 55, Defense 63, Energy 2, card draw 5; total 180. Fenrir: 66 / 91 / 69 (226). Kraken: 58 / 100 / 87 (245). The next lowest totals I could read are Skoll and Hraesvelgr at 220. I read Henry's "the other two" as the other starters (`INTRO_STARTERS`: Kraken, Fenrir, Ratatoskr). The midpoint of Fenrir and Kraken is 62 / 95.5 / 78: **his HP is already at it**; attack and defense are far below.
 2. **How it got here.** Ticket 32 called attack 55 "the lowest of all 16 species, offset by 3 Energy and cardDraw 4". Ticket 136d (commit `b39c351`, ticket 136 closed 2026-09-04) took the third Energy back because at 3 Energy he ran **73% and 79%** against the field (v1 and v2), and the lever it chose was Energy, not the frame; the shipped package left him at **60.2 (v1) and 53.7 (v2)**. The frame was never revisited. So Henry's reading is correct: the reason for the low frame is gone. The reason for the removal is not: he was too strong.
@@ -79,6 +110,8 @@
 
 ## 208d: Rename Corrosive Leak
 
+**Re-checked 2026-10-09 at Henry's request ("I think the changes came in, can we confirm"): the rename has not landed.** The card is still `Corrosive Leak` in the current branch, in every local and remote branch ref and in every worktree. Caveat: the remote branches are as of the last fetch, and the session's shell cannot fetch, so a rename pushed since then would not show. If Henry did it on another machine, push it or tell me the branch.
+
 1. **Where it stands.** The card is `corrosive_leak` (Water, Rare, 0 Energy, Skill: "Poison yourself 2 stacks. Gain 1 Energized.") with a `Corrosive Leak+`. Every local and remote branch carries the old name; `new-cards` has no such card because it predates it. The history of the name is two commits (the card's first appearance and the `+` registry in 163a). The 195e-2 Norse names list (events, Draughts, event debuffs, Totems, 7 cards, 2 modifier lines) does not include it. Nothing is being renamed in another branch that I can find.
 2. **Why it may have bothered Henry (a guess, not his words).** It reads like an attack on the enemy and sits beside Corrosive Bolt, an attack in the same Water and Poison family, but the card poisons **you** to gain Energy. Ticket 196 lists it as one of the "cards that cost you something", picked 0 of 10 times.
 3. **What the rename touches.** The display name only; the id `corrosive_leak` stays, because saves, decks, `speciesPools.ts` (jormungandr_v1's pool), `bosses.ts` (a boss deck) and the tests key on the id. The strings to change: `programs.json` (the card and the `+`, which is a separate name field), and the design record's four files (`collection-v2/collection.py`, `collection.json`, `registry.json`, `upgrades.json`), regenerated by `npm run decks` then `python build.py`, which is already on Henry's chore list in 206. No test in `src` pins the name (only the design record and old saved scenario logs carry it), but run the gate.
@@ -86,6 +119,8 @@
 5. **Question for Henry.** The name, or "pick one of the three". Then it is a ten-minute change.
 
 ## 208e: The water stutter: build the frame recorder, then fix what it names
+
+**Henry 2026-10-09: "We really need to investigate the water attack stutter. The recorder/profiler is worth building."** Row 208e-1 is approved. It is not started; this ticket is the plan. Build it test first, with the AI-planning mark in item 4 as a first-class tag, and have it pass `scripts/assert-no-debug.mjs` (an opt-in recorder must be allowed in the production build and free when off).
 
 1. **What is already done.** Two stutter fixes are committed: `ccce4b82` (the particle layer draws straight onto its own canvas; the compositor is gone, the big-hit stutter) and `96a49bd7` (the run log is written once per quiet window, the whole-game slowdown). The write-up is the project doc `claude/vfx-stutter-2026-10-05.md`, which ends "If the run-log fix does not cure it either, add an opt-in frame recorder". Henry's note says water attacks **still** stutter, so something water-shaped is left, or the build he played did not have both.
 2. **Measured 2026-10-09** on a production build of the stage sheet (`stage.html`) in headless Chromium in the cloud container, 1280 by 720, software raster, at the game's default battle speed (Showy): one cast per page load, a 5-second window, mean of four loads at device pixel ratio 1 and three at ratio 2. "Slack" is the milliseconds of frame time above 16.7 across the window; lower is smoother.
@@ -118,12 +153,12 @@
 
 | # | Decision | Options (lean first) | Row |
 |---|---|---|---|
-| 1 | **Hamstring** | A: 20 to 30 power (re-measure hel_v1 and Emberfall) · B: leave as the cheap neutral answer · C: retire it for a v2 neutral buff answer (162b, a design session) | 208a |
-| 2 | **Ratatoskr's frame** | A: attack to about 75 to 85 and defense to about 70, measured · B: the full midpoint (62 / 95 / 78) · C: leave the frame, change Seed Bomb | 208b |
-| 3 | **Seed Bomb** | Leave it here; decide 202d P3 in 206 C1 after 208b is measured. If P3 goes ahead, Seed Bomb+ has to move too | 208c / 206 C1 |
-| 4 | **Corrosive Leak's new name** | Swallow Brine (lean) · Bitter Gall · Serpent's Gall · your own | 208d |
-| 5 | **Water stutter** | Build the recorder (lean), then one playtest; or answer the four questions in 208e-7 first | 208e |
+| 1 | **Hamstring** | **Decided 2026-10-09: remove it.** Still open: what replaces it in `hel_v1` and the Tidewrack counter party (lean: `tackle`) | 208a |
+| 2 | **The starters' frames** | **Decided 2026-10-09:** Kraken 60 / 80 / 89, Ratatoskr 62 / 75 / 72 (draw stays 5), Fenrir 66 / 92 / 68. Open: Fenrir's change does not move a stat at level 15 (see 208b), so is that intended? | 208b |
+| 3 | **Seed Bomb** | **Parked by Henry 2026-10-09.** Decide 202d P3 in 206 C1 after 208b is measured; if P3 goes ahead, Seed Bomb+ has to move too | 208c / 206 C1 |
+| 4 | **Corrosive Leak's new name** (not renamed anywhere as of 2026-10-09) | Swallow Brine (lean) · Bitter Gall · Serpent's Gall · your own | 208d |
+| 5 | **Water stutter** | **Recorder approved 2026-10-09 (build it), then one playtest.** The four questions in item 7 of 208e are still free to answer first | 208e |
 
 ## Resolution
 
-Not started.
+2026-10-09: Henry's rulings recorded above (remove Hamstring, new frames for all three starters, build the recorder, park Seed Bomb). No code, data or test has been changed. Next, when Henry says go: the Hamstring removal, the frame change, and the recorder, each as its own commit, with one measurement after the number changes.
