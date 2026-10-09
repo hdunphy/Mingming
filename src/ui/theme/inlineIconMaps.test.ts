@@ -58,8 +58,8 @@ describe('the picks (205)', () => {
     it('enemy intents: sword, shield, flask for the potion, star for everything else', () => {
         expect(INTENT_ICON).toEqual({ Attack: 'sword', Defend: 'shield', Debuff: 'flask', Buff: 'star', Special: 'star', Unknown: 'star' });
     });
-    it('the type chart: DNA on the button; the STAB footer is NOT the bolt', () => {
-        expect(TYPE_CHART_ICON).toEqual({ toggle: 'dna', stab: 'circle-plus' });
+    it('the type chart: the table on the button; the STAB footer is NOT the bolt', () => {
+        expect(TYPE_CHART_ICON).toEqual({ toggle: 'table', stab: 'circle-plus' });
     });
     it('the marks', () => {
         expect(MARK_ICON).toEqual({

@@ -7,7 +7,7 @@ import { formatMultiplier } from './elementMatchups';
 import { iconNamesIn } from '../theme/iconMarkup';
 
 /**
- * TICKET 205 - the type chart's DNA button and its STAB footer draw Tabler icons.
+ * TICKET 205 - the type chart's table button and its STAB footer draw Tabler icons.
  *
  * The footer's old symbol was a bolt. The bolt means energy and nothing else (ticket 200, ruled), and
  * a same-element bonus is not energy, so the footer draws the circled plus instead.
@@ -15,9 +15,9 @@ import { iconNamesIn } from '../theme/iconMarkup';
 describe('the type chart button and footer (205)', () => {
     const button = (): string => /<button[\s\S]*?<\/button>/.exec(renderToStaticMarkup(<TypeChartPanel />))?.[0] ?? '';
 
-    it('the toggle draws the DNA icon, and keeps its accessible name', () => {
+    it('the toggle draws the table icon (B7, ruled 2026-10-09), and keeps its accessible name', () => {
         const markup = button();
-        expect(iconNamesIn(markup)).toEqual(['dna']);
+        expect(iconNamesIn(markup)).toEqual(['table']);
         expect(markup).toContain('aria-label="Type chart"');
     });
 

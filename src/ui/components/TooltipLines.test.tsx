@@ -16,7 +16,7 @@ import type { ProgramAction } from '../../engine/types';
 import { iconsIn } from '../theme/iconMarkup';
 import { hasPictograph } from '../theme/pictographs';
 import { EFFECT_ICON } from './cardEffectIcons';
-import { EffectLine, MetMark, RequirementsLabel } from './TooltipLines';
+import { EffectLine, GlossaryStatusIcon, MetMark, RequirementsLabel } from './TooltipLines';
 
 const act = (a: Record<string, unknown>): ProgramAction => a as unknown as ProgramAction;
 
@@ -83,5 +83,54 @@ describe('the Requirements heading and the met tick (205)', () => {
 
     it('a met conditional draws the tick', () => {
         expect(iconsIn(renderToStaticMarkup(<MetMark />))).toEqual([{ name: 'check', variant: 'outline' }]);
+    });
+});
+
+/**
+ * 206 item B10 (Henry, 2026-10-09): the tooltip's icons were too small. They draw at 1.25em, which is
+ * 14 px on a 0.7rem effect line at the default text size and still follows the Text size setting.
+ * The glossary's status icons are fixed px, so they go from 11 to 14.
+ */
+describe('the tooltip icons are bigger: 1.25em, and 14 px for the status glossary (206 B10)', () => {
+    const sized = (markup: string): boolean => /style="[^"]*width:1\.25em;height:1\.25em/.test(markup);
+
+    it('every effect line draws its icon at 1.25em', () => {
+        for (const [action] of LINES) expect(sized(renderToStaticMarkup(<EffectLine action={action} />)), action.type).toBe(true);
+    });
+
+    it('the Requirements triangle and the met tick match it', () => {
+        expect(sized(renderToStaticMarkup(<RequirementsLabel />))).toBe(true);
+        expect(sized(renderToStaticMarkup(<MetMark />))).toBe(true);
+    });
+
+    it('a glossary status icon is 14 px', () => {
+        const markup = renderToStaticMarkup(<GlossaryStatusIcon status="Burn" />);
+        expect(markup).toContain('data-status-icon="Burn"');
+        expect(markup).toMatch(/<svg[^>]* width="14" height="14"/);
+    });
+});
+
+/**
+ * 206 item B10, second half (Henry, 2026-10-09): thicker lines, not filled. Every tooltip icon draws at
+ * stroke 2 instead of the kit's 1.7. The status glossary's icons were already 2 (`STATUS_STROKE`).
+ */
+describe('the tooltip icons draw at stroke 2, still outline (206 B10)', () => {
+    const svgTag = (markup: string): string => /<svg[^>]*>/.exec(markup)?.[0] ?? '';
+    const heavyOutline = (markup: string): void => {
+        expect(svgTag(markup)).toContain('stroke-width="2"');
+        expect(markup).not.toContain('data-variant="filled"');
+    };
+
+    it('every effect line', () => {
+        for (const [action] of LINES) heavyOutline(renderToStaticMarkup(<EffectLine action={action} />));
+    });
+
+    it('the Requirements triangle and the met tick', () => {
+        heavyOutline(renderToStaticMarkup(<RequirementsLabel />));
+        heavyOutline(renderToStaticMarkup(<MetMark />));
+    });
+
+    it('a glossary status icon (already 2 before this)', () => {
+        expect(svgTag(renderToStaticMarkup(<GlossaryStatusIcon status="Burn" />))).toContain('stroke-width="2"');
     });
 });
