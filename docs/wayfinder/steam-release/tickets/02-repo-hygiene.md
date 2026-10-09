@@ -12,7 +12,7 @@ Clean the working tree so every later ticket starts from a trustworthy `git stat
 
 1. Follow `_WARNING-line-endings.md` verbatim: `git diff --numstat | awk '$1!=$2'` must print nothing unexpected, then restore the ~160 phantom files with `git checkout --`. Delete the warning file when clean. Consider a `.gitattributes` (`* text=auto eol=crlf` for docs, or the team's choice) so the sweep cannot recur.
 2. Remove or gitignore root-level artifacts that are not source: `test_results.txt` (18 MB), `test_output.txt`, `tsc_err.txt`, `tsc_errors.log`, `debug_reducer.txt`, `_repo_head.tgz`, `migrateCount.mjs`, `replaceStatus.mjs`, `update_factory*.js`, `_scratch_balance/`, `_transfer6/`, `dist/` if tracked. Keep `scratch/` only if something imports from it.
-3. `src/assets/battleArt/mingming/Kraken.png` is 7.37 MB and ships in `dist/` — re-export at ≤200 KB (the other PNGs are 41–71 KB).
+3. `src/assets/battleArt/mingming/Kraken.png` is 7.37 MB and ships in `dist/` — re-export at ≤200 KB (the other PNGs are 41–71 KB). *(Note 2026-10-09: `Kraken.png` and `Ratatoskr.png` were removed from the game (`62d3c86`; no AI-generated picture ships), so this step no longer applies; the resolution's §3 below is history.)*
 4. `index.html` still links `/vite.svg`; drop it for now (the real icon lands in ticket 42).
 
 ## Done when
