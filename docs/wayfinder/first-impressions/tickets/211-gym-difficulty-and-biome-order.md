@@ -1,6 +1,6 @@
 # Ticket 211: The gym's difficulty and the biome order (design)
 
-**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; **211b shipped 2026-10-08** (`24a56ec`, the new biome order is the default); **207 shipped 2026-10-08/09** (`d7a5a75` .. `9e96f78`), so the bench can run on the teams that ship; **202b's revive merged 2026-10-09** (merge `7778dec`), so 211e is unblocked; 211a, 211c, 211d and 211e not started. **This ticket does not close until Henry has played the new order** (*"gate closing the ticket on a play test so I don't forget"*). Split out of the 10-08 night review ([208](208-night-2026-10-08-findings.md)).
+**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; **211b shipped 2026-10-08** (`24a56ec`, the new biome order is the default); **207 shipped 2026-10-08/09** (`d7a5a75` .. `9e96f78`), so the bench can run on the teams that ship; **202b's revive merged 2026-10-09** (merge `7778dec`), so 211e is unblocked; 211a, 211c, 211d and 211e not started. **This ticket does not close until Henry has played the new order** (*"gate closing the ticket on a play test so I don't forget"*). Split out of the 10-08 night review ([212](212-night-2026-10-08-findings.md)).
 
 ## Why
 
@@ -101,7 +101,7 @@ If one arm lands near 60% for full teams, that is the proposal. If none does, th
 
 ### 211d: The night
 
-A primed night (208b's default) on the 10-04 seeds with the picked configuration. The target is a full-team gym win rate near 60% for the agent.
+A primed night (212b's default) on the 10-04 seeds with the picked configuration. The target is a full-team gym win rate near 60% for the agent.
 
 ## Rulings (2026-10-08)
 
@@ -125,4 +125,4 @@ A primed night (208b's default) on the 10-04 seeds with the picked configuration
 
 Open. 211b shipped 2026-10-08 (`24a56ec`); 207 has landed and 202b's revive is merged (2026-10-09, `7778dec`), so 211e and then 211a/211c can start. Still waiting on Henry's playtest of the new order (D5) and his pick of the setting (D2).
 
-**Ticket number:** opened as 206; renumbered 209, then 211 on 2026-10-09 (209 and 210 are taken on other branches) (Henry: *"rename your tickets please"*) because the other branch's [206](206-open-decisions-2026-10-08.md) was written in parallel. Its night-review parent, opened as 205, is now [208](208-night-2026-10-08-findings.md). Commit messages and code comments before 2026-10-09 say 206 and 205.
+**Ticket number:** opened as 206; renumbered 209, then 211 on 2026-10-09 (209 and 210 are taken on other branches) (Henry: *"rename your tickets please"*) because the other branch's [206](206-open-decisions-2026-10-08.md) was written in parallel. Its night-review parent, opened as 205 (then 208), is now [212](212-night-2026-10-08-findings.md). Commit messages and code comments before 2026-10-09 say 206 and 205.

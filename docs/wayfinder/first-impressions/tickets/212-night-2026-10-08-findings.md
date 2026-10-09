@@ -1,6 +1,6 @@
-# Ticket 208: What the 2026-10-08 agent nights found: a summon bug, the primed brief as default, an isolated driver, the summon fee, and the screens that confused the agent
+# Ticket 212: What the 2026-10-08 agent nights found: a summon bug, the primed brief as default, an isolated driver, the summon fee, and the screens that confused the agent
 
-*Opened as 205; renumbered 208 on 2026-10-09 because the other branch's [205](205-emoji-to-tabler.md) was written in parallel. Commit messages before that date say 205.*
+*Opened as 205; renumbered 208, then 212 on 2026-10-09 (205 and 208 are taken on other branches). Commit messages before that date say 205 or 208.*
 
 **Type:** one game bug, three night-script changes, screen text in the game and the tool, a list of reported problems to check, one measurement night. **Status:** **RULED 2026-10-08** (Henry, on the review page "Primed Brief Night 10-08"); not started.
 
@@ -18,21 +18,21 @@
 2. **Test first.** Run the test on the parent, see it fail, and put "fails on parent: yes" in the commit message.
 3. **One commit per row,** with the gate green first. Stage explicit paths only and don't push. Commits are authored as Henry (`git -c user.name='Henry Dunphy' -c user.email='hdunphy15@gmail.com'`), with no Co-Authored-By trailer.
 4. **Small single-purpose modules, composed** (Henry's standing preference).
-5. **Order:** 208a first (it loses a player's Trace). Then 208b and 208c, which the next night needs. Then 208d and 208e. 208f is a checklist that can run beside them. 208g is the night that measures the rest.
+5. **Order:** 212a first (it loses a player's Trace). Then 212b and 212c, which the next night needs. Then 212d and 212e. 212f is a checklist that can run beside them. 212g is the night that measures the rest.
 
 | Row | What | Kind | State |
 |---|---|---|---|
-| 208a | **A second same-species summon in one Den visit does nothing** but spends the Trace | Game bug | Ruled |
-| 208b | **The primed brief is the default;** `--naive` runs the plain one to test new-player comprehension; the primed brief also covers the loadout and the status words | Night script + brief | Ruled |
-| 208c | **The driver runs without Henry's plugins and connectors** | Night script | Ruled ("if it will improve it then sure") |
-| 208d | **The summon fee is shown where Traces are sold** | Screen text, game and tool | Ruled |
-| 208e | **Five wording fixes** the agent tripped on | Screen text, game and tool | Ruled ("everything found today") |
-| 208f | **Ten reported problems to check, then fix or close** | Checklist | Ruled ("everything found today") |
-| 208g | **One primed night** on the isolated driver, after 208a–208e | Measurement night | Ruled |
+| 212a | **A second same-species summon in one Den visit does nothing** but spends the Trace | Game bug | Ruled |
+| 212b | **The primed brief is the default;** `--naive` runs the plain one to test new-player comprehension; the primed brief also covers the loadout and the status words | Night script + brief | Ruled |
+| 212c | **The driver runs without Henry's plugins and connectors** | Night script | Ruled ("if it will improve it then sure") |
+| 212d | **The summon fee is shown where Traces are sold** | Screen text, game and tool | Ruled |
+| 212e | **Five wording fixes** the agent tripped on | Screen text, game and tool | Ruled ("everything found today") |
+| 212f | **Ten reported problems to check, then fix or close** | Checklist | Ruled ("everything found today") |
+| 212g | **One primed night** on the isolated driver, after 212a–212e | Measurement night | Ruled |
 
 ---
 
-## 208a: A second same-species summon in one Den visit does nothing
+## 212a: A second same-species summon in one Den visit does nothing
 
 1. **What was seen.** In four runs (10-08 plain r12; primed r18, r27, r30), the agent summoned two Mingmings of the same species in one Den visit. The second time the screen said "Summoned Fenrir on Muspel Wall." and the Trace count dropped by one. But no Amber was charged, no cards were added and the Mingming never joined the party.
 2. **Reproduced.** Replaying 10-08 primed r27 with `npm run playtest -- replay --results results/playtest/2026-10-08-primed-haiku --session r27 --to 11`, then `--to 12`:
@@ -46,7 +46,7 @@
 5. **Tests.** Two Fenrirs summoned into the party in one Den visit: both join, 50 Amber is charged, 10 cards are added, and all card instance ids are unique. The same for the bench. If a recruit is refused for any reason, the Trace count is unchanged.
 6. **Note.** Saved sessions that hit this will replay differently from that move on (the second summon now works). Say so in the commit.
 
-## 208b: The primed brief is the default, and `--naive` runs the plain one
+## 212b: The primed brief is the default, and `--naive` runs the plain one
 
 1. **Henry:** *"Yes default to include but leave option to ignore to test new player comprehension."*
 2. **The change.**
@@ -62,7 +62,7 @@
    - The primed brief is still the naive one plus one section (the 202f test keeps passing).
    - The report names the brief.
 
-## 208c: The driver runs without Henry's plugins and connectors
+## 212c: The driver runs without Henry's plugins and connectors
 
 1. **What was seen.** Every driver session on 10-08 started with Henry's own Claude Code setup. Its `init` line in `driver.log` lists:
    - 10 plugins: mingming-scope (which reported "Mingming rules on"), repo-law, mingming-report-shaper, stats-bar, agent-orchestrator, mattpocock-skills, unity and three built-ins.
@@ -75,7 +75,7 @@
    - The report states the tokens per session against 10-08's, so Henry sees what it saved.
 4. **Tests.** `driverCommand` carries the isolation flags. The existing A4 assertions (Bash only, the allow list, `dontAsk`) stay.
 
-## 208d: The summon fee is shown where Traces are sold
+## 212d: The summon fee is shown where Traces are sold
 
 1. **What was seen.** 14 notes on the plain night came from agents that bought or held a Trace, spent their Amber in the shop, and found the 25-Amber summon fee only inside the Den (10-08 plain r05, r10, r14, r21, r22, r24, r30, r33, r35, r36). For example: *"it showed 'Fenrir [SOLD]' with no mention that summoning it costs another 25 amber"* (r10).
 2. **The line.** Wherever a Trace is offered for Amber, its line adds the fee: "Huldra Trace [50 Amber] · summoning it costs 25 more at a Den".
@@ -84,7 +84,7 @@
    - Read the fee from `WORKSHOP_ASSEMBLY_SCRAP` through `shopPrice` (so Tight Budget raises it too), never typed in.
 3. **Tests.** With a Trace on the shelf, the game's shop and the tool's market screen both show the fee at the value `shopPrice(run, WORKSHOP_ASSEMBLY_SCRAP)` returns, with and without Tight Budget.
 
-## 208e: Five wording fixes
+## 212e: Five wording fixes
 
 1. **A spent event says "The relay is dark. Nothing here now." for every event,** not only the Relay Tower. Seen after Toll, Overclock Rig and Trader (10-08 plain r11, r23; primed r23, r28). It is hard-coded in `src/ui/screens/EventNode.tsx` and `src/debug/playtest/screens/eventScreen.ts`, and "relay" is also left over from the old robot vocabulary. Replace it with **"Nothing more here."** (Henry, 2026-10-08: *"Sure"*).
 2. **"HP full" in the header next to a fight result showing a member at 0** (22 notes, both nights). The header is right: HP is restored after every fight outside the gym. The fight result's "HP left: …" line should say so: "HP left at the end of the fight (restored before the next one): …". This applies in the tool, and on the game's result screen if it has the same line.
@@ -94,7 +94,7 @@
 
 Tests: one per item, on the text each screen prints.
 
-## 208f: Ten reported problems to check, then fix or close
+## 212f: Ten reported problems to check, then fix or close
 
 Each comes from the 10-08 notes and none has been reproduced yet. Reproduce from the replay named, then either fix it in its own commit or close the line here with what was found.
 
@@ -111,30 +111,30 @@ Each comes from the 10-08 notes and none has been reproduced yet. Reproduce from
 | 9 | The Trace count jumps (1 to 6 at the gym gate, 7 to 12 with nothing summoned) | plain r11, primed r26. Probably the gym's 5-Trace payout plus a gate reward; if so, the screen should say where they came from |
 | 10 | Amber shown while choosing a paid event option (Data Broker) or an elite reward is the pre-payment value | plain r10, r31; primed r21 |
 
-## 208g: One primed night on the isolated driver
+## 212g: One primed night on the isolated driver
 
-After 208a–208e: `npm run overnight -- --models haiku --starter all --runs 36 --card-runs 1 --date <d>`. That is the primed brief by default, on the 10-04 seeds and the isolated driver. Compare it with 10-08 primed:
+After 212a–212e: `npm run overnight -- --models haiku --starter all --runs 36 --card-runs 1 --date <d>`. That is the primed brief by default, on the 10-04 seeds and the isolated driver. Compare it with 10-08 primed:
 
 - wins and full teams;
-- tokens per session (208c);
+- tokens per session (212c);
 - Den use and summons in the first biome;
-- deck size at the gym (208b's loadout line);
-- the same-species summon now working (208a).
+- deck size at the gym (212b's loadout line);
+- the same-species summon now working (212a).
 
 ---
 
 ## Rulings (2026-10-08, Henry, on the review page)
 
 - Fix the summon bug, with everything else found today, in one ticket (this one).
-- The primed brief is the default; the plain one stays behind a flag for comprehension tests (208b).
-- Isolate the driver "if it will improve it" (208c).
-- Show the summon fee where Traces are sold (208d).
-- The 20–25 deck target is "arbitrary … as long as the agent knows how to use the load out and drops cards it doesn't want" (208b §3).
+- The primed brief is the default; the plain one stays behind a flag for comprehension tests (212b).
+- Isolate the driver "if it will improve it" (212c).
+- Show the summon fee where Traces are sold (212d).
+- The 20–25 deck target is "arbitrary … as long as the agent knows how to use the load out and drops cards it doesn't want" (212b §3).
 - The gym's difficulty and the biome order are a separate design ticket (211).
 
 ## Decisions for Henry
 
-1. ~~**D1, the spent-event line (208e §1).**~~ Answered 2026-10-08: "Nothing more here."
+1. ~~**D1, the spent-event line (212e §1).**~~ Answered 2026-10-08: "Nothing more here."
 
 None open.
 
