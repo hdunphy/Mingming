@@ -4,7 +4,7 @@
 
 ## Why
 
-Fire has two wolves: Fenrir and Sköll. The element trim colour is shared per element, so the only thing that tells two Fire creatures apart on screen is their silhouette. Henry's question and ruling:
+Fire has two wolves: Fenrir and Sköll. Two Fire creatures that are both wolves are hard to tell apart on screen, and no element trim is added to the art (Henry, 2026-10-09: *"We won't add our own fire trim in"*), so the shape and material of the art itself have to do that work. Henry's question and ruling:
 
 > *"What are your thoughts on replacing skoll with surtr? With skoll we have two fire type wolves"*
 
