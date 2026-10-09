@@ -36,7 +36,7 @@ Lean: **B for the dead data only** (it costs nothing and nothing reads it), then
 | Row | What | State |
 |---|---|---|
 | 213a | Recount the engine-data emoji and list which are dead | **DONE 2026-10-09** (see *213a: the recount* below; nothing deleted): **77 lines in the engine source** (74 hold the character, 3 more write it as a `\u` escape), plus 4 in tests and 4 in the standalone `card-browser.html`. **Dead: 16.** The 14 `icon` lines in `statusGlossary.ts` (nothing reads them) and 2 log lines in executors that no card, hook, Draught or Totem uses (Taunt, Redirect target). **Live: 61** combat-log lines |
-| 213b | Delete the dead per-status emoji in `statusGlossary.ts` (no behaviour change) | Not started; needs Henry's pick |
+| 213b | Delete the dead per-status emoji in `statusGlossary.ts` (no behaviour change) | Not started. **Henry, 2026-10-09: not on its own**; it goes with the rest of 213 when he picks those rows |
 | 213c | The prefixes: leave, remove, or draw (A, B or C) | Needs Henry's pick |
 
 ## 213a: the recount (2026-10-09, at `9eb2e95`)
@@ -78,3 +78,5 @@ The 2026-10-08 count (about 74) was the character count of the engine source and
 ## Resolution
 
 Open.
+
+**Henry, 2026-10-09:** the 16 dead lines 213a found (the 14 `icon` lines in `statusGlossary.ts` and the Taunt and Redirect target log lines) are **not deleted on their own**. They go together with the rest of ticket 213 when he picks its rows (213b, 213c), so the lean above's "B for the dead data only" first step is not taken.
