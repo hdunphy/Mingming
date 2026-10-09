@@ -7,6 +7,7 @@
  * stand-ins) is read as one.
  */
 import { decisionsIn } from '../world';
+import type { AmberLedger } from './amber';
 import { endFactsOf, type EndFacts } from './endFacts';
 import type { World } from '../types';
 import { runOf } from '../types';
@@ -22,6 +23,8 @@ export interface RunLeg extends EndFacts {
     readonly scrap: number;
     /** The decisions made in this run alone. */
     readonly decisions: number;
+    /** TICKET 197a: where this run's Amber came from and went, when the run was read by replaying it. */
+    readonly amber?: AmberLedger;
 }
 
 /** The run `world` is in, as it stands. */

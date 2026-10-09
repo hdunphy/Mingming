@@ -16,6 +16,7 @@ import { currentScreen } from '../screen';
 import type { EndFacts } from './endFacts';
 import { legOf, type RunLeg } from './runLeg';
 import { mainElementOf } from './mainElement';
+import { openLedger, recordMove } from './amber';
 import { isDraughtMove } from './shelfKind';
 import { beginSecondRun } from '../secondRun';
 import { readSession, sessionPath } from '../sessionFile';
@@ -102,10 +103,14 @@ export function gatherRun(root: string, name: string): RunFact {
     // what it found), and run 2 is opened from its end state, as `state` and `replay` do.
     const legs: RunLeg[] = [];
     const earlierFindings: Finding[] = [];
+    // 197a: each run's Amber, move by move, from what it began with.
+    const amberNow = (): number => world.store.getState().run.run?.scrap ?? 0;
+    let amber = openLedger(amberNow());
     const closeRun1 = (): void => {
-        legs.push(legOf(world));
+        legs.push({ ...legOf(world), amber });
         earlierFindings.push(...world.findings);
         world = beginSecondRun(world, session.run2!);
+        amber = openLedger(amberNow());
     };
 
     session.moves.forEach((move, i) => {
@@ -130,7 +135,9 @@ export function gatherRun(root: string, name: string): RunFact {
                 if (isDraughtMove(m.key)) draughtOffers.push(m.about.items[0]);
             }
         }
+        const amberBefore = amberNow();
         applyMove(world, move, session.moves[i + 1]?.chained === true);
+        amber = recordMove(amber, move.key, amberBefore, amberNow());
     });
     // Run 2 has begun but has no move yet: run 1 is closed and run 2 stands at its first screen.
     if (session.run2 !== undefined && world.runNumber === 1) closeRun1();
@@ -138,7 +145,7 @@ export function gatherRun(root: string, name: string): RunFact {
     for (const note of session.notes) notes.push({ text: note.text, screen: screenBefore[note.atMove] ?? finalScreen });
 
     const last = legOf(world);
-    legs.push(last);
+    legs.push({ ...last, amber });
     const run = runOf(world);
     return {
         session: name,
