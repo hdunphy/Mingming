@@ -44,8 +44,7 @@ import { litClauses } from '../utils/conditionalClauses';
 import { KEYWORD_INFO, appliedStacks, getAppliedStatuses, getCardKeywords } from './cardKeywords';
 import { statusGlossary, STATUS_COLORS } from '../../engine/data/statusGlossary';
 import { stabTitle } from './stabText';
-import { StatusIcon } from '../theme/kit/StatusIcon';
-import { EffectLine, MetMark, RequirementsLabel } from './TooltipLines';
+import { EffectLine, GlossaryStatusIcon, MetMark, RequirementsLabel } from './TooltipLines';
 import { colorFor } from '../screens/runShell';
 import { playSfx } from '../audio/AudioEngine';
 // The fight draws ticket 66's ruled chassis now — same stylesheet as the shop and the editor.
@@ -571,7 +570,7 @@ const CardHand: React.FC<{
                                                         return (
                                                             <div key={st} className="tooltip-glossary">
                                                                 <span className="tooltip-glossary-name" style={{ color: STATUS_COLORS[st] }}>
-                                                                    <StatusIcon status={st} size={11} />{` ${stacks > 1 ? `${stacks} ` : ''}${g.name}`}
+                                                                    <GlossaryStatusIcon status={st} />{` ${stacks > 1 ? `${stacks} ` : ''}${g.name}`}
                                                                 </span>
                                                                 {' '}{g.description}
                                                             </div>
