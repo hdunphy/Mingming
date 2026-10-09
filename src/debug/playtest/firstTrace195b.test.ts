@@ -28,7 +28,7 @@ const count = (haystack: string): number => haystack.split(FIRST_TRACE_LINE).len
 const shown = (world: World): boolean | undefined => world.store.getState().game.traceHintShown;
 
 /** Routine moves until the first reward screen that pays a Trace (seed ps3 pays one on its first fight; ps1 stopped doing so when
- * ticket 206 changed the biome order, so the first fight is a different element). */
+ * ticket 211 changed the biome order, so the first fight is a different element). */
 function worldAtRewardWithTrace(): World {
     const world = freshWorld({ seed: 'ps3' });
     for (let i = 0; i < 40; i += 1) {

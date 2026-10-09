@@ -1,6 +1,6 @@
 # Ticket 207: Authored gym teams: the leader's locked team and deck, and its cards in fights 1 and 2 (design)
 
-**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); **the three teams picked 2026-10-08**; **207a and 207b done 2026-10-08** (`d7a5a75`); 207c waits on 206a's bench. 206 picks the gym setting after this lands (206 D4). Split out of [206](206-gym-difficulty-and-biome-order.md).
+**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); **the three teams picked 2026-10-08**; **207a and 207b done 2026-10-08** (`d7a5a75`); follow-ups shipped through 2026-10-09 (`2f03045`, `5fdb093`, `097460f`, `9e96f78`); **merged with origin/first-impressions 2026-10-09** (`7778dec`, which brought in 202b's revive); 207c waits on 211a's bench. 211 picks the gym setting after this lands (211 D4). Split out of [211](211-gym-difficulty-and-biome-order.md).
 
 ## Why
 
@@ -17,7 +17,7 @@ Henry (2026-10-08): *"Add some of the leader cards so you get to see them before
 2. **A leader card for each Instinct.** Each of the leader's three members has a signature card, named in the gym table: three per gym, nine in all. They are cards that show the leader's plan.
 3. **Fights 1 and 2 show all three.** Across the six enemies in fights 1 and 2, each of the leader's three Instincts appears at least once (that species, running that Instinct), and each of those enemies carries its Instinct's leader card. The other slots stay rolled from the pool as today, with rolled IVs.
 4. **No preview of the whole team.** Neither fight 1 nor fight 2 fields the leader's exact trio. The leader's team is the only place the three play together, which is what makes fight 3 the hardest.
-5. **Fight 3 is the hardest.** Checked on 206a's bench: per gym, the loss rate in fight 3 should be the highest of the three fights. If fight 1 or 2 out-kills the leader, that is a finding to report.
+5. **Fight 3 is the hardest.** Checked on 211a's bench: per gym, the loss rate in fight 3 should be the highest of the three fights. If fight 1 or 2 out-kills the leader, that is a finding to report.
 6. **Keep the scout and the telegraph honest.** The gym scout and the elites' Driver preview read the same table (ticket 28a: one gym comp table), so they show the locked team.
 
 ### The three teams (Henry, 2026-10-08)
@@ -117,7 +117,7 @@ Henry: *"These leader cards can appear and are all rare cards. 1. Keep the names
 - **Totem names kept:** SURTALOGI, ÉLIVÁGAR, YGGDRASIL'S WRATH.
 - **Emberfall's answers:** nothing in the pool removed Burn, so two neutral cards were printed for the shop's guaranteed slot: **Quench** (0e neutral Skill, aimed at an ally: remove 2 Burn and 2 Poison) and **Sindri's Forge** (2e neutral Aura: whenever a Burn detonates on one of your Mingmings, it gains 1 Energized). Numbers as Henry set them later the same day (`5fdb093`): *"Just 1 energized"*, and Quench *"0e and be 2 burn and 2 poison off. Otherwise it doesn't have a lot of utility"*. The harness answer list is Quench, Sindri's Forge, Hamstring; the two-card selective list is Quench and Sindri's Forge. Tests in `emberfallAnswers.test.ts` count the stacks.
 - **The scout keeps the species' usual decks.**
-- Re-pinned on purpose: ghostWalk's four default walks and draftPolicy's two (the pools changed the offers). runWalker's determinism walk moved to seed `t40:determinism:b` because the old seed now reached the gauntlet (2 min 17 s a walk on the VM). Note: ghostWalk's default-walk block now takes ~115 s on the VM (was ~15 s) because its kraken_v1 walks reach the gauntlet; the gate still passes.
+- Re-pinned on purpose: ghostWalk's four default walks and draftPolicy's two (the pools changed the offers). After the 2026-10-09 merge, draftPolicy's kraken_v1 walk moved again (to `6ff0949311533343`) because 202b's revive changes how its gauntlet plays out; `norseFlavourNames.test.ts` now lists the renamed Totems. runWalker's determinism walk moved to seed `t40:determinism:b` because the old seed now reached the gauntlet (2 min 17 s a walk on the VM). Note: ghostWalk's default-walk block now takes ~115 s on the VM (was ~15 s) because its kraken_v1 walks reach the gauntlet; the gate still passes.
 
 ## Rows
 
@@ -125,20 +125,21 @@ Henry: *"These leader cards can appear and are all rare cards. 1. Keep the names
 |---|---|---|
 | 207a | Design session: the three teams (**picked 2026-10-08**), their deck lists (drafted against Henry's plan per gym, then he reviews), and the nine leader cards | **Done 2026-10-08**: teams, decks, leader cards and Totems ruled (below) |
 | 207b | Engine: authored decks and leader cards in the gym table; fights 1 and 2 place the three leader Instincts (each at least once, never the full trio in one fight) with their leader cards; scout and Driver preview read the table; tests pin each gym's team, deck and placement rule | **Shipped 2026-10-08** (`d7a5a75`) |
-| 207c | Measure on 206a's bench: the base arm, and the loss rate per fight (fight 3 should be the highest) | After 207b and 206a |
+| 207c | Measure on 211a's bench: the base arm, and the loss rate per fight (fight 3 should be the highest) | After 207b and 211a |
 
-## Interplay with 206
+## Interplay with 211
 
-206 picks the gym's setting (IVs, heal, revive) on the bench. This ticket changes the teams that setting is applied to, so (Henry, 206 D4) 206's arms run after this lands.
+211 picks the gym's setting (IVs, heal, revive) on the bench. This ticket changes the teams that setting is applied to, so (Henry, 211 D4) 211's arms run after this lands.
 
 ## Decisions for Henry
 
 1. ~~**D1, fights 1 and 2:**~~ Answered 2026-10-08: a leader card for each Instinct; all three Instincts appear at least once in fights 1 and 2; neither fight is the leader's exact trio; the rest stays rolled.
 2. ~~**D2, swap or add:**~~ Answered 2026-10-08: case by case.
 3. ~~**D3, the teams:**~~ Answered 2026-10-08: the table above.
-4. **D4, the deck lists:** Henry reviews each drafted list.
-5. **D5, the leader cards:** one per Instinct, picked after the deck lists.
+4. ~~**D4, the deck lists:**~~ Answered 2026-10-08: reviewed on the page, with his comments applied (Huldra v2's Bark Shield, Crushing Depths, Eitr Surge).
+5. ~~**D5, the leader cards:**~~ Answered 2026-10-08: the nine picked above (Flame Wave his own).
+6. ~~**D6, Emberfall's counter answers:**~~ Answered 2026-10-08/09: Quench and Sindri's Forge, printed as neutral pool cards.
 
 ## Resolution
 
-Open for 207c only: measure the new gyms on 206a's bench (base arm, loss rate per fight; fight 3 should be the highest).
+Open for 207c only: measure the new gyms on 211a's bench (base arm, loss rate per fight; fight 3 should be the highest). Every design decision is answered. 207c and 211c share the same bench run.
