@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 
@@ -39,6 +39,15 @@ function buildCommit(): string {
 export default defineConfig({
   base: DESKTOP ? './' : '/Mingming/',
   plugins: [react()],
+  test: {
+    /*
+     * Scratch folders are gitignored working space (tarballs, copied sources, archived scripts) and
+     * can hold stale `*.test.ts` copies whose relative imports no longer resolve - `npm test` / `npm run gate`
+     * then fail on a file that is not part of the repo. ESLint already ignores `.claude` and
+     * `_scratch_balance`; the test runner has to as well.
+     */
+    exclude: [...configDefaults.exclude, '_scratch_balance/**', '.claude/**'],
+  },
   define: {
     // The app bundle has no Node environment. Substituting `{}` keeps a stray `process.env.X` read
     // from throwing in the browser — and is why every debug CLI in this repo takes flags rather
