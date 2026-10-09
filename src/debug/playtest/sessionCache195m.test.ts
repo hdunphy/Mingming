@@ -36,7 +36,7 @@ function sessionOf(mode: 'run' | 'turn', count: number): { root: string; world: 
     return { root, world };
 }
 
-// 206: the biome order changed, and seed ps1's turn session has left its battle by move 45; 35 is
+// 209: the biome order changed, and seed ps1's turn session has left its battle by move 45; 35 is
 // still mid-battle, which is what the turn case is for.
 describe.each([['run', 60], ['turn', 35]] as const)('195m — %s mode, %i moves', (mode, count) => {
     it('state prints the same text from a snapshot as from a full replay, and the second call replays nothing', () => {

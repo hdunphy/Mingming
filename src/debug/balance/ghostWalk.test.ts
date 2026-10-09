@@ -39,7 +39,7 @@ const hashOf = (value: unknown): string =>
 describe('170a — the default walk is unchanged', () => {
     // [seed, starter, gymIndex, tier] -> hash of JSON.stringify(walkRun(...)) on the parent of 170a.
     const GOLDEN: ReadonlyArray<readonly [string, string, number, number, string]> = [
-        // 206 moved all four on purpose: the biome order is now [gym], [counter + gym], approach, so every walk
+        // 209 moved all four on purpose: the biome order is now [gym], [counter + gym], approach, so every walk
         // meets different biomes from the same seed (bdba9c99839aba86 -> 64d1fd0800261959, 12b709b4581e0545 ->
         // 8d4de1d25b21adc6, 6fe38a89bb245a0e -> a2037756128706ae, 2ab092b942210e28 -> 4c95d4a67e7d2fb4).
         // 207 moved all four again on purpose: the nine leader cards joined their Instincts' pools, so a
@@ -67,7 +67,7 @@ describe('170a — the default walk is unchanged', () => {
     });
 });
 
-/** A seed from the sample that dies before the gym on a real walk (`fenrir_v2 #1` loses its eighth fight since 206's biome order; its fifth from 202k, its sixth before). */
+/** A seed from the sample that dies before the gym on a real walk (`fenrir_v2 #1` loses its eighth fight since 209's biome order; its fifth from 202k, its sixth before). */
 const EARLY_DEATH = { seed: 't170a:default:fenrir_v2:1', starter: 'fenrir_v2', gymIndex: 1 };
 
 /*

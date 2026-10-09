@@ -46,7 +46,7 @@ function cardNightSession(): { world: World; notes: Array<{ atMove: number; text
 /** r02: a run-mode walk to a market, one purchase, then on to the first reward. */
 function runNightSession(): World {
     // 194b: seed 'ps22' no longer reaches a market on the scripted walk (Ragnarok Edge lost its cap, so the
-    // starter's first fights play out differently), so the fixture used 'ps21'. 206: the biome order changed
+    // starter's first fights play out differently), so the fixture used 'ps21'. 209: the biome order changed
     // (the gym's element first), 'ps21' no longer reaches one, and 'ps1' does.
     const world = freshWorld({ mode: 'run', seed: 'ps1' });
     expect(walkTo(world, 'marketplace')).toBe(true);

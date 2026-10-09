@@ -1,6 +1,6 @@
-# Ticket 206: The gym's difficulty and the biome order (design)
+# Ticket 209: The gym's difficulty and the biome order (design)
 
-**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; **206b shipped 2026-10-08** (`24a56ec`, the new biome order is the default); **207 shipped 2026-10-08/09** (`d7a5a75` .. `9e96f78`), so the bench can run on the teams that ship; **202b's revive merged 2026-10-09** (merge `7778dec`), so 206e is unblocked; 206a, 206c, 206d and 206e not started. **This ticket does not close until Henry has played the new order** (*"gate closing the ticket on a play test so I don't forget"*). Split out of the 10-08 night review ([205](205-night-2026-10-08-findings.md)).
+**Type:** design and measurement, then Henry rules; no change ships from this ticket without his ruling. **Status:** **OPENED 2026-10-08** (Henry: *"Add a separate design ticket"*); **D1 and D4 answered 2026-10-08**; **209b shipped 2026-10-08** (`24a56ec`, the new biome order is the default); **207 shipped 2026-10-08/09** (`d7a5a75` .. `9e96f78`), so the bench can run on the teams that ship; **202b's revive merged 2026-10-09** (merge `7778dec`), so 209e is unblocked; 209a, 209c, 209d and 209e not started. **This ticket does not close until Henry has played the new order** (*"gate closing the ticket on a play test so I don't forget"*). Split out of the 10-08 night review ([208](208-night-2026-10-08-findings.md)).
 
 ## Why
 
@@ -41,15 +41,15 @@ So the compromise clears the 85% wild rule (2026-09-25) for every starter, and l
 
 | Row | What | State |
 |---|---|---|
-| 206a | **The gym replay bench:** replay the gauntlet with the exact teams and decks the agents brought to the gym, under different settings | Not started |
-| 206b | **The compromise order is the default** (Henry, D1) | **Shipped 2026-10-08** (`24a56ec`); the measurements below still to run; Henry's playtest closes the ticket |
-| 206c | **Run the bench's arms** (Henry's list) and report each against the soft 60% target | After 206a and 206e (207 has landed) |
-| 206d | **One agent night** on the configuration Henry picks | After the rulings |
-| 206e | **Tie the revive to the heal:** 202b's revive reads the gym heal's percentage (one number, `GAUNTLET_HEAL_PERCENT`), so every heal arm moves both | **Unblocked 2026-10-09**: 202b merged (`7778dec`). Today the two are separate constants that happen to agree: `GAUNTLET_HEAL_PERCENT = 30` in `gauntletHeal.ts` and `GAUNTLET_REVIVE_PERCENT = 30` in `gauntletRevive.ts`. The row makes the second read the first |
+| 209a | **The gym replay bench:** replay the gauntlet with the exact teams and decks the agents brought to the gym, under different settings | Not started |
+| 209b | **The compromise order is the default** (Henry, D1) | **Shipped 2026-10-08** (`24a56ec`); the measurements below still to run; Henry's playtest closes the ticket |
+| 209c | **Run the bench's arms** (Henry's list) and report each against the soft 60% target | After 209a and 209e (207 has landed) |
+| 209d | **One agent night** on the configuration Henry picks | After the rulings |
+| 209e | **Tie the revive to the heal:** 202b's revive reads the gym heal's percentage (one number, `GAUNTLET_HEAL_PERCENT`), so every heal arm moves both | **Unblocked 2026-10-09**: 202b merged (`7778dec`). Today the two are separate constants that happen to agree: `GAUNTLET_HEAL_PERCENT = 30` in `gauntletHeal.ts` and `GAUNTLET_REVIVE_PERCENT = 30` in `gauntletRevive.ts`. The row makes the second read the first |
 
 Parked: tuning the Totems' own numbers (Henry, 2026-10-08: *"Ignore this for now, but we could tune the totems themselves try increasing the numbers"*). Moved to its own ticket: locking in each gym leader's team and deck and giving some of its cards to fights 1 and 2 ([207](207-authored-gym-teams.md)).
 
-### 206a: The gym replay bench
+### 209a: The gym replay bench
 
 Henry (2026-10-08): *"It would be great to measure those with an AI … if we can take the final decks that each AI made it to the gym with and then replay those battles with the different settings."*
 
@@ -63,7 +63,7 @@ Henry (2026-10-08): *"It would be great to measure those with an AI … if we ca
 5. **Cost.** A 3v3 gym fight costs 30–70 s on one core (ticket 61's measurement). 32 teams × 5 seeds × 8 arms × up to 3 fights is about 3,800 fights, which is 30 to 70 hours on one core. So the bench runs teams in parallel across worker threads and is a night job on Henry's machine. Start at 3 seeds and add seeds only to the arms that land near 60%.
 6. **A small module per job:** the snapshot reader (session → `GymSnapshot`), the arm table, the runner, the report. The arms are named run options read by the gauntlet, never edits to the constants, so the game default is untouched until Henry rules.
 
-### 206b: The compromise order, the default
+### 209b: The compromise order, the default
 
 Henry (2026-10-08): *"I think the biome order makes the most sense. Ship it but gate on play testing."* Then: *"Just make this the default but gate closing the ticket on a play test so I don't forget."*
 
@@ -80,11 +80,11 @@ Still to do, for the record and for the playtest:
    - how often a recruit made in biome 1 is downed in biome 2 (Henry's worry from 2026-09-11).
 2. **Henry plays the new order.** The ticket closes on his sign-off.
 
-The bench (206a) cannot measure this row: the biome order changes the teams that reach the gym, so it needs whole runs.
+The bench (209a) cannot measure this row: the biome order changes the teams that reach the gym, so it needs whole runs.
 
-### 206c: The arms (Henry, 2026-10-08)
+### 209c: The arms (Henry, 2026-10-08)
 
-One change from the base arm each. The base arm is today's game plus 202b's revive, with the revive at the heal's percentage (Henry: *"For simplicity keep this the same % as the heal"*; 206e makes it one number). Per D4 the arms run **after 207's locked gym teams land**, so the setting is picked once, on the teams that ship.
+One change from the base arm each. The base arm is today's game plus 202b's revive, with the revive at the heal's percentage (Henry: *"For simplicity keep this the same % as the heal"*; 209e makes it one number). Per D4 the arms run **after 207's locked gym teams land**, so the setting is picked once, on the teams that ship.
 
 | Arm | What changes |
 |---|---|
@@ -99,30 +99,30 @@ One change from the base arm each. The base arm is today's game plus 202b's revi
 
 If one arm lands near 60% for full teams, that is the proposal. If none does, the next step is a pair: the IV arm closest to 60% plus one heal step.
 
-### 206d: The night
+### 209d: The night
 
-A primed night (205b's default) on the 10-04 seeds with the picked configuration. The target is a full-team gym win rate near 60% for the agent.
+A primed night (208b's default) on the 10-04 seeds with the picked configuration. The target is a full-team gym win rate near 60% for the agent.
 
 ## Rulings (2026-10-08)
 
 - Target a full-team gym win rate near 60% for the agent; *"that's not a hard rule"*. Henry reaches the gym every time at tier 0 and wins most, and the agent plays below him, so the agent's 60% is the yardstick.
-- 202b's revive ships before this ticket's tuning (another agent's branch), and **the revive's HP equals the heal's percentage** (*"For simplicity keep this the same % as the heal"*). Henry: *"Add this to the new settings ticket"*, so this ticket owns it (206e) rather than 202b; 202 is not edited from here.
-- **Biome order: the compromise is the default now; the ticket closes on Henry's playtest** (*"Just make this the default but gate closing the ticket on a play test so I don't forget"*); 206b.
+- 202b's revive ships before this ticket's tuning (another agent's branch), and **the revive's HP equals the heal's percentage** (*"For simplicity keep this the same % as the heal"*). Henry: *"Add this to the new settings ticket"*, so this ticket owns it (209e) rather than 202b; 202 is not edited from here.
+- **Biome order: the compromise is the default now; the ticket closes on Henry's playtest** (*"Just make this the default but gate closing the ticket on a play test so I don't forget"*); 209b.
 - **The gym setting is picked after 207** (*"after"*).
-- Measure the settings by replaying the agents' real gym teams (206a), with the arms above (206c).
+- Measure the settings by replaying the agents' real gym teams (209a), with the arms above (209c).
 - The Totems' own numbers: parked.
 - The leader's locked team and deck, and its cards in fights 1 and 2: ticket 207.
 
 ## Decisions for Henry
 
-1. ~~**D1, the biome order:**~~ Answered 2026-10-08: **the compromise, as the default now**; the ticket closes on Henry's playtest. Shipped in 206b.
-2. **D2, the gym setting(s)** from 206c's table.
-3. ~~**D3, 202b's revive:**~~ Answered 2026-10-08: it ships **before** this ticket's tuning, from another agent's branch; 206a's baseline includes it, at the heal's percentage.
+1. ~~**D1, the biome order:**~~ Answered 2026-10-08: **the compromise, as the default now**; the ticket closes on Henry's playtest. Shipped in 209b.
+2. **D2, the gym setting(s)** from 209c's table.
+3. ~~**D3, 202b's revive:**~~ Answered 2026-10-08: it ships **before** this ticket's tuning, from another agent's branch; 209a's baseline includes it, at the heal's percentage.
 4. ~~**D4, order against 207:**~~ Answered 2026-10-08: **after** 207's locked gym teams land.
 5. **D5, the playtest:** Henry plays a run on the new order and says whether it stays. This closes the ticket.
 
 ## Resolution
 
-Open. 206b shipped 2026-10-08 (`24a56ec`); 207 has landed and 202b's revive is merged (2026-10-09, `7778dec`), so 206e and then 206a/206c can start. Still waiting on Henry's playtest of the new order (D5) and his pick of the setting (D2).
+Open. 209b shipped 2026-10-08 (`24a56ec`); 207 has landed and 202b's revive is merged (2026-10-09, `7778dec`), so 209e and then 209a/209c can start. Still waiting on Henry's playtest of the new order (D5) and his pick of the setting (D2).
 
-**Ticket number:** another ticket also carries 206 ([206-open-decisions-2026-10-08](206-open-decisions-2026-10-08.md)), written in parallel on the other branch and kept by the 2026-10-09 merge. Henry to say whether this one is renumbered (suggested 208).
+**Ticket number:** opened as 206; renumbered 209 on 2026-10-09 (Henry: *"rename your tickets please"*) because the other branch's [206](206-open-decisions-2026-10-08.md) was written in parallel. Its night-review parent, opened as 205, is now [208](208-night-2026-10-08-findings.md). Commit messages and code comments before 2026-10-09 say 206 and 205.

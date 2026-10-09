@@ -1,6 +1,6 @@
 # Ticket 207: Authored gym teams: the leader's locked team and deck, and its cards in fights 1 and 2 (design)
 
-**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); **the three teams picked 2026-10-08**; **207a and 207b done 2026-10-08** (`d7a5a75`); follow-ups shipped through 2026-10-09 (`2f03045`, `5fdb093`, `097460f`, `9e96f78`); **merged with origin/first-impressions 2026-10-09** (`7778dec`, which brought in 202b's revive); 207c waits on 206a's bench. 206 picks the gym setting after this lands (206 D4). Split out of [206](206-gym-difficulty-and-biome-order.md).
+**Type:** design session with Henry, then a small engine change. Henry reviews every deck list before it reaches the registry. **Status:** **OPENED 2026-10-08** (Henry: *"we probably need to lock in the deck and mingming of each final boss them give some of those cards to flights 1 and 2. Add this as it's own ticket"*); **shape ruled 2026-10-08** (D1); **the three teams picked 2026-10-08**; **207a and 207b done 2026-10-08** (`d7a5a75`); follow-ups shipped through 2026-10-09 (`2f03045`, `5fdb093`, `097460f`, `9e96f78`); **merged with origin/first-impressions 2026-10-09** (`7778dec`, which brought in 202b's revive); 207c waits on 209a's bench. 209 picks the gym setting after this lands (209 D4). Split out of [209](209-gym-difficulty-and-biome-order.md).
 
 ## Why
 
@@ -17,7 +17,7 @@ Henry (2026-10-08): *"Add some of the leader cards so you get to see them before
 2. **A leader card for each Instinct.** Each of the leader's three members has a signature card, named in the gym table: three per gym, nine in all. They are cards that show the leader's plan.
 3. **Fights 1 and 2 show all three.** Across the six enemies in fights 1 and 2, each of the leader's three Instincts appears at least once (that species, running that Instinct), and each of those enemies carries its Instinct's leader card. The other slots stay rolled from the pool as today, with rolled IVs.
 4. **No preview of the whole team.** Neither fight 1 nor fight 2 fields the leader's exact trio. The leader's team is the only place the three play together, which is what makes fight 3 the hardest.
-5. **Fight 3 is the hardest.** Checked on 206a's bench: per gym, the loss rate in fight 3 should be the highest of the three fights. If fight 1 or 2 out-kills the leader, that is a finding to report.
+5. **Fight 3 is the hardest.** Checked on 209a's bench: per gym, the loss rate in fight 3 should be the highest of the three fights. If fight 1 or 2 out-kills the leader, that is a finding to report.
 6. **Keep the scout and the telegraph honest.** The gym scout and the elites' Driver preview read the same table (ticket 28a: one gym comp table), so they show the locked team.
 
 ### The three teams (Henry, 2026-10-08)
@@ -125,11 +125,11 @@ Henry: *"These leader cards can appear and are all rare cards. 1. Keep the names
 |---|---|---|
 | 207a | Design session: the three teams (**picked 2026-10-08**), their deck lists (drafted against Henry's plan per gym, then he reviews), and the nine leader cards | **Done 2026-10-08**: teams, decks, leader cards and Totems ruled (below) |
 | 207b | Engine: authored decks and leader cards in the gym table; fights 1 and 2 place the three leader Instincts (each at least once, never the full trio in one fight) with their leader cards; scout and Driver preview read the table; tests pin each gym's team, deck and placement rule | **Shipped 2026-10-08** (`d7a5a75`) |
-| 207c | Measure on 206a's bench: the base arm, and the loss rate per fight (fight 3 should be the highest) | After 207b and 206a |
+| 207c | Measure on 209a's bench: the base arm, and the loss rate per fight (fight 3 should be the highest) | After 207b and 209a |
 
-## Interplay with 206
+## Interplay with 209
 
-206 picks the gym's setting (IVs, heal, revive) on the bench. This ticket changes the teams that setting is applied to, so (Henry, 206 D4) 206's arms run after this lands.
+209 picks the gym's setting (IVs, heal, revive) on the bench. This ticket changes the teams that setting is applied to, so (Henry, 209 D4) 209's arms run after this lands.
 
 ## Decisions for Henry
 
@@ -142,4 +142,4 @@ Henry: *"These leader cards can appear and are all rare cards. 1. Keep the names
 
 ## Resolution
 
-Open for 207c only: measure the new gyms on 206a's bench (base arm, loss rate per fight; fight 3 should be the highest). Every design decision is answered. 207c and 206c share the same bench run.
+Open for 207c only: measure the new gyms on 209a's bench (base arm, loss rate per fight; fight 3 should be the highest). Every design decision is answered. 207c and 209c share the same bench run.

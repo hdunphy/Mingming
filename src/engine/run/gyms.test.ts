@@ -61,7 +61,7 @@ describe('offerGyms', () => {
     });
 
     /*
-     * THE ROAD — ticket 206 (Henry, 2026-10-08): *"I think the biome order makes the most sense.
+     * THE ROAD — ticket 209 (Henry, 2026-10-08): *"I think the biome order makes the most sense.
      * Just make this the default but gate closing the ticket on a play test."* It replaces 142 §7's
      * [counter, gym, approach], which opened on the starter's own element (mirror fights).
      *
@@ -107,7 +107,7 @@ describe('offerGyms', () => {
     });
 
     /*
-     * Biome 1 is mono-element; biome 2 (ticket 206) and the approach (142 §7) are the two-element
+     * Biome 1 is mono-element; biome 2 (ticket 209) and the approach (142 §7) are the two-element
      * biomes `IBiome.elements` was left open for (ticket 05).
      */
     it('emits legal biomes: one mono-element, then two pairs', () => {
@@ -163,7 +163,7 @@ describe('offerGyms', () => {
          * which of three NAMED biomes stands in for each element; that is covered by
          * `produces different screens for different seeds`.
          *
-         * Ticket 206 (2026-10-08) changed WHICH single ordering, not that there is one: the road
+         * Ticket 209 (2026-10-08) changed WHICH single ordering, not that there is one: the road
          * is [gym], [counter + gym], approach, read here by each biome's first element, so
          * Emberfall reads Fire > Water > Fire. The doubled Fire is biome 1 and the approach both
          * standing on the leader's element, not a repeated biome: `never repeats a biome within
