@@ -72,8 +72,9 @@ describe('207 — the leader fights with its authored deck and its leader card',
                 expect(codex.has(member.leaderCard), member.leaderCard).toBe(true);
             }
         }
-        // Eitr Surge is the gym Kraken's own card, not a leader card: it stays enemy-only.
-        expect(inV2RunPool('eitr_surge')).toBe(false);
+        // Henry, 2026-10-09: "All cards need to be findable." Every card ticket 207 printed is in the pool.
+        for (const id of ['eitr_surge', 'quench', 'sindris_forge']) expect(inV2RunPool(id), id).toBe(true);
+        expect(SPECIES_CARD_POOLS.kraken_v2).toContain('eitr_surge');
     });
 
     it('the tier table names the same Driver the gym fields (ÉLIVÁGAR at Tidewrack, YGGDRASIL\'S WRATH at Rootfall)', () => {

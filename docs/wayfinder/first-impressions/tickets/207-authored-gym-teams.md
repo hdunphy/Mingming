@@ -113,7 +113,7 @@ Run in the VM: every `src/engine` and `src/debug` test except ghostWalk's four-t
 
 Henry: *"These leader cards can appear and are all rare cards. 1. Keep the names 2. Yes pick new ones and if we don't add something to remove burn and a new aura to get energized if a burn overflows 3. No keep the decks"*.
 
-- **Leader cards are Rare pool cards.** Each joins its own Instinct's species pool (a seventh card), so a party running that Instinct can be offered it; they count in the codex. Eitr Surge is not a leader card and stays enemy-only.
+- **Leader cards are Rare pool cards.** Each joins its own Instinct's species pool (a seventh card), so a party running that Instinct can be offered it; they count in the codex. Eitr Surge is findable too (Henry, 2026-10-09: *"All cards need to be findable like eitr surge"*): it joined kraken_v2's pool. Every card ticket 207 printed is now in the run pool.
 - **Totem names kept:** SURTALOGI, ÉLIVÁGAR, YGGDRASIL'S WRATH.
 - **Emberfall's answers:** nothing in the pool removed Burn, so two neutral cards were printed for the shop's guaranteed slot: **Quench** (0e neutral Skill, aimed at an ally: remove 2 Burn and 2 Poison) and **Sindri's Forge** (2e neutral Aura: whenever a Burn detonates on one of your Mingmings, it gains 1 Energized). Numbers as Henry set them later the same day (`5fdb093`): *"Just 1 energized"*, and Quench *"0e and be 2 burn and 2 poison off. Otherwise it doesn't have a lot of utility"*. The harness answer list is Quench, Sindri's Forge, Hamstring; the two-card selective list is Quench and Sindri's Forge. Tests in `emberfallAnswers.test.ts` count the stacks.
 - **The scout keeps the species' usual decks.**

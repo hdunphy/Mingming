@@ -121,7 +121,8 @@ describe('170e — the walker', () => {
         // (9e1cbbc29cfeec7d -> 4b12b55dcbc9072d, c1318fcb1bd5d8ee -> a83810a200614d91).
         // TICKET 207 moved both again: the leader cards joined their Instincts' pools (-> 256fb21c…, -> 42f88e61…).
         ['t170e:draft:fenrir_v2:1', 'fenrir_v2', 1, '256fb21cee82df69'],
-        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '42f88e614b86cada'],
+        // And again when Eitr Surge joined kraken_v2's pool (42f88e61… -> 6f1a7c33…).
+        ['t170e:draft:kraken_v1:0', 'kraken_v1', 0, '6f1a7c339a680241'],
     ];
 
     it.each(GOLDEN)('%s: leaving draftPolicy out reproduces the 169j Draft Start walk exactly', (seed, starter, gymIndex, hash) => {

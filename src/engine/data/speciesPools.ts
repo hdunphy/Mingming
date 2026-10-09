@@ -38,7 +38,8 @@ export const SPECIES_CARD_POOLS: Readonly<Record<string, ReadonlyArray<string>>>
     jormungandr_v1: ['corrosive_leak', 'scavenge_data', 'feedback_loop', 'hydro_blast', 'tide_pool', 'tidal_battery'],
     jormungandr_v2: ['venom_glut', 'contagion', 'spreading_rot', 'blightbloom', 'nettle_sting', 'riptide', 'coil_and_strike'],
     kraken_v1: ['ink_cloud', 'scavenge_data', 'short_circuit', 'feedback_loop', 'deep_scan', 'static_ward', 'deep_current'],
-    kraken_v2: ['maelstrom', 'tidal_wave', 'overclock_core', 'tidal_battery', 'ink_cloud', 'heat_wave', 'pressure_front'],
+    // TICKET 207: `eitr_surge`, the gym Kraken's Poison card, is findable too (Henry: "All cards need to be findable").
+    kraken_v2: ['maelstrom', 'tidal_wave', 'overclock_core', 'tidal_battery', 'ink_cloud', 'heat_wave', 'pressure_front', 'eitr_surge'],
     huldra_v1: ['verdant_ward', 'iron_bark', 'crippling_vine', 'mend', 'static_ward', 'pollen_cloud', 'bewitch'],
     huldra_v2: ['blightbloom', 'nettle_sting', 'reactive_plating', 'verdant_ward', 'mend', 'iron_bark', 'smoldering_bark'],
 });

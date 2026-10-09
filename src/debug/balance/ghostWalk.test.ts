@@ -45,8 +45,10 @@ describe('170a — the default walk is unchanged', () => {
         // 207 moved all four again on purpose: the nine leader cards joined their Instincts' pools, so a
         // walk is offered different cards (64d1fd08… -> 68a4337a…, 8d4de1d2… -> 2959d42f…,
         // a2037756… -> f02f5d6d…, 4c95d4a6… -> 45e9457d…). fenrir_v2 #1 still dies in its eighth fight.
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '68a4337a2db1bb0c'],
-        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, '2959d42ff6e86bfe'],
+        // And the two kraken_v1 walks once more when Eitr Surge joined kraken_v2's pool (2026-10-09):
+        // 68a4337a… -> 38733bb5…, 2959d42f… -> faad0c3b…. The fenrir_v2 walks did not move.
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 0, '38733bb5dc2a5bb9'],
+        ['t170a:default:kraken_v1:0', 'kraken_v1', 0, 3, 'faad0c3b9a2ef1c8'],
         // 202k moved both fenrir_v2 walks on purpose (skoll_v1's kit changed, and wild Skolls hold that kit):
         // cbae1ed75c400704 -> 6fe38a89bb245a0e and 9ec0bff685eb34aa -> 2ab092b942210e28. The kraken_v1 walks did not move.
         ['t170a:default:fenrir_v2:1', 'fenrir_v2', 1, 0, 'f02f5d6d30d58fc7'],
