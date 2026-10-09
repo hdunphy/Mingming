@@ -12,8 +12,10 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { ProgramAction } from '../../engine/types';
+import type { ProgramAction, StatusType } from '../../engine/types';
 import { iconsIn } from '../theme/iconMarkup';
+import { STATUS_ICON_NAMES } from '../theme/kit/statusIconPaths';
+import { BASE_FONT_PX } from '../settings/settings';
 import { hasPictograph } from '../theme/pictographs';
 import { EFFECT_ICON } from './cardEffectIcons';
 import { EffectLine, GlossaryStatusIcon, MetMark, RequirementsLabel } from './TooltipLines';
@@ -89,24 +91,59 @@ describe('the Requirements heading and the met tick (205)', () => {
 /**
  * 206 item B10 (Henry, 2026-10-09): the tooltip's icons were too small. They draw at 1.25em, which is
  * 14 px on a 0.7rem effect line at the default text size and still follows the Text size setting.
- * The glossary's status icons are fixed px, so they go from 11 to 14.
+ * (The glossary's status icon was 14 px here; it is em now, below.)
  */
-describe('the tooltip icons are bigger: 1.25em, and 14 px for the status glossary (206 B10)', () => {
+describe('the tooltip icons are bigger: 1.25em (206 B10)', () => {
     const sized = (markup: string): boolean => /style="[^"]*width:1\.25em;height:1\.25em/.test(markup);
 
     it('every effect line draws its icon at 1.25em', () => {
         for (const [action] of LINES) expect(sized(renderToStaticMarkup(<EffectLine action={action} />)), action.type).toBe(true);
     });
 
-    it('the Requirements triangle and the met tick match it', () => {
-        expect(sized(renderToStaticMarkup(<RequirementsLabel />))).toBe(true);
-        expect(sized(renderToStaticMarkup(<MetMark />))).toBe(true);
+});
+
+/**
+ * Follow-up to 206 B10 (Henry, 2026-10-09): 1.25em is relative to each line's own text, so on the
+ * Requirements label (0.55rem) the triangle came out 11 px and on the conditional (0.62rem) the tick
+ * 12.4 px. They, and the glossary's status icon (also 0.62rem), are sized in rem: 14 px on the
+ * default root, and the Text size setting scales the root (`applySettings` sets `<html>` font-size).
+ */
+describe('the triangle, the tick and the glossary icon are 14 px at the default text size', () => {
+    const remPx = (markup: string): number | undefined => {
+        const m = /style="[^"]*width:([\d.]+)rem;height:([\d.]+)rem/.exec(markup);
+        return m && m[1] === m[2] ? Number(m[1]) * BASE_FONT_PX : undefined;
+    };
+
+    it('the Requirements triangle', () => {
+        expect(remPx(renderToStaticMarkup(<RequirementsLabel />))).toBe(14);
     });
 
-    it('a glossary status icon is 14 px', () => {
+    it('the met tick', () => {
+        expect(remPx(renderToStaticMarkup(<MetMark />))).toBe(14);
+    });
+
+    it('the glossary status icon', () => {
+        expect(remPx(renderToStaticMarkup(<GlossaryStatusIcon status="Poison" />))).toBe(14);
+    });
+});
+
+/**
+ * Follow-up to 206 B10 (Henry, 2026-10-09): the glossary's status icon was a fixed-px `StatusIcon`
+ * with no vertical-align, so it sat on the baseline above its words and ignored the Text size
+ * setting. It draws through `InlineIcon` now, like every other tooltip icon: the status's own Tabler
+ * name, an em size, and InlineIcon's -0.15em drop onto the line.
+ */
+describe('a glossary status icon sits on its line and follows the text size', () => {
+    const statuses = Object.keys(STATUS_ICON_NAMES) as StatusType[];
+
+    it.each(statuses)('%s draws its status icon through InlineIcon', (status) => {
+        expect(iconsIn(renderToStaticMarkup(<GlossaryStatusIcon status={status} />))).toEqual([{ name: STATUS_ICON_NAMES[status], variant: 'outline' }]);
+    });
+
+    it('is sized in a font-relative unit, not px, and drops onto the line', () => {
         const markup = renderToStaticMarkup(<GlossaryStatusIcon status="Burn" />);
-        expect(markup).toContain('data-status-icon="Burn"');
-        expect(markup).toMatch(/<svg[^>]* width="14" height="14"/);
+        expect(markup).toMatch(/style="[^"]*width:[\d.]+r?em;height:[\d.]+r?em/);
+        expect(markup).toMatch(/style="[^"]*vertical-align:-0\.15em/);
     });
 });
 
