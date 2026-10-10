@@ -7,6 +7,7 @@
  * Every section is always present, with "None." when there is nothing to say, so a reader can tell
  * a quiet night from a missing section.
  */
+import { amberSection } from './amberTable';
 import { COMPARABILITY_NOTE } from './comparabilityNote';
 import type { RunFact } from './facts';
 import { groupNotes } from './notes';
@@ -137,5 +138,7 @@ export function renderReport(date: string, runs: ReadonlyArray<RunFact>): string
         ...runsSection(runs),
         ...notesSection(runs),
         ...patternsSection(runs),
+        // 197a: added at the end, so everything above reads exactly as it did.
+        ...amberSection(runs),
     ].join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
 }

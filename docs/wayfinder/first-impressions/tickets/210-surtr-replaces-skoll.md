@@ -1,6 +1,6 @@
 # Ticket 210: Surtr replaces Sköll (rename, rework the Sköll-only names, new art later)
 
-**Type:** rename and wording, the id rename was cut. **Status:** **OPENED 2026-10-09** (Henry: *"Add a new ticket for all of this please"*); **all five decisions ruled 2026-10-09** (below); nothing built yet, 210a and 210c are ready to build, 210b is cut, 210e (the art brief) is written.
+**Type:** rename and wording, the id rename was cut. **Status:** **OPENED 2026-10-09** (Henry: *"Add a new ticket for all of this please"*); **all five decisions ruled 2026-10-09** (below); nothing built yet, 210a and 210c are ready to build, 210b is cut, 210e (the art brief) is written. **Also carries 206 B5** (closed 2026-10-09): Henry's earlier "rename nothing" for the Light Stance / Sun Eater clash is overtaken here, because 210a renames the Sun Devourer card to Lævateinn; he confirms or reverses that when he takes 210 off hold.
 
 ## Why
 

@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import { GLYPH_STROKE } from './glyphLayers';
 import { InlineIcon } from './InlineIcon';
 import { iconsIn } from './iconMarkup';
 import { TABLER_FILLED, TABLER_OUTLINE } from './tabler.generated';
@@ -28,6 +29,13 @@ describe('InlineIcon (205)', () => {
 
     it('takes a size when the text around it is tiny (a button label)', () => {
         expect(renderToStaticMarkup(<InlineIcon name="dna" size="1.25em" />)).toMatch(/width:1\.25em/);
+    });
+
+    it('draws at the kit weight unless asked for another (206 B10: the card tooltip asks for 2)', () => {
+        expect(renderToStaticMarkup(<InlineIcon name="sword" />)).toContain(`stroke-width="${GLYPH_STROKE}"`);
+        const heavy = renderToStaticMarkup(<InlineIcon name="sword" weight={2} />);
+        expect(heavy).toContain('stroke-width="2"');
+        expect(heavy).not.toContain(`stroke-width="${GLYPH_STROKE}"`);
     });
 
     it('takes its colour from the text: currentColor, never a hex', () => {

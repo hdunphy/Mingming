@@ -67,6 +67,8 @@ import { unlockedTiers } from '../../engine/run/tiers/tierUnlocks';
 import { clearLine } from '../../engine/run/tiers/tierUnlockLine';
 import { shortHandedGymLine } from '../../engine/run/shortHandedGymLine';
 import type { RootState } from '../store/store';
+import FeedbackButton from '../feedback/FeedbackButton';
+import { feedbackRunOf } from '../feedback/feedbackRun';
 import './RunSummary.css';
 import { Icon } from '../theme/Icon';
 import type { IconName } from '../theme/icons';
@@ -252,9 +254,16 @@ export default function RunSummary({ run, endedAt }: RunSummaryProps): ReactNode
                     <li className="rs-big-line k-plate">{unlocked}</li>
                 </ul>
 
-                <button type="button" className="ranch-button k-button rs-leave" onClick={leave}>
-                    Back to ranch
-                </button>
+                {/*
+                  * TICKET 181c: the feedback form, pre-filled from this run, beside the way out. It
+                  * opens a new tab and never stands between the player and the ranch.
+                  */}
+                <div className="rs-actions">
+                    <FeedbackButton run={feedbackRunOf(run, ranch, clock)} className="ranch-button k-button rs-leave" />
+                    <button type="button" className="ranch-button k-button rs-leave" onClick={leave}>
+                        Back to ranch
+                    </button>
+                </div>
             </section>
         </div>
     );
