@@ -1,6 +1,6 @@
 # Ticket 206: Everything still waiting on Henry after the 2026-10-08 build session
 
-**Type:** decisions only, no code. **Status:** **OPENED 2026-10-08** (Henry: "write the rest of the decisions in a new ticket"). One row per decision, each with the options and what it costs. Answer by number; each answer is then built or closed in the ticket named in the "Where" column. Nothing here blocks the code that is already merged.
+**Type:** decisions only, no code. **Status:** **CLOSED 2026-10-09** (Henry: chores 1 to 5 done; every row left is owned by another ticket, see *Closed* below). Opened 2026-10-08 (Henry: "write the rest of the decisions in a new ticket"). One row per decision, each with the options and what it costs. Answer by number; each answer is then built or closed in the ticket named in the "Where" column. Nothing here blocks the code that is already merged.
 
 **Where the session left the branch.** `first-impressions` holds everything built on 2026-10-07 and 2026-10-08: 202a, 202b, 202c, 202e, 202g, 202h, 202j, 202k, 188, 195e-2, 200b to 200e, 204 and 205. Not pushed. On the merged tree `tsc -b`, `eslint .` and `npm run icons -- --check` are clean and vitest passes (532 files, 6138 tests). `vite build` ran green on each agent branch but not on the merge.
 
@@ -75,3 +75,23 @@
 ## Note, 2026-10-09: the creature pictures in the build
 
 *Henry in chat, 2026-10-09.* No B row covers art, so it is recorded here. Of the four creature pictures in the build (`src/assets/battleArt/mingming/`), **`Fenrir.png` is Henry's own, not AI-made, and stays.** `Fenrir_old.png` (the first sketch), `Kraken.png` and `Ratatoskr.png` are removed from the game on branch `fi/t7-drop-fenrir-old`, under the standing ruling that no AI-generated picture ships. **Built and merged 2026-10-09:** `aec207f` and `62d3c86` (merged in `3811d64`). Henry then also had the 183 mocks' AI pictures (`art/fenrir.png`, the old robot wolf, `art/kraken.png`, `art/ratatoskr.png`) and the three battle renders that showed them deleted (`40bfb5e`, `b672346`).
+
+## Closed, 2026-10-09
+
+**Chores E1 to E5 are done** (Henry, 2026-10-09; checked against the repo the same day). E1: the design record shows the new names (`registry.json` holds Urðarbrunnr; regenerated 2026-10-09). E2: Henry ran `npm run gate` and it passed. E3: pushed; `first-impressions` and `origin/first-impressions` are both at `d633df5`. E4: Henry launched the renamed desktop build and his saves work; `desktop/package.json` names the product and shortcut Mingming Midgard Circuit, and `appId` stays (A2). E5: 181c, 181d and 181e are built and merged (`package.json` says 0.4.0); what is left of the release is Henry's own itch steps, which live in ticket 181, not here.
+
+**Nothing in this ticket is open any more.** Every row that was still waiting moved to the ticket that owns it:
+
+| Row | Where it lives now |
+|---|---|
+| A1 "Party 1 of 3" | [202](202-night-2026-10-06-rulings.md) row 202i, deferred by Henry |
+| B1 status-icon look | settled; 200f can close on Henry's say, in [200](200-tabler-icon-swap.md) |
+| B5 Light Stance vs Sun Eater | [210](210-surtr-replaces-skoll.md): Henry's "rename nothing" meets 210's Sun Devourer to Lævateinn; he confirms or reverses it when he takes 210 off hold |
+| C1 the v1 starters | [202](202-night-2026-10-06-rulings.md) row 202d (`research/202d-v1-starters.md`) and [208c](208-rat-v1-playtest-notes-2026-10-08.md) (Seed Bomb, parked) |
+| C2 jormungandr_v1 | [203](203-jormungandr-v1-redesign.md) |
+| C3 the cards nobody takes, the shop | [196](196-unused-cards.md), [197](197-shop-buys-vs-upgrades.md) |
+| C4 gym prep mock | [201](201-gym-prep-mock.md) |
+| D1 naive vs primed night | [202](202-night-2026-10-06-rulings.md) row 202f |
+| D2 first two-run night | [202](202-night-2026-10-06-rulings.md) row 202c |
+
+C and D stay on hold until Henry has played the new biome order (ticket 211, D5).
